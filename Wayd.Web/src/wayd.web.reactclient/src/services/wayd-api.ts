@@ -16658,7 +16658,7 @@ export class ProductTagCategoriesClient {
     }
 
     /**
-     * Create a tag category — an axis such as Platform, Tech Stack or Compliance.
+     * Create a tag category, such as Platform, Tech Stack or Compliance.
      * @return Created
      */
     create(request: CreateProductTagCategoryRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
@@ -17268,7 +17268,7 @@ export class ProductTagsClient {
     }
 
     /**
-     * Search product tags, on categories and free, with how many products carry each.
+     * Search product tags, in categories and free, with how many products carry each.
      * @param search (optional) 
      * @param isFree (optional) 
      * @param includeInactive (optional) 
@@ -54227,7 +54227,7 @@ export class IntakeRequestTagCategoriesClient {
     }
 
     /**
-     * Get the intake request tag axes, each with its tags.
+     * Get the intake request tag categories, each with its tags.
      * @param includeInactive (optional) 
      * @param deskId (optional) 
      * @return OK
@@ -54287,7 +54287,7 @@ export class IntakeRequestTagCategoriesClient {
     }
 
     /**
-     * Add an intake request tag axis to the end of the list.
+     * Add an intake request tag category to the end of the list.
      * @return Created
      */
     create(request: CreateIntakeRequestTagCategoryRequest, cancelToken?: CancelToken): Promise<string> {
@@ -54350,7 +54350,7 @@ export class IntakeRequestTagCategoriesClient {
     }
 
     /**
-     * Rename an intake request tag axis or change its description.
+     * Rename an intake request tag category or change its description.
      * @return No Content
      */
     update(id: string, request: UpdateIntakeRequestTagCategoryRequest, cancelToken?: CancelToken): Promise<void> {
@@ -54426,7 +54426,7 @@ export class IntakeRequestTagCategoriesClient {
     }
 
     /**
-     * Delete an intake request tag axis and its tags.
+     * Delete an intake request tag category and its tags.
      * @return No Content
      */
     delete(id: string, cancelToken?: CancelToken): Promise<void> {
@@ -54491,7 +54491,7 @@ export class IntakeRequestTagCategoriesClient {
     }
 
     /**
-     * Take an intake request tag axis out of use, or put it back.
+     * Take an intake request tag category out of use, or put it back.
      * @return No Content
      */
     setActive(id: string, request: SetIntakeRequestTagCategoryActiveRequest, cancelToken?: CancelToken): Promise<void> {
@@ -54560,7 +54560,7 @@ export class IntakeRequestTagCategoriesClient {
     }
 
     /**
-     * Put the intake request tag axes in the order they are presented.
+     * Put the intake request tag categories in the order they are presented.
      * @return No Content
      */
     reorder(request: ReorderIntakeRequestTagCategoriesRequest, cancelToken?: CancelToken): Promise<void> {
@@ -54626,7 +54626,7 @@ export class IntakeRequestTagCategoriesClient {
     }
 
     /**
-     * Add a tag to an intake request tag axis.
+     * Add a tag to an intake request tag category.
      * @return OK
      */
     addTag(id: string, request: AddIntakeRequestTagRequest, cancelToken?: CancelToken): Promise<string> {
@@ -54939,7 +54939,7 @@ export class IntakeRequestTagsClient {
     }
 
     /**
-     * Search intake request tags, on axes and free, with how many visible requests carry each.
+     * Search intake request tags, in categories and free, with how many visible requests carry each.
      * @param search (optional) 
      * @param isFree (optional) 
      * @param includeInactive (optional) 
@@ -56181,6 +56181,65 @@ export class ConnectionsClient {
     }
 
     /**
+     * Verify Microsoft Teams connection credentials before create.
+     * @return No Content
+     */
+    verifyTeamsCommunicationConnection(request: VerifyTeamsConnectionRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/teams/verify-communication";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processVerifyTeamsCommunicationConnection(_response);
+        });
+    }
+
+    protected processVerifyTeamsCommunicationConnection(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get activity history for the connection.
      * @param page (optional) 
      * @param pageSize (optional) 
@@ -56519,6 +56578,71 @@ export class ConnectionsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ConnectionInitResult>(null as any);
+    }
+
+    /**
+     * Run the hello-world communication test for a connection.
+     * @return No Content
+     */
+    testCommunicationConnection(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/{id}/communication-test";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processTestCommunicationConnection(_response);
+        });
+    }
+
+    protected processTestCommunicationConnection(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -62537,9 +62661,9 @@ export interface AddIntakeRequestParticipantRequest {
     employeeId: string;
 }
 
-/** A tag to add to a tag axis. */
+/** A tag to add to a tag category. */
 export interface AddIntakeRequestTagRequest {
-    /** The label, unique within the axis. */
+    /** The label, unique within the category. */
     name: string;
     /** What the label means, where it is not obvious. */
     description?: string | undefined;
@@ -62572,7 +62696,7 @@ send an empty list to record none, which is not the same as recording that there
     startsOn?: string | undefined;
 }
 
-/** Adds a tag to an axis. */
+/** Adds a tag to a category. */
 export interface AddProductTagRequest {
     /** What the tag is called — ios, android, pci-scope. */
     name: string;
@@ -63217,6 +63341,7 @@ export enum Connector {
     AzureOpenAI = "AzureOpenAI",
     Entra = "Entra",
     Workday = "Workday",
+    Teams = "Teams",
 }
 
 /** A capability a connector supports, with the display category it is grouped under. */
@@ -63453,14 +63578,14 @@ when the desk offers any channel; leave it out for a desk that offers none. */
     needBy?: IntakeRequestNeedByRequest | undefined;
 }
 
-/** A tag axis to add to the end of the list, with no tags. */
+/** A tag category to add to the end of the list, with no tags. */
 export interface CreateIntakeRequestTagCategoryRequest {
-    /** What the company calls the axis. Unique among active and inactive axes. */
+    /** What the company calls the category. Unique among active and inactive categories. */
     name: string;
-    /** What the axis is for, shown when choosing tags. */
+    /** What the category is for, shown when choosing tags. */
     description?: string | undefined;
-    /** Whether a request can carry several tags from the axis. When false, tagging a request replaces the tag it
-held on the axis. Cannot be changed afterwards. */
+    /** Whether a request can carry several tags from the category. When false, tagging a request replaces the tag it
+held in the category. Cannot be changed afterwards. */
     allowsMany: boolean;
 }
 
@@ -63585,13 +63710,13 @@ export interface CreateProductRequest {
 }
 
 export interface CreateProductTagCategoryRequest {
-    /** What the organization calls this axis — Platform, Tech Stack, Compliance. */
+    /** What the organization calls this category — Platform, Tech Stack, Compliance. */
     name: string;
-    /** What the axis is for, shown when choosing tags. */
+    /** What the category is for, shown when choosing tags. */
     description?: string | undefined;
-    /** Whether a product can carry several tags from this axis. True suits Platform, where a
+    /** Whether a product can carry several tags from this category. True suits Platform, where a
 cross-platform app genuinely targets both iOS and Android. Fixed once set:
-narrowing it later would leave products holding more tags than the axis permits. */
+narrowing it later would leave products holding more tags than the category permits. */
     allowsMany: boolean;
 }
 
@@ -63923,6 +64048,12 @@ export interface CreateTeamRequest {
     description?: string | undefined;
     /** The active date for the team. */
     activeDate: string;
+}
+
+export interface CreateTeamsConnectionRequest extends CreateConnectionRequest {
+    tenantId: string;
+    clientId: string;
+    clientSecret: string;
 }
 
 export interface CreateUserRequest {
@@ -65367,7 +65498,7 @@ one. Max 1024 chars. */
     duplicateOfId?: string | undefined;
     /** The active member of the desk who owns the request, by id. */
     assigneeId?: string | undefined;
-    /** Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them. */
+    /** Semicolon-separated tag ids: tags in categories the desk offers, or free tags where it allows them. */
     tagIds?: string | undefined;
     /** The request's estimate: an estimate value of the desk's estimation scale, exactly as the scale writes it
 (`M`, `8`), never a card such as `?`. Needs a desk with an estimation scale. Blank leaves the
@@ -66083,13 +66214,13 @@ export interface IntakeDeskDto {
 archived one stays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllChannels false means the
 desk offers none. */
     channelIds: string[];
-    /** Whether the desk's agents tag along every active company tag axis, including axes added later. */
+    /** Whether the desk's agents tag in every active company tag category, including categories added later. */
     offersAllTagCategories: boolean;
-    /** The tag axes the desk chose, in the company's order, while it does not offer them all; an inactive one
+    /** The tag categories the desk chose, in the company's order, while it does not offer them all; an inactive one
 stays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllTagCategories false means its agents tag
-along none. */
+in none. */
     tagCategoryIds: string[];
-    /** Whether the desk's agents may add free tags — tags on no axis, typed in while tagging. */
+    /** Whether the desk's agents may add free tags — tags in no category, typed in while tagging. */
     allowsFreeTags: boolean;
     /** The scoring model the desk's agents score its requests with, or null when the desk does not score them. */
     scoringModel?: NavigationDto | undefined;
@@ -66544,8 +66675,8 @@ offers no channel. */
     assignee?: EmployeeNavigationDto | undefined;
     /** When the request has to land and why, when it has a need-by date. */
     needBy?: IntakeRequestNeedByDto | undefined;
-    /** The tags reviewers filed the request under, by axis order and then name. Inactive tags the request still
-carries are included. */
+    /** The tags reviewers filed the request under, by category order and then name. Inactive tags the request
+still carries are included. */
     tags: IntakeRequestTagNavigationDto[];
     /** When the request was submitted, from which its age is read. */
     submittedOn: Date;
@@ -66553,28 +66684,28 @@ carries are included. */
     statusChangedOn: Date;
 }
 
-/** A tag axis reviewers file intake requests along, with its tags. */
+/** A tag category reviewers group intake requests by, with its tags. */
 export interface IntakeRequestTagCategoryDto {
-    /** The axis's id. */
+    /** The category's id. */
     id: string;
-    /** What the company calls the axis. */
+    /** What the company calls the category. */
     name: string;
-    /** What the axis is for, when described. */
+    /** What the category is for, when described. */
     description?: string | undefined;
-    /** Whether a request can carry several tags from the axis. When false, tagging a request replaces the tag
-it held on the axis. Fixed once the axis exists. */
+    /** Whether a request can carry several tags from the category. When false, tagging a request replaces the
+tag it held in the category. Fixed once the category exists. */
     allowsMany: boolean;
-    /** Position when presenting the axes, lowest first. */
+    /** Position when presenting the categories, lowest first. */
     order: number;
-    /** Whether requests can still be tagged along the axis. */
+    /** Whether requests can still be tagged in the category. */
     isActive: boolean;
-    /** Whether the platform defines the axis, which then cannot be renamed, given tags or deleted. */
+    /** Whether the platform defines the category, which then cannot be renamed, given tags or deleted. */
     isSystem: boolean;
-    /** The axis's tags, alphabetically, inactive ones included. */
+    /** The category's tags, alphabetically, inactive ones included. */
     tags: IntakeRequestTagOptionDto[];
 }
 
-/** One intake request tag, on an axis or free, with how many requests the reader can see carry it. */
+/** One intake request tag, in a category or free, with how many requests the reader can see carry it. */
 export interface IntakeRequestTagListItemDto {
     /** The tag's id, which a request refers to. */
     id: string;
@@ -66582,11 +66713,11 @@ export interface IntakeRequestTagListItemDto {
     name: string;
     /** What the label means, when described. */
     description?: string | undefined;
-    /** The tag's axis, or null for a free tag. */
+    /** The tag's category, or null for a free tag. */
     categoryId?: string | undefined;
-    /** What the company calls the tag's axis, or null for a free tag. */
+    /** What the company calls the tag's category, or null for a free tag. */
     categoryName?: string | undefined;
-    /** Whether this is a free tag: one on no axis, created by an agent typing its name while tagging. */
+    /** Whether this is a free tag: one in no category, created by an agent typing its name while tagging. */
     isFree: boolean;
     /** Whether requests can still be given the tag. Always true for a free tag. */
     isActive: boolean;
@@ -66595,23 +66726,23 @@ private desk's. */
     requestCount: number;
 }
 
-/** A tag an intake request carries, named with its axis, or a free tag on none. */
+/** A tag an intake request carries, named with its category, or a free tag in none. */
 export interface IntakeRequestTagNavigationDto {
     /** The tag's id. */
     id: string;
     /** The label. */
     name: string;
-    /** The tag's axis, or null for a free tag. */
+    /** The tag's category, or null for a free tag. */
     categoryId?: string | undefined;
-    /** What the company calls the tag's axis, or null for a free tag. */
+    /** What the company calls the tag's category, or null for a free tag. */
     categoryName?: string | undefined;
 }
 
-/** One tag on an axis, as the settings page and the pickers list it. */
+/** One tag in a category, as the settings page and the pickers list it. */
 export interface IntakeRequestTagOptionDto {
     /** The tag's id, which a request refers to. */
     id: string;
-    /** The label, unique within its axis. */
+    /** The label, unique within its category. */
     name: string;
     /** What the label means, when described. */
     description?: string | undefined;
@@ -66978,13 +67109,13 @@ nothing in Wayd is recorded against the caller as a person. */
 
 /** The tag a free tag's requests move to. */
 export interface MergeIntakeRequestTagRequest {
-    /** Another free tag, or an active tag on an active axis. */
+    /** Another free tag, or an active tag in an active category. */
     targetTagId: string;
 }
 
 /** Merges a free tag into another tag. */
 export interface MergeProductTagRequest {
-    /** The tag the free tag's products move to: another free tag, or an active tag on an active category. */
+    /** The tag the free tag's products move to: another free tag, or an active tag in an active category. */
     targetTagId: string;
 }
 
@@ -68119,19 +68250,19 @@ export enum ProductStatusAlias {
     RolledBack = "RolledBack",
 }
 
-/** A tag axis and the tags on it. */
+/** A tag category and the tags on it. */
 export interface ProductTagCategoryDto {
     id: string;
     key: number;
     name: string;
     description?: string | undefined;
-    /** Whether a product can carry several tags from this axis. */
+    /** Whether a product can carry several tags from this category. */
     allowsMany: boolean;
-    /** Display position when presenting the axes. Presentation only. */
+    /** Display position when presenting the categories. Presentation only. */
     order: number;
-    /** Whether products can still be tagged along this axis. */
+    /** Whether products can still be tagged in this category. */
     isActive: boolean;
-    /** Platform-seeded axes are read-only: they cannot be edited or deleted. */
+    /** Platform-seeded categories are read-only: they cannot be edited or deleted. */
     isSystem: boolean;
     tags: ProductTagOptionDto[];
 }
@@ -68139,22 +68270,22 @@ export interface ProductTagCategoryDto {
 export interface ProductTagDto {
     tagId: string;
     tagName: string;
-    /** The tag's axis, or null for a free tag. */
+    /** The tag's category, or null for a free tag. */
     categoryId?: string | undefined;
-    /** The axis's name, or null for a free tag. */
+    /** The category's name, or null for a free tag. */
     categoryName?: string | undefined;
 }
 
-/** One product tag, on an axis or free, with how many products carry it. */
+/** One product tag, in a category or free, with how many products carry it. */
 export interface ProductTagListItemDto {
     id: string;
     name: string;
     description?: string | undefined;
-    /** The tag's axis, or null for a free tag. */
+    /** The tag's category, or null for a free tag. */
     categoryId?: string | undefined;
-    /** The axis's name, or null for a free tag. */
+    /** The category's name, or null for a free tag. */
     categoryName?: string | undefined;
-    /** Whether this is a free tag: one on no axis, created by typing its name while tagging. */
+    /** Whether this is a free tag: one in no category, created by typing its name while tagging. */
     isFree: boolean;
     /** Whether products can still be given this tag. Always true for a free tag. */
     isActive: boolean;
@@ -68172,7 +68303,7 @@ export interface ProductTagOptionDto {
 }
 
 export interface ProductTagSettingsDto {
-    /** Whether anyone who can tag a product may also give it free tags — tags on no axis, typed in while tagging. */
+    /** Whether anyone who can tag a product may also give it free tags — tags in no category, typed in while tagging. */
     allowsFreeTags: boolean;
 }
 
@@ -69155,9 +69286,9 @@ export interface ReorderIntakeChannelsRequest {
     orderedChannelIds: string[];
 }
 
-/** The order the tag axes are presented in. */
+/** The order the tag categories are presented in. */
 export interface ReorderIntakeRequestTagCategoriesRequest {
-    /** Every axis, inactive ones included, in order. A partial list is refused. */
+    /** Every category, inactive ones included, in order. A partial list is refused. */
     orderedCategoryIds: string[];
 }
 
@@ -69165,7 +69296,7 @@ export interface ReorderPersonaRequest {
     newOrder: number;
 }
 
-/** Puts the tag axes in a given order. */
+/** Puts the tag categories in a given order. */
 export interface ReorderProductTagCategoriesRequest {
     /** Every tag category, in the order they should be presented. Must name the whole set: a partial
 list would leave the categories it omits at stale positions. */
@@ -69779,9 +69910,9 @@ either way. */
     isActive: boolean;
 }
 
-/** Whether requests can be tagged along a tag axis. */
+/** Whether requests can be tagged in a tag category. */
 export interface SetIntakeRequestTagCategoryActiveRequest {
-    /** True to put the axis back into use, false to take it out of use. Requests already tagged along it keep
+    /** True to put the category back into use, false to take it out of use. Requests already tagged in it keep
 their tags either way. */
     isActive: boolean;
 }
@@ -69816,11 +69947,11 @@ export interface SetProductTagActiveRequest {
     isActive: boolean;
 }
 
-/** Takes a tag axis out of use, or puts it back. Products already tagged keep their tags. */
+/** Takes a tag category out of use, or puts it back. Products already tagged keep their tags. */
 export interface SetProductTagCategoryActiveRequest {
     /** The unique identifier of the tag category. */
     id: string;
-    /** Whether products can still be tagged along this axis. */
+    /** Whether products can still be tagged in this category. */
     isActive: boolean;
 }
 
@@ -71075,14 +71206,14 @@ export enum SyncType {
 
 /** Files an intake request under a typed name. */
 export interface TagIntakeRequestByNameRequest {
-    /** The tag's name. When exactly one tag on an axis the request's desk offers has it, ignoring case, that tag is
+    /** The tag's name. When exactly one tag in a category the request's desk offers has it, ignoring case, that tag is
 applied; otherwise the free tag with the name is applied, and created when none has it yet. */
     name: string;
 }
 
 /** Tags a product with a typed name. */
 export interface TagProductByNameRequest {
-    /** The tag's name. When exactly one tag on an active category has it, ignoring case, that tag is applied;
+    /** The tag's name. When exactly one tag in an active category has it, ignoring case, that tag is applied;
 otherwise the free tag with the name is applied, and created when none has it yet. */
     name: string;
 }
@@ -71733,6 +71864,19 @@ int? TeamOperatingModelListDto.CadenceWeeks is. */
     cadenceAnchor?: string | undefined;
 }
 
+export interface TeamsConnectionConfigurationDto {
+    tenantId: string;
+    clientId: string;
+    clientSecret: string;
+}
+
+export interface TeamsConnectionDetailsDto extends ConnectionDetailsDto {
+    configuration: TeamsConnectionConfigurationDto;
+}
+
+export interface TeamsConnectionListDto extends ConnectionListDto {
+}
+
 /** A team's velocity, predictability and say/do over its last completed standard sprints: each sprint's values, their average and their spread. Worked out when read from work item history, and never stored. */
 export interface TeamSprintMetricsDto {
     /** The team the metrics are of. */
@@ -72155,14 +72299,14 @@ none, and its submit form does not ask where a request came from. Leave it out t
 Ignored unless `offersAllChannels` is false. A channel already chosen may stay after it is archived;
 a newly chosen one must be active. */
     channelIds: string[] | undefined;
-    /** Whether the desk's agents tag requests along every active company tag axis, including axes added later. A
-new desk does. Leave it out to keep the desk's axes as they are. */
+    /** Whether the desk's agents tag requests in every active company tag category, including categories added later. A
+new desk does. Leave it out to keep the desk's categories as they are. */
     offersAllTagCategories?: boolean | undefined;
-    /** The tag axes the desk's agents tag along when `offersAllTagCategories` is false; empty means none. Leave
-it out to keep the ones it has. Ignored unless `offersAllTagCategories` is false. An axis already chosen
-may stay after it is deactivated; a newly chosen one must be active. Requests keep tags along any axis. */
+    /** The tag categories the desk's agents tag in when `offersAllTagCategories` is false; empty means none. Leave
+it out to keep the ones it has. Ignored unless `offersAllTagCategories` is false. A category already chosen
+may stay after it is deactivated; a newly chosen one must be active. Requests keep tags in any category. */
     tagCategoryIds: string[] | undefined;
-    /** Whether the desk's agents may add free tags — tags on no axis, typed in while tagging. A new desk does not.
+    /** Whether the desk's agents may add free tags — tags in no category, typed in while tagging. A new desk does not.
 Leave it out to keep the desk's setting. Requests already carrying free tags keep them when it is turned off. */
     allowsFreeTags?: boolean | undefined;
     /** Everyone on the desk after the change, each with their role. Naming, removing or re-roling a Desk Admin
@@ -72190,19 +72334,19 @@ request with no channel without one, and clears a channel only while the desk of
     needBy?: IntakeRequestNeedByRequest | undefined;
 }
 
-/** A tag axis's new name and description. */
+/** A tag category's new name and description. */
 export interface UpdateIntakeRequestTagCategoryRequest {
-    /** The axis being changed; must match the route. */
+    /** The category being changed; must match the route. */
     id: string;
-    /** What the company calls the axis. Unique among active and inactive axes. */
+    /** What the company calls the category. Unique among active and inactive categories. */
     name: string;
-    /** What the axis is for, or null for no description. */
+    /** What the category is for, or null for no description. */
     description?: string | undefined;
 }
 
 /** A tag's new name and description. Every request carrying the tag reads the new name. */
 export interface UpdateIntakeRequestTagRequest {
-    /** The label, unique within the axis. */
+    /** The label, unique within the category. */
     name: string;
     /** What the label means, or null for no description. */
     description?: string | undefined;
@@ -72328,18 +72472,18 @@ export interface UpdateProductRequest {
     description?: string | undefined;
 }
 
-/** Edits a tag axis. */
+/** Edits a tag category. */
 export interface UpdateProductTagCategoryRequest {
     /** The unique identifier of the tag category. */
     id: string;
-    /** What the organization calls this axis. */
+    /** What the organization calls this category. */
     name: string;
-    /** What the axis is for. Cleared when omitted. */
+    /** What the category is for. Cleared when omitted. */
     description?: string | undefined;
 }
 
 export interface UpdateProductTagSettingsRequest {
-    /** Whether anyone who can tag a product may also give it free tags — tags on no category, typed in while
+    /** Whether anyone who can tag a product may also give it free tags — tags in no category, typed in while
 tagging. Products already carrying free tags keep them when this is turned off. */
     allowsFreeTags: boolean;
 }
@@ -72795,6 +72939,12 @@ export interface UpdateTeamRequest {
     description?: string | undefined;
 }
 
+export interface UpdateTeamsConnectionRequest extends UpdateConnectionRequest {
+    tenantId: string;
+    clientId: string;
+    clientSecret?: string | undefined;
+}
+
 export interface UpdateUserRequest {
     id: string;
     firstName: string;
@@ -72984,6 +73134,16 @@ export interface UserSessionResponse {
 export interface UserThemeConfigDto {
     colorPrimary?: string | undefined;
     useCompactAlgorithm: boolean;
+}
+
+/** Credentials for verifying a Microsoft Teams connection before create. */
+export interface VerifyTeamsConnectionRequest {
+    /** Entra directory tenant ID for the Teams communication app registration. */
+    tenantId: string;
+    /** Application (client) ID for the Teams communication app registration. */
+    clientId: string;
+    /** Client secret for the Teams communication app registration. */
+    clientSecret: string;
 }
 
 /** A version of one product. */

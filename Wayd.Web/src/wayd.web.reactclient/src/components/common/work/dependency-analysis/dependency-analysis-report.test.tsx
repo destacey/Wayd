@@ -194,7 +194,7 @@ describe('DependencyAnalysisReportView', () => {
     // Assert
     const link = screen.getByRole('link', { name: 'Payments' })
     expect(link).toHaveAttribute('href', '/organizations/teams/1')
-    const cells = within(link.closest('tr')!).getAllByRole('cell')
+    const cells = within(link.closest('tr')!).getAllByRole('gridcell')
     expect(cells.map((c) => c.textContent)).toEqual([
       'Payments',
       'DataOutside',

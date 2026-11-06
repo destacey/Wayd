@@ -442,12 +442,12 @@ public sealed class ProductImportDefinition(
     /// Resolves every active <c>Category|Tag</c> pair the file names, keyed by both halves.
     /// </summary>
     /// <remarks>
-    /// Both halves are needed because a tag name is unique only within its axis — two axes may each hold a
+    /// Both halves are needed because a tag name is unique only within its category — two categories may each hold a
     /// <c>gold</c>, and resolving on the tag alone would pick whichever came back first.
     /// <para>
     /// Categories are loaded with their tags rather than querying tags directly: the aggregate needs the
     /// category anyway, since <see cref="ProductTagCategory.AllowsMany"/> decides whether a second tag on
-    /// one axis joins the first or replaces it.
+    /// one category joins the first or replaces it.
     /// </para>
     /// </remarks>
     private async Task<Dictionary<string, (ProductTag Tag, ProductTagCategory Category)>> ResolveTags(

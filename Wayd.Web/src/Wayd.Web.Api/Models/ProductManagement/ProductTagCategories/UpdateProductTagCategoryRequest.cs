@@ -3,11 +3,11 @@
 namespace Wayd.Web.Api.Models.ProductManagement.ProductTagCategories;
 
 /// <summary>
-/// Edits a tag axis.
+/// Edits a tag category.
 /// </summary>
 /// <remarks>
-/// <c>AllowsMany</c> is deliberately absent: narrowing an axis from many to one would leave products
-/// holding more tags than it permits, and nothing can choose which to drop. So is the axis's position,
+/// <c>AllowsMany</c> is deliberately absent: narrowing a category from many to one would leave products
+/// holding more tags than it permits, and nothing can choose which to drop. So is the category's position,
 /// which is set by reordering the whole list.
 /// </remarks>
 public sealed record UpdateProductTagCategoryRequest
@@ -18,12 +18,12 @@ public sealed record UpdateProductTagCategoryRequest
     public Guid Id { get; set; }
 
     /// <summary>
-    /// What the organization calls this axis.
+    /// What the organization calls this category.
     /// </summary>
     public string Name { get; set; } = default!;
 
     /// <summary>
-    /// What the axis is for. Cleared when omitted.
+    /// What the category is for. Cleared when omitted.
     /// </summary>
     public string? Description { get; set; }
 

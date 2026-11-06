@@ -3,7 +3,7 @@
 namespace Wayd.ProductManagement.Application.ProductTagCategories.Dtos;
 
 /// <summary>
-/// A tag axis and the tags on it.
+/// A tag category and the tags on it.
 /// </summary>
 public sealed record ProductTagCategoryDto
 {
@@ -12,16 +12,16 @@ public sealed record ProductTagCategoryDto
     public string Name { get; init; } = default!;
     public string? Description { get; init; }
 
-    /// <summary>Whether a product can carry several tags from this axis.</summary>
+    /// <summary>Whether a product can carry several tags from this category.</summary>
     public bool AllowsMany { get; init; }
 
-    /// <summary>Display position when presenting the axes. Presentation only.</summary>
+    /// <summary>Display position when presenting the categories. Presentation only.</summary>
     public int Order { get; init; }
 
-    /// <summary>Whether products can still be tagged along this axis.</summary>
+    /// <summary>Whether products can still be tagged in this category.</summary>
     public bool IsActive { get; init; }
 
-    /// <summary>Platform-seeded axes are read-only: they cannot be edited or deleted.</summary>
+    /// <summary>Platform-seeded categories are read-only: they cannot be edited or deleted.</summary>
     public bool IsSystem { get; init; }
 
     public IReadOnlyCollection<ProductTagOptionDto> Tags { get; init; } = [];
@@ -34,7 +34,7 @@ public sealed record ProductTagCategoryDto
     /// and the global config has no request-scoped DbContext to close over.
     /// <para>
     /// The tags arrive in no particular order, which is deliberate — a tag holds no position on its
-    /// axis, so whoever presents them sorts them (every caller so far, alphabetically).
+    /// category, so whoever presents them sorts them (every caller so far, alphabetically).
     /// </para>
     /// </remarks>
     public static TypeAdapterConfig CreateTypeAdapterConfig(IProductManagementDbContext dbContext)

@@ -1,7 +1,7 @@
 import { compareTags, tagText } from './tag-text'
 
 describe('tagText', () => {
-  it('qualifies a tag on an axis with the axis', () => {
+  it('qualifies a tag in a category with the category', () => {
     // Act
     const text = tagText({ name: 'ios', categoryName: 'Platform' })
 
@@ -19,7 +19,7 @@ describe('tagText', () => {
 })
 
 describe('compareTags', () => {
-  it('puts tags on axes first, by axis then name, and free tags after by name', () => {
+  it('puts tags in categories first, by category then name, and free tags after by name', () => {
     // Arrange
     const tags = [
       { name: 'zeta' },

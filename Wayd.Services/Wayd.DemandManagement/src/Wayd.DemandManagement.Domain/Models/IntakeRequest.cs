@@ -153,7 +153,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     public IReadOnlyCollection<IntakeRequestParticipant> Participants => _participants.AsReadOnly();
 
     /// <summary>
-    /// The reviewers' filing of the request, across every tag axis. Summary tier: a filing aid nobody can
+    /// The reviewers' filing of the request, across every tag category. Summary tier: a filing aid nobody can
     /// slice by finds nothing, so it is shown wherever the title is.
     /// </summary>
     public IReadOnlyCollection<IntakeRequestTagAssignment> Tags => _tags.AsReadOnly();
@@ -795,15 +795,15 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// </summary>
     /// <remarks>
     /// Needs an agent on the request's desk, which the caller checks: tagging is the reviewers' call, and the
-    /// request's own people see tags without changing them. On an axis that takes one tag, this replaces the
+    /// request's own people see tags without changing them. In a category that takes one tag, this replaces the
     /// tag the request held there. Allowed whatever the request's status, because filing a closed request is
-    /// still filing. The axis must be one the request's desk offers, and a free tag needs a desk that allows them; a
-    /// tag already carried that the desk would no longer allow stays, and can be removed.
+    /// still filing. The category must be one the request's desk offers, and a free tag needs a desk that allows
+    /// them; a tag already carried that the desk would no longer allow stays, and can be removed.
     /// </remarks>
     /// <param name="desk">The request's desk.</param>
     /// <param name="category">
-    /// The tag's axis, loaded by the caller, or null for a free tag; its <see cref="IntakeRequestTagCategory.AllowsMany"/>
-    /// decides whether this replaces or adds.
+    /// The tag's category, loaded by the caller, or null for a free tag; its
+    /// <see cref="IntakeRequestTagCategory.AllowsMany"/> decides whether this replaces or adds.
     /// </param>
     public Result Tag(IntakeRequestTag tag, IntakeRequestTagCategory? category, IntakeDesk desk, EventActor actor, Instant timestamp)
     {
@@ -816,7 +816,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure(InactiveTagError);
 
         if (category is null ? !desk.AllowsFreeTags : !desk.Offers(category))
-            return Result.Failure(category is null ? FreeTagsNotAllowedError : TagAxisNotOfferedError);
+            return Result.Failure(category is null ? FreeTagsNotAllowedError : TagCategoryNotOfferedError);
 
         if (TagSet.Apply(_tags, tag, category, (tagId, categoryId) => new IntakeRequestTagAssignment(Id, tagId, categoryId)) is { } change)
             RaiseWhenKeyed(() => new IntakeRequestTagsChangedEvent(Id, Key, change.Added, change.Removed, change.TagIds, actor, timestamp));
@@ -825,14 +825,14 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// The failure for applying a tag, or a tag on an axis, that has been deactivated.
+    /// The failure for applying a tag, or a tag in a category, that has been deactivated.
     /// </summary>
     public const string InactiveTagError = TagErrors.InactiveTag;
 
     /// <summary>
-    /// The failure for applying a tag along an axis the request's desk does not offer.
+    /// The failure for applying a tag in a category the request's desk does not offer.
     /// </summary>
-    public const string TagAxisNotOfferedError = "This desk does not use that tag axis.";
+    public const string TagCategoryNotOfferedError = "This desk does not use that tag category.";
 
     /// <summary>
     /// The failure for applying a free tag on a desk that does not allow them.
@@ -862,7 +862,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// An admin's correction across every desk, so the request's desk is not consulted: a merge files requests
     /// under the tag they already meant, whatever their desk offers.
     /// </remarks>
-    /// <param name="category">The new tag's axis, or null for a free tag, as for <see cref="Tag"/>.</param>
+    /// <param name="category">The new tag's category, or null for a free tag, as for <see cref="Tag"/>.</param>
     public Result ReplaceTag(Guid fromTagId, IntakeRequestTag tag, IntakeRequestTagCategory? category, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(tag);

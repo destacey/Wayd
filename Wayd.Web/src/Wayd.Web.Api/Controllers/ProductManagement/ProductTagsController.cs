@@ -11,10 +11,10 @@ using Wayd.Web.Api.Models.ProductManagement.ProductTags;
 namespace Wayd.Web.Api.Controllers.ProductManagement;
 
 /// <summary>
-/// Product tags across every category, and the free tags — tags on no category — that people add while tagging.
+/// Product tags across every category, and the free tags — tags in no category — that people add while tagging.
 /// </summary>
 /// <remarks>
-/// A tag on a category is changed through <see cref="ProductTagCategoriesController"/>, because uniqueness within
+/// A tag in a category is changed through <see cref="ProductTagCategoriesController"/>, because uniqueness within
 /// a category is the category's rule. A free tag has no category, so it is changed here.
 /// </remarks>
 [Route("api/product-management/product-tags")]
@@ -28,9 +28,9 @@ public class ProductTagsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProductTagCategories)]
-    [EndpointSummary("Search product tags, on categories and free, with how many products carry each.")]
+    [EndpointSummary("Search product tags, in categories and free, with how many products carry each.")]
     [EndpointDescription(
-        "Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags on no category, added by typing a name while tagging — and false only tags on categories. A free tag has no `categoryId` or `categoryName`.\n\nTags that cannot be applied — inactive ones, and those on inactive categories — are left out unless `includeInactive` is true.")]
+        "Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags in no category, added by typing a name while tagging — and false only tags in categories. A free tag has no `categoryId` or `categoryName`.\n\nTags that cannot be applied — inactive ones, and those in inactive categories — are left out unless `includeInactive` is true.")]
     [McpTool("ProductTags_Search", "Search product tags")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IReadOnlyList<ProductTagListItemDto>>> Search(
@@ -60,7 +60,7 @@ public class ProductTagsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTagCategories)]
     [EndpointSummary("Rename a free tag or change its description.")]
     [EndpointDescription(
-        "**Free tags only**; a tag on a category is renamed with `ProductTagCategories_RenameTag`. **An omitted description is cleared.** Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `ProductTags_Merge`.\n\nProducts carrying the tag report the new name at once.")]
+        "**Free tags only**; a tag in a category is renamed with `ProductTagCategories_RenameTag`. **An omitted description is cleared.** Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `ProductTags_Merge`.\n\nProducts carrying the tag report the new name at once.")]
     [McpTool("ProductTags_UpdateFreeTag", "Rename a free tag", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -79,7 +79,7 @@ public class ProductTagsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTagCategories)]
     [EndpointSummary("Merge a free tag into another tag.")]
     [EndpointDescription(
-        "Every product carrying the free tag `id` carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag on an active category — which is how a free tag that caught on is promoted: add the tag to its category with `ProductTagCategories_AddTag`, then merge into it.\n\n**On a category that allows one tag, a product's existing tag there is replaced**, as tagging always does. Each product records the change in its history.")]
+        "Every product carrying the free tag `id` carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag in an active category — which is how a free tag that caught on is promoted: add the tag to its category with `ProductTagCategories_AddTag`, then merge into it.\n\n**On a category that allows one tag, a product's existing tag there is replaced**, as tagging always does. Each product records the change in its history.")]
     [McpTool("ProductTags_Merge", "Merge a free tag into another tag")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -98,7 +98,7 @@ public class ProductTagsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.ProductTagCategories)]
     [EndpointSummary("Delete a free tag, taking it off every product that carries it.")]
     [EndpointDescription(
-        "**Free tags only**; a tag on a category is deleted with `ProductTagCategories_DeleteTag`. **Unlike that call, this succeeds while products carry the tag: it removes the tag from each of them**, and each records the change. To keep those products filed under another tag, use `ProductTags_Merge` instead. A free tag is also deleted on its own once the last product carrying it loses it.")]
+        "**Free tags only**; a tag in a category is deleted with `ProductTagCategories_DeleteTag`. **Unlike that call, this succeeds while products carry the tag: it removes the tag from each of them**, and each records the change. To keep those products filed under another tag, use `ProductTags_Merge` instead. A free tag is also deleted on its own once the last product carrying it loses it.")]
     [McpTool("ProductTags_DeleteFreeTag", "Delete a free tag", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

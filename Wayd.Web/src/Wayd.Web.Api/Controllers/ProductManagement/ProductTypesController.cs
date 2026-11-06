@@ -14,7 +14,7 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 /// </summary>
 /// <remarks>
 /// A type decides what a node may <em>do</em>; tags describe everything else. That is why this list is
-/// short and curated while tag axes are open-ended.
+/// short and curated while tag categories are open-ended.
 /// </remarks>
 [Route("api/product-management/product-types")]
 [ApiVersionNeutral]

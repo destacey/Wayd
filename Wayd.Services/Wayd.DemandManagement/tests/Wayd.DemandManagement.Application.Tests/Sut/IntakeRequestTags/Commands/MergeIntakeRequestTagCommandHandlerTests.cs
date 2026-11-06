@@ -18,7 +18,7 @@ public sealed class MergeIntakeRequestTagCommandHandlerTests
     [Fact]
     public async Task Handle_MovesEveryRequestOnEveryDeskToTheTargetAndDeletesTheFreeTag()
     {
-        // Arrange — a merge reaches desks whatever axes each offers
+        // Arrange — a merge reaches desks whatever categories each offers
         var first = _scenario.Request(_scenario.AllowingFreeTags(_scenario.Desk()), _scenario.Employee());
         var second = _scenario.Request(_scenario.AllowingFreeTags(_scenario.Desk()), _scenario.Employee());
         var free = _scenario.FreeTag("payment");
@@ -43,7 +43,7 @@ public sealed class MergeIntakeRequestTagCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_FromATagOnAnAxis_Fails()
+    public async Task Handle_FromATagInACategory_Fails()
     {
         // Arrange
         var area = _scenario.TagCategory(allowsMany: true, "Payments");
@@ -60,7 +60,7 @@ public sealed class MergeIntakeRequestTagCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_IntoATagOnAnInactiveAxis_FailsAndKeepsTheFreeTag()
+    public async Task Handle_IntoATagInAnInactiveCategory_FailsAndKeepsTheFreeTag()
     {
         // Arrange
         var free = _scenario.FreeTag();

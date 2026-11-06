@@ -12614,7 +12614,7 @@
           "Products"
         ],
         "summary": "Apply a tag to a product.",
-        "description": "Tags live in categories — axes such as Platform or Compliance — and a category decides whether a product may carry more than one of its tags.\n\n**On a single-value axis this silently replaces the existing tag rather than refusing.** The call succeeds, and the tag the product previously carried on that axis is gone. Read the product first if that matters. On a multi-value axis the tag joins the others.\n\nBoth the tag and its category must be active. Applying a tag the product already carries succeeds and changes nothing.\n\nA free tag — one on no category, from `ProductTags_Search` with `isFree` — can be applied too, when free tags are turned on for products. To apply one by name, creating it if needed, use `Products_TagByName`.",
+        "description": "Tags live in categories, such as Platform or Compliance, and a category decides whether a product may carry more than one of its tags.\n\n**In a single-value category this silently replaces the existing tag rather than refusing.** The call succeeds, and the tag the product previously carried in that category is gone. Read the product first if that matters. In a multi-value category the tag joins the others.\n\nBoth the tag and its category must be active. Applying a tag the product already carries succeeds and changes nothing.\n\nA free tag — one in no category, from `ProductTags_Search` with `isFree` — can be applied too, when free tags are turned on for products. To apply one by name, creating it if needed, use `Products_TagByName`.",
         "operationId": "Products_Tag",
         "parameters": [
           {
@@ -12716,7 +12716,7 @@
           "Products"
         ],
         "summary": "Tag a product by name, creating a free tag when no tag has the name.",
-        "description": "Returns the id of the tag applied. **When exactly one active tag on an active category has the name, ignoring case, that tag is applied** — with the same single-value replacement as `Products_Tag`. When more than one category has it the call is refused: apply the one meant with `Products_Tag`.\n\nOtherwise the free tag with the name is applied — a tag on no category — and created when none has it yet. Free tags need to be turned on for products (`allowsFreeTags` in the product tag settings); with them off this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.",
+        "description": "Returns the id of the tag applied. **When exactly one active tag in an active category has the name, ignoring case, that tag is applied** — with the same single-value replacement as `Products_Tag`. When more than one category has it the call is refused: apply the one meant with `Products_Tag`.\n\nOtherwise the free tag with the name is applied — a tag in no category — and created when none has it yet. Free tags need to be turned on for products (`allowsFreeTags` in the product tag settings); with them off this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.",
         "operationId": "Products_TagByName",
         "parameters": [
           {
@@ -13532,7 +13532,7 @@
           "ProductTagCategories"
         ],
         "summary": "List the tag categories and the tags in each.",
-        "description": "**Call this before Products_Tag**, which needs a tag UUID.\n\nA category is an axis — Platform, Tech Stack, Compliance — and its `allowsMany` flag decides how tagging behaves. On an axis where `allowsMany` is false, applying a second tag **silently replaces** the first rather than refusing, so check this before tagging if the existing value matters.\n\nOnly active tags in active categories can be applied.",
+        "description": "**Call this before Products_Tag**, which needs a tag UUID.\n\nA category — Platform, Tech Stack, Compliance — groups related tags, and its `allowsMany` flag decides how tagging behaves. In a category where `allowsMany` is false, applying a second tag **silently replaces** the first rather than refusing, so check this before tagging if the existing value matters.\n\nOnly active tags in active categories can be applied.",
         "operationId": "ProductTagCategories_GetProductTagCategories",
         "parameters": [
           {
@@ -13580,8 +13580,8 @@
         "tags": [
           "ProductTagCategories"
         ],
-        "summary": "Create a tag category — an axis such as Platform, Tech Stack or Compliance.",
-        "description": "**`allowsMany` cannot be changed afterwards**, so choose it deliberately: it decides whether a product may carry several tags on this axis, or whether applying a second one silently replaces the first. Names must be unique. The category is created empty; add tags with ProductTagCategories_AddTag.",
+        "summary": "Create a tag category, such as Platform, Tech Stack or Compliance.",
+        "description": "**`allowsMany` cannot be changed afterwards**, so choose it deliberately: it decides whether a product may carry several tags in this category, or whether applying a second one silently replaces the first. Names must be unique. The category is created empty; add tags with ProductTagCategories_AddTag.",
         "operationId": "ProductTagCategories_Create",
         "requestBody": {
           "content": {
@@ -13692,7 +13692,7 @@
           "ProductTagCategories"
         ],
         "summary": "Delete a tag category and its tags.",
-        "description": "Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A category counts as in use when any product is tagged along it, so this only removes an axis created by mistake and never applied.",
+        "description": "Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A category counts as in use when any product is tagged in it, so this only removes a category created by mistake and never applied.",
         "operationId": "ProductTagCategories_Delete",
         "parameters": [
           {
@@ -13734,7 +13734,7 @@
           "ProductTagCategories"
         ],
         "summary": "Take a tag category out of use, or put it back.",
-        "description": "Tags on an inactive category cannot be applied to a product, though products already carrying them keep them and can still have them removed.\n\nAs with product types, this **is** allowed on a seeded system category, unlike editing.",
+        "description": "Tags in an inactive category cannot be applied to a product, though products already carrying them keep them and can still have them removed.\n\nAs with product types, this **is** allowed on a seeded system category, unlike editing.",
         "operationId": "ProductTagCategories_SetActive",
         "parameters": [
           {
@@ -13850,7 +13850,7 @@
           "ProductTagCategories"
         ],
         "summary": "Add a tag to a category.",
-        "description": "Tag names must be unique within their axis, though the same name may appear on different axes. Refused on a seeded system category.",
+        "description": "Tag names must be unique within their category, though the same name may appear in different categories. Refused on a seeded system category.",
         "operationId": "ProductTagCategories_AddTag",
         "parameters": [
           {
@@ -13922,7 +13922,7 @@
           "ProductTagCategories"
         ],
         "summary": "Rename a tag or change its description.",
-        "description": "**An omitted description is cleared.** The tag must belong to the category named in the path. Names must stay unique within the axis. Refused on a seeded system category.\n\nRenaming does not rewrite history: a product carrying the tag simply reports the new name.",
+        "description": "**An omitted description is cleared.** The tag must belong to the category named in the path. Names must stay unique within the category. Refused on a seeded system category.\n\nRenaming does not rewrite history: a product carrying the tag simply reports the new name.",
         "operationId": "ProductTagCategories_RenameTag",
         "parameters": [
           {
@@ -14046,7 +14046,7 @@
           "ProductTagCategories"
         ],
         "summary": "Take a tag out of use, or put it back.",
-        "description": "An inactive tag cannot be applied to a product, though products already carrying it keep it and can still have it removed. The tag must belong to the category named in the path.\n\n**Refused on a seeded system category, and here there is no fallback** — unlike a category or a product type, an individual system tag can be neither modified nor retired. Deactivate the whole axis with `ProductTagCategories_SetActive` if it should stop being used.",
+        "description": "An inactive tag cannot be applied to a product, though products already carrying it keep it and can still have it removed. The tag must belong to the category named in the path.\n\n**Refused on a seeded system category, and here there is no fallback** — unlike a category or a product type, an individual system tag can be neither modified nor retired. Deactivate the whole category with `ProductTagCategories_SetActive` if it should stop being used.",
         "operationId": "ProductTagCategories_SetTagActive",
         "parameters": [
           {
@@ -14109,8 +14109,8 @@
         "tags": [
           "ProductTags"
         ],
-        "summary": "Search product tags, on categories and free, with how many products carry each.",
-        "description": "Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags on no category, added by typing a name while tagging — and false only tags on categories. A free tag has no `categoryId` or `categoryName`.\n\nTags that cannot be applied — inactive ones, and those on inactive categories — are left out unless `includeInactive` is true.",
+        "summary": "Search product tags, in categories and free, with how many products carry each.",
+        "description": "Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags in no category, added by typing a name while tagging — and false only tags in categories. A free tag has no `categoryId` or `categoryName`.\n\nTags that cannot be applied — inactive ones, and those in inactive categories — are left out unless `includeInactive` is true.",
         "operationId": "ProductTags_Search",
         "parameters": [
           {
@@ -14196,7 +14196,7 @@
           "ProductTags"
         ],
         "summary": "Rename a free tag or change its description.",
-        "description": "**Free tags only**; a tag on a category is renamed with `ProductTagCategories_RenameTag`. **An omitted description is cleared.** Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `ProductTags_Merge`.\n\nProducts carrying the tag report the new name at once.",
+        "description": "**Free tags only**; a tag in a category is renamed with `ProductTagCategories_RenameTag`. **An omitted description is cleared.** Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `ProductTags_Merge`.\n\nProducts carrying the tag report the new name at once.",
         "operationId": "ProductTags_UpdateFreeTag",
         "parameters": [
           {
@@ -14258,7 +14258,7 @@
           "ProductTags"
         ],
         "summary": "Delete a free tag, taking it off every product that carries it.",
-        "description": "**Free tags only**; a tag on a category is deleted with `ProductTagCategories_DeleteTag`. **Unlike that call, this succeeds while products carry the tag: it removes the tag from each of them**, and each records the change. To keep those products filed under another tag, use `ProductTags_Merge` instead. A free tag is also deleted on its own once the last product carrying it loses it.",
+        "description": "**Free tags only**; a tag in a category is deleted with `ProductTagCategories_DeleteTag`. **Unlike that call, this succeeds while products carry the tag: it removes the tag from each of them**, and each records the change. To keep those products filed under another tag, use `ProductTags_Merge` instead. A free tag is also deleted on its own once the last product carrying it loses it.",
         "operationId": "ProductTags_DeleteFreeTag",
         "parameters": [
           {
@@ -14300,7 +14300,7 @@
           "ProductTags"
         ],
         "summary": "Merge a free tag into another tag.",
-        "description": "Every product carrying the free tag `id` carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag on an active category — which is how a free tag that caught on is promoted: add the tag to its category with `ProductTagCategories_AddTag`, then merge into it.\n\n**On a category that allows one tag, a product's existing tag there is replaced**, as tagging always does. Each product records the change in its history.",
+        "description": "Every product carrying the free tag `id` carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag in an active category — which is how a free tag that caught on is promoted: add the tag to its category with `ProductTagCategories_AddTag`, then merge into it.\n\n**On a category that allows one tag, a product's existing tag there is replaced**, as tagging always does. Each product records the change in its history.",
         "operationId": "ProductTags_Merge",
         "parameters": [
           {
@@ -46859,7 +46859,7 @@
           "IntakeRequests"
         ],
         "summary": "File an intake request under a tag.",
-        "description": "Needs an agent on the request's desk. The tag must be active, on an active axis the desk offers. On an axis that takes one tag, this replaces the tag the request held there. Applying a tag the request already carries changes nothing.\n\nA free tag — one on no axis, from `IntakeRequestTags_Search` with `isFree` — can be applied too, on a desk that allows free tags. To apply one by name, creating it if needed, use `IntakeRequests_TagByName`.",
+        "description": "Needs an agent on the request's desk. The tag must be active, in an active category the desk offers. In a category that takes one tag, this replaces the tag the request held there. Applying a tag the request already carries changes nothing.\n\nA free tag — one in no category, from `IntakeRequestTags_Search` with `isFree` — can be applied too, on a desk that allows free tags. To apply one by name, creating it if needed, use `IntakeRequests_TagByName`.",
         "operationId": "IntakeRequests_Tag",
         "parameters": [
           {
@@ -46981,7 +46981,7 @@
           "IntakeRequests"
         ],
         "summary": "File an intake request under a typed name, creating a free tag when no tag has it.",
-        "description": "Needs an agent on the request's desk. Returns the id of the tag applied. **When exactly one active tag on an axis the desk offers has the name, ignoring case, that tag is applied** — with the same single-value replacement as `IntakeRequests_Tag`. When more than one such axis has it the call is refused: apply the one meant with `IntakeRequests_Tag`.\n\nOtherwise the free tag with the name is applied — a tag on no axis — and created when none has it yet. That needs a desk that allows free tags (`allowsFreeTags` on the desk); otherwise this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.",
+        "description": "Needs an agent on the request's desk. Returns the id of the tag applied. **When exactly one active tag in a category the desk offers has the name, ignoring case, that tag is applied** — with the same single-value replacement as `IntakeRequests_Tag`. When more than one such category has it the call is refused: apply the one meant with `IntakeRequests_Tag`.\n\nOtherwise the free tag with the name is applied — a tag in no category — and created when none has it yet. That needs a desk that allows free tags (`allowsFreeTags` on the desk); otherwise this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.",
         "operationId": "IntakeRequests_TagByName",
         "parameters": [
           {
@@ -47332,8 +47332,8 @@
         "tags": [
           "IntakeRequestTagCategories"
         ],
-        "summary": "Get the intake request tag axes, each with its tags.",
-        "description": "Axes in presentation order, tags alphabetically, inactive tags included. Inactive axes only with `includeInactive`. With `deskId`, only the active axes that desk's agents tag along, which may be none; `includeInactive` is then ignored. Each tag's `requestCount` counts only the requests the caller can see.",
+        "summary": "Get the intake request tag categories, each with its tags.",
+        "description": "Categories in presentation order, tags alphabetically, inactive tags included. Inactive categories only with `includeInactive`. With `deskId`, only the active categories that desk's agents tag in, which may be none; `includeInactive` is then ignored. Each tag's `requestCount` counts only the requests the caller can see.",
         "operationId": "IntakeRequestTagCategories_GetIntakeRequestTagCategories",
         "parameters": [
           {
@@ -47381,8 +47381,8 @@
         "tags": [
           "IntakeRequestTagCategories"
         ],
-        "summary": "Add an intake request tag axis to the end of the list.",
-        "description": "The axis starts with no tags. `allowsMany` cannot be changed afterwards.",
+        "summary": "Add an intake request tag category to the end of the list.",
+        "description": "The category starts with no tags. `allowsMany` cannot be changed afterwards.",
         "operationId": "IntakeRequestTagCategories_Create",
         "requestBody": {
           "content": {
@@ -47431,8 +47431,8 @@
         "tags": [
           "IntakeRequestTagCategories"
         ],
-        "summary": "Rename an intake request tag axis or change its description.",
-        "description": "Refused on a system axis.",
+        "summary": "Rename an intake request tag category or change its description.",
+        "description": "Refused on a system category.",
         "operationId": "IntakeRequestTagCategories_Update",
         "parameters": [
           {
@@ -47503,8 +47503,8 @@
         "tags": [
           "IntakeRequestTagCategories"
         ],
-        "summary": "Delete an intake request tag axis and its tags.",
-        "description": "Refused on a system axis, and while any request is tagged along it; deactivate it instead.",
+        "summary": "Delete an intake request tag category and its tags.",
+        "description": "Refused on a system category, and while any request is tagged in it; deactivate it instead.",
         "operationId": "IntakeRequestTagCategories_Delete",
         "parameters": [
           {
@@ -47555,8 +47555,8 @@
         "tags": [
           "IntakeRequestTagCategories"
         ],
-        "summary": "Take an intake request tag axis out of use, or put it back.",
-        "description": "Nothing new can be tagged along an inactive axis; requests already tagged keep their tags and can still have them removed.",
+        "summary": "Take an intake request tag category out of use, or put it back.",
+        "description": "Nothing new can be tagged in an inactive category; requests already tagged keep their tags and can still have them removed.",
         "operationId": "IntakeRequestTagCategories_SetActive",
         "parameters": [
           {
@@ -47619,8 +47619,8 @@
         "tags": [
           "IntakeRequestTagCategories"
         ],
-        "summary": "Put the intake request tag axes in the order they are presented.",
-        "description": "The list must name every axis, inactive ones included, exactly once; a partial list is refused.",
+        "summary": "Put the intake request tag categories in the order they are presented.",
+        "description": "The list must name every category, inactive ones included, exactly once; a partial list is refused.",
         "operationId": "IntakeRequestTagCategories_Reorder",
         "requestBody": {
           "content": {
@@ -47671,8 +47671,8 @@
         "tags": [
           "IntakeRequestTagCategories"
         ],
-        "summary": "Add a tag to an intake request tag axis.",
-        "description": "Tag names are unique within their axis. Refused on a system axis.",
+        "summary": "Add a tag to an intake request tag category.",
+        "description": "Tag names are unique within their category. Refused on a system category.",
         "operationId": "IntakeRequestTagCategories_AddTag",
         "parameters": [
           {
@@ -47754,7 +47754,7 @@
           "IntakeRequestTagCategories"
         ],
         "summary": "Rename a tag or change its description.",
-        "description": "Every request carrying the tag reads the new name. Refused on a system axis.",
+        "description": "Every request carrying the tag reads the new name. Refused on a system category.",
         "operationId": "IntakeRequestTagCategories_UpdateTag",
         "parameters": [
           {
@@ -47836,7 +47836,7 @@
           "IntakeRequestTagCategories"
         ],
         "summary": "Delete a tag.",
-        "description": "Refused on a system axis, and while any request carries the tag; deactivate it instead.",
+        "description": "Refused on a system category, and while any request carries the tag; deactivate it instead.",
         "operationId": "IntakeRequestTagCategories_DeleteTag",
         "parameters": [
           {
@@ -47898,7 +47898,7 @@
           "IntakeRequestTagCategories"
         ],
         "summary": "Take a tag out of use, or put it back.",
-        "description": "An inactive tag cannot be applied; requests already carrying it keep it and can still have it removed. Refused on a system axis.",
+        "description": "An inactive tag cannot be applied; requests already carrying it keep it and can still have it removed. Refused on a system category.",
         "operationId": "IntakeRequestTagCategories_SetTagActive",
         "parameters": [
           {
@@ -47971,8 +47971,8 @@
         "tags": [
           "IntakeRequestTags"
         ],
-        "summary": "Search intake request tags, on axes and free, with how many visible requests carry each.",
-        "description": "Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags on no axis, added by an agent typing a name while tagging — and false only tags on axes. A free tag has no `categoryId` or `categoryName`, and is listed only when the caller can see a request carrying it, or holds the Demand Management Admin permission. `requestCount` counts only requests the caller can see.\n\nTags that cannot be applied — inactive ones, and those on inactive axes — are left out unless `includeInactive` is true.",
+        "summary": "Search intake request tags, in categories and free, with how many visible requests carry each.",
+        "description": "Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags in no category, added by an agent typing a name while tagging — and false only tags in categories. A free tag has no `categoryId` or `categoryName`, and is listed only when the caller can see a request carrying it, or holds the Demand Management Admin permission. `requestCount` counts only requests the caller can see.\n\nTags that cannot be applied — inactive ones, and those in inactive categories — are left out unless `includeInactive` is true.",
         "operationId": "IntakeRequestTags_Search",
         "parameters": [
           {
@@ -48031,7 +48031,7 @@
           "IntakeRequestTags"
         ],
         "summary": "Rename a free tag or change its description.",
-        "description": "Free tags only; a tag on an axis is renamed with `IntakeRequestTagCategories_UpdateTag`. Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `IntakeRequestTags_Merge`. Every request carrying the tag reads the new name.",
+        "description": "Free tags only; a tag in a category is renamed with `IntakeRequestTagCategories_UpdateTag`. Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `IntakeRequestTags_Merge`. Every request carrying the tag reads the new name.",
         "operationId": "IntakeRequestTags_UpdateFreeTag",
         "parameters": [
           {
@@ -48103,7 +48103,7 @@
           "IntakeRequestTags"
         ],
         "summary": "Delete a free tag, taking it off every request that carries it.",
-        "description": "Free tags only; a tag on an axis is deleted with `IntakeRequestTagCategories_DeleteTag`. **Unlike that call, this succeeds while requests carry the tag: it removes the tag from each of them, on every desk**, and each records the change. To keep those requests filed under another tag, use `IntakeRequestTags_Merge` instead. A free tag is also deleted on its own once the last request carrying it loses it.",
+        "description": "Free tags only; a tag in a category is deleted with `IntakeRequestTagCategories_DeleteTag`. **Unlike that call, this succeeds while requests carry the tag: it removes the tag from each of them, on every desk**, and each records the change. To keep those requests filed under another tag, use `IntakeRequestTags_Merge` instead. A free tag is also deleted on its own once the last request carrying it loses it.",
         "operationId": "IntakeRequestTags_DeleteFreeTag",
         "parameters": [
           {
@@ -48155,7 +48155,7 @@
           "IntakeRequestTags"
         ],
         "summary": "Merge a free tag into another tag.",
-        "description": "Every request carrying the free tag `id`, on every desk, carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag on an active axis — which is how a free tag that caught on is promoted: add the tag to its axis with `IntakeRequestTagCategories_AddTag`, then merge into it.\n\n**On an axis that takes one tag, a request's existing tag there is replaced**, as tagging always does. Each request records the change in its history.",
+        "description": "Every request carrying the free tag `id`, on every desk, carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag in an active category — which is how a free tag that caught on is promoted: add the tag to its category with `IntakeRequestTagCategories_AddTag`, then merge into it.\n\n**In a category that takes one tag, a request's existing tag there is replaced**, as tagging always does. Each request records the change in its history.",
         "operationId": "IntakeRequestTags_Merge",
         "parameters": [
           {
@@ -48956,6 +48956,48 @@
         ]
       }
     },
+    "/api/app-integrations/connections/teams/verify-communication": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Verify Microsoft Teams connection credentials before create.",
+        "description": "Runs the same hello-world Graph test as communication-test using credentials from the create form: resolve the signed-in user's email in the tenant (application), create a Teams chat (application), and create a calendar event. Both use the connection's application permissions. Does not post a chat message and does not persist a connection.",
+        "operationId": "Connections_VerifyTeamsCommunicationConnection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyTeamsConnectionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/app-integrations/connections/{id}/activities": {
       "get": {
         "tags": [
@@ -49223,6 +49265,58 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/app-integrations/connections/{id}/communication-test": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Run the hello-world communication test for a connection.",
+        "description": "Uses the connection's Microsoft Graph app registration and application permissions to resolve the signed-in user's Wayd email, create a Teams chat, and create a hello-world calendar event. Does not post a chat message. Supported when the connector registers a communication test (currently Microsoft Teams).",
+        "operationId": "Connections_TestCommunicationConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           },
           "400": {
             "description": "Bad Request",
@@ -54601,7 +54695,7 @@
             "maxLength": 64,
             "minLength": 1,
             "type": "string",
-            "description": "The label, unique within the axis."
+            "description": "The label, unique within the category."
           },
           "description": {
             "maxLength": 512,
@@ -54611,7 +54705,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "A tag to add to a tag axis."
+        "description": "A tag to add to a tag category."
       },
       "AddPersonaRequest": {
         "required": [
@@ -54720,7 +54814,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Adds a tag to an axis."
+        "description": "Adds a tag to a category."
       },
       "AddStepRequest": {
         "required": [
@@ -56688,7 +56782,8 @@
             "azure-devops": "#/components/schemas/AzureDevOpsConnectionDetailsDto",
             "azure-openai": "#/components/schemas/AzureOpenAIConnectionDetailsDto",
             "entra": "#/components/schemas/EntraConnectionDetailsDto",
-            "workday": "#/components/schemas/WorkdayConnectionDetailsDto"
+            "workday": "#/components/schemas/WorkdayConnectionDetailsDto",
+            "teams": "#/components/schemas/TeamsConnectionDetailsDto"
           }
         }
       },
@@ -56800,7 +56895,8 @@
             "azure-devops": "#/components/schemas/AzureDevOpsConnectionListDto",
             "azure-openai": "#/components/schemas/AzureOpenAIConnectionListDto",
             "entra": "#/components/schemas/EntraConnectionListDto",
-            "workday": "#/components/schemas/WorkdayConnectionListDto"
+            "workday": "#/components/schemas/WorkdayConnectionListDto",
+            "teams": "#/components/schemas/TeamsConnectionListDto"
           }
         }
       },
@@ -56809,7 +56905,8 @@
           "AzureDevOps",
           "AzureOpenAI",
           "Entra",
-          "Workday"
+          "Workday",
+          "Teams"
         ],
         "type": "string"
       },
@@ -57112,7 +57209,8 @@
             "azure-devops": "#/components/schemas/CreateAzureDevOpsConnectionRequest",
             "azure-openai": "#/components/schemas/CreateAzureOpenAIConnectionRequest",
             "entra": "#/components/schemas/CreateEntraConnectionRequest",
-            "workday": "#/components/schemas/CreateWorkdayConnectionRequest"
+            "workday": "#/components/schemas/CreateWorkdayConnectionRequest",
+            "teams": "#/components/schemas/CreateTeamsConnectionRequest"
           }
         },
         "x-abstract": true
@@ -57555,21 +57653,21 @@
             "maxLength": 64,
             "minLength": 1,
             "type": "string",
-            "description": "What the company calls the axis. Unique among active and inactive axes."
+            "description": "What the company calls the category. Unique among active and inactive categories."
           },
           "description": {
             "maxLength": 512,
             "type": "string",
-            "description": "What the axis is for, shown when choosing tags.",
+            "description": "What the category is for, shown when choosing tags.",
             "nullable": true
           },
           "allowsMany": {
             "type": "boolean",
-            "description": "Whether a request can carry several tags from the axis. When false, tagging a request replaces the tag it\nheld on the axis. Cannot be changed afterwards."
+            "description": "Whether a request can carry several tags from the category. When false, tagging a request replaces the tag it\nheld in the category. Cannot be changed afterwards."
           }
         },
         "additionalProperties": false,
-        "description": "A tag axis to add to the end of the list, with no tags."
+        "description": "A tag category to add to the end of the list, with no tags."
       },
       "CreateLinkRequest": {
         "required": [
@@ -58038,17 +58136,17 @@
             "maxLength": 64,
             "minLength": 1,
             "type": "string",
-            "description": "What the organization calls this axis — Platform, Tech Stack, Compliance."
+            "description": "What the organization calls this category — Platform, Tech Stack, Compliance."
           },
           "description": {
             "maxLength": 512,
             "type": "string",
-            "description": "What the axis is for, shown when choosing tags.",
+            "description": "What the category is for, shown when choosing tags.",
             "nullable": true
           },
           "allowsMany": {
             "type": "boolean",
-            "description": "Whether a product can carry several tags from this axis. True suits Platform, where a\ncross-platform app genuinely targets both iOS and Android. Fixed once set:\nnarrowing it later would leave products holding more tags than the axis permits."
+            "description": "Whether a product can carry several tags from this category. True suits Platform, where a\ncross-platform app genuinely targets both iOS and Android. Fixed once set:\nnarrowing it later would leave products holding more tags than the category permits."
           }
         },
         "additionalProperties": false
@@ -59158,6 +59256,39 @@
           }
         },
         "additionalProperties": false
+      },
+      "CreateTeamsConnectionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CreateConnectionRequest"
+          },
+          {
+            "required": [
+              "tenantId",
+              "clientId",
+              "clientSecret"
+            ],
+            "type": "object",
+            "properties": {
+              "tenantId": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "clientId": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "clientSecret": {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
       },
       "CreateUserRequest": {
         "required": [
@@ -63263,7 +63394,7 @@
           },
           "tagIds": {
             "type": "string",
-            "description": "Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them.",
+            "description": "Semicolon-separated tag ids: tags in categories the desk offers, or free tags where it allows them.",
             "nullable": true,
             "x-csv-column": "TagIds"
           },
@@ -65439,7 +65570,7 @@
           },
           "offersAllTagCategories": {
             "type": "boolean",
-            "description": "Whether the desk's agents tag along every active company tag axis, including axes added later."
+            "description": "Whether the desk's agents tag in every active company tag category, including categories added later."
           },
           "tagCategoryIds": {
             "type": "array",
@@ -65447,11 +65578,11 @@
               "type": "string",
               "format": "uuid"
             },
-            "description": "The tag axes the desk chose, in the company's order, while it does not offer them all; an inactive one\nstays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllTagCategories false means its agents tag\nalong none."
+            "description": "The tag categories the desk chose, in the company's order, while it does not offer them all; an inactive one\nstays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllTagCategories false means its agents tag\nin none."
           },
           "allowsFreeTags": {
             "type": "boolean",
-            "description": "Whether the desk's agents may add free tags — tags on no axis, typed in while tagging."
+            "description": "Whether the desk's agents may add free tags — tags in no category, typed in while tagging."
           },
           "scoringModel": {
             "oneOf": [
@@ -66656,7 +66787,7 @@
             "items": {
               "$ref": "#/components/schemas/IntakeRequestTagNavigationDto"
             },
-            "description": "The tags reviewers filed the request under, by axis order and then name. Inactive tags the request still\ncarries are included."
+            "description": "The tags reviewers filed the request under, by category order and then name. Inactive tags the request\nstill carries are included."
           },
           "submittedOn": {
             "type": "string",
@@ -66686,45 +66817,45 @@
         "properties": {
           "id": {
             "type": "string",
-            "description": "The axis's id.",
+            "description": "The category's id.",
             "format": "uuid"
           },
           "name": {
             "type": "string",
-            "description": "What the company calls the axis."
+            "description": "What the company calls the category."
           },
           "description": {
             "type": "string",
-            "description": "What the axis is for, when described.",
+            "description": "What the category is for, when described.",
             "nullable": true
           },
           "allowsMany": {
             "type": "boolean",
-            "description": "Whether a request can carry several tags from the axis. When false, tagging a request replaces the tag\nit held on the axis. Fixed once the axis exists."
+            "description": "Whether a request can carry several tags from the category. When false, tagging a request replaces the\ntag it held in the category. Fixed once the category exists."
           },
           "order": {
             "type": "integer",
-            "description": "Position when presenting the axes, lowest first.",
+            "description": "Position when presenting the categories, lowest first.",
             "format": "int32"
           },
           "isActive": {
             "type": "boolean",
-            "description": "Whether requests can still be tagged along the axis."
+            "description": "Whether requests can still be tagged in the category."
           },
           "isSystem": {
             "type": "boolean",
-            "description": "Whether the platform defines the axis, which then cannot be renamed, given tags or deleted."
+            "description": "Whether the platform defines the category, which then cannot be renamed, given tags or deleted."
           },
           "tags": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/IntakeRequestTagOptionDto"
             },
-            "description": "The axis's tags, alphabetically, inactive ones included."
+            "description": "The category's tags, alphabetically, inactive ones included."
           }
         },
         "additionalProperties": false,
-        "description": "A tag axis reviewers file intake requests along, with its tags."
+        "description": "A tag category reviewers group intake requests by, with its tags."
       },
       "IntakeRequestTagListItemDto": {
         "required": [
@@ -66752,18 +66883,18 @@
           },
           "categoryId": {
             "type": "string",
-            "description": "The tag's axis, or null for a free tag.",
+            "description": "The tag's category, or null for a free tag.",
             "format": "uuid",
             "nullable": true
           },
           "categoryName": {
             "type": "string",
-            "description": "What the company calls the tag's axis, or null for a free tag.",
+            "description": "What the company calls the tag's category, or null for a free tag.",
             "nullable": true
           },
           "isFree": {
             "type": "boolean",
-            "description": "Whether this is a free tag: one on no axis, created by an agent typing its name while tagging."
+            "description": "Whether this is a free tag: one in no category, created by an agent typing its name while tagging."
           },
           "isActive": {
             "type": "boolean",
@@ -66776,7 +66907,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "One intake request tag, on an axis or free, with how many requests the reader can see carry it."
+        "description": "One intake request tag, in a category or free, with how many requests the reader can see carry it."
       },
       "IntakeRequestTagNavigationDto": {
         "required": [
@@ -66796,18 +66927,18 @@
           },
           "categoryId": {
             "type": "string",
-            "description": "The tag's axis, or null for a free tag.",
+            "description": "The tag's category, or null for a free tag.",
             "format": "uuid",
             "nullable": true
           },
           "categoryName": {
             "type": "string",
-            "description": "What the company calls the tag's axis, or null for a free tag.",
+            "description": "What the company calls the tag's category, or null for a free tag.",
             "nullable": true
           }
         },
         "additionalProperties": false,
-        "description": "A tag an intake request carries, named with its axis, or a free tag on none."
+        "description": "A tag an intake request carries, named with its category, or a free tag in none."
       },
       "IntakeRequestTagOptionDto": {
         "required": [
@@ -66825,7 +66956,7 @@
           },
           "name": {
             "type": "string",
-            "description": "The label, unique within its axis."
+            "description": "The label, unique within its category."
           },
           "description": {
             "type": "string",
@@ -66843,7 +66974,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "One tag on an axis, as the settings page and the pickers list it."
+        "description": "One tag in a category, as the settings page and the pickers list it."
       },
       "IntakeScoringModelChoiceDto": {
         "required": [
@@ -67881,7 +68012,7 @@
           "targetTagId": {
             "minLength": 1,
             "type": "string",
-            "description": "Another free tag, or an active tag on an active axis.",
+            "description": "Another free tag, or an active tag in an active category.",
             "format": "uuid"
           }
         },
@@ -67897,7 +68028,7 @@
           "targetTagId": {
             "minLength": 1,
             "type": "string",
-            "description": "The tag the free tag's products move to: another free tag, or an active tag on an active category.",
+            "description": "The tag the free tag's products move to: another free tag, or an active tag in an active category.",
             "format": "uuid"
           }
         },
@@ -71497,20 +71628,20 @@
           },
           "allowsMany": {
             "type": "boolean",
-            "description": "Whether a product can carry several tags from this axis."
+            "description": "Whether a product can carry several tags from this category."
           },
           "order": {
             "type": "integer",
-            "description": "Display position when presenting the axes. Presentation only.",
+            "description": "Display position when presenting the categories. Presentation only.",
             "format": "int32"
           },
           "isActive": {
             "type": "boolean",
-            "description": "Whether products can still be tagged along this axis."
+            "description": "Whether products can still be tagged in this category."
           },
           "isSystem": {
             "type": "boolean",
-            "description": "Platform-seeded axes are read-only: they cannot be edited or deleted."
+            "description": "Platform-seeded categories are read-only: they cannot be edited or deleted."
           },
           "tags": {
             "type": "array",
@@ -71520,7 +71651,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "A tag axis and the tags on it."
+        "description": "A tag category and the tags on it."
       },
       "ProductTagDto": {
         "required": [
@@ -71538,13 +71669,13 @@
           },
           "categoryId": {
             "type": "string",
-            "description": "The tag's axis, or null for a free tag.",
+            "description": "The tag's category, or null for a free tag.",
             "format": "uuid",
             "nullable": true
           },
           "categoryName": {
             "type": "string",
-            "description": "The axis's name, or null for a free tag.",
+            "description": "The category's name, or null for a free tag.",
             "nullable": true
           }
         },
@@ -71573,18 +71704,18 @@
           },
           "categoryId": {
             "type": "string",
-            "description": "The tag's axis, or null for a free tag.",
+            "description": "The tag's category, or null for a free tag.",
             "format": "uuid",
             "nullable": true
           },
           "categoryName": {
             "type": "string",
-            "description": "The axis's name, or null for a free tag.",
+            "description": "The category's name, or null for a free tag.",
             "nullable": true
           },
           "isFree": {
             "type": "boolean",
-            "description": "Whether this is a free tag: one on no axis, created by typing its name while tagging."
+            "description": "Whether this is a free tag: one in no category, created by typing its name while tagging."
           },
           "isActive": {
             "type": "boolean",
@@ -71597,7 +71728,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "One product tag, on an axis or free, with how many products carry it."
+        "description": "One product tag, in a category or free, with how many products carry it."
       },
       "ProductTagOptionDto": {
         "required": [
@@ -71638,7 +71769,7 @@
         "properties": {
           "allowsFreeTags": {
             "type": "boolean",
-            "description": "Whether anyone who can tag a product may also give it free tags — tags on no axis, typed in while tagging."
+            "description": "Whether anyone who can tag a product may also give it free tags — tags in no category, typed in while tagging."
           }
         },
         "additionalProperties": false
@@ -74864,11 +74995,11 @@
               "type": "string",
               "format": "uuid"
             },
-            "description": "Every axis, inactive ones included, in order. A partial list is refused."
+            "description": "Every category, inactive ones included, in order. A partial list is refused."
           }
         },
         "additionalProperties": false,
-        "description": "The order the tag axes are presented in."
+        "description": "The order the tag categories are presented in."
       },
       "ReorderPersonaRequest": {
         "required": [
@@ -74901,7 +75032,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Puts the tag axes in a given order."
+        "description": "Puts the tag categories in a given order."
       },
       "ReorderProjectDeliverablesRequest": {
         "required": [
@@ -76918,11 +77049,11 @@
         "properties": {
           "isActive": {
             "type": "boolean",
-            "description": "True to put the axis back into use, false to take it out of use. Requests already tagged along it keep\ntheir tags either way."
+            "description": "True to put the category back into use, false to take it out of use. Requests already tagged in it keep\ntheir tags either way."
           }
         },
         "additionalProperties": false,
-        "description": "Whether requests can be tagged along a tag axis."
+        "description": "Whether requests can be tagged in a tag category."
       },
       "SetPokerSessionFacilitatorsRequest": {
         "required": [
@@ -77028,11 +77159,11 @@
           },
           "isActive": {
             "type": "boolean",
-            "description": "Whether products can still be tagged along this axis."
+            "description": "Whether products can still be tagged in this category."
           }
         },
         "additionalProperties": false,
-        "description": "Takes a tag axis out of use, or puts it back. Products already tagged keep their tags."
+        "description": "Takes a tag category out of use, or puts it back. Products already tagged keep their tags."
       },
       "SetProductTeamsRequest": {
         "required": [
@@ -80874,7 +81005,7 @@
             "maxLength": 64,
             "minLength": 1,
             "type": "string",
-            "description": "The tag's name. When exactly one tag on an axis the request's desk offers has it, ignoring case, that tag is\napplied; otherwise the free tag with the name is applied, and created when none has it yet."
+            "description": "The tag's name. When exactly one tag in a category the request's desk offers has it, ignoring case, that tag is\napplied; otherwise the free tag with the name is applied, and created when none has it yet."
           }
         },
         "additionalProperties": false,
@@ -80890,7 +81021,7 @@
             "maxLength": 64,
             "minLength": 1,
             "type": "string",
-            "description": "The tag's name. When exactly one tag on an active category has it, ignoring case, that tag is applied;\notherwise the free tag with the name is applied, and created when none has it yet."
+            "description": "The tag's name. When exactly one tag in an active category has it, ignoring case, that tag is applied;\notherwise the free tag with the name is applied, and created when none has it yet."
           }
         },
         "additionalProperties": false,
@@ -82835,6 +82966,56 @@
         "additionalProperties": false,
         "description": "A team's operating model in brief: the methodology and sizing method it uses, the time zone its days are\ncounted in, and its reporting cadence."
       },
+      "TeamsConnectionConfigurationDto": {
+        "required": [
+          "tenantId",
+          "clientId",
+          "clientSecret"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TeamsConnectionDetailsDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionDetailsDto"
+          },
+          {
+            "required": [
+              "configuration"
+            ],
+            "type": "object",
+            "properties": {
+              "configuration": {
+                "$ref": "#/components/schemas/TeamsConnectionConfigurationDto"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "TeamsConnectionListDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionListDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ]
+      },
       "TeamSprintMetricsDto": {
         "required": [
           "byCount",
@@ -83614,7 +83795,8 @@
             "azure-devops": "#/components/schemas/UpdateAzureDevOpsConnectionRequest",
             "azure-openai": "#/components/schemas/UpdateAzureOpenAIConnectionRequest",
             "entra": "#/components/schemas/UpdateEntraConnectionRequest",
-            "workday": "#/components/schemas/UpdateWorkdayConnectionRequest"
+            "workday": "#/components/schemas/UpdateWorkdayConnectionRequest",
+            "teams": "#/components/schemas/UpdateTeamsConnectionRequest"
           }
         },
         "x-abstract": true
@@ -84120,7 +84302,7 @@
           },
           "offersAllTagCategories": {
             "type": "boolean",
-            "description": "Whether the desk's agents tag requests along every active company tag axis, including axes added later. A\nnew desk does. Leave it out to keep the desk's axes as they are.",
+            "description": "Whether the desk's agents tag requests in every active company tag category, including categories added later. A\nnew desk does. Leave it out to keep the desk's categories as they are.",
             "nullable": true
           },
           "tagCategoryIds": {
@@ -84130,12 +84312,12 @@
               "type": "string",
               "format": "uuid"
             },
-            "description": "The tag axes the desk's agents tag along when `offersAllTagCategories` is false; empty means none. Leave\nit out to keep the ones it has. Ignored unless `offersAllTagCategories` is false. An axis already chosen\nmay stay after it is deactivated; a newly chosen one must be active. Requests keep tags along any axis.",
+            "description": "The tag categories the desk's agents tag in when `offersAllTagCategories` is false; empty means none. Leave\nit out to keep the ones it has. Ignored unless `offersAllTagCategories` is false. A category already chosen\nmay stay after it is deactivated; a newly chosen one must be active. Requests keep tags in any category.",
             "nullable": true
           },
           "allowsFreeTags": {
             "type": "boolean",
-            "description": "Whether the desk's agents may add free tags — tags on no axis, typed in while tagging. A new desk does not.\nLeave it out to keep the desk's setting. Requests already carrying free tags keep them when it is turned off.",
+            "description": "Whether the desk's agents may add free tags — tags in no category, typed in while tagging. A new desk does not.\nLeave it out to keep the desk's setting. Requests already carrying free tags keep them when it is turned off.",
             "nullable": true
           },
           "members": {
@@ -84213,24 +84395,24 @@
           "id": {
             "minLength": 1,
             "type": "string",
-            "description": "The axis being changed; must match the route.",
+            "description": "The category being changed; must match the route.",
             "format": "uuid"
           },
           "name": {
             "maxLength": 64,
             "minLength": 1,
             "type": "string",
-            "description": "What the company calls the axis. Unique among active and inactive axes."
+            "description": "What the company calls the category. Unique among active and inactive categories."
           },
           "description": {
             "maxLength": 512,
             "type": "string",
-            "description": "What the axis is for, or null for no description.",
+            "description": "What the category is for, or null for no description.",
             "nullable": true
           }
         },
         "additionalProperties": false,
-        "description": "A tag axis's new name and description."
+        "description": "A tag category's new name and description."
       },
       "UpdateIntakeRequestTagRequest": {
         "required": [
@@ -84242,7 +84424,7 @@
             "maxLength": 64,
             "minLength": 1,
             "type": "string",
-            "description": "The label, unique within the axis."
+            "description": "The label, unique within the category."
           },
           "description": {
             "maxLength": 512,
@@ -84711,17 +84893,17 @@
             "maxLength": 64,
             "minLength": 1,
             "type": "string",
-            "description": "What the organization calls this axis."
+            "description": "What the organization calls this category."
           },
           "description": {
             "maxLength": 512,
             "type": "string",
-            "description": "What the axis is for. Cleared when omitted.",
+            "description": "What the category is for. Cleared when omitted.",
             "nullable": true
           }
         },
         "additionalProperties": false,
-        "description": "Edits a tag axis."
+        "description": "Edits a tag category."
       },
       "UpdateProductTagSettingsRequest": {
         "required": [
@@ -84731,7 +84913,7 @@
         "properties": {
           "allowsFreeTags": {
             "type": "boolean",
-            "description": "Whether anyone who can tag a product may also give it free tags — tags on no category, typed in while\ntagging. Products already carrying free tags keep them when this is turned off."
+            "description": "Whether anyone who can tag a product may also give it free tags — tags in no category, typed in while\ntagging. Products already carrying free tags keep them when this is turned off."
           }
         },
         "additionalProperties": false
@@ -86298,6 +86480,38 @@
         },
         "additionalProperties": false
       },
+      "UpdateTeamsConnectionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UpdateConnectionRequest"
+          },
+          {
+            "required": [
+              "tenantId",
+              "clientId"
+            ],
+            "type": "object",
+            "properties": {
+              "tenantId": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "clientId": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "clientSecret": {
+                "maxLength": 512,
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
       "UpdateUserRequest": {
         "required": [
           "id",
@@ -86917,6 +87131,36 @@
           }
         },
         "additionalProperties": false
+      },
+      "VerifyTeamsConnectionRequest": {
+        "required": [
+          "tenantId",
+          "clientId",
+          "clientSecret"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "Entra directory tenant ID for the Teams communication app registration."
+          },
+          "clientId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "Application (client) ID for the Teams communication app registration."
+          },
+          "clientSecret": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string",
+            "description": "Client secret for the Teams communication app registration."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Credentials for verifying a Microsoft Teams connection before create."
       },
       "VersionDto": {
         "required": [

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { ProductTagListItemDto } from '@/src/services/wayd-api'
 import FreeProductTagsSection, {
   freeTagActionItems,
@@ -7,6 +7,7 @@ import FreeProductTagsSection, {
 const mockHasPermissionClaim = jest.fn()
 let mockAllowsFreeTags: boolean | undefined = true
 let mockSearchFailed = false
+let mockSettingsFailed = false
 
 jest.mock('@/src/components/contexts/auth', () => ({
   __esModule: true,
@@ -25,6 +26,8 @@ jest.mock('@/src/store/features/product-management/product-tags-api', () => ({
       mockAllowsFreeTags === undefined
         ? undefined
         : { allowsFreeTags: mockAllowsFreeTags },
+    isLoading: false,
+    isError: mockSettingsFailed,
   }),
 }))
 
@@ -44,6 +47,16 @@ jest.mock('./merge-product-tag-form', () => ({
 jest.mock('./delete-free-product-tag-form', () => ({
   __esModule: true,
   default: () => null,
+}))
+jest.mock('./product-tag-settings-form', () => ({
+  __esModule: true,
+  default: ({ canUpdate }: { canUpdate: boolean }) => (
+    <div>{canUpdate ? 'editable setting' : 'read-only setting'}</div>
+  ),
+}))
+jest.mock('./product-tag-settings-history-drawer', () => ({
+  __esModule: true,
+  default: ({ open }: { open: boolean }) => (open ? <div>history</div> : null),
 }))
 
 const tag: ProductTagListItemDto = {
@@ -99,22 +112,66 @@ describe('FreeProductTagsSection', () => {
     mockHasPermissionClaim.mockReset().mockReturnValue(true)
     mockAllowsFreeTags = true
     mockSearchFailed = false
+    mockSettingsFailed = false
   })
 
-  it('says free tags are on and links to the setting', () => {
+  it('offers the setting, editable, to a viewer who can update system settings', () => {
     // Arrange / Act
     render(<FreeProductTagsSection />)
 
     // Assert
+    expect(screen.getByText('editable setting')).toBeInTheDocument()
+    expect(screen.queryByText(/Free tags are on/)).not.toBeInTheDocument()
+  })
+
+  it('shows the setting read-only to a viewer who can only view system settings', () => {
+    // Arrange
+    mockHasPermissionClaim.mockImplementation(
+      (claim: string) => claim !== 'Permissions.SystemSettings.Update',
+    )
+
+    // Act
+    render(<FreeProductTagsSection />)
+
+    // Assert
+    expect(screen.getByText('read-only setting')).toBeInTheDocument()
+  })
+
+  it('opens the setting history', () => {
+    // Arrange
+    render(<FreeProductTagsSection />)
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Setting history' }))
+
+    // Assert
+    expect(screen.getByText('history')).toBeInTheDocument()
+  })
+
+  it('tells a viewer who cannot see settings whether free tags are on, without the switch or history', () => {
+    // The setting is read from the product tags endpoint, open to anyone on this page.
+    // Arrange
+    mockHasPermissionClaim.mockImplementation(
+      (claim: string) => !claim.startsWith('Permissions.SystemSettings.'),
+    )
+
+    // Act
+    render(<FreeProductTagsSection />)
+
+    // Assert
     expect(screen.getByText(/Free tags are on/)).toBeInTheDocument()
+    expect(screen.queryByText(/setting$/)).not.toBeInTheDocument()
     expect(
-      screen.getByRole('link', { name: 'Change the setting' }),
-    ).toHaveAttribute('href', '/settings/system/product-tags')
+      screen.queryByRole('button', { name: 'Setting history' }),
+    ).not.toBeInTheDocument()
   })
 
   it('says free tags are off when they are', () => {
     // Arrange
     mockAllowsFreeTags = false
+    mockHasPermissionClaim.mockImplementation(
+      (claim: string) => !claim.startsWith('Permissions.SystemSettings.'),
+    )
 
     // Act
     render(<FreeProductTagsSection />)
@@ -123,21 +180,19 @@ describe('FreeProductTagsSection', () => {
     expect(screen.getByText(/Free tags are off/)).toBeInTheDocument()
   })
 
-  it('tells a viewer who cannot see settings whether free tags are on, without the link', () => {
-    // The setting is read from the product tags endpoint, open to anyone on this page.
+  it('says the setting could not be loaded rather than showing it as off', () => {
     // Arrange
-    mockHasPermissionClaim.mockImplementation(
-      (claim: string) => claim !== 'Permissions.SystemSettings.View',
-    )
+    mockSettingsFailed = true
 
     // Act
     render(<FreeProductTagsSection />)
 
     // Assert
-    expect(screen.getByText(/Free tags are on/)).toBeInTheDocument()
     expect(
-      screen.queryByRole('link', { name: 'Change the setting' }),
-    ).not.toBeInTheDocument()
+      screen.getByText(
+        'Could not load the product tag settings. Reload the page to try again.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('says the free tags could not be loaded rather than showing an empty list', () => {

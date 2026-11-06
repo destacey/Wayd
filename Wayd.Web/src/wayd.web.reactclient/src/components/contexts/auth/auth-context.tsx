@@ -320,6 +320,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user: session.user,
       isLoading: false,
       authMethod: session.authMethod,
+      loginProvider: session.loginProvider,
       mustChangePassword: session.mustChangePassword,
       acquireToken,
       refreshUser,

@@ -1915,7 +1915,7 @@ public sealed class IntakeRequestTests
     private readonly IntakeDesk _tagDesk = new IntakeDeskFaker().Generate();
 
     [Fact]
-    public void Tag_OnAnAxisTakingMany_AddsBesideTheOthersAndRaises()
+    public void Tag_InACategoryTakingMany_AddsBesideTheOthersAndRaises()
     {
         // Arrange
         var sut = new IntakeRequestFaker().WithDeskId(_tagDesk.Id).Generate();
@@ -1940,7 +1940,7 @@ public sealed class IntakeRequestTests
     }
 
     [Fact]
-    public void Tag_OnAnAxisTakingOne_ReplacesTheTagItHeld()
+    public void Tag_InACategoryTakingOne_ReplacesTheTagItHeld()
     {
         // Arrange
         var sut = new IntakeRequestFaker().WithDeskId(_tagDesk.Id).Generate();
@@ -1999,7 +1999,7 @@ public sealed class IntakeRequestTests
     }
 
     [Fact]
-    public void Tag_OnAnInactiveAxis_Fails()
+    public void Tag_OnAnInactiveCategory_Fails()
     {
         // Arrange
         var sut = new IntakeRequestFaker().WithDeskId(_tagDesk.Id).Generate();
@@ -2014,7 +2014,7 @@ public sealed class IntakeRequestTests
     }
 
     [Fact]
-    public void Tag_WithAnAxisTheTagIsNotOn_Throws()
+    public void Tag_WithACategoryTheTagIsNotIn_Throws()
     {
         // Arrange
         var sut = new IntakeRequestFaker().WithDeskId(_tagDesk.Id).Generate();
@@ -2068,7 +2068,7 @@ public sealed class IntakeRequestTests
     }
 
     [Fact]
-    public void Tag_AlongAnAxisTheDeskDoesNotOffer_FailsAndKeepsWhatItCarries()
+    public void Tag_InACategoryTheDeskDoesNotOffer_FailsAndKeepsWhatItCarries()
     {
         // Arrange
         var desk = new IntakeDeskFaker().Generate();
@@ -2083,7 +2083,7 @@ public sealed class IntakeRequestTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(IntakeRequest.TagAxisNotOfferedError);
+        result.Error.Should().Be(IntakeRequest.TagCategoryNotOfferedError);
         sut.Tags.Should().ContainSingle();
         sut.DomainEvents.Should().BeEmpty();
     }
@@ -2103,7 +2103,7 @@ public sealed class IntakeRequestTests
     }
 
     [Fact]
-    public void Tag_WithAFreeTagOnADeskAllowingThem_AddsItWithNoAxis()
+    public void Tag_WithAFreeTagOnADeskAllowingThem_AddsItWithNoCategory()
     {
         // Arrange
         var desk = new IntakeDeskFaker().WithAllowsFreeTags(true).Generate();
@@ -2136,7 +2136,7 @@ public sealed class IntakeRequestTests
     }
 
     [Fact]
-    public void ReplaceTag_SwapsAFreeTagForATagOnAnAxisInOneEvent()
+    public void ReplaceTag_SwapsAFreeTagForATagInACategoryInOneEvent()
     {
         // Arrange
         var desk = new IntakeDeskFaker().WithAllowsFreeTags(true).Generate();

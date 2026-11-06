@@ -508,9 +508,9 @@ public sealed class ProductImportDefinitionTests
     }
 
     [Fact]
-    public async Task CreateProducts_ResolvesTheSameTagNameOnTwoAxesToItsOwnAxis()
+    public async Task CreateProducts_ResolvesTheSameTagNameInTwoCategoriesToItsOwnCategory()
     {
-        // Arrange — the reason a tag reference carries its axis: 'gold' alone identifies neither of these
+        // Arrange — the reason a tag reference carries its category: 'gold' alone identifies neither of these
         SeedType();
         var (_, supportGold) = SeedTag("Support", "gold");
         var (_, tierGold) = SeedTag("Tier", "gold");
@@ -527,7 +527,7 @@ public sealed class ProductImportDefinitionTests
     }
 
     [Fact]
-    public async Task CreateProducts_KeepsTheLastTagWhenTheAxisAllowsOne()
+    public async Task CreateProducts_KeepsTheLastTagWhenTheCategoryAllowsOne()
     {
         // Arrange
         SeedType();
@@ -538,7 +538,7 @@ public sealed class ProductImportDefinitionTests
         // Act
         var result = await Run(Row("1", "Wayd Client", tags: [("Platform", "ios"), ("Platform", "android")]));
 
-        // Assert — the aggregate treats a second tag on a single-value axis as a correction rather than an
+        // Assert — the aggregate treats a second tag in a single-value category as a correction rather than an
         // error, so the row is imported carrying the last one it named
         result.Value.Rows.Single().Failed.Should().BeFalse();
         _dbContext.Products.Single().Tags.Should().ContainSingle().Which.TagId.Should().Be(android.Id);
@@ -567,9 +567,9 @@ public sealed class ProductImportDefinitionTests
     [Theory]
     [InlineData(false, true)]
     [InlineData(true, false)]
-    public async Task CreateProducts_RejectsARowNamingAnInactiveTagOrAxis(bool tagActive, bool categoryActive)
+    public async Task CreateProducts_RejectsARowNamingAnInactiveTagOrCategory(bool tagActive, bool categoryActive)
     {
-        // Arrange — an inactive tag or axis cannot be applied, so it reads the same as one that is not there
+        // Arrange — an inactive tag or category cannot be applied, so it reads the same as one that is not there
         SeedType();
         SeedTag(tagActive: tagActive, categoryActive: categoryActive);
 

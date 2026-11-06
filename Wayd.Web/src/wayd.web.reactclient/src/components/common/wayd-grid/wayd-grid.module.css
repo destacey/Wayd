@@ -530,6 +530,26 @@
   max-width: 0;
 }
 
+/* The keyboard cursor. Inset so the cell's overflow clip and its pinned
+   neighbours never hide it; a mouse click focuses the cell without one. */
+.td:focus {
+  outline: none;
+}
+
+.td:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: -2px;
+}
+
+/* Tab-out sentinels either side of the body table (see
+   useGridCellNavigation). Focusable but sized to nothing. */
+.focusSentinel {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
 /* Filler data cell (aria-hidden, empty, keeps the zebra/hover band
    edge-to-edge). Zero padding so it adds nothing to the body table's
    intrinsic width: the header table's filler contributes 0, and any
@@ -778,6 +798,7 @@
 }
 
 .tr:hover .inlineRowAction,
+.tr:focus-within .inlineRowAction,
 .trSelected .inlineRowAction {
   opacity: 1;
   pointer-events: auto;

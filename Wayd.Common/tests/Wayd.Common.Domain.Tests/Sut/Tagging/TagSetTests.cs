@@ -10,31 +10,31 @@ public sealed class TagSetTests
     #region Apply
 
     [Fact]
-    public void Apply_OnAnAxisTakingOne_ReplacesTheTagHeldThere()
+    public void Apply_InACategoryTakingOne_ReplacesTheTagHeldThere()
     {
         // Arrange
-        var axis = TestTagCategory.Create(allowsMany: false, "ios", "android");
-        List<TestTagAssignment> sut = [Assign(axis["ios"].Id, axis.Id)];
+        var category = TestTagCategory.Create(allowsMany: false, "ios", "android");
+        List<TestTagAssignment> sut = [Assign(category["ios"].Id, category.Id)];
 
         // Act
-        var change = TagSet.Apply(sut, axis["android"], axis, Assign);
+        var change = TagSet.Apply(sut, category["android"], category, Assign);
 
         // Assert
         change.Should().NotBeNull();
-        change!.Added.Should().Equal(axis["android"].Id);
-        change.Removed.Should().Equal(axis["ios"].Id);
-        change.TagIds.Should().Equal(axis["android"].Id);
+        change!.Added.Should().Equal(category["android"].Id);
+        change.Removed.Should().Equal(category["ios"].Id);
+        change.TagIds.Should().Equal(category["android"].Id);
     }
 
     [Fact]
     public void Apply_WhenAlreadyCarried_ChangesNothing()
     {
         // Arrange
-        var axis = TestTagCategory.Create(allowsMany: true, "ios");
-        List<TestTagAssignment> sut = [Assign(axis["ios"].Id, axis.Id)];
+        var category = TestTagCategory.Create(allowsMany: true, "ios");
+        List<TestTagAssignment> sut = [Assign(category["ios"].Id, category.Id)];
 
         // Act
-        var change = TagSet.Apply(sut, axis["ios"], axis, Assign);
+        var change = TagSet.Apply(sut, category["ios"], category, Assign);
 
         // Assert
         change.Should().BeNull();
@@ -42,18 +42,18 @@ public sealed class TagSetTests
     }
 
     [Fact]
-    public void Apply_AFreeTag_JoinsTheOthersWithNoAxis()
+    public void Apply_AFreeTag_JoinsTheOthersWithNoCategory()
     {
         // Arrange
-        var axis = TestTagCategory.Create(allowsMany: false, "ios");
+        var category = TestTagCategory.Create(allowsMany: false, "ios");
         var free = TestTag.CreateFree("migration wave").Value;
-        List<TestTagAssignment> sut = [Assign(axis["ios"].Id, axis.Id)];
+        List<TestTagAssignment> sut = [Assign(category["ios"].Id, category.Id)];
 
         // Act
         var change = TagSet.Apply(sut, free, null, Assign);
 
         // Assert
-        // A free tag is on no axis, so it never displaces a tag on one, even on an axis that takes one.
+        // A free tag is in no category, so it never displaces a tag in one, even in a category that takes one.
         change!.Added.Should().Equal(free.Id);
         change.Removed.Should().BeEmpty();
         sut.Should().HaveCount(2);
@@ -61,27 +61,27 @@ public sealed class TagSetTests
     }
 
     [Fact]
-    public void Apply_AFreeTagWithAnAxis_Throws()
+    public void Apply_AFreeTagWithACategory_Throws()
     {
         // Arrange
-        var axis = TestTagCategory.Create(allowsMany: true);
+        var category = TestTagCategory.Create(allowsMany: true);
         var free = TestTag.CreateFree("migration wave").Value;
 
         // Act
-        var act = () => TagSet.Apply([], free, axis, Assign);
+        var act = () => TagSet.Apply([], free, category, Assign);
 
         // Assert
         act.Should().Throw<ArgumentException>();
     }
 
     [Fact]
-    public void Apply_ATagOnAnAxisWithoutIt_Throws()
+    public void Apply_ATagInACategoryWithoutIt_Throws()
     {
         // Arrange
-        var axis = TestTagCategory.Create(allowsMany: true, "ios");
+        var category = TestTagCategory.Create(allowsMany: true, "ios");
 
         // Act
-        var act = () => TagSet.Apply([], axis["ios"], null, Assign);
+        var act = () => TagSet.Apply([], category["ios"], null, Assign);
 
         // Assert
         act.Should().Throw<ArgumentException>();
@@ -95,15 +95,15 @@ public sealed class TagSetTests
     public void Remove_WhenCarried_ReportsTheRemaining()
     {
         // Arrange
-        var axis = TestTagCategory.Create(allowsMany: true, "ios", "android");
-        List<TestTagAssignment> sut = [Assign(axis["ios"].Id, axis.Id), Assign(axis["android"].Id, axis.Id)];
+        var category = TestTagCategory.Create(allowsMany: true, "ios", "android");
+        List<TestTagAssignment> sut = [Assign(category["ios"].Id, category.Id), Assign(category["android"].Id, category.Id)];
 
         // Act
-        var change = TagSet.Remove(sut, axis["ios"].Id);
+        var change = TagSet.Remove(sut, category["ios"].Id);
 
         // Assert
-        change!.Removed.Should().Equal(axis["ios"].Id);
-        change.TagIds.Should().Equal(axis["android"].Id);
+        change!.Removed.Should().Equal(category["ios"].Id);
+        change.TagIds.Should().Equal(category["android"].Id);
     }
 
     [Fact]
@@ -124,61 +124,61 @@ public sealed class TagSetTests
     public void Replace_SwapsTheTagInOneChange()
     {
         // Arrange
-        var axis = TestTagCategory.Create(allowsMany: true, "payments");
+        var category = TestTagCategory.Create(allowsMany: true, "payments");
         var free = TestTag.CreateFree("payment").Value;
         List<TestTagAssignment> sut = [Assign(free.Id, null)];
 
         // Act
-        var change = TagSet.Replace(sut, free.Id, axis["payments"], axis, Assign);
+        var change = TagSet.Replace(sut, free.Id, category["payments"], category, Assign);
 
         // Assert
-        change!.Added.Should().Equal(axis["payments"].Id);
+        change!.Added.Should().Equal(category["payments"].Id);
         change.Removed.Should().Equal(free.Id);
-        sut.Should().ContainSingle().Which.CategoryId.Should().Be(axis.Id);
+        sut.Should().ContainSingle().Which.CategoryId.Should().Be(category.Id);
     }
 
     [Fact]
     public void Replace_WhenTheNewTagIsAlreadyCarried_OnlyRemovesTheOld()
     {
         // Arrange
-        var axis = TestTagCategory.Create(allowsMany: true, "payments");
+        var category = TestTagCategory.Create(allowsMany: true, "payments");
         var free = TestTag.CreateFree("payment").Value;
-        List<TestTagAssignment> sut = [Assign(free.Id, null), Assign(axis["payments"].Id, axis.Id)];
+        List<TestTagAssignment> sut = [Assign(free.Id, null), Assign(category["payments"].Id, category.Id)];
 
         // Act
-        var change = TagSet.Replace(sut, free.Id, axis["payments"], axis, Assign);
+        var change = TagSet.Replace(sut, free.Id, category["payments"], category, Assign);
 
         // Assert
         change!.Added.Should().BeEmpty();
         change.Removed.Should().Equal(free.Id);
-        change.TagIds.Should().Equal(axis["payments"].Id);
+        change.TagIds.Should().Equal(category["payments"].Id);
     }
 
     [Fact]
-    public void Replace_OnAnAxisTakingOne_AlsoRemovesTheTagHeldThere()
+    public void Replace_InACategoryTakingOne_AlsoRemovesTheTagHeldThere()
     {
         // Arrange
-        var axis = TestTagCategory.Create(allowsMany: false, "ios", "android");
+        var category = TestTagCategory.Create(allowsMany: false, "ios", "android");
         var free = TestTag.CreateFree("droid").Value;
-        List<TestTagAssignment> sut = [Assign(free.Id, null), Assign(axis["ios"].Id, axis.Id)];
+        List<TestTagAssignment> sut = [Assign(free.Id, null), Assign(category["ios"].Id, category.Id)];
 
         // Act
-        var change = TagSet.Replace(sut, free.Id, axis["android"], axis, Assign);
+        var change = TagSet.Replace(sut, free.Id, category["android"], category, Assign);
 
         // Assert
-        change!.Removed.Should().BeEquivalentTo([free.Id, axis["ios"].Id]);
-        change.TagIds.Should().Equal(axis["android"].Id);
+        change!.Removed.Should().BeEquivalentTo([free.Id, category["ios"].Id]);
+        change.TagIds.Should().Equal(category["android"].Id);
     }
 
     [Fact]
     public void Replace_WhenTheOldTagIsNotCarried_ChangesNothing()
     {
         // Arrange
-        var axis = TestTagCategory.Create(allowsMany: true, "payments");
+        var category = TestTagCategory.Create(allowsMany: true, "payments");
         List<TestTagAssignment> sut = [];
 
         // Act
-        var change = TagSet.Replace(sut, Guid.NewGuid(), axis["payments"], axis, Assign);
+        var change = TagSet.Replace(sut, Guid.NewGuid(), category["payments"], category, Assign);
 
         // Assert
         change.Should().BeNull();

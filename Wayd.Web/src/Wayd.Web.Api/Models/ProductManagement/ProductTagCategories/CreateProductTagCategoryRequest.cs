@@ -3,24 +3,24 @@
 namespace Wayd.Web.Api.Models.ProductManagement.ProductTagCategories;
 
 /// <remarks>
-/// A new axis lands at the end of the list — its position is set by reordering, not on creation.
+/// A new category lands at the end of the list — its position is set by reordering, not on creation.
 /// </remarks>
 public sealed record CreateProductTagCategoryRequest
 {
     /// <summary>
-    /// What the organization calls this axis — Platform, Tech Stack, Compliance.
+    /// What the organization calls this category — Platform, Tech Stack, Compliance.
     /// </summary>
     public string Name { get; set; } = default!;
 
     /// <summary>
-    /// What the axis is for, shown when choosing tags.
+    /// What the category is for, shown when choosing tags.
     /// </summary>
     public string? Description { get; set; }
 
     /// <summary>
-    /// Whether a product can carry several tags from this axis. True suits Platform, where a
+    /// Whether a product can carry several tags from this category. True suits Platform, where a
     /// cross-platform app genuinely targets both iOS and Android. Fixed once set:
-    /// narrowing it later would leave products holding more tags than the axis permits.
+    /// narrowing it later would leave products holding more tags than the category permits.
     /// </summary>
     public bool AllowsMany { get; set; }
 

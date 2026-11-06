@@ -380,10 +380,10 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
     }
 
     [Fact]
-    public async Task ProductTypeSeeder_ShouldSeedTagAxes_WhenTypesAlreadyExist()
+    public async Task ProductTypeSeeder_ShouldSeedTagCategories_WhenTypesAlreadyExist()
     {
-        // The axes used to share the types guard, so an install holding types but no axes never got
-        // the Platform axis — and there is no recovery, since the axis is IsSystem and the create
+        // The categories used to share the types guard, so an install holding types but no categories never got
+        // the Platform category — and there is no recovery, since the category is IsSystem and the create
         // command only makes non-system ones.
         // Arrange
         ProductWorkflowOwners.Register();
@@ -391,8 +391,8 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
 
         await SeedAll(context);
 
-        var axes = await context.ProductTagCategories.ToListAsync(TestContext.Current.CancellationToken);
-        context.ProductTagCategories.RemoveRange(axes);
+        var categories = await context.ProductTagCategories.ToListAsync(TestContext.Current.CancellationToken);
+        context.ProductTagCategories.RemoveRange(categories);
         await context.SaveChangesAsync(TestContext.Current.CancellationToken);
 
         // Act
@@ -404,7 +404,7 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
     }
 
     [Fact]
-    public async Task ProductTypeSeeder_ShouldNotDuplicateTagAxes_OnASecondRun()
+    public async Task ProductTypeSeeder_ShouldNotDuplicateTagCategories_OnASecondRun()
     {
         // Arrange
         ProductWorkflowOwners.Register();
@@ -416,11 +416,11 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         await new ProductTypeSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
 
         // Assert
-        var axes = await context.ProductTagCategories
+        var categories = await context.ProductTagCategories
             .Where(c => c.Name == "Platform")
             .ToListAsync(TestContext.Current.CancellationToken);
 
-        axes.Should().ContainSingle();
+        categories.Should().ContainSingle();
     }
 
     [Fact]
@@ -488,10 +488,10 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
 
     #endregion Product types
 
-    #region Tag axes
+    #region Tag categories
 
     [Fact]
-    public async Task ProductTypeSeeder_ShouldSeedThePlatformAxis()
+    public async Task ProductTypeSeeder_ShouldSeedThePlatformCategory()
     {
         // Arrange
         ProductWorkflowOwners.Register();
@@ -523,7 +523,7 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
 
         // Assert
         // A cross-platform app genuinely targets iOS and Android; forcing a choice would record
-        // something false, which is why the axis carries AllowsMany.
+        // something false, which is why the category carries AllowsMany.
         var platform = await context.ProductTagCategories
             .SingleAsync(c => c.Name == "Platform", TestContext.Current.CancellationToken);
 
@@ -531,7 +531,7 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
     }
 
     [Fact]
-    public async Task ProductTypeSeeder_ShouldSeedOnlyThePlatformAxis()
+    public async Task ProductTypeSeeder_ShouldSeedOnlyThePlatformCategory()
     {
         // Arrange
         ProductWorkflowOwners.Register();
@@ -541,13 +541,13 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
         await SeedAll(context);
 
         // Assert
-        // Tech stack, compliance scope and team conventions are real axes, but which ones an
-        // organization needs cannot be guessed, and an unwanted seeded axis is something every
+        // Tech stack, compliance scope and team conventions are real categories, but which ones an
+        // organization needs cannot be guessed, and an unwanted seeded category is something every
         // organization has to remove.
         var categories = await context.ProductTagCategories.ToListAsync(TestContext.Current.CancellationToken);
 
         categories.Should().ContainSingle().Which.Name.Should().Be("Platform");
     }
 
-    #endregion Tag axes
+    #endregion Tag categories
 }

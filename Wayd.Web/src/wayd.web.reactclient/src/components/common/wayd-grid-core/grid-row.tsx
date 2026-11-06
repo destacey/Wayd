@@ -35,6 +35,23 @@ export interface GridRowClasses {
   trActivated?: string
 }
 
+/**
+ * What every body row form needs to take part in the grid's keyboard model:
+ * its place in the grid for assistive tech, and which of its cells (if any)
+ * holds the grid's single Tab stop.
+ */
+export interface GridRowNavigationProps {
+  /** 1-based row position across the whole grid, header rows included —
+   *  rows are virtualized, so the DOM alone cannot say where a row sits. */
+  ariaRowIndex: number
+  /**
+   * The column whose cell is the grid's Tab stop (`tabIndex=0`), or `null`
+   * when the Tab stop is on another row. Every other cell is `tabIndex=-1`:
+   * reachable by arrow keys, skipped by Tab.
+   */
+  focusColumnId: string | null
+}
+
 /** The pinned class suffix (starting with a space) + inline style for a body
  *  cell, or empties when the column is unpinned / pinning classes not given. */
 const pinnedTdProps = <T extends RowData>(
@@ -61,6 +78,33 @@ const numericTdClass = <T extends RowData>(
     ? ` ${classes.tdNumeric}`
     : ''
 
+/**
+ * The grid-cell attributes every body `td` carries: its role and column
+ * position, and the roving tab stop. `data-grid-cell` is how the body's key
+ * handler tells a focused cell from focused content inside one.
+ */
+const gridCellProps = (
+  columnId: string,
+  colIndex: number,
+  focusColumnId: string | null,
+) => ({
+  role: 'gridcell',
+  'aria-colindex': colIndex + 1,
+  tabIndex: columnId === focusColumnId ? 0 : -1,
+  'data-grid-cell': '',
+})
+
+/** The grid-row attributes every body `tr` carries. `data-grid-row` holds the
+ *  TanStack row id the body uses to find a row's cells again after render. */
+const gridRowProps = <T extends RowData>(
+  row: Row<T>,
+  ariaRowIndex: number,
+) => ({
+  role: 'row',
+  'aria-rowindex': ariaRowIndex,
+  'data-grid-row': row.id,
+})
+
 const INTERACTIVE_SELECTOR =
   'a, button, input, select, textarea, [role="button"], [data-row-activate="ignore"]'
 
@@ -73,9 +117,8 @@ const INTERACTIVE_SELECTOR =
  * it: the actions dropdown would open the panel behind itself, and a link cell
  * would both navigate and activate.
  *
- * The search is bounded by `currentTarget` — the row itself carries
- * `role="button"`, so an unbounded `closest` would match the row for every
- * click inside it and nothing would ever activate.
+ * The search is bounded by `currentTarget` so content outside the row never
+ * counts.
  */
 const isInteractiveTarget = (
   target: EventTarget | null,
@@ -103,20 +146,19 @@ const flatRowClassName = (
 /** Row props shared by every activatable row form. */
 export interface RowActivationProps {
   /**
-   * Called when the row is activated — clicked, or Enter/Space with the row
-   * focused. Supplying it makes the row a focusable `role="button"`.
+   * Called when the row is activated — clicked, or Enter/Space on one of its
+   * focused cells (the grid body handles the keys).
    */
   onActivate?: () => void
   /** Whether this row is the activated one (drives the highlight). */
   isActivated?: boolean
-  /** Accessible name for the row's button role, e.g. the record's name. */
+  /** Accessible name for the row, e.g. the record's name. */
   activateLabel?: string
 }
 
 /**
- * The DOM props that turn a `<tr>` into an activatable, keyboard-reachable
- * button — or nothing at all when the grid has no `onRowActivate`. A row that
- * cannot be activated must not announce itself as a button or take tab focus.
+ * The click handler and label that make a `<tr>` activatable, or nothing at all
+ * when the grid has no `onRowActivate`.
  */
 const activationProps = ({
   onActivate,
@@ -124,26 +166,16 @@ const activationProps = ({
 }: RowActivationProps): React.HTMLAttributes<HTMLTableRowElement> => {
   if (!onActivate) return {}
   return {
-    role: 'button',
-    tabIndex: 0,
     'aria-label': activateLabel,
     onClick: (e) => {
       if (isInteractiveTarget(e.target, e.currentTarget)) return
       onActivate()
     },
-    onKeyDown: (e) => {
-      if (e.key !== 'Enter' && e.key !== ' ') return
-      if (isInteractiveTarget(e.target, e.currentTarget)) return
-      // Space scrolls the page and Enter can submit a surrounding form.
-      e.preventDefault()
-      onActivate()
-    },
   }
 }
 
-export interface FlatGridRowProps<
-  T extends RowData,
-> extends RowActivationProps {
+export interface FlatGridRowProps<T extends RowData>
+  extends RowActivationProps, GridRowNavigationProps {
   row: Row<T>
   /** Display index within the rendered row list (drives zebra striping). */
   index: number
@@ -173,6 +205,8 @@ export function FlatGridRow<T extends RowData>({
   onActivate,
   isActivated,
   activateLabel,
+  ariaRowIndex,
+  focusColumnId,
 }: FlatGridRowProps<T>) {
   return (
     <tr
@@ -180,9 +214,10 @@ export function FlatGridRow<T extends RowData>({
         onActivate,
         isActivated,
       })}
+      {...gridRowProps(row, ariaRowIndex)}
       {...activationProps({ onActivate, activateLabel })}
     >
-      {row.getVisibleCells().map((cell) => {
+      {row.getVisibleCells().map((cell, colIndex) => {
         const pinned = pinnedTdProps(cell, classes)
         return (
           <td
@@ -190,6 +225,7 @@ export function FlatGridRow<T extends RowData>({
             data-column-id={cell.column.id}
             className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}`}
             style={pinned.style}
+            {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
           >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </td>
@@ -230,6 +266,8 @@ export function SortableFlatGridRow<T extends RowData>({
   onActivate,
   isActivated,
   activateLabel,
+  ariaRowIndex,
+  focusColumnId,
 }: SortableFlatGridRowProps<T>) {
   return (
     <GridSortableRow
@@ -240,9 +278,10 @@ export function SortableFlatGridRow<T extends RowData>({
         onActivate,
         isActivated,
       })}
+      {...gridRowProps(row, ariaRowIndex)}
       {...activationProps({ onActivate, activateLabel })}
     >
-      {row.getVisibleCells().map((cell) => {
+      {row.getVisibleCells().map((cell, colIndex) => {
         const pinned = pinnedTdProps(cell, classes)
         return (
           <td
@@ -250,6 +289,7 @@ export function SortableFlatGridRow<T extends RowData>({
             data-column-id={cell.column.id}
             className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}`}
             style={pinned.style}
+            {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
           >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </td>
@@ -268,7 +308,9 @@ export interface TreeGridRowClasses extends GridRowClasses {
   editableCell: string
 }
 
-export interface TreeGridRowProps<T extends RowData> {
+export interface TreeGridRowProps<
+  T extends RowData,
+> extends GridRowNavigationProps {
   row: Row<T>
   /** Display index within the rendered row list (drives zebra striping). */
   index: number
@@ -279,6 +321,12 @@ export interface TreeGridRowProps<T extends RowData> {
   nodeId: string
   /** Whether this row is selected for inline editing. */
   isSelected: boolean
+  /**
+   * Whether the row is expanded. Passed in rather than read off `row`: the
+   * compiled component can reuse its output while `row` is the same object,
+   * and a collapse read inside it was seen to leave `aria-expanded` stale.
+   */
+  isExpanded: boolean
   /** Whether this row is currently being dragged. */
   isDragging: boolean
   /** Whether DnD is enabled for this row. */
@@ -306,12 +354,15 @@ export function TreeGridRow<T extends RowData>({
   numericColumnIds,
   nodeId,
   isSelected,
+  isExpanded,
   isDragging,
   isDragEnabled,
   canEdit,
   editableColumns,
   onRowClick,
   onCellClick,
+  ariaRowIndex,
+  focusColumnId,
 }: TreeGridRowProps<T>) {
   return (
     <GridSortableRow
@@ -321,9 +372,12 @@ export function TreeGridRow<T extends RowData>({
       className={`${classes.tr}${canEdit ? ` ${classes.trEditable}` : ''}${
         index % 2 === 1 ? ` ${classes.trAlt}` : ''
       }${isSelected ? ` ${classes.trSelected}` : ''}`}
+      {...gridRowProps(row, ariaRowIndex)}
+      aria-level={row.depth + 1}
+      aria-expanded={row.getCanExpand() ? isExpanded : undefined}
       onClick={(e) => onRowClick(e, nodeId)}
     >
-      {row.getVisibleCells().map((cell) => {
+      {row.getVisibleCells().map((cell, colIndex) => {
         const isEditableCell =
           isSelected && editableColumns.includes(cell.column.id)
         const pinned = pinnedTdProps(cell, classes)
@@ -338,6 +392,7 @@ export function TreeGridRow<T extends RowData>({
             }${pinned.className}`}
             style={pinned.style}
             onClick={onCellClick}
+            {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
           >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}
           </td>
@@ -363,13 +418,17 @@ export interface GroupGridRowClasses {
   groupCount: string
 }
 
-export interface GroupGridRowProps<T extends RowData> {
+export interface GroupGridRowProps<
+  T extends RowData,
+> extends GridRowNavigationProps {
   row: Row<T>
   classes: GroupGridRowClasses
   /** Column count the heading spans (visible leaf columns + the filler). */
   colSpan: number
   /** The heading content; the default is the value and a row count. */
   header?: React.ReactNode
+  /** Whether the group is expanded; see `TreeGridRowProps.isExpanded`. */
+  isExpanded: boolean
 }
 
 /** Pixels of indent per nesting level, so nested groups read as nested. */
@@ -378,15 +437,18 @@ const GROUP_INDENT_PER_DEPTH = 20
 /**
  * The GROUP form of the row-renderer seam: one cell spanning the grid that
  * carries the expand toggle and the group heading. It is a heading, not a
- * record, so it neither activates nor drags — the toggle is its only control.
+ * record, so it neither activates nor drags — the toggle is its only control,
+ * and the keyboard reaches it through the cell (Enter, Space, → and ←).
  */
 export function GroupGridRow<T extends RowData>({
   row,
   classes,
   colSpan,
   header,
+  ariaRowIndex,
+  focusColumnId,
+  isExpanded: expanded,
 }: GroupGridRowProps<T>) {
-  const expanded = row.getIsExpanded()
   const count = row.getLeafRows().length
   const label = header ?? (
     <>
@@ -400,13 +462,29 @@ export function GroupGridRow<T extends RowData>({
   )
 
   return (
-    <tr className={`${classes.tr} ${classes.trGroup}`} data-group-row="true">
-      <td className={`${classes.td} ${classes.groupCell}`} colSpan={colSpan}>
+    <tr
+      className={`${classes.tr} ${classes.trGroup}`}
+      data-group-row="true"
+      {...gridRowProps(row, ariaRowIndex)}
+      aria-expanded={expanded}
+    >
+      <td
+        className={`${classes.td} ${classes.groupCell}`}
+        colSpan={colSpan}
+        role="gridcell"
+        aria-colindex={1}
+        aria-colspan={colSpan - 1}
+        // The heading has one cell, so it holds the Tab stop whichever
+        // column the cursor was in.
+        tabIndex={focusColumnId === null ? -1 : 0}
+        data-grid-cell=""
+      >
         {/* The flex line is a child: a `display: flex` td is no longer a table
             cell, so its colSpan is ignored and it shrinks to the first column. */}
         <div className={classes.groupCellInner}>
           <button
             type="button"
+            tabIndex={-1}
             className={`${classes.groupToggle}${expanded ? ` ${classes.groupToggleExpanded}` : ''}`}
             style={{ marginLeft: row.depth * GROUP_INDENT_PER_DEPTH }}
             aria-expanded={expanded}

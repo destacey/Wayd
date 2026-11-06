@@ -11,6 +11,7 @@ public sealed class ConnectorExtensionsTests
     [InlineData(Connector.AzureOpenAI, ConnectorCapability.AiProvider)]
     [InlineData(Connector.Entra, ConnectorCapability.People)]
     [InlineData(Connector.Workday, ConnectorCapability.People)]
+    [InlineData(Connector.Teams, ConnectorCapability.Communication)]
     public void GetCapabilities_ShouldIncludeExpectedCapability(Connector connector, ConnectorCapability expectedCapability)
     {
         // Act

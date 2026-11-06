@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// A tag axis was added to the ones reviewers file intake requests along.
+/// A tag category was added to the ones reviewers group intake requests by.
 /// </summary>
 public sealed record IntakeRequestTagCategoryCreatedEvent : DomainEvent<IntakeRequestTagCategoryCreatedEvent>, IDomainEventDescriptor, IDemandManagementEvent
 {
@@ -25,13 +25,13 @@ public sealed record IntakeRequestTagCategoryCreatedEvent : DomainEvent<IntakeRe
     public Guid Id { get; }
     public string Name { get; }
 
-    /// <summary>What the axis is for, when described.</summary>
+    /// <summary>What the category is for, when described.</summary>
     public string? Description { get; }
 
-    /// <summary>Whether a request can carry several tags from the axis.</summary>
+    /// <summary>Whether a request can carry several tags from the category.</summary>
     public bool AllowsMany { get; }
 
-    /// <summary>Position when presenting the axes, lowest first.</summary>
+    /// <summary>Position when presenting the categories, lowest first.</summary>
     public int Order { get; }
 
     [JsonIgnore]

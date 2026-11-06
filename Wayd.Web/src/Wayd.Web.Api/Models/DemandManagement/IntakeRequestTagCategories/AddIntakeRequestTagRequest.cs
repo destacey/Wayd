@@ -1,12 +1,12 @@
 namespace Wayd.Web.Api.Models.DemandManagement.IntakeRequestTagCategories;
 
 /// <summary>
-/// A tag to add to a tag axis.
+/// A tag to add to a tag category.
 /// </summary>
 public sealed record AddIntakeRequestTagRequest
 {
     /// <summary>
-    /// The label, unique within the axis.
+    /// The label, unique within the category.
     /// </summary>
     public string Name { get; set; } = default!;
 

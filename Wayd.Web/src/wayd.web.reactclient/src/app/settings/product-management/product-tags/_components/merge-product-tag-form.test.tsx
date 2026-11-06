@@ -90,7 +90,7 @@ describe('MergeProductTagForm', () => {
     mockMerge.mockReset().mockResolvedValue({ data: undefined })
   })
 
-  it('offers every other tag, a tag on a category named with it', async () => {
+  it('offers every other tag, a tag in a category named with it', async () => {
     // Arrange
     renderForm()
 

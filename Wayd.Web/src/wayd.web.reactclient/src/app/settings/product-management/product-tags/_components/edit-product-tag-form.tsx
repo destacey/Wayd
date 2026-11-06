@@ -100,7 +100,7 @@ const EditProductTagForm = ({
           extra={
             tag.productCount > 0
               ? `Renaming is safe — the new name shows on all ${tag.productCount} tagged product(s) at once.`
-              : 'Must be unique on this axis.'
+              : 'Must be unique in this category.'
           }
         >
           <Input showCount maxLength={64} />

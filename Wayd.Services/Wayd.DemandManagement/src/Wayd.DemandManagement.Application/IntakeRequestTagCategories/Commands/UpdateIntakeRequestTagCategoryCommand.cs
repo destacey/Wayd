@@ -3,12 +3,12 @@ using Wayd.Common.Domain.Events;
 namespace Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 
 /// <summary>
-/// Renames a tag axis or changes its description. Whether it takes several tags is fixed at creation. The
+/// Renames a tag category or changes its description. Whether it takes several tags is fixed at creation. The
 /// Administer permission is checked by the endpoint.
 /// </summary>
-/// <param name="Id">The axis.</param>
-/// <param name="Name">What the company calls the axis. Unique among active and inactive axes.</param>
-/// <param name="Description">What the axis is for, or null for no description.</param>
+/// <param name="Id">The category.</param>
+/// <param name="Name">What the company calls the category. Unique among active and inactive categories.</param>
+/// <param name="Description">What the category is for, or null for no description.</param>
 public sealed record UpdateIntakeRequestTagCategoryCommand(Guid Id, string Name, string? Description) : ICommand;
 
 public sealed class UpdateIntakeRequestTagCategoryCommandValidator : CustomValidator<UpdateIntakeRequestTagCategoryCommand>

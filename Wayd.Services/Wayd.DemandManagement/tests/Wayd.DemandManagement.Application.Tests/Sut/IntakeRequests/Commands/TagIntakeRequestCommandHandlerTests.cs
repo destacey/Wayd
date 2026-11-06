@@ -39,7 +39,7 @@ public sealed class TagIntakeRequestCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_OnAnAxisTakingOne_ReplacesTheTagTheRequestHeld()
+    public async Task Handle_InACategoryTakingOne_ReplacesTheTagTheRequestHeld()
     {
         // Arrange
         var agent = _scenario.Employee();
@@ -113,7 +113,7 @@ public sealed class TagIntakeRequestCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithATagOnNoAxis_ReportsTheTagNotFound()
+    public async Task Handle_WithATagInNoCategory_ReportsTheTagNotFound()
     {
         // Arrange
         var agent = _scenario.Employee();
@@ -150,7 +150,7 @@ public sealed class TagIntakeRequestCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_AlongAnAxisTheDeskDoesNotOffer_FailsAndSavesNothing()
+    public async Task Handle_InACategoryTheDeskDoesNotOffer_FailsAndSavesNothing()
     {
         // Arrange
         var agent = _scenario.Employee();
@@ -167,7 +167,7 @@ public sealed class TagIntakeRequestCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(IntakeRequest.TagAxisNotOfferedError);
+        result.Error.Should().Be(IntakeRequest.TagCategoryNotOfferedError);
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
 
@@ -191,7 +191,7 @@ public sealed class TagIntakeRequestCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_AFreeTagOnADeskAllowingThem_TagsTheRequestWithNoAxis()
+    public async Task Handle_AFreeTagOnADeskAllowingThem_TagsTheRequestWithNoCategory()
     {
         // Arrange
         var agent = _scenario.Employee();

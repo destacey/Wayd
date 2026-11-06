@@ -12,6 +12,7 @@ import {
   UpdateConnectionRequest,
   UpdateEntraConnectionRequest,
   UpdateWorkdayConnectionRequest,
+  TeamsConnectionDetailsDto,
   WorkdayConnectionDetailsDto,
   WorkdayOrgExclusionRequest,
   WorkdayWorkerKey,
@@ -80,6 +81,8 @@ const connectorTypeFromName = (
       return ConnectorType.Entra
     case 'Workday':
       return ConnectorType.Workday
+    case 'Microsoft Teams':
+      return ConnectorType.Teams
     default:
       return null
   }
@@ -132,6 +135,16 @@ export const buildRequest = (
         matchBy: values.matchBy ?? EmployeeMatchProperty.Email,
         normalizeNameCasing: values.normalizeNameCasing ?? true,
       } as UpdateEntraConnectionRequest
+    case 'Microsoft Teams':
+      return {
+        $type: 'teams',
+        id: connection.id,
+        name: values.name,
+        description: values.description ?? undefined,
+        tenantId: values.tenantId ?? '',
+        clientId: values.clientId ?? '',
+        clientSecret: keepIfBlank(values.clientSecret),
+      } as UpdateConnectionRequest
     case 'Workday':
       return {
         $type: 'workday',
@@ -197,6 +210,14 @@ export const seedFormValues = (
         includeDisabledUsers: c.configuration?.includeDisabledUsers ?? false,
         matchBy: c.configuration?.matchBy ?? EmployeeMatchProperty.Email,
         normalizeNameCasing: c.configuration?.normalizeNameCasing ?? true,
+      }
+    }
+    case 'Microsoft Teams': {
+      const c = connection as TeamsConnectionDetailsDto
+      return {
+        ...base,
+        tenantId: c.configuration?.tenantId,
+        clientId: c.configuration?.clientId,
       }
     }
     case 'Workday': {

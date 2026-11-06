@@ -7,7 +7,7 @@ using Wayd.ProductManagement.Domain.Models;
 namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Commands;
 
 /// <summary>
-/// Editing a tag axis. AllowsMany is deliberately not editable.
+/// Editing a tag category. AllowsMany is deliberately not editable.
 /// </summary>
 public sealed class UpdateProductTagCategoryCommandHandlerTests : ProductCommandTestBase
 {
@@ -40,7 +40,7 @@ public sealed class UpdateProductTagCategoryCommandHandlerTests : ProductCommand
     }
 
     [Fact]
-    public async Task Update_ShouldRefuseASystemAxis()
+    public async Task Update_ShouldRefuseASystemCategory()
     {
         // Arrange
         var category = SeedSystemCategory();
@@ -53,12 +53,12 @@ public sealed class UpdateProductTagCategoryCommandHandlerTests : ProductCommand
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ProductTagCategory.SystemAxisError);
+        result.Error.Should().Be(ProductTagCategory.SystemCategoryError);
         category.Name.Should().Be("Platform");
     }
 
     [Fact]
-    public async Task Update_ShouldAllowAnAxisToKeepItsOwnName()
+    public async Task Update_ShouldAllowACategoryToKeepItsOwnName()
     {
         // Arrange
         var (category, _) = SeedTag(categoryName: "Platform");

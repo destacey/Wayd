@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// A tag no request carried was deleted from an intake request tag axis.
+/// A tag no request carried was deleted from an intake request tag category.
 /// </summary>
 public sealed record IntakeRequestTagRemovedEvent : DomainEvent<IntakeRequestTagRemovedEvent>, IDomainEventDescriptor, IDemandManagementEvent
 {
@@ -20,7 +20,7 @@ public sealed record IntakeRequestTagRemovedEvent : DomainEvent<IntakeRequestTag
         Timestamp = timestamp;
     }
 
-    /// <summary>The axis the tag was on.</summary>
+    /// <summary>The category the tag was in.</summary>
     public Guid Id { get; }
     public Guid TagId { get; }
 

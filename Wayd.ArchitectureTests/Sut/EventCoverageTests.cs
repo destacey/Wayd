@@ -5,6 +5,7 @@ using Mono.Cecil;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
+using Wayd.AppIntegration.Domain.Models.Teams;
 using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.ArchitectureTests.Helpers;
 using Wayd.Common.Domain.Activities;
@@ -70,6 +71,7 @@ public partial class EventCoverageTests
         typeof(AzureDevOpsBoardsConnection),
         typeof(AzureOpenAIConnection),
         typeof(EntraConnection),
+        typeof(TeamsConnection),
         typeof(WorkdayConnection),
 
         // Common

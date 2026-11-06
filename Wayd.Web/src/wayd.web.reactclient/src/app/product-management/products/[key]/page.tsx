@@ -453,10 +453,10 @@ const ProductDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                 }
               />
               <TagList
-                // The axis rides on the chip as its qualifier: a bare "gold" does
+                // The category rides on the chip as its qualifier: a bare "gold" does
                 // not say whether it is a tier, a platform or a compliance scope.
                 tags={[...(product.tags ?? [])]
-                  // By axis, then by tag, with free tags after the axes — the same
+                  // By category, then by tag, with free tags after the categories — the same
                   // order the details panel uses. Tag assignments come back
                   // unordered.
                   .sort((a, b) =>

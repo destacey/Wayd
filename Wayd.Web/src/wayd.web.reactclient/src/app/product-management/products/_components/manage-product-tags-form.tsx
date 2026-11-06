@@ -26,7 +26,7 @@ export interface ManageProductTagsFormProps {
  * Applies a product's tags, over the shared tag manager.
  *
  * This adapter owns the things that are Product Management's rather than
- * tagging's: where the axes and free tags come from, whether free tags are
+ * tagging's: where the categories and free tags come from, whether free tags are
  * offered at all, and how a change is saved.
  */
 const ManageProductTagsForm = ({
@@ -40,8 +40,8 @@ const ManageProductTagsForm = ({
   const [tagProductByName] = useTagProductByNameMutation()
   const [untagProduct] = useUntagProductMutation()
 
-  // Active axes only. A tag on a deactivated axis is therefore never offered and
-  // never diffed, so it stays on the product — deactivating retires an axis from
+  // Active categories only. A tag in a deactivated category is therefore never offered and
+  // never diffed, so it stays on the product — deactivating retires a category from
   // new use rather than stripping what already carries it.
   const { data: categories, isLoading } = useGetProductTagCategoriesQuery(true)
 
@@ -76,7 +76,7 @@ const ManageProductTagsForm = ({
     const total = removed.length + added.length + addedNames.length
 
     try {
-      // Removals first: on a single-value axis, tagging before untagging would
+      // Removals first: in a single-value category, tagging before untagging would
       // have the domain replace the tag and the untag would then strip it.
       for (const tagId of removed) {
         const response = await untagProduct({ id: product.id, tagId })
@@ -88,7 +88,7 @@ const ManageProductTagsForm = ({
         if (response.error) throw response.error
         applied++
       }
-      // Names last: one may resolve to a tag on an axis, which should replace
+      // Names last: one may resolve to a tag in a category, which should replace
       // rather than be replaced by an id applied above.
       for (const name of addedNames) {
         const response = await tagProductByName({ id: product.id, name })

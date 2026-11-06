@@ -106,7 +106,7 @@ public class IntakeDeskTagCategoryConfiguration : IEntityTypeConfiguration<Intak
 
         builder.HasIndex(c => c.CategoryId);
 
-        // Restrict: deleting an axis takes it off each desk that chose it through the desk, so the desk records
+        // Restrict: deleting a category takes it off each desk that chose it through the desk, so the desk records
         // the change; a database cascade would remove it with no event.
         builder.HasOne<IntakeRequestTagCategory>()
             .WithMany()
@@ -547,7 +547,7 @@ public class IntakeRequestTagConfiguration : IEntityTypeConfiguration<IntakeRequ
 
         builder.HasKey(t => t.Id);
 
-        // Free tags have no axis and are unique among themselves: no filter, so SQL Server treats their null axes
+        // Free tags have no category and are unique among themselves: no filter, so SQL Server treats their null category ids
         // as equal.
         builder.HasIndex(t => new { t.CategoryId, t.Name }).IsUnique().HasFilter(null);
 
@@ -566,12 +566,12 @@ public class IntakeRequestTagAssignmentConfiguration : IEntityTypeConfiguration<
 
         builder.HasKey(a => new { a.RequestId, a.TagId });
 
-        // "Which requests carry this tag" and "is anything tagged along this axis": the tag filter, the usage
+        // "Which requests carry this tag" and "is anything tagged in this category": the tag filter, the usage
         // counts, and the in-use checks before a delete.
         builder.HasIndex(a => a.TagId);
         builder.HasIndex(a => a.CategoryId);
 
-        // Restrict, so deleting a tag or an axis a request carries fails rather than silently untagging it; the
+        // Restrict, so deleting a tag or a category a request carries fails rather than silently untagging it; the
         // handlers refuse first.
         builder.HasOne<IntakeRequestTag>()
             .WithMany()

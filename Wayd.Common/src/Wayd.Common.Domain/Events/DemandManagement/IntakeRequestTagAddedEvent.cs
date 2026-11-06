@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// A tag was added to an intake request tag axis.
+/// A tag was added to an intake request tag category.
 /// </summary>
 public sealed record IntakeRequestTagAddedEvent : DomainEvent<IntakeRequestTagAddedEvent>, IDomainEventDescriptor, IDemandManagementEvent
 {
@@ -21,7 +21,7 @@ public sealed record IntakeRequestTagAddedEvent : DomainEvent<IntakeRequestTagAd
         Timestamp = timestamp;
     }
 
-    /// <summary>The axis the tag was added to.</summary>
+    /// <summary>The category the tag was added to.</summary>
     public Guid Id { get; }
     public Guid TagId { get; }
 

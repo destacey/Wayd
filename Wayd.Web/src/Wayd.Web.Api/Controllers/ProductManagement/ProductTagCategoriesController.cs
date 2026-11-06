@@ -10,11 +10,11 @@ using Wayd.Web.Api.Models.ProductManagement.ProductTagCategories;
 namespace Wayd.Web.Api.Controllers.ProductManagement;
 
 /// <summary>
-/// The axes products are labelled along — Platform, Tech Stack, Compliance — and the tags on each.
+/// The categories products are grouped by — Platform, Tech Stack, Compliance — and the tags on each.
 /// </summary>
 /// <remarks>
-/// Tags are managed through their axis rather than as a resource of their own, because uniqueness
-/// within an axis is the axis's rule to enforce: a tag cannot see its siblings.
+/// Tags are managed through their category rather than as a resource of their own, because uniqueness
+/// within a category is the category's rule to enforce: a tag cannot see its siblings.
 /// </remarks>
 [Route("api/product-management/product-tag-categories")]
 [ApiVersionNeutral]
@@ -29,7 +29,7 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
     [MustHavePermission(ApplicationAction.View, ApplicationResource.ProductTagCategories)]
     [EndpointSummary("List the tag categories and the tags in each.")]
     [EndpointDescription(
-        "**Call this before Products_Tag**, which needs a tag UUID.\n\nA category is an axis — Platform, Tech Stack, Compliance — and its `allowsMany` flag decides how tagging behaves. On an axis where `allowsMany` is false, applying a second tag **silently replaces** the first rather than refusing, so check this before tagging if the existing value matters.\n\nOnly active tags in active categories can be applied.")]
+        "**Call this before Products_Tag**, which needs a tag UUID.\n\nA category — Platform, Tech Stack, Compliance — groups related tags, and its `allowsMany` flag decides how tagging behaves. In a category where `allowsMany` is false, applying a second tag **silently replaces** the first rather than refusing, so check this before tagging if the existing value matters.\n\nOnly active tags in active categories can be applied.")]
     [McpTool("ProductTagCategories_GetProductTagCategories", "List product tag categories")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -43,9 +43,9 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
 
     [HttpPost]
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.ProductTagCategories)]
-    [EndpointSummary("Create a tag category — an axis such as Platform, Tech Stack or Compliance.")]
+    [EndpointSummary("Create a tag category, such as Platform, Tech Stack or Compliance.")]
     [EndpointDescription(
-        "**`allowsMany` cannot be changed afterwards**, so choose it deliberately: it decides whether a product may carry several tags on this axis, or whether applying a second one silently replaces the first. Names must be unique. The category is created empty; add tags with ProductTagCategories_AddTag.")]
+        "**`allowsMany` cannot be changed afterwards**, so choose it deliberately: it decides whether a product may carry several tags in this category, or whether applying a second one silently replaces the first. Names must be unique. The category is created empty; add tags with ProductTagCategories_AddTag.")]
     [McpTool("ProductTagCategories_Create", "Create a tag category", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create(
@@ -84,7 +84,7 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTagCategories)]
     [EndpointSummary("Take a tag category out of use, or put it back.")]
     [EndpointDescription(
-        "Tags on an inactive category cannot be applied to a product, though products already carrying them keep them and can still have them removed.\n\nAs with product types, this **is** allowed on a seeded system category, unlike editing.")]
+        "Tags in an inactive category cannot be applied to a product, though products already carrying them keep them and can still have them removed.\n\nAs with product types, this **is** allowed on a seeded system category, unlike editing.")]
     [McpTool("ProductTagCategories_SetActive", "Activate or deactivate a tag category", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -125,7 +125,7 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.ProductTagCategories)]
     [EndpointSummary("Delete a tag category and its tags.")]
     [EndpointDescription(
-        "Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A category counts as in use when any product is tagged along it, so this only removes an axis created by mistake and never applied.")]
+        "Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A category counts as in use when any product is tagged in it, so this only removes a category created by mistake and never applied.")]
     [McpTool("ProductTagCategories_Delete", "Delete a tag category", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -142,7 +142,7 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTagCategories)]
     [EndpointSummary("Add a tag to a category.")]
     [EndpointDescription(
-        "Tag names must be unique within their axis, though the same name may appear on different axes. Refused on a seeded system category.")]
+        "Tag names must be unique within their category, though the same name may appear in different categories. Refused on a seeded system category.")]
     [McpTool("ProductTagCategories_AddTag", "Add a tag", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -162,7 +162,7 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTagCategories)]
     [EndpointSummary("Rename a tag or change its description.")]
     [EndpointDescription(
-        "**An omitted description is cleared.** The tag must belong to the category named in the path. Names must stay unique within the axis. Refused on a seeded system category.\n\nRenaming does not rewrite history: a product carrying the tag simply reports the new name.")]
+        "**An omitted description is cleared.** The tag must belong to the category named in the path. Names must stay unique within the category. Refused on a seeded system category.\n\nRenaming does not rewrite history: a product carrying the tag simply reports the new name.")]
     [McpTool("ProductTagCategories_RenameTag", "Rename a tag", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -182,7 +182,7 @@ public class ProductTagCategoriesController(IDispatcher dispatcher) : Controller
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.ProductTagCategories)]
     [EndpointSummary("Take a tag out of use, or put it back.")]
     [EndpointDescription(
-        "An inactive tag cannot be applied to a product, though products already carrying it keep it and can still have it removed. The tag must belong to the category named in the path.\n\n**Refused on a seeded system category, and here there is no fallback** — unlike a category or a product type, an individual system tag can be neither modified nor retired. Deactivate the whole axis with `ProductTagCategories_SetActive` if it should stop being used.")]
+        "An inactive tag cannot be applied to a product, though products already carrying it keep it and can still have it removed. The tag must belong to the category named in the path.\n\n**Refused on a seeded system category, and here there is no fallback** — unlike a category or a product type, an individual system tag can be neither modified nor retired. Deactivate the whole category with `ProductTagCategories_SetActive` if it should stop being used.")]
     [McpTool("ProductTagCategories_SetTagActive", "Activate or deactivate a tag", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

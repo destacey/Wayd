@@ -4,6 +4,7 @@ export enum ConnectorType {
   // 2 was OpenAI — removed before any integration shipped; do not reuse the value
   Entra = 3,
   Workday = 4,
+  Teams = 5,
 }
 
 export const CONNECTOR_NAMES: Record<ConnectorType, string> = {
@@ -11,6 +12,7 @@ export const CONNECTOR_NAMES: Record<ConnectorType, string> = {
   [ConnectorType.AzureOpenAI]: 'Azure OpenAI',
   [ConnectorType.Entra]: 'Entra',
   [ConnectorType.Workday]: 'Workday',
+  [ConnectorType.Teams]: 'Microsoft Teams',
 }
 
 export const CONNECTOR_DESCRIPTIONS: Record<ConnectorType, string> = {
@@ -22,6 +24,8 @@ export const CONNECTOR_DESCRIPTIONS: Record<ConnectorType, string> = {
     'Sync people from Microsoft Entra ID via Microsoft Graph',
   [ConnectorType.Workday]:
     'Sync workers from a Workday tenant via the Staffing SOAP web service',
+  [ConnectorType.Teams]:
+    'Store a Microsoft Teams app registration for sending chats and calendar events through Graph',
 }
 
 /**
@@ -33,6 +37,7 @@ export const CONNECTOR_DESCRIPTIONS: Record<ConnectorType, string> = {
 export const CAPABILITY_CATEGORY_ORDER: string[] = [
   'People',
   'Work Management',
+  'Communication',
   'AI Provider',
 ]
 
@@ -41,6 +46,8 @@ export const CAPABILITY_CATEGORY_DESCRIPTIONS: Record<string, string> = {
     'Identify who works at your company. Only one People connector can be active at a time.',
   'Work Management':
     'Pull work items, teams, and iterations from your delivery system.',
+  Communication:
+    'Send chats and calendar events through Microsoft Teams. Multiple communication connections may be active.',
   'AI Provider':
     'Power AI features in Wayd. Only one AI Provider can be active at a time.',
 }

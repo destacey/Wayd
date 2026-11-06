@@ -371,7 +371,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
     }
 
     [Fact]
-    public async Task GetIntakeRequests_ProjectsTheRequestsTagsInAxisOrderThenByName()
+    public async Task GetIntakeRequests_ProjectsTheRequestsTagsInCategoryOrderThenByName()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
@@ -404,7 +404,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
     }
 
     [Fact]
-    public async Task GetIntakeRequests_ProjectsAFreeTagAfterTheTagsOnAxes_WithNoAxis()
+    public async Task GetIntakeRequests_ProjectsAFreeTagAfterTheTagsInCategories_WithNoCategory()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;

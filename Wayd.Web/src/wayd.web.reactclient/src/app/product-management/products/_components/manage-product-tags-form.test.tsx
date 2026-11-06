@@ -239,7 +239,7 @@ describe('ManageProductTagsForm', () => {
     ).toHaveLength(2)
   })
 
-  it('holds a single tag on a category that does not allow many', async () => {
+  it('holds a single tag in a category that does not allow many', async () => {
     // allowsMany decides the field's mode, and the mode is what stops a second pick
     // from stacking beside the first. Asserting the mode rather than a second click
     // keeps this on the component's own decision.

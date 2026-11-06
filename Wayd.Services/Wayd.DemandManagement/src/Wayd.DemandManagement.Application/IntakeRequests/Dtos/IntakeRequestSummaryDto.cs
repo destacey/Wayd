@@ -46,8 +46,8 @@ public sealed record IntakeRequestSummaryDto
     public IntakeRequestNeedByDto? NeedBy { get; init; }
 
     /// <summary>
-    /// The tags reviewers filed the request under, by axis order and then name. Inactive tags the request still
-    /// carries are included.
+    /// The tags reviewers filed the request under, by category order and then name. Inactive tags the request
+    /// still carries are included.
     /// </summary>
     public IReadOnlyList<IntakeRequestTagNavigationDto> Tags { get; init; } = [];
 

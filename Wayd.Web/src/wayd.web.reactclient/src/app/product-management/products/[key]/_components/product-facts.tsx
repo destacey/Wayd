@@ -26,7 +26,7 @@ const ProductFacts = ({ product }: ProductFactsProps) => {
       { categoryId: string; categoryName: string; tagNames: string[] }
     >
   >((acc, tag) => {
-    // Free tags are on no axis, so they gather in a group of their own.
+    // Free tags are in no category, so they gather in a group of their own.
     if (!tag.categoryId) return acc
     const group = (acc[tag.categoryId] ??= {
       categoryId: tag.categoryId,
@@ -41,7 +41,7 @@ const ProductFacts = ({ product }: ProductFactsProps) => {
     caseInsensitiveCompare(a.categoryName, b.categoryName),
   )
 
-  // After the axes: those are the curated filing everyone shares, and free tags
+  // After the categories: those are the curated filing everyone shares, and free tags
   // are a team's own informal labels.
   const freeTagNames = (product.tags ?? [])
     .filter((tag) => !tag.categoryId)

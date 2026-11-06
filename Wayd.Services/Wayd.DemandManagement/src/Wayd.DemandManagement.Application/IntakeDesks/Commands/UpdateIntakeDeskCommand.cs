@@ -11,7 +11,7 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 /// </summary>
 /// <remarks>
 /// A Desk Admin on the desk changes its details, whether it is open, its requester settings, the channels and
-/// tag axes it offers and its agents.
+/// tag categories it offers and its agents.
 /// Its visibility, and who its Desk Admins are, only the Demand Management Admin changes: a Desk Admin who
 /// could open their own desk could publish everything on it, and one who could name Desk Admins could raise
 /// anyone's access. A member removed while owning requests on the desk is unassigned from them, because the
@@ -41,15 +41,16 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 /// <param name="Members">Everyone on the desk after the change, each with their role.</param>
 /// <param name="ExpectedRevision">The desk's <c>Revision</c> when the change was prepared; a desk changed since refuses it.</param>
 /// <param name="OffersAllTagCategories">
-/// Whether the desk's agents tag along every active company tag axis, including ones added later; null keeps the
-/// desk's axes as they are.
+/// Whether the desk's agents tag in every active company tag category, including ones added later; null keeps
+/// the desk's categories as they are.
 /// </param>
 /// <param name="TagCategoryIds">
-/// The tag axes the desk offers when it does not offer them all; empty means none, and null keeps the ones it has.
-/// Ignored unless <paramref name="OffersAllTagCategories"/> is false. A newly chosen axis must be active.
+/// The tag categories the desk offers when it does not offer them all; empty means none, and null keeps the ones
+/// it has. Ignored unless <paramref name="OffersAllTagCategories"/> is false. A newly chosen category must be
+/// active.
 /// </param>
 /// <param name="AllowsFreeTags">
-/// Whether the desk's agents may add free tags — tags on no axis, typed in while tagging; null keeps the desk's
+/// Whether the desk's agents may add free tags — tags in no category, typed in while tagging; null keeps the desk's
 /// setting.
 /// </param>
 public sealed record UpdateIntakeDeskCommand(
@@ -157,16 +158,16 @@ public sealed class UpdateIntakeDeskCommandHandler(
         Guid[] tagCategoryIds = [.. (request.TagCategoryIds ?? [.. desk.TagCategories.Select(c => c.CategoryId)]).Distinct()];
         if (!offersAllTagCategories)
         {
-            // An axis already chosen may stay after it is deactivated; only one newly chosen must be active.
+            // A category already chosen may stay after it is deactivated; only one newly chosen must be active.
             var newlyChosen = tagCategoryIds.Where(id => desk.TagCategories.All(c => c.CategoryId != id)).ToArray();
             var known = await _dbContext.IntakeRequestTagCategories
                 .Where(c => tagCategoryIds.Contains(c.Id))
                 .Select(c => new { c.Id, c.IsActive })
                 .ToListAsync(cancellationToken);
             if (known.Count != tagCategoryIds.Length)
-                return Result.Failure("Every tag axis must be a company tag axis.");
+                return Result.Failure("Every tag category must be a company tag category.");
             if (known.Any(c => !c.IsActive && newlyChosen.Contains(c.Id)))
-                return Result.Failure("An inactive tag axis cannot be offered.");
+                return Result.Failure("An inactive tag category cannot be offered.");
         }
 
         var actor = EventActor.User(_currentUser.GetUserId(), reader.EmployeeId);

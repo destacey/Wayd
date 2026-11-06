@@ -11,7 +11,7 @@ using Wayd.Tests.Shared.Extensions;
 namespace Wayd.ProductManagement.Domain.Tests.Sut.Models;
 
 /// <summary>
-/// Tagging a product along an axis. Tags describe; the type decides behaviour, so no tag can change
+/// Tagging a product in a category. Tags describe; the type decides behaviour, so no tag can change
 /// what a node is allowed to do.
 /// </summary>
 public sealed class ProductTaggingTests
@@ -25,7 +25,7 @@ public sealed class ProductTaggingTests
         _faker = new ProductFaker();
     }
 
-    private static (ProductTagCategory Category, ProductTag First, ProductTag Second) Axis(bool allowsMany)
+    private static (ProductTagCategory Category, ProductTag First, ProductTag Second) Category(bool allowsMany)
     {
         var category = new ProductTagCategoryFaker().WithAllowsMany(allowsMany).WithTags("ios", "android").Generate();
 
@@ -39,7 +39,7 @@ public sealed class ProductTaggingTests
     {
         // Arrange
         var sut = _faker.Generate();
-        var (platform, ios, _) = Axis(allowsMany: true);
+        var (platform, ios, _) = Category(allowsMany: true);
 
         // Act
         var result = sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
@@ -54,7 +54,7 @@ public sealed class ProductTaggingTests
     {
         // Arrange — what the product import does: create a product, then tag it, all before one save
         var sut = _faker.WithKey(0).Generate();
-        var (platform, ios, _) = Axis(allowsMany: true);
+        var (platform, ios, _) = Category(allowsMany: true);
 
         // Act
         sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
@@ -70,11 +70,11 @@ public sealed class ProductTaggingTests
     }
 
     [Fact]
-    public void Tag_ShouldKeepBoth_WhenTheAxisAllowsMany()
+    public void Tag_ShouldKeepBoth_WhenTheCategoryAllowsMany()
     {
         // Arrange
         var sut = _faker.Generate();
-        var (platform, ios, android) = Axis(allowsMany: true);
+        var (platform, ios, android) = Category(allowsMany: true);
 
         // Act
         sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
@@ -86,11 +86,11 @@ public sealed class ProductTaggingTests
     }
 
     [Fact]
-    public void Tag_ShouldReplace_WhenTheAxisAllowsOne()
+    public void Tag_ShouldReplace_WhenTheCategoryAllowsOne()
     {
         // Arrange
         var sut = _faker.Generate();
-        var (platform, ios, android) = Axis(allowsMany: false);
+        var (platform, ios, android) = Category(allowsMany: false);
 
         // Act
         sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
@@ -102,11 +102,11 @@ public sealed class ProductTaggingTests
     }
 
     [Fact]
-    public void Tag_ShouldDenormalizeTheAxis()
+    public void Tag_ShouldDenormalizeTheCategory()
     {
         // Arrange
         var sut = _faker.Generate();
-        var (platform, ios, _) = Axis(allowsMany: true);
+        var (platform, ios, _) = Category(allowsMany: true);
 
         // Act
         sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
@@ -121,7 +121,7 @@ public sealed class ProductTaggingTests
     {
         // Arrange
         var sut = _faker.Generate();
-        var (platform, ios, _) = Axis(allowsMany: true);
+        var (platform, ios, _) = Category(allowsMany: true);
         sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
 
         // Act
@@ -137,18 +137,18 @@ public sealed class ProductTaggingTests
     #region Refusals
 
     [Fact]
-    public void Tag_ShouldThrow_WhenTheTagIsNotOnTheSuppliedAxis()
+    public void Tag_ShouldThrow_WhenTheTagIsNotInTheSuppliedCategory()
     {
         // Arrange
         var sut = _faker.Generate();
-        var (_, ios, _) = Axis(allowsMany: true);
+        var (_, ios, _) = Category(allowsMany: true);
         var other = new ProductTagCategoryFaker().Generate();
 
         // Act
         var act = () => sut.Tag(ios, other, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        // The caller loads the axis from the tag, so a mismatch is a bug in the caller, not a request to refuse.
+        // The caller loads the category from the tag, so a mismatch is a bug in the caller, not a request to refuse.
         act.Should().Throw<ArgumentException>();
     }
 
@@ -157,7 +157,7 @@ public sealed class ProductTaggingTests
     {
         // Arrange
         var sut = _faker.Generate();
-        var (platform, ios, _) = Axis(allowsMany: true);
+        var (platform, ios, _) = Category(allowsMany: true);
         platform.DeactivateTag(ios.Id, EventActor.System, _dateTimeProvider.Now);
 
         // Act
@@ -178,7 +178,7 @@ public sealed class ProductTaggingTests
     {
         // Arrange
         var sut = _faker.Generate();
-        var (platform, ios, _) = Axis(allowsMany: true);
+        var (platform, ios, _) = Category(allowsMany: true);
         sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
 
         // Act
@@ -213,7 +213,7 @@ public sealed class ProductTaggingTests
     {
         // Arrange
         var sut = _faker.Generate();
-        var (platform, ios, android) = Axis(allowsMany: true);
+        var (platform, ios, android) = Category(allowsMany: true);
 
         // Act
         sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
@@ -227,11 +227,11 @@ public sealed class ProductTaggingTests
     }
 
     [Fact]
-    public void Tag_WhenTheAxisAllowsOne_ShouldReportTheReplacedTagAsRemoved()
+    public void Tag_WhenTheCategoryAllowsOne_ShouldReportTheReplacedTagAsRemoved()
     {
         // Arrange
         var sut = _faker.Generate();
-        var (platform, ios, android) = Axis(allowsMany: false);
+        var (platform, ios, android) = Category(allowsMany: false);
         sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
 
         // Act
@@ -249,7 +249,7 @@ public sealed class ProductTaggingTests
     {
         // Arrange
         var sut = _faker.Generate();
-        var (platform, ios, android) = Axis(allowsMany: true);
+        var (platform, ios, android) = Category(allowsMany: true);
         sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
         sut.Tag(android, platform, EventActor.System, _dateTimeProvider.Now);
 
@@ -268,11 +268,11 @@ public sealed class ProductTaggingTests
     #region Free tags
 
     [Fact]
-    public void Tag_WithAFreeTag_AddsItWithNoAxisBesideTheOthers()
+    public void Tag_WithAFreeTag_AddsItWithNoCategoryBesideTheOthers()
     {
         // Arrange
         var sut = _faker.Generate();
-        var (platform, ios, _) = Axis(allowsMany: false);
+        var (platform, ios, _) = Category(allowsMany: false);
         sut.Tag(ios, platform, EventActor.System, _dateTimeProvider.Now);
         var free = ProductTag.CreateFree("migration wave 2", EventActor.System, _dateTimeProvider.Now).Value;
 
@@ -280,18 +280,18 @@ public sealed class ProductTaggingTests
         var result = sut.Tag(free, null, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        // A free tag is on no axis, so it never displaces a tag on one, even on an axis that takes one.
+        // A free tag is in no category, so it never displaces a tag in one, even in a category that takes one.
         result.IsSuccess.Should().BeTrue();
         sut.Tags.Should().HaveCount(2);
         sut.Tags.Single(t => t.TagId == free.Id).CategoryId.Should().BeNull();
     }
 
     [Fact]
-    public void ReplaceTag_SwapsAFreeTagForATagOnAnAxisInOneEvent()
+    public void ReplaceTag_SwapsAFreeTagForATagInACategoryInOneEvent()
     {
         // Arrange
         var sut = _faker.Generate();
-        var (platform, ios, _) = Axis(allowsMany: true);
+        var (platform, ios, _) = Category(allowsMany: true);
         var free = ProductTag.CreateFree("iphone", EventActor.System, _dateTimeProvider.Now).Value;
         sut.Tag(free, null, EventActor.System, _dateTimeProvider.Now);
         sut.ClearDomainEvents();

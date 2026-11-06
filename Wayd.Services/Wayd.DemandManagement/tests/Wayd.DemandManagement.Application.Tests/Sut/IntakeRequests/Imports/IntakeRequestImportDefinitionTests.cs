@@ -349,7 +349,7 @@ public sealed class IntakeRequestImportDefinitionTests
     }
 
     [Fact]
-    public async Task CreateIntakeRequests_TagsTheRequestAlongTheDesksAxes()
+    public async Task CreateIntakeRequests_TagsTheRequestInTheDesksCategories()
     {
         // Arrange
         var category = _scenario.TagCategory(allowsMany: true, "Finance", "Compliance");
@@ -363,7 +363,7 @@ public sealed class IntakeRequestImportDefinitionTests
     }
 
     [Fact]
-    public async Task CreateIntakeRequests_RejectsTwoTagsOnAnAxisThatTakesOne()
+    public async Task CreateIntakeRequests_RejectsTwoTagsInACategoryThatTakesOne()
     {
         // Arrange
         var size = _scenario.TagCategory(allowsMany: false, "Small", "Large");
@@ -371,7 +371,7 @@ public sealed class IntakeRequestImportDefinitionTests
         // Act
         var result = await Run(Row(tagIds: [.. size.Tags.Select(t => t.Id)]));
 
-        // Assert — tagging replaces the tag on a single-choice axis, so the first would vanish silently
+        // Assert — tagging replaces the tag in a single-choice category, so the first would vanish silently
         var outcome = result.Value.Rows.Single();
         outcome.Failed.Should().BeTrue();
         outcome.Error.Should().Contain(size.Name);

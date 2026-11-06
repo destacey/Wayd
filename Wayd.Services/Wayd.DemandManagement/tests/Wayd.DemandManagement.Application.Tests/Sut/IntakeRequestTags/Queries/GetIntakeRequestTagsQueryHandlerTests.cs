@@ -13,7 +13,7 @@ public sealed class GetIntakeRequestTagsQueryHandlerTests
     private GetIntakeRequestTagsQueryHandler CreateHandler() => new(_scenario.DbContext, _scenario.Principal.Object);
 
     [Fact]
-    public async Task Handle_ReturnsBothKindsSortedByName_WithTheirAxisAndVisibleUse()
+    public async Task Handle_ReturnsBothKindsSortedByName_WithTheirCategoryAndVisibleUse()
     {
         // Arrange
         var area = _scenario.TagCategory(allowsMany: true, "Payments");

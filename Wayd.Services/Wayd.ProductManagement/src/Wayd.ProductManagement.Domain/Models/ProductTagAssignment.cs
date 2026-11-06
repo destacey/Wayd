@@ -8,7 +8,7 @@ namespace Wayd.ProductManagement.Domain.Models;
 /// </summary>
 /// <remarks>
 /// Carries the tag's category so that "what platform is this product?" is answerable without loading
-/// the tag and its axis — the same denormalization reasoning as a record's status category.
+/// the tag and its category — the same denormalization reasoning as a record's status category.
 /// </remarks>
 public sealed class ProductTagAssignment : BaseAuditableEntity, ITagAssignment
 {
@@ -19,7 +19,7 @@ public sealed class ProductTagAssignment : BaseAuditableEntity, ITagAssignment
         ProductId = Guard.Against.Default(productId, nameof(productId));
         TagId = Guard.Against.Default(tagId, nameof(tagId));
         if (categoryId == Guid.Empty)
-            throw new ArgumentException("An axis id cannot be empty; a free tag has none.", nameof(categoryId));
+            throw new ArgumentException("A category id cannot be empty; a free tag has none.", nameof(categoryId));
         CategoryId = categoryId;
     }
 
@@ -34,7 +34,7 @@ public sealed class ProductTagAssignment : BaseAuditableEntity, ITagAssignment
     public ProductTag? Tag { get; private init; }
 
     /// <summary>
-    /// The tag's axis, denormalized so filtering by axis needs no join through the tag. Null for a free tag.
+    /// The tag's category, denormalized so filtering by category needs no join through the tag. Null for a free tag.
     /// </summary>
     public Guid? CategoryId { get; private init; }
 }

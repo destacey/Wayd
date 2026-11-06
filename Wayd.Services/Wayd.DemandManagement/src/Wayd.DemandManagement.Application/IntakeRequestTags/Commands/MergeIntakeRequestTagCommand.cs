@@ -10,10 +10,10 @@ namespace Wayd.DemandManagement.Application.IntakeRequestTags.Commands;
 /// instead, and the free tag is deleted. The Administer permission is checked by the endpoint.
 /// </summary>
 /// <remarks>
-/// The target may be another free tag, to fold near-duplicates together, or a tag on an axis, which is how a free
-/// tag that caught on is promoted: add the tag to its axis, then merge into it. Reaches every desk, whatever axes
-/// each offers, because it files requests under the tag they already meant. On an axis that takes one tag, a
-/// request's existing tag there is replaced, as tagging always does.
+/// The target may be another free tag, to fold near-duplicates together, or a tag in a category, which is how a
+/// free tag that caught on is promoted: add the tag to its category, then merge into it. Reaches every desk,
+/// whatever categories each offers, because it files requests under the tag they already meant. In a category
+/// that takes one tag, a request's existing tag there is replaced, as tagging always does.
 /// </remarks>
 /// <param name="Id">The free tag to merge away.</param>
 /// <param name="TargetTagId">The tag its requests move to.</param>

@@ -7,7 +7,7 @@ using Wayd.ProductManagement.Application.Tests.Infrastructure;
 namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 
 /// <summary>
-/// Tagging a product with a typed name: a tag on an axis when exactly one has it, otherwise a free tag.
+/// Tagging a product with a typed name: a tag in a category when exactly one has it, otherwise a free tag.
 /// </summary>
 public sealed class TagProductByNameCommandHandlerTests : ProductCommandTestBase
 {
@@ -15,7 +15,7 @@ public sealed class TagProductByNameCommandHandlerTests : ProductCommandTestBase
         new(DbContext, TagSettings.Object, CurrentUser.Object, CurrentPrincipal.Object, Logger<TagProductByNameCommandHandler>(), DateTimeProvider.Object);
 
     [Fact]
-    public async Task Handle_ShouldApplyTheTagOnAnAxis_WhenExactlyOneHasTheName()
+    public async Task Handle_ShouldApplyTheTagInACategory_WhenExactlyOneHasTheName()
     {
         // Arrange
         var product = SeedProduct();
@@ -34,7 +34,7 @@ public sealed class TagProductByNameCommandHandlerTests : ProductCommandTestBase
     }
 
     [Fact]
-    public async Task Handle_ShouldRefuse_WhenTwoAxesHaveTheName()
+    public async Task Handle_ShouldRefuse_WhenTwoCategoriesHaveTheName()
     {
         // Arrange
         AllowFreeTags();

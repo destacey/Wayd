@@ -14,7 +14,7 @@ public sealed class IntakeRequestTagCategoryTests
     #region Create
 
     [Fact]
-    public void Create_WhenValid_IsActiveCompanyAxisWithNoTags()
+    public void Create_WhenValid_IsActiveCompanyCategoryWithNoTags()
     {
         // Act
         var sut = IntakeRequestTagCategory.Create(" Area ", "  ", allowsMany: true, 3, EventActor.System, Now);
@@ -83,7 +83,7 @@ public sealed class IntakeRequestTagCategoryTests
     }
 
     [Fact]
-    public void UpdateDetails_OnASystemAxis_Fails()
+    public void UpdateDetails_OnASystemCategory_Fails()
     {
         // Arrange
         var sut = new IntakeRequestTagCategoryFaker().WithName("Area").WithIsSystem(true).Generate();
@@ -93,7 +93,7 @@ public sealed class IntakeRequestTagCategoryTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(IntakeRequestTagCategory.SystemAxisError);
+        result.Error.Should().Be(IntakeRequestTagCategory.SystemCategoryError);
         sut.Name.Should().Be("Area");
         sut.DomainEvents.Should().BeEmpty();
     }
@@ -206,12 +206,12 @@ public sealed class IntakeRequestTagCategoryTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(IntakeRequestTagCategory.AxisInUseError);
+        result.Error.Should().Be(IntakeRequestTagCategory.CategoryInUseError);
         sut.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]
-    public void Delete_OnASystemAxis_Fails()
+    public void Delete_OnASystemCategory_Fails()
     {
         // Arrange
         var sut = new IntakeRequestTagCategoryFaker().WithIsSystem(true).Generate();
@@ -221,7 +221,7 @@ public sealed class IntakeRequestTagCategoryTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(IntakeRequestTagCategory.SystemAxisError);
+        result.Error.Should().Be(IntakeRequestTagCategory.SystemCategoryError);
     }
 
     #endregion Delete
@@ -252,7 +252,7 @@ public sealed class IntakeRequestTagCategoryTests
     }
 
     [Fact]
-    public void AddTag_WithANameAlreadyOnTheAxisInAnotherCase_Fails()
+    public void AddTag_WithANameAlreadyInTheCategoryInAnotherCase_Fails()
     {
         // Arrange
         var sut = new IntakeRequestTagCategoryFaker().WithTags("Payments").Generate();
@@ -267,7 +267,7 @@ public sealed class IntakeRequestTagCategoryTests
     }
 
     [Fact]
-    public void AddTag_OnASystemAxis_Fails()
+    public void AddTag_OnASystemCategory_Fails()
     {
         // Arrange
         var sut = new IntakeRequestTagCategoryFaker().WithIsSystem(true).Generate();
@@ -277,7 +277,7 @@ public sealed class IntakeRequestTagCategoryTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(IntakeRequestTagCategory.SystemAxisError);
+        result.Error.Should().Be(IntakeRequestTagCategory.SystemCategoryError);
         sut.Tags.Should().BeEmpty();
     }
 
@@ -338,7 +338,7 @@ public sealed class IntakeRequestTagCategoryTests
     }
 
     [Fact]
-    public void UpdateTagDetails_ForATagOnAnotherAxis_Fails()
+    public void UpdateTagDetails_ForATagInAnotherCategory_Fails()
     {
         // Arrange
         var sut = new IntakeRequestTagCategoryFaker().WithTags("Payments").Generate();
@@ -391,7 +391,7 @@ public sealed class IntakeRequestTagCategoryTests
     }
 
     [Fact]
-    public void DeactivateTag_OnASystemAxis_Fails()
+    public void DeactivateTag_OnASystemCategory_Fails()
     {
         // Arrange
         var sut = new IntakeRequestTagCategoryFaker().WithTags("Payments").WithIsSystem(true).Generate();

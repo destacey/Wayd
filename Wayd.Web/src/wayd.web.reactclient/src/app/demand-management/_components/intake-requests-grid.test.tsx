@@ -155,7 +155,7 @@ describe('IntakeRequestsGrid', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('shows each tag qualified by its axis', () => {
+  it('shows each tag qualified by its category', () => {
     // Arrange / Act
     renderGrid([
       {

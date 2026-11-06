@@ -76,7 +76,7 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
   const { data: tagCategories } = useGetIntakeRequestTagCategoriesQuery({
     includeInactive: true,
   })
-  // Active axes, plus any inactive one the desk already chose: it may stay
+  // Active categories, plus any inactive one the desk already chose: it may stay
   // chosen, and is offered again if activated, but cannot be newly chosen.
   const tagCategoryOptions = (tagCategories ?? [])
     .filter((c) => c.isActive || desk.tagCategoryIds.includes(c.id))
@@ -106,7 +106,7 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
                 ? []
                 : (values.channelIds ?? desk.channelIds),
               offersAllTagCategories: values.offersAllTagCategories,
-              // Asked only when the desk chooses its axes.
+              // Asked only when the desk chooses its categories.
               tagCategoryIds: values.offersAllTagCategories
                 ? []
                 : (values.tagCategoryIds ?? desk.tagCategoryIds),
@@ -273,15 +273,15 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
         </Item>
         <Item
           name="offersAllTagCategories"
-          label="Tag axes offered"
-          extra="The axes this desk's agents tag requests along."
+          label="Tag categories offered"
+          extra="The categories this desk's agents tag requests in."
         >
           <Radio.Group>
             <Flex vertical gap={8}>
               <Radio value={true}>
-                Every tag axis, including ones added later
+                Every tag category, including ones added later
               </Radio>
-              <Radio value={false}>Only the tag axes chosen here</Radio>
+              <Radio value={false}>Only the tag categories chosen here</Radio>
             </Flex>
           </Radio.Group>
         </Item>
@@ -295,7 +295,7 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
             getFieldValue('offersAllTagCategories') === false && (
               <Item
                 name="tagCategoryIds"
-                label="Tag axes this desk uses"
+                label="Tag categories this desk uses"
                 extra="Choose none and the desk's requests are not tagged. A request moved here keeps the tags it has."
               >
                 <Checkbox.Group options={tagCategoryOptions} />
@@ -307,7 +307,7 @@ const EditIntakeDeskSettingsForm: FC<EditIntakeDeskSettingsFormProps> = ({
           name="allowsFreeTags"
           label="Allow free tags"
           valuePropName="checked"
-          extra="Lets agents add their own tags, outside the tag axes, by typing a name. Turning it off keeps the free tags requests already carry."
+          extra="Lets agents add their own tags, outside the tag categories, by typing a name. Turning it off keeps the free tags requests already carry."
         >
           <Switch />
         </Item>

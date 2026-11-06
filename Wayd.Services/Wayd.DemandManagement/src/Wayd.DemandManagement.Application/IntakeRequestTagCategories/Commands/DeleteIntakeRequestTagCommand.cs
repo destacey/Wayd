@@ -7,7 +7,7 @@ namespace Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 /// Deletes a tag no request carries. A tag in use is deactivated instead. The Administer permission is checked
 /// by the endpoint.
 /// </summary>
-/// <param name="CategoryId">The tag's axis.</param>
+/// <param name="CategoryId">The tag's category.</param>
 /// <param name="TagId">The tag.</param>
 public sealed record DeleteIntakeRequestTagCommand(Guid CategoryId, Guid TagId) : ICommand;
 

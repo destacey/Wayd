@@ -196,7 +196,7 @@ describe('ProjectsDashboardGrid', () => {
     render(<ProjectsDashboardGrid {...props} />)
 
     // Act
-    fireEvent.click(screen.getByRole('button', { name: 'P1 Alpha' }))
+    fireEvent.click(screen.getByRole('row', { name: 'P1 Alpha' }))
 
     // Assert
     expect(props.onSelectProject).toHaveBeenCalledWith('P1')

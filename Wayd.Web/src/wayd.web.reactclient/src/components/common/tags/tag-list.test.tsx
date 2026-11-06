@@ -13,7 +13,10 @@ describe('TagList', () => {
     // Arrange / Act
     render(
       <TagList
-        tags={[tag('1', 'ios', 'Platform'), tag('2', 'pci-scope', 'Compliance')]}
+        tags={[
+          tag('1', 'ios', 'Platform'),
+          tag('2', 'pci-scope', 'Compliance'),
+        ]}
       />,
     )
 
@@ -36,7 +39,7 @@ describe('TagList', () => {
     expect(chip?.textContent?.replace(/\s+/g, ' ').trim()).toBe('Tier | gold')
   })
 
-  it('renders a tag with no qualifier, for areas whose tags have no axes', () => {
+  it('renders a tag with no qualifier, for areas whose tags have no categories', () => {
     // Arrange / Act
     render(<TagList tags={[tag('1', 'urgent')]} />)
 
@@ -80,7 +83,9 @@ describe('TagList', () => {
 
     // Assert
     expect(document.querySelectorAll('.ant-tag')).toHaveLength(0)
-    expect(screen.getByRole('button', { name: 'Manage tags' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Manage tags' }),
+    ).toBeInTheDocument()
   })
 
   it('says so when asked, for a read-only view with no manage button', () => {

@@ -7,12 +7,12 @@ using Wayd.DemandManagement.Domain.Models;
 namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 
 /// <summary>
-/// Files an intake request under a name an agent typed: the tag on an axis the request's desk offers when exactly
-/// one has the name, otherwise the free tag with that name, created when none has it yet. Returns the id of the
-/// tag applied.
+/// Files an intake request under a name an agent typed: the tag in a category the request's desk offers when
+/// exactly one has the name, otherwise the free tag with that name, created when none has it yet. Returns the id
+/// of the tag applied.
 /// </summary>
 /// <remarks>
-/// Needs an agent on the request's desk. Preferring a tag on an axis keeps a curated tag typed by hand from
+/// Needs an agent on the request's desk. Preferring a tag in a category keeps a curated tag typed by hand from
 /// becoming a free tag beside it. A free tag needs a desk that allows them; see <see cref="IntakeDesk.AllowsFreeTags"/>.
 /// </remarks>
 /// <param name="Id">The request.</param>
@@ -66,12 +66,12 @@ public sealed class TagIntakeRequestByNameCommandHandler(
             .Include(c => c.Tags)
             .Where(c => c.Tags.Any(t => t.IsActive && t.Name.ToLower() == lowered))
             .ToListAsync(cancellationToken);
-        var onAxes = categories
+        var inCategories = categories
             .Where(desk.Offers)
             .Select(c => (Category: c, Tag: c.Tags.First(t => t.IsActive && string.Equals(t.Name, name.Value, StringComparison.OrdinalIgnoreCase))))
             .ToList();
 
-        if (onAxes.Count > 1)
+        if (inCategories.Count > 1)
             return Result.Failure<Guid>(IntakeRequestTagErrors.AmbiguousName);
 
         var actor = EventActor.User(_currentUser.GetUserId(), reader.EmployeeId);
@@ -79,9 +79,9 @@ public sealed class TagIntakeRequestByNameCommandHandler(
 
         IntakeRequestTag tag;
         IntakeRequestTagCategory? category = null;
-        if (onAxes.Count == 1)
+        if (inCategories.Count == 1)
         {
-            (category, tag) = onAxes[0];
+            (category, tag) = inCategories[0];
         }
         else
         {

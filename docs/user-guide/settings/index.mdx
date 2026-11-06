@@ -17,10 +17,10 @@ The Administration area provides tools for configuring Wayd, managing users, con
 | **Organization** | Holiday Calendars, Team Member Roles |
 | **Planning** | Estimation Scales (with the `planning-poker` flag) |
 | **Product Management** | Product Tags (with the `product-management` flag); Incident Severity Sets (with `product-management` and `incident-management`) |
-| **Demand Management** | Channels, Tag Axes (with the `demand-management` flag) |
+| **Demand Management** | Channels, Request Tags (with the `demand-management` flag) |
 | **PPM** | Expenditure Categories, Project Lifecycles, Scoring Models |
 | **Work Management** | Work Types, Work Statuses, Work Processes |
-| **System** | Scheduling, Sprint Metrics, Product Tags, Feature Flags, Status Workflows, Connections, Imports, Background Jobs, Messaging |
+| **System** | Scheduling, Sprint Metrics, Feature Flags, Status Workflows, Connections, Imports, Background Jobs, Messaging |
 
 The menu shows only the pages your permissions open, and hides a group with none; the filter box above it narrows the list. Opening **Settings** takes you to the first page you can use.
 
@@ -271,14 +271,6 @@ The window is the same for every team, so their figures compare. It is read, not
 
 Every change is recorded in the page's **Activity** section, with who made it and the value before and after.
 
-### Product Tag Settings
-
-Navigate to **Settings > System > Product Tags** to set:
-
-- **Allow free tags on products** — whether anyone who can tag a product may also give it [free tags](../product-management/products.mdx#free-tags), typed in while tagging (off by default).
-
-Turning it off stops new free tags being added; products keep the ones they carry. Every change is recorded in the page's **Activity** section.
-
 ## Organization Settings
 
 ### Holiday Calendars
@@ -342,17 +334,17 @@ Managing roles:
 
 ### Product Tags
 
-**Product Tags** administers the axes products are labelled along — Platform, Tech Stack, Compliance — and the tags on each. Configured in **Settings → Product Management → Product Tags**. See [Products](../product-management/products.mdx#tags) for how a product is then tagged.
+**Product Tags** administers the categories products are tagged in — Platform, Tech Stack, Compliance — and the tags in each. Configured in **Settings → Product Management → Product Tags**. See [Products](../product-management/products.mdx#tags) for how a product is then tagged.
 
-A **tag category** is one axis of classification:
+A **tag category** is one named group of tags:
 
 - **Name** and **Description**
-- **Allows Many** — whether a product can carry several tags from this axis. Chosen at creation and fixed afterward: narrowing it later would leave products holding more tags than the axis permits.
-- **Order** — where the axis sits when the axes are presented, shown as a column. Presentation only, and not a field on the forms: **drag a row by its grab handle** to move it. A new axis lands at the end.
-- **Active** — whether products can still be tagged along this axis.
-- **System** — platform-seeded axes are read-only. They can be deactivated and repositioned, but never edited, deleted, or have their tags changed; an organization wanting different axes adds its own.
+- **Allows Many** — whether a product can carry several tags from this category. Chosen at creation and fixed afterward: narrowing it later would leave products holding more tags than the category permits.
+- **Order** — where the category sits when the categories are presented, shown as a column. Presentation only, and not a field on the forms: **drag a row by its grab handle** to move it. A new category lands at the end.
+- **Active** — whether products can still be tagged in this category.
+- **System** — platform-seeded categories are read-only. They can be deactivated and repositioned, but never edited, deleted, or have their tags changed; an organization wanting different categories adds its own.
 
-Open a category to manage its tags. Tags are managed through their axis rather than as a list of their own, because the rule they can break — no two tags on one axis sharing a name — belongs to the axis.
+Open a category to manage its tags. Tags are managed through their category rather than as a list of their own, because the rule they can break — no two tags in one category sharing a name — belongs to the category.
 
 Tags themselves carry no order — they display alphabetically wherever they appear, in the settings grid and in the tag picker alike.
 
@@ -360,16 +352,18 @@ Tags themselves carry no order — they display alphabetically wherever they app
 
 - **Renaming a tag is safe.** Products reference tags by id, so the new name shows on every tagged product at once — which is the point of a curated list over free text.
 - **Deactivating retires rather than removes.** A deactivated tag or category can no longer be applied to anything new, but products already carrying it keep their tags, so what was recorded stays true. The tag list shows how many products carry each tag, so you can see what a change would affect before making it.
-- **Deleting is only for what nothing uses.** A category that products are tagged along, or a tag that any product carries, cannot be deleted — deactivate it instead. A tag's **Delete** action only appears while its product count is zero.
+- **Deleting is only for what nothing uses.** A category that products are tagged in, or a tag that any product carries, cannot be deleted — deactivate it instead. A tag's **Delete** action only appears while its product count is zero.
 - **Reordering needs a clean grid.** The grab handle is disabled while the list is sorted, filtered or searched, because the order on screen is not the stored order then and a drop would write a sequence you never saw. Clear all three and the handle comes back. A move saves the whole list at once, so the positions can never overlap.
 
 #### Free tags
 
-The **Free tags** section lists the [free tags](../product-management/products.mdx#free-tags) people have added to products — tags on no category — with how many products carry each. A note shows whether free tags are on; they are turned on and off in [Settings → System → Product Tags](#product-tag-settings).
+The **Free tags** section lists the [free tags](../product-management/products.mdx#free-tags) people have added to products — tags in no category — with how many products carry each.
+
+The section's **Allow free tags on products** switch decides whether anyone who can tag a product may also give it free tags, typed in while tagging (off by default). Turning it off stops new free tags being added; products keep the ones they carry. Seeing the switch needs permission to view system settings, and changing it needs permission to update them, not a tag permission. Without the view permission, the section only says whether free tags are on. **Setting history**, beside the heading, lists each change and who made it.
 
 - **Edit** changes a free tag's name or description. Names are unique among free tags, ignoring case.
-- **Merge into…** moves every product carrying a free tag to another tag and deletes the free tag. Merge into another free tag to fold near-duplicates together, or into a tag on a category to promote it: add the tag to its category first, then merge into it. On a category that allows one value, a product's existing tag there is replaced.
-- **Delete** takes a free tag off every product carrying it and deletes it. Unlike a tag on a category, it does not have to be unused first.
+- **Merge into…** moves every product carrying a free tag to another tag and deletes the free tag. Merge into another free tag to fold near-duplicates together, or into a tag in a category to promote it: add the tag to its category first, then merge into it. On a category that allows one value, a product's existing tag there is replaced.
+- **Delete** takes a free tag off every product carrying it and deletes it. Unlike a tag in a category, it does not have to be unused first.
 
 A free tag nothing carries is deleted on its own, so there is nothing to deactivate.
 
@@ -379,6 +373,8 @@ A free tag nothing carries is deleted on its own, so there is nothing to deactiv
 | Create a category | `Permissions.ProductTagCategories.Create` |
 | Edit a category, activate or deactivate it, add or change its tags, rename or merge a free tag | `Permissions.ProductTagCategories.Update` |
 | Delete a category, a tag or a free tag | `Permissions.ProductTagCategories.Delete` |
+| See the free tags switch and its setting history | `Permissions.SystemSettings.View` |
+| Turn free tags on products on or off | `Permissions.SystemSettings.Update` |
 
 ### Incident severity sets
 
@@ -403,9 +399,9 @@ System scales cannot be renamed or deleted. A custom scale that is not the organ
 
 **Channels** is the company's list of where intake requests come from, managed by the Demand Management Admin (`Permissions.IntakeRequests.Administer`). Add, rename, describe, reorder and archive channels here; each desk then chooses which of them it offers. See [Demand Management: managing channels](../demand-management/index.mdx#managing-channels).
 
-### Tag Axes
+### Request Tags
 
-**Tag Axes** are the axes reviewers tag intake requests along, such as Area, and the tags on each, managed by the Demand Management Admin (`Permissions.IntakeRequests.Administer`). Add, rename, reorder, deactivate and delete axes and their tags here; an axis or tag that requests carry is deactivated rather than deleted. The page also lists the free tags agents have added, to rename, merge or delete. See [Demand Management: managing tag axes](../demand-management/index.mdx#managing-tag-axes).
+**Request Tags** holds the categories reviewers tag intake requests in, such as Area, and the tags in each, managed by the Demand Management Admin (`Permissions.IntakeRequests.Administer`). Add, rename, reorder, deactivate and delete categories and their tags here; a category or tag that requests carry is deactivated rather than deleted. The page also lists the free tags agents have added, to rename, merge or delete. Configured in **Settings → Demand Management → Request Tags**. See [Demand Management: managing tag categories](../demand-management/index.mdx#managing-tag-categories).
 
 ## PPM Settings
 

@@ -12,9 +12,9 @@ import { QueryTags } from '../query-tags'
 export interface SearchProductTagsArgs {
   /** Keeps tags whose name contains this, ignoring case. */
   search?: string
-  /** True for free tags only, false for tags on categories only. */
+  /** True for free tags only, false for tags in categories only. */
   isFree?: boolean
-  /** Keeps tags that cannot be applied: inactive ones and those on inactive categories. */
+  /** Keeps tags that cannot be applied: inactive ones and those in inactive categories. */
   includeInactive?: boolean
 }
 
@@ -58,7 +58,7 @@ export const productTagsApi = apiSlice.injectEndpoints({
         { type: QueryTags.SystemSettings, id: 'product-tags' },
       ],
     }),
-    /** Product tags on categories and free, sorted by name, each with its product count. */
+    /** Product tags in categories and free, sorted by name, each with its product count. */
     searchProductTags: builder.query<
       ProductTagListItemDto[],
       SearchProductTagsArgs | void

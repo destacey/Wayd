@@ -98,7 +98,7 @@ describe('useProductTagCategoryActions', () => {
   })
 
   describe('available actions', () => {
-    it('offers edit, delete and deactivate on an active axis', () => {
+    it('offers edit, delete and deactivate on an active category', () => {
       // Arrange / Act
       render(<Harness target={category()} />)
 
@@ -106,7 +106,7 @@ describe('useProductTagCategoryActions', () => {
       expect(openMenu()).toEqual(['Edit', 'Delete', 'Deactivate'])
     })
 
-    it('offers activate on an inactive axis', () => {
+    it('offers activate on an inactive category', () => {
       // Arrange / Act — deactivation is reversible, so the one action swaps
       render(<Harness target={category({ isActive: false })} />)
 
@@ -114,8 +114,8 @@ describe('useProductTagCategoryActions', () => {
       expect(openMenu()).toEqual(['Edit', 'Delete', 'Activate'])
     })
 
-    it('offers only deactivate on a platform-seeded axis', () => {
-      // Arrange / Act — the domain refuses to edit or delete a system axis, so
+    it('offers only deactivate on a platform-seeded category', () => {
+      // Arrange / Act — the domain refuses to edit or delete a system category, so
       // offering either would only produce a failure. Deactivating still works.
       render(<Harness target={category({ isSystem: true })} />)
 
@@ -172,7 +172,7 @@ describe('useProductTagCategoryActions', () => {
       expect(screen.getByText('edit dialog')).toBeInTheDocument()
     })
 
-    it('opens the deactivate dialog on an active axis', () => {
+    it('opens the deactivate dialog on an active category', () => {
       // Arrange
       render(<Harness target={category()} />)
       openMenu()
@@ -184,7 +184,7 @@ describe('useProductTagCategoryActions', () => {
       expect(screen.getByText('deactivate dialog')).toBeInTheDocument()
     })
 
-    it('opens the activate dialog on an inactive axis', () => {
+    it('opens the activate dialog on an inactive category', () => {
       // Arrange
       render(<Harness target={category({ isActive: false })} />)
       openMenu()

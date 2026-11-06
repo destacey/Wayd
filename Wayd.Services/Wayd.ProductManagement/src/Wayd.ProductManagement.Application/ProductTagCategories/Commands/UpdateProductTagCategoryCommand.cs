@@ -1,11 +1,11 @@
 ﻿namespace Wayd.ProductManagement.Application.ProductTagCategories.Commands;
 
 /// <summary>
-/// Edits a tag axis.
+/// Edits a tag category.
 /// </summary>
 /// <remarks>
-/// <c>AllowsMany</c> is deliberately absent: narrowing an axis from many to one would leave products
-/// holding more tags than it permits, and nothing in the domain can choose which to drop. An axis whose
+/// <c>AllowsMany</c> is deliberately absent: narrowing a category from many to one would leave products
+/// holding more tags than it permits, and nothing in the domain can choose which to drop. A category whose
 /// cardinality was wrong is replaced, not edited.
 /// </remarks>
 public sealed record UpdateProductTagCategoryCommand(

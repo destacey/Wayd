@@ -250,7 +250,7 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
     }
 
     [Fact]
-    public async Task SaveChanges_ChoosingADesksTagAxes_PersistsThemAndRecordsTheChange()
+    public async Task SaveChanges_ChoosingADesksTagCategories_PersistsThemAndRecordsTheChange()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
@@ -259,7 +259,7 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
         await using (var context = _fixture.CreateContext())
         {
             var (desk, _) = await SeedDeskAndChannel(context);
-            var category = IntakeRequestTagCategory.Create(UniqueName("Axis"), null, allowsMany: true, 1, EventActor.System, Now);
+            var category = IntakeRequestTagCategory.Create(UniqueName("Category"), null, allowsMany: true, 1, EventActor.System, Now);
             context.IntakeRequestTagCategories.Add(category);
             await context.SaveChangesAsync(ct);
             deskId = desk.Id;
@@ -285,16 +285,16 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
     }
 
     [Fact]
-    public async Task SaveChanges_DeletingATagAxisADeskChose_IsRefusedUnlessTheDeskLetsItGoInTheSameSave()
+    public async Task SaveChanges_DeletingATagCategoryADeskChose_IsRefusedUnlessTheDeskLetsItGoInTheSameSave()
     {
-        // Arrange — the key restricts, so only the desk itself can drop the axis, recording that it did
+        // Arrange — the key restricts, so only the desk itself can drop the category, recording that it did
         var ct = TestContext.Current.CancellationToken;
         Guid deskId;
         Guid categoryId;
         await using (var context = _fixture.CreateContext())
         {
             var (desk, _) = await SeedDeskAndChannel(context);
-            var category = IntakeRequestTagCategory.Create(UniqueName("Axis"), null, allowsMany: true, 1, EventActor.System, Now);
+            var category = IntakeRequestTagCategory.Create(UniqueName("Category"), null, allowsMany: true, 1, EventActor.System, Now);
             context.IntakeRequestTagCategories.Add(category);
             await context.SaveChangesAsync(ct);
             desk.ChangeTagCategories(false, [category.Id], EventActor.System, Now).IsSuccess.Should().BeTrue();
@@ -424,7 +424,7 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
     }
 
     [Fact]
-    public async Task SaveChanges_AFreeTagOnARequest_RoundTripsWithNoAxisAndRecordsItsCreation()
+    public async Task SaveChanges_AFreeTagOnARequest_RoundTripsWithNoCategoryAndRecordsItsCreation()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
@@ -457,7 +457,7 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
     [Fact]
     public async Task SaveChanges_ASecondFreeTagWithTheSameNameInAnotherCase_IsRefused()
     {
-        // Arrange — the unique index must treat free tags' empty axes as equal
+        // Arrange — the unique index must treat free tags' null category ids as equal
         var ct = TestContext.Current.CancellationToken;
         var name = UniqueName("wave");
         await using (var context = _fixture.CreateContext())
@@ -479,13 +479,13 @@ public sealed class DemandManagementPersistenceTests(SqlServerDbContextFixture f
     }
 
     [Fact]
-    public async Task SaveChanges_AFreeTagNamedLikeATagOnAnAxis_IsAllowed()
+    public async Task SaveChanges_AFreeTagNamedLikeATagInACategory_IsAllowed()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         var name = UniqueName("Payments");
         await using var context = _fixture.CreateContext();
-        var category = IntakeRequestTagCategory.Create(UniqueName("Axis"), null, allowsMany: true, 1, EventActor.System, Now);
+        var category = IntakeRequestTagCategory.Create(UniqueName("Category"), null, allowsMany: true, 1, EventActor.System, Now);
         category.AddTag(name, null, EventActor.System, Now).IsSuccess.Should().BeTrue();
         context.IntakeRequestTagCategories.Add(category);
         await context.SaveChangesAsync(ct);

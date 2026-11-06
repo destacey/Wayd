@@ -44,10 +44,10 @@ const ManageIntakeRequestTagsForm = ({
   const { data: freeTags, isLoading: freeTagsLoading } =
     useSearchIntakeRequestTagsQuery({ isFree: true }, { skip: !allowsFreeTags })
 
-  // The axes the request's desk offers, so its agents choose only from what applies to them.
+  // The categories the request's desk offers, so its agents choose only from what applies to them.
   const { data: offered, isLoading: offeredLoading } =
     useGetIntakeRequestTagCategoriesQuery({ deskId: summary.desk.id })
-  // Every axis, for one the request already carries a tag on but its desk does not offer — a request moved
+  // Every category, for one the request already carries a tag in but its desk does not offer — a request moved
   // here keeps it — so that tag can still be removed. Not offered for new tags beyond what it carries.
   const { data: all, isLoading: allLoading } =
     useGetIntakeRequestTagCategoriesQuery({ includeInactive: true })
@@ -71,7 +71,7 @@ const ManageIntakeRequestTagsForm = ({
     const total = removed.length + added.length + addedNames.length
 
     try {
-      // Removals first: on a single-value axis, tagging first would replace the tag and the untag would
+      // Removals first: in a single-value category, tagging first would replace the tag and the untag would
       // then strip the new one.
       for (const tagId of removed) {
         const response = await untagRequest({ requestId: summary.id, tagId })

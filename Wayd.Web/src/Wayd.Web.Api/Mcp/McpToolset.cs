@@ -34,7 +34,7 @@ public enum McpToolset
     /// <summary>Employees, holiday calendars, team member roles, team types and risks.</summary>
     Organization,
 
-    /// <summary>Demand Management: intake requests and their review, and the desks, channels and tag axes behind them.</summary>
+    /// <summary>Demand Management: intake requests and their review, and the desks, channels and tag categories behind them.</summary>
     Intake,
 
     /// <summary>The conversation on any record that has one: an intake request, a project.</summary>

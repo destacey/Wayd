@@ -4,10 +4,10 @@ using Wayd.DemandManagement.Domain.Models;
 namespace Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 
 /// <summary>
-/// Adds a tag to an axis. The Administer permission is checked by the endpoint.
+/// Adds a tag to a category. The Administer permission is checked by the endpoint.
 /// </summary>
-/// <param name="CategoryId">The axis.</param>
-/// <param name="Name">The label, unique within the axis.</param>
+/// <param name="CategoryId">The category.</param>
+/// <param name="Name">The label, unique within the category.</param>
 /// <param name="Description">What the label means, where it is not obvious.</param>
 public sealed record AddIntakeRequestTagCommand(Guid CategoryId, string Name, string? Description) : ICommand<Guid>;
 

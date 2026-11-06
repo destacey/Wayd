@@ -206,7 +206,7 @@ public sealed class IntakeScenario
         return channel;
     }
 
-    /// <summary>A company tag axis with active tags of the names.</summary>
+    /// <summary>A company tag category with active tags of the names.</summary>
     public IntakeRequestTagCategory TagCategory(bool allowsMany = true, params string[] tagNames)
     {
         var category = new IntakeRequestTagCategoryFaker().WithAllowsMany(allowsMany).WithTags(tagNames).Generate();
@@ -233,7 +233,7 @@ public sealed class IntakeScenario
         request.ClearPostPersistenceActions();
     }
 
-    /// <summary>A saved free tag: one on no axis.</summary>
+    /// <summary>A saved free tag: one in no category.</summary>
     public IntakeRequestTag FreeTag(string name = "follow up")
     {
         var tag = IntakeRequestTag.CreateFree(name, EventActor.System, Instant.MinValue).Value;

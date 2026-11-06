@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A tag axis was added to the ones products are labelled along.
+/// A tag category was added to the ones products are grouped by.
 /// </summary>
 public sealed record ProductTagCategoryCreatedEvent : DomainEvent<ProductTagCategoryCreatedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
@@ -25,13 +25,13 @@ public sealed record ProductTagCategoryCreatedEvent : DomainEvent<ProductTagCate
     public Guid Id { get; }
     public string Name { get; }
 
-    /// <summary>What the axis is for, when described.</summary>
+    /// <summary>What the category is for, when described.</summary>
     public string? Description { get; }
 
-    /// <summary>Whether a product can carry several tags from the axis.</summary>
+    /// <summary>Whether a product can carry several tags from the category.</summary>
     public bool AllowsMany { get; }
 
-    /// <summary>Position when presenting the axes, lowest first.</summary>
+    /// <summary>Position when presenting the categories, lowest first.</summary>
     public int Order { get; }
 
     [JsonIgnore]

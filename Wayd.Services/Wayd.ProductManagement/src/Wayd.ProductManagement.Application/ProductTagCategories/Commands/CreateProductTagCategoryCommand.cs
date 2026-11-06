@@ -4,16 +4,16 @@ using Wayd.ProductManagement.Domain.Models;
 namespace Wayd.ProductManagement.Application.ProductTagCategories.Commands;
 
 /// <summary>
-/// Creates a tag axis.
+/// Creates a tag category.
 /// </summary>
 /// <param name="AllowsMany">
-/// Whether a product can carry several tags from this axis. True suits Platform, where a cross-platform
-/// app genuinely targets both iOS and Android; false suits an axis where a node can only be one thing.
+/// Whether a product can carry several tags from this category. True suits Platform, where a cross-platform
+/// app genuinely targets both iOS and Android; false suits a category where a node can only be one thing.
 /// <strong>Fixed once set</strong> — narrowing it later would leave products holding more tags than the
-/// axis permits, and the domain has no rule for choosing which to drop.
+/// category permits, and the domain has no rule for choosing which to drop.
 /// </param>
 /// <remarks>
-/// A new axis lands at the end of the list. Its position is not the caller's to choose — it is a
+/// A new category lands at the end of the list. Its position is not the caller's to choose — it is a
 /// statement about the whole list, made by reordering it.
 /// </remarks>
 public sealed record CreateProductTagCategoryCommand(

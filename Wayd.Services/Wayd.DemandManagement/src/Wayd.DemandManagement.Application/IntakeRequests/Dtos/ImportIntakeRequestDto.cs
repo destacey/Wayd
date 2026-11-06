@@ -31,7 +31,7 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 /// <param name="StatusReason">Why, as the requester reads it. Required by the statuses that need one.</param>
 /// <param name="DuplicateOfId">For a status meaning Duplicate, the request already in Wayd it gives way to.</param>
 /// <param name="AssigneeId">The member of the desk who owns it.</param>
-/// <param name="TagIds">Tags along axes the desk offers, or free tags where the desk allows them.</param>
+/// <param name="TagIds">Tags in categories the desk offers, or free tags where the desk allows them.</param>
 /// <param name="Estimate">
 /// An estimate value, not a card, of the estimation scale version the desk pins; null leaves the request unestimated.
 /// </param>

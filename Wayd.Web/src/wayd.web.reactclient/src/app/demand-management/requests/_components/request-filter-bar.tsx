@@ -52,7 +52,7 @@ export interface RequestFilterBarProps {
   requests: IntakeRequestSummaryDto[] | undefined
   desks: IntakeDeskDto[] | undefined
   channels: IntakeChannelDto[] | undefined
-  /** The tag axes, inactive tags included, since requests keep them. */
+  /** The tag categories, inactive tags included, since requests keep them. */
   tagCategories: IntakeRequestTagCategoryDto[] | undefined
   /** The reader's employee record, without which nothing is assigned to them. */
   employeeId: string | null | undefined
@@ -104,7 +104,7 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
   const perDesk = countBy(requests, (r) => r.desk.id)
   const perStatus = countBy(requests, (r) => r.status.name)
   const perTag = new Map<string, number>()
-  // Free tags have no axis to list them under, so they come from the requests in scope — which also keeps
+  // Free tags have no category to list them under, so they come from the requests in scope — which also keeps
   // the list to free tags the reader can already see.
   const freeTags = new Map<string, string>()
   for (const r of requests ?? [])
@@ -116,11 +116,11 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
   // A selected free tag no request in scope carries — after switching scope, or
   // from a shared link — still needs its name, or its chip reads as an id. The
   // search returns only free tags the reader may see, so it discloses nothing.
-  const axisTagIds = new Set(
+  const categoryTagIds = new Set(
     (tagCategories ?? []).flatMap((c) => c.tags.map((t) => t.id)),
   )
   const unlabelled = filters.tagIds.filter(
-    (id) => !axisTagIds.has(id) && !freeTags.has(id),
+    (id) => !categoryTagIds.has(id) && !freeTags.has(id),
   )
   const { data: searchedFreeTags } = useSearchIntakeRequestTagsQuery(
     { isFree: true },
@@ -292,7 +292,7 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
           { value: NOT_RECORDED_CHANNEL, label: NOT_RECORDED_CHANNEL_LABEL },
         ]}
       />
-      {/* Hidden until there is a tag to pick, since the seeded axis starts empty — but
+      {/* Hidden until there is a tag to pick, since the seeded category starts empty — but
           never while a tag filter is applied, or it could not be cleared. */}
       {(tagCategories?.some((c) => c.tags.length > 0) ||
         freeTagOptions.length > 0 ||
@@ -307,7 +307,7 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
           value={filters.tagIds}
           onChange={(tagIds) => set({ tagIds })}
           optionFilterProp="label"
-          // Grouped by axis, since the same label can sit on two axes; free tags, on none, last.
+          // Grouped by category, since the same label can sit in two categories; free tags, in none, last.
           options={[
             ...(tagCategories ?? [])
               .filter((c) => c.tags.length > 0)

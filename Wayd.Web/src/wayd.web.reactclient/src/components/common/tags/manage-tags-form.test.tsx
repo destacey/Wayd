@@ -93,7 +93,7 @@ describe('ManageTagsForm', () => {
     expect(screen.getByText('Tier')).toBeInTheDocument()
   })
 
-  it('lets a many-valued axis hold several and a single-valued one hold one', () => {
+  it('lets a many-valued category hold several and a single-valued one hold one', () => {
     // Arrange / Act
     renderForm()
 
@@ -119,7 +119,7 @@ describe('ManageTagsForm', () => {
 
   it('holds no knowledge of what is being tagged', () => {
     // The whole point of the seam: an area with entirely different records uses
-    // the same component by passing its own axes.
+    // the same component by passing its own categories.
     // Arrange / Act
     renderForm({
       categories: [

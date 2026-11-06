@@ -3,22 +3,22 @@ using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 namespace Wayd.Web.Api.Models.DemandManagement.IntakeRequestTagCategories;
 
 /// <summary>
-/// A tag axis's new name and description.
+/// A tag category's new name and description.
 /// </summary>
 public sealed record UpdateIntakeRequestTagCategoryRequest
 {
     /// <summary>
-    /// The axis being changed; must match the route.
+    /// The category being changed; must match the route.
     /// </summary>
     public Guid Id { get; set; }
 
     /// <summary>
-    /// What the company calls the axis. Unique among active and inactive axes.
+    /// What the company calls the category. Unique among active and inactive categories.
     /// </summary>
     public string Name { get; set; } = default!;
 
     /// <summary>
-    /// What the axis is for, or null for no description.
+    /// What the category is for, or null for no description.
     /// </summary>
     public string? Description { get; set; }
 

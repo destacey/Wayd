@@ -43,17 +43,19 @@ public sealed record IntakeDeskDto
     /// </summary>
     public required IReadOnlyList<Guid> ChannelIds { get; init; }
 
-    /// <summary>Whether the desk's agents tag along every active company tag axis, including axes added later.</summary>
+    /// <summary>
+    /// Whether the desk's agents tag in every active company tag category, including categories added later.
+    /// </summary>
     public bool OffersAllTagCategories { get; init; }
 
     /// <summary>
-    /// The tag axes the desk chose, in the company's order, while it does not offer them all; an inactive one
+    /// The tag categories the desk chose, in the company's order, while it does not offer them all; an inactive one
     /// stays chosen but is not offered. Empty with <see cref="OffersAllTagCategories"/> false means its agents tag
-    /// along none.
+    /// in none.
     /// </summary>
     public IReadOnlyList<Guid> TagCategoryIds { get; init; } = [];
 
-    /// <summary>Whether the desk's agents may add free tags — tags on no axis, typed in while tagging.</summary>
+    /// <summary>Whether the desk's agents may add free tags — tags in no category, typed in while tagging.</summary>
     public bool AllowsFreeTags { get; init; }
 
     /// <summary>

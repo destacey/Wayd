@@ -60,7 +60,7 @@ public sealed class TagProductCommandHandler(
                 return Result.Failure("Tag not found.");
             }
 
-            // The axis decides whether this replaces an existing tag or joins it, so the aggregate
+            // The category decides whether this replaces an existing tag or joins it, so the aggregate
             // needs it loaded alongside the tag. A free tag has none, and needs free tags turned on.
             ProductTagCategory? category = null;
             if (tag.IsFree)

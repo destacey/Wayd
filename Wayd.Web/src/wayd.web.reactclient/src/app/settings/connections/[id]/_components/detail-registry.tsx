@@ -7,6 +7,7 @@ import { ComponentType, ReactNode } from 'react'
 import { azureDevOpsDetailEntry } from '../azure-devops'
 import { azureOpenAIDetailEntry } from '../azure-openai'
 import { entraDetailEntry } from '../entra'
+import { teamsDetailEntry } from '../teams'
 import { workdayDetailEntry } from '../workday'
 
 export interface ConnectionSectionDefinition {
@@ -81,6 +82,7 @@ export const DETAIL_REGISTRY: Partial<Record<ConnectorType, DetailEntry>> = {
   [ConnectorType.AzureOpenAI]: azureOpenAIDetailEntry,
   [ConnectorType.Entra]: entraDetailEntry,
   [ConnectorType.Workday]: workdayDetailEntry,
+  [ConnectorType.Teams]: teamsDetailEntry,
 }
 
 const NAME_TO_TYPE: Record<string, ConnectorType> = {
@@ -88,6 +90,7 @@ const NAME_TO_TYPE: Record<string, ConnectorType> = {
   'Azure OpenAI': ConnectorType.AzureOpenAI,
   Entra: ConnectorType.Entra,
   Workday: ConnectorType.Workday,
+  'Microsoft Teams': ConnectorType.Teams,
 }
 
 /**

@@ -1,0 +1,58 @@
+---
+title: Microsoft Teams
+description: Communication connector for Microsoft Teams via Microsoft Graph.
+sidebar_position: 5
+audience: [developer, agent, admin]
+---
+
+# Microsoft Teams
+
+The Microsoft Teams connector stores an Entra app registration (tenant ID, client ID, and client secret) used to send chats and calendar events through Microsoft Graph. It does **not** sync data into Wayd.
+
+Register a **dedicated** Entra application for Wayd Teams communication. It is separate from sign-in and from the [Entra people-sync](./entra.mdx) app registration.
+
+- **Category:** Communication
+- **Status:** Preview
+- **Auth:** App registration (client secret)
+- **Sync direction:** None
+
+See the shared [integrations index](./index.mdx) for credentials, activation, and capability behavior.
+
+## Setup
+
+1. In the Entra admin portal, **register a new application** for Wayd Teams communication (not the people-sync or sign-in apps). Note the **Tenant ID** and **Application (client) ID**.
+2. Under **Certificates & secrets**, create a **client secret**. Copy the value immediately — Entra only shows it once.
+3. Grant the **Application permissions** listed in [Application permissions](#application-permissions) on Microsoft Graph, then select **Grant admin consent** for the tenant.
+4. In Wayd, open **Settings → System → Connections**, choose **Microsoft Teams**, and enter the tenant ID, client ID, and secret.
+5. Choose **Verify** on the create form. Wayd runs the hello-world Graph check for your Wayd account email. After verification succeeds, save the connection. You can run **Test connection** again from the connection detail page at any time.
+
+## Application permissions
+
+Application permissions on Microsoft Graph (not Delegated), with admin consent:
+
+| Permission | Why Wayd needs it |
+|---|---|
+| **User.Read.All** | Resolve tenant users by email when Wayd opens chats or writes calendar events for them. |
+| **Chat.Create** | Create Teams chats for Wayd communication through this connection. |
+| **Calendars.ReadWrite** | Create and update Outlook calendar events when Wayd sends scheduling-related communication. |
+
+## Configuration options
+
+| Option | Default | Notes |
+|---|---|---|
+| Tenant ID | — | Required. Non-empty, up to 64 characters. |
+| Client ID | — | Required. Non-empty, up to 64 characters. |
+| Client Secret | — | Required on create. Encrypted at rest; on edit, leave blank to keep the stored secret. Up to 512 characters. |
+
+## Connection test behavior
+
+**Verify** (create form) and **Test connection** (detail page) use the connection's tenant id, client id, and client secret. Wayd does not read your sign-in token and does not ask the browser for a token issued to the Teams app.
+
+The Teams app is a separate registration, often in a different tenant from Wayd sign-in. On-behalf-of cannot exchange the Wayd sign-in token for Graph in that case, and posting the first chat message needs a delegated token. Verify does not post a chat message, so that step cannot block the chat or the calendar event.
+
+1. Resolve the signed-in user's Wayd account email.
+2. Look up that address in the connection's tenant (`mail` or `userPrincipalName`).
+3. Create a one-member Teams chat named **Wayd connection test** (proves **Chat.Create**).
+4. Create an all-day calendar event for the current UTC date on that user's calendar (proves **Calendars.ReadWrite**).
+
+If step 2 finds no user, the test returns an error and does not create the chat or the calendar event. Creating a connection saves the credentials only and does not run this test. A Wayd account with no email address cannot be the recipient.

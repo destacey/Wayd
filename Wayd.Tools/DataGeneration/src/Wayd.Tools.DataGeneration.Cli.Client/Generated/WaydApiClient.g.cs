@@ -28920,13 +28920,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Apply a tag to a product.
         /// </summary>
         /// <remarks>
-        /// Tags live in categories — axes such as Platform or Compliance — and a category decides whether a product may carry more than one of its tags.
+        /// Tags live in categories, such as Platform or Compliance, and a category decides whether a product may carry more than one of its tags.
         /// <br/>
-        /// <br/>**On a single-value axis this silently replaces the existing tag rather than refusing.** The call succeeds, and the tag the product previously carried on that axis is gone. Read the product first if that matters. On a multi-value axis the tag joins the others.
+        /// <br/>**In a single-value category this silently replaces the existing tag rather than refusing.** The call succeeds, and the tag the product previously carried in that category is gone. Read the product first if that matters. In a multi-value category the tag joins the others.
         /// <br/>
         /// <br/>Both the tag and its category must be active. Applying a tag the product already carries succeeds and changes nothing.
         /// <br/>
-        /// <br/>A free tag — one on no category, from `ProductTags_Search` with `isFree` — can be applied too, when free tags are turned on for products. To apply one by name, creating it if needed, use `Products_TagByName`.
+        /// <br/>A free tag — one in no category, from `ProductTags_Search` with `isFree` — can be applied too, when free tags are turned on for products. To apply one by name, creating it if needed, use `Products_TagByName`.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -28948,9 +28948,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Tag a product by name, creating a free tag when no tag has the name.
         /// </summary>
         /// <remarks>
-        /// Returns the id of the tag applied. **When exactly one active tag on an active category has the name, ignoring case, that tag is applied** — with the same single-value replacement as `Products_Tag`. When more than one category has it the call is refused: apply the one meant with `Products_Tag`.
+        /// Returns the id of the tag applied. **When exactly one active tag in an active category has the name, ignoring case, that tag is applied** — with the same single-value replacement as `Products_Tag`. When more than one category has it the call is refused: apply the one meant with `Products_Tag`.
         /// <br/>
-        /// <br/>Otherwise the free tag with the name is applied — a tag on no category — and created when none has it yet. Free tags need to be turned on for products (`allowsFreeTags` in the product tag settings); with them off this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.
+        /// <br/>Otherwise the free tag with the name is applied — a tag in no category — and created when none has it yet. Free tags need to be turned on for products (`allowsFreeTags` in the product tag settings); with them off this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -30755,13 +30755,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Apply a tag to a product.
         /// </summary>
         /// <remarks>
-        /// Tags live in categories — axes such as Platform or Compliance — and a category decides whether a product may carry more than one of its tags.
+        /// Tags live in categories, such as Platform or Compliance, and a category decides whether a product may carry more than one of its tags.
         /// <br/>
-        /// <br/>**On a single-value axis this silently replaces the existing tag rather than refusing.** The call succeeds, and the tag the product previously carried on that axis is gone. Read the product first if that matters. On a multi-value axis the tag joins the others.
+        /// <br/>**In a single-value category this silently replaces the existing tag rather than refusing.** The call succeeds, and the tag the product previously carried in that category is gone. Read the product first if that matters. In a multi-value category the tag joins the others.
         /// <br/>
         /// <br/>Both the tag and its category must be active. Applying a tag the product already carries succeeds and changes nothing.
         /// <br/>
-        /// <br/>A free tag — one on no category, from `ProductTags_Search` with `isFree` — can be applied too, when free tags are turned on for products. To apply one by name, creating it if needed, use `Products_TagByName`.
+        /// <br/>A free tag — one in no category, from `ProductTags_Search` with `isFree` — can be applied too, when free tags are turned on for products. To apply one by name, creating it if needed, use `Products_TagByName`.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -30942,9 +30942,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Tag a product by name, creating a free tag when no tag has the name.
         /// </summary>
         /// <remarks>
-        /// Returns the id of the tag applied. **When exactly one active tag on an active category has the name, ignoring case, that tag is applied** — with the same single-value replacement as `Products_Tag`. When more than one category has it the call is refused: apply the one meant with `Products_Tag`.
+        /// Returns the id of the tag applied. **When exactly one active tag in an active category has the name, ignoring case, that tag is applied** — with the same single-value replacement as `Products_Tag`. When more than one category has it the call is refused: apply the one meant with `Products_Tag`.
         /// <br/>
-        /// <br/>Otherwise the free tag with the name is applied — a tag on no category — and created when none has it yet. Free tags need to be turned on for products (`allowsFreeTags` in the product tag settings); with them off this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.
+        /// <br/>Otherwise the free tag with the name is applied — a tag in no category — and created when none has it yet. Free tags need to be turned on for products (`allowsFreeTags` in the product tag settings); with them off this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -32421,7 +32421,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <remarks>
         /// **Call this before Products_Tag**, which needs a tag UUID.
         /// <br/>
-        /// <br/>A category is an axis — Platform, Tech Stack, Compliance — and its `allowsMany` flag decides how tagging behaves. On an axis where `allowsMany` is false, applying a second tag **silently replaces** the first rather than refusing, so check this before tagging if the existing value matters.
+        /// <br/>A category — Platform, Tech Stack, Compliance — groups related tags, and its `allowsMany` flag decides how tagging behaves. In a category where `allowsMany` is false, applying a second tag **silently replaces** the first rather than refusing, so check this before tagging if the existing value matters.
         /// <br/>
         /// <br/>Only active tags in active categories can be applied.
         /// </remarks>
@@ -32431,10 +32431,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a tag category — an axis such as Platform, Tech Stack or Compliance.
+        /// Create a tag category, such as Platform, Tech Stack or Compliance.
         /// </summary>
         /// <remarks>
-        /// **`allowsMany` cannot be changed afterwards**, so choose it deliberately: it decides whether a product may carry several tags on this axis, or whether applying a second one silently replaces the first. Names must be unique. The category is created empty; add tags with ProductTagCategories_AddTag.
+        /// **`allowsMany` cannot be changed afterwards**, so choose it deliberately: it decides whether a product may carry several tags in this category, or whether applying a second one silently replaces the first. Names must be unique. The category is created empty; add tags with ProductTagCategories_AddTag.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -32456,7 +32456,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a tag category and its tags.
         /// </summary>
         /// <remarks>
-        /// Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A category counts as in use when any product is tagged along it, so this only removes an axis created by mistake and never applied.
+        /// Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A category counts as in use when any product is tagged in it, so this only removes a category created by mistake and never applied.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -32467,7 +32467,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Take a tag category out of use, or put it back.
         /// </summary>
         /// <remarks>
-        /// Tags on an inactive category cannot be applied to a product, though products already carrying them keep them and can still have them removed.
+        /// Tags in an inactive category cannot be applied to a product, though products already carrying them keep them and can still have them removed.
         /// <br/>
         /// <br/>As with product types, this **is** allowed on a seeded system category, unlike editing.
         /// </remarks>
@@ -32491,7 +32491,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a tag to a category.
         /// </summary>
         /// <remarks>
-        /// Tag names must be unique within their axis, though the same name may appear on different axes. Refused on a seeded system category.
+        /// Tag names must be unique within their category, though the same name may appear in different categories. Refused on a seeded system category.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -32502,7 +32502,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Rename a tag or change its description.
         /// </summary>
         /// <remarks>
-        /// **An omitted description is cleared.** The tag must belong to the category named in the path. Names must stay unique within the axis. Refused on a seeded system category.
+        /// **An omitted description is cleared.** The tag must belong to the category named in the path. Names must stay unique within the category. Refused on a seeded system category.
         /// <br/>
         /// <br/>Renaming does not rewrite history: a product carrying the tag simply reports the new name.
         /// </remarks>
@@ -32528,7 +32528,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <remarks>
         /// An inactive tag cannot be applied to a product, though products already carrying it keep it and can still have it removed. The tag must belong to the category named in the path.
         /// <br/>
-        /// <br/>**Refused on a seeded system category, and here there is no fallback** — unlike a category or a product type, an individual system tag can be neither modified nor retired. Deactivate the whole axis with `ProductTagCategories_SetActive` if it should stop being used.
+        /// <br/>**Refused on a seeded system category, and here there is no fallback** — unlike a category or a product type, an individual system tag can be neither modified nor retired. Deactivate the whole category with `ProductTagCategories_SetActive` if it should stop being used.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -32591,7 +32591,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <remarks>
         /// **Call this before Products_Tag**, which needs a tag UUID.
         /// <br/>
-        /// <br/>A category is an axis — Platform, Tech Stack, Compliance — and its `allowsMany` flag decides how tagging behaves. On an axis where `allowsMany` is false, applying a second tag **silently replaces** the first rather than refusing, so check this before tagging if the existing value matters.
+        /// <br/>A category — Platform, Tech Stack, Compliance — groups related tags, and its `allowsMany` flag decides how tagging behaves. In a category where `allowsMany` is false, applying a second tag **silently replaces** the first rather than refusing, so check this before tagging if the existing value matters.
         /// <br/>
         /// <br/>Only active tags in active categories can be applied.
         /// </remarks>
@@ -32683,10 +32683,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Create a tag category — an axis such as Platform, Tech Stack or Compliance.
+        /// Create a tag category, such as Platform, Tech Stack or Compliance.
         /// </summary>
         /// <remarks>
-        /// **`allowsMany` cannot be changed afterwards**, so choose it deliberately: it decides whether a product may carry several tags on this axis, or whether applying a second one silently replaces the first. Names must be unique. The category is created empty; add tags with ProductTagCategories_AddTag.
+        /// **`allowsMany` cannot be changed afterwards**, so choose it deliberately: it decides whether a product may carry several tags in this category, or whether applying a second one silently replaces the first. Names must be unique. The category is created empty; add tags with ProductTagCategories_AddTag.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -32882,7 +32882,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a tag category and its tags.
         /// </summary>
         /// <remarks>
-        /// Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A category counts as in use when any product is tagged along it, so this only removes an axis created by mistake and never applied.
+        /// Seeded system records cannot be modified or deleted, and a record in use cannot be deleted — deactivate it instead, which stops new use without breaking what already refers to it. A category counts as in use when any product is tagged in it, so this only removes a category created by mistake and never applied.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -32967,7 +32967,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Take a tag category out of use, or put it back.
         /// </summary>
         /// <remarks>
-        /// Tags on an inactive category cannot be applied to a product, though products already carrying them keep them and can still have them removed.
+        /// Tags in an inactive category cannot be applied to a product, though products already carrying them keep them and can still have them removed.
         /// <br/>
         /// <br/>As with product types, this **is** allowed on a seeded system category, unlike editing.
         /// </remarks>
@@ -33170,7 +33170,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a tag to a category.
         /// </summary>
         /// <remarks>
-        /// Tag names must be unique within their axis, though the same name may appear on different axes. Refused on a seeded system category.
+        /// Tag names must be unique within their category, though the same name may appear in different categories. Refused on a seeded system category.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -33279,7 +33279,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Rename a tag or change its description.
         /// </summary>
         /// <remarks>
-        /// **An omitted description is cleared.** The tag must belong to the category named in the path. Names must stay unique within the axis. Refused on a seeded system category.
+        /// **An omitted description is cleared.** The tag must belong to the category named in the path. Names must stay unique within the category. Refused on a seeded system category.
         /// <br/>
         /// <br/>Renaming does not rewrite history: a product carrying the tag simply reports the new name.
         /// </remarks>
@@ -33480,7 +33480,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <remarks>
         /// An inactive tag cannot be applied to a product, though products already carrying it keep it and can still have it removed. The tag must belong to the category named in the path.
         /// <br/>
-        /// <br/>**Refused on a seeded system category, and here there is no fallback** — unlike a category or a product type, an individual system tag can be neither modified nor retired. Deactivate the whole axis with `ProductTagCategories_SetActive` if it should stop being used.
+        /// <br/>**Refused on a seeded system category, and here there is no fallback** — unlike a category or a product type, an individual system tag can be neither modified nor retired. Deactivate the whole category with `ProductTagCategories_SetActive` if it should stop being used.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -33708,12 +33708,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Search product tags, on categories and free, with how many products carry each.
+        /// Search product tags, in categories and free, with how many products carry each.
         /// </summary>
         /// <remarks>
-        /// Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags on no category, added by typing a name while tagging — and false only tags on categories. A free tag has no `categoryId` or `categoryName`.
+        /// Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags in no category, added by typing a name while tagging — and false only tags in categories. A free tag has no `categoryId` or `categoryName`.
         /// <br/>
-        /// <br/>Tags that cannot be applied — inactive ones, and those on inactive categories — are left out unless `includeInactive` is true.
+        /// <br/>Tags that cannot be applied — inactive ones, and those in inactive categories — are left out unless `includeInactive` is true.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -33735,7 +33735,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Rename a free tag or change its description.
         /// </summary>
         /// <remarks>
-        /// **Free tags only**; a tag on a category is renamed with `ProductTagCategories_RenameTag`. **An omitted description is cleared.** Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `ProductTags_Merge`.
+        /// **Free tags only**; a tag in a category is renamed with `ProductTagCategories_RenameTag`. **An omitted description is cleared.** Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `ProductTags_Merge`.
         /// <br/>
         /// <br/>Products carrying the tag report the new name at once.
         /// </remarks>
@@ -33748,7 +33748,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a free tag, taking it off every product that carries it.
         /// </summary>
         /// <remarks>
-        /// **Free tags only**; a tag on a category is deleted with `ProductTagCategories_DeleteTag`. **Unlike that call, this succeeds while products carry the tag: it removes the tag from each of them**, and each records the change. To keep those products filed under another tag, use `ProductTags_Merge` instead. A free tag is also deleted on its own once the last product carrying it loses it.
+        /// **Free tags only**; a tag in a category is deleted with `ProductTagCategories_DeleteTag`. **Unlike that call, this succeeds while products carry the tag: it removes the tag from each of them**, and each records the change. To keep those products filed under another tag, use `ProductTags_Merge` instead. A free tag is also deleted on its own once the last product carrying it loses it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -33759,7 +33759,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Merge a free tag into another tag.
         /// </summary>
         /// <remarks>
-        /// Every product carrying the free tag `id` carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag on an active category — which is how a free tag that caught on is promoted: add the tag to its category with `ProductTagCategories_AddTag`, then merge into it.
+        /// Every product carrying the free tag `id` carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag in an active category — which is how a free tag that caught on is promoted: add the tag to its category with `ProductTagCategories_AddTag`, then merge into it.
         /// <br/>
         /// <br/>**On a category that allows one tag, a product's existing tag there is replaced**, as tagging always does. Each product records the change in its history.
         /// </remarks>
@@ -33819,12 +33819,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Search product tags, on categories and free, with how many products carry each.
+        /// Search product tags, in categories and free, with how many products carry each.
         /// </summary>
         /// <remarks>
-        /// Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags on no category, added by typing a name while tagging — and false only tags on categories. A free tag has no `categoryId` or `categoryName`.
+        /// Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags in no category, added by typing a name while tagging — and false only tags in categories. A free tag has no `categoryId` or `categoryName`.
         /// <br/>
-        /// <br/>Tags that cannot be applied — inactive ones, and those on inactive categories — are left out unless `includeInactive` is true.
+        /// <br/>Tags that cannot be applied — inactive ones, and those in inactive categories — are left out unless `includeInactive` is true.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -33992,7 +33992,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Rename a free tag or change its description.
         /// </summary>
         /// <remarks>
-        /// **Free tags only**; a tag on a category is renamed with `ProductTagCategories_RenameTag`. **An omitted description is cleared.** Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `ProductTags_Merge`.
+        /// **Free tags only**; a tag in a category is renamed with `ProductTagCategories_RenameTag`. **An omitted description is cleared.** Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `ProductTags_Merge`.
         /// <br/>
         /// <br/>Products carrying the tag report the new name at once.
         /// </remarks>
@@ -34096,7 +34096,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a free tag, taking it off every product that carries it.
         /// </summary>
         /// <remarks>
-        /// **Free tags only**; a tag on a category is deleted with `ProductTagCategories_DeleteTag`. **Unlike that call, this succeeds while products carry the tag: it removes the tag from each of them**, and each records the change. To keep those products filed under another tag, use `ProductTags_Merge` instead. A free tag is also deleted on its own once the last product carrying it loses it.
+        /// **Free tags only**; a tag in a category is deleted with `ProductTagCategories_DeleteTag`. **Unlike that call, this succeeds while products carry the tag: it removes the tag from each of them**, and each records the change. To keep those products filed under another tag, use `ProductTags_Merge` instead. A free tag is also deleted on its own once the last product carrying it loses it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -34181,7 +34181,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Merge a free tag into another tag.
         /// </summary>
         /// <remarks>
-        /// Every product carrying the free tag `id` carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag on an active category — which is how a free tag that caught on is promoted: add the tag to its category with `ProductTagCategories_AddTag`, then merge into it.
+        /// Every product carrying the free tag `id` carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag in an active category — which is how a free tag that caught on is promoted: add the tag to its category with `ProductTagCategories_AddTag`, then merge into it.
         /// <br/>
         /// <br/>**On a category that allows one tag, a product's existing tag there is replaced**, as tagging always does. Each product records the change in its history.
         /// </remarks>
@@ -95936,9 +95936,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// File an intake request under a tag.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk. The tag must be active, on an active axis the desk offers. On an axis that takes one tag, this replaces the tag the request held there. Applying a tag the request already carries changes nothing.
+        /// Needs an agent on the request's desk. The tag must be active, in an active category the desk offers. In a category that takes one tag, this replaces the tag the request held there. Applying a tag the request already carries changes nothing.
         /// <br/>
-        /// <br/>A free tag — one on no axis, from `IntakeRequestTags_Search` with `isFree` — can be applied too, on a desk that allows free tags. To apply one by name, creating it if needed, use `IntakeRequests_TagByName`.
+        /// <br/>A free tag — one in no category, from `IntakeRequestTags_Search` with `isFree` — can be applied too, on a desk that allows free tags. To apply one by name, creating it if needed, use `IntakeRequests_TagByName`.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -95960,9 +95960,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// File an intake request under a typed name, creating a free tag when no tag has it.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk. Returns the id of the tag applied. **When exactly one active tag on an axis the desk offers has the name, ignoring case, that tag is applied** — with the same single-value replacement as `IntakeRequests_Tag`. When more than one such axis has it the call is refused: apply the one meant with `IntakeRequests_Tag`.
+        /// Needs an agent on the request's desk. Returns the id of the tag applied. **When exactly one active tag in a category the desk offers has the name, ignoring case, that tag is applied** — with the same single-value replacement as `IntakeRequests_Tag`. When more than one such category has it the call is refused: apply the one meant with `IntakeRequests_Tag`.
         /// <br/>
-        /// <br/>Otherwise the free tag with the name is applied — a tag on no axis — and created when none has it yet. That needs a desk that allows free tags (`allowsFreeTags` on the desk); otherwise this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.
+        /// <br/>Otherwise the free tag with the name is applied — a tag in no category — and created when none has it yet. That needs a desk that allows free tags (`allowsFreeTags` on the desk); otherwise this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -98525,9 +98525,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// File an intake request under a tag.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk. The tag must be active, on an active axis the desk offers. On an axis that takes one tag, this replaces the tag the request held there. Applying a tag the request already carries changes nothing.
+        /// Needs an agent on the request's desk. The tag must be active, in an active category the desk offers. In a category that takes one tag, this replaces the tag the request held there. Applying a tag the request already carries changes nothing.
         /// <br/>
-        /// <br/>A free tag — one on no axis, from `IntakeRequestTags_Search` with `isFree` — can be applied too, on a desk that allows free tags. To apply one by name, creating it if needed, use `IntakeRequests_TagByName`.
+        /// <br/>A free tag — one in no category, from `IntakeRequestTags_Search` with `isFree` — can be applied too, on a desk that allows free tags. To apply one by name, creating it if needed, use `IntakeRequests_TagByName`.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -98728,9 +98728,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// File an intake request under a typed name, creating a free tag when no tag has it.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk. Returns the id of the tag applied. **When exactly one active tag on an axis the desk offers has the name, ignoring case, that tag is applied** — with the same single-value replacement as `IntakeRequests_Tag`. When more than one such axis has it the call is refused: apply the one meant with `IntakeRequests_Tag`.
+        /// Needs an agent on the request's desk. Returns the id of the tag applied. **When exactly one active tag in a category the desk offers has the name, ignoring case, that tag is applied** — with the same single-value replacement as `IntakeRequests_Tag`. When more than one such category has it the call is refused: apply the one meant with `IntakeRequests_Tag`.
         /// <br/>
-        /// <br/>Otherwise the free tag with the name is applied — a tag on no axis — and created when none has it yet. That needs a desk that allows free tags (`allowsFreeTags` on the desk); otherwise this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.
+        /// <br/>Otherwise the free tag with the name is applied — a tag in no category — and created when none has it yet. That needs a desk that allows free tags (`allowsFreeTags` on the desk); otherwise this is refused. Names are trimmed and runs of whitespace collapsed, at most 64 characters.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99457,10 +99457,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the intake request tag axes, each with its tags.
+        /// Get the intake request tag categories, each with its tags.
         /// </summary>
         /// <remarks>
-        /// Axes in presentation order, tags alphabetically, inactive tags included. Inactive axes only with `includeInactive`. With `deskId`, only the active axes that desk's agents tag along, which may be none; `includeInactive` is then ignored. Each tag's `requestCount` counts only the requests the caller can see.
+        /// Categories in presentation order, tags alphabetically, inactive tags included. Inactive categories only with `includeInactive`. With `deskId`, only the active categories that desk's agents tag in, which may be none; `includeInactive` is then ignored. Each tag's `requestCount` counts only the requests the caller can see.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99468,10 +99468,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add an intake request tag axis to the end of the list.
+        /// Add an intake request tag category to the end of the list.
         /// </summary>
         /// <remarks>
-        /// The axis starts with no tags. `allowsMany` cannot be changed afterwards.
+        /// The category starts with no tags. `allowsMany` cannot be changed afterwards.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99479,10 +99479,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Rename an intake request tag axis or change its description.
+        /// Rename an intake request tag category or change its description.
         /// </summary>
         /// <remarks>
-        /// Refused on a system axis.
+        /// Refused on a system category.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99490,10 +99490,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete an intake request tag axis and its tags.
+        /// Delete an intake request tag category and its tags.
         /// </summary>
         /// <remarks>
-        /// Refused on a system axis, and while any request is tagged along it; deactivate it instead.
+        /// Refused on a system category, and while any request is tagged in it; deactivate it instead.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99501,10 +99501,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Take an intake request tag axis out of use, or put it back.
+        /// Take an intake request tag category out of use, or put it back.
         /// </summary>
         /// <remarks>
-        /// Nothing new can be tagged along an inactive axis; requests already tagged keep their tags and can still have them removed.
+        /// Nothing new can be tagged in an inactive category; requests already tagged keep their tags and can still have them removed.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99512,10 +99512,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Put the intake request tag axes in the order they are presented.
+        /// Put the intake request tag categories in the order they are presented.
         /// </summary>
         /// <remarks>
-        /// The list must name every axis, inactive ones included, exactly once; a partial list is refused.
+        /// The list must name every category, inactive ones included, exactly once; a partial list is refused.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99523,10 +99523,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add a tag to an intake request tag axis.
+        /// Add a tag to an intake request tag category.
         /// </summary>
         /// <remarks>
-        /// Tag names are unique within their axis. Refused on a system axis.
+        /// Tag names are unique within their category. Refused on a system category.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99537,7 +99537,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Rename a tag or change its description.
         /// </summary>
         /// <remarks>
-        /// Every request carrying the tag reads the new name. Refused on a system axis.
+        /// Every request carrying the tag reads the new name. Refused on a system category.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99548,7 +99548,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a tag.
         /// </summary>
         /// <remarks>
-        /// Refused on a system axis, and while any request carries the tag; deactivate it instead.
+        /// Refused on a system category, and while any request carries the tag; deactivate it instead.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99559,7 +99559,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Take a tag out of use, or put it back.
         /// </summary>
         /// <remarks>
-        /// An inactive tag cannot be applied; requests already carrying it keep it and can still have it removed. Refused on a system axis.
+        /// An inactive tag cannot be applied; requests already carrying it keep it and can still have it removed. Refused on a system category.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99617,10 +99617,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get the intake request tag axes, each with its tags.
+        /// Get the intake request tag categories, each with its tags.
         /// </summary>
         /// <remarks>
-        /// Axes in presentation order, tags alphabetically, inactive tags included. Inactive axes only with `includeInactive`. With `deskId`, only the active axes that desk's agents tag along, which may be none; `includeInactive` is then ignored. Each tag's `requestCount` counts only the requests the caller can see.
+        /// Categories in presentation order, tags alphabetically, inactive tags included. Inactive categories only with `includeInactive`. With `deskId`, only the active categories that desk's agents tag in, which may be none; `includeInactive` is then ignored. Each tag's `requestCount` counts only the requests the caller can see.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99704,10 +99704,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add an intake request tag axis to the end of the list.
+        /// Add an intake request tag category to the end of the list.
         /// </summary>
         /// <remarks>
-        /// The axis starts with no tags. `allowsMany` cannot be changed afterwards.
+        /// The category starts with no tags. `allowsMany` cannot be changed afterwards.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99798,10 +99798,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Rename an intake request tag axis or change its description.
+        /// Rename an intake request tag category or change its description.
         /// </summary>
         /// <remarks>
-        /// Refused on a system axis.
+        /// Refused on a system category.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -99910,10 +99910,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Delete an intake request tag axis and its tags.
+        /// Delete an intake request tag category and its tags.
         /// </summary>
         /// <remarks>
-        /// Refused on a system axis, and while any request is tagged along it; deactivate it instead.
+        /// Refused on a system category, and while any request is tagged in it; deactivate it instead.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -100005,10 +100005,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Take an intake request tag axis out of use, or put it back.
+        /// Take an intake request tag category out of use, or put it back.
         /// </summary>
         /// <remarks>
-        /// Nothing new can be tagged along an inactive axis; requests already tagged keep their tags and can still have them removed.
+        /// Nothing new can be tagged in an inactive category; requests already tagged keep their tags and can still have them removed.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -100108,10 +100108,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Put the intake request tag axes in the order they are presented.
+        /// Put the intake request tag categories in the order they are presented.
         /// </summary>
         /// <remarks>
-        /// The list must name every axis, inactive ones included, exactly once; a partial list is refused.
+        /// The list must name every category, inactive ones included, exactly once; a partial list is refused.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -100206,10 +100206,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Add a tag to an intake request tag axis.
+        /// Add a tag to an intake request tag category.
         /// </summary>
         /// <remarks>
-        /// Tag names are unique within their axis. Refused on a system axis.
+        /// Tag names are unique within their category. Refused on a system category.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -100328,7 +100328,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Rename a tag or change its description.
         /// </summary>
         /// <remarks>
-        /// Every request carrying the tag reads the new name. Refused on a system axis.
+        /// Every request carrying the tag reads the new name. Refused on a system category.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -100445,7 +100445,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a tag.
         /// </summary>
         /// <remarks>
-        /// Refused on a system axis, and while any request carries the tag; deactivate it instead.
+        /// Refused on a system category, and while any request carries the tag; deactivate it instead.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -100545,7 +100545,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Take a tag out of use, or put it back.
         /// </summary>
         /// <remarks>
-        /// An inactive tag cannot be applied; requests already carrying it keep it and can still have it removed. Refused on a system axis.
+        /// An inactive tag cannot be applied; requests already carrying it keep it and can still have it removed. Refused on a system category.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -100783,12 +100783,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Search intake request tags, on axes and free, with how many visible requests carry each.
+        /// Search intake request tags, in categories and free, with how many visible requests carry each.
         /// </summary>
         /// <remarks>
-        /// Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags on no axis, added by an agent typing a name while tagging — and false only tags on axes. A free tag has no `categoryId` or `categoryName`, and is listed only when the caller can see a request carrying it, or holds the Demand Management Admin permission. `requestCount` counts only requests the caller can see.
+        /// Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags in no category, added by an agent typing a name while tagging — and false only tags in categories. A free tag has no `categoryId` or `categoryName`, and is listed only when the caller can see a request carrying it, or holds the Demand Management Admin permission. `requestCount` counts only requests the caller can see.
         /// <br/>
-        /// <br/>Tags that cannot be applied — inactive ones, and those on inactive axes — are left out unless `includeInactive` is true.
+        /// <br/>Tags that cannot be applied — inactive ones, and those in inactive categories — are left out unless `includeInactive` is true.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -100799,7 +100799,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Rename a free tag or change its description.
         /// </summary>
         /// <remarks>
-        /// Free tags only; a tag on an axis is renamed with `IntakeRequestTagCategories_UpdateTag`. Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `IntakeRequestTags_Merge`. Every request carrying the tag reads the new name.
+        /// Free tags only; a tag in a category is renamed with `IntakeRequestTagCategories_UpdateTag`. Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `IntakeRequestTags_Merge`. Every request carrying the tag reads the new name.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -100810,7 +100810,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a free tag, taking it off every request that carries it.
         /// </summary>
         /// <remarks>
-        /// Free tags only; a tag on an axis is deleted with `IntakeRequestTagCategories_DeleteTag`. **Unlike that call, this succeeds while requests carry the tag: it removes the tag from each of them, on every desk**, and each records the change. To keep those requests filed under another tag, use `IntakeRequestTags_Merge` instead. A free tag is also deleted on its own once the last request carrying it loses it.
+        /// Free tags only; a tag in a category is deleted with `IntakeRequestTagCategories_DeleteTag`. **Unlike that call, this succeeds while requests carry the tag: it removes the tag from each of them, on every desk**, and each records the change. To keep those requests filed under another tag, use `IntakeRequestTags_Merge` instead. A free tag is also deleted on its own once the last request carrying it loses it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -100821,9 +100821,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Merge a free tag into another tag.
         /// </summary>
         /// <remarks>
-        /// Every request carrying the free tag `id`, on every desk, carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag on an active axis — which is how a free tag that caught on is promoted: add the tag to its axis with `IntakeRequestTagCategories_AddTag`, then merge into it.
+        /// Every request carrying the free tag `id`, on every desk, carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag in an active category — which is how a free tag that caught on is promoted: add the tag to its category with `IntakeRequestTagCategories_AddTag`, then merge into it.
         /// <br/>
-        /// <br/>**On an axis that takes one tag, a request's existing tag there is replaced**, as tagging always does. Each request records the change in its history.
+        /// <br/>**In a category that takes one tag, a request's existing tag there is replaced**, as tagging always does. Each request records the change in its history.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -100881,12 +100881,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Search intake request tags, on axes and free, with how many visible requests carry each.
+        /// Search intake request tags, in categories and free, with how many visible requests carry each.
         /// </summary>
         /// <remarks>
-        /// Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags on no axis, added by an agent typing a name while tagging — and false only tags on axes. A free tag has no `categoryId` or `categoryName`, and is listed only when the caller can see a request carrying it, or holds the Demand Management Admin permission. `requestCount` counts only requests the caller can see.
+        /// Sorted by name. `search` keeps tags whose name contains it, ignoring case. `isFree` true returns only free tags — tags in no category, added by an agent typing a name while tagging — and false only tags in categories. A free tag has no `categoryId` or `categoryName`, and is listed only when the caller can see a request carrying it, or holds the Demand Management Admin permission. `requestCount` counts only requests the caller can see.
         /// <br/>
-        /// <br/>Tags that cannot be applied — inactive ones, and those on inactive axes — are left out unless `includeInactive` is true.
+        /// <br/>Tags that cannot be applied — inactive ones, and those in inactive categories — are left out unless `includeInactive` is true.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -100977,7 +100977,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Rename a free tag or change its description.
         /// </summary>
         /// <remarks>
-        /// Free tags only; a tag on an axis is renamed with `IntakeRequestTagCategories_UpdateTag`. Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `IntakeRequestTags_Merge`. Every request carrying the tag reads the new name.
+        /// Free tags only; a tag in a category is renamed with `IntakeRequestTagCategories_UpdateTag`. Names are unique among free tags, ignoring case — to fold a free tag into one that already has the name, use `IntakeRequestTags_Merge`. Every request carrying the tag reads the new name.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -101089,7 +101089,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Delete a free tag, taking it off every request that carries it.
         /// </summary>
         /// <remarks>
-        /// Free tags only; a tag on an axis is deleted with `IntakeRequestTagCategories_DeleteTag`. **Unlike that call, this succeeds while requests carry the tag: it removes the tag from each of them, on every desk**, and each records the change. To keep those requests filed under another tag, use `IntakeRequestTags_Merge` instead. A free tag is also deleted on its own once the last request carrying it loses it.
+        /// Free tags only; a tag in a category is deleted with `IntakeRequestTagCategories_DeleteTag`. **Unlike that call, this succeeds while requests carry the tag: it removes the tag from each of them, on every desk**, and each records the change. To keep those requests filed under another tag, use `IntakeRequestTags_Merge` instead. A free tag is also deleted on its own once the last request carrying it loses it.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -101184,9 +101184,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Merge a free tag into another tag.
         /// </summary>
         /// <remarks>
-        /// Every request carrying the free tag `id`, on every desk, carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag on an active axis — which is how a free tag that caught on is promoted: add the tag to its axis with `IntakeRequestTagCategories_AddTag`, then merge into it.
+        /// Every request carrying the free tag `id`, on every desk, carries `targetTagId` instead, and the free tag is deleted. The target may be another free tag, to fold near-duplicates together, or an active tag in an active category — which is how a free tag that caught on is promoted: add the tag to its category with `IntakeRequestTagCategories_AddTag`, then merge into it.
         /// <br/>
-        /// <br/>**On an axis that takes one tag, a request's existing tag there is replaced**, as tagging always does. Each request records the change in its history.
+        /// <br/>**In a category that takes one tag, a request's existing tag there is replaced**, as tagging always does. Each request records the change in its history.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -102569,6 +102569,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Verify Microsoft Teams connection credentials before create.
+        /// </summary>
+        /// <remarks>
+        /// Runs the same hello-world Graph test as communication-test using credentials from the create form: resolve the signed-in user's email in the tenant (application), create a Teams chat (application), and create a calendar event. Both use the connection's application permissions. Does not post a chat message and does not persist a connection.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task VerifyTeamsCommunicationConnectionAsync(VerifyTeamsConnectionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get activity history for the connection.
         /// </summary>
         /// <returns>OK</returns>
@@ -102618,6 +102629,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ConnectionInitResult> InitConnectionAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Run the hello-world communication test for a connection.
+        /// </summary>
+        /// <remarks>
+        /// Uses the connection's Microsoft Graph app registration and application permissions to resolve the signed-in user's Wayd email, create a Teams chat, and create a hello-world calendar event. Does not post a chat message. Supported when the connector registers a communication test (currently Microsoft Teams).
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task TestCommunicationConnectionAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -103421,6 +103443,94 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Verify Microsoft Teams connection credentials before create.
+        /// </summary>
+        /// <remarks>
+        /// Runs the same hello-world Graph test as communication-test using credentials from the create form: resolve the signed-in user's email in the tenant (application), create a Teams chat (application), and create a calendar event. Both use the connection's application permissions. Does not post a chat message and does not persist a connection.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task VerifyTeamsCommunicationConnectionAsync(VerifyTeamsConnectionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/app-integrations/connections/teams/verify-communication"
+                    urlBuilder_.Append("api/app-integrations/connections/teams/verify-communication");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get activity history for the connection.
         /// </summary>
         /// <returns>OK</returns>
@@ -103877,6 +103987,103 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Run the hello-world communication test for a connection.
+        /// </summary>
+        /// <remarks>
+        /// Uses the connection's Microsoft Graph app registration and application permissions to resolve the signed-in user's Wayd email, create a Teams chat, and create a hello-world calendar event. Does not post a chat message. Supported when the connector registers a communication test (currently Microsoft Teams).
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task TestCommunicationConnectionAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/app-integrations/connections/{id}/communication-test"
+                    urlBuilder_.Append("api/app-integrations/connections/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/communication-test");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
                         }
                         else
                         if (status_ == 400)
@@ -114783,14 +114990,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A tag to add to a tag axis.
+    /// A tag to add to a tag category.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class AddIntakeRequestTagRequest
     {
 
         /// <summary>
-        /// The label, unique within the axis.
+        /// The label, unique within the category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -114890,7 +115097,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Adds a tag to an axis.
+    /// Adds a tag to a category.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class AddProductTagRequest
@@ -116568,6 +116775,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     [JsonInheritanceAttribute("azure-openai", typeof(AzureOpenAIConnectionDetailsDto))]
     [JsonInheritanceAttribute("entra", typeof(EntraConnectionDetailsDto))]
     [JsonInheritanceAttribute("workday", typeof(WorkdayConnectionDetailsDto))]
+    [JsonInheritanceAttribute("teams", typeof(TeamsConnectionDetailsDto))]
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ConnectionDetailsDto
     {
@@ -116663,6 +116871,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     [JsonInheritanceAttribute("azure-openai", typeof(AzureOpenAIConnectionListDto))]
     [JsonInheritanceAttribute("entra", typeof(EntraConnectionListDto))]
     [JsonInheritanceAttribute("workday", typeof(WorkdayConnectionListDto))]
+    [JsonInheritanceAttribute("teams", typeof(TeamsConnectionListDto))]
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ConnectionListDto
     {
@@ -116740,6 +116949,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"Workday")]
         Workday = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Teams")]
+        Teams = 4,
 
     }
 
@@ -117000,6 +117212,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     [JsonInheritanceAttribute("azure-openai", typeof(CreateAzureOpenAIConnectionRequest))]
     [JsonInheritanceAttribute("entra", typeof(CreateEntraConnectionRequest))]
     [JsonInheritanceAttribute("workday", typeof(CreateWorkdayConnectionRequest))]
+    [JsonInheritanceAttribute("teams", typeof(CreateTeamsConnectionRequest))]
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public abstract partial class CreateConnectionRequest
     {
@@ -117456,14 +117669,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A tag axis to add to the end of the list, with no tags.
+    /// A tag category to add to the end of the list, with no tags.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class CreateIntakeRequestTagCategoryRequest
     {
 
         /// <summary>
-        /// What the company calls the axis. Unique among active and inactive axes.
+        /// What the company calls the category. Unique among active and inactive categories.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -117471,15 +117684,15 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// What the axis is for, shown when choosing tags.
+        /// What the category is for, shown when choosing tags.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(512)]
         public string? Description { get; set; } = default!;
 
         /// <summary>
-        /// Whether a request can carry several tags from the axis. When false, tagging a request replaces the tag it
-        /// <br/>held on the axis. Cannot be changed afterwards.
+        /// Whether a request can carry several tags from the category. When false, tagging a request replaces the tag it
+        /// <br/>held in the category. Cannot be changed afterwards.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowsMany")]
         public bool AllowsMany { get; set; } = default!;
@@ -117877,7 +118090,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// What the organization calls this axis — Platform, Tech Stack, Compliance.
+        /// What the organization calls this category — Platform, Tech Stack, Compliance.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -117885,16 +118098,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// What the axis is for, shown when choosing tags.
+        /// What the category is for, shown when choosing tags.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(512)]
         public string? Description { get; set; } = default!;
 
         /// <summary>
-        /// Whether a product can carry several tags from this axis. True suits Platform, where a
+        /// Whether a product can carry several tags from this category. True suits Platform, where a
         /// <br/>cross-platform app genuinely targets both iOS and Android. Fixed once set:
-        /// <br/>narrowing it later would leave products holding more tags than the axis permits.
+        /// <br/>narrowing it later would leave products holding more tags than the category permits.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowsMany")]
         public bool AllowsMany { get; set; } = default!;
@@ -118938,6 +119151,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset ActiveDate { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class CreateTeamsConnectionRequest : CreateConnectionRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("tenantId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string TenantId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("clientId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string ClientId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("clientSecret")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(512, MinimumLength = 1)]
+        public string ClientSecret { get; set; } = default!;
 
     }
 
@@ -123038,7 +123272,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Guid? AssigneeId { get; set; } = default!;
 
         /// <summary>
-        /// Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them.
+        /// Semicolon-separated tag ids: tags in categories the desk offers, or free tags where it allows them.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tagIds")]
         public string? TagIds { get; set; } = default!;
@@ -125176,22 +125410,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<System.Guid> ChannelIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
         /// <summary>
-        /// Whether the desk's agents tag along every active company tag axis, including axes added later.
+        /// Whether the desk's agents tag in every active company tag category, including categories added later.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("offersAllTagCategories")]
         public bool OffersAllTagCategories { get; set; } = default!;
 
         /// <summary>
-        /// The tag axes the desk chose, in the company's order, while it does not offer them all; an inactive one
+        /// The tag categories the desk chose, in the company's order, while it does not offer them all; an inactive one
         /// <br/>stays chosen but is not offered. Empty with bool IntakeDeskDto.OffersAllTagCategories false means its agents tag
-        /// <br/>along none.
+        /// <br/>in none.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tagCategoryIds")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.Guid> TagCategoryIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
         /// <summary>
-        /// Whether the desk's agents may add free tags — tags on no axis, typed in while tagging.
+        /// Whether the desk's agents may add free tags — tags in no category, typed in while tagging.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowsFreeTags")]
         public bool AllowsFreeTags { get; set; } = default!;
@@ -126423,8 +126657,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public IntakeRequestNeedByDto? NeedBy { get; set; } = default!;
 
         /// <summary>
-        /// The tags reviewers filed the request under, by axis order and then name. Inactive tags the request still
-        /// <br/>carries are included.
+        /// The tags reviewers filed the request under, by category order and then name. Inactive tags the request
+        /// <br/>still carries are included.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -126447,59 +126681,59 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A tag axis reviewers file intake requests along, with its tags.
+    /// A tag category reviewers group intake requests by, with its tags.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class IntakeRequestTagCategoryDto
     {
 
         /// <summary>
-        /// The axis's id.
+        /// The category's id.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.Guid Id { get; set; } = default!;
 
         /// <summary>
-        /// What the company calls the axis.
+        /// What the company calls the category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// What the axis is for, when described.
+        /// What the category is for, when described.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         public string? Description { get; set; } = default!;
 
         /// <summary>
-        /// Whether a request can carry several tags from the axis. When false, tagging a request replaces the tag
-        /// <br/>it held on the axis. Fixed once the axis exists.
+        /// Whether a request can carry several tags from the category. When false, tagging a request replaces the
+        /// <br/>tag it held in the category. Fixed once the category exists.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowsMany")]
         public bool AllowsMany { get; set; } = default!;
 
         /// <summary>
-        /// Position when presenting the axes, lowest first.
+        /// Position when presenting the categories, lowest first.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
         /// <summary>
-        /// Whether requests can still be tagged along the axis.
+        /// Whether requests can still be tagged in the category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
         /// <summary>
-        /// Whether the platform defines the axis, which then cannot be renamed, given tags or deleted.
+        /// Whether the platform defines the category, which then cannot be renamed, given tags or deleted.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isSystem")]
         public bool IsSystem { get; set; } = default!;
 
         /// <summary>
-        /// The axis's tags, alphabetically, inactive ones included.
+        /// The category's tags, alphabetically, inactive ones included.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tags")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -126508,7 +126742,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// One intake request tag, on an axis or free, with how many requests the reader can see carry it.
+    /// One intake request tag, in a category or free, with how many requests the reader can see carry it.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class IntakeRequestTagListItemDto
@@ -126535,19 +126769,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? Description { get; set; } = default!;
 
         /// <summary>
-        /// The tag's axis, or null for a free tag.
+        /// The tag's category, or null for a free tag.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("categoryId")]
         public System.Guid? CategoryId { get; set; } = default!;
 
         /// <summary>
-        /// What the company calls the tag's axis, or null for a free tag.
+        /// What the company calls the tag's category, or null for a free tag.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("categoryName")]
         public string? CategoryName { get; set; } = default!;
 
         /// <summary>
-        /// Whether this is a free tag: one on no axis, created by an agent typing its name while tagging.
+        /// Whether this is a free tag: one in no category, created by an agent typing its name while tagging.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isFree")]
         public bool IsFree { get; set; } = default!;
@@ -126568,7 +126802,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A tag an intake request carries, named with its axis, or a free tag on none.
+    /// A tag an intake request carries, named with its category, or a free tag in none.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class IntakeRequestTagNavigationDto
@@ -126589,13 +126823,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// The tag's axis, or null for a free tag.
+        /// The tag's category, or null for a free tag.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("categoryId")]
         public System.Guid? CategoryId { get; set; } = default!;
 
         /// <summary>
-        /// What the company calls the tag's axis, or null for a free tag.
+        /// What the company calls the tag's category, or null for a free tag.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("categoryName")]
         public string? CategoryName { get; set; } = default!;
@@ -126603,7 +126837,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// One tag on an axis, as the settings page and the pickers list it.
+    /// One tag in a category, as the settings page and the pickers list it.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class IntakeRequestTagOptionDto
@@ -126617,7 +126851,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Guid Id { get; set; } = default!;
 
         /// <summary>
-        /// The label, unique within its axis.
+        /// The label, unique within its category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -127729,7 +127963,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// Another free tag, or an active tag on an active axis.
+        /// Another free tag, or an active tag in an active category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetTagId")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -127745,7 +127979,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// The tag the free tag's products move to: another free tag, or an active tag on an active category.
+        /// The tag the free tag's products move to: another free tag, or an active tag in an active category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("targetTagId")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -131184,7 +131418,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A tag axis and the tags on it.
+    /// A tag category and the tags on it.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProductTagCategoryDto
@@ -131205,25 +131439,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? Description { get; set; } = default!;
 
         /// <summary>
-        /// Whether a product can carry several tags from this axis.
+        /// Whether a product can carry several tags from this category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowsMany")]
         public bool AllowsMany { get; set; } = default!;
 
         /// <summary>
-        /// Display position when presenting the axes. Presentation only.
+        /// Display position when presenting the categories. Presentation only.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
         /// <summary>
-        /// Whether products can still be tagged along this axis.
+        /// Whether products can still be tagged in this category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
 
         /// <summary>
-        /// Platform-seeded axes are read-only: they cannot be edited or deleted.
+        /// Platform-seeded categories are read-only: they cannot be edited or deleted.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isSystem")]
         public bool IsSystem { get; set; } = default!;
@@ -131247,13 +131481,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string TagName { get; set; } = default!;
 
         /// <summary>
-        /// The tag's axis, or null for a free tag.
+        /// The tag's category, or null for a free tag.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("categoryId")]
         public System.Guid? CategoryId { get; set; } = default!;
 
         /// <summary>
-        /// The axis's name, or null for a free tag.
+        /// The category's name, or null for a free tag.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("categoryName")]
         public string? CategoryName { get; set; } = default!;
@@ -131261,7 +131495,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// One product tag, on an axis or free, with how many products carry it.
+    /// One product tag, in a category or free, with how many products carry it.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProductTagListItemDto
@@ -131279,19 +131513,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? Description { get; set; } = default!;
 
         /// <summary>
-        /// The tag's axis, or null for a free tag.
+        /// The tag's category, or null for a free tag.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("categoryId")]
         public System.Guid? CategoryId { get; set; } = default!;
 
         /// <summary>
-        /// The axis's name, or null for a free tag.
+        /// The category's name, or null for a free tag.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("categoryName")]
         public string? CategoryName { get; set; } = default!;
 
         /// <summary>
-        /// Whether this is a free tag: one on no axis, created by typing its name while tagging.
+        /// Whether this is a free tag: one in no category, created by typing its name while tagging.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isFree")]
         public bool IsFree { get; set; } = default!;
@@ -131341,7 +131575,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// Whether anyone who can tag a product may also give it free tags — tags on no axis, typed in while tagging.
+        /// Whether anyone who can tag a product may also give it free tags — tags in no category, typed in while tagging.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowsFreeTags")]
         public bool AllowsFreeTags { get; set; } = default!;
@@ -134267,14 +134501,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// The order the tag axes are presented in.
+    /// The order the tag categories are presented in.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ReorderIntakeRequestTagCategoriesRequest
     {
 
         /// <summary>
-        /// Every axis, inactive ones included, in order. A partial list is refused.
+        /// Every category, inactive ones included, in order. A partial list is refused.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("orderedCategoryIds")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -134294,7 +134528,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Puts the tag axes in a given order.
+    /// Puts the tag categories in a given order.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ReorderProductTagCategoriesRequest
@@ -136071,14 +136305,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Whether requests can be tagged along a tag axis.
+    /// Whether requests can be tagged in a tag category.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SetIntakeRequestTagCategoryActiveRequest
     {
 
         /// <summary>
-        /// True to put the axis back into use, false to take it out of use. Requests already tagged along it keep
+        /// True to put the category back into use, false to take it out of use. Requests already tagged in it keep
         /// <br/>their tags either way.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
@@ -136166,7 +136400,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Takes a tag axis out of use, or puts it back. Products already tagged keep their tags.
+    /// Takes a tag category out of use, or puts it back. Products already tagged keep their tags.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class SetProductTagCategoryActiveRequest
@@ -136180,7 +136414,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Guid Id { get; set; } = default!;
 
         /// <summary>
-        /// Whether products can still be tagged along this axis.
+        /// Whether products can still be tagged in this category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
@@ -139869,7 +140103,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// The tag's name. When exactly one tag on an axis the request's desk offers has it, ignoring case, that tag is
+        /// The tag's name. When exactly one tag in a category the request's desk offers has it, ignoring case, that tag is
         /// <br/>applied; otherwise the free tag with the name is applied, and created when none has it yet.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
@@ -139887,7 +140121,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// The tag's name. When exactly one tag on an active category has it, ignoring case, that tag is applied;
+        /// The tag's name. When exactly one tag in an active category has it, ignoring case, that tag is applied;
         /// <br/>otherwise the free tag with the name is applied, and created when none has it yet.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
@@ -141815,6 +142049,40 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamsConnectionConfigurationDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("tenantId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string TenantId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("clientId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string ClientId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("clientSecret")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string ClientSecret { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamsConnectionDetailsDto : ConnectionDetailsDto
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("configuration")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public TeamsConnectionConfigurationDto Configuration { get; set; } = new TeamsConnectionConfigurationDto();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamsConnectionListDto : ConnectionListDto
+    {
+
+    }
+
     /// <summary>
     /// A team's velocity, predictability and say/do over its last completed standard sprints: each sprint's
     /// <br/>values, their average and their spread. Worked out when read from work item history, and never stored.
@@ -142554,6 +142822,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     [JsonInheritanceAttribute("azure-openai", typeof(UpdateAzureOpenAIConnectionRequest))]
     [JsonInheritanceAttribute("entra", typeof(UpdateEntraConnectionRequest))]
     [JsonInheritanceAttribute("workday", typeof(UpdateWorkdayConnectionRequest))]
+    [JsonInheritanceAttribute("teams", typeof(UpdateTeamsConnectionRequest))]
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public abstract partial class UpdateConnectionRequest
     {
@@ -143086,22 +143355,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<System.Guid>? ChannelIds { get; set; } = default!;
 
         /// <summary>
-        /// Whether the desk's agents tag requests along every active company tag axis, including axes added later. A
-        /// <br/>new desk does. Leave it out to keep the desk's axes as they are.
+        /// Whether the desk's agents tag requests in every active company tag category, including categories added later. A
+        /// <br/>new desk does. Leave it out to keep the desk's categories as they are.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("offersAllTagCategories")]
         public bool? OffersAllTagCategories { get; set; } = default!;
 
         /// <summary>
-        /// The tag axes the desk's agents tag along when `offersAllTagCategories` is false; empty means none. Leave
-        /// <br/>it out to keep the ones it has. Ignored unless `offersAllTagCategories` is false. An axis already chosen
-        /// <br/>may stay after it is deactivated; a newly chosen one must be active. Requests keep tags along any axis.
+        /// The tag categories the desk's agents tag in when `offersAllTagCategories` is false; empty means none. Leave
+        /// <br/>it out to keep the ones it has. Ignored unless `offersAllTagCategories` is false. A category already chosen
+        /// <br/>may stay after it is deactivated; a newly chosen one must be active. Requests keep tags in any category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("tagCategoryIds")]
         public System.Collections.Generic.ICollection<System.Guid>? TagCategoryIds { get; set; } = default!;
 
         /// <summary>
-        /// Whether the desk's agents may add free tags — tags on no axis, typed in while tagging. A new desk does not.
+        /// Whether the desk's agents may add free tags — tags in no category, typed in while tagging. A new desk does not.
         /// <br/>Leave it out to keep the desk's setting. Requests already carrying free tags keep them when it is turned off.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowsFreeTags")]
@@ -143175,21 +143444,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A tag axis's new name and description.
+    /// A tag category's new name and description.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateIntakeRequestTagCategoryRequest
     {
 
         /// <summary>
-        /// The axis being changed; must match the route.
+        /// The category being changed; must match the route.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid Id { get; set; } = default!;
 
         /// <summary>
-        /// What the company calls the axis. Unique among active and inactive axes.
+        /// What the company calls the category. Unique among active and inactive categories.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -143197,7 +143466,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// What the axis is for, or null for no description.
+        /// What the category is for, or null for no description.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(512)]
@@ -143213,7 +143482,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// The label, unique within the axis.
+        /// The label, unique within the category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -143601,7 +143870,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Edits a tag axis.
+    /// Edits a tag category.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateProductTagCategoryRequest
@@ -143615,7 +143884,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Guid Id { get; set; } = default!;
 
         /// <summary>
-        /// What the organization calls this axis.
+        /// What the organization calls this category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -143623,7 +143892,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string Name { get; set; } = default!;
 
         /// <summary>
-        /// What the axis is for. Cleared when omitted.
+        /// What the category is for. Cleared when omitted.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(512)]
@@ -143636,7 +143905,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// Whether anyone who can tag a product may also give it free tags — tags on no category, typed in while
+        /// Whether anyone who can tag a product may also give it free tags — tags in no category, typed in while
         /// <br/>tagging. Products already carrying free tags keep them when this is turned off.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("allowsFreeTags")]
@@ -145052,6 +145321,26 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class UpdateTeamsConnectionRequest : UpdateConnectionRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("tenantId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string TenantId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("clientId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string ClientId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("clientSecret")]
+        [System.ComponentModel.DataAnnotations.StringLength(512)]
+        public string? ClientSecret { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateUserRequest
     {
 
@@ -145602,6 +145891,39 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("useCompactAlgorithm")]
         public bool UseCompactAlgorithm { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Credentials for verifying a Microsoft Teams connection before create.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class VerifyTeamsConnectionRequest
+    {
+
+        /// <summary>
+        /// Entra directory tenant ID for the Teams communication app registration.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tenantId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string TenantId { get; set; } = default!;
+
+        /// <summary>
+        /// Application (client) ID for the Teams communication app registration.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("clientId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(64, MinimumLength = 1)]
+        public string ClientId { get; set; } = default!;
+
+        /// <summary>
+        /// Client secret for the Teams communication app registration.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("clientSecret")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(512, MinimumLength = 1)]
+        public string ClientSecret { get; set; } = default!;
 
     }
 

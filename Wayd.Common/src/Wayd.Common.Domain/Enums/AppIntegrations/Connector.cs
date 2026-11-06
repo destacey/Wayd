@@ -18,5 +18,8 @@ public enum Connector
     Entra = 3,
 
     [Display(Name = "Workday", Description = "The Workday connector enables Wayd to synchronize workers from a Workday tenant via the Staffing SOAP web service. This synchronization is one-way.")]
-    Workday = 4
+    Workday = 4,
+
+    [Display(Name = "Microsoft Teams", Description = "The Microsoft Teams connector stores an app registration for sending chats and calendar events through Microsoft Graph. No data is synced.")]
+    Teams = 5
 }

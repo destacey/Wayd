@@ -47,17 +47,17 @@ export interface FreeTagsField {
 
 export interface ManageTagsFormProps {
   /**
-   * The axes to offer, each with the tags it may show. Only these are diffed, so
-   * a tag on an axis not passed stays on the record.
+   * The categories to offer, each with the tags it may show. Only these are diffed, so
+   * a tag in a category not passed stays on the record.
    */
   categories: TagCategory[]
   /** What the record currently carries. */
   tags: TagAssignment[]
   categoriesLoading?: boolean
   /**
-   * Offers a field for free tags — tags on no axis, typed in. Omit it where free
+   * Offers a field for free tags — tags in no category, typed in. Omit it where free
    * tags are turned off: the record's free tags are then left alone, as a tag on
-   * an axis not passed is.
+   * a category not passed is.
    */
   freeTags?: FreeTagsField
   /**
@@ -103,7 +103,7 @@ const freeTagIds = (tags: TagAssignment[]) =>
  * and since the diff runs against what was carried, the next save would remove it
  * unasked.
  *
- * Alphabetical, because a tag's position on its axis carries no meaning and a
+ * Alphabetical, because a tag's position in its category carries no meaning and a
  * picker is scanned for a label the reader already has in mind. The API returns
  * them unordered, so the sort belongs here.
  */
@@ -165,14 +165,14 @@ const splitFreeValues = (
 }
 
 /**
- * Applies a record's tags across every offered axis at once, and its free tags
+ * Applies a record's tags across every offered category at once, and its free tags
  * when the area allows them.
  *
  * Holds no knowledge of what is being tagged: categories, current tags and the
  * save all arrive as props, so any area with tags can use it.
  *
  * A category the caller does not pass is left alone — its tags never enter the
- * diff. That is what keeps a tag on a deactivated axis from being stripped by a
+ * diff. That is what keeps a tag in a deactivated category from being stripped by a
  * save that never offered it. Free tags follow the same rule.
  */
 const ManageTagsForm = ({

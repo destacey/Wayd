@@ -7,12 +7,12 @@ using Wayd.ProductManagement.Domain.Models;
 namespace Wayd.ProductManagement.Application.Products.Commands;
 
 /// <summary>
-/// Tags a product with a name someone typed: the tag on an axis with that name when there is exactly one, otherwise
+/// Tags a product with a name someone typed: the tag in a category with that name when there is exactly one, otherwise
 /// the free tag with that name, created when none has it yet. Returns the id of the tag applied.
 /// </summary>
 /// <remarks>
-/// Preferring a tag on an axis keeps "ios" typed by hand from becoming a free tag beside the curated one. A free
-/// tag needs <see cref="ProductTagSettings.AllowsFreeTags"/>; a tag on an axis does not.
+/// Preferring a tag in a category keeps "ios" typed by hand from becoming a free tag beside the curated one. A free
+/// tag needs <see cref="ProductTagSettings.AllowsFreeTags"/>; a tag in a category does not.
 /// </remarks>
 public sealed record TagProductByNameCommand(Guid Id, string Name) : ICommand<Guid>;
 
@@ -68,21 +68,21 @@ public sealed class TagProductByNameCommandHandler(
             var now = _dateTimeProvider.Now;
 
             var lowered = name.Value.ToLower();
-            var onAxes = await _productManagementDbContext.ProductTags
+            var inCategories = await _productManagementDbContext.ProductTags
                 .Where(t => t.CategoryId != null && t.IsActive && t.Name.ToLower() == lowered)
                 .Join(_productManagementDbContext.ProductTagCategories.Where(c => c.IsActive),
                     t => t.CategoryId, c => (Guid?)c.Id, (t, c) => new { Tag = t, Category = c })
                 .ToListAsync(cancellationToken);
 
-            if (onAxes.Count > 1)
+            if (inCategories.Count > 1)
                 return Result.Failure<Guid>(ProductTagErrors.AmbiguousName);
 
             ProductTag tag;
             Result tagResult;
-            if (onAxes.Count == 1)
+            if (inCategories.Count == 1)
             {
-                tag = onAxes[0].Tag;
-                tagResult = product.Tag(tag, onAxes[0].Category, actor, now);
+                tag = inCategories[0].Tag;
+                tagResult = product.Tag(tag, inCategories[0].Category, actor, now);
             }
             else
             {

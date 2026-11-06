@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// A free intake request tag — one on no axis — was created by someone typing its name while tagging.
+/// A free intake request tag — one in no category — was created by someone typing its name while tagging.
 /// </summary>
 public sealed record IntakeRequestFreeTagCreatedEvent : DomainEvent<IntakeRequestFreeTagCreatedEvent>, IDomainEventDescriptor, IDemandManagementEvent
 {

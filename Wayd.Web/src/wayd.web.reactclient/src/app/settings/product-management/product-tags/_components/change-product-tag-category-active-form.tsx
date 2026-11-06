@@ -16,10 +16,10 @@ export interface ChangeProductTagCategoryActiveFormProps {
 }
 
 /**
- * Takes an axis out of use, or puts it back.
+ * Takes a category out of use, or puts it back.
  *
- * Deactivation rather than deletion is the normal way an axis retires: products
- * already tagged along it keep their tags, so what was recorded stays true —
+ * Deactivation rather than deletion is the normal way a category retires: products
+ * already tagged in it keep their tags, so what was recorded stays true —
  * only new tagging stops. The confirmation says so, because "deactivate" on its
  * own reads like it might strip them.
  */
@@ -31,8 +31,7 @@ const ChangeProductTagCategoryActiveForm = ({
 }: ChangeProductTagCategoryActiveFormProps) => {
   const messageApi = useMessage()
 
-  const [setProductTagCategoryActive] =
-    useSetProductTagCategoryActiveMutation()
+  const [setProductTagCategoryActive] = useSetProductTagCategoryActiveMutation()
 
   const gerund = isActive ? 'activating' : 'deactivating'
 
@@ -80,7 +79,7 @@ const ChangeProductTagCategoryActiveForm = ({
       {category.name}
       {!isActive && (
         <p>
-          Products can no longer be tagged along this axis. Products already
+          Products can no longer be tagged in this category. Products already
           tagged keep their tags.
         </p>
       )}

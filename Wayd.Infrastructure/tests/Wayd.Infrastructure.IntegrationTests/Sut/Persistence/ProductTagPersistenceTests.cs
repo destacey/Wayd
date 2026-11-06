@@ -7,7 +7,7 @@ namespace Wayd.Infrastructure.IntegrationTests.Sut.Persistence;
 
 /// <summary>
 /// Proves free product tags hold their one rule the aggregates cannot see: a name is unique among them, ignoring
-/// case, while staying free to match a tag on an axis.
+/// case, while staying free to match a tag in a category.
 /// </summary>
 [Collection(nameof(SqlServerTestCollection))]
 public sealed class ProductTagPersistenceTests(SqlServerDbContextFixture fixture)
@@ -17,7 +17,7 @@ public sealed class ProductTagPersistenceTests(SqlServerDbContextFixture fixture
     private readonly SqlServerDbContextFixture _fixture = fixture;
 
     [Fact]
-    public async Task SaveChanges_AFreeTag_RoundTripsWithNoAxis()
+    public async Task SaveChanges_AFreeTag_RoundTripsWithNoCategory()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
@@ -40,7 +40,7 @@ public sealed class ProductTagPersistenceTests(SqlServerDbContextFixture fixture
     [Fact]
     public async Task SaveChanges_ASecondFreeTagWithTheSameNameInAnotherCase_IsRefused()
     {
-        // Arrange — the unique index must treat free tags' empty axes as equal
+        // Arrange — the unique index must treat free tags' null category ids as equal
         var ct = TestContext.Current.CancellationToken;
         var name = UniqueName("wave");
         await using (var context = _fixture.CreateContext())
@@ -62,13 +62,13 @@ public sealed class ProductTagPersistenceTests(SqlServerDbContextFixture fixture
     }
 
     [Fact]
-    public async Task SaveChanges_AFreeTagNamedLikeATagOnAnAxis_IsAllowed()
+    public async Task SaveChanges_AFreeTagNamedLikeATagInACategory_IsAllowed()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         var name = UniqueName("ios");
         await using var context = _fixture.CreateContext();
-        var category = ProductTagCategory.Create(UniqueName("Axis"), null, allowsMany: true, 1, EventActor.System, Now);
+        var category = ProductTagCategory.Create(UniqueName("Category"), null, allowsMany: true, 1, EventActor.System, Now);
         category.AddTag(name, null, EventActor.System, Now).IsSuccess.Should().BeTrue();
         context.ProductTagCategories.Add(category);
         await context.SaveChangesAsync(ct);
@@ -84,8 +84,8 @@ public sealed class ProductTagPersistenceTests(SqlServerDbContextFixture fixture
         }
         finally
         {
-            // The product type seeder only seeds axes into a database that has none, and the seeding tests share
-            // this database, so an axis left behind stops them getting Platform.
+            // The product type seeder only seeds categories into a database that has none, and the seeding tests share
+            // this database, so a category left behind stops them getting Platform.
             await using var cleanup = _fixture.CreateContext();
             await cleanup.ProductTags.Where(t => t.Name == name).ExecuteDeleteAsync(ct);
             await cleanup.ProductTagCategories.Where(c => c.Id == category.Id).ExecuteDeleteAsync(ct);

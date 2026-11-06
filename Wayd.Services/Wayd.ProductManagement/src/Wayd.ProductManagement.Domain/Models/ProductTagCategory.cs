@@ -7,13 +7,13 @@ using Wayd.Common.Domain.Tagging;
 namespace Wayd.ProductManagement.Domain.Models;
 
 /// <summary>
-/// An axis products are labelled along — Platform, Tech Stack, Compliance — holding the tags that
+/// A category products are labelled by — Platform, Tech Stack, Compliance — holding the tags that
 /// belong to it.
 /// </summary>
 /// <remarks>
 /// Grouped because <c>ios</c>, <c>react-native</c> and <c>pci-scope</c> are different kinds of statement. The
-/// type system deliberately carries only what changes a product's behaviour, and the axes carry everything else.
-/// The rules are shared with every module's tag axes; see <see cref="TagCategoryBase{TTag}"/>.
+/// type system deliberately carries only what changes a product's behaviour, and the categories carry everything else.
+/// The rules are shared with every module's tag categories; see <see cref="TagCategoryBase{TTag}"/>.
 /// </remarks>
 public sealed class ProductTagCategory : TagCategoryBase<ProductTag>, IHasIdAndKey
 {
@@ -31,40 +31,40 @@ public sealed class ProductTagCategory : TagCategoryBase<ProductTag>, IHasIdAndK
     /// </summary>
     public int Key { get; private init; }
 
-    /// <summary>The failure for changing what a system axis means.</summary>
-    public const string SystemAxisError = TagErrors.SystemAxis;
+    /// <summary>The failure for changing what a system category means.</summary>
+    public const string SystemCategoryError = TagErrors.SystemCategory;
 
-    /// <summary>The failure for a tag id that is not on this axis.</summary>
+    /// <summary>The failure for a tag id that is not in this category.</summary>
     public const string TagNotFoundError = TagErrors.TagNotFound;
 
     /// <summary>The failure for a tag with a blank name.</summary>
     public const string TagNameRequiredError = TagErrors.TagNameRequired;
 
-    /// <summary>The failure for a tag name another tag on the axis already has.</summary>
+    /// <summary>The failure for a tag name another tag in the category already has.</summary>
     public const string DuplicateTagNameError = TagErrors.DuplicateTagName;
 
     /// <summary>The failure for deleting a tag a product carries.</summary>
     public const string TagInUseError = "Products carry this tag, so it cannot be deleted. Deactivate it instead.";
 
-    /// <summary>The failure for deleting an axis products are tagged along.</summary>
-    public const string AxisInUseError = "Products are tagged along this axis, so it cannot be deleted. Deactivate it instead.";
+    /// <summary>The failure for deleting a category products are tagged in.</summary>
+    public const string CategoryInUseError = "Products are tagged in this category, so it cannot be deleted. Deactivate it instead.";
 
     /// <summary>
-    /// Defines an axis the organization manages.
+    /// Defines a category the organization manages.
     /// </summary>
     public static ProductTagCategory Create(string name, string? description, bool allowsMany, int order,
         EventActor actor, Instant timestamp) =>
         Create(name, description, allowsMany, order, isSystem: false, actor, timestamp);
 
     /// <summary>
-    /// Defines a platform-seeded axis. For the seeder.
+    /// Defines a platform-seeded category. For the seeder.
     /// </summary>
     public static ProductTagCategory CreateSystem(string name, string? description, bool allowsMany, int order,
         EventActor actor, Instant timestamp) =>
         Create(name, description, allowsMany, order, isSystem: true, actor, timestamp);
 
     /// <summary>
-    /// Adds a tag to a seeded axis, bypassing the read-only guard. For the seeder that builds it.
+    /// Adds a tag to a seeded category, bypassing the read-only guard. For the seeder that builds it.
     /// </summary>
     public Result<ProductTag> AddSystemTag(string name, string? description, EventActor actor, Instant timestamp) =>
         AddTagUnguarded(name, description, actor, timestamp);
@@ -82,7 +82,7 @@ public sealed class ProductTagCategory : TagCategoryBase<ProductTag>, IHasIdAndK
 
     protected override string TagInUseMessage => TagInUseError;
 
-    protected override string AxisInUseMessage => AxisInUseError;
+    protected override string CategoryInUseMessage => CategoryInUseError;
 
     protected override ProductTag CreateTag(string name, string? description) => new(Id, name, description);
 

@@ -1,6 +1,6 @@
 ---
 name: wayd-products
-description: Read before calling the Wayd MCP tools named Products_*, ProductTypes_*, ProductTagCategories_*, ProductTags_*, DeploymentEnvironments_*, DeliveryMetrics_* or DeliveryOverview_*. Guides agents working with the Wayd product catalog via the Wayd MCP server — the typed tree of products, platforms, services and tools an organization owns, plus product dependencies, the teams linked to each product, product types, tags, deployment environments, what is running where, and delivery measures. Use when looking up or creating products, moving one to a different parent, changing a product's type or status, tagging products, deleting one, recording or reading what a product depends on (or what would be hit if it went down), linking teams to a product or reading which teams work on it (or what a team works on), defining or retiring deployment environments, asking what is running in an environment, reading delivery measures or recent shipping activity, or managing the product types and tag axes themselves. For releases, versions, packages and deployments, use the wayd-delivery skill instead.
+description: Read before calling the Wayd MCP tools named Products_*, ProductTypes_*, ProductTagCategories_*, ProductTags_*, DeploymentEnvironments_*, DeliveryMetrics_* or DeliveryOverview_*. Guides agents working with the Wayd product catalog via the Wayd MCP server — the typed tree of products, platforms, services and tools an organization owns, plus product dependencies, the teams linked to each product, product types, tags, deployment environments, what is running where, and delivery measures. Use when looking up or creating products, moving one to a different parent, changing a product's type or status, tagging products, deleting one, recording or reading what a product depends on (or what would be hit if it went down), linking teams to a product or reading which teams work on it (or what a team works on), defining or retiring deployment environments, asking what is running in an environment, reading delivery measures or recent shipping activity, or managing the product types and tag categories themselves. For releases, versions, packages and deployments, use the wayd-delivery skill instead.
 ---
 
 # Wayd Products (Catalog / Dependencies / Types / Tags / Environments / Metrics)
@@ -21,7 +21,7 @@ When the user approves, do exactly what they approved. An option you offered tha
 | Dependencies | `Products_GetDependencies` | `Products_AddDependency`, `Products_UpdateDependency`, `Products_ChangeDependencyTerms`, `Products_EndDependency`, `Products_RemoveDependency` |
 | Teams | `Products_GetTeams`, `Products_GetTeamProducts` | `Products_LinkTeam`, `Products_UnlinkTeam`, `Products_SetTeams`, `Products_SetTeamProducts` |
 | Product types | `ProductTypes_GetProductTypes` | `ProductTypes_Create`, `ProductTypes_Update`, `ProductTypes_SetActive`, `ProductTypes_Delete` |
-| Tag axes and tags | `ProductTagCategories_GetProductTagCategories` | `ProductTagCategories_Create`, `ProductTagCategories_Update`, `ProductTagCategories_SetActive`, `ProductTagCategories_Delete`, `ProductTagCategories_Reorder`, `ProductTagCategories_AddTag`, `ProductTagCategories_RenameTag`, `ProductTagCategories_SetTagActive`, `ProductTagCategories_DeleteTag` |
+| Tag categories and tags | `ProductTagCategories_GetProductTagCategories` | `ProductTagCategories_Create`, `ProductTagCategories_Update`, `ProductTagCategories_SetActive`, `ProductTagCategories_Delete`, `ProductTagCategories_Reorder`, `ProductTagCategories_AddTag`, `ProductTagCategories_RenameTag`, `ProductTagCategories_SetTagActive`, `ProductTagCategories_DeleteTag` |
 | Free tags | `ProductTags_Search`, `ProductTags_GetSettings` (whether free tags are on) | `ProductTags_UpdateFreeTag`, `ProductTags_Merge`, `ProductTags_DeleteFreeTag` |
 | Environments | `DeploymentEnvironments_GetDeploymentEnvironments`, `DeploymentEnvironments_GetRollout` | `DeploymentEnvironments_Create`, `DeploymentEnvironments_Update`, `DeploymentEnvironments_SetActive`, `DeploymentEnvironments_Delete` |
 | Measures | `DeliveryMetrics_GetDeliveryMetrics`, `DeliveryOverview_GetDeliveryOverview`, `DeliveryOverview_GetRecentDeliveryEvents` | — |
@@ -35,7 +35,7 @@ Read the matching file before working in these areas. The rules on this page sti
 | [reference/deleting-a-product.md](reference/deleting-a-product.md) | Deleting a product, purging its history, or answering why one cannot be deleted |
 | [reference/dependencies.md](reference/dependencies.md) | Reading, recording, changing, ending or removing product dependencies, or answering what would be hit if a product went down |
 | [reference/teams.md](reference/teams.md) | Linking or unlinking teams on a product, or answering which teams work on a product or what a team works on |
-| [reference/configuration.md](reference/configuration.md) | Creating, changing, deactivating or deleting product types, tag axes or tags |
+| [reference/configuration.md](reference/configuration.md) | Creating, changing, deactivating or deleting product types, tag categories or tags |
 | [reference/environments-metrics.md](reference/environments-metrics.md) | Defining, changing or retiring deployment environments, asking what is running where, or reading delivery measures and recent shipping activity |
 
 ---
@@ -78,27 +78,27 @@ is what makes a refusal say which rule refused.
 
 ---
 
-## Tagging a single-value axis silently replaces
+## Tagging a single-value category silently replaces
 
-Before `Products_Tag`, check the axis's `allowsMany` in `ProductTagCategories_GetProductTagCategories`.
-Where it is false, the call **succeeds and removes the tag the product already carried on that axis** —
+Before `Products_Tag`, check the category's `allowsMany` in `ProductTagCategories_GetProductTagCategories`.
+Where it is false, the call **succeeds and removes the tag the product already carried in that category** —
 it never refuses. If the existing value matters, read it with `Products_GetProduct` and tell the user
-what will be replaced. An inactive tag, or a tag on an inactive axis, is refused.
+what will be replaced. An inactive tag, or a tag in an inactive category, is refused.
 
 ---
 
-## Free tags sit on no axis
+## Free tags sit in no category
 
-Besides the curated tags on axes, a product can carry **free tags** — informal labels on no axis,
+Besides the curated tags in categories, a product can carry **free tags** — informal labels in no category,
 such as "migration wave 2". They exist only while free tags are turned on for products (an admin
 setting); with them off, applying or creating one is refused.
 
-- **`Products_TagByName` is the way to add one.** It applies the tag on an axis when exactly one
-  active axis has that name, ignoring case — so a typed "iOS" lands on Platform rather than becoming a
-  free tag beside it — and is refused when two axes have it. Otherwise it applies the free tag with
+- **`Products_TagByName` is the way to add one.** It applies the tag in a category when exactly one
+  active category has that name, ignoring case — so a typed "iOS" lands on Platform rather than becoming a
+  free tag beside it — and is refused when two categories have it. Otherwise it applies the free tag with
   that name, creating it if none exists. Tell the user which of the two will happen before calling:
-  `ProductTags_Search` with the name shows whether a tag on an axis already has it.
-- **A free tag never replaces anything.** The single-value rule above belongs to axes; a free tag
+  `ProductTags_Search` with the name shows whether a tag in a category already has it.
+- **A free tag never replaces anything.** The single-value rule above belongs to categories; a free tag
   always joins the product's other tags.
 - **Free tags are deleted once unused.** Removing the last use with `Products_Untag`, or deleting the
   last product carrying one, deletes the tag too. Do not expect it in `ProductTags_Search` afterwards.
@@ -106,8 +106,8 @@ setting); with them off, applying or creating one is refused.
   `ProductTagCategories_DeleteTag`, which refuses a tag in use. Say how many products carry it
   (`productCount` from `ProductTags_Search`) before deleting.
 - **`ProductTags_Merge` moves a free tag's products to another tag and deletes it** — to fold
-  near-duplicates together, or to promote a free tag onto an axis: add the tag to its axis with
-  `ProductTagCategories_AddTag`, then merge into it. On a single-value axis it replaces each
+  near-duplicates together, or to promote a free tag into a category: add the tag to its category with
+  `ProductTagCategories_AddTag`, then merge into it. In a single-value category it replaces each
   product's existing tag there, so say so first.
 
 ---

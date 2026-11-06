@@ -756,6 +756,89 @@ export const importTemplates = {
       },
     ],
   },
+  'ppm.project-deliverables': {
+    module: 'ppm',
+    description:
+      "Each row names its project by key, so one file can cover many projects. A project's rows are added in file order, after any deliverables it already has.",
+    files: [
+      {
+        field: 'file',
+        required: true,
+        columns: [
+          {
+            name: 'ImportId',
+            type: 'text',
+            required: false,
+            description:
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
+          },
+          {
+            name: 'ProjectKey',
+            type: 'text',
+            required: true,
+            description: 'The project, by key.',
+          },
+          {
+            name: 'Name',
+            type: 'text',
+            required: true,
+            description:
+              'What the deliverable is called, unique within its project in the file.',
+            maxLength: 256,
+          },
+          {
+            name: 'Description',
+            type: 'text',
+            required: false,
+            description: 'What the deliverable is, in Markdown.',
+            maxLength: 4096,
+          },
+          {
+            name: 'AcceptanceCriteria',
+            type: 'text',
+            required: false,
+            description:
+              'How the project will know the deliverable is done, in Markdown.',
+            maxLength: 4096,
+          },
+          {
+            name: 'OwnerEmployeeNumber',
+            type: 'text',
+            required: false,
+            description: 'The accountable employee, by employee number.',
+          },
+          {
+            name: 'TargetDate',
+            type: 'date',
+            required: false,
+            description: 'When the deliverable is due.',
+          },
+          {
+            name: 'Status',
+            type: 'text',
+            required: false,
+            description:
+              "A status of the deliverable workflow, by name or by meaning; blank for Not Started. A completed or canceled project takes only a closed status, such as Accepted or Descoped. The default workflow's statuses are Not Started, In Progress, Accepted and Descoped.",
+            maxLength: 64,
+          },
+          {
+            name: 'StatusChangedAt',
+            type: 'timestamp',
+            required: false,
+            description:
+              'When the deliverable moved into Status, with its offset; blank for when the import runs.',
+          },
+          {
+            name: 'StatusReason',
+            type: 'text',
+            required: false,
+            description: 'Why it is in that status. Required for Descoped.',
+            maxLength: 1024,
+          },
+        ],
+      },
+    ],
+  },
   'ppm.project-stages': {
     module: 'ppm',
     description:

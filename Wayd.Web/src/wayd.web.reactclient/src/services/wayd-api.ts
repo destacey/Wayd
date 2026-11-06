@@ -24024,6 +24024,793 @@ export class ProgramsClient {
     }
 }
 
+export class ProjectDeliverablesClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * Get a project's deliverables, in their order.
+     * @return OK
+     */
+    getDeliverables(idOrKey: string, cancelToken?: CancelToken): Promise<ProjectDeliverableDto[]> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{idOrKey}/deliverables";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDeliverables(_response);
+        });
+    }
+
+    protected processGetDeliverables(response: AxiosResponse): Promise<ProjectDeliverableDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProjectDeliverableDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProjectDeliverableDto[]>(null as any);
+    }
+
+    /**
+     * Get one of a project's deliverables.
+     * @return OK
+     */
+    getDeliverable(idOrKey: string, deliverableId: string, cancelToken?: CancelToken): Promise<ProjectDeliverableDto> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{idOrKey}/deliverables/{deliverableId}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (deliverableId === undefined || deliverableId === null)
+            throw new globalThis.Error("The parameter 'deliverableId' must be defined.");
+        url_ = url_.replace("{deliverableId}", encodeURIComponent("" + deliverableId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetDeliverable(_response);
+        });
+    }
+
+    protected processGetDeliverable(response: AxiosResponse): Promise<ProjectDeliverableDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ProjectDeliverableDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ProjectDeliverableDto>(null as any);
+    }
+
+    /**
+     * Add a deliverable to a project. It starts Not Started, last in the project's order.
+     * @return Created
+     */
+    createDeliverable(id: string, request: CreateProjectDeliverableRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/deliverables";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreateDeliverable(_response);
+        });
+    }
+
+    protected processCreateDeliverable(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * Change a deliverable's name, description, acceptance criteria, owner or target date.
+     * @return No Content
+     */
+    updateDeliverable(id: string, deliverableId: string, request: UpdateProjectDeliverableRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/deliverables/{deliverableId}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (deliverableId === undefined || deliverableId === null)
+            throw new globalThis.Error("The parameter 'deliverableId' must be defined.");
+        url_ = url_.replace("{deliverableId}", encodeURIComponent("" + deliverableId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateDeliverable(_response);
+        });
+    }
+
+    protected processUpdateDeliverable(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Delete a deliverable that was added by mistake.
+     * @param expectedRevision (optional) 
+     * @return No Content
+     */
+    deleteDeliverable(id: string, deliverableId: string, expectedRevision?: number | null | undefined, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/deliverables/{deliverableId}?";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (deliverableId === undefined || deliverableId === null)
+            throw new globalThis.Error("The parameter 'deliverableId' must be defined.");
+        url_ = url_.replace("{deliverableId}", encodeURIComponent("" + deliverableId));
+        if (expectedRevision !== undefined && expectedRevision !== null)
+            url_ += "expectedRevision=" + encodeURIComponent("" + expectedRevision) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "DELETE",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDeleteDeliverable(_response);
+        });
+    }
+
+    protected processDeleteDeliverable(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the statuses a deliverable can be moved to, with what each move needs.
+     * @return OK
+     */
+    getStatusOptions(id: string, deliverableId: string, cancelToken?: CancelToken): Promise<StatusOptionDto[]> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/deliverables/{deliverableId}/status-options";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (deliverableId === undefined || deliverableId === null)
+            throw new globalThis.Error("The parameter 'deliverableId' must be defined.");
+        url_ = url_.replace("{deliverableId}", encodeURIComponent("" + deliverableId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetStatusOptions(_response);
+        });
+    }
+
+    protected processGetStatusOptions(response: AxiosResponse): Promise<StatusOptionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<StatusOptionDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<StatusOptionDto[]>(null as any);
+    }
+
+    /**
+     * Move a deliverable to another status: start, accept, descope or reopen it.
+     * @return No Content
+     */
+    changeStatus(id: string, deliverableId: string, request: ChangeProjectDeliverableStatusRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/deliverables/{deliverableId}/status";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (deliverableId === undefined || deliverableId === null)
+            throw new globalThis.Error("The parameter 'deliverableId' must be defined.");
+        url_ = url_.replace("{deliverableId}", encodeURIComponent("" + deliverableId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processChangeStatus(_response);
+        });
+    }
+
+    protected processChangeStatus(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get a deliverable's status changes, newest first.
+     * @return OK
+     */
+    getStatusHistory(idOrKey: string, deliverableId: string, cancelToken?: CancelToken): Promise<StatusTransitionDto[]> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{idOrKey}/deliverables/{deliverableId}/status-history";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        if (deliverableId === undefined || deliverableId === null)
+            throw new globalThis.Error("The parameter 'deliverableId' must be defined.");
+        url_ = url_.replace("{deliverableId}", encodeURIComponent("" + deliverableId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetStatusHistory(_response);
+        });
+    }
+
+    protected processGetStatusHistory(response: AxiosResponse): Promise<StatusTransitionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<StatusTransitionDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<StatusTransitionDto[]>(null as any);
+    }
+
+    /**
+     * Put a project's deliverables in a new order.
+     * @return No Content
+     */
+    reorderDeliverables(id: string, request: ReorderProjectDeliverablesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/deliverables/order";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processReorderDeliverables(_response);
+        });
+    }
+
+    protected processReorderDeliverables(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Submit a csv file of project deliverables to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
+     * @param file (optional) 
+     * @return OK
+     */
+    importDeliverables(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/ppm/projects/deliverables/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
+        else
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processImportDeliverables(_response);
+        });
+    }
+
+    protected processImportDeliverables(response: AxiosResponse): Promise<ImportProcessDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
+            const _responseText = response.data;
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<ImportProcessDto>(result202);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ImportProcessDto>(null as any);
+    }
+}
+
 export class ProjectHealthChecksClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -62164,6 +62951,16 @@ include `RequiresReason` (see the status options); optional otherwise. At most 1
     reason?: string | undefined;
 }
 
+/** The status to move a deliverable to. */
+export interface ChangeProjectDeliverableStatusRequest {
+    /** A status of the deliverable workflow, from the deliverable's status options. */
+    statusId: string;
+    /** Why, at most 1024 characters. Required to descope, or to move to any other Removed status. */
+    reason?: string | undefined;
+    /** The project's `revision` when the change was prepared. A project changed since answers 409. */
+    expectedRevision?: number | undefined;
+}
+
 export interface ChangeProjectKeyRequest {
     /** The new key to assign to the Project (2-20 uppercase alphanumeric characters). */
     key: string;
@@ -62695,6 +63492,22 @@ export interface CreateProgramRequest {
     managerIds?: string[] | undefined;
     /** The strategic themes associated with this program. */
     strategicThemeIds?: string[] | undefined;
+}
+
+/** A deliverable to add to a project. It starts Not Started, last in the project's order. */
+export interface CreateProjectDeliverableRequest {
+    /** What the deliverable is called, at most 256 characters. */
+    name: string;
+    /** What the deliverable is, in Markdown, at most 4096 characters. */
+    description?: string | undefined;
+    /** How the project will know the deliverable is done, in Markdown, at most 4096 characters. */
+    acceptanceCriteria?: string | undefined;
+    /** The employee accountable for the deliverable, by id. Must be active. */
+    ownerId?: string | undefined;
+    /** When the deliverable is due. */
+    targetDate?: string | undefined;
+    /** The project's `revision` when the change was prepared. A project changed since answers 409. */
+    expectedRevision?: number | undefined;
 }
 
 export interface CreateProjectHealthCheckRequest {
@@ -64660,6 +65473,34 @@ import cannot complete or cancel a program, so the finalize import carries that 
     owners?: string | undefined;
     /** Semicolon-separated employee numbers. */
     managers?: string | undefined;
+}
+
+/** A single CSV row for the project deliverable import: one deliverable of an existing project. A project's rows are added in file order, which becomes their order. */
+export interface ImportProjectDeliverableRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are reported
+against it. Leave a cell blank and the row is known by its position instead, but the column itself must
+be in the file. */
+    importId?: string | undefined;
+    /** The project, by key. */
+    projectKey: string;
+    /** What the deliverable is called, unique within its project in the file. */
+    name: string;
+    /** What the deliverable is, in Markdown. */
+    description?: string | undefined;
+    /** How the project will know the deliverable is done, in Markdown. */
+    acceptanceCriteria?: string | undefined;
+    /** The accountable employee, by employee number. */
+    ownerEmployeeNumber?: string | undefined;
+    /** When the deliverable is due. */
+    targetDate?: string | undefined;
+    /** A status of the deliverable workflow, by name or by meaning; blank for Not Started. A completed or canceled
+project takes only a closed status, such as Accepted or Descoped. The default workflow's statuses are
+Not Started, In Progress, Accepted and Descoped. */
+    status?: string | undefined;
+    /** When the deliverable moved into Status, with its offset; blank for when the import runs. */
+    statusChangedAt?: Date | undefined;
+    /** Why it is in that status. Required for Descoped. */
+    statusReason?: string | undefined;
 }
 
 /** A single CSV row for the project import. `Key` is the project's natural key, which project tasks and strategic initiatives reference. The portfolio, program, expenditure category and lifecycle are referenced by id; strategic themes and the role columns hold semicolon-separated lists. `Status` is the status the project should end up in (case-insensitive), reached by replaying the real lifecycle transitions. */
@@ -67311,6 +68152,32 @@ export interface ProgramStatusDto {
     lifecycleCategory: string;
 }
 
+/** Something a project has committed to produce, with the criteria it is accepted against and where it stands. */
+export interface ProjectDeliverableDto {
+    id: string;
+    projectId: string;
+    name: string;
+    /** What the deliverable is, in Markdown. */
+    description?: string | undefined;
+    /** How the project will know the deliverable is done, in Markdown. */
+    acceptanceCriteria?: string | undefined;
+    /** The deliverable's position among its project's deliverables, from 1. */
+    order: number;
+    /** The employee accountable for the deliverable, if one is named. */
+    owner?: EmployeeNavigationDto | undefined;
+    /** When the deliverable is due, if a date has been committed to. */
+    targetDate?: string | undefined;
+    status: StatusNavigationDto;
+    /** Why the deliverable is in its status, when the move needed or was given a reason. */
+    statusReason?: string | undefined;
+    /** Whether the deliverable still has to be delivered or descoped. A project cannot complete while any is open. */
+    isOpen: boolean;
+    /** When the deliverable was accepted. Null unless its status means Accepted. */
+    acceptedOn?: Date | undefined;
+    /** Who accepted it. Null unless its status means Accepted, or when an import did. */
+    acceptedBy?: EmployeeNavigationDto | undefined;
+}
+
 export interface ProjectDetailsDto {
     id: string;
     /** The project's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
@@ -67360,6 +68227,9 @@ delivery-management actions). True when the user is an Owner or Manager of the p
 portfolio, or its program, or holds the domain-wide PPM administrator grant. Sponsors and project
 Members are excluded. */
     canManageProject: boolean;
+    /** How many changes the project record and its deliverables have been through. Send it back as
+`expectedRevision` on a deliverable change: a project changed since refuses it with a conflict. */
+    revision: number;
     /** The earlier statuses this project can be reverted to right now, in lifecycle order; empty when it is
 already at the start of its lifecycle or meets no target's requirements — a project cancelled from
 Proposed with no lifecycle or dates offers nothing. Each listed status is a revert the server will
@@ -68166,6 +69036,14 @@ export interface ReorderProductTagCategoriesRequest {
     /** Every tag category, in the order they should be presented. Must name the whole set: a partial
 list would leave the categories it omits at stale positions. */
     orderedCategoryIds: string[];
+}
+
+/** A project's deliverables in their new order. */
+export interface ReorderProjectDeliverablesRequest {
+    /** Every deliverable of the project, by id, each exactly once, first to last. */
+    deliverableIds: string[];
+    /** The project's `revision` when the change was prepared. A project changed since answers 409. */
+    expectedRevision?: number | undefined;
 }
 
 export interface ReorderProjectLifecycleStagesRequest {
@@ -71373,6 +72251,22 @@ export interface UpdateProgramRequest {
     managerIds?: string[] | undefined;
     /** The strategic themes associated with this program. */
     strategicThemeIds?: string[] | undefined;
+}
+
+/** A deliverable's descriptive fields. Every field is overwritten, so echo back what should stay the same. */
+export interface UpdateProjectDeliverableRequest {
+    /** What the deliverable is called, at most 256 characters. */
+    name: string;
+    /** What the deliverable is, in Markdown, at most 4096 characters. */
+    description?: string | undefined;
+    /** How the project will know the deliverable is done, in Markdown, at most 4096 characters. */
+    acceptanceCriteria?: string | undefined;
+    /** The employee accountable for the deliverable, by id, or null for none. */
+    ownerId?: string | undefined;
+    /** When the deliverable is due, or null for no date. */
+    targetDate?: string | undefined;
+    /** The project's `revision` when the change was prepared. A project changed since answers 409. */
+    expectedRevision?: number | undefined;
 }
 
 export interface UpdateProjectHealthCheckRequest {

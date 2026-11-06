@@ -44,6 +44,7 @@ import {
   ProgramsClient,
   ExpenditureCategoriesClient,
   ProjectsClient,
+  ProjectDeliverablesClient,
   ProjectHealthChecksClient,
   ProjectScoresClient,
   ProjectTasksClient,
@@ -517,6 +518,8 @@ export const getExpenditureCategoriesClient = () =>
 export const getPortfoliosClient = () => new PortfoliosClient('', axiosClient)
 export const getProgramsClient = () => new ProgramsClient('', axiosClient)
 export const getProjectsClient = () => new ProjectsClient('', axiosClient)
+export const getProjectDeliverablesClient = () =>
+  new ProjectDeliverablesClient('', axiosClient)
 export const getProjectHealthChecksClient = () =>
   new ProjectHealthChecksClient('', axiosClient)
 export const getProjectScoresClient = () =>

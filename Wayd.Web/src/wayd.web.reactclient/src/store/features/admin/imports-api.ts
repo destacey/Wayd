@@ -19,6 +19,7 @@ import {
   getPortfoliosClient,
   getProductsClient,
   getProgramsClient,
+  getProjectDeliverablesClient,
   getProjectsClient,
   getReleasePackagesClient,
   getReleasesClient,
@@ -97,6 +98,7 @@ const IMPORTED_RECORD_TAGS: Record<ImportKey, ImportedRecordTag[]> = {
     QueryTags.ProjectPlanTree,
   ],
   'ppm.project-stages': [QueryTags.ProjectPlanTree, QueryTags.ProjectTaskTree],
+  'ppm.project-deliverables': [QueryTags.ProjectDeliverable, QueryTags.Project],
   'ppm.finalizations': [QueryTags.Portfolio, QueryTags.Program],
   'ppm.strategic-initiatives': [
     QueryTags.StrategicInitiative,
@@ -179,6 +181,12 @@ const SUBMITTERS: Record<
     getProjectsClient().importTasks(undefined, validateOnly, upload(file)),
   'ppm.project-stages': ({ file }, validateOnly) =>
     getProjectsClient().importStages(undefined, validateOnly, upload(file)),
+  'ppm.project-deliverables': ({ file }, validateOnly) =>
+    getProjectDeliverablesClient().importDeliverables(
+      undefined,
+      validateOnly,
+      upload(file),
+    ),
   'ppm.finalizations': ({ file }, validateOnly) =>
     getPortfoliosClient().finalizeImport(undefined, validateOnly, upload(file)),
   'ppm.strategic-initiatives': ({ file, kpiFile }, validateOnly) =>

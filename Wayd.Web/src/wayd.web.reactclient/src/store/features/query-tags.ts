@@ -156,6 +156,7 @@ export enum QueryTags {
   Program = 'Ppm.Program',
   ProgramProjects = 'Ppm.Program.Projects',
   Project = 'Ppm.Project',
+  ProjectDeliverable = 'Ppm.Project.Deliverable',
   ProjectHealthCheck = 'Ppm.Project.HealthCheck',
   ProjectScore = 'Ppm.Project.Score',
   ProjectScoringContext = 'Ppm.Project.ScoringContext',

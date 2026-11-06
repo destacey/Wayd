@@ -19972,6 +19972,798 @@
         ]
       }
     },
+    "/api/ppm/projects/{idOrKey}/deliverables": {
+      "get": {
+        "tags": [
+          "ProjectDeliverables"
+        ],
+        "summary": "Get a project's deliverables, in their order.",
+        "description": "Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open.",
+        "operationId": "ProjectDeliverables_GetDeliverables",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectDeliverableDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/ppm/projects/{idOrKey}/deliverables/{deliverableId}": {
+      "get": {
+        "tags": [
+          "ProjectDeliverables"
+        ],
+        "summary": "Get one of a project's deliverables.",
+        "operationId": "ProjectDeliverables_GetDeliverable",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "deliverableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDeliverableDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/ppm/projects/{id}/deliverables": {
+      "post": {
+        "tags": [
+          "ProjectDeliverables"
+        ],
+        "summary": "Add a deliverable to a project. It starts Not Started, last in the project's order.",
+        "description": "Caller must be the project, parent portfolio, or parent program owner or manager, and the project must not be completed or canceled. Send the project's `revision` as `expectedRevision`: a project changed since answers 409.",
+        "operationId": "ProjectDeliverables_CreateDeliverable",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectDeliverableRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/ppm/projects/{id}/deliverables/{deliverableId}": {
+      "put": {
+        "tags": [
+          "ProjectDeliverables"
+        ],
+        "summary": "Change a deliverable's name, description, acceptance criteria, owner or target date.",
+        "description": "Every field is overwritten from the request body, so read the deliverable first and echo back anything that should stay the same. Status changes through Projects_ChangeDeliverableStatus. Caller must be the project, parent portfolio, or parent program owner or manager, and the project must not be completed or canceled. Send the project's `revision` as `expectedRevision`: a project changed since answers 409.",
+        "operationId": "ProjectDeliverables_UpdateDeliverable",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "deliverableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectDeliverableRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "ProjectDeliverables"
+        ],
+        "summary": "Delete a deliverable that was added by mistake.",
+        "description": "Only a deliverable not yet started, on a project that is still Proposed or Approved. Later, descope it with Projects_ChangeDeliverableStatus instead, which keeps it and the reason. Caller must be the project, parent portfolio, or parent program owner or manager, and the project must not be completed or canceled. Send the project's `revision` as `expectedRevision`: a project changed since answers 409.",
+        "operationId": "ProjectDeliverables_DeleteDeliverable",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "deliverableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          },
+          {
+            "name": "expectedRevision",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "nullable": true
+            },
+            "x-position": 3
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/ppm/projects/{id}/deliverables/{deliverableId}/status-options": {
+      "get": {
+        "tags": [
+          "ProjectDeliverables"
+        ],
+        "summary": "Get the statuses a deliverable can be moved to, with what each move needs.",
+        "description": "In the workflow's order, without the status it holds. A `RequiresReason` condition means the move must carry a reason, as descoping does.",
+        "operationId": "ProjectDeliverables_GetStatusOptions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "deliverableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatusOptionDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/ppm/projects/{id}/deliverables/{deliverableId}/status": {
+      "post": {
+        "tags": [
+          "ProjectDeliverables"
+        ],
+        "summary": "Move a deliverable to another status: start, accept, descope or reopen it.",
+        "description": "Pick the status from Projects_GetDeliverableStatusOptions. Accepting records who accepted it and when; descoping, or moving to any other Removed status, needs a `reason`. Accept a deliverable only after the user confirms it meets its acceptance criteria. Caller must be the project, parent portfolio, or parent program owner or manager, and the project must not be completed or canceled. Send the project's `revision` as `expectedRevision`: a project changed since answers 409.",
+        "operationId": "ProjectDeliverables_ChangeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "deliverableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeProjectDeliverableStatusRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/ppm/projects/{idOrKey}/deliverables/{deliverableId}/status-history": {
+      "get": {
+        "tags": [
+          "ProjectDeliverables"
+        ],
+        "summary": "Get a deliverable's status changes, newest first.",
+        "description": "Each change reports the status names as they were at the time, with who made it and why.",
+        "operationId": "ProjectDeliverables_GetStatusHistory",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "deliverableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatusTransitionDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/ppm/projects/{id}/deliverables/order": {
+      "put": {
+        "tags": [
+          "ProjectDeliverables"
+        ],
+        "summary": "Put a project's deliverables in a new order.",
+        "description": "`deliverableIds` names every deliverable of the project exactly once, first to last. Caller must be the project, parent portfolio, or parent program owner or manager, and the project must not be completed or canceled. Send the project's `revision` as `expectedRevision`: a project changed since answers 409.",
+        "operationId": "ProjectDeliverables_ReorderDeliverables",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderProjectDeliverablesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/ppm/projects/deliverables/import": {
+      "post": {
+        "tags": [
+          "ProjectDeliverables"
+        ],
+        "summary": "Submit a csv file of project deliverables to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
+        "description": "Each row names its project by key, so one file can cover many projects. A project's rows are added in file order, after any deliverables it already has.",
+        "operationId": "ProjectDeliverables_ImportDeliverables",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ],
+        "x-wayd-import": {
+          "key": "ppm.project-deliverables",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportProjectDeliverableRequest",
+              "required": true
+            }
+          ]
+        }
+      }
+    },
     "/api/ppm/projects/{id}/health-checks": {
       "get": {
         "tags": [
@@ -55243,6 +56035,34 @@
         "additionalProperties": false,
         "description": "Moves a product to another status in the workflow governing it."
       },
+      "ChangeProjectDeliverableStatusRequest": {
+        "required": [
+          "statusId"
+        ],
+        "type": "object",
+        "properties": {
+          "statusId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "A status of the deliverable workflow, from the deliverable's status options.",
+            "format": "uuid"
+          },
+          "reason": {
+            "maxLength": 1024,
+            "type": "string",
+            "description": "Why, at most 1024 characters. Required to descope, or to move to any other Removed status.",
+            "nullable": true
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "description": "The project's `revision` when the change was prepared. A project changed since answers 409.",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The status to move a deliverable to."
+      },
       "ChangeProjectKeyRequest": {
         "required": [
           "key"
@@ -57153,6 +57973,52 @@
           }
         },
         "additionalProperties": false
+      },
+      "CreateProjectDeliverableRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the deliverable is called, at most 256 characters."
+          },
+          "description": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "What the deliverable is, in Markdown, at most 4096 characters.",
+            "nullable": true
+          },
+          "acceptanceCriteria": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "How the project will know the deliverable is done, in Markdown, at most 4096 characters.",
+            "nullable": true
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "The employee accountable for the deliverable, by id. Must be active.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the deliverable is due.",
+            "format": "date",
+            "nullable": true
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "description": "The project's `revision` when the change was prepared. A project changed since answers 409.",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A deliverable to add to a project. It starts Not Started, last in the project's order."
       },
       "CreateProjectHealthCheckRequest": {
         "required": [
@@ -62923,6 +63789,84 @@
         },
         "additionalProperties": false,
         "description": "A single CSV row for the program import. The owning portfolio is referenced by id and strategic themes\nby a semicolon-separated list of ids; role columns hold semicolon-separated employee numbers.\n`Status` is the status the program should end up in (case-insensitive), reached by replaying\nthe real lifecycle transitions."
+      },
+      "ImportProjectDeliverableRequest": {
+        "required": [
+          "projectKey",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are reported\nagainst it. Leave a cell blank and the row is known by its position instead, but the column itself must\nbe in the file.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "projectKey": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The project, by key.",
+            "x-csv-column": "ProjectKey"
+          },
+          "name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the deliverable is called, unique within its project in the file.",
+            "x-csv-column": "Name"
+          },
+          "description": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "What the deliverable is, in Markdown.",
+            "nullable": true,
+            "x-csv-column": "Description"
+          },
+          "acceptanceCriteria": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "How the project will know the deliverable is done, in Markdown.",
+            "nullable": true,
+            "x-csv-column": "AcceptanceCriteria"
+          },
+          "ownerEmployeeNumber": {
+            "type": "string",
+            "description": "The accountable employee, by employee number.",
+            "nullable": true,
+            "x-csv-column": "OwnerEmployeeNumber"
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the deliverable is due.",
+            "format": "date",
+            "nullable": true,
+            "x-csv-column": "TargetDate"
+          },
+          "status": {
+            "maxLength": 64,
+            "type": "string",
+            "description": "A status of the deliverable workflow, by name or by meaning; blank for Not Started. A completed or canceled\nproject takes only a closed status, such as Accepted or Descoped. The default workflow's statuses are\nNot Started, In Progress, Accepted and Descoped.",
+            "nullable": true,
+            "x-csv-column": "Status"
+          },
+          "statusChangedAt": {
+            "type": "string",
+            "description": "When the deliverable moved into Status, with its offset; blank for when the import runs.",
+            "format": "date-time",
+            "nullable": true,
+            "x-csv-column": "StatusChangedAt"
+          },
+          "statusReason": {
+            "maxLength": 1024,
+            "type": "string",
+            "description": "Why it is in that status. Required for Descoped.",
+            "nullable": true,
+            "x-csv-column": "StatusReason"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single CSV row for the project deliverable import: one deliverable of an existing project. A project's rows\nare added in file order, which becomes their order."
       },
       "ImportProjectRequest": {
         "required": [
@@ -70867,6 +71811,89 @@
         },
         "additionalProperties": false
       },
+      "ProjectDeliverableDto": {
+        "required": [
+          "name",
+          "status",
+          "id",
+          "projectId",
+          "order",
+          "isOpen"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "description": "What the deliverable is, in Markdown.",
+            "nullable": true
+          },
+          "acceptanceCriteria": {
+            "type": "string",
+            "description": "How the project will know the deliverable is done, in Markdown.",
+            "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "description": "The deliverable's position among its project's deliverables, from 1.",
+            "format": "int32"
+          },
+          "owner": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "The employee accountable for the deliverable, if one is named.",
+            "nullable": true
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the deliverable is due, if a date has been committed to.",
+            "format": "date",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
+          },
+          "statusReason": {
+            "type": "string",
+            "description": "Why the deliverable is in its status, when the move needed or was given a reason.",
+            "nullable": true
+          },
+          "isOpen": {
+            "type": "boolean",
+            "description": "Whether the deliverable still has to be delivered or descoped. A project cannot complete while any is open."
+          },
+          "acceptedOn": {
+            "type": "string",
+            "description": "When the deliverable was accepted. Null unless its status means Accepted.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "acceptedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeNavigationDto"
+              }
+            ],
+            "description": "Who accepted it. Null unless its status means Accepted, or when an import did.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Something a project has committed to produce, with the criteria it is accepted against and where it stands."
+      },
       "ProjectDetailsDto": {
         "required": [
           "key",
@@ -70884,6 +71911,7 @@
           "id",
           "stages",
           "canManageProject",
+          "revision",
           "backwardStatusTargets",
           "rank"
         ],
@@ -71030,6 +72058,11 @@
           "canManageProject": {
             "type": "boolean",
             "description": "Whether the current user can manage this project (record health checks, scores, and other\ndelivery-management actions). True when the user is an Owner or Manager of the project, its\nportfolio, or its program, or holds the domain-wide PPM administrator grant. Sponsors and project\nMembers are excluded."
+          },
+          "revision": {
+            "type": "integer",
+            "description": "How many changes the project record and its deliverables have been through. Send it back as\n`expectedRevision` on a deliverable change: a project changed since refuses it with a conflict.",
+            "format": "int32"
           },
           "backwardStatusTargets": {
             "type": "array",
@@ -73681,6 +74714,30 @@
         },
         "additionalProperties": false,
         "description": "Puts the tag axes in a given order."
+      },
+      "ReorderProjectDeliverablesRequest": {
+        "required": [
+          "deliverableIds"
+        ],
+        "type": "object",
+        "properties": {
+          "deliverableIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Every deliverable of the project, by id, each exactly once, first to last."
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "description": "The project's `revision` when the change was prepared. A project changed since answers 409.",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A project's deliverables in their new order."
       },
       "ReorderProjectLifecycleStagesRequest": {
         "required": [
@@ -83644,6 +84701,52 @@
         },
         "additionalProperties": false
       },
+      "UpdateProjectDeliverableRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the deliverable is called, at most 256 characters."
+          },
+          "description": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "What the deliverable is, in Markdown, at most 4096 characters.",
+            "nullable": true
+          },
+          "acceptanceCriteria": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "How the project will know the deliverable is done, in Markdown, at most 4096 characters.",
+            "nullable": true
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "The employee accountable for the deliverable, by id, or null for none.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the deliverable is due, or null for no date.",
+            "format": "date",
+            "nullable": true
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "description": "The project's `revision` when the change was prepared. A project changed since answers 409.",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A deliverable's descriptive fields. Every field is overwritten, so echo back what should stay the same."
+      },
       "UpdateProjectHealthCheckRequest": {
         "required": [
           "status",
@@ -88444,6 +89547,9 @@
     },
     {
       "name": "Programs"
+    },
+    {
+      "name": "ProjectDeliverables"
     },
     {
       "name": "ProjectHealthChecks"

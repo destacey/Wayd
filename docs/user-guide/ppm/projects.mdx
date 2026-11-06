@@ -279,6 +279,46 @@ Use this view to review trends and reporting history for the project.
 
 To create, edit, or delete project health checks, users need project update rights and management access on the project context (for example, project owner/manager or equivalent portfolio/program management access) — the same [delivery-leadership rule](../settings/permissions.mdx#delivery-leadership-in-ppm) that governs every other project change. Users with project view access can still view health checks and health reports.
 
+## Project Deliverables
+
+**Deliverables** are the things a project has committed to produce for it to count as done — a customer portal,
+a migrated data set, a signed-off policy. Each has a name, a description, **acceptance criteria** (how the project
+will know it is done), an optional owner and target date, and a status. They are usually agreed from the project's
+definition, before any plan exists, and they show progress in terms of what was promised rather than how the work
+is planned.
+
+### Deliverable statuses
+
+Deliverables follow a status workflow that administrators can customize under
+[Settings → Status Workflows](../settings/status-workflows.mdx). The default workflow is:
+
+| Status | Meaning |
+|---|---|
+| **Not Started** | Committed to, with no work begun. Every new deliverable starts here. |
+| **In Progress** | Being worked on. |
+| **Accepted** | Delivered and accepted against its acceptance criteria. Records who accepted it and when. |
+| **Descoped** | Deliberately dropped from the project's scope. Needs a reason. |
+
+A company can rename these or add its own, such as *In Review*. Every rule below is tied to a status's meaning or
+category, not its name, so renamed and added statuses keep them.
+
+### Rules
+
+- **A project cannot be completed while any deliverable is open** — still Not Started, In Progress, or another
+  open status. Accept or descope each one first.
+- **Descoping keeps the deliverable**, with the reason, so the project's record shows what was dropped and why.
+- **Deleting** is only for a deliverable added by mistake: one not yet started, on a project that is still
+  Proposed or Approved. After that, descope it instead.
+- A **completed or canceled** project's deliverables cannot be changed.
+- Two people editing the same project at once cannot overwrite each other: a change made against an out-of-date
+  copy of the project is refused, and the page asks you to reload.
+
+### Permissions
+
+Changing deliverables needs the **Update Projects** permission and the role of **Owner** or **Manager** on the
+project, its program, or its portfolio — the same as the project's other details. Sponsors and Members can read
+deliverables but not change them. Deliverables can also be [imported in bulk](./bulk-import.mdx#project-deliverables-import).
+
 ## Project Lifecycles
 
 A **Project Lifecycle** defines the template of stages that a project goes through from inception to completion. Lifecycles are configured in [Settings > PPM > Project Lifecycles](../settings/index.mdx#project-lifecycles).

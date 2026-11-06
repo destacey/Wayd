@@ -97,7 +97,8 @@ Where a variant sets a flag, that is the starting point — the defaults below d
 | Tree mode | Off | Provide `getSubRows` |
 | Row-reorder drag-and-drop (flat) | Off | Provide `onRowReorder` + `getRowId`, and render a `DragHandleCell` |
 | Reparenting drag-and-drop (tree) | Off | Provide `enableDragAndDrop` + `onNodeMove` |
-| Inline editing | Off | Provide `editingConfig` |
+| Cell editing | Off | Provide `onCommit` and give columns a `meta.editor` (see [Editing cells](#editing-cells)) |
+| Row-level inline editing (being replaced) | Off | Provide `editingConfig` |
 
 ## Core props
 
@@ -140,7 +141,7 @@ Every WaydGrid is keyboard-navigable with nothing to configure. The body follows
 | Page Up / Page Down | A viewport of rows |
 | → / ← in the tree column | Expand / collapse a tree row; ← on a child moves to its parent. On a group heading, any column |
 | Enter / Space | Activate the row (`onRowActivate`), or toggle a group heading |
-| Enter / F2 | Otherwise: start inline editing when the column is editable, else focus the cell's own control (a link first, never an expand toggle). Escape from that control returns to the cell |
+| Enter / F2 | Otherwise: open the cell's editor when the column has one (see [Editing cells](#editing-cells) for the keys while it is open), else focus the cell's own control (a link first, never an expand toggle). Escape from that control returns to the cell |
 | Shift+F10 / Menu key | Click the row's element marked `data-row-actions` |
 | Tab / Shift+Tab | Leave the body — from a cell or from a control inside one |
 
@@ -190,7 +191,8 @@ Columns are TanStack `ColumnDef`s. The most common shape:
 | `headerTooltip` | Tooltip on the header label (keep `header` a plain string) |
 | `maxFilterConditions` | Cap AND/OR conditions in the filter popup (default 5) |
 | `enableReordering` | Set `false` so the column can't be dragged to reorder (and rejects drops). Such a column also gets no `⋮` menu. Used by the actions column |
-| `treeColumn` | Tree mode: the column showing the expand caret, where → and ← expand and collapse rows. Defaults to the first visible column |
+| `treeColumn` | Tree mode: the column showing the expand caret, where → and ← expand and collapse rows. Defaults to the first visible column. With cell editing, its commit is what creates a draft row |
+| `editor` | Makes the column's cells editable in place (see [Editing cells](#editing-cells)) |
 | `enableExport` | `false` excludes the column from CSV |
 | `exportHeader` / `exportFormatter` | Override the CSV header text / format each value |
 
@@ -354,9 +356,93 @@ Providing `getSubRows` turns on **tree mode**: rows expand/collapse, and a filte
   - The grid supplies the mechanics but not the grip: render the shared **`DragHandleCell`** to give a row one, passing `context.isDragEnabled` (so it greys out when dragging is off) and a `disabledTooltip` naming the records in your own words. It goes in the actions column's `leading` slot. This needs the `columns` **function** form, since that is what receives the `GridColumnContext`.
   - `onRowReorder` hands you `orderedData` — every displayed row in post-drop order — so send the whole list to a reorder endpoint rather than one row and a position. Positions are relative, so a partial update leaves the rows it omits overlapping the ones it moved.
 - **Reparenting DnD** (tree): `enableDragAndDrop` + `onNodeMove`; supply a `moveValidator` for domain rules and `onMoveRejected` to surface a reason.
-- **Inline editing**: pass an `editingConfig` (`GridInlineEditingConfig`). The `columns` function receives a `GridColumnContext` with the editing/DnD/draft state so cells can render editors and drag handles reactively.
+- **Editing**: see [Editing cells](#editing-cells). The older row-level path, `editingConfig` (`GridInlineEditingConfig`), still drives the project plan and roadmap until they move over, and wins when a grid passes both. The `columns` function receives a `GridColumnContext` with the editing/DnD/draft state so cells can render drag handles and Create buttons reactively.
 
 These features are involved — read the JSDoc on `WaydGridProps` in [`types.ts`](https://github.com/destacey/Wayd/blob/main/Wayd.Web/src/wayd.web.reactclient/src/components/common/wayd-grid/types.ts) and follow an existing consumer when wiring them — `app/ppm/projects/_components/project-plan-table.tsx` uses reparenting drag-and-drop, inline editing, and drafts; `project-work-items-tree-grid.tsx` beside it is a read-only tree.
+
+### Editing cells
+
+A grid edits one cell at a time, like a spreadsheet, in flat and tree mode alike. A column opts in with `meta.editor`, and the grid takes `onCommit`:
+
+```tsx
+const [startEditor, endEditor] = pairedEditors<Task, string | null, string | null>({
+  start: dateEditor({ field: 'plannedStart', get: (t) => t.start, apply: (t, start) => ({ ...t, start }) }),
+  end: dateEditor({ field: 'plannedEnd', get: (t) => t.end, apply: (t, end) => ({ ...t, end }) }),
+  validate: ({ start, end }) =>
+    start && end && end < start ? { end: 'End cannot be before Start.' } : undefined,
+})
+
+const columns: ColumnDef<Task>[] = [
+  {
+    accessorKey: 'name',
+    header: 'Name',
+    meta: {
+      treeColumn: true,
+      editor: textEditor({
+        field: 'name',
+        get: (t) => t.name,
+        apply: (t, name) => ({ ...t, name }),
+        validate: (name) => (name.trim() ? undefined : 'Name is required.'),
+      }),
+    },
+  },
+  { id: 'start', header: 'Start', meta: { editor: startEditor }, /* … */ },
+  { id: 'end', header: 'End', meta: { editor: endEditor }, /* … */ },
+]
+
+<WaydGrid
+  columns={columns}
+  data={tasks}
+  onCommit={(id, patch) => patchTask({ id, patch }).unwrap()}
+  fieldToColumn={{ assigneeIds: 'assignees' }}
+/>
+```
+
+An editor (`CellEditor`) says how one field moves between the row, the control and the request:
+
+| Member | Purpose |
+| --- | --- |
+| `field` | The patch key, and what server errors call the field. A function when it differs by row — a milestone's Start column writes `plannedDate` |
+| `get` | The field's value on a row, in the form the request sends (`'2026-03-01'`, an id, an id list) |
+| `apply` | A copy of the row with a value in place. The grid shows a saving or failed value through it — in the cell and in anything drawn from the row, such as a Gantt bar — so `get(apply(row, v))` must give back `v` |
+| `format` / `parse` | Request value → control value and back (a date string ↔ a Dayjs). Identity by default |
+| `fromInput` | The control value when a typed character opened the cell, so typing replaces the value |
+| `validate` | A message when the value cannot be sent; the cell keeps the value and is marked |
+| `editable` | `(row, { isDraft })` — which rows' cells edit (a stage row, a milestone's End, a draft-only Type) |
+| `equals` | Whether two values are the same; `Object.is` or element-wise for arrays by default, with `null`, `undefined` and `''` all empty |
+| `render` | The control, given `value`, `onChange`, `commit`, `onPopupOpenChange`, `initialInput`, `status`, `aria-label` and the `row` |
+
+`textEditor`, `numberEditor`, `selectEditor` (one choice, or `multiple`) and `dateEditor` build the common ones; pass them `field`, `get`, `apply` and any `validate` or `editable`. A select editor opens with its list showing and commits a single pick at once. A date editor keeps its calendar closed until it is clicked or opened with ↓, so a typed date (`YYYY-MM-DD`) commits on the first Enter or Tab like any other cell. A hand-built `render` passes `aria-label`, `aria-invalid` and `aria-describedby` on to its control, and calls `onPopupOpenChange` from its control's `onOpenChange`, or Escape cannot tell an open list from an edit to revert.
+
+**Keys.** Enter, F2, a double-click, a click on the cell that already has focus, or typing a character opens the focused cell. In a text or number cell the typed character replaces the value; other editors just open. While it is open:
+
+| Key | Does |
+| --- | --- |
+| Enter | Commit and move to the cell below. In an open list, picks the option instead |
+| Tab / Shift+Tab | Commit and open the next / previous editable cell in on-screen order, wrapping across rows; past the last, leave the grid |
+| Escape | Close an open list or calendar; otherwise revert the cell and return to it |
+| Escape on an unsaved or failed cell | Discard its value — both cells' values, for a pair |
+
+After Escape, or a pick from a list, focus goes back to the cell; Enter moves it down and Tab on to the next editor. Discarding an empty draft hands focus to the row that takes its place. A pointerdown anywhere outside the cell and its popups commits it — another cell, the empty body, a header, the toolbar, the chart pane — and so does focus leaving it. Popups count as inside because the grid renders the editor under a `ConfigProvider` whose `getPopupContainer` is an element it owns for that cell, never by antd class names. The grid's default help panel (`WaydGridKeyboardHelp`) is generated from the same keymap (`GRID_KEYMAP`), so a grid's help cannot drift from its keys; pass `children` to it for a grid's own notes.
+
+**The commit.**
+
+- **One field, sent once.** `onCommit(rowId, patch)` receives only the changed field. An unchanged value sends nothing, and nothing is ever read from the mounted DOM, so a hidden column or a row scrolled out of the virtual window cannot be read as cleared.
+- **One at a time per row.** A second commit for the row waits for the first.
+- **Optimistic.** The cell shows the new value, marked saving, at once; after success it keeps that value until the data next changes, so the old value never flashes back during the refetch.
+- **Failure keeps the value.** Reject from `onCommit` — `.unwrap()` does — and the cell keeps the user's value, is marked failed and takes focus if the user is still in the grid and no other cell is open; the message shows in a tooltip while the cell has focus, and a polite live region reads it out. A failure on a cell that is not on screen is toasted instead (when the page has a `MessageProvider`). Enter reopens it on that value; Escape discards it.
+- **Server errors land on cells.** A 422's keys are matched to editors by `field` (any casing), or through `fieldToColumn` for keys named otherwise. Each message is prefixed with the column's label, never the field key, and a response with no field errors marks the committed cells with its `detail`.
+- **No toast on success.**
+
+**Server data** never overwrites an open, held or failed cell; every other cell follows the server. A refetch while the user types leaves the editor alone.
+
+**Linked fields.** `pairedEditors({ start, end, validate })` links two editors. Moving between them (Tab from Start to End) holds the first value, marked unsaved; when focus leaves the pair, `validate` checks both values together and the changed ones go in one patch. A failed check marks the cells and sends nothing. A row with only one editable member (a milestone) commits that one alone, still through `validate`.
+
+**Drafts.** With `createDraftNode` and `onCreate`, the `GridColumnContext`'s `addDraftAtRoot` / `addDraftAsChild` add a draft row and open its tree column. Values put on the draft's other cells are held locally — never sent through `onCommit`, a pair's included; when the tree column (its Name) commits, `onCreate(parentId, values)` runs once with all of them, and should resolve with the new row's id. Values the user changes while the create is in flight (an editor still open on the draft included) are then sent to that id through `onCommit`, and focus follows the new row. If the create fails, fixing the Name retries it. Escape on a draft that holds nothing discards it. Tree rows must nest under `children`, as draft rows already require.
+
+**State on the cell.** A cell with an edit in flight carries `data-edit-state` (`unsaved`, `saving` or `error`) and a mark of its own shape — an underline for unsaved, a left bar for saving, a left bar on a tinted cell for failed — plus `aria-busy` while saving and `aria-invalid` when failed. Its state ("Unsaved.", "Saving.") or error is its accessible description, read from an element outside the table so it is not also part of the cell's name. While a value is unsaved, saving or failed, leaving the page asks first (`beforeunload`); a server error mark on a cell the user did not change does not.
+
+**Rendering.** The row with an open editor stays mounted while scrolled away or while focus is in its popup, and the open cell drops its vertical padding (the editor's controls are 22px) so the row keeps its height. Rows get the edit state as props (`cellMarks`, `editColumnId`), never by reading it off the TanStack `row` inside a compiled component.
 
 ### Chart pane
 

@@ -10,6 +10,10 @@ import {
   type PinnedCellClasses,
 } from './column-pinning'
 import type { RowData } from '@tanstack/react-table'
+import type { ReactNode } from 'react'
+import type { CellMark } from './cell-editing/types'
+import { cellMessageId } from './cell-editing/edit-state'
+import WaydTooltip from '../wayd-tooltip'
 
 /**
  * CSS-module class names the owning grid supplies for body rows, so the shared
@@ -33,6 +37,17 @@ export interface GridRowClasses {
    * this one is a highlight.
    */
   trActivated?: string
+  /** Marks for cells with an edit the server does not have yet. */
+  edit?: GridCellEditClasses
+}
+
+/** Classes for a cell's edit state. */
+export interface GridCellEditClasses {
+  unsaved: string
+  saving: string
+  error: string
+  /** The cell whose editor is open. */
+  editing: string
 }
 
 /**
@@ -51,6 +66,85 @@ export interface GridRowNavigationProps {
    */
   focusColumnId: string | null
 }
+
+/**
+ * What a row needs to show cell editing: which of its cells have an edit in
+ * flight or failed, and the editor open in one of them. Passed as plain
+ * values so a compiled row re-renders exactly when its own cells change.
+ */
+export interface GridRowEditProps {
+  /** This row's cell marks by column id. */
+  cellMarks?: Readonly<Record<string, CellMark>>
+  /** The column whose editor is open in this row. */
+  editColumnId?: string | null
+  /** The open editor, shown in place of that cell's content. */
+  editor?: ReactNode
+  /** The column whose error is shown while its cell has focus. */
+  errorTipColumnId?: string | null
+  /** Builds the id of the element (outside the table) describing a marked
+   *  cell, for `aria-describedby`. */
+  editIdPrefix?: string
+  /** The row's data id, which those ids are built from. */
+  editRowKey?: string
+}
+
+/** The class suffix and attributes for a cell's edit state. */
+const cellEditProps = (
+  columnId: string,
+  { cellMarks, editColumnId, editIdPrefix, editRowKey }: GridRowEditProps,
+  classes: GridRowClasses,
+): {
+  className: string
+  attrs: React.TdHTMLAttributes<HTMLTableCellElement> & {
+    'data-edit-state'?: string
+  }
+} => {
+  const mark = cellMarks?.[columnId]
+  const editing =
+    editColumnId === columnId && classes.edit ? ` ${classes.edit.editing}` : ''
+  if (!mark) return { className: editing, attrs: {} }
+  return {
+    className: `${classes.edit ? ` ${classes.edit[mark.phase]}` : ''}${editing}`,
+    attrs: {
+      'data-edit-state': mark.phase,
+      'aria-busy': mark.phase === 'saving' || undefined,
+      'aria-invalid': mark.phase === 'error' || undefined,
+      'aria-describedby':
+        editIdPrefix && editRowKey
+          ? cellMessageId(editIdPrefix, editRowKey, columnId)
+          : undefined,
+    },
+  }
+}
+
+/**
+ * A body cell's content: its editor while open, else the column's cell. A
+ * failed cell's message shows on hover, and while the cell has focus, so a
+ * keyboard user sees why too.
+ */
+const cellContent = <T extends RowData>(
+  cell: Cell<T, unknown>,
+  { editColumnId, editor, cellMarks, errorTipColumnId }: GridRowEditProps,
+): ReactNode => {
+  if (editColumnId === cell.column.id && editor) return editor
+  const content = flexRender(cell.column.columnDef.cell, cell.getContext())
+  const error = cellMarks?.[cell.column.id]?.error
+  if (!error) return content
+  return (
+    <WaydTooltip
+      title={error}
+      open={errorTipColumnId === cell.column.id ? true : undefined}
+    >
+      <span style={ERROR_ANCHOR_STYLE}>{content}</span>
+    </WaydTooltip>
+  )
+}
+
+const ERROR_ANCHOR_STYLE = {
+  display: 'block',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+} as const
 
 /** The pinned class suffix (starting with a space) + inline style for a body
  *  cell, or empties when the column is unpinned / pinning classes not given. */
@@ -175,7 +269,7 @@ const activationProps = ({
 }
 
 export interface FlatGridRowProps<T extends RowData>
-  extends RowActivationProps, GridRowNavigationProps {
+  extends RowActivationProps, GridRowNavigationProps, GridRowEditProps {
   row: Row<T>
   /** Display index within the rendered row list (drives zebra striping). */
   index: number
@@ -207,6 +301,7 @@ export function FlatGridRow<T extends RowData>({
   activateLabel,
   ariaRowIndex,
   focusColumnId,
+  ...edit
 }: FlatGridRowProps<T>) {
   return (
     <tr
@@ -219,15 +314,17 @@ export function FlatGridRow<T extends RowData>({
     >
       {row.getVisibleCells().map((cell, colIndex) => {
         const pinned = pinnedTdProps(cell, classes)
+        const editState = cellEditProps(cell.column.id, edit, classes)
         return (
           <td
             key={cell.id}
             data-column-id={cell.column.id}
-            className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}`}
+            className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}${editState.className}`}
             style={pinned.style}
             {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
+            {...editState.attrs}
           >
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            {cellContent(cell, edit)}
           </td>
         )
       })}
@@ -268,6 +365,7 @@ export function SortableFlatGridRow<T extends RowData>({
   activateLabel,
   ariaRowIndex,
   focusColumnId,
+  ...edit
 }: SortableFlatGridRowProps<T>) {
   return (
     <GridSortableRow
@@ -283,15 +381,17 @@ export function SortableFlatGridRow<T extends RowData>({
     >
       {row.getVisibleCells().map((cell, colIndex) => {
         const pinned = pinnedTdProps(cell, classes)
+        const editState = cellEditProps(cell.column.id, edit, classes)
         return (
           <td
             key={cell.id}
             data-column-id={cell.column.id}
-            className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}`}
+            className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}${editState.className}`}
             style={pinned.style}
             {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
+            {...editState.attrs}
           >
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            {cellContent(cell, edit)}
           </td>
         )
       })}
@@ -308,9 +408,8 @@ export interface TreeGridRowClasses extends GridRowClasses {
   editableCell: string
 }
 
-export interface TreeGridRowProps<
-  T extends RowData,
-> extends GridRowNavigationProps {
+export interface TreeGridRowProps<T extends RowData>
+  extends GridRowNavigationProps, GridRowEditProps {
   row: Row<T>
   /** Display index within the rendered row list (drives zebra striping). */
   index: number
@@ -363,6 +462,7 @@ export function TreeGridRow<T extends RowData>({
   onCellClick,
   ariaRowIndex,
   focusColumnId,
+  ...edit
 }: TreeGridRowProps<T>) {
   return (
     <GridSortableRow
@@ -381,6 +481,7 @@ export function TreeGridRow<T extends RowData>({
         const isEditableCell =
           isSelected && editableColumns.includes(cell.column.id)
         const pinned = pinnedTdProps(cell, classes)
+        const editState = cellEditProps(cell.column.id, edit, classes)
 
         return (
           <td
@@ -389,12 +490,13 @@ export function TreeGridRow<T extends RowData>({
             data-column-id={cell.column.id}
             className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${
               isEditableCell ? ` ${classes.editableCell}` : ''
-            }${pinned.className}`}
+            }${pinned.className}${editState.className}`}
             style={pinned.style}
             onClick={onCellClick}
             {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
+            {...editState.attrs}
           >
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+            {cellContent(cell, edit)}
           </td>
         )
       })}

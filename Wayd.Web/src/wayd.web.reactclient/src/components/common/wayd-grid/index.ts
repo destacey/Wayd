@@ -131,3 +131,21 @@ export {
   GRID_PAGE_SIZE_OPTIONS,
 } from './wayd-grid-pager'
 export type { GridPaging, WaydGridPagerProps } from './wayd-grid-pager'
+
+// Cell editing: editor factories for meta.editor, and the keyboard help the
+// grid shows by default once it edits.
+export {
+  textEditor,
+  numberEditor,
+  selectEditor,
+  dateEditor,
+  pairedEditors,
+} from '../wayd-grid-core/cell-editing/editors'
+export type { SelectEditorOption } from '../wayd-grid-core/cell-editing/editors'
+export type {
+  CellEditor,
+  CellEditorProps,
+  CellMark,
+} from '../wayd-grid-core/cell-editing/types'
+export { WaydGridKeyboardHelp } from '../wayd-grid-core/cell-editing/grid-keyboard-help'
+export { GRID_KEYMAP } from '../wayd-grid-core/cell-editing/grid-keymap'

@@ -822,13 +822,23 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
-    /// Cancels the project on behalf of an actor who must be authorized to manage it.
+    /// Cancels the project on behalf of an actor who must be authorized to manage it, descoping every open
+    /// deliverable — a canceled project delivers nothing more — with <see cref="CanceledDeliverableReason"/>,
+    /// attributed to the actor. Needs <see cref="Deliverables"/> loaded.
     /// </summary>
+    /// <remarks>
+    /// Reverting the cancellation later leaves those deliverables descoped; reopening one is a deliberate move.
+    /// </remarks>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
     /// <param name="timestamp">The timestamp indicating when the transition occurred.</param>
     /// <param name="reason">An optional explanation for the transition.</param>
-    public Result Cancel(PpmActor actor, ProjectAncestryRoles ancestry, Instant timestamp, string? reason = null)
+    /// <param name="descopedStatus">
+    /// The status meaning Descoped in the deliverable workflow, resolved by the caller. Needed only when a
+    /// deliverable is open.
+    /// </param>
+    /// <exception cref="ArgumentException">A deliverable is open and <paramref name="descopedStatus"/> is not a Removed status.</exception>
+    public Result Cancel(PpmActor actor, ProjectAncestryRoles ancestry, Instant timestamp, string? reason = null, StatusRef? descopedStatus = null)
     {
         if (!CanManageProject(actor, ancestry))
         {
@@ -840,10 +850,32 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return Result.Failure("The project is already completed or canceled.");
         }
 
+        var open = _deliverables.Where(d => d.IsOpen).OrderBy(d => d.Order).ToList();
+        if (open.Count > 0)
+        {
+            if (descopedStatus is null || descopedStatus.Category != StatusCategory.Removed)
+                throw new ArgumentException(
+                    "Canceling a project with open deliverables needs the deliverable workflow's Descoped status.", nameof(descopedStatus));
+
+            // Checked for every deliverable before any moves, so a refusal leaves the project as it was.
+            if (open.Any(d => d.StatusWorkflowId != descopedStatus.WorkflowId))
+                return Result.Failure("A deliverable follows a different workflow than the one its project's deliverables follow. Reload and try again.");
+
+            foreach (var deliverable in open)
+            {
+                var moved = MoveDeliverable(deliverable, descopedStatus, CanceledDeliverableReason, actor, timestamp);
+                if (moved.IsFailure)
+                    return moved;
+            }
+        }
+
         ChangeStatus(ProjectStatus.Canceled, actor, timestamp, reason);
 
         return Result.Success();
     }
+
+    /// <summary>The reason recorded on each deliverable that canceling its project descopes.</summary>
+    public const string CanceledDeliverableReason = "The project was canceled.";
 
     /// <summary>
     /// Moves the project back to an earlier status on behalf of an actor who must be authorized to manage
@@ -1897,6 +1929,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         PpmActor actor,
         Instant timestamp)
     {
+        var nameFree = CheckDeliverableNameIsFree(name, exceptId: null);
+        if (nameFree.IsFailure)
+            return Result.Failure<ProjectDeliverable>(nameFree.Error);
+
         var order = _deliverables.Count == 0 ? 1 : _deliverables.Max(d => d.Order) + 1;
 
         var created = ProjectDeliverable.Create(
@@ -1919,7 +1955,8 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
     /// <summary>
     /// Changes a deliverable's name, description, acceptance criteria, owner or target date, on behalf of an
-    /// actor who must be authorized to manage the project. Needs that deliverable loaded.
+    /// actor who must be authorized to manage the project. Needs <see cref="Deliverables"/> loaded, so a new
+    /// name can be checked against the others.
     /// </summary>
     public Result<ProjectDeliverable> UpdateDeliverable(
         PpmActor actor,
@@ -1937,6 +1974,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return found;
 
         var deliverable = found.Value;
+
+        var nameFree = CheckDeliverableNameIsFree(name, exceptId: deliverable.Id);
+        if (nameFree.IsFailure)
+            return Result.Failure<ProjectDeliverable>(nameFree.Error);
 
         // Compared after assignment, never against the arguments: the setters trim.
         var before = deliverable.Details;
@@ -1975,12 +2016,21 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         if (deliverable.StatusId == status.StatusId)
             return deliverable;
 
+        var moved = MoveDeliverable(deliverable, status, reason, actor, timestamp);
+        return moved.IsFailure
+            ? Result.Failure<ProjectDeliverable>(moved.Error)
+            : deliverable;
+    }
+
+    /// <summary>Moves a deliverable to another status and raises the change, once the caller has authorized it.</summary>
+    private Result MoveDeliverable(ProjectDeliverable deliverable, StatusRef status, string? reason, PpmActor actor, Instant timestamp)
+    {
         var (fromStatusId, fromStatusName, fromCategory, fromAlias) =
             (deliverable.StatusId, deliverable.StatusName, deliverable.StatusCategory, deliverable.StatusAlias);
 
         var moved = deliverable.MoveTo(status, reason, actor.EmployeeIdOrNull, actor.ToEventActor(), timestamp);
         if (moved.IsFailure)
-            return Result.Failure<ProjectDeliverable>(moved.Error);
+            return moved;
 
         Raise(new ProjectDeliverableStatusChangedEvent(
             Id, Key, deliverable.Id,
@@ -1988,7 +2038,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             deliverable.StatusId, deliverable.StatusName, deliverable.StatusCategory, deliverable.StatusAlias,
             deliverable.StatusReason, actor.ToEventActor(), timestamp));
 
-        return deliverable;
+        return Result.Success();
     }
 
     /// <summary>
@@ -2049,6 +2099,22 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         Raise(new ProjectDeliverableRemovedEvent(Id, Key, deliverable.Id, deliverable.Name, actor.ToEventActor(), timestamp));
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Refuses a deliverable name the project already uses, ignoring case and surrounding whitespace. Every
+    /// deliverable counts, descoped ones too: a name is how people tell them apart, and how an import finds one.
+    /// </summary>
+    /// <param name="exceptId">The deliverable being renamed, which may keep its own name.</param>
+    private Result CheckDeliverableNameIsFree(string? name, Guid? exceptId)
+    {
+        var trimmed = name?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return Result.Success();
+
+        return _deliverables.Any(d => d.Id != exceptId && string.Equals(d.Name, trimmed, StringComparison.OrdinalIgnoreCase))
+            ? Result.Failure($"Project {Key} already has a deliverable named '{trimmed}'.")
+            : Result.Success();
     }
 
     /// <summary>

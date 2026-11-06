@@ -350,14 +350,13 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [McpTool("Portfolios_MoveProjectRanks", "Move projects in portfolio ranking")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> MoveProjectRanks(Guid id, [FromBody] MoveProjectRanksRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(request.ToCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
     [HttpPut("{id}/project-ranks/rebalance")]
@@ -368,13 +367,12 @@ public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatc
     [McpTool("Portfolios_RebalanceProjectRanks", "Rebalance portfolio ranking")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult> RebalanceProjectRanks(Guid id, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new RebalancePortfolioRanksCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
     [HttpGet("{id}/ranking-scoreboard")]

@@ -2,6 +2,7 @@ using Wayd.Common.Domain.Extensions.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Extensions;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Deliverables.Dtos;
+using Wayd.Web.Api.Models.ProductManagement;
 
 namespace Wayd.Web.Api.Models.Ppm.Projects;
 
@@ -9,6 +10,11 @@ namespace Wayd.Web.Api.Models.Ppm.Projects;
 /// A single CSV row for the project deliverable import: one deliverable of an existing project. A project's rows
 /// are added in file order, which becomes their order.
 /// </summary>
+/// <remarks>
+/// A deliverable's name must be new to its project — unique, ignoring case, among the deliverables it already has
+/// and the file's other rows for it. The owner may be an inactive employee, so a finished project's history can
+/// name whoever was accountable then; the add and update endpoints take only an active one.
+/// </remarks>
 public sealed class ImportProjectDeliverableRequest
 {
     /// <summary>
@@ -21,7 +27,7 @@ public sealed class ImportProjectDeliverableRequest
     /// <summary>The project, by key.</summary>
     public string ProjectKey { get; set; } = default!;
 
-    /// <summary>What the deliverable is called, unique within its project in the file.</summary>
+    /// <summary>What the deliverable is called, unique within its project, ignoring case.</summary>
     public string Name { get; set; } = default!;
 
     /// <summary>What the deliverable is, in Markdown.</summary>
@@ -30,7 +36,7 @@ public sealed class ImportProjectDeliverableRequest
     /// <summary>How the project will know the deliverable is done, in Markdown.</summary>
     public string? AcceptanceCriteria { get; set; }
 
-    /// <summary>The accountable employee, by employee number.</summary>
+    /// <summary>The accountable employee, by employee number. Inactive employees are accepted.</summary>
     public string? OwnerEmployeeNumber { get; set; }
 
     /// <summary>When the deliverable is due.</summary>
@@ -43,8 +49,11 @@ public sealed class ImportProjectDeliverableRequest
     /// </summary>
     public string? Status { get; set; }
 
-    /// <summary>When the deliverable moved into Status, with its offset; blank for when the import runs.</summary>
-    public DateTimeOffset? StatusChangedAt { get; set; }
+    /// <summary>
+    /// When the deliverable moved into Status: an ISO-8601 timestamp with its offset, such as
+    /// 2026-03-01T14:30:00Z, and not in the future. Blank for when the import runs.
+    /// </summary>
+    public string? StatusChangedAt { get; set; }
 
     /// <summary>Why it is in that status. Required for Descoped.</summary>
     public string? StatusReason { get; set; }
@@ -57,7 +66,7 @@ public sealed class ImportProjectDeliverableRequest
         OwnerEmployeeNumber,
         TargetDate?.ToLocalDate(),
         Status,
-        StatusChangedAt is { } changedAt ? Instant.FromDateTimeOffset(changedAt) : null,
+        OffsetTimestamp.Parse(StatusChangedAt),
         StatusReason);
 }
 
@@ -77,5 +86,10 @@ public sealed class ImportProjectDeliverableRequestValidator : CustomValidator<I
         RuleFor(r => r.AcceptanceCriteria).MaximumLength(4096);
         RuleFor(r => r.Status).MaximumLength(64);
         RuleFor(r => r.StatusReason).MaximumLength(1024);
+
+        RuleFor(r => r.StatusChangedAt)
+            .Must(OffsetTimestamp.IsValid)
+                .When(r => !string.IsNullOrWhiteSpace(r.StatusChangedAt))
+                .WithMessage(OffsetTimestamp.Message(nameof(ImportProjectDeliverableRequest.StatusChangedAt)));
     }
 }

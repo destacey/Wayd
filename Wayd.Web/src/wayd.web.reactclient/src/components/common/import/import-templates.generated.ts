@@ -783,7 +783,7 @@ export const importTemplates = {
             type: 'text',
             required: true,
             description:
-              'What the deliverable is called, unique within its project in the file.',
+              'What the deliverable is called, unique within its project, ignoring case.',
             maxLength: 256,
           },
           {
@@ -805,7 +805,8 @@ export const importTemplates = {
             name: 'OwnerEmployeeNumber',
             type: 'text',
             required: false,
-            description: 'The accountable employee, by employee number.',
+            description:
+              'The accountable employee, by employee number. Inactive employees are accepted.',
           },
           {
             name: 'TargetDate',
@@ -823,10 +824,10 @@ export const importTemplates = {
           },
           {
             name: 'StatusChangedAt',
-            type: 'timestamp',
+            type: 'text',
             required: false,
             description:
-              'When the deliverable moved into Status, with its offset; blank for when the import runs.',
+              'When the deliverable moved into Status: an ISO-8601 timestamp with its offset, such as 2026-03-01T14:30:00Z, and not in the future. Blank for when the import runs.',
           },
           {
             name: 'StatusReason',

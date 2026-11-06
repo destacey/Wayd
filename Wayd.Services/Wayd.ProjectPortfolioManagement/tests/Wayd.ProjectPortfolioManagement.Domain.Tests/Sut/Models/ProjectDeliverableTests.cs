@@ -3,6 +3,7 @@ using NodaTime;
 using NodaTime.Extensions;
 using NodaTime.Testing;
 using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -452,7 +453,218 @@ public sealed class ProjectDeliverableTests
         project.DomainEvents.Should().BeEmpty();
     }
 
+    [Fact]
+    public void ReorderDeliverables_WhenAnIdRepeats_FailsAndKeepsOrder()
+    {
+        // Arrange
+        var project = ActiveProject();
+        var first = Add(project, "First");
+        var second = Add(project, "Second");
+
+        // Act
+        var result = project.ReorderDeliverables(Owner, NoProjectAncestry(), [second.Id, second.Id], Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("exactly once");
+        first.Order.Should().Be(1);
+        second.Order.Should().Be(2);
+        project.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ReorderDeliverables_WhenAnIdIsNotOnTheProject_FailsAndKeepsOrder()
+    {
+        // Arrange
+        var project = ActiveProject();
+        var first = Add(project, "First");
+        var second = Add(project, "Second");
+
+        // Act
+        var result = project.ReorderDeliverables(Owner, NoProjectAncestry(), [second.Id, Guid.NewGuid()], Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("exactly once");
+        first.Order.Should().Be(1);
+        second.Order.Should().Be(2);
+        project.DomainEvents.Should().BeEmpty();
+    }
+
     #endregion ReorderDeliverables
+
+    #region Unique names
+
+    [Theory]
+    [InlineData("Customer portal")]
+    [InlineData("CUSTOMER PORTAL")]
+    [InlineData("  customer portal  ")]
+    public void AddDeliverable_WhenNameAlreadyUsedIgnoringCase_FailsAndChangesNothing(string name)
+    {
+        // Arrange
+        var project = ProposedProject();
+        Add(project, "Customer portal");
+
+        // Act
+        var result = project.AddDeliverable(Owner, NoProjectAncestry(), name, null, null, null, null, _statuses.NotStarted, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("already has a deliverable named");
+        project.Deliverables.Should().ContainSingle();
+        project.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddDeliverable_WhenNameUsedByADescopedDeliverable_Fails()
+    {
+        // Arrange
+        var project = ActiveProject();
+        var descoped = Add(project, "Customer portal");
+        Move(project, descoped, _statuses.Descoped, "No longer needed.");
+
+        // Act
+        var result = project.AddDeliverable(Owner, NoProjectAncestry(), "Customer portal", null, null, null, null, _statuses.NotStarted, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        project.Deliverables.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void ImportDeliverable_WhenNameAlreadyUsed_Fails()
+    {
+        // Arrange
+        var project = ProposedProject();
+        Add(project, "Customer portal");
+
+        // Act
+        var result = project.ImportDeliverable(PpmActor.System, NoProjectAncestry(), "customer PORTAL", null, null, null, null,
+            _statuses.NotStarted, null, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("already has a deliverable named");
+        project.Deliverables.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void UpdateDeliverable_WhenRenamedToAnotherDeliverablesNameIgnoringCase_FailsAndChangesNothing()
+    {
+        // Arrange
+        var project = ActiveProject();
+        Add(project, "Customer portal");
+        var other = Add(project, "Billing");
+
+        // Act
+        var result = project.UpdateDeliverable(Owner, NoProjectAncestry(), other.Id, " customer Portal ", null, null, null, null, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("already has a deliverable named");
+        other.Name.Should().Be("Billing");
+        project.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateDeliverable_WhenKeepingItsOwnNameInAnotherCase_Succeeds()
+    {
+        // Arrange
+        var project = ActiveProject();
+        var deliverable = Add(project, "Customer portal");
+
+        // Act
+        var result = project.UpdateDeliverable(Owner, NoProjectAncestry(), deliverable.Id, "Customer Portal", null, null, null, null, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        deliverable.Name.Should().Be("Customer Portal");
+    }
+
+    #endregion Unique names
+
+    #region Cancel
+
+    [Fact]
+    public void Cancel_WhenDeliverablesOpen_DescopesThemAttributedToTheActorAndLeavesClosedOnesAlone()
+    {
+        // Arrange
+        var project = ActiveProject();
+        var notStarted = Add(project, "Not started");
+        var inProgress = Add(project, "In progress");
+        var accepted = Add(project, "Accepted");
+        Move(project, inProgress, _statuses.InProgress);
+        Move(project, accepted, _statuses.Accepted);
+        var revision = project.Revision;
+
+        // Act
+        var result = project.Cancel(Owner, NoProjectAncestry(), Now, descopedStatus: _statuses.Descoped);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.Status.Should().Be(ProjectStatus.Canceled);
+
+        notStarted.StatusId.Should().Be(_statuses.Descoped.StatusId);
+        notStarted.StatusReason.Should().Be(Project.CanceledDeliverableReason);
+        inProgress.StatusId.Should().Be(_statuses.Descoped.StatusId);
+        accepted.StatusId.Should().Be(_statuses.Accepted.StatusId);
+        project.Deliverables.Should().NotContain(d => d.IsOpen);
+
+        var descoped = project.DomainEvents.OfType<ProjectDeliverableStatusChangedEvent>().ToList();
+        descoped.Select(e => e.DeliverableId).Should().BeEquivalentTo([notStarted.Id, inProgress.Id]);
+        descoped.Should().OnlyContain(e => e.ToAlias == ProjectDeliverableStatusAlias.Descoped
+            && e.Reason == Project.CanceledDeliverableReason
+            && e.Actor.EmployeeId == _ownerId);
+        project.Revision.Should().Be(revision + 3);
+    }
+
+    [Fact]
+    public void Cancel_WhenNoDeliverableOpen_NeedsNoDescopedStatus()
+    {
+        // Arrange
+        var project = ActiveProject();
+        var accepted = Add(project);
+        Move(project, accepted, _statuses.Accepted);
+
+        // Act
+        var result = project.Cancel(Owner, NoProjectAncestry(), Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        accepted.StatusId.Should().Be(_statuses.Accepted.StatusId);
+    }
+
+    [Fact]
+    public void Cancel_WhenDeliverablesOpenWithoutDescopedStatus_Throws()
+    {
+        // Arrange
+        var project = ActiveProject();
+        Add(project);
+
+        // Act
+        var act = () => project.Cancel(Owner, NoProjectAncestry(), Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void Cancel_WhenActorDoesNotManageProject_FailsAndLeavesDeliverablesOpen()
+    {
+        // Arrange
+        var project = ActiveProject();
+        var deliverable = Add(project);
+
+        // Act
+        var result = project.Cancel(AnUnauthorizedActor(), NoProjectAncestry(), Now, descopedStatus: _statuses.Descoped);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        deliverable.IsOpen.Should().BeTrue();
+        project.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion Cancel
 
     #region RemoveDeliverable
 
@@ -507,4 +719,97 @@ public sealed class ProjectDeliverableTests
     }
 
     #endregion RemoveDeliverable
+
+    #region SwitchWorkflow
+
+    private static readonly Instant WorkflowCreatedAt = Instant.FromUtc(2026, 1, 15, 9, 30, 0);
+
+    /// <summary>A deliverable workflow whose finished status is <paramref name="doneName"/>, meaning <paramref name="doneAlias"/>.</summary>
+    private static StatusWorkflow DeliverableWorkflow(string name, string doneName, ProjectDeliverableStatusAlias doneAlias)
+    {
+        PpmWorkflowOwners.Register();
+        var workflow = StatusWorkflow.Create(name, null, PpmWorkflowOwners.ProjectDeliverable.Key, EventActor.System, WorkflowCreatedAt).Value;
+        workflow.AddStatus("Not Started", null, StatusCategory.Proposed, (int)ProjectDeliverableStatusAlias.NotStarted, EventActor.System, WorkflowCreatedAt);
+        workflow.AddStatus(doneName, null, StatusCategory.Done, (int)doneAlias, EventActor.System, WorkflowCreatedAt);
+
+        return workflow;
+    }
+
+    private static StatusRef StatusOf(StatusWorkflow workflow, string name) =>
+        StatusRef.From(workflow.Statuses.Single(s => s.Name == name));
+
+    /// <summary>A deliverable on <paramref name="workflow"/>, moved into its Done status.</summary>
+    private ProjectDeliverable FinishedOn(StatusWorkflow workflow, string doneName)
+    {
+        var project = ActiveProject();
+        var deliverable = project.AddDeliverable(Owner, NoProjectAncestry(), "Customer portal", null, null, null, null,
+            StatusOf(workflow, "Not Started"), Now).Value;
+        project.ChangeDeliverableStatus(Owner, NoProjectAncestry(), deliverable.Id, StatusOf(workflow, doneName), null, Now)
+            .IsSuccess.Should().BeTrue();
+
+        return deliverable;
+    }
+
+    [Fact]
+    public void SwitchWorkflow_WhenLeavingAccepted_ClearsTheAcceptance()
+    {
+        // Arrange
+        var from = DeliverableWorkflow("Standard", "Accepted", ProjectDeliverableStatusAlias.Accepted);
+        var to = DeliverableWorkflow("Light", "Delivered", ProjectDeliverableStatusAlias.None);
+        var deliverable = FinishedOn(from, "Accepted");
+        deliverable.AcceptedOn.Should().NotBeNull();
+        var remap = StatusRemap.AutoMap(from, to).Value;
+
+        // Act
+        var result = deliverable.SwitchWorkflow(remap, EventActor.System, Now.Plus(Duration.FromDays(1)));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        deliverable.StatusName.Should().Be("Delivered");
+        deliverable.AcceptedOn.Should().BeNull();
+        deliverable.AcceptedById.Should().BeNull();
+    }
+
+    [Fact]
+    public void SwitchWorkflow_WhenLandingOnAccepted_RecordsTheSwitchAsTheAcceptanceWithNoAcceptor()
+    {
+        // Arrange
+        var from = DeliverableWorkflow("Light", "Delivered", ProjectDeliverableStatusAlias.None);
+        var to = DeliverableWorkflow("Standard", "Accepted", ProjectDeliverableStatusAlias.Accepted);
+        var deliverable = FinishedOn(from, "Delivered");
+        deliverable.AcceptedOn.Should().BeNull();
+        var remap = StatusRemap.AutoMap(from, to).Value;
+        var switchedAt = Now.Plus(Duration.FromDays(1));
+
+        // Act
+        var result = deliverable.SwitchWorkflow(remap, EventActor.System, switchedAt);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        deliverable.StatusAlias.Should().Be(ProjectDeliverableStatusAlias.Accepted);
+        deliverable.AcceptedOn.Should().Be(switchedAt);
+        deliverable.AcceptedById.Should().BeNull();
+    }
+
+    [Fact]
+    public void SwitchWorkflow_WhenStayingAccepted_KeepsWhoAcceptedItAndWhen()
+    {
+        // Arrange
+        var from = DeliverableWorkflow("Standard", "Accepted", ProjectDeliverableStatusAlias.Accepted);
+        var to = DeliverableWorkflow("Standard v2", "Signed Off", ProjectDeliverableStatusAlias.Accepted);
+        var deliverable = FinishedOn(from, "Accepted");
+        var acceptedOn = deliverable.AcceptedOn;
+        var remap = StatusRemap.AutoMap(from, to).Value;
+
+        // Act
+        var result = deliverable.SwitchWorkflow(remap, EventActor.System, Now.Plus(Duration.FromDays(1)));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        deliverable.StatusName.Should().Be("Signed Off");
+        deliverable.AcceptedOn.Should().Be(acceptedOn);
+        deliverable.AcceptedById.Should().Be(_ownerId);
+    }
+
+    #endregion SwitchWorkflow
 }

@@ -28,8 +28,8 @@ public static class JsonPatchControllerExtensions
     /// <para>
     /// Answers 400 when there is no patch document, 404 with <paramref name="notFoundMessage"/> when
     /// <paramref name="load"/> finds nothing, 422 with a validation problem holding
-    /// every patch and validation error, 400 with the problem details of a command the domain refuses, and 204 on
-    /// success.
+    /// every patch and validation error, 400 with the problem details of a command the domain refuses (or what
+    /// <paramref name="failure"/> answers), and 204 on success.
     /// </para>
     /// </remarks>
     /// <typeparam name="TCurrent">The record as the endpoint's get query returns it.</typeparam>
@@ -41,6 +41,10 @@ public static class JsonPatchControllerExtensions
     /// <param name="toRequest">Converts the current record into a complete update request.</param>
     /// <param name="send">Dispatches the update command built from the patched request.</param>
     /// <param name="cancellationToken">Cancels the load, the validation and the command.</param>
+    /// <param name="failure">
+    /// Answers a command the domain refuses, from its error, for a record whose refusals are not all a 400 — a
+    /// project's stale save is a 409. Omitted, every refusal is a 400.
+    /// </param>
     public static async Task<ActionResult> Patch<TCurrent, TRequest>(
         this ControllerBase controller,
         JsonPatchDocument<TRequest>? patchDocument,
@@ -48,7 +52,8 @@ public static class JsonPatchControllerExtensions
         string notFoundMessage,
         Func<TCurrent, TRequest> toRequest,
         Func<TRequest, CancellationToken, Task<Result>> send,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<string, ActionResult>? failure = null)
         where TCurrent : class
         where TRequest : class
     {
@@ -80,8 +85,11 @@ public static class JsonPatchControllerExtensions
 
         var result = await send(request, cancellationToken);
 
-        return result.IsSuccess
-            ? controller.NoContent()
+        if (result.IsSuccess)
+            return controller.NoContent();
+
+        return failure is not null
+            ? failure(result.Error)
             : controller.BadRequest(result.ToBadRequestObject(controller.HttpContext));
     }
 

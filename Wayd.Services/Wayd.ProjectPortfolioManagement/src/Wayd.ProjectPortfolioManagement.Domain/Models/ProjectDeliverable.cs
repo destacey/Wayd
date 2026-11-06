@@ -160,6 +160,13 @@ public sealed class ProjectDeliverable : StatusTrackedEntity
     }
 
     /// <summary>
+    /// Keeps the acceptance in step with a status reached by a workflow migration. Leaving Accepted clears it;
+    /// landing on Accepted from another meaning records the switch as the acceptance, with no acceptor, since
+    /// nobody accepted it; staying Accepted keeps who accepted it and when.
+    /// </summary>
+    protected override void OnWorkflowSwitched(Instant timestamp) => RecordAcceptance(actorEmployeeId: null, timestamp);
+
+    /// <summary>
     /// Keeps <see cref="AcceptedOn"/> and <see cref="AcceptedById"/> in step with the status: set on entering
     /// Accepted, cleared on leaving it.
     /// </summary>

@@ -149,7 +149,13 @@ public sealed class ProjectDeliverableCsvRow
     public string? OwnerEmployeeNumber { get; init; }
     public DateOnly? TargetDate { get; init; }
     public string? Status { get; init; }
-    public DateTimeOffset? StatusChangedAt { get; init; }
+
+    /// <summary>
+    /// Text in <see cref="DeploymentCsvRow.Timestamp"/>'s form, matching the request model: the import refuses a
+    /// timestamp without an offset rather than read it in the server's zone.
+    /// </summary>
+    public string? StatusChangedAt { get; init; }
+
     public string? StatusReason { get; init; }
 }
 

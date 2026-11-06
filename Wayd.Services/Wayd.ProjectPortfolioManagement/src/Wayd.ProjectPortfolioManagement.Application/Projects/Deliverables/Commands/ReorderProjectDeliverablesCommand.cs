@@ -41,12 +41,12 @@ public sealed class ReorderProjectDeliverablesCommandHandler(
             return Result.Failure(ProjectDeliverableCommandSupport.ProjectNotFoundError);
 
         if (!project.IsCurrent(request.ExpectedRevision))
-            return Result.Failure(ProjectDeliverableCommandSupport.StaleError);
+            return Result.Failure(ProjectSaves.StaleError);
 
         var reordered = project.ReorderDeliverables(actor, project.AncestryRoles(), request.DeliverableIds, _dateTimeProvider.Now);
         if (reordered.IsFailure)
             return reordered;
 
-        return await _ppmDbContext.SaveDeliverableChange(cancellationToken);
+        return await _ppmDbContext.SaveProjectChange(cancellationToken);
     }
 }

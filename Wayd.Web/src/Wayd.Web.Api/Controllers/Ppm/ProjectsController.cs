@@ -313,6 +313,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [McpTool("Projects_Update", "Update project", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Update(Guid id, [FromBody] UpdateProjectRequest request, CancellationToken cancellationToken)
     {
@@ -321,9 +322,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
 
         var result = await _dispatcher.Send(request.ToUpdateProjectCommand(), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
     [HttpPatch("{id}")]
@@ -335,6 +334,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public Task<ActionResult> PatchProject(Guid id, [FromBody] JsonPatchDocument<UpdateProjectRequest> patchDocument, CancellationToken cancellationToken)
         => this.Patch(
@@ -343,7 +343,8 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
             $"Project with ID '{id}' not found.",
             UpdateProjectRequest.FromDto,
             (request, ct) => _dispatcher.Send((request with { Id = id }).ToUpdateProjectCommand(), ct),
-            cancellationToken);
+            cancellationToken,
+            this.ProjectFailure);
 
     [HttpGet("{idOrKey}/health-check-evidence")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
@@ -395,14 +396,13 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [McpTool("Projects_ChangeProgram", "Change project program", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ChangeProgram(Guid id, [FromBody] ChangeProjectProgramRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(request.ToChangeProjectProgramCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
     [HttpPut("{id}/key")]
@@ -413,14 +413,13 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [McpTool("Projects_ChangeKey", "Change project key", Idempotent = false)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ChangeKey(Guid id, [FromBody] ChangeProjectKeyRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(request.ToChangeProjectKeyCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
     [HttpPost("{id}/approve")]
@@ -431,14 +430,13 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [McpTool("Projects_Approve", "Approve project")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Approve(Guid id, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new ApproveProjectCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
     [HttpPost("{id}/activate")]
@@ -449,14 +447,13 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [McpTool("Projects_Activate", "Activate project")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Activate(Guid id, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new ActivateProjectCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
     [HttpPost("{id}/complete")]
@@ -467,32 +464,30 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [McpTool("Projects_Complete", "Complete project")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Complete(Guid id, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new CompleteProjectCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
     [HttpPost("{id}/cancel")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
     [EndpointSummary("Cancel a project that is not already completed or canceled.")]
     [EndpointDescription(
-        "Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
+        "Descopes every open deliverable, recording that the project was canceled; reverting the cancellation leaves them descoped. Requires delivery leadership — the caller must be an Owner or Manager of the record or of an ancestor; a permission claim alone is not enough. Changes a published status that other people rely on, so confirm with the user before calling. Takes a UUID only, not a key.")]
     [McpTool("Projects_Cancel", "Cancel project")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> Cancel(Guid id, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new CancelProjectCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
     [HttpPost("{id}/revert-status")]
@@ -504,14 +499,13 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [McpTool("Projects_RevertStatus", "Revert project status")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> RevertStatus(Guid id, [FromBody] RevertProjectStatusRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(request.ToRevertProjectStatusCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
     [HttpDelete("{id}")]
@@ -522,13 +516,12 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [McpTool("Projects_Delete", "Delete project")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new DeleteProjectCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
     [HttpGet("statuses")]
@@ -652,13 +645,12 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [McpTool("Projects_AssignLifecycle", "Assign project lifecycle")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult> AssignLifecycle(Guid id, [FromBody] AssignProjectLifecycleRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(request.ToCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
     [HttpPost("{id}/lifecycle/change")]
@@ -669,6 +661,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     [McpTool("Projects_ChangeLifecycle", "Change project lifecycle")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ChangeProjectLifecycle(
         Guid id,
@@ -677,9 +670,7 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     {
         var result = await _dispatcher.Send(request.ToCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
     [HttpGet("{id}/stages")]

@@ -52,7 +52,10 @@ public sealed class ChangeProjectDeliverableStatusCommandHandler(
             return Result.Failure(ProjectDeliverableCommandSupport.ProjectNotFoundError);
 
         if (!project.IsCurrent(request.ExpectedRevision))
-            return Result.Failure(ProjectDeliverableCommandSupport.StaleError);
+            return Result.Failure(ProjectSaves.StaleError);
+
+        if (project.Deliverables.All(d => d.Id != request.DeliverableId))
+            return Result.Failure(ProjectDeliverableCommandSupport.DeliverableNotFoundError);
 
         // Resolved through the governing workflow rather than by loading the status: that is what stops a
         // deliverable being moved to a status of some other workflow.
@@ -69,6 +72,6 @@ public sealed class ChangeProjectDeliverableStatusCommandHandler(
         if (changed.IsFailure)
             return Result.Failure(changed.Error);
 
-        return await _ppmDbContext.SaveDeliverableChange(cancellationToken);
+        return await _ppmDbContext.SaveProjectChange(cancellationToken);
     }
 }

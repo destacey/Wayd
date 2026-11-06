@@ -7,15 +7,15 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Deliverables;
 
 /// <summary>
 /// What every deliverable command shares: loading the project with what its rules need, the revision check,
-/// and saving.
+/// and finding the deliverable. Saving goes through <see cref="ProjectSaves.SaveProjectChange"/>.
 /// </summary>
 public static class ProjectDeliverableCommandSupport
 {
-    /// <summary>The failure for a change prepared against a revision the project has since moved past.</summary>
-    public const string StaleError = "The project changed since you loaded it. Reload it and try again.";
-
     /// <summary>The failure for a project that does not exist.</summary>
     public const string ProjectNotFoundError = "Project not found.";
+
+    /// <summary>The failure for a deliverable that does not exist, or belongs to another project.</summary>
+    public const string DeliverableNotFoundError = "Deliverable not found on this project.";
 
     /// <summary>
     /// Projects with the roles every deliverable change is authorized against: the project's own and those on
@@ -35,23 +35,6 @@ public static class ProjectDeliverableCommandSupport
     /// <summary>Whether a change prepared at <paramref name="expectedRevision"/> may still apply.</summary>
     public static bool IsCurrent(this Project project, int? expectedRevision) =>
         expectedRevision is null || project.IsAtRevision(expectedRevision.Value);
-
-    /// <summary>
-    /// Saves, reporting another save that changed the project first as <see cref="StaleError"/> rather than
-    /// letting it through as a failure nobody can act on.
-    /// </summary>
-    public static async Task<Result> SaveDeliverableChange(this IProjectPortfolioManagementDbContext dbContext, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return Result.Success();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            return Result.Failure(StaleError);
-        }
-    }
 
     /// <summary>Checks that an owner, when one is named, is an active employee.</summary>
     public static async Task<Result> CheckOwner(this IProjectPortfolioManagementDbContext dbContext, Guid? ownerId, Guid? currentOwnerId, CancellationToken cancellationToken)

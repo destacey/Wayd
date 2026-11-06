@@ -7,6 +7,7 @@ using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.Tests.Data;
+using Wayd.ProjectPortfolioManagement.Application.Projects;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Deliverables;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Deliverables.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
@@ -91,9 +92,28 @@ public sealed class CreateProjectDeliverableCommandHandlerTests : IDisposable
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ProjectDeliverableCommandSupport.StaleError);
+        result.Error.Should().Be(ProjectSaves.StaleError);
         project.Deliverables.Should().BeEmpty();
         _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheNameIsAlreadyUsedOnTheProject_RefusesWithoutSaving()
+    {
+        // Arrange
+        var project = OwnedProject();
+        await _handler.Handle(new CreateProjectDeliverableCommand(project.Id, "Portal", null, null, null, null, null),
+            TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _handler.Handle(new CreateProjectDeliverableCommand(project.Id, " PORTAL ", null, null, null, null, null),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("already has a deliverable named");
+        project.Deliverables.Should().ContainSingle();
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]

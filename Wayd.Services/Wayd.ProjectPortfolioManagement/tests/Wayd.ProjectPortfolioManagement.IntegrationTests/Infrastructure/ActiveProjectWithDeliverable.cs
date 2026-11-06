@@ -9,6 +9,7 @@ using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Models;
 using Wayd.Infrastructure.Persistence.Initialization;
 using Wayd.ProjectPortfolioManagement.Domain;
+using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
@@ -38,10 +39,15 @@ public sealed record ActiveProjectWithDeliverable(
     }
 
     /// <summary>Resets the PPM data and seeds the project, its deliverable accepted or still Not Started.</summary>
+    /// <param name="employeeOwnsThePortfolio">
+    /// Makes the employee the portfolio's owner, so they lead the project through its portfolio alone — they hold
+    /// no role on the project itself.
+    /// </param>
     public static async Task<ActiveProjectWithDeliverable> Seed(
         SqlServerDbContextFixture fixture,
         bool acceptTheDeliverable,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool employeeOwnsThePortfolio = false)
     {
         await fixture.ResetPpmData(cancellationToken);
         await using var context = fixture.CreateContext();
@@ -79,6 +85,10 @@ public sealed record ActiveProjectWithDeliverable(
 
         var today = SqlServerDbContextFixture.FixedNow.InUtc().Date;
         portfolio.Activate(PpmActor.System, today, SqlServerDbContextFixture.FixedNow);
+        if (employeeOwnsThePortfolio)
+        {
+            portfolio.UpdateRoles(PpmActor.System, new() { [ProjectPortfolioRole.Owner] = [employee.Id] }, SqlServerDbContextFixture.FixedNow);
+        }
         var project = portfolio.CreateProject(
             "Gemini",
             "Gemini description",

@@ -1,5 +1,7 @@
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
+using Wayd.ProjectPortfolioManagement.Application.Projects;
+
 namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 
 public sealed record RebalancePortfolioRanksCommand(Guid PortfolioId) : ICommand, IRequireLinkedEmployee;
@@ -54,8 +56,6 @@ public sealed class RebalancePortfolioRanksCommandHandler(
             return Result.Failure(rebalanceResult.Error);
         }
 
-        await _ppmDbContext.SaveChangesAsync(cancellationToken);
-
-        return Result.Success();
+        return await _ppmDbContext.SaveProjectChange(cancellationToken);
     }
 }

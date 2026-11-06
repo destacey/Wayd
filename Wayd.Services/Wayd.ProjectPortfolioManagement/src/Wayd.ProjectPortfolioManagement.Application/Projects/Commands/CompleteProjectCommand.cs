@@ -69,7 +69,7 @@ public sealed class CompleteProjectCommandHandler(
         {
             // Another change to the project or its deliverables saved first — possibly reopening a deliverable
             // this check saw as closed.
-            return Result.Failure("The project changed while it was being completed. Reload it and try again.");
+            return Result.Failure(ProjectSaves.StaleError);
         }
         catch (Exception ex)
         {

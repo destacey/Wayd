@@ -41,18 +41,22 @@ public sealed class UpdateProjectDeliverableCommandHandler(
     {
         var actor = await _currentPrincipal.ResolvePpmActor(_currentUser, cancellationToken);
 
+        // Every deliverable, not only this one: a new name must not repeat another's.
         var project = await _ppmDbContext.Projects
             .WithLeadership()
-            .Include(p => p.Deliverables.Where(d => d.Id == request.DeliverableId))
+            .Include(p => p.Deliverables)
             .FirstOrDefaultAsync(p => p.Id == request.ProjectId, cancellationToken);
         if (project is null)
             return Result.Failure(ProjectDeliverableCommandSupport.ProjectNotFoundError);
 
         if (!project.IsCurrent(request.ExpectedRevision))
-            return Result.Failure(ProjectDeliverableCommandSupport.StaleError);
+            return Result.Failure(ProjectSaves.StaleError);
 
-        var currentOwnerId = project.Deliverables.FirstOrDefault()?.OwnerId;
-        var owner = await _ppmDbContext.CheckOwner(request.OwnerId, currentOwnerId, cancellationToken);
+        var deliverable = project.Deliverables.FirstOrDefault(d => d.Id == request.DeliverableId);
+        if (deliverable is null)
+            return Result.Failure(ProjectDeliverableCommandSupport.DeliverableNotFoundError);
+
+        var owner = await _ppmDbContext.CheckOwner(request.OwnerId, deliverable.OwnerId, cancellationToken);
         if (owner.IsFailure)
             return owner;
 
@@ -61,6 +65,6 @@ public sealed class UpdateProjectDeliverableCommandHandler(
         if (updated.IsFailure)
             return Result.Failure(updated.Error);
 
-        return await _ppmDbContext.SaveDeliverableChange(cancellationToken);
+        return await _ppmDbContext.SaveProjectChange(cancellationToken);
     }
 }

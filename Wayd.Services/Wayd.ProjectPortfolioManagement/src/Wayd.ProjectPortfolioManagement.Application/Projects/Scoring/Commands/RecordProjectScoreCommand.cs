@@ -100,7 +100,9 @@ public sealed class RecordProjectScoreCommandHandler(
             return Result.Failure<Guid>(recordResult.Error);
         }
 
-        await _ppmDbContext.SaveChangesAsync(cancellationToken);
+        var saved = await _ppmDbContext.SaveProjectChange(cancellationToken);
+        if (saved.IsFailure)
+            return Result.Failure<Guid>(saved.Error);
 
         return Result.Success(recordResult.Value.Id);
     }

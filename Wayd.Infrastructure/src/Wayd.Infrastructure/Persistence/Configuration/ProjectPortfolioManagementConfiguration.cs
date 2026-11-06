@@ -302,6 +302,9 @@ public class ProjectDeliverableConfiguration : IEntityTypeConfiguration<ProjectD
         builder.HasKey(d => d.Id);
 
         builder.HasIndex(d => new { d.ProjectId, d.Order });
+        // Backs Project's rule that a name is used once per project. The rule ignores case; the index does
+        // under the database's default case-insensitive collation.
+        builder.HasIndex(d => new { d.ProjectId, d.Name }).IsUnique();
         builder.HasIndex(d => d.OwnerId);
 
         builder.Property(d => d.Id).ValueGeneratedNever();

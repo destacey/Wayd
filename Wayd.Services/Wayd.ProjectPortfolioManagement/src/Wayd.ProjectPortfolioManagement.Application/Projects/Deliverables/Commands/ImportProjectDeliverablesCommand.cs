@@ -28,14 +28,34 @@ public sealed class ImportProjectDeliverablesCommandValidator : CustomValidator<
 
         RuleFor(c => c.Rows)
             .NotEmpty()
-            .Must(rows => rows
-                .Select(r => $"{r.Data.ProjectKey.Value}|{r.Data.Name.Trim()}")
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Count() == rows.Count)
-                .WithMessage("A deliverable's Name must be unique within its project in the file.");
+            .Custom((rows, context) =>
+            {
+                var repeated = rows
+                    .Where(r => r.Data is not null && !string.IsNullOrWhiteSpace(r.Data.Name))
+                    .GroupBy(r => (Project: r.Data.ProjectKey.Value, Name: r.Data.Name.Trim()), DeliverableIdentity.Comparer)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => $"'{g.Key.Name}' on project {g.Key.Project}")
+                    .ToList();
+
+                if (repeated.Count > 0)
+                    context.AddFailure(nameof(ImportProjectDeliverablesCommand.Rows),
+                        $"A deliverable's Name must be unique within its project in the file, ignoring case. Repeated: {string.Join(", ", repeated)}.");
+            });
 
         RuleForEach(c => c.Rows)
             .ChildRules(row => row.RuleFor(r => r.Data).NotNull().SetValidator(new ImportProjectDeliverableDtoValidator()));
+    }
+
+    /// <summary>A deliverable's project key and name, compared ignoring case as the domain compares names.</summary>
+    private sealed class DeliverableIdentity : IEqualityComparer<(string Project, string Name)>
+    {
+        public static readonly DeliverableIdentity Comparer = new();
+
+        public bool Equals((string Project, string Name) x, (string Project, string Name) y) =>
+            StringComparer.OrdinalIgnoreCase.Equals(x.Project, y.Project) && StringComparer.OrdinalIgnoreCase.Equals(x.Name, y.Name);
+
+        public int GetHashCode((string Project, string Name) obj) =>
+            HashCode.Combine(StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Project), StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Name));
     }
 }
 

@@ -80,9 +80,18 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     /// </summary>
     public int SaveChangesCallCount { get; private set; }
 
+    /// <summary>
+    /// Thrown by the next save once set, after it is counted — as when another save changed a concurrency token
+    /// first, which an in-memory fake cannot otherwise produce.
+    /// </summary>
+    public Exception? SaveException { get; set; }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SaveChangesCallCount++;
+
+        if (SaveException is { } exception)
+            throw exception;
 
         // Return the total number of entities as a simple success indicator
         var count = _expenditureCategories.Count + _portfolios.Count + _programs.Count +

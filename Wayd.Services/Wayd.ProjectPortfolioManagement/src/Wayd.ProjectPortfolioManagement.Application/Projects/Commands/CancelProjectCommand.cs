@@ -1,4 +1,8 @@
-﻿using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+﻿using Wayd.Common.Application.StatusWorkflows;
+using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
+using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.ProjectPortfolioManagement.Domain;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
 
@@ -18,6 +22,7 @@ public sealed class CancelProjectCommandHandler(
     ICurrentPrincipal currentPrincipal,
     ICurrentUser currentUser,
     IDateTimeProvider dateTimeProvider,
+    IStatusResolver statusResolver,
     ILogger<CancelProjectCommandHandler> logger) : ICommandHandler<CancelProjectCommand>
 {
     private const string AppRequestName = nameof(CancelProjectCommand);
@@ -26,6 +31,7 @@ public sealed class CancelProjectCommandHandler(
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
+    private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ILogger<CancelProjectCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(CancelProjectCommand request, CancellationToken cancellationToken)
@@ -39,6 +45,9 @@ public sealed class CancelProjectCommandHandler(
                 .Include(p => p.Roles)
                 .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
                 .Include(p => p.Program).ThenInclude(p => p!.Roles)
+                // Cancel descopes every open deliverable; unloaded, the set reads as empty and leaves them open
+                // on a canceled project.
+                .Include(p => p.Deliverables)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (project is null)
             {
@@ -46,7 +55,20 @@ public sealed class CancelProjectCommandHandler(
                 return Result.Failure("Project not found.");
             }
 
-            var cancelResult = project.Cancel(actor, project.AncestryRoles(), _dateTimeProvider.Now);
+            // Resolved only when something is open, so a project without deliverables cancels even while the
+            // deliverable workflow is misconfigured.
+            StatusRef? descoped = null;
+            if (project.Deliverables.Any(d => d.IsOpen))
+            {
+                var resolved = await _statusResolver.ForAlias(PpmWorkflowOwners.ProjectDeliverable.Key, scopeId: null,
+                    (int)ProjectDeliverableStatusAlias.Descoped, cancellationToken);
+                if (resolved.IsFailure)
+                    return Result.Failure(resolved.Error);
+
+                descoped = resolved.Value;
+            }
+
+            var cancelResult = project.Cancel(actor, project.AncestryRoles(), _dateTimeProvider.Now, descopedStatus: descoped);
             if (cancelResult.IsFailure)
             {
                 // Reset the entity
@@ -62,6 +84,10 @@ public sealed class CancelProjectCommandHandler(
             _logger.LogInformation("Project {ProjectId} canceled.", request.Id);
 
             return Result.Success();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result.Failure(ProjectSaves.StaleError);
         }
         catch (Exception ex)
         {

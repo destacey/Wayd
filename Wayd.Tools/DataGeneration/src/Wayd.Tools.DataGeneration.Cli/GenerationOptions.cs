@@ -123,7 +123,7 @@ public static class GenerationOptions
 
     public static Option<int?> DeliverablesPerProject { get; } = new("--deliverables-per-project")
     {
-        Description = "Average number of deliverables a project commits to, give or take two. Zero generates none.",
+        Description = "Average number of deliverables a project commits to, give or take two, and never more than eight (0-8). Zero generates none.",
     };
 
     public static Option<StructureMode?> Programs { get; } = new("--programs")

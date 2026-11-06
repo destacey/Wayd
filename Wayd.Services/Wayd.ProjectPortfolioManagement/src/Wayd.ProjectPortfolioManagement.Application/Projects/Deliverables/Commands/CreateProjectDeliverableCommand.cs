@@ -54,7 +54,7 @@ public sealed class CreateProjectDeliverableCommandHandler(
             return Result.Failure<Guid>(ProjectDeliverableCommandSupport.ProjectNotFoundError);
 
         if (!project.IsCurrent(request.ExpectedRevision))
-            return Result.Failure<Guid>(ProjectDeliverableCommandSupport.StaleError);
+            return Result.Failure<Guid>(ProjectSaves.StaleError);
 
         var owner = await _ppmDbContext.CheckOwner(request.OwnerId, currentOwnerId: null, cancellationToken);
         if (owner.IsFailure)
@@ -70,7 +70,7 @@ public sealed class CreateProjectDeliverableCommandHandler(
         if (added.IsFailure)
             return Result.Failure<Guid>(added.Error);
 
-        var saved = await _ppmDbContext.SaveDeliverableChange(cancellationToken);
+        var saved = await _ppmDbContext.SaveProjectChange(cancellationToken);
         return saved.IsSuccess
             ? Result.Success(added.Value.Id)
             : Result.Failure<Guid>(saved.Error);

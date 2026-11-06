@@ -63,8 +63,6 @@ public sealed class DeleteProjectHealthCheckCommandHandler(
             return Result.Failure(removeResult.Error);
         }
 
-        await _ppmDbContext.SaveChangesAsync(cancellationToken);
-
-        return Result.Success();
+        return await _ppmDbContext.SaveProjectChange(cancellationToken);
     }
 }

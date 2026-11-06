@@ -1,4 +1,6 @@
-﻿namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
+﻿using Wayd.ProjectPortfolioManagement.Application.Projects;
+
+namespace Wayd.ProjectPortfolioManagement.Application.Portfolios.Ranking.Commands;
 
 public sealed record MoveProjectRanksCommand(
     Guid PortfolioId,
@@ -76,8 +78,6 @@ public sealed class MoveProjectRanksCommandHandler(
             return Result.Failure(moveResult.Error);
         }
 
-        await _ppmDbContext.SaveChangesAsync(cancellationToken);
-
-        return Result.Success();
+        return await _ppmDbContext.SaveProjectChange(cancellationToken);
     }
 }

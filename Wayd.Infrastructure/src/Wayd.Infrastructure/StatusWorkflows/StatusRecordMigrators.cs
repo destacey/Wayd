@@ -3,11 +3,13 @@ using Microsoft.EntityFrameworkCore;
 using NodaTime;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application;
 using Wayd.ProductManagement.Domain;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.ProjectPortfolioManagement.Domain;
+using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Project = Wayd.ProjectPortfolioManagement.Domain.Models.Project;
 using ProjectDeliverable = Wayd.ProjectPortfolioManagement.Domain.Models.ProjectDeliverable;
 
@@ -72,6 +74,12 @@ public abstract class StatusRecordMigratorBase<TRecord>
             return Result.Failure<int>(ScopedRecordsUnsupported);
         }
 
+        var allowed = await CheckRemap(remap, cancellationToken);
+        if (allowed.IsFailure)
+        {
+            return Result.Failure<int>(allowed.Error);
+        }
+
         var migrated = 0;
         var offset = 0;
 
@@ -109,6 +117,13 @@ public abstract class StatusRecordMigratorBase<TRecord>
 
         return Result.Success(migrated);
     }
+
+    /// <summary>
+    /// Refuses a remap that would leave records breaking a rule of their owner, before any record moves. The
+    /// failure is what the administrator running the migration sees, so it says what to map differently.
+    /// </summary>
+    protected virtual Task<Result> CheckRemap(StatusRemap remap, CancellationToken cancellationToken) =>
+        Task.FromResult(Result.Success());
 
     /// <inheritdoc/>
     public async Task<Result<IReadOnlyDictionary<Guid, int>>> CountByStatus(
@@ -194,7 +209,12 @@ public sealed class DeploymentStatusRecordMigrator(IProductManagementDbContext d
 /// <remarks>
 /// The one change that reaches a deliverable without going through its <see cref="Project"/>: a remap
 /// translates statuses onto another workflow, which is the engine's doing rather than a change to the
-/// project's scope, so it needs no project leadership and is allowed on a closed project.
+/// project's scope, so it needs no project leadership and is allowed on a closed project — but never into an
+/// open status there, since a completed or canceled project has nothing left to deliver.
+/// <para>
+/// It does not advance the project's revision. A change prepared before the switch names a status of the old
+/// workflow, which the deliverable commands already refuse.
+/// </para>
 /// </remarks>
 public sealed class ProjectDeliverableStatusRecordMigrator(IProjectPortfolioManagementDbContext dbContext)
     : StatusRecordMigratorBase<ProjectDeliverable>
@@ -204,4 +224,35 @@ public sealed class ProjectDeliverableStatusRecordMigrator(IProjectPortfolioMana
     public override string OwnerType => PpmWorkflowOwners.ProjectDeliverable.Key;
 
     protected override IQueryable<ProjectDeliverable> Records => _dbContext.ProjectDeliverables;
+
+    /// <inheritdoc/>
+    protected override async Task<Result> CheckRemap(StatusRemap remap, CancellationToken cancellationToken)
+    {
+        var closedProjects = _dbContext.Projects
+            .Where(p => p.Status == ProjectStatus.Completed || p.Status == ProjectStatus.Canceled);
+
+        var held = await _dbContext.ProjectDeliverables
+            .Where(d => d.StatusWorkflowId == remap.FromWorkflowId && closedProjects.Any(p => p.Id == d.ProjectId))
+            .GroupBy(d => new { d.StatusId, d.StatusName })
+            .Select(g => new { g.Key.StatusId, g.Key.StatusName, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        var reopened = held
+            .Select(h => (h.StatusName, h.Count, Target: remap.For(h.StatusId)))
+            .Where(h => h.Target?.Category is StatusCategory.Proposed or StatusCategory.Active)
+            .OrderBy(h => h.StatusName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (reopened.Count == 0)
+        {
+            return Result.Success();
+        }
+
+        var moves = string.Join("; ", reopened.Select(h =>
+            $"{h.Count} in '{h.StatusName}' would move to '{h.Target!.Name}'"));
+
+        return Result.Failure(
+            "Deliverables of completed or canceled projects must stay closed, but this mapping would reopen them: " +
+            $"{moves}. Map those statuses to a Done or Removed status instead.");
+    }
 }

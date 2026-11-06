@@ -242,13 +242,12 @@ public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher 
     [McpTool("Programs_Delete", "Delete program")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new DeleteProgramCommand(id), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 
 

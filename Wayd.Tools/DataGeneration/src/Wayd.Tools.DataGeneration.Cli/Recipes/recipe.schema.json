@@ -168,8 +168,9 @@
         },
         "deliverablesPerProject": {
           "type": "integer",
-          "description": "Average number of deliverables a project commits to, give or take two. Zero generates none.",
+          "description": "Average number of deliverables a project commits to, give or take two, and never more than eight. Zero generates none.",
           "minimum": 0,
+          "maximum": 8,
           "x-cli-flag": "--deliverables-per-project"
         }
       }

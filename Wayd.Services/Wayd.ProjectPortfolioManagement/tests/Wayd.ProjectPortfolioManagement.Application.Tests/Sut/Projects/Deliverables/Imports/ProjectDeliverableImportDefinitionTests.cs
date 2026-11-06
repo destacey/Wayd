@@ -158,4 +158,67 @@ public sealed class ProjectDeliverableImportDefinitionTests : IDisposable
         outcome.Error.Should().Contain("E999");
         _active.Deliverables.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task AddDeliverables_AcceptsAnInactiveOwner()
+    {
+        // Arrange
+        var owner = new EmployeeFaker().WithEmployeeNumber("E200").WithIsActive(false).Generate();
+        _dbContext.AddEmployee(owner);
+
+        // Act
+        var result = await Run(Row("GEMINI", "Portal", "Accepted", owner: "E200"));
+
+        // Assert
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+        _completed.Deliverables.Single().OwnerId.Should().Be(owner.Id);
+    }
+
+    [Fact]
+    public async Task AddDeliverables_RejectsAStatusChangeInTheFuture()
+    {
+        // Arrange
+        var row = Row("APOLLO", "Portal", "InProgress") with { StatusChangedAt = _now.Plus(Duration.FromMinutes(1)) };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().Contain("in the future");
+        _active.Deliverables.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task AddDeliverables_RecordsAStatusChangeInThePastAtThatTime()
+    {
+        // Arrange
+        var changedAt = _now.Minus(Duration.FromDays(3));
+        var row = Row("APOLLO", "Portal", "InProgress") with { StatusChangedAt = changedAt };
+
+        // Act
+        var result = await Run(row);
+
+        // Assert
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+        _active.Deliverables.Single().StatusTransitions.Should().ContainSingle().Which.ChangedOn.Should().Be(changedAt);
+    }
+
+    [Fact]
+    public async Task AddDeliverables_RejectsANameTheProjectAlreadyUses()
+    {
+        // Arrange
+        _active.AddDeliverable(Domain.Models.Authorization.PpmActor.System, Domain.Models.Authorization.ProjectAncestryRoles.None,
+            "Portal", null, null, null, null, _workflow.Ref(ProjectDeliverableStatusAlias.NotStarted), _now);
+
+        // Act
+        var result = await Run(Row("APOLLO", "PORTAL"));
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().Contain("already has a deliverable named");
+        _active.Deliverables.Should().ContainSingle();
+    }
 }

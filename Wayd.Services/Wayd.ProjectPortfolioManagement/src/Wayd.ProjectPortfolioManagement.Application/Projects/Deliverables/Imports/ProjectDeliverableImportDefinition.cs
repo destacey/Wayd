@@ -17,7 +17,9 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Deliverables.Impo
 /// Runs as <see cref="PpmActor.System"/>: the import is authorized by the caller's
 /// Permissions.Projects.Import claim, not by delivery leadership on each project. A finished project's
 /// deliverables come across already Accepted or Descoped, since bringing history in is not an edit; an open
-/// one on a completed project is refused, because it would leave the project with work outstanding.
+/// one on a completed project is refused, because it would leave the project with work outstanding. A name the
+/// project already uses is refused, as is a status change dated in the future. Owners are matched whether or not
+/// they are still active, so a finished project's history can name whoever was accountable then.
 /// <para>
 /// Per group, keyed on the project, because a project's deliverables are read together — as its order, and
 /// as whether it can complete — so a rejected row keeps that project's other deliverables out and leaves every
@@ -98,6 +100,8 @@ public sealed class ProjectDeliverableImportDefinition(
             .GroupBy(e => e.EmployeeNumber, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.Select(e => e.Id).ToList(), StringComparer.OrdinalIgnoreCase);
 
+        var now = _dateTimeProvider.Now;
+
         foreach (var row in context.Accepted)
         {
             var data = row.Data;
@@ -106,6 +110,14 @@ public sealed class ProjectDeliverableImportDefinition(
             if (!projectsByKey.TryGetValue(key, out var project))
             {
                 row.Failed($"No project was found with key '{key}'.");
+                continue;
+            }
+
+            // Checked against when the row is applied rather than when the file was submitted, since a queued
+            // run can start later; either way a change that has not happened yet is not history.
+            if (data.StatusChangedAt > now)
+            {
+                row.Failed($"StatusChangedAt {data.StatusChangedAt} is in the future. Give when '{data.Name}' actually moved into its status, or leave it blank.");
                 continue;
             }
 
@@ -137,7 +149,7 @@ public sealed class ProjectDeliverableImportDefinition(
 
             var added = project.ImportDeliverable(PpmActor.System, ProjectAncestryRoles.None, data.Name, data.Description,
                 data.AcceptanceCriteria, ownerId, data.TargetDate, status.Value, data.StatusReason,
-                data.StatusChangedAt ?? _dateTimeProvider.Now);
+                data.StatusChangedAt ?? now);
             if (added.IsFailure)
             {
                 row.Failed($"Could not add '{data.Name}' to project '{key}': {added.Error}");

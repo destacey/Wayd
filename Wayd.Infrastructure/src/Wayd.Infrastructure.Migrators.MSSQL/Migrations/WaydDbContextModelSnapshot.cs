@@ -6666,6 +6666,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("StatusWorkflowId");
 
+                    b.HasIndex("ProjectId", "Name")
+                        .IsUnique();
+
                     b.HasIndex("ProjectId", "Order");
 
                     b.ToTable("ProjectDeliverables", "Ppm");

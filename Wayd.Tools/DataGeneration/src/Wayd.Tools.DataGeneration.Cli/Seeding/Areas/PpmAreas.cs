@@ -324,8 +324,7 @@ public sealed class ProjectDeliverablesArea() : PpmSeedArea(
             OwnerEmployeeNumber = d.Owner,
             TargetDate = d.TargetDate,
             Status = d.Status,
-            // Midday UTC, so the day reads the same in every time zone a reviewer is likely to be in.
-            StatusChangedAt = d.StatusChangedOn is { } on ? new DateTimeOffset(on.ToDateTime(new TimeOnly(12, 0)), TimeSpan.Zero) : null,
+            StatusChangedAt = d.StatusChangedOn is { } on ? DeploymentCsvRow.Timestamp(StatusChangedAt(on)) : null,
             StatusReason = d.StatusReason,
         }).ToList();
 
@@ -337,6 +336,18 @@ public sealed class ProjectDeliverablesArea() : PpmSeedArea(
             batch => context.Client.ImportProjectDeliverables(CsvFile.ToBytes(batch), cancellationToken));
 
         context.Publish(Name, created);
+    }
+
+    /// <summary>
+    /// Midday UTC on the day, so the day reads the same in every time zone a reviewer is likely to be in — but
+    /// never later than now, since the import refuses a status change in the future.
+    /// </summary>
+    private static DateTimeOffset StatusChangedAt(DateOnly on)
+    {
+        var midday = new DateTimeOffset(on.ToDateTime(new TimeOnly(12, 0)), TimeSpan.Zero);
+        var now = DateTimeOffset.UtcNow;
+
+        return midday < now ? midday : now;
     }
 }
 

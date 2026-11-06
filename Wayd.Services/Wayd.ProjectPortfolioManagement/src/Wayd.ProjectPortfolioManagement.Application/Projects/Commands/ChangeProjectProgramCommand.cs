@@ -80,6 +80,10 @@ public sealed class ChangeProjectProgramCommandHandler(IProjectPortfolioManageme
 
             return Result.Success();
         }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result.Failure(ProjectSaves.StaleError);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception handling {CommandName} command for request {@Request}.", AppRequestName, request);

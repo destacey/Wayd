@@ -93,16 +93,16 @@ public class ProjectDeliverablesController(IDispatcher dispatcher, ICsvService c
         return NoContentOr(result);
     }
 
-    [HttpGet("{id}/deliverables/{deliverableId}/status-options")]
+    [HttpGet("{idOrKey}/deliverables/{deliverableId}/status-options")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
     [EndpointSummary("Get the statuses a deliverable can be moved to, with what each move needs.")]
-    [EndpointDescription("In the workflow's order, without the status it holds. A `RequiresReason` condition means the move must carry a reason, as descoping does.")]
+    [EndpointDescription("In the workflow's order, without the status it holds. A `RequiresReason` condition means the move must carry a reason, as descoping does. Empty for a completed or canceled project, whose deliverables cannot be moved.")]
     [McpTool("Projects_GetDeliverableStatusOptions", "List deliverable status options")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<IEnumerable<StatusOptionDto>>> GetStatusOptions(Guid id, Guid deliverableId, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<StatusOptionDto>>> GetStatusOptions(string idOrKey, Guid deliverableId, CancellationToken cancellationToken)
     {
-        var options = await _dispatcher.Send(new GetProjectDeliverableStatusOptionsQuery(id, deliverableId), cancellationToken);
+        var options = await _dispatcher.Send(new GetProjectDeliverableStatusOptionsQuery(new ProjectIdOrKey(idOrKey), deliverableId), cancellationToken);
         return options is not null
             ? Ok(options)
             : NotFound();
@@ -230,11 +230,14 @@ public class ProjectDeliverablesController(IDispatcher dispatcher, ICsvService c
     private ActionResult NoContentOr(Result result) =>
         result.IsSuccess ? NoContent() : Failure(result.Error);
 
-    /// <summary>A stale revision is a conflict and a missing project is not found; anything else is a bad request.</summary>
+    /// <summary>
+    /// A stale revision is a conflict and a missing project or deliverable is not found; anything else is a bad
+    /// request.
+    /// </summary>
     private ActionResult Failure(string error) => error switch
     {
-        ProjectDeliverableCommandSupport.StaleError => Conflict(ProblemDetailsExtensions.ForConflict(error, HttpContext)),
-        ProjectDeliverableCommandSupport.ProjectNotFoundError => NotFound(ProblemDetailsExtensions.ForNotFound(error, HttpContext)),
-        _ => BadRequest(ProblemDetailsExtensions.ForBadRequest(error, HttpContext)),
+        ProjectDeliverableCommandSupport.ProjectNotFoundError or ProjectDeliverableCommandSupport.DeliverableNotFoundError
+            => NotFound(ProblemDetailsExtensions.ForNotFound(error, HttpContext)),
+        _ => this.ProjectFailure(error),
     };
 }

@@ -22654,6 +22654,13 @@ export class PortfoliosClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -22718,6 +22725,13 @@ export class PortfoliosClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -23690,6 +23704,13 @@ export class ProgramsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -24419,11 +24440,11 @@ export class ProjectDeliverablesClient {
      * Get the statuses a deliverable can be moved to, with what each move needs.
      * @return OK
      */
-    getStatusOptions(id: string, deliverableId: string, cancelToken?: CancelToken): Promise<StatusOptionDto[]> {
-        let url_ = this.baseUrl + "/api/ppm/projects/{id}/deliverables/{deliverableId}/status-options";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    getStatusOptions(idOrKey: string, deliverableId: string, cancelToken?: CancelToken): Promise<StatusOptionDto[]> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{idOrKey}/deliverables/{deliverableId}/status-options";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
         if (deliverableId === undefined || deliverableId === null)
             throw new globalThis.Error("The parameter 'deliverableId' must be defined.");
         url_ = url_.replace("{deliverableId}", encodeURIComponent("" + deliverableId));
@@ -24945,6 +24966,13 @@ export class ProjectHealthChecksClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -25086,6 +25114,13 @@ export class ProjectHealthChecksClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -25153,6 +25188,13 @@ export class ProjectHealthChecksClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -26734,6 +26776,13 @@ export class ProjectsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -26810,6 +26859,13 @@ export class ProjectsClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -26874,6 +26930,13 @@ export class ProjectsClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
@@ -27015,6 +27078,13 @@ export class ProjectsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -27084,6 +27154,13 @@ export class ProjectsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -27148,6 +27225,13 @@ export class ProjectsClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -27214,6 +27298,13 @@ export class ProjectsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -27279,6 +27370,13 @@ export class ProjectsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -27343,6 +27441,13 @@ export class ProjectsClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -27412,6 +27517,13 @@ export class ProjectsClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -27891,6 +28003,13 @@ export class ProjectsClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -27952,6 +28071,13 @@ export class ProjectsClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -28622,6 +28748,13 @@ export class ProjectScoresClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -65483,13 +65616,13 @@ be in the file. */
     importId?: string | undefined;
     /** The project, by key. */
     projectKey: string;
-    /** What the deliverable is called, unique within its project in the file. */
+    /** What the deliverable is called, unique within its project, ignoring case. */
     name: string;
     /** What the deliverable is, in Markdown. */
     description?: string | undefined;
     /** How the project will know the deliverable is done, in Markdown. */
     acceptanceCriteria?: string | undefined;
-    /** The accountable employee, by employee number. */
+    /** The accountable employee, by employee number. Inactive employees are accepted. */
     ownerEmployeeNumber?: string | undefined;
     /** When the deliverable is due. */
     targetDate?: string | undefined;
@@ -65497,8 +65630,9 @@ be in the file. */
 project takes only a closed status, such as Accepted or Descoped. The default workflow's statuses are
 Not Started, In Progress, Accepted and Descoped. */
     status?: string | undefined;
-    /** When the deliverable moved into Status, with its offset; blank for when the import runs. */
-    statusChangedAt?: Date | undefined;
+    /** When the deliverable moved into Status: an ISO-8601 timestamp with its offset, such as
+2026-03-01T14:30:00Z, and not in the future. Blank for when the import runs. */
+    statusChangedAt?: string | undefined;
     /** Why it is in that status. Required for Descoped. */
     statusReason?: string | undefined;
 }

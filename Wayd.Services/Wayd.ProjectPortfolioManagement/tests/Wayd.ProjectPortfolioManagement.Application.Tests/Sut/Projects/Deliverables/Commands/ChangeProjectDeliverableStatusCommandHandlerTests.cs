@@ -6,6 +6,9 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
 using Wayd.Common.Domain.StatusWorkflows;
+using Microsoft.EntityFrameworkCore;
+using Wayd.ProjectPortfolioManagement.Application.Projects;
+using Wayd.ProjectPortfolioManagement.Application.Projects.Deliverables;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Deliverables.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain;
@@ -112,5 +115,40 @@ public sealed class ChangeProjectDeliverableStatusCommandHandlerTests : IDisposa
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("needs a reason");
         _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheDeliverableIsNotOnTheProject_ReportsDeliverableNotFound()
+    {
+        // Arrange
+        var (project, _) = ActiveProjectWithDeliverable();
+        var accepted = _workflow.StatusFor((int)ProjectDeliverableStatusAlias.Accepted)!;
+
+        // Act
+        var result = await _handler.Handle(new ChangeProjectDeliverableStatusCommand(project.Id, Guid.NewGuid(), accepted.Id, null, null),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ProjectDeliverableCommandSupport.DeliverableNotFoundError);
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WhenAnotherSaveChangedTheProjectFirst_RefusesAsStale()
+    {
+        // Arrange
+        var (project, deliverable) = ActiveProjectWithDeliverable();
+        var accepted = _workflow.StatusFor((int)ProjectDeliverableStatusAlias.Accepted)!;
+        _dbContext.SaveException = new DbUpdateConcurrencyException();
+
+        // Act
+        var result = await _handler.Handle(new ChangeProjectDeliverableStatusCommand(project.Id, deliverable.Id, accepted.Id, null, project.Revision),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ProjectSaves.StaleError);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 }

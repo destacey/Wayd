@@ -78,7 +78,9 @@ public sealed class CreateProjectHealthCheckCommandHandler(
             return Result.Failure<Guid>(addResult.Error);
         }
 
-        await _ppmDbContext.SaveChangesAsync(cancellationToken);
+        var saved = await _ppmDbContext.SaveProjectChange(cancellationToken);
+        if (saved.IsFailure)
+            return Result.Failure<Guid>(saved.Error);
 
         return Result.Success(addResult.Value.Id);
     }

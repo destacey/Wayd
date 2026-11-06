@@ -31,7 +31,7 @@ public sealed class SetProductTagActiveCommandHandlerTests : ProductCommandTestB
     }
 
     [Fact]
-    public async Task Deactivate_ShouldFail_ForATagOnAnotherAxis()
+    public async Task Deactivate_ShouldFail_ForATagInAnotherCategory()
     {
         // Arrange
         var (category, _) = SeedTag(categoryName: "Platform");
@@ -43,7 +43,7 @@ public sealed class SetProductTagActiveCommandHandlerTests : ProductCommandTestB
             new SetProductTagActiveCommand(category.Id, foreign.Id, false), TestContext.Current.CancellationToken);
 
         // Assert
-        // Scoped to the category so a tag id from another axis cannot be reached through this route.
+        // Scoped to the category so a tag id from another category cannot be reached through this route.
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(ProductTagCategory.TagNotFoundError);
         foreign.IsActive.Should().BeTrue();

@@ -6,8 +6,8 @@ namespace Wayd.DemandManagement.Domain.Models;
 /// One tag applied to one intake request.
 /// </summary>
 /// <remarks>
-/// Carries the tag's axis so that a single-value axis can be enforced, and a request filtered by axis,
-/// without loading the tag.
+/// Carries the tag's category so that a single-value category can be enforced, and a request filtered by
+/// category, without loading the tag.
 /// </remarks>
 public sealed class IntakeRequestTagAssignment : ITagAssignment
 {
@@ -26,6 +26,6 @@ public sealed class IntakeRequestTagAssignment : ITagAssignment
     /// <summary>The tag it carries.</summary>
     public Guid TagId { get; private init; }
 
-    /// <summary>The tag's axis, denormalized from the tag. Null for a free tag.</summary>
+    /// <summary>The tag's category, denormalized from the tag. Null for a free tag.</summary>
     public Guid? CategoryId { get; private init; }
 }

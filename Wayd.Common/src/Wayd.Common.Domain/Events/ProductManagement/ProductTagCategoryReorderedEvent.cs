@@ -4,10 +4,10 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A product tag axis moved to another position in the list.
+/// A product tag category moved to another position in the list.
 /// </summary>
 /// <remarks>
-/// Raised by each axis whose position changed, so reordering the list records one entry per axis moved.
+/// Raised by each category whose position changed, so reordering the list records one entry per category moved.
 /// </remarks>
 public sealed record ProductTagCategoryReorderedEvent : DomainEvent<ProductTagCategoryReorderedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
@@ -25,10 +25,10 @@ public sealed record ProductTagCategoryReorderedEvent : DomainEvent<ProductTagCa
 
     public Guid Id { get; }
 
-    /// <summary>The axis's position before the move, lowest first.</summary>
+    /// <summary>The category's position before the move, lowest first.</summary>
     public int FromOrder { get; }
 
-    /// <summary>The axis's position after the move, lowest first.</summary>
+    /// <summary>The category's position after the move, lowest first.</summary>
     public int ToOrder { get; }
 
     [JsonIgnore]

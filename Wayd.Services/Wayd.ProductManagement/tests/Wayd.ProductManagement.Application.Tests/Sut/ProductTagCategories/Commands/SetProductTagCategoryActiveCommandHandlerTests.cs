@@ -7,7 +7,7 @@ using Wayd.ProductManagement.Domain.Models;
 namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Commands;
 
 /// <summary>
-/// Retiring a whole axis, or restoring it.
+/// Retiring a whole category, or restoring it.
 /// </summary>
 public sealed class SetProductTagCategoryActiveCommandHandlerTests : ProductCommandTestBase
 {
@@ -15,7 +15,7 @@ public sealed class SetProductTagCategoryActiveCommandHandlerTests : ProductComm
         new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, DateTimeProvider.Object, Logger<SetProductTagCategoryActiveCommandHandler>());
 
     [Fact]
-    public async Task Deactivate_ShouldTakeTheAxisOutOfUse()
+    public async Task Deactivate_ShouldTakeTheCategoryOutOfUse()
     {
         // Arrange
         var (category, _) = SeedTag();

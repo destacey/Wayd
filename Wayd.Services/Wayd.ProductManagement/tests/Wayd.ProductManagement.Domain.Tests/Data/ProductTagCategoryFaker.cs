@@ -5,7 +5,7 @@ using Wayd.TestData.Core;
 namespace Wayd.ProductManagement.Domain.Tests.Data;
 
 /// <summary>
-/// A persisted tag axis: active, organization-managed and taking several tags unless told otherwise.
+/// A persisted tag category: active, organization-managed and taking several tags unless told otherwise.
 /// </summary>
 public sealed class ProductTagCategoryFaker : PrivateConstructorFaker<ProductTagCategory>
 {
@@ -66,7 +66,7 @@ public static class ProductTagCategoryFakerExtensions
     }
 
     /// <summary>
-    /// Gives the axis active tags with the names, as already saved: no events, and on a system axis too, which
+    /// Gives the category active tags with the names, as already saved: no events, and in a system category too, which
     /// refuses new tags through its own methods.
     /// </summary>
     public static ProductTagCategoryFaker WithTags(this ProductTagCategoryFaker faker, params string[] names)

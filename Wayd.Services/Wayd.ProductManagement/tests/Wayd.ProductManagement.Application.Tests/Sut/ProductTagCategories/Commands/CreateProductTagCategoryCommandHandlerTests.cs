@@ -7,7 +7,7 @@ using Wayd.ProductManagement.Domain.Models;
 namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Commands;
 
 /// <summary>
-/// Creating a tag axis.
+/// Creating a tag category.
 /// </summary>
 public sealed class CreateProductTagCategoryCommandHandlerTests : ProductCommandTestBase
 {
@@ -15,7 +15,7 @@ public sealed class CreateProductTagCategoryCommandHandlerTests : ProductCommand
         new(DbContext, CurrentUser.Object, CurrentPrincipal.Object, DateTimeProvider.Object, Logger<CreateProductTagCategoryCommandHandler>());
 
     [Fact]
-    public async Task Create_ShouldAddTheAxis()
+    public async Task Create_ShouldAddTheCategory()
     {
         // Arrange
         var sut = CreateSut();

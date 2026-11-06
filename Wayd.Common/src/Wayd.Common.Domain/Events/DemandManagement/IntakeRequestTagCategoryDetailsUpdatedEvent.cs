@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// An intake request tag axis was renamed or its description changed.
+/// An intake request tag category was renamed or its description changed.
 /// </summary>
 public sealed record IntakeRequestTagCategoryDetailsUpdatedEvent : DomainEvent<IntakeRequestTagCategoryDetailsUpdatedEvent>, IDomainEventDescriptor, IDemandManagementEvent
 {

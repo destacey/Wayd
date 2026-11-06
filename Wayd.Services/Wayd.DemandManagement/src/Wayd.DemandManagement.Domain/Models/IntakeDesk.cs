@@ -146,23 +146,23 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     public IEnumerable<IntakeChannel> OfferedFrom(IEnumerable<IntakeChannel> channels) => channels.Where(Offers);
 
     /// <summary>
-    /// Whether the desk offers every active company tag axis, including axes added later. A new desk does, until
-    /// a Desk Admin chooses its axes.
+    /// Whether the desk offers every active company tag category, including categories added later. A new desk
+    /// does, until a Desk Admin chooses its categories.
     /// </summary>
     public bool OffersAllTagCategories { get; private set; } = true;
 
     /// <summary>
-    /// The company tag axes the desk chose, while it does not offer them all. Empty with
-    /// <see cref="OffersAllTagCategories"/> false means its agents tag along none.
+    /// The company tag categories the desk chose, while it does not offer them all. Empty with
+    /// <see cref="OffersAllTagCategories"/> false means its agents tag in none.
     /// </summary>
     /// <remarks>
-    /// Whole axes, never single tags: where desks need different values they use different axes.
+    /// Whole categories, never single tags: where desks need different values they use different categories.
     /// </remarks>
     public IReadOnlyCollection<IntakeDeskTagCategory> TagCategories => _tagCategories.AsReadOnly();
 
     /// <summary>
-    /// Whether the desk's agents may give its requests free tags — tags on no axis, typed in while tagging. Off
-    /// until a Desk Admin turns it on, so a desk's filing stays curated unless it chooses otherwise.
+    /// Whether the desk's agents may give its requests free tags — tags in no category, typed in while tagging.
+    /// Off until a Desk Admin turns it on, so a desk's filing stays curated unless it chooses otherwise.
     /// </summary>
     /// <remarks>
     /// Only adding a free tag is held to this: a request keeps, shows and can lose free tags whatever its desk's
@@ -171,11 +171,11 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     public bool AllowsFreeTags { get; private set; }
 
     /// <summary>
-    /// Whether the desk's agents may tag its requests along the axis. Needs <see cref="TagCategories"/> loaded.
+    /// Whether the desk's agents may tag its requests in the category. Needs <see cref="TagCategories"/> loaded.
     /// </summary>
     /// <remarks>
-    /// An inactive axis is offered by no desk, but stays chosen on a desk that chose it. Only applying a tag is
-    /// held to this: a request keeps, shows and can lose tags along any axis.
+    /// An inactive category is offered by no desk, but stays chosen on a desk that chose it. Only applying a tag
+    /// is held to this: a request keeps, shows and can lose tags in any category.
     /// </remarks>
     public bool Offers(IntakeRequestTagCategory category)
     {
@@ -473,19 +473,19 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Sets which company tag axes the desk offers its agents: every active one, including axes added later, or
-    /// only those chosen, which may be none. Needs <see cref="TagCategories"/> loaded.
+    /// Sets which company tag categories the desk offers its agents: every active one, including categories added
+    /// later, or only those chosen, which may be none. Needs <see cref="TagCategories"/> loaded.
     /// </summary>
     /// <remarks>
-    /// Whether the chosen ids are axes, and whether a newly chosen one is active, is the caller's to check: the
-    /// desk does not hold the company list. Offering every axis clears the chosen list. Requests already tagged
+    /// Whether the chosen ids are categories, and whether a newly chosen one is active, is the caller's to check:
+    /// the desk does not hold the company list. Offering every category clears the chosen list. Requests already tagged
     /// keep their tags.
     /// </remarks>
     public Result ChangeTagCategories(bool offersAllTagCategories, IEnumerable<Guid> categoryIds, EventActor actor, Instant timestamp)
     {
         Guid[] target = offersAllTagCategories ? [] : [.. categoryIds.Distinct()];
         if (target.Any(id => id == Guid.Empty))
-            return Result.Failure("A tag axis id cannot be empty.");
+            return Result.Failure("A tag category id cannot be empty.");
 
         Guid[] added = [.. target.Where(id => _tagCategories.All(c => c.CategoryId != id))];
         Guid[] removed = [.. _tagCategories.Select(c => c.CategoryId).Where(id => !target.Contains(id))];

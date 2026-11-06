@@ -3,23 +3,23 @@ using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 namespace Wayd.Web.Api.Models.DemandManagement.IntakeRequestTagCategories;
 
 /// <summary>
-/// A tag axis to add to the end of the list, with no tags.
+/// A tag category to add to the end of the list, with no tags.
 /// </summary>
 public sealed record CreateIntakeRequestTagCategoryRequest
 {
     /// <summary>
-    /// What the company calls the axis. Unique among active and inactive axes.
+    /// What the company calls the category. Unique among active and inactive categories.
     /// </summary>
     public string Name { get; set; } = default!;
 
     /// <summary>
-    /// What the axis is for, shown when choosing tags.
+    /// What the category is for, shown when choosing tags.
     /// </summary>
     public string? Description { get; set; }
 
     /// <summary>
-    /// Whether a request can carry several tags from the axis. When false, tagging a request replaces the tag it
-    /// held on the axis. Cannot be changed afterwards.
+    /// Whether a request can carry several tags from the category. When false, tagging a request replaces the tag it
+    /// held in the category. Cannot be changed afterwards.
     /// </summary>
     public bool AllowsMany { get; set; }
 

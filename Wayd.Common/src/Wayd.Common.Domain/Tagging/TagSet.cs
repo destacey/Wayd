@@ -9,7 +9,7 @@ public interface ITagAssignment
     Guid TagId { get; }
 
     /// <summary>
-    /// The tag's axis, denormalized so the one-tag-per-axis rule needs no load of the tag. Null for a free tag.
+    /// The tag's category, denormalized so the one-tag-per-category rule needs no load of the tag. Null for a free tag.
     /// </summary>
     Guid? CategoryId { get; }
 }
@@ -19,7 +19,7 @@ public interface ITagAssignment
 /// that keeps a copy.
 /// </summary>
 /// <param name="Added">Tags the record gained.</param>
-/// <param name="Removed">Tags the record lost, including one a single-value axis replaced.</param>
+/// <param name="Removed">Tags the record lost, including one a single-value category replaced.</param>
 /// <param name="TagIds">Every tag the record carries afterwards.</param>
 public sealed record TagChange(Guid[] Added, Guid[] Removed, Guid[] TagIds);
 
@@ -27,23 +27,23 @@ public sealed record TagChange(Guid[] Added, Guid[] Removed, Guid[] TagIds);
 /// The set rules every tagged aggregate follows, applied to the assignment list it owns.
 /// </summary>
 /// <remarks>
-/// Only the set mechanics live here. Whether the record may be tagged at all — an inactive tag, an axis a desk
+/// Only the set mechanics live here. Whether the record may be tagged at all — an inactive tag, a category a desk
 /// does not offer, free tags turned off — is the aggregate's to check first, and raising the event is the
 /// aggregate's, because each module's event carries that module's record.
 /// </remarks>
 public static class TagSet
 {
     /// <summary>
-    /// Adds the tag to the set. On an axis that takes one tag, this replaces the tag the record held there rather
+    /// Adds the tag to the set. In a category that takes one tag, this replaces the tag the record held there rather
     /// than refusing, because choosing another value is a correction, not an error. A free tag always joins the
     /// others.
     /// </summary>
     /// <param name="assignments">The aggregate's own assignment list, which this changes.</param>
     /// <param name="tag">The tag to apply.</param>
     /// <param name="category">
-    /// The tag's own axis, or null for a free tag. Any other pairing is a caller bug, so it throws.
+    /// The tag's own category, or null for a free tag. Any other pairing is a caller bug, so it throws.
     /// </param>
-    /// <param name="createAssignment">Builds the aggregate's assignment from the tag id and axis id.</param>
+    /// <param name="createAssignment">Builds the aggregate's assignment from the tag id and category id.</param>
     /// <returns>What changed, or null when the record already carried the tag.</returns>
     public static TagChange? Apply<TAssignment, TTag>(
         List<TAssignment> assignments,
@@ -79,7 +79,7 @@ public static class TagSet
 
     /// <summary>
     /// Swaps one tag for another in a single change, as a merge does: the record loses <paramref name="fromTagId"/>
-    /// and carries <paramref name="tag"/>, following the same axis rules as <see cref="Apply"/>.
+    /// and carries <paramref name="tag"/>, following the same category rules as <see cref="Apply"/>.
     /// </summary>
     /// <returns>What changed, or null when the record did not carry <paramref name="fromTagId"/>.</returns>
     public static TagChange? Replace<TAssignment, TTag>(
@@ -115,7 +115,7 @@ public static class TagSet
         ArgumentNullException.ThrowIfNull(tag);
 
         if (tag.IsFree ? category is not null : category is null || tag.CategoryId != category.Id)
-            throw new ArgumentException("The tag must belong to the supplied axis, and a free tag to none.", nameof(category));
+            throw new ArgumentException("The tag must belong to the supplied category, and a free tag to none.", nameof(category));
     }
 
     private static Guid[] MakeRoom<TAssignment, TTag>(List<TAssignment> assignments, TagCategoryBase<TTag>? category)

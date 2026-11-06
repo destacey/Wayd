@@ -365,7 +365,7 @@ public sealed class UpdateIntakeDeskCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ChoosingTagAxes_OffersOnlyThose()
+    public async Task Handle_ChoosingTagCategories_OffersOnlyThose()
     {
         // Arrange
         var deskAdmin = _scenario.Employee();
@@ -423,7 +423,7 @@ public sealed class UpdateIntakeDeskCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithoutTagAxes_KeepsTheChoiceTheDeskMade()
+    public async Task Handle_WithoutTagCategories_KeepsTheChoiceTheDeskMade()
     {
         // Arrange
         var deskAdmin = _scenario.Employee();
@@ -444,7 +444,7 @@ public sealed class UpdateIntakeDeskCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_NewlyChoosingAnInactiveTagAxis_FailsWithoutChangingTheDesk()
+    public async Task Handle_NewlyChoosingAnInactiveTagCategory_FailsWithoutChangingTheDesk()
     {
         // Arrange
         var deskAdmin = _scenario.Employee();
@@ -460,7 +460,7 @@ public sealed class UpdateIntakeDeskCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be("An inactive tag axis cannot be offered.");
+        result.Error.Should().Be("An inactive tag category cannot be offered.");
         desk.OffersAllTagCategories.Should().BeTrue();
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }

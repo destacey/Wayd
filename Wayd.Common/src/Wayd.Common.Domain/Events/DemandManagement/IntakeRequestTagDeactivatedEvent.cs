@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// A tag on an intake request tag axis was taken out of use. Requests already carrying it keep it.
+/// A tag on an intake request tag category was taken out of use. Requests already carrying it keep it.
 /// </summary>
 public sealed record IntakeRequestTagDeactivatedEvent : DomainEvent<IntakeRequestTagDeactivatedEvent>, IDomainEventDescriptor, IDemandManagementEvent
 {
@@ -19,7 +19,7 @@ public sealed record IntakeRequestTagDeactivatedEvent : DomainEvent<IntakeReques
         Timestamp = timestamp;
     }
 
-    /// <summary>The tag's axis.</summary>
+    /// <summary>The tag's category.</summary>
     public Guid Id { get; }
     public Guid TagId { get; }
 

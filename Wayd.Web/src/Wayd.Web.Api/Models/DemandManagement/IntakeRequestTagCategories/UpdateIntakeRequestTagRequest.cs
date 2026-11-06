@@ -6,7 +6,7 @@ namespace Wayd.Web.Api.Models.DemandManagement.IntakeRequestTagCategories;
 public sealed record UpdateIntakeRequestTagRequest
 {
     /// <summary>
-    /// The label, unique within the axis.
+    /// The label, unique within the category.
     /// </summary>
     public string Name { get; set; } = default!;
 

@@ -11,7 +11,7 @@ public static class DemandManagementArea
     public const string Desks = "demand-management.desks";
     public const string IntakeRequests = "demand-management.intake-requests";
 
-    /// <summary>The key the settings area publishes tag ids under, each keyed <c>axis|tag</c>.</summary>
+    /// <summary>The key the settings area publishes tag ids under, each keyed <c>category|tag</c>.</summary>
     public const string Tags = "demand-management.tags";
 
     /// <summary>The key the settings area publishes channel ids under, keyed by name.</summary>
@@ -47,7 +47,7 @@ public sealed class DemandManagementFeatureFlagArea() : DemandManagementSeedArea
 }
 
 /// <summary>
-/// Creates the tag axes and their tags, and reads the channels Wayd seeded, through the ordinary endpoints:
+/// Creates the tag categories and their tags, and reads the channels Wayd seeded, through the ordinary endpoints:
 /// they are a company's settings, not records anyone imports.
 /// </summary>
 public sealed class DemandManagementSettingsArea() : DemandManagementSeedArea(
@@ -59,7 +59,7 @@ public sealed class DemandManagementSettingsArea() : DemandManagementSeedArea(
     {
         var categories = Data(context).TagCategories;
 
-        context.Log($"Ensuring {categories.Count} intake request tag axes exist...");
+        context.Log($"Ensuring {categories.Count} intake request tag categories exist...");
         context.Publish(DemandManagementArea.Tags, await context.Client.EnsureIntakeTagCategories(categories, cancellationToken));
 
         context.Publish(DemandManagementArea.Channels, await context.Client.GetIntakeChannelIds(cancellationToken));

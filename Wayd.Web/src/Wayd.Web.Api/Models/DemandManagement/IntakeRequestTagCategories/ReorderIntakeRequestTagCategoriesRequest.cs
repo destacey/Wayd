@@ -3,12 +3,12 @@ using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 namespace Wayd.Web.Api.Models.DemandManagement.IntakeRequestTagCategories;
 
 /// <summary>
-/// The order the tag axes are presented in.
+/// The order the tag categories are presented in.
 /// </summary>
 public sealed record ReorderIntakeRequestTagCategoriesRequest
 {
     /// <summary>
-    /// Every axis, inactive ones included, in order. A partial list is refused.
+    /// Every category, inactive ones included, in order. A partial list is refused.
     /// </summary>
     public List<Guid> OrderedCategoryIds { get; set; } = [];
 

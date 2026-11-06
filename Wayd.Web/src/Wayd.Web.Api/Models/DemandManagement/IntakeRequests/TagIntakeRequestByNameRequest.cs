@@ -8,7 +8,7 @@ namespace Wayd.Web.Api.Models.DemandManagement.IntakeRequests;
 public sealed record TagIntakeRequestByNameRequest
 {
     /// <summary>
-    /// The tag's name. When exactly one tag on an axis the request's desk offers has it, ignoring case, that tag is
+    /// The tag's name. When exactly one tag in a category the request's desk offers has it, ignoring case, that tag is
     /// applied; otherwise the free tag with the name is applied, and created when none has it yet.
     /// </summary>
     public string Name { get; set; } = default!;

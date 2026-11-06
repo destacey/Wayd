@@ -4,7 +4,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 // numbers — for the same reason as the other models: ids exist only once the API has created something, so
 // the seed areas substitute them as they go.
 
-/// <summary>The generated desks, tag axes and requests.</summary>
+/// <summary>The generated desks, tag categories and requests.</summary>
 public sealed record GeneratedDemandManagement(
     IReadOnlyList<IntakeDeskModel> Desks,
     IReadOnlyList<IntakeTagCategoryModel> TagCategories,
@@ -34,7 +34,7 @@ public sealed class IntakeDeskModel
 /// <summary>One person on a desk. <see cref="Role"/> is <c>Admin</c> or <c>Agent</c>.</summary>
 public sealed record IntakeDeskMemberModel(string EmployeeNumber, string Role);
 
-/// <summary>A tag axis with its tags. A request carries one tag from an axis unless it allows many.</summary>
+/// <summary>A tag category with its tags. A request carries one tag from a category unless it allows many.</summary>
 public sealed class IntakeTagCategoryModel
 {
     public required string Name { get; init; }
@@ -45,7 +45,7 @@ public sealed class IntakeTagCategoryModel
 
 /// <summary>
 /// A generated intake request on the desk named by <see cref="DeskName"/>. People are employee numbers, tags
-/// are <c>axis|tag</c> handles, and the channel is one of the seeded channels by name. <see cref="Status"/> is
+/// are <c>category|tag</c> handles, and the channel is one of the seeded channels by name. <see cref="Status"/> is
 /// a status of the default workflow by name; a request still Submitted carries no status change.
 /// </summary>
 public sealed class IntakeRequestModel

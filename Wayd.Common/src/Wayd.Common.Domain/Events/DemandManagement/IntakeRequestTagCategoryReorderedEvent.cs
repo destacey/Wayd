@@ -4,10 +4,10 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// An intake request tag axis moved to another position in the list.
+/// An intake request tag category moved to another position in the list.
 /// </summary>
 /// <remarks>
-/// Raised by each axis whose position changed, so reordering the list records one entry per axis moved.
+/// Raised by each category whose position changed, so reordering the list records one entry per category moved.
 /// </remarks>
 public sealed record IntakeRequestTagCategoryReorderedEvent : DomainEvent<IntakeRequestTagCategoryReorderedEvent>, IDomainEventDescriptor, IDemandManagementEvent
 {
@@ -25,10 +25,10 @@ public sealed record IntakeRequestTagCategoryReorderedEvent : DomainEvent<Intake
 
     public Guid Id { get; }
 
-    /// <summary>The axis's position before the move, lowest first.</summary>
+    /// <summary>The category's position before the move, lowest first.</summary>
     public int FromOrder { get; }
 
-    /// <summary>The axis's position after the move, lowest first.</summary>
+    /// <summary>The category's position after the move, lowest first.</summary>
     public int ToOrder { get; }
 
     [JsonIgnore]

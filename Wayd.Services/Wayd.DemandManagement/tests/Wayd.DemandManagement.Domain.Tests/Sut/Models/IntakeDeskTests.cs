@@ -608,7 +608,7 @@ public sealed class IntakeDeskTests
     #region Tag categories
 
     [Fact]
-    public void Offers_ANewDesk_OffersEveryActiveAxis()
+    public void Offers_ANewDesk_OffersEveryActiveCategory()
     {
         // Arrange
         var sut = new IntakeDeskFaker().Generate();
@@ -677,7 +677,7 @@ public sealed class IntakeDeskTests
     }
 
     [Fact]
-    public void ChangeTagCategories_ChosenAxisDeactivated_IsNotOfferedButStaysChosen()
+    public void ChangeTagCategories_ChosenCategoryDeactivated_IsNotOfferedButStaysChosen()
     {
         // Arrange
         var sut = new IntakeDeskFaker().Generate();

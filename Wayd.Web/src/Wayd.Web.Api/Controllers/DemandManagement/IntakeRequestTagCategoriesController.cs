@@ -13,12 +13,12 @@ using Wayd.Web.Api.Models.DemandManagement.IntakeRequestTagCategories;
 namespace Wayd.Web.Api.Controllers.DemandManagement;
 
 /// <summary>
-/// The tag axes reviewers file intake requests along, and the tags on each, managed by the Demand Management
+/// The tag categories reviewers group intake requests by, and the tags on each, managed by the Demand Management
 /// Admin.
 /// </summary>
 /// <remarks>
-/// Tags are managed through their axis rather than as a resource of their own, because uniqueness within an
-/// axis is the axis's rule to enforce. Applying a tag to a request is on the intake requests endpoints.
+/// Tags are managed through their category rather than as a resource of their own, because uniqueness within a
+/// category is the category's rule to enforce. Applying a tag to a request is on the intake requests endpoints.
 /// </remarks>
 [Route("api/demand-management/intake-request-tag-categories")]
 [ApiVersionNeutral]
@@ -32,8 +32,8 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     [HttpGet]
     [McpTool("IntakeRequestTagCategories_GetList", "List intake request tag categories")]
     [Authorize]
-    [EndpointSummary("Get the intake request tag axes, each with its tags.")]
-    [EndpointDescription("Axes in presentation order, tags alphabetically, inactive tags included. Inactive axes only with `includeInactive`. With `deskId`, only the active axes that desk's agents tag along, which may be none; `includeInactive` is then ignored. Each tag's `requestCount` counts only the requests the caller can see.")]
+    [EndpointSummary("Get the intake request tag categories, each with its tags.")]
+    [EndpointDescription("Categories in presentation order, tags alphabetically, inactive tags included. Inactive categories only with `includeInactive`. With `deskId`, only the active categories that desk's agents tag in, which may be none; `includeInactive` is then ignored. Each tag's `requestCount` counts only the requests the caller can see.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<IntakeRequestTagCategoryDto>>> GetIntakeRequestTagCategories([FromQuery] bool includeInactive = false, [FromQuery] Guid? deskId = null, CancellationToken cancellationToken = default)
     {
@@ -44,8 +44,8 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     [HttpPost]
     [McpTool("IntakeRequestTagCategories_Create", "Create intake request tag category", Destructive = false)]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
-    [EndpointSummary("Add an intake request tag axis to the end of the list.")]
-    [EndpointDescription("The axis starts with no tags. `allowsMany` cannot be changed afterwards.")]
+    [EndpointSummary("Add an intake request tag category to the end of the list.")]
+    [EndpointDescription("The category starts with no tags. `allowsMany` cannot be changed afterwards.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201Guid))]
     public async Task<ActionResult<Guid>> Create([FromBody] CreateIntakeRequestTagCategoryRequest request, CancellationToken cancellationToken)
     {
@@ -59,8 +59,8 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     [HttpPut("{id}")]
     [McpTool("IntakeRequestTagCategories_Update", "Update intake request tag category")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
-    [EndpointSummary("Rename an intake request tag axis or change its description.")]
-    [EndpointDescription("Refused on a system axis.")]
+    [EndpointSummary("Rename an intake request tag category or change its description.")]
+    [EndpointDescription("Refused on a system category.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -76,8 +76,8 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     [HttpPut("{id}/active")]
     [McpTool("IntakeRequestTagCategories_SetActive", "Activate or deactivate intake request tag category")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
-    [EndpointSummary("Take an intake request tag axis out of use, or put it back.")]
-    [EndpointDescription("Nothing new can be tagged along an inactive axis; requests already tagged keep their tags and can still have them removed.")]
+    [EndpointSummary("Take an intake request tag category out of use, or put it back.")]
+    [EndpointDescription("Nothing new can be tagged in an inactive category; requests already tagged keep their tags and can still have them removed.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -87,8 +87,8 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     [HttpPut("order")]
     [McpTool("IntakeRequestTagCategories_Reorder", "Reorder intake request tag categories")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
-    [EndpointSummary("Put the intake request tag axes in the order they are presented.")]
-    [EndpointDescription("The list must name every axis, inactive ones included, exactly once; a partial list is refused.")]
+    [EndpointSummary("Put the intake request tag categories in the order they are presented.")]
+    [EndpointDescription("The list must name every category, inactive ones included, exactly once; a partial list is refused.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -98,8 +98,8 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     [HttpDelete("{id}")]
     [McpTool("IntakeRequestTagCategories_Delete", "Delete intake request tag category")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
-    [EndpointSummary("Delete an intake request tag axis and its tags.")]
-    [EndpointDescription("Refused on a system axis, and while any request is tagged along it; deactivate it instead.")]
+    [EndpointSummary("Delete an intake request tag category and its tags.")]
+    [EndpointDescription("Refused on a system category, and while any request is tagged in it; deactivate it instead.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -109,8 +109,8 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     [HttpPost("{id}/tags")]
     [McpTool("IntakeRequestTagCategories_AddTag", "Add intake request tag", Destructive = false)]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
-    [EndpointSummary("Add a tag to an intake request tag axis.")]
-    [EndpointDescription("Tag names are unique within their axis. Refused on a system axis.")]
+    [EndpointSummary("Add a tag to an intake request tag category.")]
+    [EndpointDescription("Tag names are unique within their category. Refused on a system category.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -128,7 +128,7 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     [McpTool("IntakeRequestTagCategories_UpdateTag", "Update intake request tag")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Rename a tag or change its description.")]
-    [EndpointDescription("Every request carrying the tag reads the new name. Refused on a system axis.")]
+    [EndpointDescription("Every request carrying the tag reads the new name. Refused on a system category.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -140,7 +140,7 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     [McpTool("IntakeRequestTagCategories_SetTagActive", "Activate or deactivate intake request tag")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Take a tag out of use, or put it back.")]
-    [EndpointDescription("An inactive tag cannot be applied; requests already carrying it keep it and can still have it removed. Refused on a system axis.")]
+    [EndpointDescription("An inactive tag cannot be applied; requests already carrying it keep it and can still have it removed. Refused on a system category.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -151,7 +151,7 @@ public class IntakeRequestTagCategoriesController(IDispatcher dispatcher) : Cont
     [McpTool("IntakeRequestTagCategories_DeleteTag", "Delete intake request tag")]
     [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
     [EndpointSummary("Delete a tag.")]
-    [EndpointDescription("Refused on a system axis, and while any request carries the tag; deactivate it instead.")]
+    [EndpointDescription("Refused on a system category, and while any request carries the tag; deactivate it instead.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

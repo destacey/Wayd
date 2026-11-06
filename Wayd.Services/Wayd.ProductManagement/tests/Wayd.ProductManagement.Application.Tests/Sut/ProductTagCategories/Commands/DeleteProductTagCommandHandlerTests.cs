@@ -57,7 +57,7 @@ public sealed class DeleteProductTagCommandHandlerTests : ProductCommandTestBase
     }
 
     [Fact]
-    public async Task Delete_ShouldFail_ForATagOnAnotherAxis()
+    public async Task Delete_ShouldFail_ForATagInAnotherCategory()
     {
         // Arrange
         var (category, _) = SeedTag(categoryName: "Platform");

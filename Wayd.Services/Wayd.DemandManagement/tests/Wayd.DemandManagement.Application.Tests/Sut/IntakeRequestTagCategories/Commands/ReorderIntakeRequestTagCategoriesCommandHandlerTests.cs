@@ -13,7 +13,7 @@ public sealed class ReorderIntakeRequestTagCategoriesCommandHandlerTests
         new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock);
 
     [Fact]
-    public async Task Handle_WithEveryAxis_NumbersThemInTheGivenOrder()
+    public async Task Handle_WithEveryCategory_NumbersThemInTheGivenOrder()
     {
         // Arrange
         _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);

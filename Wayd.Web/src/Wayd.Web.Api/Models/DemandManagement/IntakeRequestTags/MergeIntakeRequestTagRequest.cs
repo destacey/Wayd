@@ -6,7 +6,7 @@ namespace Wayd.Web.Api.Models.DemandManagement.IntakeRequestTags;
 public sealed record MergeIntakeRequestTagRequest
 {
     /// <summary>
-    /// Another free tag, or an active tag on an active axis.
+    /// Another free tag, or an active tag in an active category.
     /// </summary>
     public Guid TargetTagId { get; set; }
 }

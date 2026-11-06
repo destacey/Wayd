@@ -1,11 +1,11 @@
 namespace Wayd.DemandManagement.Domain.Models;
 
 /// <summary>
-/// A company tag axis a desk chose to offer its agents, while the desk offers only the axes it chose.
+/// A company tag category a desk chose to offer its agents, while the desk offers only the categories it chose.
 /// </summary>
 /// <remarks>
-/// Kept when the axis is deactivated, so the desk offers it again if it is activated; an inactive axis is
-/// offered by no desk in the meantime.
+/// Kept when the category is deactivated, so the desk offers it again if it is activated; an inactive category
+/// is offered by no desk in the meantime.
 /// </remarks>
 public sealed class IntakeDeskTagCategory
 {
@@ -17,9 +17,9 @@ public sealed class IntakeDeskTagCategory
         CategoryId = categoryId;
     }
 
-    /// <summary>The desk offering the axis.</summary>
+    /// <summary>The desk offering the category.</summary>
     public Guid DeskId { get; private init; }
 
-    /// <summary>The company tag axis the desk offers.</summary>
+    /// <summary>The company tag category the desk offers.</summary>
     public Guid CategoryId { get; private init; }
 }

@@ -34,13 +34,13 @@ public class ProductTypeSeeder : ICustomSeeder
     public async Task Initialize(WaydDbContext dbContext, IDateTimeProvider dateTimeProvider, CancellationToken cancellationToken)
     {
         // Guarded on its own count rather than sharing the types guard below: an install holding types
-        // but no axes would otherwise never get the Platform axis, and there is no recovery — the axis
+        // but no categories would otherwise never get the Platform category, and there is no recovery — the category
         // is IsSystem, and the create command only makes non-system ones.
-        var seededAxes = await SeedTagCategories(dbContext, dateTimeProvider, cancellationToken);
+        var seededCategories = await SeedTagCategories(dbContext, dateTimeProvider, cancellationToken);
 
         if (await dbContext.ProductTypes.AnyAsync(cancellationToken))
         {
-            if (seededAxes)
+            if (seededCategories)
             {
                 await dbContext.SaveChangesAsync(cancellationToken);
             }
@@ -78,19 +78,19 @@ public class ProductTypeSeeder : ICustomSeeder
     }
 
     /// <summary>
-    /// Seeds the one tag axis worth assuming every organization wants.
+    /// Seeds the one tag category worth assuming every organization wants.
     /// </summary>
     /// <remarks>
     /// Platform is where web-versus-mobile lives, deliberately as a label rather than a node type: a web
     /// app and a mobile app behave identically — both releasable, both deployed, both rolling up into a
     /// product — so splitting the type system on it would add types that gate nothing.
     /// <para>
-    /// Only this axis is seeded. Tech stack, compliance scope and team conventions are all real axes, but
-    /// which ones an organization needs is exactly what cannot be guessed, and an unwanted seeded axis is
+    /// Only this category is seeded. Tech stack, compliance scope and team conventions are all real categories, but
+    /// which ones an organization needs is exactly what cannot be guessed, and an unwanted seeded category is
     /// something every organization has to remove.
     /// </para>
     /// <para>
-    /// The axis's events are written straight into the activity log rather than left for <c>SaveChanges</c>
+    /// The category's events are written straight into the activity log rather than left for <c>SaveChanges</c>
     /// to drain, because draining also publishes and Wolverine cannot route while seeders run.
     /// </para>
     /// </remarks>

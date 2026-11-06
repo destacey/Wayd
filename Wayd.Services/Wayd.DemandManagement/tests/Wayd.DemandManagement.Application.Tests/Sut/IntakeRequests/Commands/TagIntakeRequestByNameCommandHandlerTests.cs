@@ -15,7 +15,7 @@ public sealed class TagIntakeRequestByNameCommandHandlerTests
         new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock);
 
     [Fact]
-    public async Task Handle_WhenAnAxisTheDeskOffersHasTheName_AppliesThatTag()
+    public async Task Handle_WhenACategoryTheDeskOffersHasTheName_AppliesThatTag()
     {
         // Arrange — typing a curated tag's name by hand applies it, free tags off or on
         var agent = _scenario.Employee();
@@ -34,7 +34,7 @@ public sealed class TagIntakeRequestByNameCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenTwoAxesHaveTheName_Fails()
+    public async Task Handle_WhenTwoCategoriesHaveTheName_Fails()
     {
         // Arrange
         var agent = _scenario.Employee();

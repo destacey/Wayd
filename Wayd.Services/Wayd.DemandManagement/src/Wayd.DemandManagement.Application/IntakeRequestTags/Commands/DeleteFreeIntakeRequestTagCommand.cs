@@ -9,9 +9,9 @@ namespace Wayd.DemandManagement.Application.IntakeRequestTags.Commands;
 /// permission is checked by the endpoint.
 /// </summary>
 /// <remarks>
-/// Unlike a tag on an axis, which is refused while in use and deactivated instead, a free tag is deleted outright:
-/// free tags are never kept unused, so there is no inactive state to retire one to. Each request records losing
-/// it. To keep the requests filed under another tag, merge instead.
+/// Unlike a tag in a category, which is refused while in use and deactivated instead, a free tag is deleted
+/// outright: free tags are never kept unused, so there is no inactive state to retire one to. Each request records
+/// losing it. To keep the requests filed under another tag, merge instead.
 /// </remarks>
 /// <param name="Id">The free tag.</param>
 public sealed record DeleteFreeIntakeRequestTagCommand(Guid Id) : ICommand;

@@ -1,10 +1,10 @@
 ﻿namespace Wayd.ProductManagement.Application.ProductTagCategories.Commands;
 
 /// <summary>
-/// Takes a tag axis out of use, or puts it back.
+/// Takes a tag category out of use, or puts it back.
 /// </summary>
 /// <remarks>
-/// Products already tagged along the axis keep their tags, for the same reason a product type is
+/// Products already tagged in the category keep their tags, for the same reason a product type is
 /// deactivated rather than deleted: the labels stay meaningful on what already carries them.
 /// </remarks>
 public sealed record SetProductTagCategoryActiveCommand(Guid Id, bool IsActive) : ICommand;

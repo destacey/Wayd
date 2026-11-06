@@ -2,7 +2,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 /// <summary>
 /// The words the Request Desk generator draws from: the kinds of ask a company receives, the channels Wayd
-/// seeds, the default review workflow's statuses, and the tag axes a desk files by.
+/// seeds, the default review workflow's statuses, and the tag categories a desk files by.
 /// </summary>
 internal static class DemandManagementVocabulary
 {
@@ -239,7 +239,7 @@ internal static class DemandManagementVocabulary
         "We found a workaround that is good enough.",
     ];
 
-    // ---- Tag axes ---------------------------------------------------------------------------
+    // ---- Tag categories ---------------------------------------------------------------------------
 
     public static readonly IntakeTagCategoryModel Size = new()
     {

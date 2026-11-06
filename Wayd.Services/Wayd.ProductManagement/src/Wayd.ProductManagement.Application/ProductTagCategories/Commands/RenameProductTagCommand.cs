@@ -1,7 +1,7 @@
 ﻿namespace Wayd.ProductManagement.Application.ProductTagCategories.Commands;
 
 /// <summary>
-/// Renames a tag on an axis.
+/// Renames a tag in a category.
 /// </summary>
 /// <remarks>
 /// Safe on a tag already in use: products reference it by id, so the new name shows everywhere at once

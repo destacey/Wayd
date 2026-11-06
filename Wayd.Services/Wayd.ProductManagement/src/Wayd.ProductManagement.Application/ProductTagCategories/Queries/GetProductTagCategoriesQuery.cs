@@ -4,10 +4,10 @@ using Wayd.ProductManagement.Domain.Models;
 namespace Wayd.ProductManagement.Application.ProductTagCategories.Queries;
 
 /// <summary>
-/// The tag axes and their tags.
+/// The tag categories and their tags.
 /// </summary>
 /// <param name="IsActive">
-/// Narrows to active or inactive axes. Null returns both — a settings screen manages what a picker
+/// Narrows to active or inactive categories. Null returns both — a settings screen manages what a picker
 /// would hide.
 /// </param>
 public sealed record GetProductTagCategoriesQuery(bool? IsActive = null)

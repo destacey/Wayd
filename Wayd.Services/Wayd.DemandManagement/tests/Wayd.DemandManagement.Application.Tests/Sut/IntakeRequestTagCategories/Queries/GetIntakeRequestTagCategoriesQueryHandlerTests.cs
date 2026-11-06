@@ -16,7 +16,7 @@ public sealed class GetIntakeRequestTagCategoriesQueryHandlerTests
         new(_scenario.DbContext, _scenario.Principal.Object);
 
     [Fact]
-    public async Task Handle_ByDefault_ReturnsActiveAxesInOrderWithEveryTagAlphabetically()
+    public async Task Handle_ByDefault_ReturnsActiveCategoriesInOrderWithEveryTagAlphabetically()
     {
         // Arrange
         _scenario.SignedInAs(_scenario.Employee());
@@ -35,7 +35,7 @@ public sealed class GetIntakeRequestTagCategoriesQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_IncludingInactive_ReturnsInactiveAxesToo()
+    public async Task Handle_IncludingInactive_ReturnsInactiveCategoriesToo()
     {
         // Arrange
         _scenario.SignedInAs(_scenario.Employee());
@@ -65,7 +65,7 @@ public sealed class GetIntakeRequestTagCategoriesQueryHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ForADesk_ReturnsOnlyTheActiveAxesItOffers()
+    public async Task Handle_ForADesk_ReturnsOnlyTheActiveCategoriesItOffers()
     {
         // Arrange
         _scenario.SignedInAs(_scenario.Employee());

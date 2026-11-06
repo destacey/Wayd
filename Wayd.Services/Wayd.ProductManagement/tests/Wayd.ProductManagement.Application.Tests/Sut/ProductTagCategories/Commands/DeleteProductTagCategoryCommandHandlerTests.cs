@@ -7,7 +7,7 @@ using Wayd.ProductManagement.Domain.Models;
 namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Commands;
 
 /// <summary>
-/// Removing an axis outright. Only safe for one nothing is tagged along.
+/// Removing a category outright. Only safe for one nothing is tagged in.
 /// </summary>
 public sealed class DeleteProductTagCategoryCommandHandlerTests : ProductCommandTestBase
 {
@@ -23,7 +23,7 @@ public sealed class DeleteProductTagCategoryCommandHandlerTests : ProductCommand
     }
 
     [Fact]
-    public async Task Delete_ShouldRemoveAnUnusedAxis()
+    public async Task Delete_ShouldRemoveAnUnusedCategory()
     {
         // Arrange
         var (category, _) = SeedTag();
@@ -39,7 +39,7 @@ public sealed class DeleteProductTagCategoryCommandHandlerTests : ProductCommand
     }
 
     [Fact]
-    public async Task Delete_ShouldRefuseAnAxisProductsAreTaggedAlong()
+    public async Task Delete_ShouldRefuseACategoryProductsAreTaggedIn()
     {
         // Arrange
         var (category, tag) = SeedTag();
@@ -59,12 +59,12 @@ public sealed class DeleteProductTagCategoryCommandHandlerTests : ProductCommand
         // Assert
         // Deleting cascades to the tags and would strip the labels from every product carrying them.
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ProductTagCategory.AxisInUseError);
+        result.Error.Should().Be(ProductTagCategory.CategoryInUseError);
         DbContext.ProductTagCategories.Should().ContainSingle();
     }
 
     [Fact]
-    public async Task Delete_ShouldRefuseASystemAxis()
+    public async Task Delete_ShouldRefuseASystemCategory()
     {
         // Arrange
         var category = SeedSystemCategory();
@@ -76,6 +76,6 @@ public sealed class DeleteProductTagCategoryCommandHandlerTests : ProductCommand
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ProductTagCategory.SystemAxisError);
+        result.Error.Should().Be(ProductTagCategory.SystemCategoryError);
     }
 }

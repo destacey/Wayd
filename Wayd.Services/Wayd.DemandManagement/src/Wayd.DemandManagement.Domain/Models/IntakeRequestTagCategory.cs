@@ -6,13 +6,13 @@ using Wayd.Common.Domain.Tagging;
 namespace Wayd.DemandManagement.Domain.Models;
 
 /// <summary>
-/// An axis reviewers file requests along — area, customer segment, review cycle — holding the tags that
+/// A category reviewers group requests by — area, customer segment, review cycle — holding the tags that
 /// belong to it.
 /// </summary>
 /// <remarks>
 /// The reviewing team's own filing, distinct from the channel a request arrived through and from the themes
-/// its requester picked: those are fixed vocabulary, while these axes change as the intake team learns what
-/// it needs to slice by. The rules are shared with every module's tag axes; see
+/// its requester picked: those are fixed vocabulary, while these categories change as the intake team learns
+/// what it needs to slice by. The rules are shared with every module's tag categories; see
 /// <see cref="TagCategoryBase{TTag}"/>.
 /// </remarks>
 public sealed class IntakeRequestTagCategory : TagCategoryBase<IntakeRequestTag>
@@ -26,29 +26,29 @@ public sealed class IntakeRequestTagCategory : TagCategoryBase<IntakeRequestTag>
     {
     }
 
-    /// <summary>The failure for changing what a system axis means.</summary>
+    /// <summary>The failure for changing what a system category means.</summary>
     /// <remarks>
-    /// No axis is a system axis yet. The seeded Area axis is the company's to change, so it is not one.
+    /// No category is a system category yet. The seeded Area category is the company's to change, so it is not one.
     /// </remarks>
-    public const string SystemAxisError = TagErrors.SystemAxis;
+    public const string SystemCategoryError = TagErrors.SystemCategory;
 
-    /// <summary>The failure for a tag id that is not on this axis.</summary>
+    /// <summary>The failure for a tag id that is not in this category.</summary>
     public const string TagNotFoundError = TagErrors.TagNotFound;
 
     /// <summary>The failure for a tag with a blank name.</summary>
     public const string TagNameRequiredError = TagErrors.TagNameRequired;
 
-    /// <summary>The failure for a tag name another tag on the axis already has.</summary>
+    /// <summary>The failure for a tag name another tag in the category already has.</summary>
     public const string DuplicateTagNameError = TagErrors.DuplicateTagName;
 
     /// <summary>The failure for deleting a tag a request carries.</summary>
     public const string TagInUseError = "Requests carry this tag, so it cannot be deleted. Deactivate it instead.";
 
-    /// <summary>The failure for deleting an axis requests are tagged along.</summary>
-    public const string AxisInUseError = "Requests are tagged along this axis, so it cannot be deleted. Deactivate it instead.";
+    /// <summary>The failure for deleting a category requests are tagged in.</summary>
+    public const string CategoryInUseError = "Requests are tagged in this category, so it cannot be deleted. Deactivate it instead.";
 
     /// <summary>
-    /// Defines an axis the company manages.
+    /// Defines a category the company manages.
     /// </summary>
     public static IntakeRequestTagCategory Create(string name, string? description, bool allowsMany, int order,
         EventActor actor, Instant timestamp)
@@ -63,7 +63,7 @@ public sealed class IntakeRequestTagCategory : TagCategoryBase<IntakeRequestTag>
 
     protected override string TagInUseMessage => TagInUseError;
 
-    protected override string AxisInUseMessage => AxisInUseError;
+    protected override string CategoryInUseMessage => CategoryInUseError;
 
     protected override IntakeRequestTag CreateTag(string name, string? description) => new(Id, name, description);
 

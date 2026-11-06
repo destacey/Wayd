@@ -3,11 +3,11 @@ using Wayd.Common.Domain.Events;
 namespace Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 
 /// <summary>
-/// Puts the tag axes in the order they are presented. The Administer permission is checked by the endpoint.
+/// Puts the tag categories in the order they are presented. The Administer permission is checked by the endpoint.
 /// </summary>
 /// <param name="OrderedCategoryIds">
-/// Every axis, inactive ones included, in order. The whole list, not a subset: naming only some would leave
-/// the rest at stale positions.
+/// Every category, inactive ones included, in order. The whole list, not a subset: naming only some would
+/// leave the rest at stale positions.
 /// </param>
 public sealed record ReorderIntakeRequestTagCategoriesCommand(IReadOnlyList<Guid> OrderedCategoryIds) : ICommand;
 
@@ -20,7 +20,7 @@ public sealed class ReorderIntakeRequestTagCategoriesCommandValidator : CustomVa
             .Must(ids => ids.All(id => id != Guid.Empty))
             .WithMessage("The order cannot contain an empty id.")
             .Must(ids => ids.Distinct().Count() == ids.Count)
-            .WithMessage("The order cannot name the same tag axis twice.");
+            .WithMessage("The order cannot name the same tag category twice.");
     }
 }
 
@@ -45,7 +45,7 @@ public sealed class ReorderIntakeRequestTagCategoriesCommandHandler(
             || !orderedIds.All(categoriesById.ContainsKey)
             || orderedIds.Distinct().Count() != orderedIds.Count)
         {
-            return Result.Failure("The order must list every tag axis exactly once.");
+            return Result.Failure("The order must list every tag category exactly once.");
         }
 
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);

@@ -7,12 +7,12 @@ using Wayd.Common.Domain.Tagging;
 namespace Wayd.ProductManagement.Domain.Models;
 
 /// <summary>
-/// One label on one product axis — <c>ios</c> on Platform, <c>pci-scope</c> on Compliance — or a free tag on no
-/// axis, such as "migration wave 2".
+/// One label in one product category — <c>ios</c> in Platform, <c>pci-scope</c> in Compliance — or a free tag in no
+/// category, such as "migration wave 2".
 /// </summary>
 /// <remarks>
 /// Descriptive only. Nothing in the domain branches on a tag — behaviour comes from the product's type — so adding
-/// one can never change what a node is allowed to do. A tag on an axis changes only through
+/// one can never change what a node is allowed to do. A tag in a category changes only through
 /// <see cref="ProductTagCategory"/>.
 /// </remarks>
 public sealed class ProductTag : TagBase

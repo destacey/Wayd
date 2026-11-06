@@ -8,11 +8,11 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 /// Files an intake request under a tag. Needs an agent on the request's desk.
 /// </summary>
 /// <remarks>
-/// On an axis that takes one tag, this replaces the tag the request held there. The request's own people see
+/// In a category that takes one tag, this replaces the tag the request held there. The request's own people see
 /// its tags but do not change them: filing is the reviewers' call.
 /// </remarks>
 /// <param name="Id">The request.</param>
-/// <param name="TagId">The tag to apply, which must be active on an active axis.</param>
+/// <param name="TagId">The tag to apply, which must be active in an active category.</param>
 public sealed record TagIntakeRequestCommand(Guid Id, Guid TagId) : ICommand, IRequireLinkedEmployee;
 
 public sealed class TagIntakeRequestCommandValidator : CustomValidator<TagIntakeRequestCommand>
@@ -79,7 +79,7 @@ public sealed class TagIntakeRequestCommandHandler(
         }
         catch (DbUpdateException)
         {
-            // The tag was applied, or the tag or its axis deleted, between the checks above and this save.
+            // The tag was applied, or the tag or its category deleted, between the checks above and this save.
             return Result.Failure(TagsChangedError);
         }
 

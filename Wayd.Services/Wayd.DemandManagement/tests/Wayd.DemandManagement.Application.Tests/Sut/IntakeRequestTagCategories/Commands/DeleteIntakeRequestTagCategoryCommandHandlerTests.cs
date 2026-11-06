@@ -50,13 +50,13 @@ public sealed class DeleteIntakeRequestTagCategoryCommandHandlerTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(IntakeRequestTagCategory.AxisInUseError);
+        result.Error.Should().Be(IntakeRequestTagCategory.CategoryInUseError);
         _scenario.DbContext.IntakeRequestTagCategories.Should().ContainSingle();
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]
-    public async Task Handle_ForAnUnknownAxis_ReportsNotFound()
+    public async Task Handle_ForAnUnknownCategory_ReportsNotFound()
     {
         // Arrange
         _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
@@ -96,7 +96,7 @@ public sealed class DeleteIntakeRequestTagCategoryCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenTheSaveFails_ReportsTheAxisChanged()
+    public async Task Handle_WhenTheSaveFails_ReportsTheCategoryChanged()
     {
         // Arrange
         _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);

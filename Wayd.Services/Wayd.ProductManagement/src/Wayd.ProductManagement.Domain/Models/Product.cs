@@ -99,7 +99,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     public ProductStatusAlias StatusAlias => (ProductStatusAlias)StatusAliasValue;
 
     /// <summary>
-    /// The tags this node carries, across every axis.
+    /// The tags this node carries, across every category.
     /// </summary>
     /// <remarks>
     /// Where the type system stops. A type decides what a node may <em>do</em> — whether releases can be
@@ -109,15 +109,15 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     public IReadOnlyCollection<ProductTagAssignment> Tags => _tags.AsReadOnly();
 
     /// <summary>
-    /// Applies a tag, on an axis or free.
+    /// Applies a tag, in a category or free.
     /// </summary>
     /// <remarks>
     /// Whether free tags are turned on is an organization setting, which the caller checks.
     /// </remarks>
     /// <param name="category">
-    /// The tag's axis, supplied by the caller because the aggregate cannot load it, or null for a free tag. Its
+    /// The tag's category, supplied by the caller because the aggregate cannot load it, or null for a free tag. Its
     /// <see cref="ProductTagCategory.AllowsMany"/> decides whether this replaces an existing tag on the
-    /// same axis or joins it. Must be the tag's own axis; any other is a caller bug, so it throws.
+    /// same category or joins it. Must be the tag's own category; any other is a caller bug, so it throws.
     /// </param>
     public Result Tag(ProductTag tag, ProductTagCategory? category, EventActor actor, Instant timestamp)
     {
@@ -137,7 +137,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     }
 
     /// <summary>
-    /// The failure for applying a tag, or a tag on an axis, that has been deactivated.
+    /// The failure for applying a tag, or a tag in a category, that has been deactivated.
     /// </summary>
     public const string InactiveTagError = TagErrors.InactiveTag;
 
@@ -158,7 +158,7 @@ public sealed class Product : StatusTrackedEntity, IHasIdAndKey, ISimpleProduct
     /// Swaps a tag the product carries for another in one change, as merging a free tag does. Succeeds, changing
     /// nothing, when the product did not carry <paramref name="fromTagId"/>.
     /// </summary>
-    /// <param name="category">The new tag's axis, or null for a free tag, as for <see cref="Tag"/>.</param>
+    /// <param name="category">The new tag's category, or null for a free tag, as for <see cref="Tag"/>.</param>
     public Result ReplaceTag(Guid fromTagId, ProductTag tag, ProductTagCategory? category, EventActor actor, Instant timestamp)
     {
         Guard.Against.Null(tag, nameof(tag));

@@ -9,7 +9,7 @@ using Wayd.ProductManagement.Application.Tests.Infrastructure;
 namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTags.Commands;
 
 /// <summary>
-/// Folding a free tag into another tag, which is also how a free tag that caught on is promoted onto an axis.
+/// Folding a free tag into another tag, which is also how a free tag that caught on is promoted into a category.
 /// </summary>
 public sealed class MergeProductTagCommandHandlerTests : ProductCommandTestBase
 {
@@ -46,7 +46,7 @@ public sealed class MergeProductTagCommandHandlerTests : ProductCommandTestBase
     }
 
     [Fact]
-    public async Task Handle_ShouldRefuse_WhenTheSourceIsOnAnAxis()
+    public async Task Handle_ShouldRefuse_WhenTheSourceIsInACategory()
     {
         // Arrange
         var (_, ios) = SeedTag(tagName: "ios");

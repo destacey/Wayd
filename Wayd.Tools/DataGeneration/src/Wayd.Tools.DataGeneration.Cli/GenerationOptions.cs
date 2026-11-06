@@ -193,7 +193,7 @@ public static class GenerationOptions
 
     public static Option<bool> SkipDemandManagement { get; } = new("--skip-demand-management")
     {
-        Description = "Skip the Request Desk: its desks, tag axes and intake requests. A shorthand for a recipe that disables the demand management area.",
+        Description = "Skip the Request Desk: its desks, tag categories and intake requests. A shorthand for a recipe that disables the demand management area.",
     };
 
     public static Option<int?> RequestsPerMonth { get; } = new("--requests-per-month")

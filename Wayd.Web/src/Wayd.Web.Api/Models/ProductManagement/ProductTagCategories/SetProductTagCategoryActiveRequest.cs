@@ -3,7 +3,7 @@
 namespace Wayd.Web.Api.Models.ProductManagement.ProductTagCategories;
 
 /// <summary>
-/// Takes a tag axis out of use, or puts it back. Products already tagged keep their tags.
+/// Takes a tag category out of use, or puts it back. Products already tagged keep their tags.
 /// </summary>
 public sealed record SetProductTagCategoryActiveRequest
 {
@@ -13,7 +13,7 @@ public sealed record SetProductTagCategoryActiveRequest
     public Guid Id { get; set; }
 
     /// <summary>
-    /// Whether products can still be tagged along this axis.
+    /// Whether products can still be tagged in this category.
     /// </summary>
     public bool IsActive { get; set; }
 

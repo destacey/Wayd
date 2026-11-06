@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A free product tag — one on no axis — was created by someone typing its name while tagging.
+/// A free product tag — one in no category — was created by someone typing its name while tagging.
 /// </summary>
 public sealed record ProductFreeTagCreatedEvent : DomainEvent<ProductFreeTagCreatedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {

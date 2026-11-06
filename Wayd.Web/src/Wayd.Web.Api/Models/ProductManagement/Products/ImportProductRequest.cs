@@ -43,7 +43,7 @@ public sealed class ImportProductRequest
     /// <c>Platform|ios;Platform|android;Compliance|pci-scope</c>.
     /// </summary>
     /// <remarks>
-    /// The axis travels with each tag because a tag name is unique only within its axis: <c>ios</c>
+    /// The category travels with each tag because a tag name is unique only within its category: <c>ios</c>
     /// alone identifies nothing. Written the way the screens render a tag, so the file reads like the
     /// product page.
     /// </remarks>

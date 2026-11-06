@@ -3,13 +3,13 @@ using Wayd.ProductManagement.Application.ProductTags.Dtos;
 namespace Wayd.ProductManagement.Application.ProductTags.Queries;
 
 /// <summary>
-/// Product tags, on axes and free, sorted by name. Serves both the type-ahead while tagging and the list of free
+/// Product tags, in categories and free, sorted by name. Serves both the type-ahead while tagging and the list of free
 /// tags an admin manages.
 /// </summary>
 /// <param name="Search">Keeps tags whose name contains this, ignoring case.</param>
-/// <param name="IsFree">True for free tags only, false for tags on axes only, null for both.</param>
+/// <param name="IsFree">True for free tags only, false for tags in categories only, null for both.</param>
 /// <param name="IncludeInactive">
-/// Whether to keep inactive tags and tags on inactive axes, which cannot be applied. Off for a picker.
+/// Whether to keep inactive tags and tags in inactive categories, which cannot be applied. Off for a picker.
 /// </param>
 public sealed record GetProductTagsQuery(string? Search = null, bool? IsFree = null, bool IncludeInactive = false)
     : IQuery<IReadOnlyList<ProductTagListItemDto>>;

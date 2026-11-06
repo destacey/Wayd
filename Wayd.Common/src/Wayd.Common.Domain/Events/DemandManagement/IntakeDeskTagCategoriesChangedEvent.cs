@@ -4,12 +4,12 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// Which company tag axes an intake desk offers its agents changed: it switched between offering every axis and
-/// only those it chose, or it chose different axes.
+/// Which company tag categories an intake desk offers its agents changed: it switched between offering every category and
+/// only those it chose, or it chose different categories.
 /// </summary>
 /// <remarks>
-/// A desk offering every axis also offers axes added later, so its chosen list is empty. A desk offering only its
-/// chosen axes with none chosen offers none, and its requests are not tagged.
+/// A desk offering every category also offers categories added later, so its chosen list is empty. A desk offering only its
+/// chosen categories with none chosen offers none, and its requests are not tagged.
 /// </remarks>
 public sealed record IntakeDeskTagCategoriesChangedEvent : DomainEvent<IntakeDeskTagCategoriesChangedEvent>, IDomainEventDescriptor, IDemandManagementEvent
 {
@@ -41,19 +41,19 @@ public sealed record IntakeDeskTagCategoriesChangedEvent : DomainEvent<IntakeDes
     public Guid Id { get; }
     public int Key { get; }
 
-    /// <summary>Whether the desk now offers every active tag axis, including ones added later.</summary>
+    /// <summary>Whether the desk now offers every active tag category, including ones added later.</summary>
     public bool OffersAllTagCategories { get; }
 
     /// <summary>Whether it did before the change.</summary>
     public bool PreviousOffersAllTagCategories { get; }
 
-    /// <summary>The axes newly chosen.</summary>
+    /// <summary>The categories newly chosen.</summary>
     public IReadOnlyList<Guid> AddedTagCategoryIds { get; }
 
-    /// <summary>The axes no longer chosen.</summary>
+    /// <summary>The categories no longer chosen.</summary>
     public IReadOnlyList<Guid> RemovedTagCategoryIds { get; }
 
-    /// <summary>The axes chosen after the change; empty when the desk offers every axis.</summary>
+    /// <summary>The categories chosen after the change; empty when the desk offers every category.</summary>
     public IReadOnlyList<Guid> TagCategoryIds { get; }
 
     [JsonIgnore]

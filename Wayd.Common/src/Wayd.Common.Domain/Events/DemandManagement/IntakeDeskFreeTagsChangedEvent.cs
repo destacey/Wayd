@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// An intake desk turned free tags on or off: whether its agents may give its requests tags on no axis, typed in
+/// An intake desk turned free tags on or off: whether its agents may give its requests tags in no category, typed in
 /// while tagging.
 /// </summary>
 public sealed record IntakeDeskFreeTagsChangedEvent : DomainEvent<IntakeDeskFreeTagsChangedEvent>, IDomainEventDescriptor, IDemandManagementEvent

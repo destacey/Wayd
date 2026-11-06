@@ -3,10 +3,10 @@ using Wayd.Common.Domain.Events;
 namespace Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 
 /// <summary>
-/// Takes a tag axis out of use, or puts it back. Requests already tagged along it keep their tags. Allowed on a
-/// system axis. The Administer permission is checked by the endpoint.
+/// Takes a tag category out of use, or puts it back. Requests already tagged in it keep their tags. Allowed on
+/// a system category. The Administer permission is checked by the endpoint.
 /// </summary>
-/// <param name="Id">The axis.</param>
+/// <param name="Id">The category.</param>
 /// <param name="IsActive">Whether requests can be tagged along it.</param>
 public sealed record SetIntakeRequestTagCategoryActiveCommand(Guid Id, bool IsActive) : ICommand;
 

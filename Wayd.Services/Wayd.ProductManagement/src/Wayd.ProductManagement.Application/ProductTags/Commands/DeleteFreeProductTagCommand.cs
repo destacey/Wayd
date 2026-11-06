@@ -6,7 +6,7 @@ namespace Wayd.ProductManagement.Application.ProductTags.Commands;
 /// Deletes a free product tag, taking it off every product that carries it.
 /// </summary>
 /// <remarks>
-/// Unlike a tag on an axis, which is refused while in use and deactivated instead, a free tag is deleted outright:
+/// Unlike a tag in a category, which is refused while in use and deactivated instead, a free tag is deleted outright:
 /// free tags are never kept unused, so there is no inactive state to retire one to. Each product records losing it.
 /// To keep the products filed under another tag, merge instead.
 /// </remarks>

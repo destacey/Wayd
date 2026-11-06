@@ -4,11 +4,11 @@ using Wayd.DemandManagement.Domain.Models;
 namespace Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 
 /// <summary>
-/// Adds a tag axis to the end of the list, with no tags. The Administer permission is checked by the endpoint.
+/// Adds a tag category to the end of the list, with no tags. The Administer permission is checked by the endpoint.
 /// </summary>
-/// <param name="Name">What the company calls the axis. Unique among active and inactive axes.</param>
-/// <param name="Description">What the axis is for, shown when choosing tags.</param>
-/// <param name="AllowsMany">Whether a request can carry several tags from the axis. Fixed once created.</param>
+/// <param name="Name">What the company calls the category. Unique among active and inactive categories.</param>
+/// <param name="Description">What the category is for, shown when choosing tags.</param>
+/// <param name="AllowsMany">Whether a request can carry several tags from the category. Fixed once created.</param>
 public sealed record CreateIntakeRequestTagCategoryCommand(string Name, string? Description, bool AllowsMany) : ICommand<Guid>;
 
 public sealed class CreateIntakeRequestTagCategoryCommandValidator : CustomValidator<CreateIntakeRequestTagCategoryCommand>

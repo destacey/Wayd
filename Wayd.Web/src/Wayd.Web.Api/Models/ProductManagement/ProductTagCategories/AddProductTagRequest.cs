@@ -1,7 +1,7 @@
 ﻿namespace Wayd.Web.Api.Models.ProductManagement.ProductTagCategories;
 
 /// <summary>
-/// Adds a tag to an axis.
+/// Adds a tag to a category.
 /// </summary>
 public sealed record AddProductTagRequest
 {

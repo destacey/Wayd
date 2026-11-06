@@ -34,7 +34,7 @@ public sealed class DeleteFreeIntakeRequestTagCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_ATagOnAnAxis_Fails()
+    public async Task Handle_ATagInACategory_Fails()
     {
         // Arrange
         var area = _scenario.TagCategory(allowsMany: true, "Payments");

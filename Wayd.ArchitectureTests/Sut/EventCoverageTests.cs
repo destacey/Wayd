@@ -314,14 +314,18 @@ public partial class EventCoverageTests
             "Retypes ReleasedDate to the ReleasedAt instant, carrying each value across; no fact about a package changed: #929.",
         ["20260926212850_Store-Version-Cut-And-Released-As-Instants.cs"] =
             "Retypes CutDate and ReleasedDate to the CutAt and ReleasedAt instants, carrying each value across; no fact about a version changed: #929.",
-        ["20261101221206_Version-Estimation-Scales.cs"] =
-            "Moves each scale's values onto version 1, and Down moves the current version's back, before the scale raised any event; no fact about a scale changed: #1254.",
         ["20260926172623_Add-TeamOperatingModel-TimeZone-And-Grace.cs"] =
             "Gives a team that predates operating models, and that their backfill missed, its first model; shipped without an activity log entry for it: #914.",
         ["20260927023231_Add-TeamOfTeamsOperatingModels.cs"] =
             "Gives each existing team of teams its first operating model, and records each in the activity log itself: #915.",
         ["20261108141829_Retire-WorkStatus-Admin.cs"] =
             "Copies each shared work status's description onto the managed statuses made from it, which already held it in Work; no status changed meaning: #1237.",
+        ["20261101221206_Version-Estimation-Scales.cs"] =
+            "Moves each scale's values onto version 1, and Down moves the current version's back, before the scale raised any event; no fact about a scale changed: #1254.",
+        ["20261102045445_Upgrade-Incident-Workflow-Lifecycle.cs"] =
+            "Folds the unreleased draft incident workflow into the system lifecycle and retargets any local incident rows onto it. Incidents had not shipped, so there is no activity history to keep in step: #1185.",
+        ["20261102055724_RepairIncidentAssignedWorkflowLifecycle.cs"] =
+            "Repairs the organization-assigned incident workflow to that same unreleased lifecycle and retargets local incident rows. No shipped activity history to keep in step: #1185.",
     };
 
     /// <summary>

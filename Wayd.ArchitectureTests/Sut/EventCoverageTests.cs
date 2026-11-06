@@ -315,9 +315,7 @@ public partial class EventCoverageTests
         ["20261101221206_Version-Estimation-Scales.cs"] =
             "Moves each scale's values onto version 1, and Down moves the current version's back, before the scale raised any event; no fact about a scale changed: #1254.",
         ["20261102045445_Upgrade-Incident-Workflow-Lifecycle.cs"] =
-            "Folds the unreleased draft incident workflow into the system lifecycle and retargets any local incident rows onto it. Incidents had not shipped, so there is no activity history to keep in step: #1185.",
-        ["20261102055724_RepairIncidentAssignedWorkflowLifecycle.cs"] =
-            "Repairs the organization-assigned incident workflow to that same unreleased lifecycle and retargets local incident rows. No shipped activity history to keep in step: #1185.",
+            "Rewrites unreleased incident workflow rows onto the seeded lifecycle — the system workflow and the organization-assigned workflow — and retargets local incident rows. Incidents had not shipped, so there is no activity history to keep in step: #1185.",
     };
 
     /// <summary>

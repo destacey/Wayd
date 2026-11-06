@@ -150,7 +150,7 @@ export interface TagIntakeRequestByNameArgs {
 
 export interface SearchIntakeRequestTagsArgs {
   search?: string
-  /** True for free tags only, false for tags on axes only, omitted for both. */
+  /** True for free tags only, false for tags in categories only, omitted for both. */
   isFree?: boolean
   includeInactive?: boolean
 }
@@ -783,7 +783,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
         }
       },
       // Removing a member unassigns them from the desk's requests, and a rename shows on every request
-      // on the desk, so every cached request refreshes too. The channels and tag axes it offers may have changed.
+      // on the desk, so every cached request refreshes too. The channels and tag categories it offers may have changed.
       invalidatesTags: (_result, _error, { id }) => [
         { type: QueryTags.IntakeDesk, id },
         deskListTag,
@@ -1115,7 +1115,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     ),
 
     // Every signed-in user reads these: whoever sees a request sees its tags and can filter on them. With a
-    // desk, only the active axes it offers its agents.
+    // desk, only the active categories it offers its agents.
     getIntakeRequestTagCategories: builder.query<
       IntakeRequestTagCategoryDto[],
       { includeInactive?: boolean; deskId?: string } | void
@@ -1151,7 +1151,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       invalidatesTags: [tagCategoryListTag],
     }),
 
-    // A rename shows on every request tagged along the axis.
+    // A rename shows on every request tagged in the category.
     updateIntakeRequestTagCategory: builder.mutation<
       void,
       UpdateIntakeRequestTagCategoryRequest
@@ -1188,7 +1188,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       invalidatesTags: [tagCategoryListTag],
     }),
 
-    // Requests list their tags in axis order.
+    // Requests list their tags in category order.
     reorderIntakeRequestTagCategories: builder.mutation<
       void,
       ReorderIntakeRequestTagCategoriesRequest
@@ -1347,7 +1347,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       ],
     }),
 
-    // Tagged with the axes' list: every change that moves tag counts already
+    // Tagged with the categories' list: every change that moves tag counts already
     // invalidates it, and free tags come and go with those same changes.
     searchIntakeRequestTags: builder.query<
       IntakeRequestTagListItemDto[],

@@ -176,7 +176,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              'Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them.',
+              'Semicolon-separated tag ids: tags in categories the desk offers, or free tags where it allows them.',
           },
           {
             name: 'Estimate',

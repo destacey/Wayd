@@ -10,10 +10,7 @@ import { useGetProductTagCategoriesQuery } from '@/src/store/features/product-ma
 import { isApiError } from '@/src/utils'
 import { notFound, useRouter } from 'next/navigation'
 import { use, useEffect, useMemo } from 'react'
-import {
-  ProductTagsList,
-  useProductTagCategoryActions,
-} from '../_components'
+import { ProductTagsList, useProductTagCategoryActions } from '../_components'
 import ProductTagCategoryDetailsLoading from './loading'
 import { ProductTagCategoryFacts } from './_components'
 
@@ -46,9 +43,11 @@ const ProductTagCategoryDetailsPage = (props: {
   )
 
   const { hasPermissionClaim } = useAuth()
-  const canUpdate = hasPermissionClaim('Permissions.ProductTagCategories.Update')
+  const canUpdate = hasPermissionClaim(
+    'Permissions.ProductTagCategories.Update',
+  )
 
-  // A platform-seeded axis is read-only whatever the viewer holds: the domain
+  // A platform-seeded category is read-only whatever the viewer holds: the domain
   // refuses to add, rename or retire its tags, so offering the actions would
   // only produce a failure.
   const canManageTags = canUpdate && category?.isSystem === false

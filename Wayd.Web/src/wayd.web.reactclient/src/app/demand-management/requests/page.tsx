@@ -93,7 +93,7 @@ const IntakeRequestsPage: FC = () => {
   const { data: channels } = useGetIntakeChannelsQuery({
     includeArchived: true,
   })
-  // Inactive axes too: requests keep the tags they were given, so they can still be filtered on.
+  // Inactive categories too: requests keep the tags they were given, so they can still be filtered on.
   const { data: tagCategories } = useGetIntakeRequestTagCategoriesQuery({
     includeInactive: true,
   })

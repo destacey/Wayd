@@ -259,8 +259,8 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       id: 'tags',
       header: 'Tags',
       size: 260,
-      // Qualified by axis, as the request page's chips are, so the set filter picks one axis's tag rather
-      // than every tag sharing a name; a free tag reads as its name. Kept in the server's order: by axis,
+      // Qualified by category, as the request page's chips are, so the set filter picks one category's tag rather
+      // than every tag sharing a name; a free tag reads as its name. Kept in the server's order: by category,
       // then name, with free tags last.
       getValues: (r) =>
         r.tags.map((t) =>

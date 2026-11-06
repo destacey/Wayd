@@ -27,7 +27,7 @@ interface MergeProductTagFormValues {
 /**
  * Moves a free tag's products onto another tag and deletes the free tag.
  *
- * Merging into a tag on a category is how a free tag that caught on is
+ * Merging into a tag in a category is how a free tag that caught on is
  * promoted: add the tag to its category first, then merge into it.
  */
 const MergeProductTagForm = ({
@@ -38,7 +38,7 @@ const MergeProductTagForm = ({
   const messageApi = useMessage()
 
   const [mergeProductTag] = useMergeProductTagMutation()
-  // Every tag that can be applied — free tags and tags on active categories.
+  // Every tag that can be applied — free tags and tags in active categories.
   const { data: tags, isLoading } = useSearchProductTagsQuery()
 
   const targets = (tags ?? [])

@@ -9,13 +9,15 @@ export interface ProductTagCategoryFactsProps {
 }
 
 /**
- * A tag axis's stable facts, for the details panel.
+ * A tag category's stable facts, for the details panel.
  *
  * "Allows Many" is here rather than on the edit form because it is fixed once
- * set — narrowing it later would leave products holding more tags than the axis
+ * set — narrowing it later would leave products holding more tags than the category
  * permits — so it is something to read, not something to change.
  */
-const ProductTagCategoryFacts = ({ category }: ProductTagCategoryFactsProps) => (
+const ProductTagCategoryFacts = ({
+  category,
+}: ProductTagCategoryFactsProps) => (
   <Flex vertical gap={10}>
     <LabeledContent label="Key">{category.key}</LabeledContent>
     <LabeledContent label="Active">
@@ -30,7 +32,9 @@ const ProductTagCategoryFacts = ({ category }: ProductTagCategoryFactsProps) => 
       </LabeledContent>
     )}
     {category.description && (
-      <LabeledContent label="Description">{category.description}</LabeledContent>
+      <LabeledContent label="Description">
+        {category.description}
+      </LabeledContent>
     )}
   </Flex>
 )

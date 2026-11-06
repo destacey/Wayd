@@ -19,7 +19,7 @@ import {
   createActionsColumn,
   type ColumnDef,
 } from '@/src/components/common/wayd-grid-core'
-import { Button } from 'antd'
+import { Button, Typography } from 'antd'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import {
@@ -31,7 +31,8 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError } from '@/src/utils'
 
 /**
- * The tag axes, with their tags one click behind each.
+ * The tag categories, with their tags one click behind each, and the free tags
+ * in none.
  *
  * A list-and-record pair rather than a config panel: a category's content is
  * its tags, which is a list of its own, and a panel beside the grid is for
@@ -52,8 +53,12 @@ const ProductTagCategoriesPage = () => {
   } = useGetProductTagCategoriesQuery(undefined)
 
   const { hasPermissionClaim } = useAuth()
-  const canCreate = hasPermissionClaim('Permissions.ProductTagCategories.Create')
-  const canReorder = hasPermissionClaim('Permissions.ProductTagCategories.Update')
+  const canCreate = hasPermissionClaim(
+    'Permissions.ProductTagCategories.Create',
+  )
+  const canReorder = hasPermissionClaim(
+    'Permissions.ProductTagCategories.Update',
+  )
 
   const [reorderProductTagCategories] = useReorderProductTagCategoriesMutation()
 
@@ -71,81 +76,79 @@ const ProductTagCategoriesPage = () => {
 
   const columns = useMemo(
     () =>
-      (
-        context: GridColumnContext,
-      ): ColumnDef<ProductTagCategoryDto, any>[] => [
-      // First, so it stays put as columns are shown, hidden or reordered
-      // around it — the ⋯ is always in the same place regardless of layout.
-      // The grab handle rides in the same cell rather than taking a column of
-      // its own, which would spend width on one icon.
-      createActionsColumn<ProductTagCategoryDto>({
-        getItems: getActionItems,
-        ariaLabel: 'Tag category actions',
-        size: 70,
-        leading: canReorder ? (
-          <DragHandleCell
-            isDragEnabled={context.isDragEnabled}
-            disabledTooltip="Clear sorting, filters, and search to reorder tag categories."
-          />
-        ) : undefined,
-      }),
-      // The position drag-and-drop writes. Read-only — it is not on the forms,
-      // because a number each edit has to guess right is how two axes end up
-      // claiming the same place.
-      {
-        id: 'order',
-        accessorKey: 'order',
-        header: 'Order',
-        size: 90,
-        enableColumnFilter: false,
-      },
-      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
-      {
-        id: 'name',
-        accessorKey: 'name',
-        header: 'Name',
-        cell: ({ row }) => (
-          <Link href={`./product-tags/${row.original.key}`}>
-            {row.original.name}
-          </Link>
-        ),
-      },
-      {
-        id: 'description',
-        accessorKey: 'description',
-        header: 'Description',
-        size: 320,
-      },
-      {
-        id: 'tagCount',
-        header: 'Tags',
-        accessorFn: (category) => category.tags?.length ?? 0,
-        size: 90,
-      },
-      {
-        id: 'allowsMany',
-        accessorKey: 'allowsMany',
-        header: 'Allows Many',
-        size: 130,
-        meta: { columnType: 'yesNo' },
-      },
-      {
-        id: 'isActive',
-        accessorKey: 'isActive',
-        header: 'Active',
-        size: 100,
-        meta: { columnType: 'yesNo' },
-      },
-      // Platform-seeded axes are read-only, so the column explains why a row's
-      // ⋯ offers less than its neighbour's.
-      {
-        id: 'isSystem',
-        accessorKey: 'isSystem',
-        header: 'System',
-        size: 100,
-        meta: { columnType: 'yesNo' },
-      },
-    ],
+      (context: GridColumnContext): ColumnDef<ProductTagCategoryDto, any>[] => [
+        // First, so it stays put as columns are shown, hidden or reordered
+        // around it — the ⋯ is always in the same place regardless of layout.
+        // The grab handle rides in the same cell rather than taking a column of
+        // its own, which would spend width on one icon.
+        createActionsColumn<ProductTagCategoryDto>({
+          getItems: getActionItems,
+          ariaLabel: 'Tag category actions',
+          size: 70,
+          leading: canReorder ? (
+            <DragHandleCell
+              isDragEnabled={context.isDragEnabled}
+              disabledTooltip="Clear sorting, filters, and search to reorder tag categories."
+            />
+          ) : undefined,
+        }),
+        // The position drag-and-drop writes. Read-only — it is not on the forms,
+        // because a number each edit has to guess right is how two categories end up
+        // claiming the same place.
+        {
+          id: 'order',
+          accessorKey: 'order',
+          header: 'Order',
+          size: 90,
+          enableColumnFilter: false,
+        },
+        { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+        {
+          id: 'name',
+          accessorKey: 'name',
+          header: 'Name',
+          cell: ({ row }) => (
+            <Link href={`./product-tags/${row.original.key}`}>
+              {row.original.name}
+            </Link>
+          ),
+        },
+        {
+          id: 'description',
+          accessorKey: 'description',
+          header: 'Description',
+          size: 320,
+        },
+        {
+          id: 'tagCount',
+          header: 'Tags',
+          accessorFn: (category) => category.tags?.length ?? 0,
+          size: 90,
+        },
+        {
+          id: 'allowsMany',
+          accessorKey: 'allowsMany',
+          header: 'Allows Many',
+          size: 130,
+          meta: { columnType: 'yesNo' },
+        },
+        {
+          id: 'isActive',
+          accessorKey: 'isActive',
+          header: 'Active',
+          size: 100,
+          meta: { columnType: 'yesNo' },
+        },
+        // Platform-seeded categories are read-only, so the column explains why a row's
+        // ⋯ offers less than its neighbour's.
+        {
+          id: 'isSystem',
+          accessorKey: 'isSystem',
+          header: 'System',
+          size: 100,
+          meta: { columnType: 'yesNo' },
+        },
+      ],
     [getActionItems, canReorder],
   )
 
@@ -156,7 +159,9 @@ const ProductTagCategoriesPage = () => {
   // The whole displayed set travels, which is what the API requires — and the
   // grid only enables dragging when nothing is sorted, filtered or searched, so
   // "displayed" is the full list in data order.
-  const onRowReorder = async (event: RowReorderEvent<ProductTagCategoryDto>) => {
+  const onRowReorder = async (
+    event: RowReorderEvent<ProductTagCategoryDto>,
+  ) => {
     try {
       await reorderProductTagCategories({
         orderedCategoryIds: event.orderedData.map((category) => category.id),
@@ -171,7 +176,7 @@ const ProductTagCategoriesPage = () => {
   }
 
   const actions = canCreate ? (
-    <Button onClick={() => setOpenCreateForm(true)}>Create Tag Category</Button>
+    <Button onClick={() => setOpenCreateForm(true)}>Add Category</Button>
   ) : null
 
   const onCreateFormClosed = (wasCreated: boolean) => {
@@ -184,6 +189,11 @@ const ProductTagCategoriesPage = () => {
   return (
     <div className="page-gutters">
       <PageTitle title="Product Tags" actions={actions} />
+      <Typography.Paragraph type="secondary">
+        The categories products are grouped by, and the tags in each. Deactivate
+        a category or a tag to stop offering it; products already tagged keep
+        their tags.
+      </Typography.Paragraph>
 
       <WaydGrid
         columns={columns}
@@ -196,10 +206,7 @@ const ProductTagCategoriesPage = () => {
         onRowReorder={canReorder ? onRowReorder : undefined}
       />
 
-      {/* Block-level, not a flex child: WaydGrid collapses inside a flex column. */}
-      <div style={{ marginTop: 'var(--ant-margin-lg)' }}>
-        <FreeProductTagsSection />
-      </div>
+      <FreeProductTagsSection />
 
       {dialogs}
 

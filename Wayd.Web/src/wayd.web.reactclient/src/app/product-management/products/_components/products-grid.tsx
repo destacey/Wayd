@@ -68,7 +68,11 @@ const buildColumns = <T extends ProductDto>(
               type="text"
               size="small"
               icon={
-                row.getIsExpanded() ? <CaretDownOutlined /> : <CaretRightOutlined />
+                row.getIsExpanded() ? (
+                  <CaretDownOutlined />
+                ) : (
+                  <CaretRightOutlined />
+                )
               }
               onClick={row.getToggleExpandedHandler()}
               className={treeGridStyles.expanderBtn}
@@ -145,22 +149,22 @@ const buildColumns = <T extends ProductDto>(
   createCsvColumn<T>({
     id: 'tags',
     header: 'Tags',
-    // Qualified by axis, as the header chips are: a bare "gold" does not say
+    // Qualified by category, as the header chips are: a bare "gold" does not say
     // whether it is a tier, a platform or a compliance scope. Sorting the
-    // qualified string groups an axis's tags together, and the set filter is
-    // built from these same values, so filtering picks one axis's tag rather
-    // than every tag that happens to share a name. A free tag has no axis, so
+    // qualified string groups a category's tags together, and the set filter is
+    // built from these same values, so filtering picks one category's tag rather
+    // than every tag that happens to share a name. A free tag has no category, so
     // it reads as its bare name.
     getValues: (row) =>
       (row.tags ?? [])
-        .map((t) =>
-          tagText({ name: t.tagName, categoryName: t.categoryName }),
-        )
+        .map((t) => tagText({ name: t.tagName, categoryName: t.categoryName }))
         .sort((a, b) => caseInsensitiveCompare(a, b)),
   }),
 ]
 
-const ProductsGrid: React.FC<ProductsGridProps> = (props: ProductsGridProps) => {
+const ProductsGrid: React.FC<ProductsGridProps> = (
+  props: ProductsGridProps,
+) => {
   const { refetch, asTree = true } = props
 
   const refresh = async () => {

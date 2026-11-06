@@ -5,8 +5,8 @@
  * these, and each consuming area maps its own types across. That is what lets a
  * second area adopt curated tags without touching anything here.
  *
- * Two kinds of tag share these types: curated tags on an axis, and free tags —
- * informal labels on no axis, typed in while tagging. Both have ids. Azure DevOps
+ * Two kinds of tag share these types: curated tags in a category, and free tags —
+ * informal labels in no category, typed in while tagging. Both have ids. Azure DevOps
  * work item tags, plain strings with no ids, are a different model and are not
  * served here.
  */
@@ -24,13 +24,13 @@ export interface TagOption {
   isActive: boolean
 }
 
-/** An axis records are labelled along — Platform, Tech Stack, Compliance. */
+/** A category of tags records are grouped by — Platform, Tech Stack, Compliance. */
 export interface TagCategory {
   id: string
   name: string
   description?: string
   /**
-   * Whether a record can carry several tags from this axis. False means a second
+   * Whether a record can carry several tags from this category. False means a second
    * choice replaces the first.
    */
   allowsMany: boolean
@@ -38,8 +38,8 @@ export interface TagCategory {
 }
 
 /**
- * A tag a record currently carries, and the axis it came from. A free tag has
- * no axis, so both axis fields are absent.
+ * A tag a record currently carries, and the category it came from. A free tag has
+ * no category, so both category fields are absent.
  */
 export interface TagAssignment {
   tagId: string

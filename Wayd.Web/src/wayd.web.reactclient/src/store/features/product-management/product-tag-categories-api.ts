@@ -12,12 +12,12 @@ import {
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 
-/** Adds a tag to one axis. The axis owns the tag, so its id travels with the request. */
+/** Adds a tag to one category. The category owns the tag, so its id travels with the request. */
 export interface AddProductTagArgs extends AddProductTagRequest {
   categoryId: string
 }
 
-/** Renames a tag on one axis. */
+/** Renames a tag in one category. */
 export interface RenameProductTagArgs extends RenameProductTagRequest {
   categoryId: string
   tagId: string
@@ -77,7 +77,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
-        // The tag search lists every tag on every category, with counts.
+        // The tag search lists every tag in every category, with counts.
         { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
@@ -99,7 +99,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
-        // The tag search lists every tag on every category, with counts.
+        // The tag search lists every tag in every category, with counts.
         { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
@@ -121,7 +121,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
-        // The tag search lists every tag on every category, with counts.
+        // The tag search lists every tag in every category, with counts.
         { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
@@ -142,7 +142,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
-        // The tag search lists every tag on every category, with counts.
+        // The tag search lists every tag in every category, with counts.
         { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
@@ -158,7 +158,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
-        // The tag search lists every tag on every category, with counts.
+        // The tag search lists every tag in every category, with counts.
         { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
@@ -180,7 +180,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
-        // The tag search lists every tag on every category, with counts.
+        // The tag search lists every tag in every category, with counts.
         { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
@@ -200,7 +200,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
-        // The tag search lists every tag on every category, with counts.
+        // The tag search lists every tag in every category, with counts.
         { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
@@ -220,7 +220,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
-        // The tag search lists every tag on every category, with counts.
+        // The tag search lists every tag in every category, with counts.
         { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),
@@ -239,7 +239,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: () => [
         { type: QueryTags.ProductTagCategory, id: 'LIST' },
-        // The tag search lists every tag on every category, with counts.
+        // The tag search lists every tag in every category, with counts.
         { type: QueryTags.ProductTag, id: 'LIST' },
       ],
     }),

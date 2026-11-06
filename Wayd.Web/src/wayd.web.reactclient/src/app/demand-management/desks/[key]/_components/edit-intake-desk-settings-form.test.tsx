@@ -186,12 +186,14 @@ describe('EditIntakeDeskSettingsForm', () => {
     })
   })
 
-  it('saves the tag axes a desk chooses to offer', async () => {
+  it('saves the tag categories a desk chooses to offer', async () => {
     // Arrange
     await renderForm()
     await act(() =>
       userEvent.click(
-        screen.getByRole('radio', { name: 'Only the tag axes chosen here' }),
+        screen.getByRole('radio', {
+          name: 'Only the tag categories chosen here',
+        }),
       ),
     )
     await act(() =>
@@ -230,7 +232,7 @@ describe('EditIntakeDeskSettingsForm', () => {
     )
   })
 
-  it('leaves out an inactive tag axis the desk never chose', async () => {
+  it('leaves out an inactive tag category the desk never chose', async () => {
     // Arrange
     await renderForm(
       desk({ offersAllTagCategories: false, tagCategoryIds: [] }),

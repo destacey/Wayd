@@ -57,7 +57,7 @@ describe('ProductTagsList', () => {
     expect(screen.getByText('12')).toBeInTheDocument()
   })
 
-  it('offers Add Tag when the viewer can manage the axis', () => {
+  it('offers Add Tag when the viewer can manage the category', () => {
     // Arrange / Act
     render(<ProductTagsList category={category([tag('ios')])} canManageTags />)
 
@@ -65,15 +65,20 @@ describe('ProductTagsList', () => {
     expect(screen.getByRole('button', { name: 'Add Tag' })).toBeInTheDocument()
   })
 
-  it('offers no way in when the viewer cannot manage the axis', () => {
+  it('offers no way in when the viewer cannot manage the category', () => {
     // Arrange / Act — a read-only viewer, or any viewer on a platform-seeded
-    // axis: the domain refuses those, so an action would only fail.
+    // category: the domain refuses those, so an action would only fail.
     render(
-      <ProductTagsList category={category([tag('ios')])} canManageTags={false} />,
+      <ProductTagsList
+        category={category([tag('ios')])}
+        canManageTags={false}
+      />,
     )
 
     // Assert
-    expect(screen.queryByRole('button', { name: 'Add Tag' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Add Tag' }),
+    ).not.toBeInTheDocument()
     expect(
       screen.queryByRole('button', { name: 'Tag actions' }),
     ).not.toBeInTheDocument()

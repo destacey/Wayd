@@ -1,9 +1,11 @@
 using FluentAssertions;
+using Moq;
 using NodaTime;
 using Xunit;
 using Wayd.Common.Application.Requests.WorkManagement.Queries;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Models.Planning.Iterations;
+using Wayd.Common.Domain.Settings;
 using Wayd.Work.Domain.Tests.Data;
 using Wayd.Work.Application.Iterations.Queries;
 using Wayd.Work.Application.Tests.Infrastructure;
@@ -22,6 +24,7 @@ public class GetIterationStatesQueryHandlerTests : IDisposable
             _scenario.DbContext,
             _scenario.Dispatcher.Object,
             _scenario.SchedulingSettings.Object,
+            _scenario.GeneralSettings.Object,
             _scenario.DateTimeProvider);
     }
 
@@ -54,7 +57,7 @@ public class GetIterationStatesQueryHandlerTests : IDisposable
             sprint1Started: InChicago(Sprint1Start, 10),
             sprint1Completed: InChicago(Sprint2Start.PlusDays(-3), 11));
         var handler = new GetIterationStatesQueryHandler(
-            scenario.DbContext, scenario.Dispatcher.Object, scenario.SchedulingSettings.Object, scenario.DateTimeProvider);
+            scenario.DbContext, scenario.Dispatcher.Object, scenario.SchedulingSettings.Object, scenario.GeneralSettings.Object, scenario.DateTimeProvider);
 
         // Act — the scenario's clock is that Friday afternoon
         var result = await handler.Handle(
@@ -84,6 +87,27 @@ public class GetIterationStatesQueryHandlerTests : IDisposable
         // Assert
         result[release.Id].Should().Be(new IterationStateDto(IterationState.Active, null, null, null));
         result[openEnded.Id].Should().Be(new IterationStateDto(IterationState.Future, null, null, null));
+    }
+
+    [Theory]
+    [InlineData("UTC", IterationState.Active)]
+    [InlineData("Asia/Tokyo", IterationState.Completed)]
+    public async Task Handle_ForAnIterationWithNoTeam_ReadsItsPlannedDaysInTheSystemTimeZone(string systemTimeZone, IterationState expected)
+    {
+        // Arrange — the clock is 15:00 on Friday Sep 25 in Chicago: still the 25th in UTC, already the 26th in
+        // Tokyo, so an iteration whose last planned day is the 25th has ended only in Tokyo
+        _scenario.GeneralSettings
+            .Setup(s => s.Get(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GeneralSettings { TimeZone = systemTimeZone });
+        var iteration = new IterationFaker().AsIteration().WithTeamId(null)
+            .WithDateRange(new IterationDateRange(new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 25))).Generate();
+        _scenario.DbContext.AddIterations([iteration]);
+
+        // Act
+        var result = await _handler.Handle(new GetIterationStatesQuery([iteration.Id]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result[iteration.Id].State.Should().Be(expected);
     }
 
     [Fact]

@@ -1,25 +1,19 @@
 'use client'
 
-import { Button, Form, InputNumber, Select, Skeleton } from 'antd'
+import { Button, Form, InputNumber, Skeleton } from 'antd'
 import { useEffect, useState } from 'react'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { toFormErrors } from '@/src/utils'
-import {
-  IsoDayOfWeek,
-  SchedulingSettingsDto,
-  TimeZoneDto,
-} from '@/src/services/wayd-api'
+import { toApiError, toFormErrors } from '@/src/utils'
+import { IsoDayOfWeek, SchedulingSettingsDto } from '@/src/services/wayd-api'
 import { useUpdateSchedulingSettingsMutation } from '@/src/store/features/admin/system-settings-api'
 import {
   MAX_COMMITMENT_GRACE_DAYS,
-  timeZoneLabel,
   HolidayCalendarSelect,
   WorkingDaysSelect,
   workingDaysRule,
 } from '@/src/components/common/scheduling'
 
 interface SchedulingSettingsFormValues {
-  defaultTimeZone: string
   defaultCommitmentGraceDays: number
   defaultWorkingDays: IsoDayOfWeek[]
   defaultHolidayCalendarId?: string
@@ -28,14 +22,12 @@ interface SchedulingSettingsFormValues {
 
 export interface SchedulingSettingsFormProps {
   settings: SchedulingSettingsDto | undefined
-  timeZones: TimeZoneDto[] | undefined
   isLoading: boolean
   canUpdate: boolean
 }
 
 const SchedulingSettingsForm = ({
   settings,
-  timeZones,
   isLoading,
   canUpdate,
 }: SchedulingSettingsFormProps) => {
@@ -56,7 +48,6 @@ const SchedulingSettingsForm = ({
   useEffect(() => {
     if (!settings) return
     form.setFieldsValue({
-      defaultTimeZone: settings.defaultTimeZone,
       defaultCommitmentGraceDays: settings.defaultCommitmentGraceDays,
       defaultWorkingDays: settings.defaultWorkingDays,
       defaultHolidayCalendarId: settings.defaultHolidayCalendar?.id,
@@ -67,7 +58,6 @@ const SchedulingSettingsForm = ({
   const onFinish = async (values: SchedulingSettingsFormValues) => {
     try {
       const response = await updateSchedulingSettings({
-        defaultTimeZone: values.defaultTimeZone,
         defaultCommitmentGraceDays: values.defaultCommitmentGraceDays,
         defaultWorkingDays: values.defaultWorkingDays,
         defaultHolidayCalendarId: values.defaultHolidayCalendarId,
@@ -78,13 +68,14 @@ const SchedulingSettingsForm = ({
       }
       messageApi.success('Scheduling settings saved.')
       setIsDirty(false)
-    } catch (error: any) {
-      if (error?.status === 422 && error.errors) {
-        form.setFields(toFormErrors(error.errors))
+    } catch (error) {
+      const apiError = toApiError(error)
+      if (apiError.status === 422 && apiError.errors) {
+        form.setFields(toFormErrors(apiError.errors))
         messageApi.error('Correct the validation error(s) to continue.')
       } else {
         messageApi.error(
-          error?.detail ??
+          apiError.detail ??
             'An error occurred while saving the scheduling settings.',
         )
       }
@@ -95,11 +86,6 @@ const SchedulingSettingsForm = ({
     return <Skeleton active paragraph={{ rows: 3 }} />
   }
 
-  const options = (timeZones ?? []).map((zone) => ({
-    value: zone.id,
-    label: timeZoneLabel(zone),
-  }))
-
   return (
     <Form
       form={form}
@@ -109,20 +95,6 @@ const SchedulingSettingsForm = ({
       onValuesChange={() => setIsDirty(true)}
       style={{ maxWidth: 480 }}
     >
-      <Form.Item
-        name="defaultTimeZone"
-        label="Default time zone"
-        extra="Pre-fills the time zone of new team operating models. Changing it does not change any team."
-        rules={[{ required: true, message: 'Select a time zone.' }]}
-      >
-        <Select
-          showSearch
-          options={options}
-          optionFilterProp="label"
-          placeholder="Select a time zone"
-          aria-label="Default time zone"
-        />
-      </Form.Item>
       <Form.Item
         name="defaultCommitmentGraceDays"
         label="Default commitment grace period (days)"

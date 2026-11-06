@@ -27,17 +27,19 @@ public sealed class GetSprintScopeQueryHandler(
     IWorkDbContext workDbContext,
     IDispatcher dispatcher,
     ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings,
     IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetSprintScopeQuery, SprintScopeDto?>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<SprintScopeDto?> Handle(GetSprintScopeQuery request, CancellationToken cancellationToken)
     {
-        var history = await _workDbContext.LoadSprintScopeHistory(_dispatcher, _schedulingSettings, request.IdOrKeyFilter, cancellationToken);
+        var history = await _workDbContext.LoadSprintScopeHistory(_dispatcher, _schedulingSettings, _generalSettings, request.IdOrKeyFilter, cancellationToken);
         if (history is null)
             return null;
 

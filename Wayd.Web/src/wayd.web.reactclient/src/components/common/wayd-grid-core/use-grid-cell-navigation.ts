@@ -158,7 +158,9 @@ export function useGridCellNavigation<T extends RowData>({
     )
     if (el) {
       pendingFocusRef.current = null
-      el.focus()
+      // An editor that opened in the cell as its row rendered has focus
+      // already; the cell must not take it back.
+      if (!el.contains(document.activeElement)) el.focus()
     }
   })
 
@@ -210,7 +212,10 @@ export function useGridCellNavigation<T extends RowData>({
       target !== cell &&
       enteredFromOutside &&
       lastInputRef.current === 'keyboard' &&
-      !isEditingRow(row)
+      !isEditingRow(row) &&
+      // An editor the grid just opened (a new draft's Name) takes focus
+      // from outside too, and must keep it.
+      !target.closest('[data-grid-cell-editor]')
     ) {
       // Tabbed in onto a link or drag handle: land on the Tab stop instead,
       // so the body stays one stop however many controls its rows hold.
@@ -276,6 +281,9 @@ export function useGridCellNavigation<T extends RowData>({
     if (isEditingRow(row)) return
 
     const isCell = target.hasAttribute('data-grid-cell')
+    // An open cell editor owns its keys. Its Escape can reach here after a
+    // date panel closed on it, and must not take focus from the editor.
+    if (!isCell && target.closest('[data-grid-cell-editor]')) return
     if (!isCell) {
       // Focus is on a control inside a cell: its keys are its own, except
       // Escape, which hands focus back to the cell, and Tab, which leaves
@@ -410,11 +418,20 @@ export function useGridCellNavigation<T extends RowData>({
     activeRowIndex,
     /** The column holding the Tab stop. */
     activeColumnId,
+    /** Focus is somewhere in the body. */
+    hasFocusWithin,
     onKeyDown,
     onFocus,
     onBlur,
     onContextMenu,
     sentinelBeforeRef,
     sentinelAfterRef,
+    /** Moves the Tab stop and focus to a cell, rendering its row first if
+     *  it is out of the virtual window. */
+    focusCellAt: (rowId: string, columnId: string) => {
+      const rowIndex = rows.findIndex((row) => row.id === rowId)
+      if (rowIndex >= 0) focusCell({ rowId, columnId, rowIndex })
+    },
+    leaveGrid,
   }
 }

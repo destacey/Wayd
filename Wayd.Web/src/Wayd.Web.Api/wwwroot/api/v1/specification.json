@@ -37878,7 +37878,7 @@
           "Teams"
         ],
         "summary": "Create a team.",
-        "description": "`name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day the team starts. The team starts with a Kanban, Count-sized operating model in the system default time zone and working week; change it with Teams_SetOperatingModel. To place it under a team of teams, call Teams_AddTeamMembership; to staff it, Teams_AddMember. Returns the new team's `id` (UUID) and `key` (integer).",
+        "description": "`name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day the team starts. The team starts with a Kanban, Count-sized operating model in the system time zone and the default working week; change it with Teams_SetOperatingModel. To place it under a team of teams, call Teams_AddTeamMembership; to staff it, Teams_AddMember. Returns the new team's `id` (UUID) and `key` (integer).",
         "operationId": "Teams_Create",
         "requestBody": {
           "content": {
@@ -40574,7 +40574,7 @@
           "Teams"
         ],
         "summary": "Get the values a new operating model for a team is pre-filled with.",
-        "description": "Takes the team's UUID `id`. The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default; the commitment grace period is the system default. Use it to fill Teams_SetOperatingModel when the user has not said otherwise.",
+        "description": "Takes the team's UUID `id`. The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system time zone; the commitment grace period is the system default. Use it to fill Teams_SetOperatingModel when the user has not said otherwise.",
         "operationId": "Teams_GetOperatingModelDefaults",
         "parameters": [
           {
@@ -41234,7 +41234,7 @@
           "TeamsOfTeams"
         ],
         "summary": "Create a team of teams.",
-        "description": "`name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day it starts. It starts with an operating model in the system default time zone. To nest it under another team of teams, call TeamsOfTeams_AddTeamMembership; to put teams under it, call Teams_AddTeamMembership on each team. Returns the new team of teams' `id` (UUID) and `key` (integer).",
+        "description": "`name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day it starts. It starts with an operating model in the system time zone. To nest it under another team of teams, call TeamsOfTeams_AddTeamMembership; to put teams under it, call Teams_AddTeamMembership on each team. Returns the new team of teams' `id` (UUID) and `key` (integer).",
         "operationId": "TeamsOfTeams_Create",
         "requestBody": {
           "content": {
@@ -42599,7 +42599,7 @@
           "TeamsOfTeams"
         ],
         "summary": "Get the values a new operating model for a team of teams is pre-filled with.",
-        "description": "Takes the UUID `id`. The time zone is the one its parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default.",
+        "description": "Takes the UUID `id`. The time zone is the one its parent team of teams had in effect on the start date (yyyy-MM-dd), else the system time zone.",
         "operationId": "TeamsOfTeams_GetOperatingModelDefaults",
         "parameters": [
           {
@@ -53212,6 +53212,139 @@
         ]
       }
     },
+    "/api/admin/settings/general": {
+      "get": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Get the general settings, including the system time zone.",
+        "operationId": "SystemSettings_GetGeneralSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeneralSettingsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Update the general settings, including the system time zone.",
+        "operationId": "SystemSettings_UpdateGeneralSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGeneralSettingsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/admin/settings/general/activities": {
+      "get": {
+        "tags": [
+          "SystemSettings"
+        ],
+        "summary": "Get the general settings' change history.",
+        "operationId": "SystemSettings_GetGeneralSettingsActivities",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfActivityLogDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/admin/settings/scheduling": {
       "get": {
         "tags": [
@@ -57046,7 +57179,7 @@
           },
           "releasedDate": {
             "type": "string",
-            "description": "The released day, read as 12:00 in the organization's default time zone.",
+            "description": "The released day, read as 12:00 in the system time zone.",
             "format": "date",
             "nullable": true,
             "deprecated": true,
@@ -57096,7 +57229,7 @@
           },
           "cutDate": {
             "type": "string",
-            "description": "The cut day, read as 12:00 in the organization's default time zone.",
+            "description": "The cut day, read as 12:00 in the system time zone.",
             "format": "date",
             "nullable": true,
             "deprecated": true,
@@ -57104,7 +57237,7 @@
           },
           "releasedDate": {
             "type": "string",
-            "description": "The released day, read as 12:00 in the organization's default time zone.",
+            "description": "The released day, read as 12:00 in the system time zone.",
             "format": "date",
             "nullable": true,
             "deprecated": true,
@@ -59772,7 +59905,7 @@
           },
           "cutDate": {
             "type": "string",
-            "description": "The day it was cut, read as 12:00 in the organization's default time zone.",
+            "description": "The day it was cut, read as 12:00 in the system time zone.",
             "format": "date",
             "nullable": true,
             "deprecated": true,
@@ -62673,6 +62806,20 @@
           }
         },
         "additionalProperties": false
+      },
+      "GeneralSettingsDto": {
+        "required": [
+          "timeZone"
+        ],
+        "type": "object",
+        "properties": {
+          "timeZone": {
+            "type": "string",
+            "description": "The system time zone, as an IANA id: the zone a calendar day is read in wherever no team's own zone\napplies, and the zone new teams start with."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The general settings in effect, defaults included."
       },
       "GlobalSearchCategoryDto": {
         "required": [
@@ -67907,7 +68054,7 @@
           },
           "releasedDate": {
             "type": "string",
-            "description": "The day it shipped, read as 12:00 in the organization's default time zone.",
+            "description": "The day it shipped, read as 12:00 in the system time zone.",
             "format": "date",
             "nullable": true,
             "deprecated": true,
@@ -67942,7 +68089,7 @@
           },
           "releasedDate": {
             "type": "string",
-            "description": "The day it shipped, read as 12:00 in the organization's default time zone.",
+            "description": "The day it shipped, read as 12:00 in the system time zone.",
             "format": "date",
             "nullable": true,
             "deprecated": true,
@@ -76320,16 +76467,12 @@
       },
       "SchedulingSettingsDto": {
         "required": [
-          "defaultTimeZone",
           "defaultWorkingDays",
           "defaultCommitmentGraceDays",
           "workingDayHours"
         ],
         "type": "object",
         "properties": {
-          "defaultTimeZone": {
-            "type": "string"
-          },
           "defaultCommitmentGraceDays": {
             "type": "integer",
             "format": "int32"
@@ -78651,7 +78794,7 @@
           },
           "hasTeam": {
             "type": "boolean",
-            "description": "Whether the sprint has a team. A sprint with none is counted in the system default zone and grace\nperiod, by item count."
+            "description": "Whether the sprint has a team. A sprint with none is counted in the system time zone and default grace\nperiod, by item count."
           },
           "historyIncomplete": {
             "type": "boolean",
@@ -84141,6 +84284,21 @@
         "additionalProperties": false,
         "description": "Renames a free tag or changes its description."
       },
+      "UpdateGeneralSettingsRequest": {
+        "required": [
+          "timeZone"
+        ],
+        "type": "object",
+        "properties": {
+          "timeZone": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The system time zone, as an IANA id such as `America/Chicago`: the zone a calendar day is read in\nwherever no team's own zone applies, and the zone new teams start with."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The general settings to save, replacing those in effect."
+      },
       "UpdateHolidayCalendarRequest": {
         "required": [
           "id",
@@ -85918,16 +86076,10 @@
       },
       "UpdateSchedulingSettingsRequest": {
         "required": [
-          "defaultTimeZone",
           "defaultCommitmentGraceDays"
         ],
         "type": "object",
         "properties": {
-          "defaultTimeZone": {
-            "minLength": 1,
-            "type": "string",
-            "description": "The IANA time zone id new team operating models start with."
-          },
           "defaultCommitmentGraceDays": {
             "maximum": 14,
             "minimum": 0,

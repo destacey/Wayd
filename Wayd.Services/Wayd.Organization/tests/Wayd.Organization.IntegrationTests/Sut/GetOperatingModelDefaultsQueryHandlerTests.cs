@@ -56,10 +56,14 @@ public sealed class GetOperatingModelDefaultsQueryHandlerTests(SqlServerDbContex
         var schedulingSettings = new Mock<ISettings<SchedulingSettings>>();
         schedulingSettings
             .Setup(s => s.Get(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SchedulingSettings { DefaultTimeZone = "Europe/London", DefaultCommitmentGraceDays = 2 });
+            .ReturnsAsync(new SchedulingSettings { DefaultCommitmentGraceDays = 2 });
+        var generalSettings = new Mock<ISettings<GeneralSettings>>();
+        generalSettings
+            .Setup(s => s.Get(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GeneralSettings { TimeZone = "Europe/London" });
 
         await using var context = _fixture.CreateContext();
-        var handler = new GetOperatingModelDefaultsQueryHandler(context, schedulingSettings.Object);
+        var handler = new GetOperatingModelDefaultsQueryHandler(context, schedulingSettings.Object, generalSettings.Object);
 
         // Act
         var beforeJoining = await handler.Handle(new GetOperatingModelDefaultsQuery(teamId, JoinDate.PlusDays(-1)), cancellationToken);

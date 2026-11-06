@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { FilterType } from './filters'
+import type { CellEditor } from './cell-editing/types'
 
 /**
  * Filter option for select-type column filters.
@@ -115,6 +116,13 @@ export interface WaydGridColumnMeta {
    * Without one, the first visible column does.
    */
   treeColumn?: boolean
+  /**
+   * Makes the column's cells editable in place, one cell at a time, through
+   * the grid's `onCommit`. Build one with the editor factories
+   * (`textEditor`, `numberEditor`, `selectEditor`, `dateEditor`,
+   * `pairedEditors`).
+   */
+  editor?: CellEditor<any, any, any>
   /** Whether to include this column in CSV export. Default: true if the column has an accessor. */
   enableExport?: boolean
   /** Custom CSV formatter for this column's values. */

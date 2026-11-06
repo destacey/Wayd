@@ -16,11 +16,13 @@ public sealed record GetOperatingModelDefaultsQuery(Guid TeamId, LocalDate Start
 
 public sealed class GetOperatingModelDefaultsQueryHandler(
     IOrganizationDbContext organizationDbContext,
-    ISettings<SchedulingSettings> schedulingSettings)
+    ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings)
     : IQueryHandler<GetOperatingModelDefaultsQuery, OperatingModelDefaultsDto?>
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
 
     public async Task<OperatingModelDefaultsDto?> Handle(GetOperatingModelDefaultsQuery request, CancellationToken cancellationToken)
     {
@@ -41,10 +43,11 @@ public sealed class GetOperatingModelDefaultsQueryHandler(
             .FirstOrDefaultAsync(cancellationToken);
 
         var scheduling = await _schedulingSettings.Get(cancellationToken);
+        var general = await _generalSettings.Get(cancellationToken);
 
         return new OperatingModelDefaultsDto
         {
-            TimeZone = parent?.TimeZone ?? scheduling.DefaultTimeZone,
+            TimeZone = parent?.TimeZone ?? general.TimeZone,
             TimeZoneSource = parent?.Name,
             CommitmentGraceDays = scheduling.DefaultCommitmentGraceDays,
             WorkingDays = scheduling.DefaultWorkingWeek().Days,

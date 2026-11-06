@@ -529,14 +529,18 @@ files, and are edited under **Settings → System**. Each is part of a **section
 one JSON row in `App.SystemSettings`. There is no table per setting and no column per setting.
 
 ```csharp
-public sealed record SchedulingSettings : ISettingsSection<SchedulingSettings>
+public sealed record GeneralSettings : ISettingsSection<GeneralSettings>
 {
-    public static string Key => "scheduling";
+    public static string Key => "general";
 
-    public string DefaultTimeZone { get; init; } = "UTC";
-    public int DefaultCommitmentGraceDays { get; init; } = 1;
+    public string TimeZone { get; init; } = "UTC";
 }
 ```
+
+**The system time zone is `GeneralSettings.TimeZone`**, not a scheduling setting. Anything that needs a zone
+when no team's own applies — a sprint with no team, a date sent without a time, the day of an event that has no
+team — reads `ISettings<GeneralSettings>` and calls `Zone()`. A team's own zone, on its operating model, always
+comes first.
 
 **The property initializers are the defaults, and a missing value reads as its default.** A section never
 saved has no row; a row written before a property existed does not carry it. Either way the reader gets the
@@ -545,7 +549,9 @@ no row keeps following its code defaults as they change, and saving the defaults
 one. Once saved, the stored values hold.
 
 **Section keys and property names are permanent.** They are the stored JSON's keys, so renaming either
-orphans the saved value and silently reverts it to the default. `ISettingsSection.SchemaVersion` is recorded
+orphans the saved value and silently reverts it to the default. Moving a setting to another section is a rename
+too: carry the saved value across once at startup through the store, as `SystemTimeZoneSeeder` does for the
+time zone that left `SchedulingSettings`, and never reuse the old property name. `ISettingsSection.SchemaVersion` is recorded
 with the row for the rare change a fallback to defaults cannot absorb; bump it and transform the older rows
 when reading them. Properties must be value-comparable (no collections), because a save that changes nothing
 is detected by record equality.
@@ -569,7 +575,7 @@ it, so another API instance serves the old values for at most that long.
 `Scope` is always `System` today. It is there so per-organization or per-tenant overrides can be added
 without reshaping the table.
 
-**Adding a section:** add the record next to `SchedulingSettings` in `Wayd.Common.Domain/Settings/`, its
+**Adding a section:** add the record next to `GeneralSettings` in `Wayd.Common.Domain/Settings/`, its
 validator in `Wayd.Common.Application/SystemSettings/`, a query, command and activities query that go through
 the store, endpoints on `SystemSettingsController` guarded by `SystemSettings.View`/`.Update`, and a page under
 **Settings → System**. `SprintMetricsSettings` is the smallest example: one value and no cross-module check.

@@ -41,11 +41,14 @@ public sealed class GetSprintsWorkItemMetricsQueryTests : IDisposable
             });
         var schedulingSettings = new Mock<ISettings<SchedulingSettings>>();
         schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+        var generalSettings = new Mock<ISettings<GeneralSettings>>();
+        generalSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new GeneralSettings());
 
         _handler = new GetSprintsWorkItemMetricsQueryHandler(
             _dbContext,
             _dispatcher.Object,
             schedulingSettings.Object,
+            generalSettings.Object,
             NullLogger<GetSprintsWorkItemMetricsQueryHandler>.Instance);
     }
 

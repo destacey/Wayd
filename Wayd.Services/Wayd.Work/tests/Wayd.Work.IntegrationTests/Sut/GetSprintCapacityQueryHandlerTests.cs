@@ -301,8 +301,10 @@ public sealed class GetSprintCapacityQueryHandlerTests(SqlServerDbContextFixture
 
         var schedulingSettings = new Mock<ISettings<SchedulingSettings>>();
         schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+        var generalSettings = new Mock<ISettings<GeneralSettings>>();
+        generalSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new GeneralSettings());
 
-        var handler = new GetSprintCapacityQueryHandler(accessor.Context, dispatcher, schedulingSettings.Object, Mock.Of<IDateTimeProvider>(p => p.Now == now));
+        var handler = new GetSprintCapacityQueryHandler(accessor.Context, dispatcher, schedulingSettings.Object, generalSettings.Object, Mock.Of<IDateTimeProvider>(p => p.Now == now));
         return await handler.Handle(new GetSprintCapacityQuery(new IdOrKey(sprintId.ToString())), ct);
     }
 

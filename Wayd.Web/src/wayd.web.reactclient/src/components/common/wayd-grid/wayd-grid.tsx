@@ -65,6 +65,15 @@ import { rowScaleFor, virtualSpacers } from '../wayd-grid-core/virtual-geometry'
 import { withPinnedIndex } from '../wayd-grid-core/grid-keyboard'
 import { useGridCellNavigation } from '../wayd-grid-core/use-grid-cell-navigation'
 import {
+  useGridCellEditing,
+  type GridCellEditingController,
+} from '../wayd-grid-core/cell-editing/use-grid-cell-editing'
+import { WaydGridKeyboardHelp } from '../wayd-grid-core/cell-editing/grid-keyboard-help'
+import { CellEditMessages } from '../wayd-grid-core/cell-editing/cell-edit-messages'
+// From the file, not the barrel: page tests mock the barrel with only
+// `useMessage`, and every page that renders a grid would break.
+import { useOptionalMessage } from '@/src/components/contexts/messaging/messaging-context'
+import {
   getOrderedVisibleLeafColumns,
   reconcileColumnOrder,
   reorderIds,
@@ -266,6 +275,12 @@ const rowClasses: GridRowClasses = {
     pinnedLeftEdge: styles.pinnedLeftEdge,
     pinnedRightEdge: styles.pinnedRightEdge,
   },
+  edit: {
+    unsaved: styles.cellUnsaved,
+    saving: styles.cellSaving,
+    error: styles.cellError,
+    editing: styles.cellEditing,
+  },
 }
 
 const treeRowClasses: TreeGridRowClasses = {
@@ -376,6 +391,8 @@ interface GridBodyProps<T extends RowData> {
   onRowActivate?: (row: T) => void
   activatedRowId?: string | null
   getRowActivateLabel?: (row: T) => string
+  /** Cell editing, when the grid has `onCommit`. */
+  cellEditing?: GridCellEditingController<T>
 }
 
 /**
@@ -422,6 +439,7 @@ function GridBody<T extends RowData>({
   onRowActivate,
   activatedRowId,
   getRowActivateLabel,
+  cellEditing,
 }: GridBodyProps<T>) {
   // Owns virtualizer + TanStack row JSX — same staleness hazard as the grid.
 
@@ -432,12 +450,58 @@ function GridBody<T extends RowData>({
     treeColumnId,
     editingRowId: isTree ? selectedRowId : null,
     getEditingId: (row) => (row.original as { id: string }).id,
-    isCellEditable: canEdit ? isCellEditable : undefined,
+    // Cell editing opens cells itself, ahead of navigation's Enter.
+    isCellEditable: !cellEditing && canEdit ? isCellEditable : undefined,
     onRowActivate,
     bodyViewportRef,
     rowHeight: ROW_HEIGHT_ESTIMATE,
   })
-  const { pinnedIndex } = navigation
+
+  // The row with an open editor stays rendered wherever focus is — even in
+  // the editor's own popup, which lives outside the body.
+  const openCell = cellEditing?.open
+  const openRowIndex = openCell
+    ? rows.findIndex(
+        (row) => cellEditing.rowKeyOf(row.original) === openCell.rowKey,
+      )
+    : -1
+  const pinnedIndex = openRowIndex >= 0 ? openRowIndex : navigation.pinnedIndex
+  // A failed cell shows its message while it holds focus.
+  const errorTipRowIndex =
+    cellEditing && !openCell && navigation.hasFocusWithin
+      ? navigation.activeRowIndex
+      : -1
+
+  // A cell asked to open (a new draft) or to take focus (the row a draft
+  // became) once its row is in the row model.
+  useLayoutEffect(() => {
+    if (!cellEditing) return
+    const findRow = (rowKey: string) =>
+      rows.find((row) => cellEditing.rowKeyOf(row.original) === rowKey)
+    const pending = cellEditing.pendingOpen
+    const pendingRow = pending ? findRow(pending.rowKey) : undefined
+    if (pending && pendingRow) {
+      cellEditing.clearPendingOpen()
+      navigation.focusCellAt(pendingRow.id, pending.columnId)
+      cellEditing.openCell(pendingRow, pending.columnId)
+    }
+    const focusTarget = cellEditing.pendingFocus
+    const focusRow = focusTarget ? findRow(focusTarget.rowKey) : undefined
+    if (focusTarget && focusRow) {
+      cellEditing.clearPendingFocus()
+      const active = document.activeElement
+      // Only while the user is still in the grid and not editing another
+      // cell; elsewhere it would steal focus from wherever they went.
+      if (
+        !cellEditing.open &&
+        (!active ||
+          active === document.body ||
+          bodyViewportRef.current?.contains(active))
+      ) {
+        navigation.focusCellAt(focusRow.id, focusTarget.columnId)
+      }
+    }
+  })
 
   // ─── Row virtualization ──────────────────────────────────
   // Only the visible window of rows (plus overscan) is mounted, ag-grid
@@ -462,6 +526,11 @@ function GridBody<T extends RowData>({
   })
   const virtualRows = rowVirtualizer.getVirtualItems()
   const totalSize = rowVirtualizer.getTotalSize()
+
+  // Bring a newly opened editor into view (a draft added off screen).
+  useEffect(() => {
+    if (openRowIndex >= 0) rowVirtualizer.scrollToIndex(openRowIndex)
+  }, [openRowIndex, rowVirtualizer])
 
   // Chart pane only: the grid's real rows render at a content-driven height that
   // can differ from the virtualizer's estimate (e.g. 29px actual vs 28 estimate).
@@ -557,10 +626,26 @@ function GridBody<T extends RowData>({
       <table
         className={styles.tableElement}
         role="presentation"
+        onKeyDownCapture={
+          cellEditing
+            ? (e) =>
+                cellEditing.onKeyDownCapture(e, {
+                  rows,
+                  columnIds,
+                  focusCell: navigation.focusCellAt,
+                  leaveGrid: navigation.leaveGrid,
+                })
+            : undefined
+        }
         onKeyDown={navigation.onKeyDown}
         onFocus={navigation.onFocus}
         onBlur={navigation.onBlur}
         onContextMenu={navigation.onContextMenu}
+        onPointerDownCapture={cellEditing?.onPointerDownCapture}
+        onClick={cellEditing ? (e) => cellEditing.onClick(e, rows) : undefined}
+        onDoubleClick={
+          cellEditing ? (e) => cellEditing.onDoubleClick(e, rows) : undefined
+        }
       >
         {colGroup}
         <tbody role="rowgroup">
@@ -598,6 +683,23 @@ function GridBody<T extends RowData>({
                 // spacer stands in for the rows between them.
                 const previous = virtualRows[position - 1]
                 const gap = previous ? virtualRow.start - previous.end : 0
+                // Edit state for this row's cells, when the grid edits.
+                const rowKey = cellEditing?.rowKeyOf(row.original)
+                const isOpenRow = !!rowKey && openCell?.rowKey === rowKey
+                const editProps =
+                  cellEditing && rowKey
+                    ? {
+                        cellMarks: cellEditing.marksByRow.get(rowKey),
+                        editColumnId: isOpenRow ? openCell!.columnId : null,
+                        editor: isOpenRow ? cellEditing.editorElement : null,
+                        errorTipColumnId:
+                          index === errorTipRowIndex
+                            ? navigation.activeColumnId
+                            : null,
+                        editIdPrefix: cellEditing.idPrefix,
+                        editRowKey: rowKey,
+                      }
+                    : undefined
                 const gapSpacer =
                   gap > 0 ? (
                     <tr key={`${row.id}-gap`} aria-hidden="true">
@@ -632,6 +734,7 @@ function GridBody<T extends RowData>({
                       editableColumns={editableColumns}
                       onRowClick={onRowClick}
                       onCellClick={onCellClick}
+                      {...editProps}
                     />,
                   ]
 
@@ -722,6 +825,7 @@ function GridBody<T extends RowData>({
                       isDragging={draggedNodeId === nodeId}
                       isDragEnabled={isDragEnabled}
                       {...activation}
+                      {...editProps}
                     />,
                   ]
                 }
@@ -736,6 +840,7 @@ function GridBody<T extends RowData>({
                     classes={rowClasses}
                     numericColumnIds={numericColumnIds}
                     {...activation}
+                    {...editProps}
                   />,
                 ]
               })}
@@ -758,6 +863,13 @@ function GridBody<T extends RowData>({
         aria-hidden="true"
         className={styles.focusSentinel}
       />
+      {cellEditing && (
+        <CellEditMessages
+          marksByRow={cellEditing.marksByRow}
+          idPrefix={cellEditing.idPrefix}
+          announcement={cellEditing.announcement}
+        />
+      )}
     </div>
   )
 
@@ -1026,6 +1138,9 @@ function WaydGridInner<T extends RowData>(
     onMoveRejected,
     moveValidator,
     editingConfig,
+    onCommit,
+    onCreate,
+    fieldToColumn,
     fieldErrors: externalFieldErrors,
     onFieldErrorsChange,
     createDraftNode,
@@ -1365,8 +1480,56 @@ function WaydGridInner<T extends RowData>(
     handleRowClick,
   } = editing
 
+  // ─── Cell editing ────────────────────────────────────────
+  // Row-level editing wins while a grid still passes editingConfig.
+  const cellEditingEnabled = !!onCommit && !editingConfig
+  useEffect(() => {
+    if (onCommit && editingConfig && process.env.NODE_ENV !== 'production') {
+      console.warn(
+        'WaydGrid: onCommit is ignored while editingConfig is set; remove editingConfig to edit by cell.',
+      )
+    }
+  }, [onCommit, editingConfig])
+  const messageApi = useOptionalMessage()
+  const cellEditing = useGridCellEditing<T>({
+    enabled: cellEditingEnabled,
+    data: dataWithDrafts,
+    serverData: data,
+    isTree,
+    rowKeyOf: (row) => {
+      if (getRowId) return getRowId(row)
+      const id = (row as { id?: string | number }).id
+      return id != null ? String(id) : undefined
+    },
+    draftPrefix,
+    canCreateDrafts: !!createDraftNode && !!onCreate && !isLoading,
+    draftCount: draftTasks.length,
+    insertDraft: (draft) =>
+      updateDraftTasks((prev) => {
+        const next = [...prev, draft]
+        onDraftsChange?.(next)
+        return next
+      }),
+    onCommit,
+    onCreate,
+    fieldToColumn,
+    draftParentId: (key) =>
+      draftTasks.find((draft) => draft.id === key)?.parentId ?? null,
+    removeDraft: (key, created) => {
+      updateDraftTasks((prev) => {
+        const next = prev.filter((draft) => draft.id !== key)
+        onDraftsChange?.(next)
+        return next
+      })
+      if (!created) onDraftCancelled?.(key)
+    },
+    notify: messageApi ? (message) => messageApi.error(message) : undefined,
+    bodyViewportRef,
+  })
+  const { attachTable } = cellEditing
+
   // ─── Draft helpers ───────────────────────────────────────
-  const isEditing = selectedRowId !== null
+  const isEditing = selectedRowId !== null || !!cellEditing.open
   const { canCreateDraft, addDraftAtRoot, addDraftAsChild } = useDraftCreation({
     canAttempt: canEdit && !!createDraftNode && !isLoading && !isSaving,
     hasDraft: draftTasks.length > 0,
@@ -1391,6 +1554,17 @@ function WaydGridInner<T extends RowData>(
     !isLoading &&
     !isEditing
 
+  // Drafts come from the cell-editing path when it is on.
+  const contextCanCreateDraft = cellEditingEnabled
+    ? cellEditing.canCreateDraft
+    : canCreateDraft
+  const contextAddDraftAtRoot = cellEditingEnabled
+    ? cellEditing.addDraft
+    : addDraftAtRoot
+  const contextAddDraftAsChild = cellEditingEnabled
+    ? cellEditing.addDraft
+    : addDraftAsChild
+
   const columnContext: GridColumnContext = useMemo(() => {
     const dragEnabledForColumns = dragEnabledBase && !hasActiveFilters
 
@@ -1401,9 +1575,9 @@ function WaydGridInner<T extends RowData>(
       getFieldError,
       editableColumns,
       isDragEnabled: dragEnabledForColumns,
-      canCreateDraft,
-      addDraftAtRoot,
-      addDraftAsChild,
+      canCreateDraft: contextCanCreateDraft,
+      addDraftAtRoot: () => contextAddDraftAtRoot(),
+      addDraftAsChild: (parentId: string) => contextAddDraftAsChild(parentId),
     }
   }, [
     hasActiveFilters,
@@ -1413,9 +1587,9 @@ function WaydGridInner<T extends RowData>(
     getFieldError,
     editableColumns,
     dragEnabledBase,
-    canCreateDraft,
-    addDraftAtRoot,
-    addDraftAsChild,
+    contextCanCreateDraft,
+    contextAddDraftAtRoot,
+    contextAddDraftAsChild,
   ])
 
   // ─── Resolved columns ───────────────────────────────────
@@ -1660,7 +1834,7 @@ function WaydGridInner<T extends RowData>(
 
   // ─── TanStack table ─────────────────────────────────────
   const table = useGridTable({
-    data: dataWithDrafts,
+    data: cellEditing.data,
     columns: resolvedColumns,
     gridState,
     tableOptions: {
@@ -1716,7 +1890,8 @@ function WaydGridInner<T extends RowData>(
   // the table exists; a layout effect publishes it ahead of any passive effect.
   useLayoutEffect(() => {
     tableRef.current = table
-  }, [table, tableRef])
+    attachTable(table)
+  }, [table, tableRef, attachTable])
 
   useImperativeHandle(ref, () => ({
     table,
@@ -2544,6 +2719,7 @@ function WaydGridInner<T extends RowData>(
         onRowActivate={isTree ? undefined : onRowActivate}
         activatedRowId={activatedRowId}
         getRowActivateLabel={getRowActivateLabel}
+        cellEditing={cellEditingEnabled ? cellEditing : undefined}
       />
     </div>
   )
@@ -2570,7 +2746,12 @@ function WaydGridInner<T extends RowData>(
           isLoading={isLoading}
           includeGlobalSearch={includeGlobalSearch}
           leftSlot={resolvedLeftSlot}
-          helpContent={helpContent}
+          helpContent={
+            helpContent ??
+            (cellEditingEnabled ? (
+              <WaydGridKeyboardHelp editing tree={isTree} />
+            ) : undefined)
+          }
           actionsSlot={actionsSlot}
           rightSlot={rightSlot}
         />

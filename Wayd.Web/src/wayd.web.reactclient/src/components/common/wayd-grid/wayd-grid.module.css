@@ -541,6 +541,32 @@
   outline-offset: -2px;
 }
 
+/* A cell's edit state (cell editing). Each state has its own shape, not
+   just its own colour: unsaved is an underline, saving a left bar, a
+   failure a left bar on a tinted cell. The state and any error are also
+   read out (CellEditMessages, aria-invalid, aria-busy). Qualified with .tr
+   so zebra, hover, pinned and activated rows cannot paint over them. */
+/* Drawn as a shadow, not a border, so it takes no height from the row. */
+.tr .td.cellUnsaved {
+  box-shadow: inset 0 -2px 0 var(--ant-color-warning);
+}
+
+.tr .td.cellSaving {
+  box-shadow: inset 3px 0 0 var(--ant-color-primary);
+}
+
+.tr .td.cellError {
+  box-shadow: inset 3px 0 0 var(--ant-color-error);
+  background-color: var(--ant-color-error-bg);
+}
+
+/* The cell whose editor is open: no vertical padding, so the editor's
+   control fits the row's height and the row never grows. */
+.tr .td.cellEditing {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 /* Tab-out sentinels either side of the body table (see
    useGridCellNavigation). Focusable but sized to nothing. */
 .focusSentinel {

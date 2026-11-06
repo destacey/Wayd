@@ -21,6 +21,7 @@ internal static class SprintLifecycleChange
         IWorkDbContext workDbContext,
         IDispatcher dispatcher,
         ISettings<SchedulingSettings> schedulingSettings,
+        ISettings<GeneralSettings> generalSettings,
         ICurrentUser currentUser,
         ICurrentPrincipal currentPrincipal,
         IDateTimeProvider dateTimeProvider,
@@ -50,7 +51,7 @@ internal static class SprintLifecycleChange
             return Result.Failure(SprintAuthorization.NotAMemberError);
         }
 
-        var timeline = await workDbContext.LoadTeamSprintTimeline(dispatcher, schedulingSettings, teamId, tracked: true, cancellationToken);
+        var timeline = await workDbContext.LoadTeamSprintTimeline(dispatcher, schedulingSettings, generalSettings, teamId, tracked: true, cancellationToken);
 
         // Read per scope rather than from the claim snapshot, which a personal access token freezes for its
         // whole lifetime, and the actor is recorded on the event.

@@ -129,6 +129,7 @@ const GridToolbar = ({
                 type="text"
                 shape="circle"
                 icon={<QuestionCircleOutlined />}
+                aria-label="Grid Actions Help"
               />
             </WaydTooltip>
           </Popover>

@@ -80,11 +80,13 @@ public sealed class GetTeamBacklogHealthQueryHandler(
     IWorkDbContext workDbContext,
     IDispatcher dispatcher,
     ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings,
     IDateTimeProvider dateTimeProvider) : IQueryHandler<GetTeamBacklogHealthQuery, Result<TeamBacklogHealthDto?>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<Result<TeamBacklogHealthDto?>> Handle(GetTeamBacklogHealthQuery request, CancellationToken cancellationToken)
@@ -145,6 +147,7 @@ public sealed class GetTeamBacklogHealthQueryHandler(
         var sprintStates = await _workDbContext.LoadIterationStateReader(
             _dispatcher,
             _schedulingSettings,
+            _generalSettings,
             facts.Where(f => f.Sprint?.TeamId is not null).Select(f => f.Sprint!.TeamId!.Value),
             now,
             cancellationToken);

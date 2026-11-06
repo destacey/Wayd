@@ -90,6 +90,8 @@ public sealed class CorrectSprintActualDatesCommandHandlerTests(SqlServerDbConte
 
         var schedulingSettings = new Mock<ISettings<SchedulingSettings>>();
         schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+        var generalSettings = new Mock<ISettings<GeneralSettings>>();
+        generalSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new GeneralSettings());
 
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(u => u.GetUserId()).Returns("integration-test-user");
@@ -102,6 +104,7 @@ public sealed class CorrectSprintActualDatesCommandHandlerTests(SqlServerDbConte
             accessor.Context,
             dispatcher.Object,
             schedulingSettings.Object,
+            generalSettings.Object,
             currentUser.Object,
             currentPrincipal.Object,
             Mock.Of<IDateTimeProvider>(p => p.Now == now),

@@ -8,7 +8,7 @@ namespace Wayd.Common.Application.SystemSettings.Scheduling.Commands;
 /// Saves the scheduling settings. <paramref name="DefaultWorkingDays"/> and <paramref name="WorkingDayHours"/>
 /// left null keep the saved values.
 /// </summary>
-public sealed record UpdateSchedulingSettingsCommand(string DefaultTimeZone, int DefaultCommitmentGraceDays, IReadOnlyList<IsoDayOfWeek>? DefaultWorkingDays, Guid? DefaultHolidayCalendarId, decimal? WorkingDayHours = null) : ICommand;
+public sealed record UpdateSchedulingSettingsCommand(int DefaultCommitmentGraceDays, IReadOnlyList<IsoDayOfWeek>? DefaultWorkingDays, Guid? DefaultHolidayCalendarId, decimal? WorkingDayHours = null) : ICommand;
 
 public sealed class UpdateSchedulingSettingsCommandHandler(
     ISystemSettingsStore store,
@@ -41,7 +41,6 @@ public sealed class UpdateSchedulingSettingsCommandHandler(
             // The store validates the section, so the rules hold for every caller, not just this command.
             var values = new SchedulingSettings
             {
-                DefaultTimeZone = request.DefaultTimeZone.Trim(),
                 DefaultCommitmentGraceDays = request.DefaultCommitmentGraceDays,
                 // Stored in week order without repeats; an invalid set is kept as given for the store to reject.
                 DefaultWorkingDays = WorkingWeek.Create(workingDays) is { IsSuccess: true } week

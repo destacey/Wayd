@@ -17,7 +17,6 @@ import {
   useGetSchedulingSettingsQuery,
   useLazyGetSchedulingSettingsActivitiesQuery,
 } from '@/src/store/features/admin/system-settings-api'
-import { useGetTimeZonesQuery } from '@/src/store/features/common/time-zones-api'
 import SchedulingSettingsForm from './_components/scheduling-settings-form'
 
 const SchedulingSettingsPage = () => {
@@ -28,8 +27,6 @@ const SchedulingSettingsPage = () => {
 
   const { data: settings, isLoading: isLoadingSettings } =
     useGetSchedulingSettingsQuery()
-  const { data: timeZones, isLoading: isLoadingTimeZones } =
-    useGetTimeZonesQuery()
 
   const activitiesQuery = useGetSchedulingSettingsActivitiesQuery({
     idOrKey: SCHEDULING_SETTINGS_ACTIVITY_ID,
@@ -48,14 +45,13 @@ const SchedulingSettingsPage = () => {
     <div className="page-gutters">
       <PageTitle
         title="Scheduling"
-        subtitle="Organization-wide defaults for team time zones and sprint commitment."
+        subtitle="Organization-wide defaults for team working days, holidays and sprint commitment."
       />
       <Flex vertical gap="middle">
         <Card title="Defaults" size="small">
           <SchedulingSettingsForm
             settings={settings}
-            timeZones={timeZones}
-            isLoading={isLoadingSettings || isLoadingTimeZones}
+            isLoading={isLoadingSettings}
             canUpdate={canUpdate}
           />
         </Card>

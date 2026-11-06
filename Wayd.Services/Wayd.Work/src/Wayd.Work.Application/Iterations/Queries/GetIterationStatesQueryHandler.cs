@@ -12,12 +12,14 @@ public sealed class GetIterationStatesQueryHandler(
     IWorkDbContext workDbContext,
     IDispatcher dispatcher,
     ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings,
     IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetIterationStatesQuery, IReadOnlyDictionary<Guid, IterationStateDto>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<IReadOnlyDictionary<Guid, IterationStateDto>> Handle(GetIterationStatesQuery request, CancellationToken cancellationToken)
@@ -33,6 +35,7 @@ public sealed class GetIterationStatesQueryHandler(
         var states = await _workDbContext.LoadIterationStateReader(
             _dispatcher,
             _schedulingSettings,
+            _generalSettings,
             iterations.Where(i => i.Type == IterationType.Sprint && i.TeamId.HasValue).Select(i => i.TeamId!.Value),
             _dateTimeProvider.Now,
             cancellationToken);

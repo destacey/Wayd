@@ -37,6 +37,7 @@ public sealed class TeamImportDefinitionTests : IDisposable
         _definition = new TeamImportDefinition(
             _dbContext, clock, currentUser.Object,
             Mock.Of<ISettings<SchedulingSettings>>(s => s.Get(It.IsAny<CancellationToken>()) == Task.FromResult(new SchedulingSettings())),
+            Mock.Of<ISettings<GeneralSettings>>(s => s.Get(It.IsAny<CancellationToken>()) == Task.FromResult(new GeneralSettings())),
             new ImportPayloadSerializer());
     }
 

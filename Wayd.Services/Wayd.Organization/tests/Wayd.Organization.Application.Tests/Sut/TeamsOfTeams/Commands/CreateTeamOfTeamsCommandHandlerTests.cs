@@ -16,7 +16,7 @@ namespace Wayd.Organization.Application.Tests.Sut.TeamsOfTeams.Commands;
 public class CreateTeamOfTeamsCommandHandlerTests : IDisposable
 {
     private readonly FakeOrganizationDbContext _dbContext = new();
-    private readonly Mock<ISettings<SchedulingSettings>> _schedulingSettings = new();
+    private readonly Mock<ISettings<GeneralSettings>> _generalSettings = new();
     private readonly CreateTeamOfTeamsCommandHandler _handler;
 
     public CreateTeamOfTeamsCommandHandlerTests()
@@ -30,19 +30,19 @@ public class CreateTeamOfTeamsCommandHandlerTests : IDisposable
             _dbContext,
             clock,
             currentUser.Object,
-            _schedulingSettings.Object,
+            _generalSettings.Object,
             Mock.Of<ILogger<CreateTeamOfTeamsCommandHandler>>());
     }
 
     public void Dispose() => _dbContext.Dispose();
 
     [Fact]
-    public async Task Handle_StartsTheOperatingModelFromTheDefaultTimeZone()
+    public async Task Handle_StartsTheOperatingModelFromTheSystemTimeZone()
     {
         // Arrange
-        _schedulingSettings
+        _generalSettings
             .Setup(s => s.Get(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SchedulingSettings { DefaultTimeZone = "America/Chicago", DefaultCommitmentGraceDays = 2 });
+            .ReturnsAsync(new GeneralSettings { TimeZone = "America/Chicago" });
 
         var activeDate = new LocalDate(2026, 1, 1);
         var command = new CreateTeamOfTeamsCommand("Payments ART", new TeamCode("ART"), null, activeDate);

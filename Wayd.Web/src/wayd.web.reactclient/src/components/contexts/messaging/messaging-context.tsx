@@ -17,6 +17,10 @@ export const MessageProvider: FC<{ children: ReactNode }> = ({ children }) => {
   )
 }
 
+/** The message API, or null outside a MessageProvider — for shared
+ *  components that must also render without one (tests, previews). */
+export const useOptionalMessage = () => useContext(MessageContext)
+
 export const useMessage = () => {
   const context = useContext(MessageContext)
   if (!context)

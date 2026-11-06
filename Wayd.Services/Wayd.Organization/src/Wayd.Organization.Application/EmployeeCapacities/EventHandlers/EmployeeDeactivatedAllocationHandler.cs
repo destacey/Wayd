@@ -7,7 +7,7 @@ namespace Wayd.Organization.Application.EmployeeCapacities.EventHandlers;
 
 /// <summary>
 /// Ends an employee's allocations when they are deactivated, so a leaver stops counting toward their teams'
-/// capacity. The last day is the day of the deactivation in the system default time zone: employees carry no
+/// capacity. The last day is the day of the deactivation in the system time zone: employees carry no
 /// departure date.
 /// </summary>
 /// <remarks>
@@ -26,12 +26,12 @@ namespace Wayd.Organization.Application.EmployeeCapacities.EventHandlers;
 public sealed class EmployeeDeactivatedAllocationHandler(
     IOrganizationDbContext organizationDbContext,
     IActivityLogDbContext activityLogDbContext,
-    ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings,
     ILogger<EmployeeDeactivatedAllocationHandler> logger)
 {
     private readonly IOrganizationDbContext _organizationDbContext = organizationDbContext;
     private readonly IActivityLogDbContext _activityLogDbContext = activityLogDbContext;
-    private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly ILogger<EmployeeDeactivatedAllocationHandler> _logger = logger;
 
     public async Task Handle(EmployeeDeactivatedEvent @event, CancellationToken cancellationToken)
@@ -60,8 +60,7 @@ public sealed class EmployeeDeactivatedAllocationHandler(
         if (capacity is null)
             return;
 
-        var settings = await _schedulingSettings.Get(cancellationToken);
-        var timeZone = DateTimeZoneProviders.Tzdb.GetZoneOrNull(settings.DefaultTimeZone) ?? DateTimeZone.Utc;
+        var timeZone = (await _generalSettings.Get(cancellationToken)).Zone();
         var lastDay = @event.Timestamp.InZone(timeZone).Date;
 
         var result = changedSince

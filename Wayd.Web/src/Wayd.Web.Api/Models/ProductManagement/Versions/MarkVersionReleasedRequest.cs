@@ -12,7 +12,7 @@ public sealed record MarkVersionReleasedRequest
     public Instant? ReleasedAt { get; set; }
 
     /// <summary>
-    /// The day it shipped, read as 12:00 in the organization's default time zone.
+    /// The day it shipped, read as 12:00 in the system time zone.
     /// </summary>
     [Obsolete("Use ReleasedAt. Removed in a future release.")]
     public LocalDate? ReleasedDate { get; set; }

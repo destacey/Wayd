@@ -38,6 +38,7 @@ public sealed class CorrectSprintActualDatesCommandHandler(
     IWorkDbContext workDbContext,
     IDispatcher dispatcher,
     ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings,
     ICurrentUser currentUser,
     ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider,
@@ -49,6 +50,7 @@ public sealed class CorrectSprintActualDatesCommandHandler(
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -62,7 +64,7 @@ public sealed class CorrectSprintActualDatesCommandHandler(
         try
         {
             return await SprintLifecycleChange.Apply(
-                _workDbContext, _dispatcher, _schedulingSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _logger,
+                _workDbContext, _dispatcher, _schedulingSettings, _generalSettings, _currentUser, _currentPrincipal, _dateTimeProvider, _logger,
                 request.Sprints[0].SprintId,
                 "correct the actual dates of",
                 (_, timeline, actor, now) => Steps(request, timeline, actor, now),

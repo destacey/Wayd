@@ -14,12 +14,14 @@ public sealed class GetSprintsQueryHandler(
     IWorkDbContext workDbContext,
     IDispatcher dispatcher,
     ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings,
     IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetSprintsQuery, List<SprintListDto>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<List<SprintListDto>> Handle(GetSprintsQuery request, CancellationToken cancellationToken)
@@ -41,7 +43,7 @@ public sealed class GetSprintsQueryHandler(
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var states = await _dispatcher.BuildIterationStateReader(_schedulingSettings, sprints, _dateTimeProvider.Now, cancellationToken);
+        var states = await _dispatcher.BuildIterationStateReader(_schedulingSettings, _generalSettings, sprints, _dateTimeProvider.Now, cancellationToken);
         var sprintTypes = await _dispatcher.ResolveSprintTypes(sprints, cancellationToken);
 
         return [.. sprints.Select(sprint =>

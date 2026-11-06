@@ -55,6 +55,9 @@ public sealed class SprintLifecycleScenario : IDisposable
         SchedulingSettings
             .Setup(s => s.Get(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new SchedulingSettings());
+        GeneralSettings
+            .Setup(s => s.Get(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GeneralSettings());
 
         CurrentUser.Setup(u => u.GetUserId()).Returns("user-1");
         CurrentPrincipal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(EmployeeId);
@@ -68,6 +71,7 @@ public sealed class SprintLifecycleScenario : IDisposable
     public FakeWorkDbContext DbContext { get; } = new();
     public Mock<IDispatcher> Dispatcher { get; } = new();
     public Mock<ISettings<SchedulingSettings>> SchedulingSettings { get; } = new();
+    public Mock<ISettings<GeneralSettings>> GeneralSettings { get; } = new();
     public Mock<ICurrentUser> CurrentUser { get; } = new();
     public Mock<ICurrentPrincipal> CurrentPrincipal { get; } = new();
     public FakeClock Clock { get; }

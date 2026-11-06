@@ -45,34 +45,6 @@ public class SchedulingSettingsValidatorTests
     }
 
     [Theory]
-    [InlineData("America/Chicago")]
-    [InlineData("Europe/London")]
-    [InlineData("Asia/Kolkata")]
-    public void Validate_AcceptsAnIanaTimeZone(string timeZone)
-    {
-        // Act
-        var result = _sut.Validate(new SchedulingSettings { DefaultTimeZone = timeZone });
-
-        // Assert
-        result.IsValid.Should().BeTrue();
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData("Mars/Olympus_Mons")]
-    [InlineData("Central Standard Time")]
-    [InlineData("america/chicago")]
-    public void Validate_RejectsAnythingElse(string timeZone)
-    {
-        // Act
-        var result = _sut.Validate(new SchedulingSettings { DefaultTimeZone = timeZone });
-
-        // Assert
-        result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.PropertyName == nameof(SchedulingSettings.DefaultTimeZone));
-    }
-
-    [Theory]
     [InlineData(0, true)]
     [InlineData(SchedulingSettingsValidator.MaxCommitmentGraceDays, true)]
     [InlineData(-1, false)]

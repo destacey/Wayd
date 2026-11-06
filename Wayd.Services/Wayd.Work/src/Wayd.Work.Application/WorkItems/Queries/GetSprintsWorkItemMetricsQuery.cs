@@ -18,12 +18,14 @@ public sealed class GetSprintsWorkItemMetricsQueryHandler(
     IWorkDbContext workDbContext,
     IDispatcher dispatcher,
     ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings,
     ILogger<GetSprintsWorkItemMetricsQueryHandler> logger)
     : IQueryHandler<GetSprintsWorkItemMetricsQuery, List<SprintWorkItemMetricsDto>>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly ILogger<GetSprintsWorkItemMetricsQueryHandler> _logger = logger;
 
     public async Task<List<SprintWorkItemMetricsDto>> Handle(
@@ -44,6 +46,7 @@ public sealed class GetSprintsWorkItemMetricsQueryHandler(
 
         var schedules = await _dispatcher.LoadSprintSchedules(
             _schedulingSettings,
+            _generalSettings,
             [.. sprints.Select(s => (s.Id, s.TeamId, s.Start))],
             cancellationToken);
 

@@ -97,7 +97,7 @@ public class TeamsController(
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Teams)]
     [EndpointSummary("Create a team.")]
     [EndpointDescription(
-        "`name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day the team starts. The team starts with a Kanban, Count-sized operating model in the system default time zone and working week; change it with Teams_SetOperatingModel. To place it under a team of teams, call Teams_AddTeamMembership; to staff it, Teams_AddMember. Returns the new team's `id` (UUID) and `key` (integer).")]
+        "`name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day the team starts. The team starts with a Kanban, Count-sized operating model in the system time zone and the default working week; change it with Teams_SetOperatingModel. To place it under a team of teams, call Teams_AddTeamMembership; to staff it, Teams_AddMember. Returns the new team's `id` (UUID) and `key` (integer).")]
     [McpTool("Teams_Create", "Create team", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create([FromBody] CreateTeamRequest request, CancellationToken cancellationToken)
@@ -853,7 +853,7 @@ public class TeamsController(
     [HttpGet("{id}/operating-models/defaults")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [EndpointSummary("Get the values a new operating model for a team is pre-filled with.")]
-    [EndpointDescription("Takes the team's UUID `id`. The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default; the commitment grace period is the system default. Use it to fill Teams_SetOperatingModel when the user has not said otherwise.")]
+    [EndpointDescription("Takes the team's UUID `id`. The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system time zone; the commitment grace period is the system default. Use it to fill Teams_SetOperatingModel when the user has not said otherwise.")]
     [McpTool("Teams_GetOperatingModelDefaults", "Get team operating model defaults")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

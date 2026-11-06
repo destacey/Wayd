@@ -1,5 +1,7 @@
 using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.SystemSettings.General.Dtos;
+using Wayd.Common.Application.SystemSettings.General.Queries;
 using Wayd.Common.Application.SystemSettings.ProductTags.Dtos;
 using Wayd.Common.Application.SystemSettings.ProductTags.Queries;
 using Wayd.Common.Application.SystemSettings.Scheduling.Dtos;
@@ -17,6 +19,42 @@ namespace Wayd.Web.Api.Controllers.Admin;
 public class SystemSettingsController(IDispatcher dispatcher) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
+
+    [HttpGet("general")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.SystemSettings)]
+    [EndpointSummary("Get the general settings, including the system time zone.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<GeneralSettingsDto>> GetGeneralSettings(CancellationToken cancellationToken)
+    {
+        var settings = await _dispatcher.Send(new GetGeneralSettingsQuery(), cancellationToken);
+        return Ok(settings);
+    }
+
+    [HttpPut("general")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.SystemSettings)]
+    [EndpointSummary("Update the general settings, including the system time zone.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> UpdateGeneralSettings([FromBody] UpdateGeneralSettingsRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToUpdateGeneralSettingsCommand(), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("general/activities")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.SystemSettings)]
+    [EndpointSummary("Get the general settings' change history.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<PagedResponse<ActivityLogDto>>> GetGeneralSettingsActivities([FromQuery] int page = PageRequest.FirstPage, [FromQuery] int pageSize = PageSizes.Default, CancellationToken cancellationToken = default)
+    {
+        var activities = await _dispatcher.Send(new GetGeneralSettingsActivitiesQuery(new PageRequest(page, pageSize)), cancellationToken);
+        return Ok(activities);
+    }
 
     [HttpGet("scheduling")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.SystemSettings)]

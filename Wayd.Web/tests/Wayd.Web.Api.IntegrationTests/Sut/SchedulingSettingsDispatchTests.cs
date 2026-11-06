@@ -20,7 +20,7 @@ public sealed class SchedulingSettingsDispatchTests(WaydSqlServerApiFactory fact
 
     // One sequence, because the section is a single row the whole collection shares.
     [Fact]
-    public async Task SchedulingSettings_ReadDefaults_ThenRecordEachChange_AndRejectAnUnknownTimeZone()
+    public async Task SchedulingSettings_ReadDefaults_ThenRecordEachChange_AndRejectAnInvalidGracePeriod()
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
@@ -31,37 +31,33 @@ public sealed class SchedulingSettingsDispatchTests(WaydSqlServerApiFactory fact
         var defaults = await dispatcher.Send(new GetSchedulingSettingsQuery(), ct);
 
         // Assert
-        Assert.Equal("UTC", defaults.DefaultTimeZone);
         Assert.Equal(1, defaults.DefaultCommitmentGraceDays);
 
         // Act — a change
-        var saved = await dispatcher.Send(new UpdateSchedulingSettingsCommand("America/Chicago", 2, WorkingWeek.MondayToFriday.Days, null), ct);
+        var saved = await dispatcher.Send(new UpdateSchedulingSettingsCommand(2, WorkingWeek.MondayToFriday.Days, null), ct);
         var afterSave = await dispatcher.Send(new GetSchedulingSettingsQuery(), ct);
         var activities = await dispatcher.Send(new GetSchedulingSettingsActivitiesQuery(new PageRequest()), ct);
 
         // Assert
         Assert.True(saved.IsSuccess, saved.IsFailure ? saved.Error : null);
-        Assert.Equal("America/Chicago", afterSave.DefaultTimeZone);
         Assert.Equal(2, afterSave.DefaultCommitmentGraceDays);
 
         var entry = Assert.Single(activities.Items);
         Assert.Equal("SystemSettingsSectionValuesChangedEvent", entry.EventType);
         using var payload = JsonDocument.Parse(entry.Payload);
-        Assert.Equal("UTC", payload.RootElement.GetProperty("previous").GetProperty("defaultTimeZone").GetString());
         Assert.Equal(1, payload.RootElement.GetProperty("previous").GetProperty("defaultCommitmentGraceDays").GetInt32());
-        Assert.Equal("America/Chicago", payload.RootElement.GetProperty("current").GetProperty("defaultTimeZone").GetString());
         Assert.Equal(2, payload.RootElement.GetProperty("current").GetProperty("defaultCommitmentGraceDays").GetInt32());
 
-        // Act — saving the same values, then an id the tz database does not know
-        var unchanged = await dispatcher.Send(new UpdateSchedulingSettingsCommand("America/Chicago", 2, WorkingWeek.MondayToFriday.Days, null), ct);
-        var invalid = await dispatcher.Send(new UpdateSchedulingSettingsCommand("Mars/Olympus_Mons", 2, WorkingWeek.MondayToFriday.Days, null), ct);
+        // Act — saving the same values, then a grace period past the limit
+        var unchanged = await dispatcher.Send(new UpdateSchedulingSettingsCommand(2, WorkingWeek.MondayToFriday.Days, null), ct);
+        var invalid = await dispatcher.Send(new UpdateSchedulingSettingsCommand(15, WorkingWeek.MondayToFriday.Days, null), ct);
         var afterInvalid = await dispatcher.Send(new GetSchedulingSettingsQuery(), ct);
         var finalActivities = await dispatcher.Send(new GetSchedulingSettingsActivitiesQuery(new PageRequest()), ct);
 
         // Assert
         Assert.True(unchanged.IsSuccess);
         Assert.True(invalid.IsFailure);
-        Assert.Equal("America/Chicago", afterInvalid.DefaultTimeZone);
+        Assert.Equal(2, afterInvalid.DefaultCommitmentGraceDays);
         Assert.Single(finalActivities.Items);
     }
 }

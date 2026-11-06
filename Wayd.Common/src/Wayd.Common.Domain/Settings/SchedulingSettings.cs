@@ -7,9 +7,16 @@ namespace Wayd.Common.Domain.Settings;
 /// Organization-wide defaults for scheduling: the values a new team operating model is pre-filled with.
 /// </summary>
 /// <remarks>
-/// The time zone, grace period and working days are defaults only: a team's own live on its operating model,
-/// and nothing falls back to them when reading a team's. The holiday calendar is the exception, read for every
-/// operating model that names none.
+/// <para>
+/// The grace period and working days are defaults only: a team's own live on its operating model, and nothing
+/// falls back to them when reading a team's. The holiday calendar is the exception, read for every operating
+/// model that names none.
+/// </para>
+/// <para>
+/// The system time zone is not a scheduling default: it is <see cref="GeneralSettings.TimeZone"/>. Rows saved
+/// before it moved there still carry a <c>defaultTimeZone</c> value, which reading ignores; never give this
+/// record a property of that name.
+/// </para>
 /// </remarks>
 public sealed record SchedulingSettings : ISettingsSection<SchedulingSettings>
 {
@@ -23,9 +30,6 @@ public sealed record SchedulingSettings : ISettingsSection<SchedulingSettings>
 
     /// <summary>The most decimal places a person's own working day may have: quarter hours fit, as do minutes to the hundredth of an hour.</summary>
     public const int WorkingDayHoursDecimals = 2;
-
-    /// <summary>The IANA time zone id new team operating models start with.</summary>
-    public string DefaultTimeZone { get; init; } = "UTC";
 
     /// <summary>
     /// How many days after a sprint's planned start its commitment is taken, when the team does not start it:
@@ -61,12 +65,11 @@ public sealed record SchedulingSettings : ISettingsSection<SchedulingSettings>
     /// </summary>
     public bool Equals(SchedulingSettings? other) =>
         other is not null
-        && DefaultTimeZone == other.DefaultTimeZone
         && DefaultCommitmentGraceDays == other.DefaultCommitmentGraceDays
         && DefaultWorkingDays.SequenceEqual(other.DefaultWorkingDays)
         && DefaultHolidayCalendarId == other.DefaultHolidayCalendarId
         && WorkingDayHours == other.WorkingDayHours;
 
     public override int GetHashCode() =>
-        HashCode.Combine(DefaultTimeZone, DefaultCommitmentGraceDays, DefaultWorkingDays.Aggregate(0, (hash, day) => HashCode.Combine(hash, day)), DefaultHolidayCalendarId, WorkingDayHours);
+        HashCode.Combine(DefaultCommitmentGraceDays, DefaultWorkingDays.Aggregate(0, (hash, day) => HashCode.Combine(hash, day)), DefaultHolidayCalendarId, WorkingDayHours);
 }

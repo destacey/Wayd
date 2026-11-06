@@ -33,6 +33,7 @@ public sealed class GetTeamSprintMetricsQueryHandler(
     IWorkDbContext workDbContext,
     IDispatcher dispatcher,
     ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings,
     ISettings<SprintMetricsSettings> sprintMetricsSettings,
     IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetTeamSprintMetricsQuery, TeamSprintMetricsDto?>
@@ -40,6 +41,7 @@ public sealed class GetTeamSprintMetricsQueryHandler(
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly ISettings<SprintMetricsSettings> _sprintMetricsSettings = sprintMetricsSettings;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -53,7 +55,7 @@ public sealed class GetTeamSprintMetricsQueryHandler(
         var defaultWindow = (await _sprintMetricsSettings.Get(cancellationToken)).SprintWindow;
         var now = _dateTimeProvider.Now;
 
-        var timeline = await _workDbContext.LoadTeamSprintTimeline(_dispatcher, _schedulingSettings, request.TeamId, tracked: false, cancellationToken);
+        var timeline = await _workDbContext.LoadTeamSprintTimeline(_dispatcher, _schedulingSettings, _generalSettings, request.TeamId, tracked: false, cancellationToken);
         var metrics = new TeamSprintMetrics(request.SprintWindow ?? defaultWindow, timeline.ScheduleAt(now).SizingMethod);
         var candidates = metrics.Candidates(timeline, now);
         var sprintTypes = await _dispatcher.ResolveSprintTypes(candidates, cancellationToken);

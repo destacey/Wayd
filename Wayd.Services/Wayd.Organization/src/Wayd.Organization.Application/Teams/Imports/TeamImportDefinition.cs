@@ -28,6 +28,7 @@ public sealed class TeamImportDefinition(
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
     ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings,
     IImportPayloadSerializer serializer) : ImportDefinition<ImportTeamDto>(serializer)
 {
     public const string ImportKey = "teams";
@@ -36,6 +37,7 @@ public sealed class TeamImportDefinition(
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
 
     public override string Key => ImportKey;
 
@@ -76,6 +78,7 @@ public sealed class TeamImportDefinition(
         var actor = EventActor.Import(_currentUser.GetUserId());
 
         var scheduling = await _schedulingSettings.Get(cancellationToken);
+        var general = await _generalSettings.Get(cancellationToken);
 
         // Compare against TeamCode instances, never t.Code.Value: Code is a value converter, so the
         // property translates but a member of it does not.
@@ -117,7 +120,7 @@ public sealed class TeamImportDefinition(
 
             if (data.Type == TeamType.TeamOfTeams)
             {
-                var teamOfTeams = TeamOfTeams.Create(data.Name, data.Code, data.Description, data.ActiveDate, scheduling.DefaultTimeZone, actor, timestamp);
+                var teamOfTeams = TeamOfTeams.Create(data.Name, data.Code, data.Description, data.ActiveDate, general.TimeZone, actor, timestamp);
                 await _organizationDbContext.TeamOfTeams.AddAsync(teamOfTeams, cancellationToken);
                 team = teamOfTeams;
             }
@@ -127,7 +130,7 @@ public sealed class TeamImportDefinition(
                 var plainTeam = Team.Create(
                     data.Name, data.Code, data.Description, data.ActiveDate,
                     Methodology.Kanban, SizingMethod.Count,
-                    scheduling.DefaultTimeZone, scheduling.DefaultCommitmentGraceDays, scheduling.DefaultWorkingWeek(),
+                    general.TimeZone, scheduling.DefaultCommitmentGraceDays, scheduling.DefaultWorkingWeek(),
                     actor, timestamp);
 
                 await _organizationDbContext.Teams.AddAsync(plainTeam, cancellationToken);

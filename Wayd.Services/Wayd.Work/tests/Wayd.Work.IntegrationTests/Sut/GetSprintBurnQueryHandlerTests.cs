@@ -291,9 +291,12 @@ public sealed class GetSprintBurnQueryHandlerTests(SqlServerDbContextFixture fix
 
         var schedulingSettings = new Mock<ISettings<SchedulingSettings>>();
         schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+        var generalSettings = new Mock<ISettings<GeneralSettings>>();
+        generalSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new GeneralSettings());
 
         // Read after the sprint has ended.
         var handler = new GetSprintBurnQueryHandler(accessor.Context, dispatcher ?? HolidayDispatcher.With().Object, schedulingSettings.Object,
+            generalSettings.Object,
             Mock.Of<IDateTimeProvider>(p => p.Now == Instant.FromUtc(2026, 10, 15, 12, 0)));
         return await handler.Handle(new GetSprintBurnQuery(new IdOrKey(sprintId.ToString())), ct);
     }

@@ -12,7 +12,7 @@ public sealed record CorrectReleasePackageDatesRequest
     public LocalDate? TargetDate { get; set; }
     public Instant? ReleasedAt { get; set; }
 
-    /// <summary>The released day, read as 12:00 in the organization's default time zone.</summary>
+    /// <summary>The released day, read as 12:00 in the system time zone.</summary>
     [Obsolete("Use ReleasedAt. Removed in a future release.")]
     public LocalDate? ReleasedDate { get; set; }
 

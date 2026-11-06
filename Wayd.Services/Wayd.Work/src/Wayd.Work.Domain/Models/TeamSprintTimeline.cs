@@ -40,7 +40,7 @@ public sealed class TeamSprintTimeline
 
     public Guid TeamId { get; }
 
-    /// <summary>The system default zone, which a day the team had no schedule falls back to.</summary>
+    /// <summary>The system time zone, which a day the team had no schedule falls back to.</summary>
     public DateTimeZone DefaultZone => _schedules.Fallback.TimeZone;
 
     public IReadOnlyList<Iteration> Sprints => _sprints.AsReadOnly();
@@ -54,7 +54,7 @@ public sealed class TeamSprintTimeline
 
     /// <summary>
     /// The schedule the team is on at <paramref name="instant"/>, whichever sprint it is in or between. The day
-    /// is taken in the system default zone, since the team's own zone is part of what is being looked up.
+    /// is taken in the system time zone, since the team's own zone is part of what is being looked up.
     /// </summary>
     public SprintSchedule ScheduleAt(Instant instant) => _schedules.AsOf(instant.InZone(DefaultZone).Date);
 

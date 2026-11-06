@@ -30,11 +30,11 @@ public sealed record CorrectVersionDatesRequest
     /// </summary>
     public Instant? ReleasedAt { get; set; }
 
-    /// <summary>The cut day, read as 12:00 in the organization's default time zone.</summary>
+    /// <summary>The cut day, read as 12:00 in the system time zone.</summary>
     [Obsolete("Use CutAt. Removed in a future release.")]
     public LocalDate? CutDate { get; set; }
 
-    /// <summary>The released day, read as 12:00 in the organization's default time zone.</summary>
+    /// <summary>The released day, read as 12:00 in the system time zone.</summary>
     [Obsolete("Use ReleasedAt. Removed in a future release.")]
     public LocalDate? ReleasedDate { get; set; }
 

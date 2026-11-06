@@ -203,10 +203,10 @@ two; both share the same shape. Teams are flat here — the parent/child structu
 
 A file that repeats a name or a code fails when it is posted. A row whose name or code already belongs to a
 team is rejected, which fails the whole import. Each team is created with the same default operating model
-as one created in the app — Kanban and Count, with the time zone, grace period and working days from the
-[scheduling settings](../settings/index.mdx#scheduling) — and each team of teams with an operating model in
-the scheduling settings' time zone. A row with `IsActive` set to `false` is created active and then
-deactivated on its `InactiveDate`.
+as one created in the app — Kanban and Count, in the [system time zone](../settings/index.mdx#general), with
+the grace period and working days from the [scheduling settings](../settings/index.mdx#scheduling) — and each
+team of teams with an operating model in the system time zone. A row with `IsActive` set to `false` is created
+active and then deactivated on its `InactiveDate`.
 
 ## Team hierarchy import
 

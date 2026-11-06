@@ -48,15 +48,15 @@ public sealed class CreateTeamOfTeamsCommandHandler : ICommandHandler<CreateTeam
     private readonly IOrganizationDbContext _organizationDbContext;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ICurrentUser _currentUser;
-    private readonly ISettings<SchedulingSettings> _schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings;
     private readonly ILogger<CreateTeamOfTeamsCommandHandler> _logger;
 
-    public CreateTeamOfTeamsCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ISettings<SchedulingSettings> schedulingSettings, ILogger<CreateTeamOfTeamsCommandHandler> logger)
+    public CreateTeamOfTeamsCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ISettings<GeneralSettings> generalSettings, ILogger<CreateTeamOfTeamsCommandHandler> logger)
     {
         _organizationDbContext = organizationDbContext;
         _dateTimeProvider = dateTimeProvider;
         _currentUser = currentUser;
-        _schedulingSettings = schedulingSettings;
+        _generalSettings = generalSettings;
         _logger = logger;
     }
 
@@ -64,9 +64,9 @@ public sealed class CreateTeamOfTeamsCommandHandler : ICommandHandler<CreateTeam
     {
         try
         {
-            var scheduling = await _schedulingSettings.Get(cancellationToken);
+            var general = await _generalSettings.Get(cancellationToken);
 
-            var team = TeamOfTeams.Create(request.Name, request.Code, request.Description, request.ActiveDate, scheduling.DefaultTimeZone, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
+            var team = TeamOfTeams.Create(request.Name, request.Code, request.Description, request.ActiveDate, general.TimeZone, EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()), _dateTimeProvider.Now);
             await _organizationDbContext.TeamOfTeams.AddAsync(team, cancellationToken);
 
             await _organizationDbContext.SaveChangesAsync(cancellationToken);

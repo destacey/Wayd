@@ -18,6 +18,7 @@ public class CreateTeamCommandHandlerTests : IDisposable
 {
     private readonly FakeOrganizationDbContext _dbContext = new();
     private readonly Mock<ISettings<SchedulingSettings>> _schedulingSettings = new();
+    private readonly Mock<ISettings<GeneralSettings>> _generalSettings = new();
     private readonly CreateTeamCommandHandler _handler;
 
     public CreateTeamCommandHandlerTests()
@@ -32,18 +33,22 @@ public class CreateTeamCommandHandlerTests : IDisposable
             clock,
             currentUser.Object,
             _schedulingSettings.Object,
+            _generalSettings.Object,
             Mock.Of<ILogger<CreateTeamCommandHandler>>());
     }
 
     public void Dispose() => _dbContext.Dispose();
 
     [Fact]
-    public async Task Handle_StartsTheOperatingModelFromTheSchedulingSettings()
+    public async Task Handle_StartsTheOperatingModelFromTheSchedulingSettingsAndSystemTimeZone()
     {
         // Arrange
         _schedulingSettings
             .Setup(s => s.Get(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new SchedulingSettings { DefaultTimeZone = "America/Chicago", DefaultCommitmentGraceDays = 2 });
+            .ReturnsAsync(new SchedulingSettings { DefaultCommitmentGraceDays = 2 });
+        _generalSettings
+            .Setup(s => s.Get(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GeneralSettings { TimeZone = "America/Chicago" });
 
         var activeDate = new LocalDate(2026, 1, 1);
         var command = new CreateTeamCommand("Payments", new TeamCode("PAY"), null, activeDate);

@@ -25,6 +25,7 @@ public sealed class GetSprintQueryHandler(
     IWorkDbContext workDbContext,
     IDispatcher dispatcher,
     ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings,
     ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetSprintQuery, SprintDetailsDto?>
@@ -32,6 +33,7 @@ public sealed class GetSprintQueryHandler(
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -56,12 +58,12 @@ public sealed class GetSprintQueryHandler(
 
         if (sprint.TeamId is not { } teamId)
         {
-            var states = await _dispatcher.BuildIterationStateReader(_schedulingSettings, [], now, cancellationToken);
+            var states = await _dispatcher.BuildIterationStateReader(_schedulingSettings, _generalSettings, [], now, cancellationToken);
             details.State = SimpleNavigationDto.FromEnum(states.StateOf(sprint));
             return details;
         }
 
-        var timeline = await _workDbContext.LoadTeamSprintTimeline(_dispatcher, _schedulingSettings, teamId, tracked: false, cancellationToken);
+        var timeline = await _workDbContext.LoadTeamSprintTimeline(_dispatcher, _schedulingSettings, _generalSettings, teamId, tracked: false, cancellationToken);
         await details.Resolve(sprint, timeline, _currentPrincipal, _dispatcher, now, cancellationToken);
 
         return details;

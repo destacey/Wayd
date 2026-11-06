@@ -34,11 +34,11 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
 [McpTools(McpToolset.Delivery, "wayd-delivery")]
-public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvService, ISettings<SchedulingSettings> schedulingSettings, ILogger<ReleasePackagesController> logger) : ControllerBase
+public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvService, ISettings<GeneralSettings> generalSettings, ILogger<ReleasePackagesController> logger) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ICsvService _csvService = csvService;
-    private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly ILogger<ReleasePackagesController> _logger = logger;
 
     [HttpGet]
@@ -324,7 +324,7 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
         Guid id, [FromBody] MarkReleasePackageReleasedRequest request, CancellationToken cancellationToken)
     {
         var zone = await LegacyDeliveryDates.ZoneForRequest(
-            request.UsesLegacyDates(), _schedulingSettings, _logger, "Mark package released", cancellationToken);
+            request.UsesLegacyDates(), _generalSettings, _logger, "Mark package released", cancellationToken);
 
         var result = await _dispatcher.Send(
             new MarkReleasePackageReleasedCommand(id, request.ResolveReleasedAt(zone)), cancellationToken);
@@ -346,7 +346,7 @@ public class ReleasePackagesController(IDispatcher dispatcher, ICsvService csvSe
         Guid id, [FromBody] CorrectReleasePackageDatesRequest request, CancellationToken cancellationToken)
     {
         var zone = await LegacyDeliveryDates.ZoneForRequest(
-            request.UsesLegacyDates(), _schedulingSettings, _logger, "Correct package dates", cancellationToken);
+            request.UsesLegacyDates(), _generalSettings, _logger, "Correct package dates", cancellationToken);
 
         var result = await _dispatcher.Send(
             new CorrectReleasePackageDatesCommand(id, request.TargetDate, request.ResolveReleasedAt(zone)),

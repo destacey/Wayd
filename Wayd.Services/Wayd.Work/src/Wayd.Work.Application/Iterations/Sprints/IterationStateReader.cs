@@ -6,7 +6,7 @@ namespace Wayd.Work.Application.Iterations.Sprints;
 /// <summary>
 /// Works out iteration states at one moment. A sprint in its team's timeline follows its actual and default
 /// dates in the team's zone; any other iteration — no mapped team, not a sprint, or missing a planned date —
-/// follows its planned days in the system default zone.
+/// follows its planned days in the system time zone.
 /// </summary>
 public sealed class IterationStateReader
 {

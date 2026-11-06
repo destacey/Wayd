@@ -30,6 +30,7 @@ This file captures compact repo-specific lessons that future coding agents shoul
 - Types in `Wayd.Web.Api/Models` are named `*Request` / `*Response`. "Dto" means a type defined in an Application project's `Dtos/` folder.
 - Do not add `AsNoTracking()` to a query that projects to DTOs, scalars, or anonymous types holding no entity instances (`Select`, `ProjectToType`): there is nothing to track. A projection that returns an entity instance is tracked, so it, like a query returning entities read but not saved, still takes `AsNoTracking()`.
 - With a primary constructor, assign each parameter to a `private readonly _field` and use the field in method bodies.
+- The system time zone is `GeneralSettings.TimeZone` (Settings → System → General), read through `ISettings<GeneralSettings>` and `Zone()`. Use it wherever no team's own zone applies. `SchedulingSettings` has no time zone; it holds only scheduling defaults.
 - AI provider connectors (Azure OpenAI) are called on demand and have nothing to sync. Sync runners, sync buttons and sync dispatch gate on `connector.HasCapability(ConnectorCapability.WorkItems)` / `People`; the connection sync endpoint answers 400 for a connector with neither.
 
 ## Local Environment

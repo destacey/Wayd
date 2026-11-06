@@ -91,7 +91,7 @@ describe('sprintScopeWindowText', () => {
 
     // Assert
     expect(result[2]).toBe(
-      'This sprint has no team, so it uses the system default zone (UTC) and grace period, and counts work items.',
+      'This sprint has no team, so it uses the system time zone (UTC) and the default grace period, and counts work items.',
     )
   })
 })

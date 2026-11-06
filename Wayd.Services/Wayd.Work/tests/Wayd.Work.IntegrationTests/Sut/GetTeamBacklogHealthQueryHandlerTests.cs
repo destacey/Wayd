@@ -60,10 +60,12 @@ public sealed class GetTeamBacklogHealthQueryHandlerTests(SqlServerDbContextFixt
             .ReturnsAsync(new Dictionary<Guid, IReadOnlyList<TeamSchedulePeriodDto>>());
         var schedulingSettings = new Mock<ISettings<SchedulingSettings>>();
         schedulingSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new SchedulingSettings());
+        var generalSettings = new Mock<ISettings<GeneralSettings>>();
+        generalSettings.Setup(s => s.Get(It.IsAny<CancellationToken>())).ReturnsAsync(new GeneralSettings());
         var dateTimeProvider = Mock.Of<IDateTimeProvider>(p => p.Now == _now);
 
         await using var accessor = new WaydDbContextAccessor(_fixture);
-        var handler = new GetTeamBacklogHealthQueryHandler(accessor.Context, dispatcher.Object, schedulingSettings.Object, dateTimeProvider);
+        var handler = new GetTeamBacklogHealthQueryHandler(accessor.Context, dispatcher.Object, schedulingSettings.Object, generalSettings.Object, dateTimeProvider);
 
         // Act
         var result = await handler.Handle(

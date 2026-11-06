@@ -1,9 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import {
-  IsoDayOfWeek,
-  SchedulingSettingsDto,
-  TimeZoneDto,
-} from '@/src/services/wayd-api'
+import { IsoDayOfWeek, SchedulingSettingsDto } from '@/src/services/wayd-api'
 import SchedulingSettingsForm, {
   SchedulingSettingsFormProps,
 } from './scheduling-settings-form'
@@ -41,7 +37,6 @@ jest.mock('@/src/components/contexts/messaging', () => ({
 }))
 
 const settings: SchedulingSettingsDto = {
-  defaultTimeZone: 'America/Chicago',
   defaultCommitmentGraceDays: 1,
   workingDayHours: 7.5,
   defaultWorkingDays: [
@@ -53,16 +48,10 @@ const settings: SchedulingSettingsDto = {
   ],
 }
 
-const timeZones: TimeZoneDto[] = [
-  { id: 'America/Chicago', currentOffset: '-05:00' },
-  { id: 'UTC', currentOffset: '+00:00' },
-]
-
 const renderForm = (overrides: Partial<SchedulingSettingsFormProps> = {}) =>
   render(
     <SchedulingSettingsForm
       settings={settings}
-      timeZones={timeZones}
       isLoading={false}
       canUpdate={true}
       {...overrides}
@@ -84,7 +73,6 @@ describe('SchedulingSettingsForm', () => {
     renderForm()
 
     // Assert
-    expect(screen.getByText('(UTC-05:00) America/Chicago')).toBeInTheDocument()
     expect(graceDaysInput()).toHaveValue('1')
   })
 
@@ -110,7 +98,6 @@ describe('SchedulingSettingsForm', () => {
     // Assert
     await waitFor(() =>
       expect(mockUpdate).toHaveBeenCalledWith({
-        defaultTimeZone: 'America/Chicago',
         defaultCommitmentGraceDays: 3,
         defaultWorkingDays: settings.defaultWorkingDays,
         workingDayHours: 7.5,
@@ -153,7 +140,9 @@ describe('SchedulingSettingsForm', () => {
       error: {
         status: 422,
         errors: {
-          DefaultTimeZone: ["'Mars/Base' is not a valid IANA time zone."],
+          DefaultCommitmentGraceDays: [
+            "'Default Commitment Grace Days' must be between 0 and 14.",
+          ],
         },
       },
     })

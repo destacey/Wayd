@@ -50,6 +50,7 @@ public sealed class TeamImportDefinitionTests
         return new TeamImportDefinition(
             context, dateTimeProvider.Object, currentUser.Object,
             Mock.Of<ISettings<SchedulingSettings>>(s => s.Get(It.IsAny<CancellationToken>()) == Task.FromResult(new SchedulingSettings())),
+            Mock.Of<ISettings<GeneralSettings>>(s => s.Get(It.IsAny<CancellationToken>()) == Task.FromResult(new GeneralSettings())),
             new ImportPayloadSerializer());
     }
 

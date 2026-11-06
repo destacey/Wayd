@@ -55,6 +55,7 @@ public static class SprintScopeHistoryLoader
         this IWorkDbContext workDbContext,
         IDispatcher dispatcher,
         ISettings<SchedulingSettings> schedulingSettings,
+        ISettings<GeneralSettings> generalSettings,
         Expression<Func<Iteration, bool>> sprintFilter,
         CancellationToken cancellationToken)
     {
@@ -66,7 +67,7 @@ public static class SprintScopeHistoryLoader
         if (sprint is null || sprint.DateRange.Start is null || sprint.DateRange.End is null)
             return null;
 
-        var (window, schedule) = await LoadWindow(workDbContext, dispatcher, schedulingSettings, sprint, cancellationToken);
+        var (window, schedule) = await LoadWindow(workDbContext, dispatcher, schedulingSettings, generalSettings, sprint, cancellationToken);
         var scope = await LoadSprintScopePeriods(workDbContext, window, schedule.SizingMethod, cancellationToken);
 
         return new SprintScopeHistory(
@@ -111,18 +112,20 @@ public static class SprintScopeHistoryLoader
         IWorkDbContext workDbContext,
         IDispatcher dispatcher,
         ISettings<SchedulingSettings> schedulingSettings,
+        ISettings<GeneralSettings> generalSettings,
         Iteration sprint,
         CancellationToken cancellationToken)
     {
         if (sprint.TeamId is { } teamId)
         {
-            var timeline = await workDbContext.LoadTeamSprintTimeline(dispatcher, schedulingSettings, teamId, tracked: false, cancellationToken);
+            var timeline = await workDbContext.LoadTeamSprintTimeline(dispatcher, schedulingSettings, generalSettings, teamId, tracked: false, cancellationToken);
             var onTimeline = timeline.Sprints.Single(s => s.Id == sprint.Id);
             return (SprintScopeWindow.For(timeline, onTimeline), timeline.ScheduleFor(onTimeline));
         }
 
         var schedules = await dispatcher.LoadSprintSchedules(
             schedulingSettings,
+            generalSettings,
             [(sprint.Id, sprint.TeamId, sprint.DateRange.Start)],
             cancellationToken);
         var schedule = schedules[sprint.Id];

@@ -1,15 +1,20 @@
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
+  GeneralSettingsDto,
   PagedResponseOfActivityLogDto,
   SchedulingSettingsDto,
   SprintMetricsSettingsDto,
+  UpdateGeneralSettingsRequest,
   UpdateProductTagSettingsRequest,
   UpdateSchedulingSettingsRequest,
   UpdateSprintMetricsSettingsRequest,
 } from '@/src/services/wayd-api'
 import { getSystemSettingsClient } from '@/src/services/clients'
 import { ActivityLogQueryArg } from '@/src/components/common/activities'
+
+/** The Activity tag id for the general section; a section is a singleton, so its key is its id. */
+export const GENERAL_SETTINGS_ACTIVITY_ID = 'system-settings-general'
 
 /** The Activity tag id for the scheduling section; a section is a singleton, so its key is its id. */
 export const SCHEDULING_SETTINGS_ACTIVITY_ID = 'system-settings-scheduling'
@@ -23,6 +28,62 @@ export const PRODUCT_TAG_SETTINGS_ACTIVITY_ID = 'system-settings-product-tags'
 
 export const systemSettingsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    getGeneralSettings: builder.query<GeneralSettingsDto, void>({
+      queryFn: async () => {
+        try {
+          const data = await getSystemSettingsClient().getGeneralSettings()
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return {
+            error: error ?? new Error('Unknown error loading general settings'),
+          }
+        }
+      },
+      providesTags: [{ type: QueryTags.SystemSettings, id: 'general' }],
+    }),
+    updateGeneralSettings: builder.mutation<void, UpdateGeneralSettingsRequest>(
+      {
+        queryFn: async (request) => {
+          try {
+            await getSystemSettingsClient().updateGeneralSettings(request)
+            return { data: null as unknown as void }
+          } catch (error) {
+            console.error('API Error:', error)
+            return {
+              error:
+                error ?? new Error('Unknown error updating general settings'),
+            }
+          }
+        },
+        invalidatesTags: [
+          { type: QueryTags.SystemSettings, id: 'general' },
+          { type: QueryTags.ActivityLog, id: GENERAL_SETTINGS_ACTIVITY_ID },
+        ],
+      },
+    ),
+    // Takes the shared activity-log argument so useActivityLog can page it; the id is fixed.
+    getGeneralSettingsActivities: builder.query<
+      PagedResponseOfActivityLogDto,
+      ActivityLogQueryArg
+    >({
+      queryFn: async ({ page, pageSize }) => {
+        try {
+          const data =
+            await getSystemSettingsClient().getGeneralSettingsActivities(
+              page,
+              pageSize,
+            )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: [
+        { type: QueryTags.ActivityLog, id: GENERAL_SETTINGS_ACTIVITY_ID },
+      ],
+    }),
     getSchedulingSettings: builder.query<SchedulingSettingsDto, void>({
       queryFn: async () => {
         try {
@@ -197,6 +258,10 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
 })
 
 export const {
+  useGetGeneralSettingsQuery,
+  useUpdateGeneralSettingsMutation,
+  useGetGeneralSettingsActivitiesQuery,
+  useLazyGetGeneralSettingsActivitiesQuery,
   useGetSprintMetricsSettingsQuery,
   useUpdateSprintMetricsSettingsMutation,
   useGetSprintMetricsSettingsActivitiesQuery,

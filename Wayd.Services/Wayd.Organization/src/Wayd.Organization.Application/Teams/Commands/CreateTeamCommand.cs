@@ -50,14 +50,16 @@ public sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ICurrentUser _currentUser;
     private readonly ISettings<SchedulingSettings> _schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings;
     private readonly ILogger<CreateTeamCommandHandler> _logger;
 
-    public CreateTeamCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ISettings<SchedulingSettings> schedulingSettings, ILogger<CreateTeamCommandHandler> logger)
+    public CreateTeamCommandHandler(IOrganizationDbContext organizationDbContext, IDateTimeProvider dateTimeProvider, ICurrentUser currentUser, ISettings<SchedulingSettings> schedulingSettings, ISettings<GeneralSettings> generalSettings, ILogger<CreateTeamCommandHandler> logger)
     {
         _organizationDbContext = organizationDbContext;
         _dateTimeProvider = dateTimeProvider;
         _currentUser = currentUser;
         _schedulingSettings = schedulingSettings;
+        _generalSettings = generalSettings;
         _logger = logger;
     }
 
@@ -66,6 +68,7 @@ public sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand
         try
         {
             var scheduling = await _schedulingSettings.Get(cancellationToken);
+            var general = await _generalSettings.Get(cancellationToken);
 
             // Create team with default operating model (Kanban + Count)
             var team = Team.Create(
@@ -75,7 +78,7 @@ public sealed class CreateTeamCommandHandler : ICommandHandler<CreateTeamCommand
                 request.ActiveDate,
                 Methodology.Kanban,
                 SizingMethod.Count,
-                scheduling.DefaultTimeZone,
+                general.TimeZone,
                 scheduling.DefaultCommitmentGraceDays,
                 scheduling.DefaultWorkingWeek(),
                 EventActor.User(_currentUser.GetUserId(), _currentUser.GetEmployeeId()),

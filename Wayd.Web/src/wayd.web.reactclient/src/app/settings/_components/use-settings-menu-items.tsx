@@ -188,6 +188,12 @@ const buildSettingsMenuItems = (
   restrictedMenuSection('System', 'system', undefined, undefined, [
     restrictedPermissionMenuItem(
       'Permissions.SystemSettings.View',
+      'General',
+      'system.general',
+      '/settings/system/general',
+    ),
+    restrictedPermissionMenuItem(
+      'Permissions.SystemSettings.View',
       'Scheduling',
       'system.scheduling',
       '/settings/system/scheduling',

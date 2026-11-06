@@ -1,8 +1,10 @@
 using System.Text.Json;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Wayd.Common.Application.SystemSettings;
 using Wayd.Common.Domain.Settings;
+using Wayd.Infrastructure.Persistence.Activities;
+using Wayd.Infrastructure.Persistence.Extensions;
 
 namespace Wayd.Infrastructure.Persistence.Initialization;
 
@@ -11,18 +13,30 @@ namespace Wayd.Infrastructure.Persistence.Initialization;
 /// <see cref="GeneralSettings.TimeZone"/>, where it now lives.
 /// </summary>
 /// <remarks>
-/// Saved through the settings store rather than written to the table, so the zone is validated and the copy is
-/// in the general settings' Activity like any other change. Runs on every boot and does nothing once the
-/// general settings have a row, so a zone an administrator later changes is never overwritten. The scheduling
-/// row keeps its old value, which reading that section ignores.
+/// <para>
+/// Runs on every boot and does nothing once the general settings have a row, so a zone an administrator later
+/// changes is never overwritten. The scheduling row keeps its old value, which reading that section ignores.
+/// </para>
+/// <para>
+/// The zone is validated as a save through the settings store would be, and the change is recorded in the
+/// general settings' Activity. The event is taken off the row before saving, because Wolverine cannot route
+/// while seeders run, before the host starts: SaveChanges would otherwise publish it into a runtime that drops
+/// it, or fails the boot once the event is routed durably.
+/// </para>
 /// </remarks>
-internal sealed class SystemTimeZoneSeeder(ISystemSettingsStore store, ILogger<SystemTimeZoneSeeder> logger) : ICustomSeeder
+internal sealed class SystemTimeZoneSeeder(
+    IEnumerable<IValidator<GeneralSettings>> validators,
+    ILogger<SystemTimeZoneSeeder> logger) : ICustomSeeder
 {
     private const string LegacyPropertyName = "defaultTimeZone";
 
-    private readonly ISystemSettingsStore _store = store;
+    private readonly IEnumerable<IValidator<GeneralSettings>> _validators = validators;
     private readonly ILogger<SystemTimeZoneSeeder> _logger = logger;
 
+    /// <summary>
+    /// Copies the legacy scheduling time zone into the general settings when they have no row yet. A missing,
+    /// unreadable or invalid zone leaves the system time zone at its default, UTC.
+    /// </summary>
     public async Task Initialize(WaydDbContext dbContext, IDateTimeProvider dateTimeProvider, CancellationToken cancellationToken)
     {
         var generalId = SystemSettingsSection.IdFor<GeneralSettings>();
@@ -38,28 +52,65 @@ internal sealed class SystemTimeZoneSeeder(ISystemSettingsStore store, ILogger<S
         if (string.IsNullOrWhiteSpace(timeZone))
             return;
 
-        // Saving the default creates no row, so a scheduling row holding UTC is read again on the next boot and
-        // again changes nothing.
-        var result = await _store.Save(new GeneralSettings { TimeZone = timeZone }, EventActor.System, cancellationToken);
-        if (result.IsFailure)
+        var values = new GeneralSettings { TimeZone = timeZone.Trim() };
+        foreach (var validator in _validators)
         {
-            _logger.LogWarning(
-                "Could not carry the scheduling time zone {TimeZone} over to the general settings: {Error}. The system time zone is UTC until an administrator sets it.",
-                timeZone, result.Error);
+            var validation = await validator.ValidateAsync(values, cancellationToken);
+            if (!validation.IsValid)
+            {
+                // Repeats each boot until the scheduling row is saved again, which drops the old value.
+                _logger.LogWarning(
+                    "The scheduling settings hold the time zone {TimeZone}, which is not valid, so it was not carried over to the general settings. The system time zone stays UTC until an administrator sets it.",
+                    timeZone);
+                return;
+            }
+        }
+
+        // Null when the zone is the default: nothing to record, and nothing to store.
+        var section = SystemSettingsSection.Create(values, EventActor.System, dateTimeProvider.Now);
+        if (section is null)
+            return;
+
+        var ordinal = 0;
+        foreach (var domainEvent in section.DomainEvents)
+            dbContext.ActivityLogs.Add(ActivityLogEntryFactory.CreateActivityLogEntry(domainEvent, section, ordinal++, correlationId: null));
+
+        section.ClearDomainEvents();
+        dbContext.SystemSettingsSections.Add(section);
+
+        try
+        {
+            // One save, so the row is never committed without the entry recording it.
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueViolation())
+        {
+            // The id is derived from the key: another instance booting at the same time carried the zone over.
+            dbContext.ChangeTracker.Clear();
+            _logger.LogInformation("Another instance carried the scheduling time zone over to the general settings first.");
             return;
         }
 
-        _logger.LogInformation("Carried the scheduling time zone {TimeZone} over to the general settings.", timeZone);
+        _logger.LogInformation("Carried the scheduling time zone {TimeZone} over to the general settings.", values.TimeZone);
     }
 
-    private static string? ReadLegacyTimeZone(string json)
+    private string? ReadLegacyTimeZone(string json)
     {
-        using var document = JsonDocument.Parse(json);
+        try
+        {
+            using var document = JsonDocument.Parse(json);
 
-        return document.RootElement.ValueKind == JsonValueKind.Object
-            && document.RootElement.TryGetProperty(LegacyPropertyName, out var value)
-            && value.ValueKind == JsonValueKind.String
-                ? value.GetString()
-                : null;
+            return document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty(LegacyPropertyName, out var value)
+                && value.ValueKind == JsonValueKind.String
+                    ? value.GetString()
+                    : null;
+        }
+        catch (JsonException ex)
+        {
+            // Reading the scheduling settings fails on the same row; that is where it surfaces, not at boot.
+            _logger.LogWarning(ex, "The scheduling settings row is not valid JSON, so no time zone was carried over from it.");
+            return null;
+        }
     }
 }

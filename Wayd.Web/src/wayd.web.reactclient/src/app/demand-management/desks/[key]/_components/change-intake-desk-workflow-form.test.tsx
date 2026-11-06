@@ -196,8 +196,39 @@ describe('ChangeIntakeDeskWorkflowForm', () => {
 
     // Assert
     expect(screen.queryByText('In Review')).not.toBeInTheDocument()
+    expect(screen.queryByText('Mapping')).not.toBeInTheDocument()
     expect(screen.getByText('No request will move.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Change' })).toBeEnabled()
+  })
+
+  it('says nothing about status history for a desk with no request', async () => {
+    // Arrange
+    mockPreview = {
+      ...preview(false),
+      remap: { ...preview(false).remap, affectedRecordCount: 0 },
+    }
+    await renderForm()
+
+    // Act
+    await chooseBoardReview()
+
+    // Assert
+    expect(
+      screen.getByText('No request is on the desk, so none will move.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(
+        "Each move is recorded in the request's status history.",
+      ),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows all three steps until a preview says the desk is empty', async () => {
+    // Act
+    await renderForm()
+
+    // Assert
+    expect(screen.getByText('Mapping')).toBeInTheDocument()
   })
 
   it('shows a refusal on the mapping, with the choices kept and the counts refreshed', async () => {

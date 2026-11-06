@@ -98,8 +98,12 @@ const ChangeIntakeDeskWorkflowForm: FC<ChangeIntakeDeskWorkflowFormProps> = ({
     preview !== undefined &&
     preview.remap.entries.every((entry) => decisions[entry.from.id])
 
-  const stages: Stage[] =
-    affected > 0 ? ['workflow', 'mapping', 'confirm'] : ['workflow', 'confirm']
+  // Mapping is dropped only once a preview says the desk is empty, so the steps do not change shape
+  // while a workflow is still being chosen.
+  const isEmptyDesk = preview !== undefined && affected === 0
+  const stages: Stage[] = isEmptyDesk
+    ? ['workflow', 'confirm']
+    : ['workflow', 'mapping', 'confirm']
   const current = Math.max(stages.indexOf(stage), 0)
 
   const onTargetChange = (id: string) => {
@@ -217,7 +221,11 @@ const ChangeIntakeDeskWorkflowForm: FC<ChangeIntakeDeskWorkflowFormProps> = ({
                     ? `${requestCount(affected)} on the desk will move to a status in ${preview.remap.to.name}.`
                     : 'No request is on the desk, so none will move.'
                 }
-                description="Each move is recorded in the request's status history."
+                description={
+                  affected > 0
+                    ? "Each move is recorded in the request's status history."
+                    : undefined
+                }
               />
             )}
             {refusalAlert}

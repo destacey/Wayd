@@ -85,6 +85,7 @@ public sealed record ResolvedRecipe(
                 ConcurrentProjectsPerArt = Required(ppm.ConcurrentProjectsPerArt, "ppm.concurrentProjectsPerArt"),
                 ConcurrentProgramsPerPortfolio = Required(ppm.ConcurrentProgramsPerPortfolio, "ppm.concurrentProgramsPerPortfolio"),
                 Programs = Required(ppm.Programs, "ppm.programs"),
+                DeliverablesPerProject = Required(ppm.DeliverablesPerProject, "ppm.deliverablesPerProject"),
             },
             new ProductManagementOptions
             {

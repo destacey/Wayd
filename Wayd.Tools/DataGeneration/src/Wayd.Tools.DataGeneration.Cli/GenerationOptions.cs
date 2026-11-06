@@ -121,6 +121,11 @@ public static class GenerationOptions
         Description = "Average number of thematic programs a portfolio runs at once (Modernization, Integrations, …). Programs group projects by theme, independent of the delivery hierarchy; the total is derived across the window.",
     };
 
+    public static Option<int?> DeliverablesPerProject { get; } = new("--deliverables-per-project")
+    {
+        Description = "Average number of deliverables a project commits to, give or take two. Zero generates none.",
+    };
+
     public static Option<StructureMode?> Programs { get; } = new("--programs")
     {
         Description = "Whether value-stream portfolios group their projects into programs (Auto, On, Off). Auto leaves about one project in six standalone; Off generates no programs.",
@@ -232,6 +237,7 @@ public static class GenerationOptions
         ConcurrentProjectsPerArt,
         ConcurrentProgramsPerPortfolio,
         Programs,
+        DeliverablesPerProject,
         SkipProductManagement,
         VersionIntervalDays,
         ChangeFailureRate,
@@ -300,6 +306,7 @@ public static class GenerationOptions
                 ConcurrentProjectsPerArt = FlagOr(parse, ConcurrentProjectsPerArt),
                 ConcurrentProgramsPerPortfolio = FlagOr(parse, ConcurrentProgramsPerPortfolio),
                 Programs = FlagOr(parse, Programs),
+                DeliverablesPerProject = FlagOr(parse, DeliverablesPerProject),
             },
             Users = new UsersRecipe
             {

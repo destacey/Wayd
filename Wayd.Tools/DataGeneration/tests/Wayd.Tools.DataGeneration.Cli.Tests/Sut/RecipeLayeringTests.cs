@@ -128,6 +128,7 @@ public class RecipeLayeringTests
                 ConcurrentProjectsPerArt = 1,
                 ConcurrentProgramsPerPortfolio = 1,
                 Programs = StructureMode.On,
+                DeliverablesPerProject = 2,
             },
             Users = new UsersRecipe { Password = "Under123$" },
             ProductManagement = new ProductManagementRecipe
@@ -176,6 +177,7 @@ public class RecipeLayeringTests
                 ConcurrentProjectsPerArt = 11,
                 ConcurrentProgramsPerPortfolio = 4,
                 Programs = StructureMode.Off,
+                DeliverablesPerProject = 5,
             },
             Users = new UsersRecipe { Password = "Over1234$" },
             ProductManagement = new ProductManagementRecipe
@@ -220,6 +222,7 @@ public class RecipeLayeringTests
         result.Ppm.ConcurrentProjectsPerArt.Should().Be(11);
         result.Ppm.ConcurrentProgramsPerPortfolio.Should().Be(4);
         result.Ppm.Programs.Should().Be(StructureMode.Off);
+        result.Ppm.DeliverablesPerProject.Should().Be(5);
 
         result.UserPassword.Should().Be("Over1234$");
 
@@ -270,6 +273,7 @@ public class RecipeLayeringTests
                 ConcurrentProjectsPerArt = 11,
                 ConcurrentProgramsPerPortfolio = 4,
                 Programs = StructureMode.Off,
+                DeliverablesPerProject = 5,
             },
             Users = new UsersRecipe { Password = "Over1234$" },
             ProductManagement = new ProductManagementRecipe
@@ -314,6 +318,7 @@ public class RecipeLayeringTests
         result.Ppm.ConcurrentProjectsPerArt.Should().Be(11);
         result.Ppm.ConcurrentProgramsPerPortfolio.Should().Be(4);
         result.Ppm.Programs.Should().Be(StructureMode.Off);
+        result.Ppm.DeliverablesPerProject.Should().Be(5);
 
         result.UserPassword.Should().Be("Over1234$");
 

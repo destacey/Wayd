@@ -13,6 +13,7 @@ public static class PpmArea
     public const string Projects = "ppm.projects";
     public const string ProjectTasks = "ppm.project-tasks";
     public const string ProjectStages = "ppm.project-stages";
+    public const string ProjectDeliverables = "ppm.project-deliverables";
     public const string Initiatives = "ppm.strategic-initiatives";
     public const string Finalize = "ppm.finalize";
 }
@@ -293,6 +294,47 @@ public sealed class ProjectStagesArea() : PpmSeedArea(
 
         var created = await ImportBatches(context, "stages", batches,
             batch => context.Client.ImportProjectStages(CsvFile.ToBytes(batch), cancellationToken));
+
+        context.Publish(Name, created);
+    }
+}
+
+/// <summary>
+/// Adds each project's deliverables. Runs after the projects, since a row names its project by key; a finished
+/// project's deliverables arrive already closed, which is all the import accepts on one.
+/// </summary>
+public sealed class ProjectDeliverablesArea() : PpmSeedArea(
+    PpmArea.ProjectDeliverables, PpmArea.Projects, OrganizationArea.Employees)
+{
+    public override string BatchedImport => "ppm.project-deliverables";
+
+    public override bool ShouldRun(SeedContext context) => context.Ppm?.ProjectDeliverables.Count > 0;
+
+    public override async Task Run(SeedContext context, CancellationToken cancellationToken)
+    {
+        var deliverables = Ppm(context).ProjectDeliverables;
+
+        var rows = deliverables.Select(d => new ProjectDeliverableCsvRow
+        {
+            ImportId = $"{d.ProjectKey}|{d.Name}",
+            ProjectKey = d.ProjectKey,
+            Name = d.Name,
+            Description = d.Description,
+            AcceptanceCriteria = d.AcceptanceCriteria,
+            OwnerEmployeeNumber = d.Owner,
+            TargetDate = d.TargetDate,
+            Status = d.Status,
+            // Midday UTC, so the day reads the same in every time zone a reviewer is likely to be in.
+            StatusChangedAt = d.StatusChangedOn is { } on ? new DateTimeOffset(on.ToDateTime(new TimeOnly(12, 0)), TimeSpan.Zero) : null,
+            StatusReason = d.StatusReason,
+        }).ToList();
+
+        // By project, the unit the import applies by: a project's deliverables go in together and in order.
+        var batches = Batch(context, rows, r => r.ProjectKey);
+        context.Log($"Importing {deliverables.Count} project deliverables in {batches.Count} batch(es)...");
+
+        var created = await ImportBatches(context, "deliverables", batches,
+            batch => context.Client.ImportProjectDeliverables(CsvFile.ToBytes(batch), cancellationToken));
 
         context.Publish(Name, created);
     }

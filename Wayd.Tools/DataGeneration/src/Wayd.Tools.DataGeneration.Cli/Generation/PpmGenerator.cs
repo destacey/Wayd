@@ -21,12 +21,19 @@ public sealed class PpmGenerator
     private readonly PpmOptions _options;
     private readonly Faker _faker;
 
+    /// <summary>
+    /// Draws for deliverables only. Their own stream, so adding deliverables did not shift a single draw of the
+    /// rest of the PPM dataset, and a seed still produces the projects, tasks and initiatives it always did.
+    /// </summary>
+    private readonly Faker _deliverableFaker;
+
     private readonly List<StrategicThemeModel> _themes = [];
     private readonly List<PortfolioModel> _portfolios = [];
     private readonly List<ProgramModel> _programs = [];
     private readonly List<ProjectModel> _projects = [];
     private readonly List<ProjectTaskModel> _tasks = [];
     private readonly List<ProjectStageModel> _stageStatuses = [];
+    private readonly List<ProjectDeliverableModel> _deliverables = [];
     private readonly List<StrategicInitiativeModel> _initiatives = [];
     private readonly List<StrategicInitiativeKpiModel> _kpis = [];
     private readonly List<PpmFinalizationModel> _finalizations = [];
@@ -84,6 +91,7 @@ public sealed class PpmGenerator
 
         // Derived from the area name, so adding another generator does not shift this one's data.
         _faker = new Faker { Random = new Randomizer(context.SeedFor(AreaName)) };
+        _deliverableFaker = new Faker { Random = new Randomizer(context.SeedFor(AreaName + ".deliverables")) };
     }
 
     public GeneratedPpm Generate()
@@ -99,6 +107,7 @@ public sealed class PpmGenerator
             _projects,
             _tasks,
             _stageStatuses,
+            _deliverables,
             _initiatives,
             _kpis,
             _finalizations,
@@ -400,9 +409,95 @@ public sealed class PpmGenerator
             Members = Join(members),
         });
 
+        BuildDeliverablesForProject(key, start, end, status, members);
+
         // Proposed/future projects have no work breakdown yet; everything else gets a dense set of tasks.
         if (!IsProposedStatus(status))
             BuildTasksForProject(key, start, end, positions, status);
+    }
+
+    /// <summary>
+    /// Builds what a project commits to: about <see cref="PpmOptions.DeliverablesPerProject"/> deliverables, in
+    /// delivery order, with target dates spread across the project's window. Their statuses follow the project's
+    /// and today: a project not yet started has none begun; an active one has accepted what fell due, is working
+    /// on what is due next, and has not started the rest; a completed one accepted nearly everything; a canceled
+    /// one accepted what fell due before it stopped and descoped the rest. A finished project's deliverables are
+    /// therefore always closed, which the import requires of a completed or canceled project.
+    /// </summary>
+    private void BuildDeliverablesForProject(string projectKey, DateOnly start, DateOnly end, string status, IReadOnlyList<string> members)
+    {
+        var average = _options.DeliverablesPerProject;
+        if (average <= 0)
+            return;
+
+        var count = Math.Clamp(_deliverableFaker.Random.Int(average - 2, average + 2), 1, PpmVocabulary.DeliverableTemplates.Length);
+        var templates = _deliverableFaker.PickRandom(PpmVocabulary.DeliverableTemplates, count)
+            .OrderBy(t => Array.IndexOf(PpmVocabulary.DeliverableTemplates, t))
+            .ToList();
+
+        var span = Math.Max(1, end.DayNumber - start.DayNumber);
+        var closed = IsClosedStatus(status);
+        var canceled = string.Equals(status, "Canceled", StringComparison.OrdinalIgnoreCase);
+
+        for (var i = 0; i < templates.Count; i++)
+        {
+            var template = templates[i];
+            var target = start.AddDays(span * (i + 1) / templates.Count);
+            var (deliverableStatus, changedOn, reason) = DeliverableStatus(status, closed, canceled, start, target, end);
+
+            _deliverables.Add(new ProjectDeliverableModel
+            {
+                ProjectKey = projectKey,
+                Name = template.Name,
+                Description = template.Description,
+                AcceptanceCriteria = template.AcceptanceCriteria,
+                Owner = members.Count == 0 ? null : members[_deliverableFaker.Random.Int(0, members.Count - 1)],
+                TargetDate = target,
+                Status = deliverableStatus,
+                StatusChangedOn = changedOn,
+                StatusReason = reason,
+            });
+        }
+    }
+
+    /// <summary>A deliverable's status, when it moved there, and why, from its project's status and its own target date.</summary>
+    private (string Status, DateOnly? ChangedOn, string? Reason) DeliverableStatus(
+        string projectStatus, bool closed, bool canceled, DateOnly start, DateOnly target, DateOnly end)
+    {
+        var due = target <= Today && (!closed || target <= end);
+
+        if (canceled)
+        {
+            return due && _deliverableFaker.Random.Double() < 0.5
+                ? ("Accepted", target, null)
+                : ("Descoped", end, "The project was canceled before it was delivered.");
+        }
+
+        if (closed)
+        {
+            return _deliverableFaker.Random.Double() < 0.1
+                ? ("Descoped", target < end ? target : end, _deliverableFaker.PickRandom(PpmVocabulary.DescopeReasons))
+                : ("Accepted", target < end ? target : end, null);
+        }
+
+        if (IsProposedStatus(projectStatus))
+            return ("NotStarted", null, null);
+
+        // Active: what fell due is mostly accepted, what is due within a month is under way, the rest waits.
+        if (due)
+        {
+            var roll = _deliverableFaker.Random.Double();
+            return roll switch
+            {
+                < 0.05 => ("Descoped", target, _deliverableFaker.PickRandom(PpmVocabulary.DescopeReasons)),
+                < 0.85 => ("Accepted", target, null),
+                _ => ("InProgress", LaterOf(start, target.AddDays(-30)), null),
+            };
+        }
+
+        return target <= Today.AddDays(30)
+            ? ("InProgress", LaterOf(start, Today.AddDays(-_deliverableFaker.Random.Int(1, 20))), null)
+            : ("NotStarted", null, null);
     }
 
     /// <summary>

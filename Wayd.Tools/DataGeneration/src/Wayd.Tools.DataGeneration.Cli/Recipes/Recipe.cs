@@ -156,6 +156,9 @@ public sealed class PpmRecipe : AreaRecipe
 
     /// <summary>Whether value-stream portfolios group their projects into programs.</summary>
     public StructureMode? Programs { get; init; }
+
+    /// <summary>Average number of deliverables a project commits to.</summary>
+    public int? DeliverablesPerProject { get; init; }
 }
 
 /// <summary>The product catalog layered over the organization, and its delivery history.</summary>

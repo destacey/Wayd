@@ -138,6 +138,21 @@ public sealed class ProjectStageCsvRow
     public required string Status { get; init; }
 }
 
+/// <summary>One row of the project deliverables CSV: one deliverable of one project.</summary>
+public sealed class ProjectDeliverableCsvRow
+{
+    public required string ImportId { get; init; }
+    public required string ProjectKey { get; init; }
+    public required string Name { get; init; }
+    public string? Description { get; init; }
+    public string? AcceptanceCriteria { get; init; }
+    public string? OwnerEmployeeNumber { get; init; }
+    public DateOnly? TargetDate { get; init; }
+    public string? Status { get; init; }
+    public DateTimeOffset? StatusChangedAt { get; init; }
+    public string? StatusReason { get; init; }
+}
+
 /// <summary>One row of the strategic initiatives CSV. Projects are referenced by semicolon-separated keys.</summary>
 public sealed class StrategicInitiativeCsvRow
 {

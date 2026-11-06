@@ -157,6 +157,40 @@ public static class PpmVocabulary
         new("Incident Rate", "Sev-1 incidents per quarter.", TargetValue: 1, StartingValue: 5, Prefix: null, Suffix: null, "Decrease"),
     ];
 
+    /// <summary>
+    /// What projects commit to, each with the criteria it is accepted against. Listed in the order a project
+    /// usually delivers them, so a project's deliverables read as a sequence when their target dates are spread
+    /// across its window.
+    /// </summary>
+    public static readonly DeliverableTemplate[] DeliverableTemplates =
+    [
+        new("Requirements and design sign-off", "The agreed scope and design the build works from.",
+            "- Requirements reviewed with every stakeholder group\n- Design approved by the architecture review\n- Open questions logged with owners"),
+        new("Pilot release", "A working version in the hands of a pilot group.",
+            "- Deployed to the pilot environment\n- Pilot users can complete the core journeys\n- Feedback collected and triaged"),
+        new("Data migration", "Existing records moved onto the new platform.",
+            "- Every in-scope record migrated\n- Reconciliation report shows no unexplained differences\n- Rollback rehearsed"),
+        new("Integration with downstream systems", "The interfaces other systems depend on.",
+            "- Contracts agreed with each consuming team\n- End-to-end tests pass in staging\n- Monitoring alerts on failed calls"),
+        new("Production release", "The change live for every user.",
+            "- Released through the standard pipeline\n- No severity 1 or 2 incidents in the first week\n- Release notes published"),
+        new("Operational runbook and handover", "What support needs to run it.",
+            "- Runbook reviewed by the support team\n- On-call rota updated\n- Known issues documented"),
+        new("Training and enablement", "Users and support staff ready to use it.",
+            "- Training delivered to every affected team\n- Help content published\n- Attendance above 80%"),
+        new("Decommission of the legacy system", "The old system switched off.",
+            "- No traffic to the legacy system for 30 days\n- Data archived per retention policy\n- Licences cancelled"),
+    ];
+
+    /// <summary>Why a deliverable was dropped from a project's scope, for descoped deliverables.</summary>
+    public static readonly string[] DescopeReasons =
+    [
+        "Moved to a follow-up project.",
+        "No longer needed after the scope review.",
+        "Covered by another team's work.",
+        "Deferred to the next planning cycle.",
+    ];
+
     /// <summary>Names for strategic initiatives — a longer-horizon outcome a portfolio pursues.</summary>
     public static readonly string[] InitiativeNames =
     [
@@ -170,6 +204,8 @@ public static class PpmVocabulary
     /// A thematic program: a name fragment (paired with the portfolio's name and a suffix) and the project
     /// verbs whose projects lean toward it.
     /// </summary>
+    public sealed record DeliverableTemplate(string Name, string Description, string AcceptanceCriteria);
+
     public sealed record ProgramTheme(string Name, string Description, IReadOnlyList<string> ProjectVerbs);
 
     public sealed record ExpenditureCategoryDefinition(

@@ -5,6 +5,7 @@ public static class ConnectorExtensions
     private static readonly ConnectorCapability[] _workItems = [ConnectorCapability.WorkItems];
     private static readonly ConnectorCapability[] _people = [ConnectorCapability.People];
     private static readonly ConnectorCapability[] _aiProvider = [ConnectorCapability.AiProvider];
+    private static readonly ConnectorCapability[] _communication = [ConnectorCapability.Communication];
 
     /// <summary>
     /// Returns all capabilities a connector supports. Multi-surface connectors, such as GitHub,
@@ -18,6 +19,7 @@ public static class ConnectorExtensions
         Connector.AzureOpenAI => _aiProvider,
         Connector.Entra => _people,
         Connector.Workday => _people,
+        Connector.Teams => _communication,
         _ => throw new InvalidOperationException($"No capabilities are declared for connector '{connector}'.")
     };
 

@@ -22,6 +22,7 @@ Connectors are managed from **Settings → System → Connections**. The set of 
 | [Entra](./entra.mdx) | People sync | GA | Syncs people (employees, contingent workers) from Microsoft Entra ID via Microsoft Graph into Wayd's `Employee` records. |
 | [Workday](./workday.mdx) | People sync | GA | Syncs workers (employees, contingent workers) from a Workday tenant via the Staffing SOAP web service into Wayd's `Employee` records. |
 | [Azure OpenAI](./azure-openai.mdx) | AI provider | Preview | Stores an Azure OpenAI endpoint, deployment, and API key. No data is synced, and no Wayd feature calls it yet. |
+| [Microsoft Teams](./teams.mdx) | Communication | Preview | Stores a Microsoft Teams app registration (tenant, client ID, and secret) for Graph communication. No data is synced. |
 
 The `Connector` enum's value `2` belonged to an OpenAI connector that was removed before it shipped; the value is retired and must not be reused.
 
@@ -36,6 +37,7 @@ Each connector declares the `ConnectorCapability` values it supports (a multi-su
 - **`WorkItems`** ("Work Items") → `WorkSyncRunner` (background jobs **Work Full Sync** / **Work Differential Sync**, `BackgroundJobType.WorkFullSync` / `WorkDiffSync`).
 - **`People`** → `PeopleSyncRunner` (background jobs **People Full Sync** / **People Differential Sync**, `BackgroundJobType.PeopleFullSync` / `PeopleDiffSync`). Connectors that don't support incremental fall back to Full transparently.
 - **`AiProvider`** ("AI Provider") → not synced.
+- **`Communication`** ("Communication") → not synced; multiple active connections are allowed.
 
 The global jobs run every active connection with the capability. No sync job is scheduled by default: an admin creates the recurring schedule under [Settings → System → Background Jobs](../../user-guide/settings/index.mdx#background-jobs), or runs a job on demand from there.
 

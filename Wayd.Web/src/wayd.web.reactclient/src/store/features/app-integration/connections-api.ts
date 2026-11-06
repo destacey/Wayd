@@ -217,6 +217,42 @@ export const connectionsApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    testCommunicationConnection: builder.mutation<void, { id: string }>({
+      queryFn: async ({ id }) => {
+        try {
+          const data = await getConnectionsClient().testCommunicationConnection(
+            id,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+    }),
+
+    verifyTeamsConnection: builder.mutation<
+      void,
+      {
+        tenantId: string
+        clientId: string
+        clientSecret: string
+      }
+    >({
+      queryFn: async (request) => {
+        try {
+          const data =
+            await getConnectionsClient().verifyTeamsCommunicationConnection(
+              request,
+            )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+    }),
+
     getConnectionIdentities: builder.query<
       ExternalIdentityMappingDto[],
       GetConnectionIdentitiesRequest
@@ -311,6 +347,8 @@ export const {
   useGetSyncRunQuery,
   useRunSyncMutation,
   useInitConnectionMutation,
+  useTestCommunicationConnectionMutation,
+  useVerifyTeamsConnectionMutation,
   useGetConnectionIdentitiesQuery,
   useUpdateConnectionIdentityMutation,
   useGetConnectionActivitiesQuery,

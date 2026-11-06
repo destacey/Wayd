@@ -2,6 +2,7 @@ using Wayd.AppIntegration.Application.Connections.Commands;
 using Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Commands.Entra;
+using Wayd.AppIntegration.Application.Connections.Commands.Teams;
 using Wayd.AppIntegration.Application.Connections.Commands.Workday;
 
 namespace Wayd.AppIntegration.Application.Logging;
@@ -41,4 +42,10 @@ public static class RequestRedaction
 
     public static object Redact(this UpdateAzureOpenAIConnectionCommand request) =>
         request with { ApiKey = Redacted };
+
+    public static object Redact(this CreateTeamsConnectionCommand request) =>
+        request with { ClientSecret = Redacted };
+
+    public static object Redact(this UpdateTeamsConnectionCommand request) =>
+        request with { ClientSecret = request.ClientSecret is null ? null : Redacted };
 }

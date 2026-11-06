@@ -47975,6 +47975,48 @@
         ]
       }
     },
+    "/api/app-integrations/connections/teams/verify-communication": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Verify Microsoft Teams connection credentials before create.",
+        "description": "Runs the same hello-world Graph test as communication-test using credentials from the create form: resolve the signed-in user's email in the tenant (application), create a Teams chat (application), and create a calendar event. Both use the connection's application permissions. Does not post a chat message and does not persist a connection.",
+        "operationId": "Connections_VerifyTeamsCommunicationConnection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyTeamsConnectionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/app-integrations/connections/{id}/activities": {
       "get": {
         "tags": [
@@ -48242,6 +48284,58 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/app-integrations/connections/{id}/communication-test": {
+      "post": {
+        "tags": [
+          "Connections"
+        ],
+        "summary": "Run the hello-world communication test for a connection.",
+        "description": "Uses the connection's Microsoft Graph app registration and application permissions to resolve the signed-in user's Wayd email, create a Teams chat, and create a hello-world calendar event. Does not post a chat message. Supported when the connector registers a communication test (currently Microsoft Teams).",
+        "operationId": "Connections_TestCommunicationConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           },
           "400": {
             "description": "Bad Request",
@@ -55679,7 +55773,8 @@
             "azure-devops": "#/components/schemas/AzureDevOpsConnectionDetailsDto",
             "azure-openai": "#/components/schemas/AzureOpenAIConnectionDetailsDto",
             "entra": "#/components/schemas/EntraConnectionDetailsDto",
-            "workday": "#/components/schemas/WorkdayConnectionDetailsDto"
+            "workday": "#/components/schemas/WorkdayConnectionDetailsDto",
+            "teams": "#/components/schemas/TeamsConnectionDetailsDto"
           }
         }
       },
@@ -55791,7 +55886,8 @@
             "azure-devops": "#/components/schemas/AzureDevOpsConnectionListDto",
             "azure-openai": "#/components/schemas/AzureOpenAIConnectionListDto",
             "entra": "#/components/schemas/EntraConnectionListDto",
-            "workday": "#/components/schemas/WorkdayConnectionListDto"
+            "workday": "#/components/schemas/WorkdayConnectionListDto",
+            "teams": "#/components/schemas/TeamsConnectionListDto"
           }
         }
       },
@@ -55800,7 +55896,8 @@
           "AzureDevOps",
           "AzureOpenAI",
           "Entra",
-          "Workday"
+          "Workday",
+          "Teams"
         ],
         "type": "string"
       },
@@ -56103,7 +56200,8 @@
             "azure-devops": "#/components/schemas/CreateAzureDevOpsConnectionRequest",
             "azure-openai": "#/components/schemas/CreateAzureOpenAIConnectionRequest",
             "entra": "#/components/schemas/CreateEntraConnectionRequest",
-            "workday": "#/components/schemas/CreateWorkdayConnectionRequest"
+            "workday": "#/components/schemas/CreateWorkdayConnectionRequest",
+            "teams": "#/components/schemas/CreateTeamsConnectionRequest"
           }
         },
         "x-abstract": true
@@ -58103,6 +58201,39 @@
           }
         },
         "additionalProperties": false
+      },
+      "CreateTeamsConnectionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CreateConnectionRequest"
+          },
+          {
+            "required": [
+              "tenantId",
+              "clientId",
+              "clientSecret"
+            ],
+            "type": "object",
+            "properties": {
+              "tenantId": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "clientId": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "clientSecret": {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
       },
       "CreateUserRequest": {
         "required": [
@@ -81590,6 +81721,56 @@
         "additionalProperties": false,
         "description": "A team's operating model in brief: the methodology and sizing method it uses, the time zone its days are\ncounted in, and its reporting cadence."
       },
+      "TeamsConnectionConfigurationDto": {
+        "required": [
+          "tenantId",
+          "clientId",
+          "clientSecret"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "clientSecret": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "TeamsConnectionDetailsDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionDetailsDto"
+          },
+          {
+            "required": [
+              "configuration"
+            ],
+            "type": "object",
+            "properties": {
+              "configuration": {
+                "$ref": "#/components/schemas/TeamsConnectionConfigurationDto"
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
+      "TeamsConnectionListDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionListDto"
+          },
+          {
+            "type": "object",
+            "additionalProperties": false
+          }
+        ]
+      },
       "TeamSprintMetricsDto": {
         "required": [
           "byCount",
@@ -82369,7 +82550,8 @@
             "azure-devops": "#/components/schemas/UpdateAzureDevOpsConnectionRequest",
             "azure-openai": "#/components/schemas/UpdateAzureOpenAIConnectionRequest",
             "entra": "#/components/schemas/UpdateEntraConnectionRequest",
-            "workday": "#/components/schemas/UpdateWorkdayConnectionRequest"
+            "workday": "#/components/schemas/UpdateWorkdayConnectionRequest",
+            "teams": "#/components/schemas/UpdateTeamsConnectionRequest"
           }
         },
         "x-abstract": true
@@ -85007,6 +85189,38 @@
         },
         "additionalProperties": false
       },
+      "UpdateTeamsConnectionRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UpdateConnectionRequest"
+          },
+          {
+            "required": [
+              "tenantId",
+              "clientId"
+            ],
+            "type": "object",
+            "properties": {
+              "tenantId": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "clientId": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "clientSecret": {
+                "maxLength": 512,
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
       "UpdateUserRequest": {
         "required": [
           "id",
@@ -85626,6 +85840,36 @@
           }
         },
         "additionalProperties": false
+      },
+      "VerifyTeamsConnectionRequest": {
+        "required": [
+          "tenantId",
+          "clientId",
+          "clientSecret"
+        ],
+        "type": "object",
+        "properties": {
+          "tenantId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "Entra directory tenant ID for the Teams communication app registration."
+          },
+          "clientId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "Application (client) ID for the Teams communication app registration."
+          },
+          "clientSecret": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string",
+            "description": "Client secret for the Teams communication app registration."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Credentials for verifying a Microsoft Teams connection before create."
       },
       "VersionDto": {
         "required": [

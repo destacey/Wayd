@@ -4,6 +4,7 @@ import { ConfigSectionProps } from './azdo-configuration-section'
 import { AzureDevOpsConfigurationSection } from './azdo-configuration-section'
 import { AzureOpenAIConfigurationSection } from './azure-openai-configuration-section'
 import { EntraConfigurationSection } from './entra-configuration-section'
+import { TeamsConfigurationSection } from './teams-configuration-section'
 import { WorkdayConfigurationSection } from './workday-configuration-section'
 
 export const CONNECTOR_FORM_REGISTRY: Record<
@@ -13,5 +14,6 @@ export const CONNECTOR_FORM_REGISTRY: Record<
   [ConnectorType.AzureDevOps]: AzureDevOpsConfigurationSection,
   [ConnectorType.AzureOpenAI]: AzureOpenAIConfigurationSection,
   [ConnectorType.Entra]: EntraConfigurationSection,
+  [ConnectorType.Teams]: TeamsConfigurationSection,
   [ConnectorType.Workday]: WorkdayConfigurationSection,
 }

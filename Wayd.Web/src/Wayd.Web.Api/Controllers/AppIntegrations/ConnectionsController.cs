@@ -3,11 +3,13 @@ using Wayd.AppIntegration.Application.Connections.Commands.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Commands.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Commands.Entra;
 using Wayd.AppIntegration.Application.Connections.Commands.Workday;
+using Wayd.AppIntegration.Application.Connections.Commands.Teams;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureDevOps;
 using Wayd.AppIntegration.Application.Connections.Dtos.AzureOpenAI;
 using Wayd.AppIntegration.Application.Connections.Dtos.Entra;
 using Wayd.AppIntegration.Application.Connections.Dtos.Identities;
 using Wayd.AppIntegration.Application.Connections.Dtos.Workday;
+using Wayd.AppIntegration.Application.Connections.Dtos.Teams;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Application.Connections.Commands.Identities;
@@ -137,12 +139,32 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
                 await _dispatcher.Send(entra.ToCommand(), cancellationToken),
             CreateWorkdayConnectionRequest workday =>
                 await _dispatcher.Send(workday.ToCommand(), cancellationToken),
+            CreateTeamsConnectionRequest teams =>
+                await _dispatcher.Send(teams.ToCommand(), cancellationToken),
             _ => Result.Failure<Guid>($"Connector type not supported")
         };
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetConnection), new { id = result.Value }, result.Value)
             : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("teams/verify-communication")]
+    [MustHavePermission(ApplicationAction.Create, ApplicationResource.Connections)]
+    [EndpointSummary("Verify Microsoft Teams connection credentials before create.")]
+    [EndpointDescription(
+        "Runs the same hello-world Graph test as communication-test using credentials from the create form: "
+        + "resolve the signed-in user's email in the tenant (application), create a Teams chat (application), "
+        + "and create a calendar event. Both use the connection's application permissions. "
+        + "Does not post a chat message and does not persist a connection.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> VerifyTeamsCommunicationConnection(
+        [FromBody] VerifyTeamsConnectionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToCommand(), cancellationToken);
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
     [HttpPut("{id}")]
@@ -169,6 +191,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
                 await _dispatcher.Send(entra.ToCommand(), cancellationToken),
             UpdateWorkdayConnectionRequest workday =>
                 await _dispatcher.Send(workday.ToCommand(), cancellationToken),
+            UpdateTeamsConnectionRequest teams =>
+                await _dispatcher.Send(teams.ToCommand(), cancellationToken),
             _ => Result.Failure($"Connector type not supported")
         };
 
@@ -307,6 +331,35 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
         return result.IsSuccess ? Ok(result.Value) : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPost("{id}/communication-test")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
+    [EndpointSummary("Run the hello-world communication test for a connection.")]
+    [EndpointDescription(
+        "Uses the connection's Microsoft Graph app registration and application permissions to resolve the "
+        + "signed-in user's Wayd email, create a Teams chat, and create a hello-world calendar event. "
+        + "Does not post a chat message. Supported when the connector registers a communication test "
+        + "(currently Microsoft Teams).")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TestCommunicationConnection(
+        Guid id,
+        [FromServices] IServiceProvider serviceProvider,
+        CancellationToken cancellationToken)
+    {
+        var connection = await _dispatcher.Send(new GetConnectionQuery(id), cancellationToken);
+        if (connection is null)
+            return NotFound();
+
+        var test = serviceProvider.GetKeyedService<IConnectionCommunicationTest>((Connector)connection.Connector.Id);
+        if (test is null)
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(
+                $"The '{connection.Connector.Name}' connector does not support a communication test.", HttpContext));
+
+        var result = await test.Run(id, userAssertion: null, cancellationToken);
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpGet("{id}/workday/orgs")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Connections)]
     [EndpointSummary("List Workday organizations of a given type.")]
@@ -396,6 +449,8 @@ public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
                 await _dispatcher.Send(new DeleteEntraConnectionCommand(id), cancellationToken),
             WorkdayConnectionDetailsDto =>
                 await _dispatcher.Send(new DeleteWorkdayConnectionCommand(id), cancellationToken),
+            TeamsConnectionDetailsDto =>
+                await _dispatcher.Send(new DeleteTeamsConnectionCommand(id), cancellationToken),
             _ => Result.Failure($"Connector type not supported")
         };
 

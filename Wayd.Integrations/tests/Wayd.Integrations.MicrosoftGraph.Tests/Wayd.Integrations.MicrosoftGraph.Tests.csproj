@@ -9,11 +9,14 @@
     <ItemGroup>
         <PackageReference Include="Bogus" />
         <PackageReference Include="FluentAssertions" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+        <PackageReference Include="Microsoft.Graph" />
         <PackageReference Include="xunit.v3" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\..\Wayd.Common\src\Wayd.Common\Wayd.Common.csproj" />
+        <ProjectReference Include="..\..\..\Wayd.Common\tests\Wayd.Tests.Shared\Wayd.Tests.Shared.csproj" />
         <ProjectReference Include="..\..\src\Wayd.Integrations.MicrosoftGraph\Wayd.Integrations.MicrosoftGraph.csproj" />
     </ItemGroup>
 

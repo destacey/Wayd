@@ -55261,6 +55261,65 @@ export class ConnectionsClient {
     }
 
     /**
+     * Verify Microsoft Teams connection credentials before create.
+     * @return No Content
+     */
+    verifyTeamsCommunicationConnection(request: VerifyTeamsConnectionRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/teams/verify-communication";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processVerifyTeamsCommunicationConnection(_response);
+        });
+    }
+
+    protected processVerifyTeamsCommunicationConnection(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get activity history for the connection.
      * @param page (optional) 
      * @param pageSize (optional) 
@@ -55599,6 +55658,71 @@ export class ConnectionsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ConnectionInitResult>(null as any);
+    }
+
+    /**
+     * Run the hello-world communication test for a connection.
+     * @return No Content
+     */
+    testCommunicationConnection(id: string, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/app-integrations/connections/{id}/communication-test";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processTestCommunicationConnection(_response);
+        });
+    }
+
+    protected processTestCommunicationConnection(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
     }
 
     /**
@@ -62287,6 +62411,7 @@ export enum Connector {
     AzureOpenAI = "AzureOpenAI",
     Entra = "Entra",
     Workday = "Workday",
+    Teams = "Teams",
 }
 
 /** A capability a connector supports, with the display category it is grouped under. */
@@ -62977,6 +63102,12 @@ export interface CreateTeamRequest {
     description?: string | undefined;
     /** The active date for the team. */
     activeDate: string;
+}
+
+export interface CreateTeamsConnectionRequest extends CreateConnectionRequest {
+    tenantId: string;
+    clientId: string;
+    clientSecret: string;
 }
 
 export interface CreateUserRequest {
@@ -70721,6 +70852,19 @@ int? TeamOperatingModelListDto.CadenceWeeks is. */
     cadenceAnchor?: string | undefined;
 }
 
+export interface TeamsConnectionConfigurationDto {
+    tenantId: string;
+    clientId: string;
+    clientSecret: string;
+}
+
+export interface TeamsConnectionDetailsDto extends ConnectionDetailsDto {
+    configuration: TeamsConnectionConfigurationDto;
+}
+
+export interface TeamsConnectionListDto extends ConnectionListDto {
+}
+
 /** A team's velocity, predictability and say/do over its last completed standard sprints: each sprint's values, their average and their spread. Worked out when read from work item history, and never stored. */
 export interface TeamSprintMetricsDto {
     /** The team the metrics are of. */
@@ -71767,6 +71911,12 @@ export interface UpdateTeamRequest {
     description?: string | undefined;
 }
 
+export interface UpdateTeamsConnectionRequest extends UpdateConnectionRequest {
+    tenantId: string;
+    clientId: string;
+    clientSecret?: string | undefined;
+}
+
 export interface UpdateUserRequest {
     id: string;
     firstName: string;
@@ -71956,6 +72106,16 @@ export interface UserSessionResponse {
 export interface UserThemeConfigDto {
     colorPrimary?: string | undefined;
     useCompactAlgorithm: boolean;
+}
+
+/** Credentials for verifying a Microsoft Teams connection before create. */
+export interface VerifyTeamsConnectionRequest {
+    /** Entra directory tenant ID for the Teams communication app registration. */
+    tenantId: string;
+    /** Application (client) ID for the Teams communication app registration. */
+    clientId: string;
+    /** Client secret for the Teams communication app registration. */
+    clientSecret: string;
 }
 
 /** A version of one product. */

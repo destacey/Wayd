@@ -17,6 +17,7 @@ export interface AuthContextType {
   user: User | null
   isLoading: boolean
   authMethod: AuthMethod
+  loginProvider: string | null
   mustChangePassword: boolean
   hasClaim: (claimType: string, claimValue: string) => boolean
   hasPermissionClaim: (claimValue: string) => boolean

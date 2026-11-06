@@ -79,7 +79,7 @@ export function CreateIncidentSeveritySetForm({ open, onClose, onCreated }: Prop
                   style={{ width: '100%', marginBottom: 8 }}
                 >
                   <Form.Item
-                    {...field}
+                    name={field.name}
                     noStyle
                     rules={[{ required: true, message: 'Level name is required' }]}
                   >

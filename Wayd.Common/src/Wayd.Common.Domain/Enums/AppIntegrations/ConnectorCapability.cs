@@ -20,5 +20,8 @@ public enum ConnectorCapability
     People = 2,
 
     [Display(Name = "AI Provider", GroupName = "AI Provider", Description = "Outbound LLM client used by Wayd features (Azure OpenAI). No data is synced.")]
-    AiProvider = 3
+    AiProvider = 3,
+
+    [Display(Name = "Communication", GroupName = "Communication", Description = "Sends chats and calendar events and syncs nothing.")]
+    Communication = 4
 }

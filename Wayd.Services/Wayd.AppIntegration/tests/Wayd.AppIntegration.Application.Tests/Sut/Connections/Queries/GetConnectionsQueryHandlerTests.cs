@@ -6,6 +6,7 @@ using Wayd.AppIntegration.Application.Tests.Infrastructure;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
 using Wayd.AppIntegration.Domain.Models.Entra;
+using Wayd.AppIntegration.Domain.Models.Teams;
 using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -116,6 +117,8 @@ public class GetConnectionsQueryHandlerTests
             "Entra", null, new EntraConnectionConfiguration("tenant-id", "client-id", "client-secret"), true, EventActor.System, _now),
         WorkdayConnection.Create(
             "Workday", null, new WorkdayConnectionConfiguration("https://wd.acme.example/ccx/service/acme_corp/Staffing/v46.1?wsdl", "isu-user", "isu-pass"), true, EventActor.System, _now),
+        TeamsConnection.Create(
+            "Teams", null, new TeamsConnectionConfiguration("tenant-id", "client-id", "client-secret"), true, EventActor.System, _now),
     ];
 
     private sealed class UnmappedConnection : Connection

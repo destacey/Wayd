@@ -127,6 +127,9 @@ public sealed class SecurityConfigurationBaselineBackfillTests(SqlServerDbContex
             createdEvent.RegistrationPolicy, createdEvent.IsEnabled, recordCreatedOn, null, timestamp), ct);
     }
 
+    // This backfill shipped before Teams. A Teams connection is always saved with its creation
+    // entry, so the frozen SQL never baselines one. Seeding one here makes the script throw, and
+    // that row then fails every later case that shares the database.
     public static TheoryData<string> Connectors() => new(nameof(Connector.AzureDevOps), nameof(Connector.AzureOpenAI), nameof(Connector.Entra), nameof(Connector.Workday));
 
     [Theory]

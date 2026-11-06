@@ -3,6 +3,7 @@
   <ItemGroup>
     <PackageReference Include="Azure.Identity" />
     <PackageReference Include="CSharpFunctionalExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="Microsoft.Graph" />
     <PackageReference Include="NodaTime" />
   </ItemGroup>
@@ -10,6 +11,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\Wayd.Common\src\Wayd.Common.Application\Wayd.Common.Application.csproj" />
     <ProjectReference Include="..\..\..\Wayd.Common\src\Wayd.Common.Domain\Wayd.Common.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Wayd.Integrations.MicrosoftGraph.Tests" />
   </ItemGroup>
 
 </Project>

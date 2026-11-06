@@ -13,6 +13,7 @@ public sealed record GetGeneralSettingsActivitiesQuery(PageRequest Paging)
 /// <summary>Bounds the page a caller may ask for.</summary>
 public sealed class GetGeneralSettingsActivitiesQueryValidator : PagedQueryValidator<GetGeneralSettingsActivitiesQuery>;
 
+/// <summary>Handles <see cref="GetGeneralSettingsActivitiesQuery"/>.</summary>
 public sealed class GetGeneralSettingsActivitiesQueryHandler(IActivityLogReader activityLogReader)
     : IQueryHandler<GetGeneralSettingsActivitiesQuery, PagedResponse<ActivityLogDto>>
 {

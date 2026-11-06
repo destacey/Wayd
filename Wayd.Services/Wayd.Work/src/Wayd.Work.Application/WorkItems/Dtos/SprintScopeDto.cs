@@ -41,7 +41,7 @@ public sealed record SprintScopeDto
     public required string TimeZone { get; init; }
 
     /// <summary>
-    /// Whether the sprint has a team. A sprint with none is counted in the system default zone and grace
+    /// Whether the sprint has a team. A sprint with none is counted in the system time zone and default grace
     /// period, by item count.
     /// </summary>
     public bool HasTeam { get; init; }

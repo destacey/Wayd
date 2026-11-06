@@ -306,7 +306,7 @@ public class TeamsOfTeamsController : ControllerBase
     [MustHavePermission(ApplicationAction.Create, ApplicationResource.Teams)]
     [EndpointSummary("Create a team of teams.")]
     [EndpointDescription(
-        "`name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day it starts. It starts with an operating model in the system default time zone. To nest it under another team of teams, call TeamsOfTeams_AddTeamMembership; to put teams under it, call Teams_AddTeamMembership on each team. Returns the new team of teams' `id` (UUID) and `key` (integer).")]
+        "`name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day it starts. It starts with an operating model in the system time zone. To nest it under another team of teams, call TeamsOfTeams_AddTeamMembership; to put teams under it, call Teams_AddTeamMembership on each team. Returns the new team of teams' `id` (UUID) and `key` (integer).")]
     [McpTool("TeamsOfTeams_Create", "Create team of teams", Destructive = false)]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201IdAndKey))]
     public async Task<ActionResult<ObjectIdAndKey>> Create(CreateTeamOfTeamsRequest request, CancellationToken cancellationToken)
@@ -467,7 +467,7 @@ public class TeamsOfTeamsController : ControllerBase
     [HttpGet("{id}/operating-models/defaults")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Teams)]
     [EndpointSummary("Get the values a new operating model for a team of teams is pre-filled with.")]
-    [EndpointDescription("Takes the UUID `id`. The time zone is the one its parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default.")]
+    [EndpointDescription("Takes the UUID `id`. The time zone is the one its parent team of teams had in effect on the start date (yyyy-MM-dd), else the system time zone.")]
     [McpTool("TeamsOfTeams_GetOperatingModelDefaults", "Get team of teams operating model defaults")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

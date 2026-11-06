@@ -2,6 +2,7 @@ using Wayd.Common.Application.SystemSettings.General.Commands;
 
 namespace Wayd.Web.Api.Models.Admin.SystemSettings;
 
+/// <summary>The general settings to save, replacing those in effect.</summary>
 public sealed record UpdateGeneralSettingsRequest
 {
     /// <summary>
@@ -10,9 +11,11 @@ public sealed record UpdateGeneralSettingsRequest
     /// </summary>
     public string TimeZone { get; set; } = default!;
 
+    /// <summary>The command that saves these values.</summary>
     public UpdateGeneralSettingsCommand ToUpdateGeneralSettingsCommand() => new(TimeZone);
 }
 
+/// <summary>Rejects a time zone that is not an IANA id before the request reaches the command.</summary>
 public sealed class UpdateGeneralSettingsRequestValidator : CustomValidator<UpdateGeneralSettingsRequest>
 {
     public UpdateGeneralSettingsRequestValidator()

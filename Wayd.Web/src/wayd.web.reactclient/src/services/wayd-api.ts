@@ -62643,7 +62643,7 @@ export interface CorrectReleaseDatesRequest {
 export interface CorrectReleasePackageDatesRequest {
     targetDate?: string | undefined;
     releasedAt?: Date | undefined;
-    /** The released day, read as 12:00 in the organization's default time zone. */
+    /** The released day, read as 12:00 in the system time zone. */
     releasedDate?: string | undefined;
 }
 
@@ -62667,9 +62667,9 @@ correction rather than a lifecycle step. */
 one — emptying it would leave the status contradicting the record. Use the revert action to
 record that a version did not ship. */
     releasedAt?: Date | undefined;
-    /** The cut day, read as 12:00 in the organization's default time zone. */
+    /** The cut day, read as 12:00 in the system time zone. */
     cutDate?: string | undefined;
-    /** The released day, read as 12:00 in the organization's default time zone. */
+    /** The released day, read as 12:00 in the system time zone. */
     releasedDate?: string | undefined;
 }
 
@@ -63461,7 +63461,7 @@ export interface CutVersionRequest {
 clock, because cutting is often recorded after the fact. Required unless the deprecated
 `CutDate` is sent instead. */
     cutAt?: Date | undefined;
-    /** The day it was cut, read as 12:00 in the organization's default time zone. */
+    /** The day it was cut, read as 12:00 in the system time zone. */
     cutDate?: string | undefined;
 }
 
@@ -64496,6 +64496,7 @@ export interface FunctionalOrganizationChartDto {
     maxDepth: number;
 }
 
+/** The general settings in effect, defaults included. */
 export interface GeneralSettingsDto {
     /** The system time zone, as an IANA id: the zone a calendar day is read in wherever no team's own zone
 applies, and the zone new teams start with. */
@@ -66286,7 +66287,7 @@ export interface MarkReleasePackageReleasedRequest {
     /** The moment it shipped. Supplied rather than taken from the clock, because shipping is often
 recorded after the fact. Required unless the deprecated `ReleasedDate` is sent instead. */
     releasedAt?: Date | undefined;
-    /** The day it shipped, read as 12:00 in the organization's default time zone. */
+    /** The day it shipped, read as 12:00 in the system time zone. */
     releasedDate?: string | undefined;
 }
 
@@ -66300,7 +66301,7 @@ export interface MarkVersionReleasedRequest {
     /** The moment it shipped. This is what orders a version history, so it is supplied rather than
 taken from the clock. Required unless the deprecated `ReleasedDate` is sent instead. */
     releasedAt?: Date | undefined;
-    /** The day it shipped, read as 12:00 in the organization's default time zone. */
+    /** The day it shipped, read as 12:00 in the system time zone. */
     releasedDate?: string | undefined;
 }
 
@@ -69638,7 +69639,7 @@ carried over; before it, descoped. */
     lastDay: Date;
     /** The IANA zone the sprint's days are counted in. */
     timeZone: string;
-    /** Whether the sprint has a team. A sprint with none is counted in the system default zone and grace
+    /** Whether the sprint has a team. A sprint with none is counted in the system time zone and default grace
 period, by item count. */
     hasTeam: boolean;
     /** Whether the history of a workspace holding the sprint's work has not yet been read through to the end.
@@ -71428,6 +71429,7 @@ export interface UpdateFreeProductTagRequest {
     description?: string | undefined;
 }
 
+/** The general settings to save, replacing those in effect. */
 export interface UpdateGeneralSettingsRequest {
     /** The system time zone, as an IANA id such as `America/Chicago`: the zone a calendar day is read in
 wherever no team's own zone applies, and the zone new teams start with. */

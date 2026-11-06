@@ -13,7 +13,7 @@ public sealed record CutVersionRequest
     public Instant? CutAt { get; set; }
 
     /// <summary>
-    /// The day it was cut, read as 12:00 in the organization's default time zone.
+    /// The day it was cut, read as 12:00 in the system time zone.
     /// </summary>
     [Obsolete("Use CutAt. Removed in a future release.")]
     public LocalDate? CutDate { get; set; }

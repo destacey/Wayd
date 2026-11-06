@@ -79399,7 +79399,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a team.
         /// </summary>
         /// <remarks>
-        /// `name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day the team starts. The team starts with a Kanban, Count-sized operating model in the system default time zone and working week; change it with Teams_SetOperatingModel. To place it under a team of teams, call Teams_AddTeamMembership; to staff it, Teams_AddMember. Returns the new team's `id` (UUID) and `key` (integer).
+        /// `name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day the team starts. The team starts with a Kanban, Count-sized operating model in the system time zone and the default working week; change it with Teams_SetOperatingModel. To place it under a team of teams, call Teams_AddTeamMembership; to staff it, Teams_AddMember. Returns the new team's `id` (UUID) and `key` (integer).
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -79785,7 +79785,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the values a new operating model for a team is pre-filled with.
         /// </summary>
         /// <remarks>
-        /// Takes the team's UUID `id`. The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default; the commitment grace period is the system default. Use it to fill Teams_SetOperatingModel when the user has not said otherwise.
+        /// Takes the team's UUID `id`. The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system time zone; the commitment grace period is the system default. Use it to fill Teams_SetOperatingModel when the user has not said otherwise.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -80046,7 +80046,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a team.
         /// </summary>
         /// <remarks>
-        /// `name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day the team starts. The team starts with a Kanban, Count-sized operating model in the system default time zone and working week; change it with Teams_SetOperatingModel. To place it under a team of teams, call Teams_AddTeamMembership; to staff it, Teams_AddMember. Returns the new team's `id` (UUID) and `key` (integer).
+        /// `name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day the team starts. The team starts with a Kanban, Count-sized operating model in the system time zone and the default working week; change it with Teams_SetOperatingModel. To place it under a team of teams, call Teams_AddTeamMembership; to staff it, Teams_AddMember. Returns the new team's `id` (UUID) and `key` (integer).
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -83823,7 +83823,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the values a new operating model for a team is pre-filled with.
         /// </summary>
         /// <remarks>
-        /// Takes the team's UUID `id`. The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default; the commitment grace period is the system default. Use it to fill Teams_SetOperatingModel when the user has not said otherwise.
+        /// Takes the team's UUID `id`. The time zone is the one the team's parent team of teams had in effect on the start date (yyyy-MM-dd), else the system time zone; the commitment grace period is the system default. Use it to fill Teams_SetOperatingModel when the user has not said otherwise.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -85019,7 +85019,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a team of teams.
         /// </summary>
         /// <remarks>
-        /// `name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day it starts. It starts with an operating model in the system default time zone. To nest it under another team of teams, call TeamsOfTeams_AddTeamMembership; to put teams under it, call Teams_AddTeamMembership on each team. Returns the new team of teams' `id` (UUID) and `key` (integer).
+        /// `name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day it starts. It starts with an operating model in the system time zone. To nest it under another team of teams, call TeamsOfTeams_AddTeamMembership; to put teams under it, call Teams_AddTeamMembership on each team. Returns the new team of teams' `id` (UUID) and `key` (integer).
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -85236,7 +85236,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the values a new operating model for a team of teams is pre-filled with.
         /// </summary>
         /// <remarks>
-        /// Takes the UUID `id`. The time zone is the one its parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default.
+        /// Takes the UUID `id`. The time zone is the one its parent team of teams had in effect on the start date (yyyy-MM-dd), else the system time zone.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -85508,7 +85508,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a team of teams.
         /// </summary>
         /// <remarks>
-        /// `name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day it starts. It starts with an operating model in the system default time zone. To nest it under another team of teams, call TeamsOfTeams_AddTeamMembership; to put teams under it, call Teams_AddTeamMembership on each team. Returns the new team of teams' `id` (UUID) and `key` (integer).
+        /// `name` and `code` are each unique across teams and teams of teams; `code` is 2 to 10 uppercase letters and digits. `activeDate` (yyyy-MM-dd) is the day it starts. It starts with an operating model in the system time zone. To nest it under another team of teams, call TeamsOfTeams_AddTeamMembership; to put teams under it, call Teams_AddTeamMembership on each team. Returns the new team of teams' `id` (UUID) and `key` (integer).
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -87553,7 +87553,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the values a new operating model for a team of teams is pre-filled with.
         /// </summary>
         /// <remarks>
-        /// Takes the UUID `id`. The time zone is the one its parent team of teams had in effect on the start date (yyyy-MM-dd), else the system default.
+        /// Takes the UUID `id`. The time zone is the one its parent team of teams had in effect on the start date (yyyy-MM-dd), else the system time zone.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -115714,7 +115714,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
         /// <summary>
-        /// The released day, read as 12:00 in the organization's default time zone.
+        /// The released day, read as 12:00 in the system time zone.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -115772,7 +115772,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
         /// <summary>
-        /// The cut day, read as 12:00 in the organization's default time zone.
+        /// The cut day, read as 12:00 in the system time zone.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cutDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -115780,7 +115780,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset? CutDate { get; set; } = default!;
 
         /// <summary>
-        /// The released day, read as 12:00 in the organization's default time zone.
+        /// The released day, read as 12:00 in the system time zone.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -118222,7 +118222,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset? CutAt { get; set; } = default!;
 
         /// <summary>
-        /// The day it was cut, read as 12:00 in the organization's default time zone.
+        /// The day it was cut, read as 12:00 in the system time zone.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cutDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -121176,6 +121176,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The general settings in effect, defaults included.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class GeneralSettingsDto
     {
@@ -126365,7 +126368,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
         /// <summary>
-        /// The day it shipped, read as 12:00 in the organization's default time zone.
+        /// The day it shipped, read as 12:00 in the system time zone.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -126403,7 +126406,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset? ReleasedAt { get; set; } = default!;
 
         /// <summary>
-        /// The day it shipped, read as 12:00 in the organization's default time zone.
+        /// The day it shipped, read as 12:00 in the system time zone.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("releasedDate")]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
@@ -136269,7 +136272,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string TimeZone { get; set; } = default!;
 
         /// <summary>
-        /// Whether the sprint has a team. A sprint with none is counted in the system default zone and grace
+        /// Whether the sprint has a team. A sprint with none is counted in the system time zone and default grace
         /// <br/>period, by item count.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hasTeam")]
@@ -141600,6 +141603,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The general settings to save, replacing those in effect.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateGeneralSettingsRequest
     {

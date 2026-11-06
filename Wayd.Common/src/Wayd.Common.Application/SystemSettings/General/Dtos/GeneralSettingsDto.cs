@@ -1,5 +1,6 @@
 namespace Wayd.Common.Application.SystemSettings.General.Dtos;
 
+/// <summary>The general settings in effect, defaults included.</summary>
 public sealed record GeneralSettingsDto
 {
     /// <summary>

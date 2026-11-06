@@ -7,6 +7,7 @@ namespace Wayd.Common.Domain.Settings;
 /// </summary>
 public sealed record GeneralSettings : ISettingsSection<GeneralSettings>
 {
+    /// <summary>The section's stored key. Permanent: renaming it orphans the saved values.</summary>
     public static string Key => "general";
 
     /// <summary>

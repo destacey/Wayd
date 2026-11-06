@@ -5,6 +5,7 @@ namespace Wayd.Common.Application.SystemSettings.General.Commands;
 /// <summary>Saves the general settings.</summary>
 public sealed record UpdateGeneralSettingsCommand(string TimeZone) : ICommand;
 
+/// <summary>Handles <see cref="UpdateGeneralSettingsCommand"/>, recording the change against the current user.</summary>
 public sealed class UpdateGeneralSettingsCommandHandler(
     ISystemSettingsStore store,
     ICurrentUser currentUser,

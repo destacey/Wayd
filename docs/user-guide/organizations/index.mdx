@@ -117,7 +117,7 @@ A sprint uses the time zone, grace period, sizing method and working days of the
 
 A cadence follows its operating model the same way. When a new model changes the cadence, time zone or sizing method partway through a cadence period, that period ends early, the day before the new model starts, and the new model's periods begin; earlier periods stay as they were. A new model that keeps all three, set to change something else such as the working days, leaves the open period running. Setting a new model fills in the current cadence; clear it to end the cadence. Correcting a model's cadence changes the periods for that model's whole period.
 
-A new model's time zone is pre-filled from the team's parent Team of Teams — the zone that team of teams had on the new model's start date — or from the [scheduling settings](../settings/index.mdx) when the team had no parent then. The grace period and working days are pre-filled from the scheduling settings. These are suggestions only: changing the parent's zone or the scheduling settings never changes an existing team.
+A new model's time zone is pre-filled from the team's parent Team of Teams — the zone that team of teams had on the new model's start date — or from the [system time zone](../settings/index.mdx#general) when the team had no parent then. The grace period and working days are pre-filled from the [scheduling settings](../settings/index.mdx#scheduling). These are suggestions only: changing the parent's zone, the system time zone or the scheduling settings never changes an existing team.
 
 #### Team of Teams Operating Model
 
@@ -534,7 +534,7 @@ Removing a member does not change their [allocation](#allocations) on its own. W
 3. Set **Team Type** to **Team**
 4. Enter a **Name**, **Code**, and **Active Date**
 5. Optionally add a **Description** (see [Formatting long text](../formatting-text.mdx))
-6. Click **Create**. The team is created with a default operating model (Kanban and Count, with the time zone, grace period and working days from the scheduling settings)
+6. Click **Create**. The team is created with a default operating model (Kanban and Count, in the system time zone, with the grace period and working days from the scheduling settings)
 
 ### Creating a Team of Teams
 
@@ -542,7 +542,7 @@ Removing a member does not change their [allocation](#allocations) on its own. W
 2. Click **Create Team**
 3. Set **Team Type** to **Team of Teams**
 4. Enter a **Name**, **Code**, and **Active Date**, and optionally a **Description**
-5. Click **Create**. The team of teams is created with an operating model in the scheduling settings' time zone
+5. Click **Create**. The team of teams is created with an operating model in the system time zone
 
 ### Editing a Team
 
@@ -564,7 +564,7 @@ To add a team to a Team of Teams:
 1. Navigate to the team's detail page
 2. From the page actions menu, choose **Operating Model > Set Operating Model**
 3. Set the **Start Date** — the previous model will automatically close the day before
-4. Select the new **Methodology** and **Sizing Method**, and check the **Time Zone**, **Commitment Grace Period**, **Working Days** and **Holiday Calendar**. For a Kanban team, optionally set a **Cadence** length in weeks and its **Cadence Anchor**. The time zone is suggested from the parent Team of Teams' zone on the start date, or from the scheduling settings, and follows the start date until you change it.
+4. Select the new **Methodology** and **Sizing Method**, and check the **Time Zone**, **Commitment Grace Period**, **Working Days** and **Holiday Calendar**. For a Kanban team, optionally set a **Cadence** length in weeks and its **Cadence Anchor**. The time zone is suggested from the parent Team of Teams' zone on the start date, or else the system time zone, and follows the start date until you change it.
 
 To correct the current model without creating a new one:
 1. From the page actions menu, choose **Operating Model > Update Operating Model**
@@ -576,7 +576,7 @@ A correction applies to the model's whole period, including past sprints. If the
 
 1. Navigate to the team of teams' detail page
 2. From the page actions menu, choose **Operating Model > Set Operating Model**
-3. Set the **Start Date** and check the **Time Zone** (suggested from its own parent's zone on that date, or from the scheduling settings)
+3. Set the **Start Date** and check the **Time Zone** (suggested from its own parent's zone on that date, or else the system time zone)
 
 To correct the current model instead, open **Operating Model History** from the Reports and choose **Edit** from its row menu.
 

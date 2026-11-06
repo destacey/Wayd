@@ -20,7 +20,7 @@ The Administration area provides tools for configuring Wayd, managing users, con
 | **Demand Management** | Channels, Request Tags (with the `demand-management` flag) |
 | **PPM** | Expenditure Categories, Project Lifecycles, Scoring Models |
 | **Work Management** | Work Types, Work Statuses, Work Processes |
-| **System** | Scheduling, Sprint Metrics, Feature Flags, Status Workflows, Connections, Imports, Background Jobs, Messaging |
+| **System** | General, Scheduling, Sprint Metrics, Feature Flags, Status Workflows, Connections, Imports, Background Jobs, Messaging |
 
 The menu shows only the pages your permissions open, and hides a group with none; the filter box above it narrows the list. Opening **Settings** takes you to the first page you can use.
 
@@ -247,17 +247,33 @@ Feature flags gate both backend API endpoints and frontend UI elements. When a f
 
 System settings are organization-wide defaults. Until an administrator saves a section, every value in it is the default Wayd ships with. Viewing them requires `Permissions.SystemSettings.View`, and changing them requires `Permissions.SystemSettings.Update`.
 
+### General
+
+Navigate to **Settings > System > General** to set:
+
+- **System time zone** — the organization's time zone (default UTC). Only IANA time zones are accepted, such as `America/Chicago` or `Europe/London`; the list shows each zone's current offset from UTC.
+
+Wayd reads a calendar day in the system time zone wherever no team's own time zone applies:
+
+- new teams and teams of teams start with it, unless a team's parent team of teams suggests its own zone;
+- a sprint whose team is not mapped to a Wayd team follows its planned days in it;
+- the day an employee is deactivated, which ends their allocations, is that day in it;
+- a version or package date sent through the API without a time is read as a day in it.
+
+A team's own time zone, on its [operating model](../organizations/index.mdx#operating-model), always wins for that team. Changing the system time zone does not change any existing team.
+
+Every change is recorded in the page's **Activity** section, with who made it and the values before and after. The system time zone used to be set on the Scheduling page; a zone saved there before it moved was carried over to this page, and that carry-over is the first entry in its Activity.
+
 ### Scheduling
 
 Navigate to **Settings > System > Scheduling** to set:
 
-- **Default time zone** — the time zone new team operating models start with (default UTC). Only IANA time zones are accepted, such as `America/Chicago` or `Europe/London`; the list shows each zone's current offset from UTC.
 - **Default commitment grace period (days)** — how long after a sprint's planned start its commitment is taken when the team does not start the sprint itself (default 1, the end of the first planned day; 0 to 14).
 - **Default working days** — the days of the week new team operating models work (default Monday to Friday; at least one).
 - **Default holiday calendar** — the [holiday calendar](#holiday-calendars) of every team operating model that names none of its own (default none: no holidays).
 - **Working day hours** — how long a working day is (default 8; 1 to 24). It is the length of a person-day of capacity and the working day of everyone who has none of their own; a part-timer can be given a [working day of their own](../organizations/index.mdx#working-day) on their employee page. Capacity plans can be read in hours, and team days off entered in hours are a share of it. It is the same for every team. Changing it changes the share of a person-day that anyone with their own working day is worth, past sprints included.
 
-The time zone, grace period and working days are defaults only. They pre-fill new team operating models, and changing them does not change any existing team. The default holiday calendar is different: it is read, not copied, so changing it changes the holidays of every team that uses the default, including in past sprints.
+The grace period and working days are defaults only. They pre-fill new team operating models, and changing them does not change any existing team. The default holiday calendar is different: it is read, not copied, so changing it changes the holidays of every team that uses the default, including in past sprints.
 
 Every change is recorded in the page's **Activity** section, with who made it and the values before and after.
 

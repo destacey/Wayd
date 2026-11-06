@@ -13,9 +13,9 @@ before each call.
 
 - **`name` and `code` are each unique across teams and teams of teams.** A code is 2 to 10 uppercase letters and
   digits. Create returns both the UUID `id` and the integer `key`.
-- **A new team starts Kanban, sized by Count**, in the system default time zone and working week. If the user
+- **A new team starts Kanban, sized by Count**, in the system time zone and the default working week. If the user
   wants Scrum or story points, set an operating model afterwards (see below). A new team of teams starts with the
-  system default time zone.
+  system time zone.
 - **Update is a whole-record overwrite of name, code and description.** An omitted description is cleared: read
   the record first (`Teams_GetTeam` / `TeamsOfTeams_GetTeamOfTeams`, both by integer key) and pass back what
   should stay. The body's `id` must match the path `id` (the UUID).

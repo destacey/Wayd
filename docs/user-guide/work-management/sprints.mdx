@@ -27,7 +27,7 @@ A sprint's state follows its dates, and Wayd works it out whenever the sprint is
 - **Active** — from the start until the end. A sprint starts when the team [starts it](#starting-completing-and-reopening-a-sprint), or else at the beginning of its first planned day. It ends when the team completes it, or else at the end of its last planned day, so a sprint is Active for the whole of its last day unless it was completed earlier.
 - **Completed** — after the end.
 
-Days are counted in the team's time zone, from its [operating model](../organizations/index.mdx#operating-model). A team has one Active sprint at a time: a sprint becomes Active only once the previous one has ended, and starting the next sprint ends the previous one. A sprint whose team is not mapped to a Wayd team follows its planned days in the system default time zone.
+Days are counted in the team's time zone, from its [operating model](../organizations/index.mdx#operating-model). A team has one Active sprint at a time: a sprint becomes Active only once the previous one has ended, and starting the next sprint ends the previous one. A sprint whose team is not mapped to a Wayd team follows its planned days in the [system time zone](../settings/index.mdx#general).
 
 For example, take a sprint planned to start on Monday that the team starts on Tuesday morning. Once the start is recorded, the sprint is Future on Monday and Active from Tuesday morning, which is what its timeline, history and metrics use. Until someone presses Start, Wayd has only the planned dates to go on, so on the Monday itself the sprint shows as Active.
 
@@ -293,7 +293,7 @@ Each item that was in the sprint has one way in and one outcome:
 
 **Say/Do** is the committed work that was completed, divided by the committed work. Work added after the commitment point doesn't count either way. In estimates, both sides use the estimate each item had at the commitment point, so re-estimating an item during the sprint doesn't move the ratio. While the sprint runs it shows as **Say/Do so far**.
 
-Like the metrics, scope is measured in the team's sizing method, with a selector to count work items instead. An item's estimate is the one it had when it came in for Committed and Added, and the one it had when it was last in the sprint for the outcomes. A sprint whose team is not mapped to a Wayd team uses the system default time zone and grace period and counts work items, and the page says so.
+Like the metrics, scope is measured in the team's sizing method, with a selector to count work items instead. An item's estimate is the one it had when it came in for Committed and Added, and the one it had when it was last in the sprint for the outcomes. A sprint whose team is not mapped to a Wayd team uses the system time zone and the default grace period and counts work items, and the page says so.
 
 Scope is worked out each time it is shown, never stored. A late sync, a corrected actual date or a full sync changes past sprints' scope the next time you look.
 

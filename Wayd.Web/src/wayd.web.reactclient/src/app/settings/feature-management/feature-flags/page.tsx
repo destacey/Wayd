@@ -1,220 +1,106 @@
 'use client'
 
+import { Alert, Empty, Flex, Input, Skeleton } from 'antd'
+import { SearchOutlined } from '@ant-design/icons'
+import { useState } from 'react'
 import PageTitle from '@/src/components/common/page-title'
-import {
-  ConfigListPanel,
-  useSelectedRecord,
-} from '@/src/components/common/config-list'
-import {
-  WaydGrid,
-  createActionsColumn,
-} from '@/src/components/common/wayd-grid'
-import { Suspense, useState } from 'react'
-import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { authorizePage } from '@/src/components/hoc'
 import useAuth from '@/src/components/contexts/auth'
-import type { ItemType } from 'antd/es/menu/interface'
+import { useMessage } from '@/src/components/contexts/messaging'
 import { useDocumentTitle } from '@/src/hooks'
+import type { FeatureFlagDto } from '@/src/services/wayd-api'
 import {
-  ControlItemsMenu,
-  ControlItemSwitch,
-} from '@/src/components/common/control-items-menu'
-import { FeatureFlagDto, FeatureFlagListDto } from '@/src/services/wayd-api'
-import {
-  useGetFeatureFlagQuery,
+  useGetFeatureFlagModulesQuery,
   useGetFeatureFlagsQuery,
+  useToggleFeatureFlagMutation,
 } from '@/src/store/features/admin/feature-flags-api'
-import EditFeatureFlagForm from './_components/edit-feature-flag-form'
-import FeatureFlagPanel from './_components/feature-flag-panel'
-import useFeatureFlagActions from './_components/use-feature-flag-actions'
+import FeatureFlagModuleCard from './_components/feature-flag-module-card'
+import { groupFeatureFlags } from './_components/group-feature-flags'
 
-/** What a feature flag's actions need — the fields both DTOs carry. */
-type FeatureFlagActionTarget = Pick<
-  FeatureFlagDto,
-  'id' | 'name' | 'displayName' | 'isEnabled' | 'isSystem' | 'isArchived'
->
-
-const FeatureFlagsListPage = () => {
+const FeatureFlagsPage = () => {
   useDocumentTitle('Feature Flags')
-  const [editingFlagId, setEditingFlagId] = useState<number | null>(null)
-  const [includeArchived, setIncludeArchived] = useState(false)
-  const { selectedId, select, clear } = useSelectedRecord()
+  const [search, setSearch] = useState('')
+  const messageApi = useMessage()
 
   const { hasPermissionClaim } = useAuth()
   const canUpdate = hasPermissionClaim('Permissions.FeatureFlags.Update')
-  const canDelete = hasPermissionClaim('Permissions.FeatureFlags.Delete')
-  const showRowActions = canUpdate || canDelete
 
   const {
-    data: featureFlags = [],
-    isLoading,
-    refetch,
-  } = useGetFeatureFlagsQuery({ includeArchived })
+    data: flags = [],
+    isLoading: isLoadingFlags,
+    isError: flagsFailed,
+  } = useGetFeatureFlagsQuery()
+  const {
+    data: modules = [],
+    isLoading: isLoadingModules,
+    isError: modulesFailed,
+  } = useGetFeatureFlagModulesQuery()
+  const [toggleFeatureFlag] = useToggleFeatureFlagMutation()
 
-  // The list omits `description`, so the panel asks for the record. Cached
-  // per id, so reopening a row costs nothing.
-  const { data: selectedFlag, isLoading: isLoadingSelected } =
-    useGetFeatureFlagQuery(Number(selectedId), { skip: !selectedId })
+  const groups = groupFeatureFlags(modules, flags, search)
 
-  const { handleToggle, handleArchive } = useFeatureFlagActions()
-
-  const refresh = () => {
-    refetch()
-  }
-
-  /**
-   * One definition for the row's ⋯ and the panel's, so the two menus cannot
-   * drift. Takes the fields both DTOs carry rather than either one.
-   */
-  const rowActionItems = (flag: FeatureFlagActionTarget): ItemType[] => {
-    const items: ItemType[] = []
-
-    if (canUpdate) {
-      items.push({
-        key: 'edit',
-        label: 'Edit',
-        onClick: () => setEditingFlagId(flag.id),
-      })
-      items.push({
-        key: 'toggle',
-        label: flag.isEnabled ? 'Disable' : 'Enable',
-        onClick: () => handleToggle(flag),
-      })
+  const handleToggle = async (flag: FeatureFlagDto, isEnabled: boolean) => {
+    try {
+      await toggleFeatureFlag({ id: flag.id, isEnabled }).unwrap()
+      messageApi.success(
+        `${flag.displayName} turned ${isEnabled ? 'on' : 'off'}.`,
+      )
+    } catch {
+      messageApi.error(
+        `Could not turn ${flag.displayName} ${isEnabled ? 'on' : 'off'}.`,
+      )
     }
-
-    // A system flag is seeded by the product and an archived one is already
-    // gone; neither can be archived again.
-    if (canDelete && !flag.isSystem && !flag.isArchived) {
-      if (items.length > 0) {
-        items.push({ key: 'divider', type: 'divider' })
-      }
-      items.push({
-        key: 'archive',
-        label: 'Archive',
-        danger: true,
-        onClick: () => handleArchive(flag),
-      })
-    }
-
-    return items
   }
-
-  const columns: ColumnDef<FeatureFlagListDto, any>[] = [
-    createActionsColumn<FeatureFlagListDto>({
-      unavailable: !showRowActions,
-      ariaLabel: 'Feature flag actions',
-      getItems: rowActionItems,
-    }),
-    {
-      id: 'name',
-      accessorKey: 'name',
-      header: 'Name',
-      size: 250,
-    },
-    {
-      id: 'displayName',
-      accessorKey: 'displayName',
-      header: 'Display Name',
-      size: 250,
-    },
-    {
-      id: 'isSystem',
-      accessorFn: (row) => (row.isSystem ? 'System' : 'User'),
-      header: 'Type',
-      size: 120,
-      meta: {
-        filterType: 'set',
-        filterOptions: [
-          { label: 'System', value: 'System' },
-          { label: 'User', value: 'User' },
-        ],
-      },
-    },
-    {
-      id: 'isEnabled',
-      accessorKey: 'isEnabled',
-      header: 'Enabled',
-      meta: { columnType: 'yesNo' },
-    },
-    // Mode-dependent column: excluded from the defs (not meta.unavailable) so it
-    // stays out of the column chooser and persisted layouts; the memo
-    // rebuilds when the Include Archived switch flips.
-    ...(includeArchived
-      ? [
-          {
-            id: 'isArchived',
-            accessorKey: 'isArchived',
-            header: 'Archived',
-            meta: { columnType: 'yesNo' },
-          } satisfies ColumnDef<FeatureFlagListDto, any>,
-        ]
-      : []),
-  ]
-
-  const controlItems: ItemType[] = [
-    {
-      label: (
-        <ControlItemSwitch
-          label="Include Archived"
-          checked={includeArchived}
-          onChange={setIncludeArchived}
-        />
-      ),
-      key: 'include-archived',
-      onClick: () => setIncludeArchived((prev) => !prev),
-    },
-  ]
 
   return (
     <div className="page-gutters">
-      <PageTitle title="Feature Flags" />
-      <ConfigListPanel
-        open={!!selectedId}
-        onClose={clear}
-        title={selectedFlag?.displayName}
-        details={<FeatureFlagPanel featureFlag={selectedFlag} />}
-        actionItems={selectedFlag && rowActionItems(selectedFlag)}
-        isLoading={isLoadingSelected}
-      >
-        <WaydGrid
-          columns={columns}
-          data={featureFlags}
-          onRefresh={refresh}
-          isLoading={isLoading}
-          persistStateKey="settings-feature-flags"
-          csvFileName="feature-flags"
-          rightSlot={<ControlItemsMenu items={controlItems} />}
-          onRowActivate={(flag) => select(String(flag.id))}
-          activatedRowId={selectedId}
-          getRowActivateLabel={(flag) => flag.displayName}
+      <PageTitle
+        title="Feature Flags"
+        subtitle="Turn features on or off for everyone in your organization. Changes take effect right away."
+        actions={
+          <Input
+            allowClear
+            placeholder="Search feature flags"
+            aria-label="Search feature flags"
+            prefix={<SearchOutlined />}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: '100%', maxWidth: 300 }}
+          />
+        }
+      />
+      {isLoadingFlags || isLoadingModules ? (
+        <Skeleton active />
+      ) : flagsFailed || modulesFailed ? (
+        <Alert
+          type="error"
+          showIcon
+          title="The feature flags could not be loaded. Refresh the page to try again."
         />
-      </ConfigListPanel>
-      {editingFlagId !== null && (
-        <EditFeatureFlagForm
-          featureFlagId={editingFlagId}
-          onFormSave={() => setEditingFlagId(null)}
-          onFormCancel={() => setEditingFlagId(null)}
+      ) : groups.length === 0 ? (
+        <Empty
+          description={
+            search ? 'No feature flags match your search.' : 'No feature flags.'
+          }
         />
+      ) : (
+        <Flex vertical gap="middle">
+          {groups.map((group) => (
+            <FeatureFlagModuleCard
+              key={group.module.code}
+              group={group}
+              canUpdate={canUpdate}
+              onToggle={handleToggle}
+            />
+          ))}
+        </Flex>
       )}
     </div>
   )
 }
 
-const PageWithAuthorization = authorizePage(
-  FeatureFlagsListPage,
+export default authorizePage(
+  FeatureFlagsPage,
   'Permission',
   'Permissions.FeatureFlags.View',
 )
-
-/**
- * `useSelectedRecord` reads the query string, so the page needs a Suspense
- * boundary — Next requires one around any `useSearchParams` consumer or the
- * whole route opts out of static rendering.
- */
-const PageWithSuspense = () => (
-  <Suspense>
-    <PageWithAuthorization />
-  </Suspense>
-)
-
-export default PageWithSuspense

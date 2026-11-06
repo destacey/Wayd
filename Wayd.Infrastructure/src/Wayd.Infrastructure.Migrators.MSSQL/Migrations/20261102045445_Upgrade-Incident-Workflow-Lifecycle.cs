@@ -56,9 +56,39 @@ public partial class UpgradeIncidentWorkflowLifecycle : Migration
             FROM [StatusWorkflows].[StatusTransitions] st
             WHERE st.[OwnerType] = @OwnerType AND st.[WorkflowId] = @V2WorkflowId;
 
-            UPDATE [StatusWorkflows].[WorkflowAssignments]
-            SET [WorkflowId] = @SystemWorkflowId, [SystemLastModified] = @Now
-            WHERE [OwnerType] = @OwnerType AND [ScopeId] IS NULL AND [WorkflowId] = @V2WorkflowId;
+            -- Assignments point at a scheme. SchemeId replaced WorkflowId before this migration.
+            DECLARE @SystemSchemeId uniqueidentifier;
+            SELECT @SystemSchemeId = [Id]
+            FROM [StatusWorkflows].[WorkflowSchemes]
+            WHERE [IsImplicit] = 1 AND [DefaultWorkflowId] = @SystemWorkflowId;
+
+            IF @SystemSchemeId IS NULL
+            BEGIN
+                SET @SystemSchemeId = NEWID();
+                INSERT INTO [StatusWorkflows].[WorkflowSchemes] (
+                    [Id], [OwnerType], [Name], [Description], [Ownership], [ExternalKey], [IsImplicit], [DefaultWorkflowId],
+                    [SystemCreated], [SystemCreatedBy], [SystemLastModified], [SystemLastModifiedBy])
+                VALUES (
+                    @SystemSchemeId, @OwnerType, @SystemName, NULL, 'Owned', NULL, 1, @SystemWorkflowId,
+                    @Now, NULL, @Now, NULL);
+            END;
+
+            UPDATE a
+            SET a.[SchemeId] = @SystemSchemeId, a.[SystemLastModified] = @Now
+            FROM [StatusWorkflows].[WorkflowAssignments] a
+            INNER JOIN [StatusWorkflows].[WorkflowSchemes] s ON s.[Id] = a.[SchemeId]
+            WHERE s.[DefaultWorkflowId] = @V2WorkflowId;
+
+            UPDATE e
+            SET e.[WorkflowId] = @SystemWorkflowId
+            FROM [StatusWorkflows].[WorkflowSchemeEntries] e
+            INNER JOIN [StatusWorkflows].[WorkflowSchemes] s ON s.[Id] = e.[SchemeId]
+            WHERE e.[WorkflowId] = @V2WorkflowId AND s.[DefaultWorkflowId] <> @V2WorkflowId;
+
+            DELETE s
+            FROM [StatusWorkflows].[WorkflowSchemes] s
+            WHERE s.[DefaultWorkflowId] = @V2WorkflowId
+              AND NOT EXISTS (SELECT 1 FROM [StatusWorkflows].[WorkflowAssignments] a WHERE a.[SchemeId] = s.[Id]);
 
             DELETE FROM [StatusWorkflows].[StatusWorkflows] WHERE [Id] = @V2WorkflowId;
         END;
@@ -157,9 +187,10 @@ public partial class UpgradeIncidentWorkflowLifecycle : Migration
         DECLARE @Now datetime2 = SYSUTCDATETIME();
 
         DECLARE @WorkflowId uniqueidentifier;
-        SELECT @WorkflowId = [WorkflowId]
-        FROM [StatusWorkflows].[WorkflowAssignments]
-        WHERE [OwnerType] = @OwnerType AND [ScopeId] IS NULL;
+        SELECT @WorkflowId = s.[DefaultWorkflowId]
+        FROM [StatusWorkflows].[WorkflowAssignments] a
+        INNER JOIN [StatusWorkflows].[WorkflowSchemes] s ON s.[Id] = a.[SchemeId]
+        WHERE a.[OwnerType] = @OwnerType AND a.[ScopeId] IS NULL;
 
         IF @WorkflowId IS NULL
             RETURN;

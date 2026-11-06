@@ -32,6 +32,9 @@ public sealed class ToggleFeatureFlagCommandHandler(
             if (featureFlag is null)
                 return Result.Failure($"Feature flag with id {request.Id} not found.");
 
+            if (featureFlag.IsArchived)
+                return Result.Failure("An archived feature flag is no longer defined in code and cannot be turned on or off.");
+
             featureFlag.Toggle(request.IsEnabled);
 
             await _dbContext.SaveChangesAsync(cancellationToken);

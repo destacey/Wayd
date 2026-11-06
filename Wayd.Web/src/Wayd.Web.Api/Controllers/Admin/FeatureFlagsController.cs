@@ -15,43 +15,23 @@ public class FeatureFlagsController(IDispatcher dispatcher) : ControllerBase
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.FeatureFlags)]
-    [EndpointSummary("Get a list of all feature flags.")]
+    [EndpointSummary("Get the feature flags defined in code.")]
+    [EndpointDescription("Each flag's name, description and module come from its definition in code; only whether it is enabled can change. Flags no longer defined in code are archived and left out.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<FeatureFlagListDto>>> FeatureFlags(CancellationToken cancellationToken, [FromQuery] bool includeArchived = false)
+    public async Task<ActionResult<IEnumerable<FeatureFlagDto>>> FeatureFlags(CancellationToken cancellationToken)
     {
-        var flags = await _dispatcher.Send(new GetFeatureFlagsQuery(includeArchived), cancellationToken);
+        var flags = await _dispatcher.Send(new GetFeatureFlagsQuery(), cancellationToken);
         return Ok(flags);
     }
 
-    [HttpGet("{id:int}")]
+    [HttpGet("modules")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.FeatureFlags)]
-    [EndpointSummary("Get feature flag details.")]
+    [EndpointSummary("Get the modules feature flags are grouped under.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<FeatureFlagDto>> FeatureFlag(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<FeatureFlagModuleDto>>> Modules(CancellationToken cancellationToken)
     {
-        var flag = await _dispatcher.Send(new GetFeatureFlagQuery(id), cancellationToken);
-        return flag is not null
-            ? Ok(flag)
-            : NotFound();
-    }
-
-    [HttpPut("{id:int}")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.FeatureFlags)]
-    [EndpointSummary("Update a feature flag.")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> Update(int id, [FromBody] UpdateFeatureFlagRequest request, CancellationToken cancellationToken)
-    {
-        if (id != request.Id)
-            return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(request.Id), HttpContext));
-
-        var result = await _dispatcher.Send(request.ToUpdateFeatureFlagCommand(), cancellationToken);
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        var modules = await _dispatcher.Send(new GetFeatureFlagModulesQuery(), cancellationToken);
+        return Ok(modules);
     }
 
     [HttpPut("{id:int}/toggle")]
@@ -65,19 +45,6 @@ public class FeatureFlagsController(IDispatcher dispatcher) : ControllerBase
             return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(nameof(id), nameof(request.Id), HttpContext));
 
         var result = await _dispatcher.Send(new ToggleFeatureFlagCommand(id, request.IsEnabled), cancellationToken);
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
-    }
-
-    [HttpPut("{id:int}/archive")]
-    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.FeatureFlags)]
-    [EndpointSummary("Archive a feature flag.")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> Archive(int id, CancellationToken cancellationToken)
-    {
-        var result = await _dispatcher.Send(new ArchiveFeatureFlagCommand(id), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));

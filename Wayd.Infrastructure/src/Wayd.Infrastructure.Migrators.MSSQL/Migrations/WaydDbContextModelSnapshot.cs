@@ -796,8 +796,13 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsSystem")
+                    b.Property<bool>("IsModuleSwitch")
                         .HasColumnType("bit");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -9304,6 +9309,18 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnName("Configuration");
 
                     b.HasDiscriminator().HasValue("Entra");
+                });
+
+            modelBuilder.Entity("Wayd.AppIntegration.Domain.Models.Teams.TeamsConnection", b =>
+                {
+                    b.HasBaseType("Wayd.AppIntegration.Domain.Models.Connection");
+
+                    b.Property<string>("Configuration")
+                        .ValueGeneratedOnUpdateSometimes()
+                        .HasColumnType("nvarchar(max)")
+                        .HasColumnName("Configuration");
+
+                    b.HasDiscriminator().HasValue("Teams");
                 });
 
             modelBuilder.Entity("Wayd.AppIntegration.Domain.Models.Workday.WorkdayConnection", b =>

@@ -1,4 +1,4 @@
-using Wayd.Common.Domain.FeatureManagement;
+﻿using Wayd.Common.Domain.FeatureManagement;
 using Wayd.TestData.Core;
 
 namespace Wayd.Tests.Shared.Data;
@@ -13,7 +13,8 @@ public sealed class FeatureFlagFaker : PrivateConstructorFaker<FeatureFlag>
         RuleFor(x => x.Description, f => f.Random.Bool() ? f.Lorem.Sentence() : null);
         RuleFor(x => x.IsEnabled, f => f.Random.Bool());
         RuleFor(x => x.IsArchived, false);
-        RuleFor(x => x.IsSystem, false);
+        RuleFor(x => x.Module, f => f.PickRandom<FeatureFlagModule>());
+        RuleFor(x => x.IsModuleSwitch, false);
         RuleFor(x => x.FiltersJson, (string?)null);
     }
 }
@@ -63,9 +64,15 @@ public static class FeatureFlagFakerExtensions
         return faker;
     }
 
-    public static FeatureFlagFaker AsSystem(this FeatureFlagFaker faker)
+    public static FeatureFlagFaker WithModule(this FeatureFlagFaker faker, FeatureFlagModule module)
     {
-        faker.RuleFor(x => x.IsSystem, true);
+        faker.RuleFor(x => x.Module, module);
+        return faker;
+    }
+
+    public static FeatureFlagFaker AsModuleSwitch(this FeatureFlagFaker faker)
+    {
+        faker.RuleFor(x => x.IsModuleSwitch, true);
         return faker;
     }
 }

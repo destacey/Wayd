@@ -1,11 +1,13 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Activities;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Following;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Notifications;
@@ -19,7 +21,7 @@ namespace Wayd.Common.Application.Tests.Infrastructure;
 /// A test double for IWaydDbContext that provides in-memory collections for all DbSets.
 /// This eliminates the need for complex Moq setups in tests and is reusable across all Common domain tests.
 /// </summary>
-public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IDiscussionsDbContext, IActivityLogDbContext, IDisposable
+public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IDiscussionsDbContext, IActivityLogDbContext, IFeatureManagementDbContext, IDisposable
 {
     // Common domain entities
     private readonly List<Employee> _employees = [];
@@ -30,6 +32,7 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     private readonly List<User> _waydUsers = [];
     private readonly List<ScoringModel> _scoringModels = [];
     private readonly List<ActivityLogEntry> _activityLogs = [];
+    private readonly List<FeatureFlag> _featureFlags = [];
 
     // The workflow engine's tables, for handlers that reach IStatusWorkflowDbContext.
     private readonly List<StatusWorkflow> _statusWorkflows = [];
@@ -59,6 +62,7 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     public DbSet<PersonalAccessToken> PersonalAccessTokens => _personalAccessTokens.AsDbSet();
     public DbSet<User> WaydUsers => _waydUsers.AsDbSet();
     public DbSet<ScoringModel> ScoringModels => _scoringModels.AsDbSet();
+    public DbSet<FeatureFlag> FeatureFlags => _featureFlags.AsDbSet();
     public DbSet<ActivityLogEntry> ActivityLogs => _activityLogs.AsDbSet();
 
     public DbSet<StatusWorkflow> StatusWorkflows => _statusWorkflows.AsDbSet();
@@ -147,6 +151,7 @@ public class FakeWaydDbContext : IWaydDbContext, IStatusWorkflowDbContext, INoti
     public void AddWaydUser(User user) => _waydUsers.Add(user);
 
     public void AddEmployee(Employee employee) => _employees.Add(employee);
+    public void AddFeatureFlag(FeatureFlag flag) => _featureFlags.Add(flag);
     public void AddFollow(Follow follow) => _follows.Add(follow);
     public void AddNotification(Notification notification) => _notifications.Add(notification);
     public void AddRecordMute(RecordMute mute) => _recordMutes.Add(mute);

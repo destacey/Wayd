@@ -484,7 +484,7 @@ describe('TeamCapacity', () => {
 
       expect(statistic('Time away person-days')).toBe('1.25')
       expect(screen.getByText('Away')).toBeInTheDocument()
-      expect(screen.getByRole('cell', { name: '1.25' })).toBeInTheDocument()
+      expect(screen.getByRole('gridcell', { name: '1.25' })).toBeInTheDocument()
     })
 
     it('does not read a rollup and totals its own allocations', () => {

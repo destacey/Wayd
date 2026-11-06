@@ -25,7 +25,7 @@ import type {
   Row,
   VisibilityState,
 } from '../wayd-grid-core'
-import { useVirtualizer } from '@tanstack/react-virtual'
+import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual'
 import {
   DndContext,
   type DragCancelEvent,
@@ -62,6 +62,8 @@ import {
 
 import { applySafeAccessor } from '../wayd-grid-core/column-accessors'
 import { rowScaleFor, virtualSpacers } from '../wayd-grid-core/virtual-geometry'
+import { withPinnedIndex } from '../wayd-grid-core/grid-keyboard'
+import { useGridCellNavigation } from '../wayd-grid-core/use-grid-cell-navigation'
 import {
   getOrderedVisibleLeafColumns,
   reconcileColumnOrder,
@@ -344,6 +346,15 @@ interface GridBodyProps<T extends RowData> {
   isLoading: boolean
   emptyMessage: string
   visibleColumnCount: number
+  /** Visible leaf column ids in on-screen order — what arrow keys walk. */
+  columnIds: string[]
+  /** Header rows above the body (group bands, leaf headers, filters), so body
+   *  rows can state their place in the whole grid. */
+  headerRowCount: number
+  /** The column whose cells expand and collapse tree rows with → and ←. */
+  treeColumnId: string | null
+  /** Whether Enter on a cell starts inline editing there (tree editing). */
+  isCellEditable?: (row: Row<T>, columnId: string) => boolean
   /** Column ids whose body cells right-align (numeric columns). */
   numericColumnIds: ReadonlySet<string>
   isTree: boolean
@@ -389,6 +400,10 @@ function GridBody<T extends RowData>({
   isLoading,
   emptyMessage,
   visibleColumnCount,
+  columnIds,
+  headerRowCount,
+  treeColumnId,
+  isCellEditable,
   numericColumnIds,
   isTree,
   isGrouped,
@@ -410,6 +425,20 @@ function GridBody<T extends RowData>({
 }: GridBodyProps<T>) {
   // Owns virtualizer + TanStack row JSX — same staleness hazard as the grid.
 
+  const navigation = useGridCellNavigation({
+    rows,
+    columnIds,
+    isGrouped,
+    treeColumnId,
+    editingRowId: isTree ? selectedRowId : null,
+    getEditingId: (row) => (row.original as { id: string }).id,
+    isCellEditable: canEdit ? isCellEditable : undefined,
+    onRowActivate,
+    bodyViewportRef,
+    rowHeight: ROW_HEIGHT_ESTIMATE,
+  })
+  const { pinnedIndex } = navigation
+
   // ─── Row virtualization ──────────────────────────────────
   // Only the visible window of rows (plus overscan) is mounted, ag-grid
   // style. The virtualizer windows the already-flattened row model, so tree
@@ -419,6 +448,10 @@ function GridBody<T extends RowData>({
   // eslint-disable-next-line react-hooks/incompatible-library -- the rule flags TanStack Virtual as compiler-incompatible; the virtualizer is read through its own hook each render, so there is no cached instance to go stale
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
+    // The focused row stays rendered while scrolled away, so it keeps DOM
+    // focus; the body fills the gap around it with a spacer row.
+    rangeExtractor: (range) =>
+      withPinnedIndex(defaultRangeExtractor(range), pinnedIndex),
     // The grid's own table wrapper is the single vertical scroller (unchanged
     // from the no-pane case, so scroll performance is identical to baseline).
     // When a right (chart) pane is present the bar track FOLLOWS this scroller's
@@ -458,6 +491,20 @@ function GridBody<T extends RowData>({
   }, [rightPane, rows.length, bodyViewportRef])
   // Scale factor from the virtualizer's estimate to the real row height.
   const rowScale = rowScaleFor(measuredRowHeight, ROW_HEIGHT_ESTIMATE)
+
+  // The Tab stop must be on a rendered cell or Tab skips the body. When the
+  // active row has scrolled away (and so is not pinned), the first row in
+  // view takes it — not one in the overscan above, which Tab would scroll to.
+  // Row starts are in estimated px; the scroll offset is real px.
+  const firstInView = (rowVirtualizer.scrollOffset ?? 0) / rowScale
+  const tabStopRowIndex = virtualRows.some(
+    (virtualRow) => virtualRow.index === navigation.activeRowIndex,
+  )
+    ? navigation.activeRowIndex
+    : ((
+        virtualRows.find((virtualRow) => virtualRow.start >= firstInView) ??
+        virtualRows[0]
+      )?.index ?? -1)
 
   const { top: spacerTop, bottom: spacerBottom } = virtualSpacers({
     firstRowStart: virtualRows[0]?.start ?? 0,
@@ -499,9 +546,24 @@ function GridBody<T extends RowData>({
       // jest.setup.ts returns a fixed rect for this attribute instead.
       data-grid-body-viewport=""
     >
-      <table className={styles.tableElement}>
+      {/* Tab from a body cell leaves the grid by focusing one of these first;
+          the browser's own Tab step then continues from it. */}
+      <span
+        ref={navigation.sentinelBeforeRef}
+        tabIndex={-1}
+        aria-hidden="true"
+        className={styles.focusSentinel}
+      />
+      <table
+        className={styles.tableElement}
+        role="presentation"
+        onKeyDown={navigation.onKeyDown}
+        onFocus={navigation.onFocus}
+        onBlur={navigation.onBlur}
+        onContextMenu={navigation.onContextMenu}
+      >
         {colGroup}
-        <tbody>
+        <tbody role="rowgroup">
           {!showStatusOverlay && (
             <>
               {/* Virtual offset spacers: real table rows standing in for the
@@ -516,11 +578,36 @@ function GridBody<T extends RowData>({
                   />
                 </tr>
               )}
-              {virtualRows.map((virtualRow) => {
+              {/* flatMap, not map: a row comes back with its gap spacer
+                  (and, while edited, its error band), and React keys a nested
+                  array by position — so as the window shifted, every row
+                  would land in another slot and remount, dropping focus. */}
+              {virtualRows.flatMap((virtualRow, position) => {
                 const row = rows[virtualRow.index]
                 // Zebra striping keys off the absolute display index so
                 // stripes don't shift as the window moves.
                 const index = virtualRow.index
+                const navigationProps = {
+                  ariaRowIndex: headerRowCount + index + 1,
+                  focusColumnId:
+                    index === tabStopRowIndex
+                      ? navigation.activeColumnId
+                      : null,
+                }
+                // The pinned focused row can sit apart from the window; a
+                // spacer stands in for the rows between them.
+                const previous = virtualRows[position - 1]
+                const gap = previous ? virtualRow.start - previous.end : 0
+                const gapSpacer =
+                  gap > 0 ? (
+                    <tr key={`${row.id}-gap`} aria-hidden="true">
+                      <td
+                        className={styles.virtualSpacer}
+                        colSpan={visibleColumnCount + 1}
+                        style={{ height: gap * rowScale }}
+                      />
+                    </tr>
+                  ) : null
 
                 if (isTree) {
                   const nodeId = (row.original as { id: string }).id
@@ -528,14 +615,17 @@ function GridBody<T extends RowData>({
                   const isRowDragging = draggedNodeId === nodeId
                   const isDraftRow = nodeId.startsWith(draftPrefix)
                   const rowElements = [
+                    gapSpacer,
                     <TreeGridRow
                       key={row.id}
                       row={row}
                       index={index}
+                      {...navigationProps}
                       classes={treeRowClasses}
                       numericColumnIds={numericColumnIds}
                       nodeId={nodeId}
                       isSelected={isSelected}
+                      isExpanded={row.getIsExpanded()}
                       isDragging={isRowDragging}
                       isDragEnabled={isDragEnabled && !isDraftRow}
                       canEdit={canEdit}
@@ -586,10 +676,13 @@ function GridBody<T extends RowData>({
                 // collapses; the rows under it are ordinary flat rows.
                 if (isGrouped && row.getIsGrouped()) {
                   const columnId = row.groupingColumnId ?? ''
-                  return (
+                  return [
+                    gapSpacer,
                     <GroupGridRow
                       key={row.id}
                       row={row}
+                      isExpanded={row.getIsExpanded()}
+                      {...navigationProps}
                       classes={groupRowClasses}
                       colSpan={visibleColumnCount + 1}
                       header={renderGroupHeader?.({
@@ -600,8 +693,8 @@ function GridBody<T extends RowData>({
                           .map((leaf) => leaf.original),
                         depth: row.depth,
                       })}
-                    />
-                  )
+                    />,
+                  ]
                 }
 
                 // Both flat forms take the same activation set, resolved
@@ -616,31 +709,35 @@ function GridBody<T extends RowData>({
 
                 if (flatDndEnabled) {
                   const nodeId = flatRowId(row)
-                  return (
+                  return [
+                    gapSpacer,
                     <SortableFlatGridRow
                       key={row.id}
                       row={row}
                       index={index}
+                      {...navigationProps}
                       classes={rowClasses}
                       numericColumnIds={numericColumnIds}
                       nodeId={nodeId}
                       isDragging={draggedNodeId === nodeId}
                       isDragEnabled={isDragEnabled}
                       {...activation}
-                    />
-                  )
+                    />,
+                  ]
                 }
 
-                return (
+                return [
+                  gapSpacer,
                   <FlatGridRow
                     key={row.id}
                     row={row}
                     index={index}
+                    {...navigationProps}
                     classes={rowClasses}
                     numericColumnIds={numericColumnIds}
                     {...activation}
-                  />
-                )
+                  />,
+                ]
               })}
               {spacerBottom > 0 && (
                 <tr aria-hidden="true">
@@ -655,12 +752,26 @@ function GridBody<T extends RowData>({
           )}
         </tbody>
       </table>
+      <span
+        ref={navigation.sentinelAfterRef}
+        tabIndex={-1}
+        aria-hidden="true"
+        className={styles.focusSentinel}
+      />
     </div>
   )
 
+  // A row of the grid, so the loading or empty message is not content the
+  // grid role cannot own.
   const statusOverlayEl = showStatusOverlay ? (
-    <div className={styles.statusOverlay}>
-      {isLoading ? <Spin size="large" /> : <WaydEmpty message={emptyMessage} />}
+    <div className={styles.statusOverlay} role="row">
+      <div role="gridcell">
+        {isLoading ? (
+          <Spin size="large" />
+        ) : (
+          <WaydEmpty message={emptyMessage} />
+        )}
+      </div>
     </div>
   ) : null
 
@@ -688,6 +799,13 @@ function GridBody<T extends RowData>({
       // the divider resizes it via direct DOM writes during a drag, so state
       // alone does not describe what is on screen.
       data-wayd-grid-chart-pane
+      // The chart draws the rows' dates again for the eye, and is driven by
+      // pointer only; inside the grid role it would be content that is not
+      // a row.
+      aria-hidden="true"
+      // Browsers make a scrolling element a Tab stop; this one is hidden from
+      // assistive tech, so it must not take keyboard focus either.
+      tabIndex={-1}
       className={styles.rightPaneTrack}
       style={{ width: rightPaneWidth }}
       onScroll={onBarTrackScroll}
@@ -724,6 +842,7 @@ function GridBody<T extends RowData>({
         {tableWrapperEl}
         <div
           className={styles.rightPaneDivider}
+          aria-hidden="true"
           role="separator"
           aria-orientation="vertical"
           aria-label="Resize chart pane"
@@ -913,6 +1032,7 @@ function WaydGridInner<T extends RowData>(
     onDraftCancelled,
     onDraftsChange,
     rightPane,
+    'aria-label': ariaLabel,
   } = props
 
   // Undefined data (a query hook still loading) renders as an empty grid —
@@ -1118,6 +1238,14 @@ function WaydGridInner<T extends RowData>(
     resetColumnState,
   } = gridState
   const resizeGuard = useResizeClickGuard()
+  /** Enter or Space on a filter trigger opens its popover — the popover
+   *  itself only listens for clicks. */
+  const openOnKey = (columnId: string) => (e: React.KeyboardEvent) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    e.stopPropagation()
+    setOpenFilterColumnId(columnId)
+  }
   const [openFilterColumnId, setOpenFilterColumnId] = useState<string | null>(
     null,
   )
@@ -1861,6 +1989,8 @@ function WaydGridInner<T extends RowData>(
         {trigger ?? (
           <span
             role="button"
+            tabIndex={0}
+            onKeyDown={openOnKey(header.column.id)}
             aria-label={
               isFiltered ? 'Edit column filter (active)' : 'Filter column'
             }
@@ -1979,6 +2109,8 @@ function WaydGridInner<T extends RowData>(
       >
         <div
           role="button"
+          tabIndex={0}
+          onKeyDown={openOnKey(column.id)}
           aria-label={isFiltered ? 'Filter column (active)' : 'Filter column'}
           className={styles.floatingCell}
         >
@@ -1993,6 +2125,15 @@ function WaydGridInner<T extends RowData>(
         </div>
       </Popover>
     )
+  }
+
+  // Enter on a cell starts inline editing when its column is editable for
+  // that row — the same columns a click would open an editor in.
+  const isCellEditable = (row: Row<T>, columnId: string) => {
+    const ids = editingConfig?.editableColumnIds
+    if (!ids) return false
+    const rowId = (row.original as { id: string }).id
+    return (typeof ids === 'function' ? ids(rowId) : ids).includes(columnId)
   }
 
   // ─── Row/cell click handlers (editing) ──────────────────
@@ -2069,12 +2210,17 @@ function WaydGridInner<T extends RowData>(
     </colgroup>
   )
 
+  // Header rows above the body, for each row's aria-rowindex.
+  const headerRowCount =
+    groupHeaderRows.length + 1 + (showFloatingFilters ? 1 : 0)
+
   // The header table, optionally wrapped in a column-reorder DnD context. The
   // context is header-scoped and separate from the row/tree DnD context below,
   // so column drags and row drags never share sensors or collision detection.
   const headerTable = (
     <table
       className={styles.tableElement}
+      role="presentation"
       style={
         {
           '--wayd-grid-group-header-rows': groupHeaderRows.length,
@@ -2082,20 +2228,32 @@ function WaydGridInner<T extends RowData>(
       }
     >
       {colGroup}
-      <thead>
+      <thead role="rowgroup">
         {/* Grouped-header band rows — plain colspan cells, no
               sort/filter/resize; placeholders render empty. */}
         {groupHeaderRows.map((headerGroup, bandIndex) => (
-          <tr key={headerGroup.id} data-role="header-band">
-            {headerGroup.headers.map((header) => {
+          <tr
+            key={headerGroup.id}
+            data-role="header-band"
+            role="row"
+            aria-rowindex={bandIndex + 1}
+          >
+            {headerGroup.headers.map((header, headerIndex) => {
               // TanStack splits a band spanning pinned + unpinned leaves
               // into one cell per pin section; a pinned section's cell
               // sticks at its leaves' offset.
               const bandPinned = getPinnedBandOffsets(header)
+              // A band's own index counts bands, not columns.
+              const firstColumn = headerGroup.headers
+                .slice(0, headerIndex)
+                .reduce((sum, previous) => sum + previous.colSpan, 1)
               return (
                 <th
                   key={header.id}
                   colSpan={header.colSpan}
+                  role="columnheader"
+                  aria-colindex={firstColumn}
+                  aria-colspan={header.colSpan}
                   // Placeholders (ungrouped columns passing through the band
                   // level) are empty — hide them from assistive tech so
                   // screen readers don't announce blank column headers.
@@ -2126,7 +2284,11 @@ function WaydGridInner<T extends RowData>(
         ))}
 
         {/* Leaf header row */}
-        <tr key={leafHeaderGroup.id}>
+        <tr
+          key={leafHeaderGroup.id}
+          role="row"
+          aria-rowindex={groupHeaderRows.length + 1}
+        >
           {leafHeaderGroup.headers.map((header) => {
             // When floating filters are shown, the popup trigger lives
             // in the floating row instead of the header.
@@ -2183,6 +2345,8 @@ function WaydGridInner<T extends RowData>(
           <tr
             key={`${leafHeaderGroup.id}-floating`}
             data-role="floating-filters"
+            role="row"
+            aria-rowindex={groupHeaderRows.length + 2}
           >
             {leafHeaderGroup.headers.map((header) => {
               const column = header.column
@@ -2197,6 +2361,8 @@ function WaydGridInner<T extends RowData>(
                 return (
                   <th
                     key={`${header.id}-floating`}
+                    role="gridcell"
+                    aria-colindex={header.index + 1}
                     className={filterThClassName}
                     style={filterThStyle}
                   />
@@ -2212,6 +2378,8 @@ function WaydGridInner<T extends RowData>(
                 return (
                   <th
                     key={`${header.id}-floating`}
+                    role="gridcell"
+                    aria-colindex={header.index + 1}
                     className={filterThClassName}
                     style={filterThStyle}
                     onClick={(e) => e.stopPropagation()}
@@ -2234,6 +2402,8 @@ function WaydGridInner<T extends RowData>(
               return (
                 <th
                   key={`${header.id}-floating`}
+                  role="gridcell"
+                  aria-colindex={header.index + 1}
                   className={filterThClassName}
                   style={filterThStyle}
                   onClick={(e) => e.stopPropagation()}
@@ -2296,7 +2466,13 @@ function WaydGridInner<T extends RowData>(
   )
 
   const tableContent = (
-    <div className={styles.tableArea}>
+    <div
+      className={styles.tableArea}
+      role={isTree ? 'treegrid' : 'grid'}
+      aria-label={ariaLabel}
+      aria-rowcount={headerRowCount + rows.length}
+      aria-colcount={orderedVisibleLeafColumns.length}
+    >
       <div className={styles.headerArea}>
         <div className={styles.headerViewport} ref={headerViewportRef}>
           {headerTableContent}
@@ -2317,6 +2493,7 @@ function WaydGridInner<T extends RowData>(
             <div className={styles.rightPaneDividerSpacer} aria-hidden="true" />
             <div
               ref={rightPaneHeaderRef}
+              aria-hidden="true"
               className={styles.rightPaneHeader}
               style={{ width: rightPaneWidth }}
             >
@@ -2339,6 +2516,16 @@ function WaydGridInner<T extends RowData>(
         isLoading={isLoading}
         emptyMessage={emptyMessage}
         visibleColumnCount={visibleColumnCount}
+        columnIds={orderedVisibleLeafColumns.map((column) => column.id)}
+        headerRowCount={headerRowCount}
+        treeColumnId={
+          (
+            orderedVisibleLeafColumns.find(
+              (column) => column.columnDef.meta?.treeColumn,
+            ) ?? orderedVisibleLeafColumns[0]
+          )?.id ?? null
+        }
+        isCellEditable={isCellEditable}
         numericColumnIds={numericColumnIds}
         isTree={isTree}
         isGrouped={isGrouped}

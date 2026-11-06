@@ -21,6 +21,37 @@ export const RoadmapItemsHelp = () => (
         size="small"
         column={1}
         styles={{ header: { marginBottom: 4 } }}
+        title="Moving Around"
+      >
+        <DescriptionItem label="Arrow keys">
+          <Text>Move between cells</Text>
+        </DescriptionItem>
+        <DescriptionItem label="Home / End">
+          <Text>First or last cell in the row</Text>
+        </DescriptionItem>
+        <DescriptionItem label="Ctrl + Home / End">
+          <Text>First or last cell in the grid</Text>
+        </DescriptionItem>
+        <DescriptionItem label="Page Up / Down">
+          <Text>Move a screen of rows</Text>
+        </DescriptionItem>
+        <DescriptionItem label="Right / Left on Name">
+          <Text>Expand or collapse; Left on a child moves to its parent</Text>
+        </DescriptionItem>
+        <DescriptionItem label="Enter or F2">
+          <Text>Edit the row from this cell, or move to the cell&apos;s link</Text>
+        </DescriptionItem>
+        <DescriptionItem label="Shift + F10">
+          <Text>Open the row&apos;s actions menu</Text>
+        </DescriptionItem>
+        <DescriptionItem label="Tab">
+          <Text>Leave the grid</Text>
+        </DescriptionItem>
+      </Descriptions>
+      <Descriptions
+        size="small"
+        column={1}
+        styles={{ header: { marginBottom: 4 } }}
         title="Inline Editing"
       >
         <DescriptionItem label="Click row or cell">

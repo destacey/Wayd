@@ -66,6 +66,10 @@ const ActionsCell = <T extends RowData,>({
         size="small"
         aria-label={ariaLabel}
         icon={<MoreOutlined />}
+        // The grid body is one Tab stop: Shift+F10 or the Menu key opens this
+        // (found by the marker), and Enter or F2 on the cell focuses it.
+        tabIndex={-1}
+        data-row-actions=""
       />
     </Dropdown>
   )

@@ -109,6 +109,12 @@ export interface WaydGridColumnMeta {
    * column) set this to `false` so they get no drag grip and reject drops.
    */
   enableReordering?: boolean
+  /**
+   * Tree mode: this column shows the expand caret, so → and ← in its cells
+   * expand and collapse the row (and ← on a child moves to its parent).
+   * Without one, the first visible column does.
+   */
+  treeColumn?: boolean
   /** Whether to include this column in CSV export. Default: true if the column has an accessor. */
   enableExport?: boolean
   /** Custom CSV formatter for this column's values. */

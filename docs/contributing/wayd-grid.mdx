@@ -127,7 +127,31 @@ Where a variant sets a flag, that is the starting point — the defaults below d
 
 ### Opening a row
 
-`onRowActivate` makes whole rows openable — click, or Enter/Space on the focused row — so a list is keyboard-navigable without a link in every primary cell. Clicks on links, buttons, inputs, and anything marked `data-row-activate="ignore"` are left alone, so an actions dropdown inside the row still just opens. Pass `activatedRowId` (matched against `getRowId`) to highlight the open row, and `getRowActivateLabel` to give each row a short accessible name. Flat mode only: tree mode spends the row click on inline editing. A config list's panel is the reference consumer (see [Record Pages](./record-pages.mdx#does-it-get-a-record-page-at-all)).
+`onRowActivate` makes whole rows openable — click, or Enter/Space on any of the row's cells (see [Keyboard and screen readers](#keyboard-and-screen-readers)) — so a list is keyboard-navigable without a link in every primary cell. Clicks on links, buttons, inputs, and anything marked `data-row-activate="ignore"` are left alone, so an actions dropdown inside the row still just opens. Pass `activatedRowId` (matched against `getRowId`) to highlight the open row, and `getRowActivateLabel` to give each row a short accessible name. Flat mode only: tree mode spends the row click on inline editing. A config list's panel is the reference consumer (see [Record Pages](./record-pages.mdx#does-it-get-a-record-page-at-all)).
+
+### Keyboard and screen readers
+
+Every WaydGrid is keyboard-navigable with nothing to configure. The body follows the WAI-ARIA grid pattern: one cell holds the body's single Tab stop (roving `tabIndex`), and the keys move it. The header keeps its own controls — a sortable column heading, the filter triggers and the `⋮` menus are each a Tab stop, and Enter or Space on a heading sorts it. Header cells drop dnd-kit's keyboard drag; columns reorder by keyboard through Choose Columns.
+
+| Key | Moves or does |
+| --- | --- |
+| Arrow keys | One cell, stopping at the edges |
+| Home / End | First / last cell in the row; with Ctrl (Cmd), first / last cell in the grid |
+| Page Up / Page Down | A viewport of rows |
+| → / ← in the tree column | Expand / collapse a tree row; ← on a child moves to its parent. On a group heading, any column |
+| Enter / Space | Activate the row (`onRowActivate`), or toggle a group heading |
+| Enter / F2 | Otherwise: start inline editing when the column is editable, else focus the cell's own control (a link first, never an expand toggle). Escape from that control returns to the cell |
+| Shift+F10 / Menu key | Click the row's element marked `data-row-actions` |
+| Tab / Shift+Tab | Leave the body — from a cell or from a control inside one |
+
+- **Columns follow the screen**: the cursor walks the visible leaf columns left-pinned, centre, right-pinned, so reordering and pinning are respected.
+- **The tree column** is the one with `meta.treeColumn: true` — the column holding the caret. Without one, the first visible column is.
+- **Controls in cells take `tabIndex={-1}`**; Enter or F2 reaches them. `createActionsColumn` does this and marks its button `data-row-actions`; a hand-built row menu should do the same. One that is missed (a `next/link` cell, a drag handle) does not break the single Tab stop: tabbing in onto it lands on the active cell, and Tab from it leaves the body.
+- **Keys inside a control are its own.** The body handles a key only when a cell itself has focus (Escape and Tab aside), never in the row being edited inline, and never from a portal — React bubbles a menu's or modal's events through the component tree, so the handlers check the event came from the body's own DOM.
+- **Virtualization**: while focus is in the body, the focused row stays rendered when scrolled away, so it keeps DOM focus. When focus is elsewhere and the active row scrolls out, the first rendered row takes the Tab stop.
+- **Tab out** works by focusing a sentinel just past (or before) the body during keydown; the browser's own Tab step then runs from there.
+- **When the active row goes away** (a cancelled draft, a deleted or filtered-out row) the Tab stop stays at the same position, on whichever row is there now.
+- **Semantics**: the header and body tables are presentational and the area wrapping them is one `grid` (`treegrid` in tree mode) with `aria-rowcount` and `aria-colcount`. A grid owns only rows, so the loading/empty message renders as a row, and the chart pane (which repeats the rows' dates and is pointer-only) is `aria-hidden`. Rows carry `aria-rowindex` (header rows included), cells `aria-colindex`, headers `aria-sort`, tree rows `aria-level` and `aria-expanded`. Pass `aria-label` when the page has more than one grid or no heading naming it.
 
 ### Selecting rows
 
@@ -166,6 +190,7 @@ Columns are TanStack `ColumnDef`s. The most common shape:
 | `headerTooltip` | Tooltip on the header label (keep `header` a plain string) |
 | `maxFilterConditions` | Cap AND/OR conditions in the filter popup (default 5) |
 | `enableReordering` | Set `false` so the column can't be dragged to reorder (and rejects drops). Such a column also gets no `⋮` menu. Used by the actions column |
+| `treeColumn` | Tree mode: the column showing the expand caret, where → and ← expand and collapse rows. Defaults to the first visible column |
 | `enableExport` | `false` excludes the column from CSV |
 | `exportHeader` / `exportFormatter` | Override the CSV header text / format each value |
 

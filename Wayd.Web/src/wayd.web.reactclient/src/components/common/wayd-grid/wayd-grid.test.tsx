@@ -10,6 +10,7 @@ jest.mock('@/src/utils/csv-utils', () => {
 })
 
 import { createRef } from 'react'
+import { Form } from 'antd'
 import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import type { ColumnDef } from '../wayd-grid-core'
 import WaydGrid from './wayd-grid'
@@ -1444,7 +1445,7 @@ describe('WaydGrid', () => {
      *  dnd-kit stamps aria-roledescription="sortable" on it). */
     const reorderableHeaders = () =>
       document.querySelectorAll(
-        'thead tr:not([data-role]) th[data-column-id][aria-roledescription="sortable"]',
+        'thead tr:not([data-role]) th[data-column-id].thDraggable',
       )
 
     it('makes every reorderable leaf header cell a drag handle', () => {
@@ -1806,15 +1807,18 @@ describe('WaydGrid', () => {
   describe('row activation', () => {
     /** The body rows, in display order. */
     const bodyRows = () =>
-      Array.from(document.querySelectorAll('tbody tr[role="button"]'))
+      Array.from(document.querySelectorAll('tbody tr[data-grid-row]'))
 
-    it('does not make rows buttons when onRowActivate is absent', () => {
-      // Arrange / Act
-      renderGrid()
+    it('keeps rows as grid rows, never buttons', () => {
+      // Arrange / Act — the cells take focus and keys; a row claiming a
+      // button role would hide the grid's structure from assistive tech.
+      renderGrid({ onRowActivate: jest.fn() })
 
-      // Assert — a row that cannot be activated must not claim a button role
-      // or take tab focus.
-      expect(bodyRows()).toHaveLength(0)
+      // Assert
+      bodyRows().forEach((row) => {
+        expect(row).toHaveAttribute('role', 'row')
+        expect(row).not.toHaveAttribute('tabindex')
+      })
     })
 
     it('activates the clicked row', () => {
@@ -1830,15 +1834,15 @@ describe('WaydGrid', () => {
       expect(onRowActivate).toHaveBeenCalledWith(DATA[1])
     })
 
-    it('activates on Enter and Space', () => {
+    it('activates on Enter and Space in a focused cell', () => {
       // Arrange
       const onRowActivate = jest.fn()
       renderGrid({ onRowActivate })
-      const row = bodyRows()[0]
+      const cell = bodyCells('type')[0]
 
       // Act
-      fireEvent.keyDown(row, { key: 'Enter' })
-      fireEvent.keyDown(row, { key: ' ' })
+      fireEvent.keyDown(cell, { key: 'Enter' })
+      fireEvent.keyDown(cell, { key: ' ' })
 
       // Assert
       expect(onRowActivate).toHaveBeenCalledTimes(2)
@@ -1852,25 +1856,14 @@ describe('WaydGrid', () => {
       renderGrid({ onRowActivate })
 
       // Act
-      fireEvent.keyDown(bodyRows()[0], { key: 'a' })
+      fireEvent.keyDown(bodyCells('name')[0], { key: 'a' })
 
       // Assert
       expect(onRowActivate).not.toHaveBeenCalled()
     })
 
-    it('makes every row focusable so the list is keyboard navigable', () => {
-      // Arrange / Act
-      renderGrid({ onRowActivate: jest.fn() })
-
-      // Assert
-      const rows = bodyRows()
-      expect(rows).toHaveLength(DATA.length)
-      rows.forEach((row) => expect(row).toHaveAttribute('tabindex', '0'))
-    })
-
     it('names the row from getRowActivateLabel', () => {
-      // Arrange / Act — without a label the button role would announce the
-      // row's whole flattened text.
+      // Arrange / Act
       renderGrid({
         onRowActivate: jest.fn(),
         getRowActivateLabel: (flag) => `Open ${flag.name}`,
@@ -1902,7 +1895,7 @@ describe('WaydGrid', () => {
         />,
       )
 
-      // Act — the row is a button too, so scope the query to the cell
+      // Act
       fireEvent.click(
         within(bodyCells('name')[0]).getByRole('button', {
           name: 'planning-poker',
@@ -1933,7 +1926,7 @@ describe('WaydGrid', () => {
         />,
       )
 
-      // Act — scope to the cell; the row carries a button role as well
+      // Act
       fireEvent.keyDown(
         within(bodyCells('name')[1]).getByRole('button', { name: 'roadmap' }),
         { key: 'Enter' },
@@ -2137,6 +2130,724 @@ describe('WaydGrid', () => {
 
       // Assert
       expect(groupRows().map((tr) => tr.textContent)).toEqual(['User1 row'])
+    })
+  })
+  describe('keyboard navigation', () => {
+    const renderPlain = (props: GridProps = {}) =>
+      renderGrid({ includeIdColumn: false, ...props })
+
+    /** Body cells holding the grid's Tab stop. */
+    const tabStops = () =>
+      Array.from(document.querySelectorAll('tbody td[tabindex="0"]'))
+
+    const focus = (el: HTMLElement) => act(() => el.focus())
+
+    it("puts the grid's single Tab stop on the first cell", () => {
+      // Arrange / Act
+      renderPlain()
+
+      // Assert — every other cell is reachable by arrows but skipped by Tab
+      expect(tabStops()).toEqual([bodyCells('name')[0]])
+      expect(bodyCells('type')[0]).toHaveAttribute('tabindex', '-1')
+    })
+
+    it('moves focus and the Tab stop with the arrow keys', () => {
+      // Arrange
+      renderPlain()
+      focus(bodyCells('name')[0])
+
+      // Act
+      fireEvent.keyDown(document.activeElement!, { key: 'ArrowDown' })
+      fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' })
+
+      // Assert
+      expect(document.activeElement).toBe(bodyCells('type')[1])
+      expect(tabStops()).toEqual([bodyCells('type')[1]])
+    })
+
+    it('moves to the row ends with Home/End and the grid corners with Ctrl', () => {
+      // Arrange
+      renderPlain()
+      focus(bodyCells('type')[1])
+
+      // Act / Assert
+      fireEvent.keyDown(document.activeElement!, { key: 'End' })
+      expect(document.activeElement).toBe(bodyCells('isEnabled')[1])
+
+      fireEvent.keyDown(document.activeElement!, { key: 'Home' })
+      expect(document.activeElement).toBe(bodyCells('name')[1])
+
+      fireEvent.keyDown(document.activeElement!, { key: 'End', ctrlKey: true })
+      expect(document.activeElement).toBe(bodyCells('isEnabled')[2])
+
+      fireEvent.keyDown(document.activeElement!, { key: 'Home', ctrlKey: true })
+      expect(document.activeElement).toBe(bodyCells('name')[0])
+    })
+
+    it('walks columns in on-screen order once a column is pinned', () => {
+      // Arrange — pinning moves Enabled to the front of every row
+      const ref = createRef<WaydGridHandle>()
+      renderPlain({ ref })
+      act(() => {
+        ref.current!.table.getColumn('isEnabled').pin('start')
+      })
+      focus(bodyCells('type')[0])
+
+      // Act
+      fireEvent.keyDown(document.activeElement!, { key: 'Home' })
+      const afterHome = document.activeElement
+      fireEvent.keyDown(document.activeElement!, { key: 'ArrowRight' })
+
+      // Assert
+      expect(afterHome).toBe(bodyCells('isEnabled')[0])
+      expect(document.activeElement).toBe(bodyCells('name')[0])
+    })
+
+    it('ignores navigation keys pressed in a control inside a cell', () => {
+      // Arrange
+      render(
+        <WaydGrid<Flag>
+          data={DATA}
+          includeIdColumn={false}
+          columns={[
+            {
+              id: 'name',
+              accessorKey: 'name',
+              header: 'Name',
+              cell: ({ row }) => <input aria-label={row.original.name} />,
+            },
+          ]}
+        />,
+      )
+      const input = screen.getByRole('textbox', { name: 'roadmap' })
+      focus(input)
+
+      // Act — the caret is the input's, not the grid's
+      fireEvent.keyDown(input, { key: 'ArrowDown' })
+
+      // Assert
+      expect(document.activeElement).toBe(input)
+    })
+
+    it("moves into a cell's control with Enter or F2 and back out with Escape", () => {
+      // Arrange
+      render(
+        <WaydGrid<Flag>
+          data={DATA}
+          includeIdColumn={false}
+          columns={[
+            {
+              id: 'name',
+              accessorKey: 'name',
+              header: 'Name',
+              cell: ({ row }) => (
+                <button tabIndex={-1}>{row.original.name}</button>
+              ),
+            },
+          ]}
+        />,
+      )
+      const cell = bodyCells('name')[1]
+      const button = within(cell).getByRole('button', { name: 'roadmap' })
+      focus(cell)
+
+      // Act / Assert
+      fireEvent.keyDown(cell, { key: 'Enter' })
+      expect(document.activeElement).toBe(button)
+
+      fireEvent.keyDown(button, { key: 'Escape' })
+      expect(document.activeElement).toBe(cell)
+
+      fireEvent.keyDown(cell, { key: 'F2' })
+      expect(document.activeElement).toBe(button)
+    })
+
+    it("opens the row's actions menu with Shift+F10 or the Menu key", () => {
+      // Arrange
+      const onActions = jest.fn()
+      render(
+        <WaydGrid<Flag>
+          data={DATA}
+          includeIdColumn={false}
+          columns={[
+            {
+              id: 'actions',
+              header: '',
+              cell: ({ row }) => (
+                <button
+                  data-row-actions=""
+                  tabIndex={-1}
+                  onClick={() => onActions(row.original.id)}
+                >
+                  …
+                </button>
+              ),
+            },
+            { id: 'name', accessorKey: 'name', header: 'Name' },
+          ]}
+        />,
+      )
+      focus(bodyCells('name')[1])
+
+      // Act
+      fireEvent.keyDown(bodyCells('name')[1], { key: 'F10', shiftKey: true })
+      fireEvent.keyDown(bodyCells('name')[2], { key: 'ContextMenu' })
+      fireEvent.keyDown(bodyCells('name')[0], { key: 'F10' })
+
+      // Assert — plain F10 is the browser's, not the row's
+      expect(onActions.mock.calls).toEqual([[2], [3]])
+    })
+
+    it('leaves the grid on Tab from a control inside a cell', () => {
+      // Arrange — the cell's own button, reached with Enter
+      render(
+        <WaydGrid<Flag>
+          data={DATA}
+          includeIdColumn={false}
+          columns={[
+            {
+              id: 'name',
+              accessorKey: 'name',
+              header: 'Name',
+              cell: ({ row }) => <button>{row.original.name}</button>,
+            },
+          ]}
+        />,
+      )
+      const button = screen.getByRole('button', { name: 'roadmap' })
+      focus(button)
+
+      // Act
+      fireEvent.keyDown(button, { key: 'Tab' })
+
+      // Assert — not on to the next row's button
+      expect(document.activeElement?.previousElementSibling?.tagName).toBe(
+        'TABLE',
+      )
+    })
+
+    it('lands on the active cell when Tab enters the grid onto a control inside a cell', () => {
+      // Arrange — a cell control left in the tab order (a link, a drag
+      // handle) would otherwise be where Shift+Tab into the grid stops
+      render(
+        <WaydGrid<Flag>
+          data={DATA}
+          includeIdColumn={false}
+          columns={[
+            {
+              id: 'name',
+              accessorKey: 'name',
+              header: 'Name',
+              cell: ({ row }) => <button>{row.original.name}</button>,
+            },
+          ]}
+        />,
+      )
+      fireEvent.keyDown(document.body, { key: 'Tab', shiftKey: true })
+
+      // Act
+      focus(screen.getByRole('button', { name: 'insights' }))
+
+      // Assert
+      expect(document.activeElement).toBe(bodyCells('name')[0])
+    })
+
+    it('keeps the Tab stop at the same position when the focused row goes away', () => {
+      // Arrange
+      const { rerender } = renderPlain()
+      focus(bodyCells('name')[2])
+
+      // Act — e.g. a cancelled draft or a deleted row
+      rerender(
+        <WaydGrid<Flag>
+          data={DATA.slice(0, 2)}
+          columns={columns}
+          includeIdColumn={false}
+        />,
+      )
+
+      // Assert — the neighbouring row, not a jump back to the top
+      expect(tabStops()).toEqual([bodyCells('name')[1]])
+    })
+
+    it('keeps Space from scrolling the grid', () => {
+      // Arrange
+      renderPlain()
+
+      // Act
+      const notPrevented = fireEvent.keyDown(bodyCells('name')[0], {
+        key: ' ',
+      })
+
+      // Assert
+      expect(notPrevented).toBe(false)
+    })
+
+    it('suppresses the browser menu that follows the Menu key, but not a right-click', () => {
+      // Arrange
+      render(
+        <WaydGrid<Flag>
+          data={DATA}
+          includeIdColumn={false}
+          columns={[
+            { id: 'name', accessorKey: 'name', header: 'Name' },
+            createActionsColumn<Flag>({
+              getItems: () => [{ key: 'edit', label: 'Edit' }],
+            }),
+          ]}
+        />,
+      )
+      const cell = bodyCells('name')[0]
+
+      // Act
+      fireEvent.keyDown(cell, { key: 'ContextMenu' })
+      const menuKeyMenuShown = fireEvent.contextMenu(cell)
+      const rightClickMenuShown = fireEvent.contextMenu(cell)
+
+      // Assert
+      expect(menuKeyMenuShown).toBe(false)
+      expect(rightClickMenuShown).toBe(true)
+    })
+
+    it('moves Enter to a cell link first, and never to an expand toggle', () => {
+      // Arrange — the link comes after two buttons in the Name cell; the
+      // Type cell has no link, only a toggle and a button
+      render(
+        <WaydGrid<Flag>
+          data={DATA}
+          includeIdColumn={false}
+          columns={[
+            {
+              id: 'name',
+              accessorKey: 'name',
+              header: 'Name',
+              cell: ({ row }) => (
+                <>
+                  <button tabIndex={-1} aria-expanded="false">
+                    toggle
+                  </button>
+                  <button tabIndex={-1}>copy</button>
+                  <a href={`/flags/${row.original.id}`}>{row.original.name}</a>
+                </>
+              ),
+            },
+            {
+              id: 'type',
+              accessorKey: 'type',
+              header: 'Type',
+              cell: ({ row }) => (
+                <>
+                  <button tabIndex={-1} aria-expanded="false">
+                    toggle
+                  </button>
+                  <button tabIndex={-1}>{row.original.type}</button>
+                </>
+              ),
+            },
+          ]}
+        />,
+      )
+      const nameCell = bodyCells('name')[0]
+      const typeCell = bodyCells('type')[0]
+
+      // Act / Assert
+      focus(nameCell)
+      fireEvent.keyDown(nameCell, { key: 'Enter' })
+      expect(document.activeElement).toBe(
+        within(nameCell).getByRole('link', { name: 'planning-poker' }),
+      )
+
+      focus(typeCell)
+      fireEvent.keyDown(typeCell, { key: 'Enter' })
+      expect(document.activeElement).toBe(
+        within(typeCell).getByRole('button', { name: 'System' }),
+      )
+    })
+
+    it('leaves the grid on Tab and Shift+Tab instead of stepping through cells', () => {
+      // Arrange
+      renderPlain()
+      const cell = bodyCells('type')[1]
+      focus(cell)
+
+      // Act / Assert — focus lands on the sentinel past the body, where the
+      // browser's own Tab step continues to the next control on the page
+      fireEvent.keyDown(cell, { key: 'Tab' })
+      expect(document.activeElement?.previousElementSibling?.tagName).toBe(
+        'TABLE',
+      )
+
+      focus(cell)
+      fireEvent.keyDown(cell, { key: 'Tab', shiftKey: true })
+      expect(document.activeElement?.nextElementSibling?.tagName).toBe('TABLE')
+    })
+
+    describe('with more rows than the viewport', () => {
+      const BIG_DATA: Flag[] = Array.from({ length: 200 }, (_, i) => ({
+        id: i + 1,
+        name: `flag-${String(i + 1).padStart(3, '0')}`,
+        isEnabled: true,
+        type: 'User',
+      }))
+
+      const scrollBodyTo = (rowIndex: number) => {
+        const viewport = document.querySelector(
+          '[data-grid-body-viewport]',
+        ) as HTMLElement
+        viewport.scrollTop = rowIndex * 28
+        fireEvent.scroll(viewport)
+      }
+
+      const nameCell = (name: string) =>
+        bodyCells('name').find((c) => c.textContent === name)
+
+      it('moves a viewport of rows with PageDown and PageUp', () => {
+        // Arrange — the 600px test viewport holds 21 rows; a page keeps one
+        // row of context
+        renderPlain({ data: BIG_DATA })
+        focus(bodyCells('name')[0])
+
+        // Act / Assert
+        fireEvent.keyDown(document.activeElement!, { key: 'PageDown' })
+        expect(document.activeElement).toBe(nameCell('flag-021'))
+
+        fireEvent.keyDown(document.activeElement!, { key: 'PageUp' })
+        expect(document.activeElement).toBe(nameCell('flag-001'))
+      })
+
+      it('keeps the focused row rendered and focused when it scrolls out of view', () => {
+        // Arrange
+        renderPlain({ data: BIG_DATA })
+        focus(bodyCells('name')[0])
+
+        // Act
+        act(() => scrollBodyTo(100))
+
+        // Assert — the window moved, the focused row stayed
+        expect(nameCell('flag-101')).toBeInTheDocument()
+        expect(document.activeElement).toBe(nameCell('flag-001'))
+      })
+
+      it('keeps each row the same DOM node as the window shifts', () => {
+        // Arrange — a remounted row would drop focus and redo its work on
+        // every scroll
+        renderPlain({ data: BIG_DATA })
+        const before = nameCell('flag-025')
+
+        // Act — the window now starts ten rows further down
+        act(() => scrollBodyTo(20))
+
+        // Assert
+        expect(nameCell('flag-001')).toBeUndefined()
+        expect(nameCell('flag-025')).toBe(before)
+      })
+
+      it('focuses a row outside the window when the keys move to it', () => {
+        // Arrange
+        renderPlain({ data: BIG_DATA })
+        focus(bodyCells('name')[0])
+
+        // Act
+        fireEvent.keyDown(document.activeElement!, {
+          key: 'End',
+          ctrlKey: true,
+        })
+
+        // Assert
+        expect(document.activeElement).toBe(
+          bodyCells('isEnabled').find((c) =>
+            c.closest('tr')?.textContent?.startsWith('flag-200'),
+          ),
+        )
+      })
+
+      it('hands the Tab stop to a rendered row once the active row scrolls away unfocused', () => {
+        // Arrange
+        renderPlain({ data: BIG_DATA })
+
+        // Act
+        act(() => scrollBodyTo(100))
+
+        // Assert — Tab into the grid must land on a body cell in view, not
+        // one in the overscan above it
+        expect(nameCell('flag-001')).toBeUndefined()
+        expect(tabStops()).toHaveLength(1)
+        expect(tabStops()[0].closest('tr')).toHaveTextContent('flag-101')
+      })
+    })
+
+    describe('tree rows', () => {
+      interface Node {
+        id: string
+        name: string
+        children: Node[]
+      }
+
+      const TREE: Node[] = [
+        {
+          id: '1',
+          name: 'Plan',
+          children: [{ id: '1.1', name: 'Kickoff', children: [] }],
+        },
+        { id: '2', name: 'Execute', children: [] },
+      ]
+
+      const renderTree = () =>
+        render(
+          <WaydGrid<Node>
+            data={TREE}
+            includeIdColumn={false}
+            columns={[
+              { id: 'name', accessorKey: 'name', header: 'Name' },
+              { id: 'id', accessorKey: 'id', header: 'Ref' },
+            ]}
+            getSubRows={(row) => row.children}
+          />,
+        )
+
+      const cellFor = (name: string) =>
+        bodyCells('name').find((c) => c.textContent === name)
+
+      it('collapses with Left and expands with Right in the first column', () => {
+        // Arrange
+        renderTree()
+        focus(cellFor('Plan')!)
+
+        // Act / Assert
+        fireEvent.keyDown(cellFor('Plan')!, { key: 'ArrowLeft' })
+        expect(cellFor('Kickoff')).toBeUndefined()
+
+        fireEvent.keyDown(cellFor('Plan')!, { key: 'ArrowRight' })
+        expect(cellFor('Kickoff')).toBeInTheDocument()
+        // An expanded row moves on, as any other cell does
+        fireEvent.keyDown(cellFor('Plan')!, { key: 'ArrowRight' })
+        expect(document.activeElement).toBe(bodyCells('id')[0])
+      })
+
+      it('expands and collapses from the column marked treeColumn, wherever it sits', () => {
+        // Arrange — the caret column is second; the first column's arrows
+        // only move
+        render(
+          <WaydGrid<Node>
+            data={TREE}
+            includeIdColumn={false}
+            columns={[
+              { id: 'id', accessorKey: 'id', header: 'Ref' },
+              {
+                id: 'name',
+                accessorKey: 'name',
+                header: 'Name',
+                meta: { treeColumn: true } satisfies WaydGridColumnMeta,
+              },
+            ]}
+            getSubRows={(row) => row.children}
+          />,
+        )
+        const planRef = bodyCells('id')[0]
+        focus(planRef)
+
+        // Act / Assert
+        fireEvent.keyDown(planRef, { key: 'ArrowLeft' })
+        expect(cellFor('Kickoff')).toBeInTheDocument()
+
+        fireEvent.keyDown(cellFor('Plan')!, { key: 'ArrowLeft' })
+        expect(cellFor('Kickoff')).toBeUndefined()
+      })
+
+      it('moves Left from a child to its parent', () => {
+        // Arrange
+        renderTree()
+        focus(cellFor('Kickoff')!)
+
+        // Act
+        fireEvent.keyDown(cellFor('Kickoff')!, { key: 'ArrowLeft' })
+
+        // Assert
+        expect(document.activeElement).toBe(cellFor('Plan'))
+      })
+
+      describe('with inline editing', () => {
+        const EditableTree = () => {
+          const [form] = Form.useForm()
+          return (
+            <Form form={form}>
+              <WaydGrid<Node>
+                data={TREE}
+                includeIdColumn={false}
+                getSubRows={(row) => row.children}
+                columns={(ctx) => [
+                  {
+                    id: 'name',
+                    accessorKey: 'name',
+                    header: 'Name',
+                    cell: ({ row }) =>
+                      ctx.selectedRowId === row.original.id ? (
+                        <input
+                          aria-label="Name editor"
+                          onKeyDown={(e) =>
+                            ctx.handleKeyDown(e, row.original.id, 'name')
+                          }
+                        />
+                      ) : (
+                        row.original.name
+                      ),
+                  },
+                  { id: 'id', accessorKey: 'id', header: 'Ref' },
+                ]}
+                editingConfig={{
+                  canEdit: true,
+                  form,
+                  editableColumnIds: ['name'],
+                  onSave: async () => true,
+                  getFormValues: () => ({}),
+                  computeChanges: () => null,
+                  cellIdColumnMatchOrder: ['name'],
+                }}
+              />
+            </Form>
+          )
+        }
+
+        it('starts editing the row when Enter is pressed on an editable cell', async () => {
+          // Arrange
+          render(<EditableTree />)
+          focus(cellFor('Kickoff')!)
+
+          // Act
+          fireEvent.keyDown(cellFor('Kickoff')!, { key: 'Enter' })
+
+          // Assert — the editor opens in the row the cursor was on
+          const editor = await screen.findByRole('textbox', {
+            name: 'Name editor',
+          })
+          expect(editor.closest('tr')).toHaveTextContent('1.1')
+        })
+
+        it('returns focus to the cell when Escape ends editing', async () => {
+          // Arrange
+          render(<EditableTree />)
+          focus(cellFor('Kickoff')!)
+          fireEvent.keyDown(cellFor('Kickoff')!, { key: 'Enter' })
+          const editor = await screen.findByRole('textbox', {
+            name: 'Name editor',
+          })
+          focus(editor)
+
+          // Act
+          fireEvent.keyDown(editor, { key: 'Escape' })
+
+          // Assert — not dropped to <body>, where the keyboard user is lost
+          expect(
+            screen.queryByRole('textbox', { name: 'Name editor' }),
+          ).not.toBeInTheDocument()
+          expect(document.activeElement).toBe(cellFor('Kickoff'))
+        })
+      })
+
+      it('announces the tree structure on each row', () => {
+        // Arrange / Act
+        renderTree()
+
+        // Assert
+        expect(screen.getByRole('treegrid')).toBeInTheDocument()
+        const plan = cellFor('Plan')!.closest('tr')!
+        const kickoff = cellFor('Kickoff')!.closest('tr')!
+        expect(plan).toHaveAttribute('aria-level', '1')
+        expect(plan).toHaveAttribute('aria-expanded', 'true')
+        expect(kickoff).toHaveAttribute('aria-level', '2')
+        expect(kickoff).not.toHaveAttribute('aria-expanded')
+      })
+    })
+
+    it('toggles a group heading with Enter and the arrow keys', () => {
+      // Arrange
+      renderPlain({ grouping: ['type'] })
+      const heading = () => screen.getByRole('gridcell', { name: /User/ })
+      focus(heading())
+
+      // Act / Assert — the User group holds two rows
+      fireEvent.keyDown(heading(), { key: 'Enter' })
+      expect(bodyCells('name')).toHaveLength(1)
+
+      fireEvent.keyDown(heading(), { key: 'ArrowRight' })
+      expect(bodyCells('name')).toHaveLength(3)
+
+      fireEvent.keyDown(heading(), { key: 'ArrowLeft' })
+      expect(bodyCells('name')).toHaveLength(1)
+    })
+
+    it('sorts a column from its heading with Enter, announced as a column header', () => {
+      // Arrange
+      renderPlain()
+      const heading = screen.getByRole('columnheader', { name: /Name/ })
+
+      // Act
+      fireEvent.keyDown(heading, { key: 'Enter' })
+
+      // Assert — dnd-kit's "draggable" description is not what is read
+      expect(heading).toHaveAttribute('aria-sort', 'ascending')
+      expect(heading).not.toHaveAttribute('aria-roledescription')
+      expect(heading).toHaveAttribute('tabindex', '0')
+    })
+
+    it('places each header band at the first column it covers', () => {
+      // Arrange / Act
+      renderPlain({
+        columns: [
+          {
+            id: 'details',
+            header: 'Details',
+            columns: [
+              { id: 'name', accessorKey: 'name', header: 'Name' },
+              { id: 'type', accessorKey: 'type', header: 'Type' },
+            ],
+          },
+          {
+            id: 'state',
+            header: 'State',
+            columns: [
+              { id: 'isEnabled', accessorKey: 'isEnabled', header: 'Enabled' },
+            ],
+          },
+        ],
+      })
+
+      // Assert — the second band starts at column 3, not 2
+      expect(
+        screen.getByRole('columnheader', { name: 'State' }),
+      ).toHaveAttribute('aria-colindex', '3')
+    })
+
+    it('renders the empty message as a row of the grid', () => {
+      // Arrange / Act
+      renderPlain({ data: [], emptyMessage: 'Nothing here' })
+
+      // Assert — a grid may own only rows
+      const grid = screen.getByRole('grid')
+      expect(
+        within(grid).getByText('Nothing here').closest('[role="gridcell"]')
+          ?.parentElement,
+      ).toHaveAttribute('role', 'row')
+    })
+
+    it('exposes the grid, its headers and each row position to assistive tech', () => {
+      // Arrange / Act — the advanced variant shows a floating filter row, so
+      // two header rows sit above the body
+      renderPlain({
+        'aria-label': 'Feature flags',
+        initialSorting: [{ id: 'name', desc: false }],
+      })
+
+      // Assert
+      const grid = screen.getByRole('grid', { name: 'Feature flags' })
+      expect(grid).toHaveAttribute('aria-rowcount', String(2 + DATA.length))
+      expect(grid).toHaveAttribute('aria-colcount', '3')
+      expect(
+        screen.getByRole('columnheader', { name: /Name/ }),
+      ).toHaveAttribute('aria-sort', 'ascending')
+      const firstRow = bodyCells('name')[0].closest('tr')
+      expect(firstRow).toHaveAttribute('aria-rowindex', '3')
+      expect(bodyCells('type')[0]).toHaveAttribute('aria-colindex', '2')
     })
   })
 })

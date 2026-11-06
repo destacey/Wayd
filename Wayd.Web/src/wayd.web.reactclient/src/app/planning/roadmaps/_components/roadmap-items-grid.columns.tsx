@@ -289,6 +289,8 @@ export const getRoadmapItemsGridColumns = ({
                         size="small"
                         icon={<MoreOutlined />}
                         tabIndex={-1}
+                        aria-label="Row actions"
+                        data-row-actions=""
                       />
                     </Dropdown>
                   )}
@@ -304,6 +306,7 @@ export const getRoadmapItemsGridColumns = ({
       size: 300,
       enableColumnFilter: true,
       sortFn: 'alphanumeric',
+      meta: { treeColumn: true } satisfies WaydGridColumnMeta,
       cell: ({ row }: { row: any }) => {
         const item = row.original as RoadmapItemTreeNode
         const depth = row.depth
@@ -338,6 +341,9 @@ export const getRoadmapItemsGridColumns = ({
                     e.stopPropagation()
                     row.getToggleExpandedHandler()()
                   }}
+                  tabIndex={-1}
+                  aria-expanded={row.getIsExpanded()}
+                  aria-label="Show children"
                   className={styles.expanderBtn}
                 />
               ) : (
@@ -370,8 +376,15 @@ export const getRoadmapItemsGridColumns = ({
               ) : (
                 <span style={NAME_LINK_CONTAINER_STYLE}>
                   <a
+                    role="button"
+                    tabIndex={-1}
                     onClick={(e) => {
                       e.stopPropagation()
+                      openRoadmapItemDrawer(item.id)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter' && e.key !== ' ') return
+                      e.preventDefault()
                       openRoadmapItemDrawer(item.id)
                     }}
                     style={NAME_LINK_STYLE}
@@ -390,6 +403,7 @@ export const getRoadmapItemsGridColumns = ({
                   type="text"
                   size="small"
                   icon={<PlusOutlined />}
+                  tabIndex={-1}
                   className={`${styles.rowActionBtn} ${styles.inlineRowAction}`}
                   onClick={(e) => {
                     e.stopPropagation()

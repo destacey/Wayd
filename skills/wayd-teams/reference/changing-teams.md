@@ -99,7 +99,7 @@ Models run back to back; exactly one is current. A team of teams' model holds on
   use it to fix a value that was wrong all along. Correcting a past model changes what reports read for that
   period.
 - **Start from the defaults.** `Teams_GetOperatingModelDefaults` gives the time zone (the parent team of teams'
-  on that date, else the system default), the commitment grace period and the working week to propose when the
+  on that date, else the system time zone), the commitment grace period and the working week to propose when the
   user has not said.
 - **Correcting is a whole-record overwrite.** An omitted `holidayCalendarId` reverts to the system default and an
   omitted cadence is removed; only an omitted `workingDays` keeps the model's own. Read the model first and pass

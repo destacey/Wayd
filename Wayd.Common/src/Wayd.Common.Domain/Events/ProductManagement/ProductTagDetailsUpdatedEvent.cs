@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A tag on a product tag axis was renamed or its description changed. Every product carrying it reads
+/// A tag in a product tag category was renamed or its description changed. Every product carrying it reads
 /// the new name.
 /// </summary>
 public sealed record ProductTagDetailsUpdatedEvent : DomainEvent<ProductTagDetailsUpdatedEvent>, IDomainEventDescriptor, IProductManagementEvent
@@ -24,7 +24,7 @@ public sealed record ProductTagDetailsUpdatedEvent : DomainEvent<ProductTagDetai
         Timestamp = timestamp;
     }
 
-    /// <summary>The tag's axis.</summary>
+    /// <summary>The tag's category.</summary>
     public Guid Id { get; }
     public Guid TagId { get; }
     public string Name { get; }

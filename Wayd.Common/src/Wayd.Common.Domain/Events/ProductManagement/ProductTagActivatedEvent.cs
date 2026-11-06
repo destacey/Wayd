@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A deactivated tag on a product tag axis was put back into use.
+/// A deactivated tag in a product tag category was put back into use.
 /// </summary>
 public sealed record ProductTagActivatedEvent : DomainEvent<ProductTagActivatedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
@@ -19,7 +19,7 @@ public sealed record ProductTagActivatedEvent : DomainEvent<ProductTagActivatedE
         Timestamp = timestamp;
     }
 
-    /// <summary>The tag's axis.</summary>
+    /// <summary>The tag's category.</summary>
     public Guid Id { get; }
     public Guid TagId { get; }
 

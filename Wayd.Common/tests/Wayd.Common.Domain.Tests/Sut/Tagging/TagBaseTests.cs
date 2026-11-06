@@ -52,7 +52,7 @@ public sealed class TagBaseTests
     #region Free tags
 
     [Fact]
-    public void CreateFree_IsAnActiveTagOnNoAxis()
+    public void CreateFree_IsAnActiveTagInNoCategory()
     {
         // Act
         var sut = TestTag.CreateFree(" migration  wave ").Value;
@@ -98,19 +98,19 @@ public sealed class TagBaseTests
     }
 
     [Fact]
-    public void UpdateFreeTagDetails_OnATagOnAnAxis_Fails()
+    public void UpdateFreeTagDetails_OnATagInACategory_Fails()
     {
         // Arrange
-        var axis = TestTagCategory.Create(allowsMany: true, "ios");
+        var category = TestTagCategory.Create(allowsMany: true, "ios");
 
         // Act
-        var result = axis["ios"].UpdateFreeTagDetails("iOS", null, EventActor.System, Now);
+        var result = category["ios"].UpdateFreeTagDetails("iOS", null, EventActor.System, Now);
 
         // Assert
-        // A tag on an axis is renamed through the axis, which keeps names unique on it.
+        // A tag in a category is renamed through the category, which keeps names unique in it.
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(TagErrors.NotAFreeTag);
-        axis["ios"].Name.Should().Be("ios");
+        category["ios"].Name.Should().Be("ios");
     }
 
     [Fact]
@@ -148,13 +148,13 @@ public sealed class TagBaseTests
     }
 
     [Fact]
-    public void DeleteFreeTag_OnATagOnAnAxis_Fails()
+    public void DeleteFreeTag_OnATagInACategory_Fails()
     {
         // Arrange
-        var axis = TestTagCategory.Create(allowsMany: true, "ios");
+        var category = TestTagCategory.Create(allowsMany: true, "ios");
 
         // Act
-        var result = axis["ios"].DeleteFreeTag(null, EventActor.System, Now);
+        var result = category["ios"].DeleteFreeTag(null, EventActor.System, Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();

@@ -13,7 +13,7 @@ const tag = (id: string, name: string) => ({
   requestCount: 0,
 })
 
-const axis = (
+const tagCategory = (
   id: string,
   name: string,
   allowsMany: boolean,
@@ -28,21 +28,21 @@ const axis = (
   tags,
 })
 
-const AREA = axis('a-area', 'Area', true, [
+const AREA = tagCategory('a-area', 'Area', true, [
   tag('t-payments', 'Payments'),
   tag('t-onboarding', 'Onboarding'),
 ])
-const SEGMENT = axis('a-segment', 'Segment', false, [
+const SEGMENT = tagCategory('a-segment', 'Segment', false, [
   tag('t-enterprise', 'Enterprise'),
   tag('t-smb', 'SMB'),
 ])
 // Not offered by the request's desk; the request brought Legacy with it from another desk.
-const OLD_AREA = axis('a-old', 'Old Area', true, [
+const OLD_AREA = tagCategory('a-old', 'Old Area', true, [
   tag('t-legacy', 'Legacy'),
   tag('t-other', 'Other'),
 ])
 // Not offered, and carried by nothing.
-const UNRELATED = axis('a-unrelated', 'Unrelated', true, [
+const UNRELATED = tagCategory('a-unrelated', 'Unrelated', true, [
   tag('t-unrelated', 'Whatever'),
 ])
 
@@ -111,7 +111,7 @@ jest.mock(
   '@/src/store/features/demand-management/demand-management-api',
   () => ({
     useGetIntakeRequestTagCategoriesQuery: (args?: { deskId?: string }) => ({
-      // With the desk, what it offers; without, every axis.
+      // With the desk, what it offers; without, every category.
       data: args?.deskId
         ? [AREA, SEGMENT]
         : [AREA, SEGMENT, OLD_AREA, UNRELATED],
@@ -153,7 +153,7 @@ const renderForm = async () =>
 const fieldFor = (label: string) =>
   screen.getByText(label).closest('.ant-form-item') as HTMLElement
 
-/** Opens an axis's dropdown, returning it. antd portals each one out of the form. */
+/** Opens a category's dropdown, returning it. antd portals each one out of the form. */
 const openDropdown = async (label: string) => {
   const user = userEvent.setup()
   const input = fieldFor(label).querySelector(
@@ -195,7 +195,7 @@ describe('ManageIntakeRequestTagsForm', () => {
     mockComplete.mockReset()
   })
 
-  it('offers the desk’s axes and, for an axis it does not use, only the tag the request carries', async () => {
+  it('offers the desk’s categories and, for a category it does not use, only the tag the request carries', async () => {
     // Arrange / Act
     await renderForm()
 
@@ -208,7 +208,7 @@ describe('ManageIntakeRequestTagsForm', () => {
     expect(within(oldArea).queryByTitle('Other')).not.toBeInTheDocument()
   })
 
-  it('removes the tag a single-value axis held before applying its replacement', async () => {
+  it('removes the tag a single-value category held before applying its replacement', async () => {
     // Arrange — tagging first would have the server replace Enterprise, and the untag would then strip SMB
     await renderForm()
 
@@ -264,7 +264,7 @@ describe('ManageIntakeRequestTagsForm', () => {
   it('says how many changes were saved and closes when one fails part-way', async () => {
     // Arrange
     mockTag.mockResolvedValue({
-      error: { detail: 'This desk does not use that tag axis.' },
+      error: { detail: 'This desk does not use that tag category.' },
     })
     await renderForm()
 

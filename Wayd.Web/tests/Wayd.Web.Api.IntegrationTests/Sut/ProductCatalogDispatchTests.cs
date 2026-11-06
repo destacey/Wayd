@@ -171,7 +171,7 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
-        var categoryName = Unique("Axis");
+        var categoryName = Unique("Category");
 
         var category = await dispatcher.Send(
             new CreateProductTagCategoryCommand(categoryName, "Dispatch test.", true),
@@ -203,9 +203,9 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
-    public async Task Dispatch_GetProductTagCategoriesQuery_ProjectsEveryTagOnTheAxis()
+    public async Task Dispatch_GetProductTagCategoriesQuery_ProjectsEveryTagInTheCategory()
     {
-        // Arrange — two tags, asserted as a set. The query promises which tags are on an axis, not
+        // Arrange — two tags, asserted as a set. The query promises which tags are in a category, not
         // what sequence they arrive in: a tag holds no position, so the caller sorts (the UI does,
         // alphabetically). What is still worth pinning is that the projection returns all of them —
         // a join that dropped or duplicated one would read as a tag silently missing from a picker.
@@ -213,7 +213,7 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
         var category = await dispatcher.Send(
-            new CreateProductTagCategoryCommand(Unique("Axis"), null, true),
+            new CreateProductTagCategoryCommand(Unique("Category"), null, true),
             TestContext.Current.CancellationToken);
         Assert.True(category.IsSuccess, category.IsFailure ? category.Error : null);
 
@@ -239,14 +239,14 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
     }
 
     [Fact]
-    public async Task Dispatch_AddProductTagCommand_RefusesADuplicateOnTheSameAxis()
+    public async Task Dispatch_AddProductTagCommand_RefusesADuplicateInTheSameCategory()
     {
         // Arrange
         using var scope = _factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
         var category = await dispatcher.Send(
-            new CreateProductTagCategoryCommand(Unique("Axis"), null, true),
+            new CreateProductTagCategoryCommand(Unique("Category"), null, true),
             TestContext.Current.CancellationToken);
         Assert.True(category.IsSuccess, category.IsFailure ? category.Error : null);
 
@@ -277,7 +277,7 @@ public sealed class ProductCatalogDispatchTests(WaydSqlServerApiFactory factory)
         var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
 
         var category = await dispatcher.Send(
-            new CreateProductTagCategoryCommand(Unique("Axis"), null, true),
+            new CreateProductTagCategoryCommand(Unique("Category"), null, true),
             TestContext.Current.CancellationToken);
         Assert.True(category.IsSuccess, category.IsFailure ? category.Error : null);
 

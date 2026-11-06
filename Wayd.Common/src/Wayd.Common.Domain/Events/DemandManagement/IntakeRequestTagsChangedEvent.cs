@@ -8,8 +8,8 @@ namespace Wayd.Common.Domain.Events.DemandManagement;
 /// The tags an intake request is filed under changed.
 /// </summary>
 /// <remarks>
-/// Carries the change and its result. <see cref="Added"/> and <see cref="Removed"/> are the fact: tagging along
-/// an axis that takes one tag replaces the one it held, so one change can both add and remove.
+/// Carries the change and its result. <see cref="Added"/> and <see cref="Removed"/> are the fact: tagging in
+/// a category that takes one tag replaces the one it held, so one change can both add and remove.
 /// <see cref="TagIds"/> is the full set afterwards, which a consumer keeping a copy applies whatever order the
 /// deliveries arrive in. Summary tier, like the tags themselves.
 /// </remarks>
@@ -38,7 +38,7 @@ public sealed record IntakeRequestTagsChangedEvent : DomainEvent<IntakeRequestTa
     /// <summary>The tags this change applied.</summary>
     public Guid[] Added { get; }
 
-    /// <summary>The tags this change took off, including any a single-value axis replaced.</summary>
+    /// <summary>The tags this change took off, including any a single-value category replaced.</summary>
     public Guid[] Removed { get; }
 
     /// <summary>Every tag the request carries after the change.</summary>

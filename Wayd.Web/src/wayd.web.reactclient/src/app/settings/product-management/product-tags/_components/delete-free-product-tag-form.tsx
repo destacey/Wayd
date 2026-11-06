@@ -15,7 +15,7 @@ export interface DeleteFreeProductTagFormProps {
 
 /**
  * Deletes a free tag, taking it off every product that carries it. Unlike a tag
- * on a category, a free tag in use is not refused: free tags have no inactive
+ * in a category, a free tag in use is not refused: free tags have no inactive
  * state to retire one to.
  */
 const DeleteFreeProductTagForm = ({

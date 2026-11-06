@@ -7,16 +7,16 @@ using Wayd.Common.Domain.Data;
 namespace Wayd.Common.Domain.Tagging;
 
 /// <summary>
-/// One label a module's records can carry — <c>ios</c> on a product's Platform axis, "Payments" on an intake
-/// request's Area axis, or a free tag such as "migration wave 2" on no axis at all.
+/// One label a module's records can carry — <c>ios</c> in a product's Platform category, "Payments" in an intake
+/// request's Area category, or a free tag such as "migration wave 2" in no category at all.
 /// </summary>
 /// <remarks>
 /// A row rather than text on the record, so a rename happens once, a picker lists the choices, and "everything
 /// tagged ios" is a join. Descriptive only: nothing in the domain branches on a tag. Each module derives its own
 /// tag, with its own table; modules never share tags.
 /// <para>
-/// A tag on an axis is part of that axis and changes only through its <see cref="TagCategoryBase{TTag}"/>. A free
-/// tag has no axis, so it is its own aggregate: anyone who can tag a record can create one by typing its name, and
+/// A tag in a category is part of that category and changes only through its <see cref="TagCategoryBase{TTag}"/>. A free
+/// tag has no category, so it is its own aggregate: anyone who can tag a record can create one by typing its name, and
 /// an admin renames, merges or deletes it. Free tags are never deactivated — one nothing carries is deleted.
 /// </para>
 /// </remarks>
@@ -27,7 +27,7 @@ public abstract partial class TagBase : BaseAuditableEntity
 
     protected TagBase() { }
 
-    /// <summary>A tag on an axis.</summary>
+    /// <summary>A tag in a category.</summary>
     protected TagBase(Guid categoryId, string name, string? description)
     {
         CategoryId = Guard.Against.Default(categoryId, nameof(categoryId));
@@ -41,14 +41,14 @@ public abstract partial class TagBase : BaseAuditableEntity
         Name = normalizedName;
     }
 
-    /// <summary>The axis this tag belongs to, or null for a free tag.</summary>
+    /// <summary>The category this tag belongs to, or null for a free tag.</summary>
     public Guid? CategoryId { get; private init; }
 
-    /// <summary>Whether this is a free tag: one on no axis, created by typing its name while tagging.</summary>
+    /// <summary>Whether this is a free tag: one in no category, created by typing its name while tagging.</summary>
     public bool IsFree => CategoryId is null;
 
     /// <summary>
-    /// The label. Unique within its axis, or among the module's free tags, ignoring case.
+    /// The label. Unique within its category, or among the module's free tags, ignoring case.
     /// </summary>
     public string Name
     {
@@ -119,7 +119,7 @@ public abstract partial class TagBase : BaseAuditableEntity
     /// <summary>
     /// The form every tag name is stored and compared in: trimmed, with each run of whitespace inside it collapsed
     /// to one space, so "migration  wave" and "migration wave" are one tag — and a name typed while tagging matches
-    /// a tag on an axis however its spaces were typed.
+    /// a tag in a category however its spaces were typed.
     /// </summary>
     public static string NormalizeName(string name) => Whitespace().Replace(name.Trim(), " ");
 

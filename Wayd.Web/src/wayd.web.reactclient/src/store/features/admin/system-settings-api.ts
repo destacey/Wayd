@@ -2,7 +2,6 @@ import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
   PagedResponseOfActivityLogDto,
-  ProductTagSettingsDto,
   SchedulingSettingsDto,
   SprintMetricsSettingsDto,
   UpdateProductTagSettingsRequest,
@@ -151,21 +150,6 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
         },
       ],
     }),
-    getProductTagSettings: builder.query<ProductTagSettingsDto, void>({
-      queryFn: async () => {
-        try {
-          const data = await getSystemSettingsClient().getProductTagSettings()
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return {
-            error:
-              error ?? new Error('Unknown error loading product tag settings'),
-          }
-        }
-      },
-      providesTags: [{ type: QueryTags.SystemSettings, id: 'product-tags' }],
-    }),
     updateProductTagSettings: builder.mutation<
       void,
       UpdateProductTagSettingsRequest
@@ -221,7 +205,6 @@ export const {
   useUpdateSchedulingSettingsMutation,
   useGetSchedulingSettingsActivitiesQuery,
   useLazyGetSchedulingSettingsActivitiesQuery,
-  useGetProductTagSettingsQuery,
   useUpdateProductTagSettingsMutation,
   useGetProductTagSettingsActivitiesQuery,
   useLazyGetProductTagSettingsActivitiesQuery,

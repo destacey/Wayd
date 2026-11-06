@@ -49,7 +49,7 @@ public sealed class UpdateFreeProductTagCommandHandlerTests : ProductCommandTest
     }
 
     [Fact]
-    public async Task Handle_ShouldRefuseATagOnAnAxis()
+    public async Task Handle_ShouldRefuseATagInACategory()
     {
         // Arrange
         var (_, ios) = SeedTag();

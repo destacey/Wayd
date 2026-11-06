@@ -3,14 +3,14 @@ using Wayd.Common.Domain.Events;
 namespace Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 
 /// <summary>
-/// Deletes a tag axis no request is tagged along, with its tags. An axis in use is deactivated instead. The
-/// Administer permission is checked by the endpoint.
+/// Deletes a tag category no request is tagged in, with its tags. A category in use is deactivated instead.
+/// The Administer permission is checked by the endpoint.
 /// </summary>
 /// <remarks>
-/// Each desk that chose the axis has it taken off through the desk, so the desk records the change and moves to
-/// a new revision; a desk left with no axis chosen then tags along none.
+/// Each desk that chose the category has it taken off through the desk, so the desk records the change and
+/// moves to a new revision; a desk left with no category chosen then tags in none.
 /// </remarks>
-/// <param name="Id">The axis.</param>
+/// <param name="Id">The category.</param>
 public sealed record DeleteIntakeRequestTagCategoryCommand(Guid Id) : ICommand;
 
 public sealed class DeleteIntakeRequestTagCategoryCommandValidator : CustomValidator<DeleteIntakeRequestTagCategoryCommand>
@@ -41,7 +41,7 @@ public sealed class DeleteIntakeRequestTagCategoryCommandHandler(
         if (category is null)
             return Result.Failure(IntakeRequestTagCategoryErrors.NotFoundError);
 
-        // Every request, visible to the caller or not: an axis is in use whoever can see the requests filed on it.
+        // Every request, visible to the caller or not: a category is in use whoever can see the requests filed in it.
         var isInUse = await _dbContext.IntakeRequests
             .AnyAsync(r => r.Tags.Any(a => a.CategoryId == category.Id), cancellationToken);
 

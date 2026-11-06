@@ -8,8 +8,8 @@ namespace Wayd.ProductManagement.Application.ProductTags.Commands;
 /// the free tag is deleted.
 /// </summary>
 /// <remarks>
-/// The target may be another free tag, to fold together near-duplicates, or a tag on an axis, which is how a free
-/// tag that caught on is promoted: create the curated tag, then merge into it. On an axis that takes one tag, a
+/// The target may be another free tag, to fold together near-duplicates, or a tag in a category, which is how a free
+/// tag that caught on is promoted: create the curated tag, then merge into it. In a category that takes one tag, a
 /// product's existing tag there is replaced, as tagging always does.
 /// </remarks>
 /// <param name="Id">The free tag to merge away.</param>

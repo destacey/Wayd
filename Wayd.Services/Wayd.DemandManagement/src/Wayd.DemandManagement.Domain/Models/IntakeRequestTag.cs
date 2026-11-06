@@ -7,11 +7,11 @@ using Wayd.Common.Domain.Tagging;
 namespace Wayd.DemandManagement.Domain.Models;
 
 /// <summary>
-/// One label on one intake request tag axis — "Payments" on Area, "Enterprise" on Customer segment — or a free
-/// tag on no axis, such as "follow up in Q3".
+/// One label in one intake request tag category — "Payments" in Area, "Enterprise" in Customer segment — or a
+/// free tag in no category, such as "follow up in Q3".
 /// </summary>
 /// <remarks>
-/// A tag on an axis changes only through <see cref="IntakeRequestTagCategory"/>.
+/// A tag in a category changes only through <see cref="IntakeRequestTagCategory"/>.
 /// </remarks>
 public sealed class IntakeRequestTag : TagBase
 {

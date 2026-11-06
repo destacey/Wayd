@@ -7,11 +7,11 @@ using Wayd.ProductManagement.Domain.Models;
 namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Commands;
 
 /// <summary>
-/// Putting the tag axes in a given order.
+/// Putting the tag categories in a given order.
 /// </summary>
 /// <remarks>
-/// The command takes the whole set rather than one axis and a position, because ordering is relative:
-/// moving one axis moves the others past it, and a caller that named only the moved one would leave
+/// The command takes the whole set rather than one category and a position, because ordering is relative:
+/// moving one category moves the others past it, and a caller that named only the moved one would leave
 /// the rest overlapping it.
 /// </remarks>
 public sealed class ReorderProductTagCategoriesCommandHandlerTests : ProductCommandTestBase
@@ -30,7 +30,7 @@ public sealed class ReorderProductTagCategoriesCommandHandlerTests : ProductComm
     }
 
     [Fact]
-    public async Task Reorder_ShouldNumberTheAxesByTheirPositionInTheList()
+    public async Task Reorder_ShouldNumberTheCategoriesByTheirPositionInTheList()
     {
         // Arrange
         var platform = SeedCategory("Platform", 1);
@@ -52,10 +52,10 @@ public sealed class ReorderProductTagCategoriesCommandHandlerTests : ProductComm
     }
 
     [Fact]
-    public async Task Reorder_ShouldMoveASystemAxis()
+    public async Task Reorder_ShouldMoveASystemCategory()
     {
-        // Arrange — a seeded axis is read-only in every other respect, but where it sits among the
-        // others is the organization's call. Refusing this would pin it above their own axes for good.
+        // Arrange — a seeded category is read-only in every other respect, but where it sits among the
+        // others is the organization's call. Refusing this would pin it above their own categories for good.
         var seeded = SeedCategory("Platform", 1, isSystem: true);
         var own = SeedCategory("Compliance", 2);
         var sut = ReorderSut();
@@ -92,9 +92,9 @@ public sealed class ReorderProductTagCategoriesCommandHandlerTests : ProductComm
     }
 
     [Fact]
-    public async Task Reorder_ShouldRefuseARepeatedAxis()
+    public async Task Reorder_ShouldRefuseARepeatedCategory()
     {
-        // Arrange — right count, and every id is real, but one axis is named twice and another not at
+        // Arrange — right count, and every id is real, but one category is named twice and another not at
         // all: it would end up never positioned, sharing a place with whatever kept its old order.
         var platform = SeedCategory("Platform", 1);
         SeedCategory("Tech Stack", 2);
@@ -112,7 +112,7 @@ public sealed class ReorderProductTagCategoriesCommandHandlerTests : ProductComm
     }
 
     [Fact]
-    public async Task Reorder_ShouldRefuseAnUnknownAxis()
+    public async Task Reorder_ShouldRefuseAnUnknownCategory()
     {
         // Arrange — right count, wrong membership: the check has to be on the set, not its size
         var platform = SeedCategory("Platform", 1);

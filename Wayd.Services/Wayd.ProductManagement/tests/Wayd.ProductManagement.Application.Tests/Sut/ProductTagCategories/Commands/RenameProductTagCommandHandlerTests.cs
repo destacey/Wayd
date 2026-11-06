@@ -31,7 +31,7 @@ public sealed class RenameProductTagCommandHandlerTests : ProductCommandTestBase
     }
 
     [Fact]
-    public async Task Rename_ShouldFail_ForATagOnAnotherAxis()
+    public async Task Rename_ShouldFail_ForATagInAnotherCategory()
     {
         // Arrange
         var (category, _) = SeedTag(categoryName: "Platform", tagName: "ios");

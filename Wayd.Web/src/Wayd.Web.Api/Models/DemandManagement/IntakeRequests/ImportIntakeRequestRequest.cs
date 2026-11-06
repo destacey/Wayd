@@ -95,7 +95,7 @@ public sealed class ImportIntakeRequestRequest
     /// <summary>The active member of the desk who owns the request, by id.</summary>
     public Guid? AssigneeId { get; set; }
 
-    /// <summary>Semicolon-separated tag ids: tags on axes the desk offers, or free tags where it allows them.</summary>
+    /// <summary>Semicolon-separated tag ids: tags in categories the desk offers, or free tags where it allows them.</summary>
     public string? TagIds { get; set; }
 
     /// <summary>

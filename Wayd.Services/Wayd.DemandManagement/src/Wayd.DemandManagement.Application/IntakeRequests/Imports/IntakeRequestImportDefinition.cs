@@ -287,7 +287,7 @@ public sealed class IntakeRequestImportDefinition(
         EventActor actor,
         Instant timestamp)
     {
-        HashSet<Guid> singleChoiceAxesUsed = [];
+        HashSet<Guid> singleChoiceCategoriesUsed = [];
 
         foreach (var tagId in tagIds.Distinct())
         {
@@ -296,10 +296,10 @@ public sealed class IntakeRequestImportDefinition(
 
             IntakeRequestTagCategory? category = null;
             if (tag.CategoryId is { } categoryId && !references.CategoriesById.TryGetValue(categoryId, out category))
-                return Result.Failure($"No intake request tag axis was found for tag '{tag.Name}'.");
+                return Result.Failure($"No intake request tag category was found for tag '{tag.Name}'.");
 
-            // Tagging replaces the tag already on a single-choice axis, which would keep only the last one.
-            if (category is { AllowsMany: false } && !singleChoiceAxesUsed.Add(category.Id))
+            // Tagging replaces the tag already in a single-choice category, which would keep only the last one.
+            if (category is { AllowsMany: false } && !singleChoiceCategoriesUsed.Add(category.Id))
                 return Result.Failure($"'{category.Name}' takes one tag, and the row names more than one.");
 
             var tagged = request.Tag(tag, category, desk, actor, timestamp);

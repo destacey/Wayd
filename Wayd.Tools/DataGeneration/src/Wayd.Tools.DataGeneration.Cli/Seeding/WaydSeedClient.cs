@@ -267,13 +267,13 @@ public sealed class WaydSeedClient : IDisposable
     }
 
     /// <summary>
-    /// Ensures each tag axis exists with its tags, creating what is missing, and answers with every tag's id
-    /// keyed <c>axis|tag</c>.
+    /// Ensures each tag category exists with its tags, creating what is missing, and answers with every tag's id
+    /// keyed <c>category|tag</c>.
     /// </summary>
     /// <remarks>
-    /// Create-or-get by name, so a re-seed onto an environment that already has the axes reuses them. An axis
+    /// Create-or-get by name, so a re-seed onto an environment that already has the categories reuses them. A category
     /// that exists keeps whether it allows many tags, which cannot change after it is created. One that was
-    /// retired is switched back on, axis and tag alike: the import refuses an inactive tag, so every tagged row
+    /// retired is switched back on, category and tag alike: the import refuses an inactive tag, so every tagged row
     /// would otherwise be rejected.
     /// </remarks>
     public async Task<IReadOnlyDictionary<string, Guid>> EnsureIntakeTagCategories(

@@ -1,10 +1,10 @@
 ﻿namespace Wayd.ProductManagement.Application.ProductTagCategories.Commands;
 
 /// <summary>
-/// Permanently removes a tag axis nothing is tagged along.
+/// Permanently removes a tag category nothing is tagged in.
 /// </summary>
 /// <remarks>
-/// An axis in use is deactivated instead. Deleting one cascades to its tags and would strip the labels
+/// A category in use is deactivated instead. Deleting one cascades to its tags and would strip the labels
 /// from every product carrying them — silent data loss the caller did not ask for.
 /// </remarks>
 public sealed record DeleteProductTagCategoryCommand(Guid Id) : ICommand;

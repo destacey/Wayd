@@ -244,22 +244,22 @@ authoring a file for it.
 
 ### Tags
 
-The `Tags` column holds semicolon-separated pairs, each naming the axis and the tag:
+The `Tags` column holds semicolon-separated pairs, each naming the category and the tag:
 
 ```
 Platform|ios;Platform|android;Compliance|pci-scope
 ```
 
-The axis travels with each tag because a tag name is unique only **within** its axis — two axes can each
+The category travels with each tag because a tag name is unique only **within** its category — two categories can each
 hold a `gold`, so `gold` alone identifies nothing. This is also how tags read in the app, where they
 display as `Category | tag`.
 
-Both halves must exist and be active. An unknown category, an unknown tag on that category, or an inactive
+Both halves must exist and be active. An unknown category, an unknown tag in that category, or an inactive
 one fails the batch.
 
-:::note[An axis that allows one value]
-Where a [category allows only one tag](./products.mdx#tags), a row naming two from that axis keeps the
-**last** one. The domain treats a second tag on a single-value axis as a correction rather than an error —
+:::note[A category that allows one value]
+Where a [category allows only one tag](./products.mdx#tags), a row naming two from that category keeps the
+**last** one. The domain treats a second tag in a single-value category as a correction rather than an error —
 "this is a mobile app, not a web app" — and the import inherits that behaviour rather than refusing.
 :::
 

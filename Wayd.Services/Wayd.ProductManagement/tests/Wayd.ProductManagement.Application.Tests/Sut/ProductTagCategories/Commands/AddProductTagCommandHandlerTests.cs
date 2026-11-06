@@ -7,7 +7,7 @@ using Wayd.ProductManagement.Domain.Models;
 namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTagCategories.Commands;
 
 /// <summary>
-/// Adding a tag to an axis. Routed through the category, which owns uniqueness within the axis.
+/// Adding a tag to a category. Routed through the category, which owns uniqueness within the category.
 /// </summary>
 public sealed class AddProductTagCommandHandlerTests : ProductCommandTestBase
 {
@@ -31,7 +31,7 @@ public sealed class AddProductTagCommandHandlerTests : ProductCommandTestBase
     }
 
     [Fact]
-    public async Task Add_ShouldFail_OnADuplicateNameOnTheSameAxis()
+    public async Task Add_ShouldFail_OnADuplicateNameInTheSameCategory()
     {
         // Arrange
         var (category, _) = SeedTag(tagName: "ios");
@@ -49,7 +49,7 @@ public sealed class AddProductTagCommandHandlerTests : ProductCommandTestBase
     }
 
     [Fact]
-    public async Task Add_ShouldFail_WhenTheAxisDoesNotExist()
+    public async Task Add_ShouldFail_WhenTheCategoryDoesNotExist()
     {
         // Arrange
         var sut = AddSut();

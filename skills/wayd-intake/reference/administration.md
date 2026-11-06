@@ -1,11 +1,11 @@
 # Administering Demand Management
 
-Desks, channels and tag axes are shared by everyone who submits and reviews requests. Confirm every change with the user first, as the main skill says.
+Desks, channels and tag categories are shared by everyone who submits and reviews requests. Confirm every change with the user first, as the main skill says.
 
 Who may do what:
 
-- **Demand Management Admin** (the Administer permission on intake requests) — creates and deletes desks, chooses a desk's visibility and its Desk Admins, and keeps the company's channels and tag axes.
-- **Desk Admin** — changes their own desk's details, settings, agents, channels, tag axes, scoring model, estimation scale and workflow. The Demand Management Admin can do this on every desk too.
+- **Demand Management Admin** (the Administer permission on intake requests) — creates and deletes desks, chooses a desk's visibility and its Desk Admins, and keeps the company's channels and tag categories.
+- **Desk Admin** — changes their own desk's details, settings, agents, channels, tag categories, scoring model, estimation scale and workflow. The Demand Management Admin can do this on every desk too.
 
 ## Desks
 
@@ -33,25 +33,25 @@ The company's one list of where requests come from; each desk offers some or all
 - `IntakeChannels_Archive` / `IntakeChannels_Restore`: channels are never deleted. Requests keep an archived channel.
 - `IntakeChannels_Reorder` takes **every** channel id, archived included, exactly once, in the new order: list them first and send the whole list.
 
-## Tag axes and tags
+## Tag categories and tags
 
-Reviewers file requests under tags, grouped on axes (Area, Segment…). One company set serves every desk.
+Reviewers file requests under tags, grouped in categories (Area, Segment…). One company set serves every desk.
 
-- `IntakeRequestTagCategories_GetList` lists the axes in order with their tags (`includeInactive`; `deskId` for those a desk uses). Each tag's `requestCount` counts only the requests the caller can see.
-- `IntakeRequestTagCategories_Create`: `name`, `description` and `allowsMany`, which **cannot change later** — when false, tagging a request replaces its tag on that axis. Ask the user which they want.
-- `IntakeRequestTagCategories_Update`, `IntakeRequestTagCategories_SetActive`, `IntakeRequestTagCategories_Reorder` (every axis, inactive included, exactly once) and `IntakeRequestTagCategories_Delete` (only while no request is tagged along it; deactivate it otherwise).
-- Tags on an axis: `IntakeRequestTagCategories_AddTag`, `IntakeRequestTagCategories_UpdateTag`, `IntakeRequestTagCategories_SetTagActive` and `IntakeRequestTagCategories_DeleteTag` (only while no request carries it; deactivate it otherwise).
-- A system axis cannot be renamed, deleted or have its tags changed.
+- `IntakeRequestTagCategories_GetList` lists the categories in order with their tags (`includeInactive`; `deskId` for those a desk uses). Each tag's `requestCount` counts only the requests the caller can see.
+- `IntakeRequestTagCategories_Create`: `name`, `description` and `allowsMany`, which **cannot change later** — when false, tagging a request replaces its tag in that category. Ask the user which they want.
+- `IntakeRequestTagCategories_Update`, `IntakeRequestTagCategories_SetActive`, `IntakeRequestTagCategories_Reorder` (every category, inactive included, exactly once) and `IntakeRequestTagCategories_Delete` (only while no request is tagged in it; deactivate it otherwise).
+- Tags in a category: `IntakeRequestTagCategories_AddTag`, `IntakeRequestTagCategories_UpdateTag`, `IntakeRequestTagCategories_SetTagActive` and `IntakeRequestTagCategories_DeleteTag` (only while no request carries it; deactivate it otherwise).
+- A system category cannot be renamed, deleted or have its tags changed.
 
-Deactivating an axis or a tag stops it being applied; requests that carry it keep it.
+Deactivating a category or a tag stops it being applied; requests that carry it keep it.
 
 ### Free tags
 
-Agents add free tags — tags on no axis — by typing a name while tagging, on desks that allow it: `allowsFreeTags` on `IntakeDesks_Update`, off for a new desk. The Demand Management Admin keeps them tidy:
+Agents add free tags — tags in no category — by typing a name while tagging, on desks that allow it: `allowsFreeTags` on `IntakeDesks_Update`, off for a new desk. The Demand Management Admin keeps them tidy:
 
 - `IntakeRequestTags_Search` with `isFree: true` lists them with `requestCount`. A free tag is listed only to someone who can see a request carrying it, or to the Demand Management Admin.
 - `IntakeRequestTags_UpdateFreeTag` renames one; names are unique among free tags, ignoring case.
-- `IntakeRequestTags_Merge` moves every request carrying a free tag, on every desk, to another tag and deletes it — to fold near-duplicates together, or to promote a free tag onto an axis: add the tag with `IntakeRequestTagCategories_AddTag`, then merge into it. On an axis that takes one tag it replaces each request's existing tag there; say so first.
+- `IntakeRequestTags_Merge` moves every request carrying a free tag, on every desk, to another tag and deletes it — to fold near-duplicates together, or to promote a free tag into a category: add the tag with `IntakeRequestTagCategories_AddTag`, then merge into it. In a category that takes one tag it replaces each request's existing tag there; say so first.
 - `IntakeRequestTags_DeleteFreeTag` removes a free tag from every request carrying it, then deletes it — unlike `IntakeRequestTagCategories_DeleteTag`, it does not refuse a tag in use. Say how many requests carry it first.
 
 A free tag nothing carries is deleted on its own, so there is nothing to deactivate.

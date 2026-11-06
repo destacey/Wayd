@@ -48,8 +48,8 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
   const { data: tagCategories } = useGetIntakeRequestTagCategoriesQuery({
     includeInactive: true,
   })
-  // An inactive axis stays chosen but is offered by no desk.
-  const offeredAxes = (tagCategories ?? []).filter(
+  // An inactive category stays chosen but is offered by no desk.
+  const offeredCategories = (tagCategories ?? []).filter(
     (c) => c.isActive && desk.tagCategoryIds.includes(c.id),
   )
 
@@ -149,13 +149,13 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
           </Flex>
         )}
       </LabeledContent>
-      <LabeledContent label="Tag Axes Offered">
+      <LabeledContent label="Tag Categories Offered">
         {desk.offersAllTagCategories ? (
-          'Every tag axis, including ones added later'
+          'Every tag category, including ones added later'
         ) : !tagCategories ? (
           <Skeleton.Input active size="small" />
-        ) : offeredAxes.length > 0 ? (
-          offeredAxes.map((c) => c.name).join(', ')
+        ) : offeredCategories.length > 0 ? (
+          offeredCategories.map((c) => c.name).join(', ')
         ) : (
           <Flex vertical>
             <Text>None</Text>
@@ -166,7 +166,7 @@ const IntakeDeskSettings: FC<IntakeDeskSettingsProps> = ({
       <LabeledContent label="Free Tags">
         {desk.allowsFreeTags
           ? 'Agents may add their own tags'
-          : 'Only tags on the tag axes'}
+          : 'Only tags in the tag categories'}
       </LabeledContent>
       <LabeledContent label="Conversations">
         <DiscussionSettingsPanel

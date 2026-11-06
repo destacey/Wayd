@@ -14,7 +14,7 @@ const { TextArea } = Input
 
 export interface EditProductTagCategoryFormProps {
   /**
-   * The axis to edit. Passed whole rather than fetched by id: the list query
+   * The category to edit. Passed whole rather than fetched by id: the list query
    * is the only read of a category, so the caller already holds the record and
    * a lookup here would be a second copy of it.
    */
@@ -108,9 +108,9 @@ const EditProductTagCategoryForm = ({
           label="Name"
           name="name"
           rules={[{ required: true, message: 'Name is required' }, { max: 64 }]}
-          // Safe on an axis in use: products reference their tags by id, so
+          // Safe on a category in use: products reference their tags by id, so
           // the new name shows everywhere at once.
-          extra="Renaming is safe — products carry the axis by reference."
+          extra="Renaming is safe — products carry the category by reference."
         >
           <Input showCount maxLength={64} />
         </Item>

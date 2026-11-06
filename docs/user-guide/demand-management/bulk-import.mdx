@@ -21,11 +21,11 @@ rejected. See [Imports](../settings/imports.mdx).
 :::warning[This import takes IDs, not names]
 Desks, channels, tags and people are referenced **by GUID**. Look them up first, typically from the API: desks
 from `GET /api/demand-management/intake-desks`, channels from `GET /api/demand-management/intake-channels`, tags
-on an axis from `GET /api/demand-management/intake-request-tag-categories` and free tags from
+in a category from `GET /api/demand-management/intake-request-tag-categories` and free tags from
 `GET /api/demand-management/intake-request-tags`, and employees from the employee list.
 :::
 
-Only intake requests are imported. Desks, channels and tag axes are a handful of settings, set up by hand in
+Only intake requests are imported. Desks, channels and tag categories are a handful of settings, set up by hand in
 **Demand Management** before the import runs.
 
 ## How the import works
@@ -114,12 +114,12 @@ in [Settings → System → Imports → Limits and rules](../settings/imports.md
 | `StatusReason` | For some statuses | Why, as the requester reads it. Required for finishing and for every closing status but Withdrawn. Only with a `Status` the request moves to. Max 1024 characters. |
 | `DuplicateOfId` | For a duplicate | The request already in Wayd this one gives way to. |
 | `AssigneeId` | No | The active member of the desk who owns the request. |
-| `TagIds` | No | Semicolon-separated tag ids: tags on axes the desk offers, at most one on an axis that takes one, or free tags where the desk allows them. |
+| `TagIds` | No | Semicolon-separated tag ids: tags in categories the desk offers, at most one in a category that takes one, or free tags where the desk allows them. |
 | `Estimate` | No | An estimate value of the desk's [estimation scale](./index.mdx#estimating-a-request), exactly as the scale writes it (`M`, `8`), never a card such as `?`. Needs a desk with a scale. Blank leaves the request unestimated, and the column may be left out of the file. Max 32 characters. The request's activity records it as imported. |
 
 A row is rejected, with the reason, when a desk, channel, tag or employee it names does not exist; when the
 assignee is not an active member of the desk; when the desk's workflow has no status of that name or meaning;
-when a status needs a reason or a surviving request the row does not give; when it names two tags on an axis
+when a status needs a reason or a surviving request the row does not give; when it names two tags in a category
 that takes one; when its estimate is not a value of the desk's scale, or the desk has none; or when its origin
 is already taken. A file in which two rows share an origin is refused whole.
 

@@ -251,7 +251,7 @@ public static class ApplicationPermissions
         // requests on desks the holder is not on, narrowed by each desk's visibility.
         new("View Intake Requests", ApplicationAction.View, ApplicationResource.IntakeRequests, DemandManagementCategory),
         // The Demand Management Admin: creates and deletes desks, sets their visibility, names Desk Admins,
-        // manages channels and tag axes, and acts as Desk Admin on every desk.
+        // manages channels and tag categories, and acts as Desk Admin on every desk.
         new("Administer Demand Management", ApplicationAction.Administer, ApplicationResource.IntakeRequests, DemandManagementCategory),
     ];
 

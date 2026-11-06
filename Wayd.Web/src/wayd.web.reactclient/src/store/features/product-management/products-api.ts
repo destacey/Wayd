@@ -312,7 +312,7 @@ export const productsApi = apiSlice.injectEndpoints({
       ],
     }),
     /**
-     * Tags a product by a typed name: the tag on a category with that name when
+     * Tags a product by a typed name: the tag in a category with that name when
      * exactly one has it, otherwise the free tag, created when none has it yet.
      * Returns the id of the tag applied.
      */

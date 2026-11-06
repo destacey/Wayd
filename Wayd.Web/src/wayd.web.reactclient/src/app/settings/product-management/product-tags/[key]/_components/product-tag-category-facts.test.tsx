@@ -18,7 +18,7 @@ const category = (
 })
 
 describe('ProductTagCategoryFacts', () => {
-  it('shows whether the axis accepts several tags', () => {
+  it('shows whether the category accepts several tags', () => {
     // Arrange / Act — fixed once set, so it is here to read rather than on the
     // edit form to change.
     render(<ProductTagCategoryFacts category={category()} />)
@@ -27,7 +27,7 @@ describe('ProductTagCategoryFacts', () => {
     expect(screen.getByText('Allows Many')).toBeInTheDocument()
   })
 
-  it('says a platform-seeded axis is read-only', () => {
+  it('says a platform-seeded category is read-only', () => {
     // Arrange / Act — otherwise the missing Edit action looks like a bug.
     render(<ProductTagCategoryFacts category={category({ isSystem: true })} />)
 
@@ -35,7 +35,7 @@ describe('ProductTagCategoryFacts', () => {
     expect(screen.getByText(/read-only/)).toBeInTheDocument()
   })
 
-  it('says nothing about system on an axis the organization added itself', () => {
+  it('says nothing about system on a category the organization added itself', () => {
     // Arrange / Act
     render(<ProductTagCategoryFacts category={category()} />)
 

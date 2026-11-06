@@ -11,7 +11,7 @@ const { TextArea } = Input
 
 export interface AddProductTagFormProps {
   categoryId: string
-  /** Named in the title, so it is clear which axis the tag lands on. */
+  /** Named in the title, so it is clear which category the tag lands on. */
   categoryName: string
   onFormComplete: () => void
   onFormCancel: () => void
@@ -52,7 +52,7 @@ const AddProductTagForm = ({
             form.setFields(toFormErrors(apiError.errors))
             messageApi.error('Correct the validation error(s) to continue.')
           } else {
-            // A duplicate name on the axis comes back here rather than as a
+            // A duplicate name in the category comes back here rather than as a
             // field error — the rule belongs to the category, which only the
             // server can see.
             messageApi.error(
@@ -81,12 +81,17 @@ const AddProductTagForm = ({
       keyboard={false}
       destroyOnHidden
     >
-      <Form form={form} size="small" layout="vertical" name="add-product-tag-form">
+      <Form
+        form={form}
+        size="small"
+        layout="vertical"
+        name="add-product-tag-form"
+      >
         <Item
           label="Name"
           name="name"
           rules={[{ required: true, message: 'Name is required' }, { max: 64 }]}
-          extra="The label itself — ios, android, pci-scope. Must be unique on this axis."
+          extra="The label itself — ios, android, pci-scope. Must be unique in this category."
         >
           <Input showCount maxLength={64} />
         </Item>

@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// A tag on an intake request tag axis was renamed or its description changed. Every request carrying it reads
+/// A tag on an intake request tag category was renamed or its description changed. Every request carrying it reads
 /// the new name.
 /// </summary>
 public sealed record IntakeRequestTagDetailsUpdatedEvent : DomainEvent<IntakeRequestTagDetailsUpdatedEvent>, IDomainEventDescriptor, IDemandManagementEvent
@@ -24,7 +24,7 @@ public sealed record IntakeRequestTagDetailsUpdatedEvent : DomainEvent<IntakeReq
         Timestamp = timestamp;
     }
 
-    /// <summary>The tag's axis.</summary>
+    /// <summary>The tag's category.</summary>
     public Guid Id { get; }
     public Guid TagId { get; }
     public string Name { get; }

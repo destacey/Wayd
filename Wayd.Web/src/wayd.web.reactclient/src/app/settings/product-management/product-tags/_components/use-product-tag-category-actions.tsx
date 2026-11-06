@@ -30,12 +30,12 @@ export interface UseProductTagCategoryActionsOptions {
 }
 
 /**
- * The actions available on a tag axis, and the dialogs they open.
+ * The actions available on a tag category, and the dialogs they open.
  *
  * Which actions exist depends on the record as well as the viewer's
- * permissions: a platform-seeded axis can only be activated or deactivated,
+ * permissions: a platform-seeded category can only be activated or deactivated,
  * because the domain refuses to edit or delete one — an organization wanting
- * different axes adds its own.
+ * different categories adds its own.
  *
  * The dialogs are rendered once for the whole list rather than per row: the
  * target travels with the open dialog, so a long grid mounts one set.
@@ -50,8 +50,12 @@ export const useProductTagCategoryActions = ({
   } | null>(null)
   const { hasPermissionClaim } = useAuth()
 
-  const canUpdate = hasPermissionClaim('Permissions.ProductTagCategories.Update')
-  const canDelete = hasPermissionClaim('Permissions.ProductTagCategories.Delete')
+  const canUpdate = hasPermissionClaim(
+    'Permissions.ProductTagCategories.Update',
+  )
+  const canDelete = hasPermissionClaim(
+    'Permissions.ProductTagCategories.Delete',
+  )
 
   const open = (dialog: DialogId, target: ProductTagCategoryActionTarget) =>
     setActive({ dialog, target })

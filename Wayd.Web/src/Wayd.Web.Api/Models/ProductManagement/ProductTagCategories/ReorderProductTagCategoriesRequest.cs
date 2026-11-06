@@ -3,7 +3,7 @@ using Wayd.ProductManagement.Application.ProductTagCategories.Commands;
 namespace Wayd.Web.Api.Models.ProductManagement.ProductTagCategories;
 
 /// <summary>
-/// Puts the tag axes in a given order.
+/// Puts the tag categories in a given order.
 /// </summary>
 public sealed record ReorderProductTagCategoriesRequest
 {

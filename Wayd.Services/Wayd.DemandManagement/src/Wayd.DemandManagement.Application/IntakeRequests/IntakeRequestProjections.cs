@@ -62,7 +62,7 @@ internal static class IntakeRequestProjections
                         .FirstOrDefault(),
                     CommittedOn = r.NeedBy.CommittedOn,
                 },
-            // Tags on axes first, in the axes' order; free tags, which have none, after them by name.
+            // Tags in categories first, in the categories' order; free tags, which have none, after them by name.
             Tags = tags
                 .Where(t => r.Tags.Any(a => a.TagId == t.Id))
                 .Select(t => new { Tag = t, Category = tagCategories.FirstOrDefault(c => c.Id == t.CategoryId) })

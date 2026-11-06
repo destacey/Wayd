@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A tag no product carried was deleted from a product tag axis.
+/// A tag no product carried was deleted from a product tag category.
 /// </summary>
 public sealed record ProductTagRemovedEvent : DomainEvent<ProductTagRemovedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
@@ -20,7 +20,7 @@ public sealed record ProductTagRemovedEvent : DomainEvent<ProductTagRemovedEvent
         Timestamp = timestamp;
     }
 
-    /// <summary>The axis the tag was on.</summary>
+    /// <summary>The category the tag was in.</summary>
     public Guid Id { get; }
     public Guid TagId { get; }
 

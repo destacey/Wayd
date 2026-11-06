@@ -14,7 +14,7 @@ public sealed class ProductTagCategoryTests
     #region Create
 
     [Fact]
-    public void Create_WhenValid_IsActiveOrganizationAxisWithNoTags()
+    public void Create_WhenValid_IsActiveOrganizationCategoryWithNoTags()
     {
         // Act
         var sut = ProductTagCategory.Create(" Platform ", "  ", allowsMany: true, 3, EventActor.System, Now);
@@ -83,7 +83,7 @@ public sealed class ProductTagCategoryTests
     }
 
     [Fact]
-    public void UpdateDetails_OnASystemAxis_Fails()
+    public void UpdateDetails_OnASystemCategory_Fails()
     {
         // Arrange
         var sut = new ProductTagCategoryFaker().WithName("Platform").WithIsSystem(true).Generate();
@@ -93,7 +93,7 @@ public sealed class ProductTagCategoryTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ProductTagCategory.SystemAxisError);
+        result.Error.Should().Be(ProductTagCategory.SystemCategoryError);
         sut.Name.Should().Be("Platform");
         sut.DomainEvents.Should().BeEmpty();
     }
@@ -206,12 +206,12 @@ public sealed class ProductTagCategoryTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ProductTagCategory.AxisInUseError);
+        result.Error.Should().Be(ProductTagCategory.CategoryInUseError);
         sut.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]
-    public void Delete_OnASystemAxis_Fails()
+    public void Delete_OnASystemCategory_Fails()
     {
         // Arrange
         var sut = new ProductTagCategoryFaker().WithIsSystem(true).Generate();
@@ -221,7 +221,7 @@ public sealed class ProductTagCategoryTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ProductTagCategory.SystemAxisError);
+        result.Error.Should().Be(ProductTagCategory.SystemCategoryError);
     }
 
     #endregion Delete
@@ -252,7 +252,7 @@ public sealed class ProductTagCategoryTests
     }
 
     [Fact]
-    public void AddTag_WithANameAlreadyOnTheAxisInAnotherCase_Fails()
+    public void AddTag_WithANameAlreadyInTheCategoryInAnotherCase_Fails()
     {
         // Arrange
         var sut = new ProductTagCategoryFaker().WithTags("ios").Generate();
@@ -267,7 +267,7 @@ public sealed class ProductTagCategoryTests
     }
 
     [Fact]
-    public void AddTag_OnASystemAxis_Fails()
+    public void AddTag_OnASystemCategory_Fails()
     {
         // Arrange
         var sut = new ProductTagCategoryFaker().WithIsSystem(true).Generate();
@@ -277,7 +277,7 @@ public sealed class ProductTagCategoryTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ProductTagCategory.SystemAxisError);
+        result.Error.Should().Be(ProductTagCategory.SystemCategoryError);
         sut.Tags.Should().BeEmpty();
     }
 
@@ -338,7 +338,7 @@ public sealed class ProductTagCategoryTests
     }
 
     [Fact]
-    public void UpdateTagDetails_ForATagOnAnotherAxis_Fails()
+    public void UpdateTagDetails_ForATagInAnotherCategory_Fails()
     {
         // Arrange
         var sut = new ProductTagCategoryFaker().WithTags("ios").Generate();
@@ -391,7 +391,7 @@ public sealed class ProductTagCategoryTests
     }
 
     [Fact]
-    public void DeactivateTag_OnASystemAxis_Fails()
+    public void DeactivateTag_OnASystemCategory_Fails()
     {
         // Arrange
         var sut = new ProductTagCategoryFaker().WithTags("ios").WithIsSystem(true).Generate();
@@ -442,10 +442,10 @@ public sealed class ProductTagCategoryTests
 
     #endregion Tag activation and removal
 
-    #region System axes
+    #region System categories
 
     [Fact]
-    public void CreateSystem_WhenValid_IsASystemAxisAndRaisesCreated()
+    public void CreateSystem_WhenValid_IsASystemCategoryAndRaisesCreated()
     {
         // Act
         var sut = ProductTagCategory.CreateSystem("Platform", null, allowsMany: true, 1, EventActor.System, Now);
@@ -456,7 +456,7 @@ public sealed class ProductTagCategoryTests
     }
 
     [Fact]
-    public void AddSystemTag_OnASystemAxis_AddsAndRaises()
+    public void AddSystemTag_OnASystemCategory_AddsAndRaises()
     {
         // Arrange
         var sut = new ProductTagCategoryFaker().WithIsSystem(true).Generate();
@@ -471,7 +471,7 @@ public sealed class ProductTagCategoryTests
     }
 
     [Fact]
-    public void UpdateTagDetails_OnASystemAxis_Fails()
+    public void UpdateTagDetails_OnASystemCategory_Fails()
     {
         // Arrange
         var sut = new ProductTagCategoryFaker().WithTags("ios").WithIsSystem(true).Generate();
@@ -482,12 +482,12 @@ public sealed class ProductTagCategoryTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ProductTagCategory.SystemAxisError);
+        result.Error.Should().Be(ProductTagCategory.SystemCategoryError);
         tag.Name.Should().Be("ios");
     }
 
     [Fact]
-    public void RemoveTag_OnASystemAxis_FailsAndKeepsIt()
+    public void RemoveTag_OnASystemCategory_FailsAndKeepsIt()
     {
         // Arrange
         var sut = new ProductTagCategoryFaker().WithTags("ios").WithIsSystem(true).Generate();
@@ -498,9 +498,9 @@ public sealed class ProductTagCategoryTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(ProductTagCategory.SystemAxisError);
+        result.Error.Should().Be(ProductTagCategory.SystemCategoryError);
         sut.Tags.Should().ContainSingle();
     }
 
-    #endregion System axes
+    #endregion System categories
 }

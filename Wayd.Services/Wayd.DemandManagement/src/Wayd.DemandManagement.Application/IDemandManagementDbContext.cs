@@ -33,11 +33,11 @@ public interface IDemandManagementDbContext
     /// <summary>The asks themselves, with their participants and tags.</summary>
     DbSet<IntakeRequest> IntakeRequests { get; }
 
-    /// <summary>The axes reviewers file requests along, with their tags.</summary>
+    /// <summary>The categories reviewers group requests by, with their tags.</summary>
     DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories { get; }
 
     /// <summary>
-    /// Every intake request tag: those on an axis, which change only through it, and free tags, which are their own
+    /// Every intake request tag: those in a category, which change only through it, and free tags, which are their own
     /// aggregate.
     /// </summary>
     DbSet<IntakeRequestTag> IntakeRequestTags { get; }

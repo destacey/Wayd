@@ -8,7 +8,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement;
 /// </summary>
 /// <remarks>
 /// Carries both the change and its result. <see cref="Added"/> and <see cref="Removed"/> are the fact, for a
-/// consumer that reacts to it — applying a tag on a single-value axis replaces the one it held, so one call
+/// consumer that reacts to it — applying a tag in a single-value category replaces the one it held, so one call
 /// can both add and remove. <see cref="TagIds"/> is the full set afterwards, for a consumer that keeps a
 /// copy: applying the latest set is correct however deliveries were ordered or repeated, and applying the
 /// deltas is not.
@@ -41,7 +41,7 @@ public sealed record ProductTagsChangedEventV2 : DomainEvent<ProductTagsChangedE
     /// <summary>The tags this change applied.</summary>
     public Guid[] Added { get; }
 
-    /// <summary>The tags this change took off, including any a single-value axis replaced.</summary>
+    /// <summary>The tags this change took off, including any a single-value category replaced.</summary>
     public Guid[] Removed { get; }
 
     /// <summary>Every tag the product carries after the change.</summary>

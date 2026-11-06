@@ -6,14 +6,14 @@ using Wayd.ProductManagement.Application.Tests.Infrastructure;
 namespace Wayd.ProductManagement.Application.Tests.Sut.ProductTags.Queries;
 
 /// <summary>
-/// Searching product tags across axes and free tags, for the tagging type-ahead and the free tag list.
+/// Searching product tags across categories and free tags, for the tagging type-ahead and the free tag list.
 /// </summary>
 public sealed class GetProductTagsQueryHandlerTests : ProductCommandTestBase
 {
     private GetProductTagsQueryHandler CreateSut() => new(DbContext);
 
     [Fact]
-    public async Task Handle_ShouldReturnBothKinds_SortedByNameWithTheirAxisAndUse()
+    public async Task Handle_ShouldReturnBothKinds_SortedByNameWithTheirCategoryAndUse()
     {
         // Arrange
         var product = SeedProduct();

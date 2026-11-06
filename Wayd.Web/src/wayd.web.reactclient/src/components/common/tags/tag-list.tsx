@@ -10,7 +10,7 @@ export interface TagListItem {
   label: string
   /**
    * Context shown before the label, dimmed and separated by a pipe. For curated
-   * tags this is the axis, so a bare "gold" says what kind of thing it is.
+   * tags this is the category, so a bare "gold" says what kind of thing it is.
    */
   qualifier?: string
 }
@@ -43,19 +43,14 @@ export interface TagListProps {
  * The tags a record carries, as chips.
  *
  * Knows nothing about categories: a caller hands it labels and optional
- * qualifiers, so an area whose tags have no axes uses the same component by
+ * qualifiers, so an area whose tags have no categories uses the same component by
  * passing labels alone.
  *
  * The qualifier is dimmed rather than shown at full weight so the chip's own
  * boundary stays the strongest line — at equal weight, "Platform | ios" reads as
  * two chips rather than one.
  */
-const TagList = ({
-  tags,
-  onManage,
-  maxVisible,
-  emptyLabel,
-}: TagListProps) => {
+const TagList = ({ tags, onManage, maxVisible, emptyLabel }: TagListProps) => {
   const visible = maxVisible ? tags.slice(0, maxVisible) : tags
   const hidden = tags.length - visible.length
 

@@ -57,7 +57,7 @@ public sealed class TestTagCategory : TagCategoryBase<TestTag>
 {
     private readonly List<TestTag> _tags = [];
 
-    private TestTagCategory(bool allowsMany) : base("Axis", null, allowsMany, 1, isSystem: false) { }
+    private TestTagCategory(bool allowsMany) : base("Category", null, allowsMany, 1, isSystem: false) { }
 
     public static TestTagCategory Create(bool allowsMany, params string[] tagNames)
     {
@@ -71,7 +71,7 @@ public sealed class TestTagCategory : TagCategoryBase<TestTag>
 
     protected override List<TestTag> TagList => _tags;
     protected override string TagInUseMessage => "in use";
-    protected override string AxisInUseMessage => "axis in use";
+    protected override string CategoryInUseMessage => "category in use";
     protected override TestTag CreateTag(string name, string? description) => new(Id, name);
     protected override DomainEvent CreatedEvent(EventActor actor, Instant timestamp) => new TestTagEvent("Created");
     protected override DomainEvent DetailsUpdatedEvent(string previousName, string? previousDescription, EventActor actor, Instant timestamp) => new TestTagEvent("DetailsUpdated");

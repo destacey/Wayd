@@ -4,18 +4,19 @@ using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Dtos;
 namespace Wayd.DemandManagement.Application.IntakeRequestTagCategories.Queries;
 
 /// <summary>
-/// The tag axes in presentation order, each with its tags alphabetically.
+/// The tag categories in presentation order, each with its tags alphabetically.
 /// </summary>
 /// <remarks>
 /// Open to every signed-in user, because whoever can see a request sees its tags and can filter by them. Each
 /// tag's request count reads through the caller's read rules, so it never counts a request they cannot see.
 /// </remarks>
 /// <param name="IncludeInactive">
-/// Include axes requests can no longer be tagged along. A settings page manages what a picker hides; an
-/// inactive tag on an active axis is always included, because requests may still carry it. Ignored with a desk.
+/// Include categories requests can no longer be tagged in. A settings page manages what a picker hides; an
+/// inactive tag in an active category is always included, because requests may still carry it. Ignored with a
+/// desk.
 /// </param>
 /// <param name="DeskId">
-/// Only the active axes this desk offers its agents, which may be none; none for a desk that does not exist.
+/// Only the active categories this desk offers its agents, which may be none; none for a desk that does not exist.
 /// </param>
 public sealed record GetIntakeRequestTagCategoriesQuery(bool IncludeInactive = false, Guid? DeskId = null) : IQuery<List<IntakeRequestTagCategoryDto>>;
 

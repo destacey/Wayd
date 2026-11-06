@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A tag was added to a product tag axis.
+/// A tag was added to a product tag category.
 /// </summary>
 public sealed record ProductTagAddedEvent : DomainEvent<ProductTagAddedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
@@ -21,7 +21,7 @@ public sealed record ProductTagAddedEvent : DomainEvent<ProductTagAddedEvent>, I
         Timestamp = timestamp;
     }
 
-    /// <summary>The axis the tag was added to.</summary>
+    /// <summary>The category the tag was added to.</summary>
     public Guid Id { get; }
     public Guid TagId { get; }
 

@@ -70,10 +70,9 @@ const CreateProductTagCategoryForm = ({
       permission: 'Permissions.ProductTagCategories.Create',
     })
 
-
   return (
     <Modal
-      title="Create Tag Category"
+      title="Add Tag Category"
       open={isOpen}
       onOk={handleOk}
       okButtonProps={{ disabled: !isValid }}
@@ -93,12 +92,16 @@ const CreateProductTagCategoryForm = ({
           label="Name"
           name="name"
           rules={[{ required: true, message: 'Name is required' }, { max: 64 }]}
-          extra="The axis products are labelled along — Platform, Tech Stack, Compliance."
+          extra="The category products are grouped by — Platform, Tech Stack, Compliance."
         >
           <Input showCount maxLength={64} />
         </Item>
         <Item name="description" label="Description" rules={[{ max: 512 }]}>
-          <TextArea autoSize={{ minRows: 3, maxRows: 6 }} showCount maxLength={512} />
+          <TextArea
+            autoSize={{ minRows: 3, maxRows: 6 }}
+            showCount
+            maxLength={512}
+          />
         </Item>
         <Item
           name="allowsMany"
@@ -106,9 +109,9 @@ const CreateProductTagCategoryForm = ({
           valuePropName="checked"
           initialValue={false}
           // Fixed once set: narrowing it later would leave products holding
-          // more tags than the axis permits, so the edit form does not offer
+          // more tags than the category permits, so the edit form does not offer
           // it and this is the only chance to choose.
-          extra="Whether a product can carry several tags from this axis. Cannot be changed later."
+          extra="Whether a product can carry several tags from this category. Cannot be changed later."
         >
           <Switch checkedChildren="Yes" unCheckedChildren="No" />
         </Item>

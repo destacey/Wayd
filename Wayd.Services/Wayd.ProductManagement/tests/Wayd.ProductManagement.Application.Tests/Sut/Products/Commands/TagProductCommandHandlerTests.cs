@@ -8,8 +8,8 @@ using Wayd.ProductManagement.Application.Tests.Infrastructure;
 namespace Wayd.ProductManagement.Application.Tests.Sut.Products.Commands;
 
 /// <summary>
-/// Labelling a product along an axis. The handler loads the tag's category alongside it, because the
-/// axis decides whether a second tag joins the first or replaces it.
+/// Labelling a product in a category. The handler loads the tag's category alongside it, because the
+/// category decides whether a second tag joins the first or replaces it.
 /// </summary>
 public sealed class TagProductCommandHandlerTests : ProductCommandTestBase
 {
@@ -34,7 +34,7 @@ public sealed class TagProductCommandHandlerTests : ProductCommandTestBase
     }
 
     [Fact]
-    public async Task Handle_ShouldKeepBoth_WhenTheAxisAllowsMany()
+    public async Task Handle_ShouldKeepBoth_WhenTheCategoryAllowsMany()
     {
         // Arrange
         var product = SeedProduct();
@@ -53,7 +53,7 @@ public sealed class TagProductCommandHandlerTests : ProductCommandTestBase
     }
 
     [Fact]
-    public async Task Handle_ShouldReplace_WhenTheAxisAllowsOne()
+    public async Task Handle_ShouldReplace_WhenTheCategoryAllowsOne()
     {
         // Arrange
         var product = SeedProduct();
@@ -124,7 +124,7 @@ public sealed class TagProductCommandHandlerTests : ProductCommandTestBase
     }
 
     [Fact]
-    public async Task Handle_ShouldFail_WhenTheAxisIsInactive()
+    public async Task Handle_ShouldFail_WhenTheCategoryIsInactive()
     {
         // Arrange
         var product = SeedProduct();

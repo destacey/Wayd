@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
 /// <summary>
-/// A deactivated intake request tag axis was put back into use.
+/// A deactivated intake request tag category was put back into use.
 /// </summary>
 public sealed record IntakeRequestTagCategoryActivatedEvent : DomainEvent<IntakeRequestTagCategoryActivatedEvent>, IDomainEventDescriptor, IDemandManagementEvent
 {

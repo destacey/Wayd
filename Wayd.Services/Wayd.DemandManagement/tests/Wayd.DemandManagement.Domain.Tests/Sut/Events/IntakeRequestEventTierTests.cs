@@ -13,8 +13,9 @@ namespace Wayd.DemandManagement.Domain.Tests.Sut.Events;
 public sealed class IntakeRequestEventTierTests
 {
     /// <summary>
-    /// Events about a request, by the aggregate they declare. Tag axis events share the name prefix but are about
-    /// the axis, which has no read tiers. An event that declares no aggregate is kept, so it cannot slip past.
+    /// Events about a request, by the aggregate they declare. Tag category events share the name prefix but are
+    /// about the category, which has no read tiers. An event that declares no aggregate is kept, so it cannot slip
+    /// past.
     /// </summary>
     public static TheoryData<string> IntakeRequestEventNames => [.. typeof(IDemandManagementEvent).Assembly
         .GetTypes()

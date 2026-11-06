@@ -22,7 +22,7 @@ tasks, strategic themes, and strategic initiatives with KPIs), the Product Manag
 (products and the dependencies between them, versions, release packages, releases, deployment environments
 and deployments), and the
 Planning dataset (planning intervals with their teams, objectives and risks), and the Request Desk dataset
-(intake desks with their members, tag axes, and intake requests). Use the `org-only` recipe for the
+(intake desks with their members, tag categories, and intake requests). Use the `org-only` recipe for the
 organization on its own, or `--skip-ppm` / `--skip-product-management` / `--skip-planning` /
 `--skip-demand-management` to leave out one area.
 Work items, sprints and objective health checks are not generated. Database **reset** is a separate,
@@ -70,7 +70,7 @@ and `members.csv` for the organization; `strategic-themes.csv`, `portfolios.csv`
 `release-package-components.csv`, `releases.csv`, `release-contents.csv` and `deployments.csv` for Product
 Management; `planning-intervals.csv`, `planning-interval-objectives.csv` and `risks.csv` for Planning; and
 `intake-desks.csv` and `intake-requests.csv` for the Request Desk. The desks file is for reading only: desks
-and tag axes are created through the API at seed time. An area that is switched off writes none of its files. Roles and accounts are created through the API at
+and tag categories are created through the API at seed time. An area that is switched off writes none of its files. Roles and accounts are created through the API at
 seed time and have no file.
 
 ## Authentication
@@ -397,7 +397,7 @@ anything you can compose in the page, you can also say on a command line.
 | `--iteration-weeks` | `2` | Length (1..4) of each iteration in a planning interval, in weeks; intervals are quarterly, so this also sets how many iterations each holds |
 | `--objectives-per-team` | `4` | Average objectives (1..10) a team commits to per planning interval, stretch objectives included |
 | `--risks-per-team` | `1.5` | Average risks (0..5) a team raises per planning interval |
-| `--skip-demand-management` | off | Skip the Request Desk: its desks, tag axes and intake requests |
+| `--skip-demand-management` | off | Skip the Request Desk: its desks, tag categories and intake requests |
 | `--requests-per-month` | `12` | Average intake requests (0..200) the company submits per month across the history |
 | `--random-seed`, `-r` | random | Fixed RNG seed for reproducible output (every area) |
 | `--as-of` | today (UTC) | The date the run treats as today, which the whole timeline is anchored on. Pin it *with* `--random-seed` for byte-identical output |
@@ -716,7 +716,7 @@ with the asks its departments have raised.
   already worked here on the day it was submitted. The product desks and the IT Desk estimate on the
   **T-Shirt Sizes** scale Wayd ships; Security and Compliance weighs risk rather than size, so it does not
   estimate. A desk already on a scale keeps it.
-- **Tag axes** — **Size** (one tag: Small to Extra Large) and **Theme** (several: Revenue Growth, Customer
+- **Tag categories** — **Size** (one tag: Small to Extra Large) and **Theme** (several: Revenue Growth, Customer
   Experience, and so on), created through the API if the environment does not have them.
 - **Requests** — about `--requests-per-month` a month across the history, each raised by someone in the
   department that would raise it, employed on the day: customer feedback from Customer Success, support asks
@@ -782,9 +782,9 @@ product-management feature flag → deployment environments
 team staffing → planning intervals (+ rosters) → planning interval objectives
               → risks
 
-demand-management feature flag → tag axes (+ the seeded channels, read back)
+demand-management feature flag → tag categories (+ the seeded channels, read back)
                     employees + flag → intake desks (+ members, estimation scales)
-                                     → intake requests (after the axes and desks)
+                                     → intake requests (after the categories and desks)
 
 application roles → user accounts (after employees)
 ```
@@ -805,7 +805,7 @@ which Organization fills asynchronously after the teams import. A team that has 
 rejects the row — and with it the whole file — so the Planning areas also wait on staffing, which runs
 several imports later and leaves the copy time to catch up.
 
-The Request Desk's desks and tag axes are settings rather than records anyone imports, so they are created
+The Request Desk's desks and tag categories are settings rather than records anyone imports, so they are created
 through the ordinary endpoints — create-or-get by name, like the expenditure categories — and only the
 requests go through an import. Desks name their members by employee id, so they wait for the employee import.
 

@@ -1,10 +1,10 @@
 ﻿namespace Wayd.ProductManagement.Application.ProductTagCategories.Commands;
 
 /// <summary>
-/// Adds a tag to an axis.
+/// Adds a tag to a category.
 /// </summary>
 /// <remarks>
-/// Routed through the category because uniqueness within an axis is the category's rule — a tag cannot
+/// Routed through the category because uniqueness within a category is the category's rule — a tag cannot
 /// see its siblings.
 /// </remarks>
 public sealed record AddProductTagCommand(Guid CategoryId, string Name, string? Description) : ICommand<Guid>;

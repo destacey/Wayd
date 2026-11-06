@@ -72,8 +72,8 @@ public class ProductTagConfiguration : IEntityTypeConfiguration<ProductTag>
 
         builder.HasKey(t => t.Id);
 
-        // Unique per axis, not globally: "ios" on Platform and "ios" on Tech Stack are different tags. Free tags
-        // have no axis and are unique among themselves: no filter, so SQL Server treats their null axes as equal.
+        // Unique per category, not globally: "ios" on Platform and "ios" on Tech Stack are different tags. Free tags
+        // have no category and are unique among themselves: no filter, so SQL Server treats their null category ids as equal.
         builder.HasIndex(t => new { t.CategoryId, t.Name }).IsUnique().HasFilter(null);
 
         builder.Property(t => t.Id).ValueGeneratedNever();
@@ -107,7 +107,7 @@ public class ProductTagAssignmentConfiguration : IEntityTypeConfiguration<Produc
             .HasForeignKey(a => a.TagId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // No relationship for CategoryId: it is denormalized off the tag so filtering by axis needs no
+        // No relationship for CategoryId: it is denormalized off the tag so filtering by category needs no
         // join, and carries no foreign key. A projection reaches the category through the tag.
     }
 }

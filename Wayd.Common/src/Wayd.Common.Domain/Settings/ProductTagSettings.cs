@@ -8,7 +8,7 @@ public sealed record ProductTagSettings : ISettingsSection<ProductTagSettings>
     public static string Key => "productTags";
 
     /// <summary>
-    /// Whether anyone who can tag a product may also give it free tags — tags on no axis, typed in while tagging.
+    /// Whether anyone who can tag a product may also give it free tags — tags in no category, typed in while tagging.
     /// Off until an admin turns it on, so product filing stays curated unless the organization chooses otherwise.
     /// Products already carrying free tags keep them when it is turned off.
     /// </summary>

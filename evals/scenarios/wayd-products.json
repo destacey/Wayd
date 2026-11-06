@@ -867,10 +867,10 @@
       {
         "type": "notCalled",
         "tool": "ProductTagCategories_AddTag",
-        "because": "Tier 1 already exists on the Service Tier axis."
+        "because": "Tier 1 already exists in the Service Tier category."
       }
     ],
-    "expected": "The agent looks up the product and the tag categories, sees Service Tier has allowsMany false and that the product already carries Tier 2, and tells the user Tier 2 will be replaced before tagging (skill: \"Tagging a single-value axis silently replaces\"; Products_Tag description). After the user agrees it calls Products_Tag with the product UUID and the Tier 1 tag UUID. Untagging Tier 2 first is unnecessary but harmless."
+    "expected": "The agent looks up the product and the tag categories, sees Service Tier has allowsMany false and that the product already carries Tier 2, and tells the user Tier 2 will be replaced before tagging (skill: \"Tagging a single-value category silently replaces\"; Products_Tag description). After the user agrees it calls Products_Tag with the product UUID and the Tier 1 tag UUID. Untagging Tier 2 first is unnecessary but harmless."
   },
   {
     "id": "products-decommission-environment",

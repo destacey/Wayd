@@ -32,7 +32,7 @@ public class DemandManagementGeneratorTests
     private static DateTimeOffset StartOfToday => new(_asOf.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
 
     [Fact]
-    public void Generate_ProducesDesksAxesAndRequests()
+    public void Generate_ProducesDesksCategoriesAndRequests()
     {
         // Arrange & Act
         var data = Data;
@@ -171,7 +171,7 @@ public class DemandManagementGeneratorTests
     }
 
     [Fact]
-    public void Generate_TagsOnlyWithTheAxesTagsAndOneSizeEach()
+    public void Generate_TagsOnlyWithTheCategoriesTagsAndOneSizeEach()
     {
         // Arrange
         var known = Data.TagCategories.SelectMany(c => c.Tags.Select(t => $"{c.Name}|{t}")).ToHashSet();

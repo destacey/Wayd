@@ -7,9 +7,9 @@ namespace Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 /// Renames a tag or changes its description. Every request carrying it reads the new name. The Administer
 /// permission is checked by the endpoint.
 /// </summary>
-/// <param name="CategoryId">The tag's axis.</param>
+/// <param name="CategoryId">The tag's category.</param>
 /// <param name="TagId">The tag.</param>
-/// <param name="Name">The label, unique within the axis.</param>
+/// <param name="Name">The label, unique within the category.</param>
 /// <param name="Description">What the label means, or null for no description.</param>
 public sealed record UpdateIntakeRequestTagCommand(Guid CategoryId, Guid TagId, string Name, string? Description) : ICommand;
 

@@ -35,8 +35,8 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     public DbSet<IntakeRequest> IntakeRequests => _requests.AsDbSet();
     public DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories => _tagCategories.AsDbSet();
     /// <summary>
-    /// Every tag: those added with <see cref="AddTags"/>, and those on the seeded axes, picked up on each read so a
-    /// test seeding an axis need not seed its tags twice.
+    /// Every tag: those added with <see cref="AddTags"/>, and those in the seeded categories, picked up on each read
+    /// so a test seeding a category need not seed its tags twice.
     /// </summary>
     public DbSet<IntakeRequestTag> IntakeRequestTags
     {

@@ -4,7 +4,7 @@ using NodaTime;
 namespace Wayd.Common.Domain.Events.ProductManagement;
 
 /// <summary>
-/// A product tag axis was taken out of use: nothing new is tagged along it, and products already tagged
+/// A product tag category was taken out of use: nothing new is tagged in it, and products already tagged
 /// keep their tags.
 /// </summary>
 public sealed record ProductTagCategoryDeactivatedEvent : DomainEvent<ProductTagCategoryDeactivatedEvent>, IDomainEventDescriptor, IProductManagementEvent

@@ -14,7 +14,7 @@ export interface DeleteProductTagCategoryFormProps {
 }
 
 /**
- * Deletes an axis nothing is tagged along.
+ * Deletes a category nothing is tagged in.
  *
  * The API refuses one that products are using, so the failure path here is a
  * real answer rather than a surprise — hence no client-side guess at whether

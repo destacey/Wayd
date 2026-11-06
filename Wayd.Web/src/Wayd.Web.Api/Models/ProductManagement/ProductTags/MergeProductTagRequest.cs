@@ -8,7 +8,7 @@ namespace Wayd.Web.Api.Models.ProductManagement.ProductTags;
 public sealed record MergeProductTagRequest
 {
     /// <summary>
-    /// The tag the free tag's products move to: another free tag, or an active tag on an active category.
+    /// The tag the free tag's products move to: another free tag, or an active tag in an active category.
     /// </summary>
     public Guid TargetTagId { get; set; }
 

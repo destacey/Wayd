@@ -6,7 +6,7 @@ namespace Wayd.DemandManagement.Application.IntakeRequestTagCategories.Commands;
 /// Takes a tag out of use, or puts it back. Requests already carrying it keep it and can still have it removed.
 /// The Administer permission is checked by the endpoint.
 /// </summary>
-/// <param name="CategoryId">The tag's axis.</param>
+/// <param name="CategoryId">The tag's category.</param>
 /// <param name="TagId">The tag.</param>
 /// <param name="IsActive">Whether requests can be given the tag.</param>
 public sealed record SetIntakeRequestTagActiveCommand(Guid CategoryId, Guid TagId, bool IsActive) : ICommand;

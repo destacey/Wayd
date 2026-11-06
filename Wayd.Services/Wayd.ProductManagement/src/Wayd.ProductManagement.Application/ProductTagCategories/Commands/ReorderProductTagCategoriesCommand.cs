@@ -1,12 +1,12 @@
 namespace Wayd.ProductManagement.Application.ProductTagCategories.Commands;
 
 /// <summary>
-/// Puts the tag axes in a given order.
+/// Puts the tag categories in a given order.
 /// </summary>
 /// <param name="OrderedCategoryIds">
-/// Every axis, in the order they should be presented. The whole list, not a subset: position is
+/// Every category, in the order they should be presented. The whole list, not a subset: position is
 /// relative, so naming only some of them would leave the rest at stale positions and could put two
-/// axes in the same place.
+/// categories in the same place.
 /// </param>
 public sealed record ReorderProductTagCategoriesCommand(List<Guid> OrderedCategoryIds) : ICommand;
 
@@ -50,9 +50,9 @@ public sealed class ReorderProductTagCategoriesCommandHandler(
 
             var orderedIds = request.OrderedCategoryIds;
 
-            // The request must account for every axis exactly once. A caller working from a filtered or
+            // The request must account for every category exactly once. A caller working from a filtered or
             // stale list would otherwise silently renumber part of the set and leave the rest
-            // overlapping it, and a repeated id would leave one axis never positioned at all.
+            // overlapping it, and a repeated id would leave one category never positioned at all.
             // Counted, contained and de-duplicated together, these prove the two sets are the same.
             if (orderedIds.Count != categoriesById.Count
                 || !orderedIds.All(categoriesById.ContainsKey)
@@ -62,7 +62,7 @@ public sealed class ReorderProductTagCategoriesCommandHandler(
             }
 
             // Validated in full before anything moves, so a rejected request leaves no half-renumbered
-            // axes on the tracked entities.
+            // categories on the tracked entities.
             var actor = EventActor.User(_currentUser.GetUserId(), await _currentPrincipal.GetEmployeeId(cancellationToken));
             var now = _dateTimeProvider.Now;
             for (var position = 0; position < orderedIds.Count; position++)

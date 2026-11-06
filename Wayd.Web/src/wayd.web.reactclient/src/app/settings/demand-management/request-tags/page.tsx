@@ -1,0 +1,205 @@
+'use client'
+
+import { PageTitle } from '@/src/components/common'
+import {
+  DragHandleCell,
+  WaydGrid,
+  type GridColumnContext,
+  type RowReorderEvent,
+} from '@/src/components/common/wayd-grid'
+import {
+  createActionsColumn,
+  type ColumnDef,
+} from '@/src/components/common/wayd-grid-core'
+import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
+import { useMessage } from '@/src/components/contexts/messaging'
+import { useDocumentTitle } from '@/src/hooks'
+import { IntakeRequestTagCategoryDto } from '@/src/services/wayd-api'
+import {
+  useGetIntakeRequestTagCategoriesQuery,
+  useReorderIntakeRequestTagCategoriesMutation,
+} from '@/src/store/features/demand-management/demand-management-api'
+import { toApiError } from '@/src/utils'
+import { FreeTagsHeading } from '@/src/components/common/tags'
+import { Button, Typography } from 'antd'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import {
+  CreateTagCategoryForm,
+  FreeTagsList,
+  useTagCategoryActions,
+} from './_components'
+
+const { Paragraph } = Typography
+
+/**
+ * The categories reviewers group requests by, with each category's tags one click
+ * behind it. Requests list their tags in the order set here.
+ */
+const RequestTagsPage = () => {
+  useDocumentTitle('Demand Management - Request Tags')
+  const [openCreateForm, setOpenCreateForm] = useState(false)
+  const messageApi = useMessage()
+
+  // Inactive as well: a settings screen manages what a picker hides.
+  const {
+    data: categories,
+    isLoading,
+    error,
+    refetch,
+  } = useGetIntakeRequestTagCategoriesQuery({ includeInactive: true })
+  const [reorderTagCategories] = useReorderIntakeRequestTagCategoriesMutation()
+  const { getActionItems, dialogs } = useTagCategoryActions()
+
+  useEffect(() => {
+    if (error) {
+      messageApi.error(
+        toApiError(error).detail ??
+          'An error occurred while loading the tag categories',
+      )
+      console.error(error)
+    }
+  }, [error, messageApi])
+
+  const columns = (
+    context: GridColumnContext,
+  ): ColumnDef<IntakeRequestTagCategoryDto, any>[] => [
+    createActionsColumn<IntakeRequestTagCategoryDto>({
+      getItems: getActionItems,
+      ariaLabel: 'Tag category actions',
+      size: 70,
+      leading: (
+        <DragHandleCell
+          isDragEnabled={context.isDragEnabled}
+          disabledTooltip="Clear sorting, filters, and search to reorder tag categories."
+        />
+      ),
+    }),
+    // Read-only: drag-and-drop writes it.
+    {
+      id: 'order',
+      accessorKey: 'order',
+      header: 'Order',
+      size: 90,
+      enableColumnFilter: false,
+    },
+    {
+      id: 'name',
+      accessorKey: 'name',
+      header: 'Name',
+      size: 240,
+      cell: ({ row }) => (
+        <Link
+          href={`/settings/demand-management/request-tags/${row.original.id}`}
+        >
+          {row.original.name}
+        </Link>
+      ),
+    },
+    {
+      id: 'description',
+      accessorKey: 'description',
+      header: 'Description',
+      size: 320,
+    },
+    {
+      id: 'tagCount',
+      header: 'Tags',
+      accessorFn: (category) => category.tags?.length ?? 0,
+      size: 90,
+    },
+    {
+      id: 'allowsMany',
+      accessorKey: 'allowsMany',
+      header: 'Allows Many',
+      size: 130,
+      meta: { columnType: 'yesNo' },
+    },
+    {
+      id: 'isActive',
+      accessorKey: 'isActive',
+      header: 'Active',
+      size: 100,
+      meta: { columnType: 'yesNo' },
+    },
+    // Platform-defined categories are read-only, so the column explains why a row's
+    // ⋯ offers less than its neighbour's.
+    {
+      id: 'isSystem',
+      accessorKey: 'isSystem',
+      header: 'System',
+      size: 100,
+      meta: { columnType: 'yesNo' },
+    },
+  ]
+
+  // The whole list travels, as the API requires; the grid allows dragging only
+  // when nothing is sorted, filtered or searched.
+  const onRowReorder = async (
+    event: RowReorderEvent<IntakeRequestTagCategoryDto>,
+  ) => {
+    try {
+      await reorderTagCategories({
+        orderedCategoryIds: event.orderedData.map((category) => category.id),
+      }).unwrap()
+    } catch (error) {
+      messageApi.error(
+        toApiError(error).detail ??
+          'An error occurred while reordering the tag categories',
+      )
+      refetch()
+    }
+  }
+
+  return (
+    <div className="page-gutters">
+      <PageTitle
+        title="Request Tags"
+        actions={
+          <Button onClick={() => setOpenCreateForm(true)}>Add Category</Button>
+        }
+      />
+      <Paragraph type="secondary">
+        The categories reviewers group requests by, and the tags in each.
+        Deactivate a category or a tag to stop offering it; requests already
+        tagged keep their tags.
+      </Paragraph>
+
+      <WaydGrid
+        columns={columns}
+        data={categories ?? []}
+        onRefresh={async () => {
+          refetch()
+        }}
+        isLoading={isLoading}
+        persistStateKey="settings-intake-request-tag-categories"
+        csvFileName="intake-request-tag-categories"
+        getRowId={(category: IntakeRequestTagCategoryDto) => category.id}
+        onRowReorder={onRowReorder}
+      />
+
+      {dialogs}
+
+      <FreeTagsHeading description="Tags agents add by typing a name, on desks that allow free tags. Rename one, merge near-duplicates together, or promote one into a category by adding the tag there and merging into it. A free tag no request carries is removed on its own." />
+      <FreeTagsList />
+
+      {openCreateForm && (
+        <CreateTagCategoryForm
+          onFormComplete={() => setOpenCreateForm(false)}
+          onFormCancel={() => setOpenCreateForm(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+const RequestTagsPageWithAuthorization = requireFeatureFlag(
+  authorizePage(
+    RequestTagsPage,
+    'Permission',
+    'Permissions.IntakeRequests.Administer',
+  ),
+  'demand-management',
+)
+
+export default RequestTagsPageWithAuthorization

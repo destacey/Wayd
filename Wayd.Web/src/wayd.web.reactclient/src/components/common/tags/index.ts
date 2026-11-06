@@ -4,6 +4,8 @@ export type {
   ManageTagsFormProps,
   TagChanges,
 } from './manage-tags-form'
+export { default as FreeTagsHeading } from './free-tags-heading'
+export type { FreeTagsHeadingProps } from './free-tags-heading'
 export { default as TagList } from './tag-list'
 export type { TagListProps } from './tag-list'
 export { compareTags, tagText } from './tag-text'

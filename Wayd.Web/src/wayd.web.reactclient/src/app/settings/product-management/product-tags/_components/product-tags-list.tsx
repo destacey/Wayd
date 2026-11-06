@@ -5,7 +5,10 @@ import {
   caseInsensitiveCompare,
   createActionsColumn,
 } from '@/src/components/common/wayd-grid'
-import { ProductTagCategoryDto, ProductTagOptionDto } from '@/src/services/wayd-api'
+import {
+  ProductTagCategoryDto,
+  ProductTagOptionDto,
+} from '@/src/services/wayd-api'
 import { Button } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
@@ -18,12 +21,12 @@ import EditProductTagForm from './edit-product-tag-form'
 export interface ProductTagsListProps {
   category: ProductTagCategoryDto
   /**
-   * Whether the viewer can change the axis's tags. False for a platform-seeded
-   * axis whatever the viewer holds — the domain refuses those, so offering the
+   * Whether the viewer can change the category's tags. False for a platform-seeded
+   * category whatever the viewer holds — the domain refuses those, so offering the
    * actions would only produce a failure.
    */
   canManageTags: boolean
-  /** Whether the viewer can delete the axis's tags. False on a seeded axis, as above. */
+  /** Whether the viewer can delete the category's tags. False for a seeded category, as above. */
   canDeleteTags?: boolean
   loadData?: () => void
 }
@@ -44,7 +47,7 @@ const ProductTagsList = ({
   } | null>(null)
 
   // Alphabetical: a tag carries no position of its own, and the API returns the
-  // axis's tags unordered, so presenting them is this list's business.
+  // category's tags unordered, so presenting them is this list's business.
   const sortedTags = useMemo(
     () =>
       [...(category.tags ?? [])].sort((a, b) =>

@@ -15,7 +15,7 @@ public sealed class CreateIntakeRequestTagCategoryCommandHandlerTests
         new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock);
 
     [Fact]
-    public async Task Handle_WhenValid_AddsTheAxisAfterTheLast()
+    public async Task Handle_WhenValid_AddsTheCategoryAfterTheLast()
     {
         // Arrange
         _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
@@ -40,7 +40,7 @@ public sealed class CreateIntakeRequestTagCategoryCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WithTheNameOfAnInactiveAxis_FailsAndSavesNothing()
+    public async Task Handle_WithTheNameOfAnInactiveCategory_FailsAndSavesNothing()
     {
         // Arrange
         _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);
@@ -57,7 +57,7 @@ public sealed class CreateIntakeRequestTagCategoryCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhenAnotherAxisTakesTheNameBeforeTheSave_ReportsTheDuplicate()
+    public async Task Handle_WhenAnotherCategoryTakesTheNameBeforeTheSave_ReportsTheDuplicate()
     {
         // Arrange
         _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.Administer);

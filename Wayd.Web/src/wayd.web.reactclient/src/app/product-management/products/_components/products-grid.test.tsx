@@ -130,9 +130,9 @@ describe('ProductsGrid', () => {
     })
   })
 
-  it('qualifies a tag with its axis', () => {
+  it('qualifies a tag with its category', () => {
     // A bare "gold" does not say whether it is a tier, a platform or a
-    // compliance scope — the same reason the header chips carry the axis.
+    // compliance scope — the same reason the header chips carry the category.
     // Arrange
     const products = [
       tagged(PRODUCTS[0], [

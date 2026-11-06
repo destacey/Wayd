@@ -76,7 +76,7 @@ public sealed record ProductDto
     /// </para>
     /// <para>
     /// A tag's category is reached through the tag: <c>CategoryId</c> is denormalized onto the
-    /// assignment so filtering by axis needs no join, but it carries no foreign key, so there is no
+    /// assignment so filtering by category needs no join, but it carries no foreign key, so there is no
     /// navigation to traverse.
     /// </para>
     /// </remarks>
@@ -121,9 +121,9 @@ public sealed record ProductTagDto
     public Guid TagId { get; init; }
     public string TagName { get; init; } = default!;
 
-    /// <summary>The tag's axis, or null for a free tag.</summary>
+    /// <summary>The tag's category, or null for a free tag.</summary>
     public Guid? CategoryId { get; init; }
 
-    /// <summary>The axis's name, or null for a free tag.</summary>
+    /// <summary>The category's name, or null for a free tag.</summary>
     public string? CategoryName { get; init; }
 }

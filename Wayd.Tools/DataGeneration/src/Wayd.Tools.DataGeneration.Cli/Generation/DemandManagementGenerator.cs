@@ -6,7 +6,7 @@ using static Wayd.Tools.DataGeneration.Cli.Generation.DemandManagementVocabulary
 namespace Wayd.Tools.DataGeneration.Cli.Generation;
 
 /// <summary>
-/// Generates the company's Request Desk: the desks that review demand, the tag axes they file it by, and the
+/// Generates the company's Request Desk: the desks that review demand, the tag categories they file it by, and the
 /// requests the company has submitted to them over its history.
 /// <para>
 /// Each value stream gets a product desk worked by its product and engineering leads. An IT desk and a

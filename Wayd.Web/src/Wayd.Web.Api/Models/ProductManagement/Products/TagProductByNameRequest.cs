@@ -9,7 +9,7 @@ namespace Wayd.Web.Api.Models.ProductManagement.Products;
 public sealed record TagProductByNameRequest
 {
     /// <summary>
-    /// The tag's name. When exactly one tag on an active category has it, ignoring case, that tag is applied;
+    /// The tag's name. When exactly one tag in an active category has it, ignoring case, that tag is applied;
     /// otherwise the free tag with the name is applied, and created when none has it yet.
     /// </summary>
     public string Name { get; set; } = default!;

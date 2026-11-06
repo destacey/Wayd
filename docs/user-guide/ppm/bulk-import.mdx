@@ -316,13 +316,13 @@ order, after any deliverables it already has, and that becomes their order.
 | Column | Required | Notes |
 |---|---|---|
 | `ProjectKey` | Yes | The project, by key. |
-| `Name` | Yes | Max 256 chars. Unique within its project in the file. |
+| `Name` | Yes | Max 256 chars. Unique within its project, ignoring capitals — against the deliverables it already has, descoped ones included, and the file's other rows for it. |
 | `Description` | No | Markdown. Max 4096 chars. |
 | `AcceptanceCriteria` | No | Markdown. Max 4096 chars. How the project will know the deliverable is done. |
-| `OwnerEmployeeNumber` | No | The accountable employee, by employee number. |
+| `OwnerEmployeeNumber` | No | The accountable employee, by employee number. An inactive employee is accepted, so a finished project can name whoever was accountable then. |
 | `TargetDate` | No | `YYYY-MM-DD`. |
 | `Status` | No | A status of the deliverable workflow, by name or by meaning (`NotStarted`, `InProgress`, `Accepted`, `Descoped`). Blank for *Not Started*. |
-| `StatusChangedAt` | No | When it moved into `Status`, as an ISO 8601 date and time with offset. Blank for when the import runs. |
+| `StatusChangedAt` | No | When it moved into `Status`, as an ISO 8601 date and time with its offset, such as `2026-03-01T14:30:00Z`. A value without an offset, or a bare date, is refused rather than read in the server's time zone, and so is a time in the future. Blank for when the import runs. |
 | `StatusReason` | Required for *Descoped* | Why it is in that status. Max 1024 chars. |
 
 :::note[Finished projects]

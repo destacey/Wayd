@@ -124,6 +124,12 @@ public sealed record ProjectDetailsDto
     public bool CanManageProject { get; set; }
 
     /// <summary>
+    /// How many changes the project record and its deliverables have been through. Send it back as
+    /// <c>expectedRevision</c> on a deliverable change: a project changed since refuses it with a conflict.
+    /// </summary>
+    public int Revision { get; set; }
+
+    /// <summary>
     /// The earlier statuses this project can be reverted to right now, in lifecycle order; empty when it is
     /// already at the start of its lifecycle or meets no target's requirements — a project cancelled from
     /// Proposed with no lifecycle or dates offers nothing. Each listed status is a revert the server will

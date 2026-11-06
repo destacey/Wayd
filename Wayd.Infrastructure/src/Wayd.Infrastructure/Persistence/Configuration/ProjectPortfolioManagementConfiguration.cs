@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Scoring;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.Infrastructure.Persistence.Converters;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -206,6 +207,10 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
         // history.
         builder.Property(p => p.StatusTransitionCount).IsRequired();
 
+        // Two saves read at the same revision would otherwise both pass their checks, and a rule spanning
+        // the deliverables (no open deliverable on a completed project) could be broken by a race.
+        builder.Property(p => p.Revision).IsRequired().IsConcurrencyToken();
+
         // Value Objects
         builder.OwnsOne(r => r.DateRange, options =>
         {
@@ -280,6 +285,59 @@ public class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .WithOne()
             .HasForeignKey(h => h.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(p => p.Deliverables)
+            .WithOne()
+            .HasForeignKey(d => d.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class ProjectDeliverableConfiguration : IEntityTypeConfiguration<ProjectDeliverable>
+{
+    public void Configure(EntityTypeBuilder<ProjectDeliverable> builder)
+    {
+        builder.ToTable("ProjectDeliverables", SchemaNames.ProjectPortfolioManagement);
+
+        builder.HasKey(d => d.Id);
+
+        builder.HasIndex(d => new { d.ProjectId, d.Order });
+        builder.HasIndex(d => d.OwnerId);
+
+        builder.Property(d => d.Id).ValueGeneratedNever();
+        builder.Property(d => d.ProjectId).IsRequired();
+        builder.Property(d => d.Name).IsRequired().HasMaxLength(256);
+        builder.Property(d => d.Description).HasMaxLength(4096);
+        builder.Property(d => d.AcceptanceCriteria).HasMaxLength(4096);
+        builder.Property(d => d.Order).IsRequired();
+        builder.Property(d => d.TargetDate);
+        builder.Property(d => d.StatusReason).HasMaxLength(1024);
+        builder.Property(d => d.AcceptedOn);
+        builder.Property(d => d.AcceptedById);
+
+        builder.Property(d => d.StatusId).IsRequired();
+        builder.Property(d => d.StatusWorkflowId).IsRequired();
+        // Indexed for the reassignment migrator, whose only query is "every record on this workflow".
+        builder.HasIndex(d => d.StatusWorkflowId);
+        builder.Property(d => d.StatusName).IsRequired().HasMaxLength(64);
+        builder.Property(d => d.StatusCategory).IsRequired()
+            .HasConversion<EnumConverter<StatusCategory>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+        builder.Property(d => d.StatusAliasValue).IsRequired();
+        builder.Property(d => d.StatusTransitionCount).IsRequired();
+
+        builder.ConfigureStatusHistory();
+
+        builder.HasOne(d => d.Owner)
+            .WithMany()
+            .HasForeignKey(d => d.OwnerId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        builder.HasOne(d => d.AcceptedBy)
+            .WithMany()
+            .HasForeignKey(d => d.AcceptedById)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }
 

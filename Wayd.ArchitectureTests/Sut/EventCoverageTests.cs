@@ -274,6 +274,7 @@ public partial class EventCoverageTests
         [typeof(ProductTeamLink)] = typeof(Product),
         [typeof(IncidentSeverityLevel)] = typeof(IncidentSeveritySet),
         [typeof(ProductTagAssignment)] = typeof(Product),
+        [typeof(ProjectDeliverable)] = typeof(Project),
         [typeof(ProjectHealthCheck)] = typeof(Project),
         [typeof(ProjectScore)] = typeof(Project),
         [typeof(ProjectStage)] = typeof(Project),

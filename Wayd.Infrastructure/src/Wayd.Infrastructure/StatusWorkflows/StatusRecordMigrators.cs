@@ -6,6 +6,10 @@ using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.ProductManagement.Application;
 using Wayd.ProductManagement.Domain;
 using Wayd.ProductManagement.Domain.Models;
+using Wayd.ProjectPortfolioManagement.Application;
+using Wayd.ProjectPortfolioManagement.Domain;
+using Project = Wayd.ProjectPortfolioManagement.Domain.Models.Project;
+using ProjectDeliverable = Wayd.ProjectPortfolioManagement.Domain.Models.ProjectDeliverable;
 
 // The delivery artifact record, not System.Version.
 using Version = Wayd.ProductManagement.Domain.Models.Version;
@@ -23,7 +27,7 @@ namespace Wayd.Infrastructure.StatusWorkflows;
 /// Not marked as services — see <see cref="IStatusRecordMigrator"/> for why, and register explicitly.
 /// </para>
 /// </remarks>
-public abstract class StatusRecordMigratorBase<TRecord>(IProductManagementDbContext dbContext)
+public abstract class StatusRecordMigratorBase<TRecord>
     : IStatusRecordMigrator, IStatusRecordCounter
     where TRecord : StatusTrackedEntity
 {
@@ -40,14 +44,12 @@ public abstract class StatusRecordMigratorBase<TRecord>(IProductManagementDbCont
     /// The refusal for a scoped migration or count.
     /// </summary>
     /// <remarks>
-    /// Product Management records carry no scope — every assignment is organization-wide — so
-    /// <see cref="Records"/> can only be narrowed by workflow. Honouring a scope means first giving the
-    /// record type a way to say which scope it belongs to.
+    /// Product Management records and project deliverables carry no scope — every assignment is
+    /// organization-wide — so <see cref="Records"/> can only be narrowed by workflow. Honouring a scope means
+    /// first giving the record type a way to say which scope it belongs to.
     /// </remarks>
     private const string ScopedRecordsUnsupported =
         "Records of this type have no scope, so they can only be counted or migrated organization-wide.";
-
-    private readonly IProductManagementDbContext _dbContext = dbContext;
 
     /// <inheritdoc/>
     public abstract string OwnerType { get; }
@@ -134,47 +136,72 @@ public abstract class StatusRecordMigratorBase<TRecord>(IProductManagementDbCont
         Guid scopeId,
         CancellationToken cancellationToken) =>
         Task.FromResult(Result.Failure<IReadOnlyList<Guid>>(ScopedRecordsUnsupported));
-
-    /// <summary>The context, for subclasses to expose their own set.</summary>
-    protected IProductManagementDbContext DbContext => _dbContext;
 }
 
 public sealed class ProductStatusRecordMigrator(IProductManagementDbContext dbContext)
-    : StatusRecordMigratorBase<Product>(dbContext)
+    : StatusRecordMigratorBase<Product>
 {
+    private readonly IProductManagementDbContext _dbContext = dbContext;
+
     public override string OwnerType => ProductWorkflowOwners.Product.Key;
 
-    protected override IQueryable<Product> Records => DbContext.Products;
+    protected override IQueryable<Product> Records => _dbContext.Products;
 }
 
 public sealed class VersionStatusRecordMigrator(IProductManagementDbContext dbContext)
-    : StatusRecordMigratorBase<Version>(dbContext)
+    : StatusRecordMigratorBase<Version>
 {
+    private readonly IProductManagementDbContext _dbContext = dbContext;
+
     public override string OwnerType => ProductWorkflowOwners.Version.Key;
 
-    protected override IQueryable<Version> Records => DbContext.Versions;
+    protected override IQueryable<Version> Records => _dbContext.Versions;
 }
 
 public sealed class ReleaseStatusRecordMigrator(IProductManagementDbContext dbContext)
-    : StatusRecordMigratorBase<Release>(dbContext)
+    : StatusRecordMigratorBase<Release>
 {
+    private readonly IProductManagementDbContext _dbContext = dbContext;
+
     public override string OwnerType => ProductWorkflowOwners.Release.Key;
 
-    protected override IQueryable<Release> Records => DbContext.Releases;
+    protected override IQueryable<Release> Records => _dbContext.Releases;
 }
 
 public sealed class ReleasePackageStatusRecordMigrator(IProductManagementDbContext dbContext)
-    : StatusRecordMigratorBase<ReleasePackage>(dbContext)
+    : StatusRecordMigratorBase<ReleasePackage>
 {
+    private readonly IProductManagementDbContext _dbContext = dbContext;
+
     public override string OwnerType => ProductWorkflowOwners.ReleasePackage.Key;
 
-    protected override IQueryable<ReleasePackage> Records => DbContext.ReleasePackages;
+    protected override IQueryable<ReleasePackage> Records => _dbContext.ReleasePackages;
 }
 
 public sealed class DeploymentStatusRecordMigrator(IProductManagementDbContext dbContext)
-    : StatusRecordMigratorBase<Deployment>(dbContext)
+    : StatusRecordMigratorBase<Deployment>
 {
+    private readonly IProductManagementDbContext _dbContext = dbContext;
+
     public override string OwnerType => ProductWorkflowOwners.Deployment.Key;
 
-    protected override IQueryable<Deployment> Records => DbContext.Deployments;
+    protected override IQueryable<Deployment> Records => _dbContext.Deployments;
+}
+
+/// <summary>
+/// Moves project deliverables between workflows.
+/// </summary>
+/// <remarks>
+/// The one change that reaches a deliverable without going through its <see cref="Project"/>: a remap
+/// translates statuses onto another workflow, which is the engine's doing rather than a change to the
+/// project's scope, so it needs no project leadership and is allowed on a closed project.
+/// </remarks>
+public sealed class ProjectDeliverableStatusRecordMigrator(IProjectPortfolioManagementDbContext dbContext)
+    : StatusRecordMigratorBase<ProjectDeliverable>
+{
+    private readonly IProjectPortfolioManagementDbContext _dbContext = dbContext;
+
+    public override string OwnerType => PpmWorkflowOwners.ProjectDeliverable.Key;
+
+    protected override IQueryable<ProjectDeliverable> Records => _dbContext.ProjectDeliverables;
 }

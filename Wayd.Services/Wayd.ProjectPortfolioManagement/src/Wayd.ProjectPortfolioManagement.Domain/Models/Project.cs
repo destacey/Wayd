@@ -1,7 +1,10 @@
 ﻿using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
+using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.HealthChecks;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
@@ -31,6 +34,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     private readonly List<ProjectHealthCheck> _healthChecks = [];
     private readonly List<ProjectScore> _scores = [];
     private readonly List<ProjectStatusHistory> _statusHistory = [];
+    private readonly List<ProjectDeliverable> _deliverables = [];
 
     private Project() { }
 
@@ -243,6 +247,31 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     public int StatusTransitionCount { get; private set; }
 
     /// <summary>
+    /// The things the project has committed to produce, each accepted against its own criteria.
+    /// </summary>
+    /// <remarks>
+    /// A method that reads the whole set — <see cref="Complete"/>, adding and reordering deliverables — needs it
+    /// loaded. An unloaded collection reads as a project with no deliverables, so a missing <c>.Include</c> would
+    /// let a project complete with deliverables still open.
+    /// </remarks>
+    public IReadOnlyCollection<ProjectDeliverable> Deliverables => _deliverables.AsReadOnly();
+
+    /// <summary>
+    /// How many changes the project record and its deliverables have been through: the concurrency token that
+    /// stops two saves read at the same revision from both passing their checks.
+    /// </summary>
+    /// <remarks>
+    /// Advanced by every change that raises an event, which is every change to the record and its deliverables.
+    /// Plan changes (stages and tasks) raise no events yet and do not advance it, so editing the plan never
+    /// conflicts with editing the project. A rule spanning the deliverables — no open deliverable on a
+    /// completed project — holds because both sides of a race write this row.
+    /// </remarks>
+    public int Revision { get; private set; }
+
+    /// <summary>Whether the project is still at the revision a change was prepared against.</summary>
+    public bool IsAtRevision(int revision) => Revision == revision;
+
+    /// <summary>
     /// Indicates whether the project can be deleted — only while it has never left its initial status.
     /// </summary>
     /// <remarks>
@@ -295,7 +324,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         if (before != CurrentDetails())
         {
-            AddDomainEvent(new ProjectDetailsUpdatedEvent(this, ExpenditureCategoryId, BusinessCase, ExpectedBenefits, before, actor.ToEventActor(), timestamp));
+            Raise(new ProjectDetailsUpdatedEvent(this, ExpenditureCategoryId, BusinessCase, ExpectedBenefits, before, actor.ToEventActor(), timestamp));
         }
 
         return Result.Success();
@@ -333,7 +362,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         var (added, removed) = RoleManager.Diff(before, after);
         if (added.Length > 0 || removed.Length > 0)
         {
-            AddDomainEvent(new ProjectRolesChangedEventV2(Id, Key, added, removed, after, actor.ToEventActor(), timestamp));
+            Raise(new ProjectRolesChangedEventV2(Id, Key, added, removed, after, actor.ToEventActor(), timestamp));
         }
 
         return result;
@@ -367,7 +396,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         var previousDateRange = DateRange;
         DateRange = dateRange;
 
-        AddDomainEvent(new ProjectTimelineChangedEventV2(Id, Key, previousDateRange, DateRange, actor.ToEventActor(), timestamp));
+        Raise(new ProjectTimelineChangedEventV2(Id, Key, previousDateRange, DateRange, actor.ToEventActor(), timestamp));
 
         return Result.Success();
     }
@@ -397,7 +426,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         var previousKey = Key;
         Key = key;
 
-        AddDomainEvent(new ProjectKeyChangedEventV2(Id, previousKey, Key, actor.ToEventActor(), timestamp));
+        Raise(new ProjectKeyChangedEventV2(Id, previousKey, Key, actor.ToEventActor(), timestamp));
 
         foreach (var task in _tasks)
         {
@@ -432,7 +461,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             if (ProgramId is { } previousProgramId)
             {
                 ProgramId = null;
-                AddDomainEvent(new ProjectReparentedEventV2(Id, Key, PortfolioId, previousProgramId, null, actor, timestamp));
+                Raise(new ProjectReparentedEventV2(Id, Key, PortfolioId, previousProgramId, null, actor, timestamp));
             }
 
             return Result.Success();
@@ -451,7 +480,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         var previous = ProgramId;
         ProgramId = program.Id;
 
-        AddDomainEvent(new ProjectReparentedEventV2(Id, Key, PortfolioId, previous, ProgramId, actor, timestamp));
+        Raise(new ProjectReparentedEventV2(Id, Key, PortfolioId, previous, ProgramId, actor, timestamp));
 
         return Result.Success();
     }
@@ -503,7 +532,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             return;
         }
 
-        AddDomainEvent(new ProjectStrategicThemesChangedEventV2(
+        Raise(new ProjectStrategicThemesChangedEventV2(
             Id, Key, added, removed, [.. after.Order()], actor.ToEventActor(), timestamp));
     }
 
@@ -547,7 +576,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             _stages.Add(ProjectStage.Create(Id, lifecycleStage));
         }
 
-        AddDomainEvent(new ProjectLifecycleAssignedEventV2(
+        Raise(new ProjectLifecycleAssignedEventV2(
             Id, Key, lifecycle.Id, lifecycle.Name, _stages.Count, actor.ToEventActor(), timestamp));
 
         return Result.Success();
@@ -669,7 +698,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         ProjectLifecycleId = newLifecycle.Id;
         ProjectLifecycle = newLifecycle;
 
-        AddDomainEvent(new ProjectLifecycleChangedEventV2(
+        Raise(new ProjectLifecycleChangedEventV2(
             Id, Key, previous.Id, previous.Name, newLifecycle.Id, newLifecycle.Name, _stages.Count, remappedTaskCount,
             actor.ToEventActor(), timestamp));
 
@@ -755,7 +784,8 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     /// <summary>
-    /// Marks the project as completed on behalf of an actor who must be authorized to manage it.
+    /// Marks the project as completed on behalf of an actor who must be authorized to manage it. Refused while
+    /// any deliverable is open; needs <see cref="Deliverables"/> loaded.
     /// </summary>
     /// <param name="actor">The acting employee and their administrator standing.</param>
     /// <param name="ancestry">Role assignments on the parent portfolio and program.</param>
@@ -776,6 +806,14 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         if (DateRange == null)
         {
             return Result.Failure("The project must have a start and end date before it can be completed.");
+        }
+
+        var open = _deliverables.Count(d => d.IsOpen);
+        if (open > 0)
+        {
+            return Result.Failure(open == 1
+                ? "A deliverable is still open. Accept or descope it before completing the project."
+                : $"{open} deliverables are still open. Accept or descope them before completing the project.");
         }
 
         ChangeStatus(ProjectStatus.Completed, actor, timestamp, reason);
@@ -941,7 +979,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         // The event carries the history row's id as its own, so the transition and its record share one
         // identity. That is what lets history written before this event existed be replayed into the
         // activity log without duplicating a transition that already raised one.
-        AddDomainEvent(new ProjectStatusChangedEventV2(
+        Raise(new ProjectStatusChangedEventV2(
             entry.Id,
             Id,
             Key,
@@ -1554,7 +1592,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
             model.Id,
             model.Name);
 
-        AddDomainEvent(new ProjectScoreRecordedEventV2(
+        Raise(new ProjectScoreRecordedEventV2(
             Id,
             Key,
             score.Id,
@@ -1621,7 +1659,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
         _healthChecks.Add(newCheck);
 
         // From the stored check, not the arguments: the note is trimmed on the way in.
-        AddDomainEvent(new ProjectHealthCheckAddedEventV2(
+        Raise(new ProjectHealthCheckAddedEventV2(
             Id, Key, newCheck.Id, newCheck.Status, newCheck.Note, newCheck.Expiration, actor.EmployeeId, actor.ToEventActor(), now));
 
         return Result.Success(newCheck);
@@ -1677,7 +1715,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         if (before != (healthCheck.Status, healthCheck.Note, healthCheck.Expiration))
         {
-            AddDomainEvent(new ProjectHealthCheckUpdatedEventV2(
+            Raise(new ProjectHealthCheckUpdatedEventV2(
                 Id, Key, healthCheck.Id,
                 before.Status, before.Note, before.Expiration,
                 healthCheck.Status, healthCheck.Note, healthCheck.Expiration,
@@ -1718,7 +1756,7 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         _healthChecks.Remove(healthCheck);
 
-        AddDomainEvent(new ProjectHealthCheckRemovedEventV2(
+        Raise(new ProjectHealthCheckRemovedEventV2(
             Id, Key, healthCheck.Id, healthCheck.Status, actor.ToEventActor(), now));
 
         return Result.Success(healthCheck);
@@ -1774,6 +1812,277 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     #endregion Health Checks
+
+    #region Deliverables
+
+    private const string UnauthorizedDeliverableActorError =
+        "Only the project's owner or manager — or the parent portfolio's or program's owner or manager — may manage its deliverables.";
+
+    private const string ClosedProjectDeliverablesError =
+        "The deliverables of a completed or canceled project cannot be changed.";
+
+    /// <summary>
+    /// Adds a deliverable, starting in the status meaning Not Started, on behalf of an actor who must be
+    /// authorized to manage the project. Needs <see cref="Deliverables"/> loaded, to place it last.
+    /// </summary>
+    /// <param name="initialStatus">The status meaning Not Started in the deliverable workflow, resolved by the caller.</param>
+    public Result<ProjectDeliverable> AddDeliverable(
+        PpmActor actor,
+        ProjectAncestryRoles ancestry,
+        string name,
+        string? description,
+        string? acceptanceCriteria,
+        Guid? ownerId,
+        LocalDate? targetDate,
+        StatusRef initialStatus,
+        Instant timestamp)
+    {
+        Guard.Against.Null(initialStatus, nameof(initialStatus));
+        if (initialStatus.Alias != (int)ProjectDeliverableStatusAlias.NotStarted)
+            throw new ArgumentException("A deliverable starts in the status meaning Not Started.", nameof(initialStatus));
+
+        if (!CanManageProject(actor, ancestry))
+            return Result.Failure<ProjectDeliverable>(UnauthorizedDeliverableActorError);
+
+        if (IsClosed)
+            return Result.Failure<ProjectDeliverable>(ClosedProjectDeliverablesError);
+
+        return AddDeliverableCore(name, description, acceptanceCriteria, ownerId, targetDate, initialStatus, reason: null, actor, timestamp);
+    }
+
+    /// <summary>
+    /// Adds a deliverable in any status of its workflow, for an import bringing an existing project's
+    /// deliverables across. Needs <see cref="Deliverables"/> loaded, to place it last.
+    /// </summary>
+    /// <remarks>
+    /// A completed or canceled project accepts only a deliverable that is already closed — Accepted, Descoped or
+    /// another Done or Removed status. The closed-project lock is for edits; bringing in a finished project's
+    /// history is not one, but an open deliverable would leave a completed project with work outstanding.
+    /// </remarks>
+    /// <param name="status">A status of the deliverable workflow, resolved by the caller.</param>
+    /// <param name="reason">Why it is in that status; required for a Removed one.</param>
+    public Result<ProjectDeliverable> ImportDeliverable(
+        PpmActor actor,
+        ProjectAncestryRoles ancestry,
+        string name,
+        string? description,
+        string? acceptanceCriteria,
+        Guid? ownerId,
+        LocalDate? targetDate,
+        StatusRef status,
+        string? reason,
+        Instant timestamp)
+    {
+        Guard.Against.Null(status, nameof(status));
+
+        if (!CanManageProject(actor, ancestry))
+            return Result.Failure<ProjectDeliverable>(UnauthorizedDeliverableActorError);
+
+        if (IsClosed && status.Category is StatusCategory.Proposed or StatusCategory.Active)
+            return Result.Failure<ProjectDeliverable>(
+                $"Project {Key} is {Status}, so its deliverables must be closed: '{status.Name}' is still open.");
+
+        return AddDeliverableCore(name, description, acceptanceCriteria, ownerId, targetDate, status, reason, actor, timestamp);
+    }
+
+    /// <summary>Adds the deliverable once authorization and the project's state have been checked.</summary>
+    private Result<ProjectDeliverable> AddDeliverableCore(
+        string name,
+        string? description,
+        string? acceptanceCriteria,
+        Guid? ownerId,
+        LocalDate? targetDate,
+        StatusRef status,
+        string? reason,
+        PpmActor actor,
+        Instant timestamp)
+    {
+        var order = _deliverables.Count == 0 ? 1 : _deliverables.Max(d => d.Order) + 1;
+
+        var created = ProjectDeliverable.Create(
+            Id, name, description, acceptanceCriteria, order, ownerId, targetDate, status, reason,
+            actor.EmployeeIdOrNull, actor.ToEventActor(), timestamp);
+        if (created.IsFailure)
+            return created;
+
+        var deliverable = created.Value;
+        _deliverables.Add(deliverable);
+
+        // From the stored deliverable, not the arguments: the setters trim.
+        Raise(new ProjectDeliverableAddedEvent(
+            Id, Key, deliverable.Id, deliverable.Name, deliverable.Description, deliverable.AcceptanceCriteria,
+            deliverable.Order, deliverable.OwnerId, deliverable.TargetDate, deliverable.StatusId, deliverable.StatusName,
+            deliverable.StatusCategory, deliverable.StatusAlias, actor.ToEventActor(), timestamp));
+
+        return deliverable;
+    }
+
+    /// <summary>
+    /// Changes a deliverable's name, description, acceptance criteria, owner or target date, on behalf of an
+    /// actor who must be authorized to manage the project. Needs that deliverable loaded.
+    /// </summary>
+    public Result<ProjectDeliverable> UpdateDeliverable(
+        PpmActor actor,
+        ProjectAncestryRoles ancestry,
+        Guid deliverableId,
+        string name,
+        string? description,
+        string? acceptanceCriteria,
+        Guid? ownerId,
+        LocalDate? targetDate,
+        Instant timestamp)
+    {
+        var found = ManageableDeliverable(actor, ancestry, deliverableId);
+        if (found.IsFailure)
+            return found;
+
+        var deliverable = found.Value;
+
+        // Compared after assignment, never against the arguments: the setters trim.
+        var before = deliverable.Details;
+        deliverable.UpdateDetails(name, description, acceptanceCriteria, ownerId, targetDate);
+        var after = deliverable.Details;
+
+        if (before != after)
+        {
+            Raise(new ProjectDeliverableDetailsUpdatedEvent(Id, Key, deliverable.Id, after, before, actor.ToEventActor(), timestamp));
+        }
+
+        return deliverable;
+    }
+
+    /// <summary>
+    /// Moves a deliverable to another status of its workflow — starting, accepting, descoping or reopening it —
+    /// on behalf of an actor who must be authorized to manage the project. Needs that deliverable loaded.
+    /// </summary>
+    /// <param name="status">A status of the workflow governing deliverables, resolved by the caller.</param>
+    /// <param name="reason">Why; required for a Removed status such as Descoped.</param>
+    public Result<ProjectDeliverable> ChangeDeliverableStatus(
+        PpmActor actor,
+        ProjectAncestryRoles ancestry,
+        Guid deliverableId,
+        StatusRef status,
+        string? reason,
+        Instant timestamp)
+    {
+        Guard.Against.Null(status, nameof(status));
+
+        var found = ManageableDeliverable(actor, ancestry, deliverableId);
+        if (found.IsFailure)
+            return found;
+
+        var deliverable = found.Value;
+        if (deliverable.StatusId == status.StatusId)
+            return deliverable;
+
+        var (fromStatusId, fromStatusName, fromCategory, fromAlias) =
+            (deliverable.StatusId, deliverable.StatusName, deliverable.StatusCategory, deliverable.StatusAlias);
+
+        var moved = deliverable.MoveTo(status, reason, actor.EmployeeIdOrNull, actor.ToEventActor(), timestamp);
+        if (moved.IsFailure)
+            return Result.Failure<ProjectDeliverable>(moved.Error);
+
+        Raise(new ProjectDeliverableStatusChangedEvent(
+            Id, Key, deliverable.Id,
+            fromStatusId, fromStatusName, fromCategory, fromAlias,
+            deliverable.StatusId, deliverable.StatusName, deliverable.StatusCategory, deliverable.StatusAlias,
+            deliverable.StatusReason, actor.ToEventActor(), timestamp));
+
+        return deliverable;
+    }
+
+    /// <summary>
+    /// Puts the project's deliverables in a new order, on behalf of an actor who must be authorized to manage
+    /// it. <paramref name="orderedIds"/> names every deliverable exactly once. Needs <see cref="Deliverables"/>
+    /// loaded.
+    /// </summary>
+    public Result ReorderDeliverables(PpmActor actor, ProjectAncestryRoles ancestry, IReadOnlyList<Guid> orderedIds, Instant timestamp)
+    {
+        Guard.Against.Null(orderedIds, nameof(orderedIds));
+
+        if (!CanManageProject(actor, ancestry))
+            return Result.Failure(UnauthorizedDeliverableActorError);
+
+        if (IsClosed)
+            return Result.Failure(ClosedProjectDeliverablesError);
+
+        if (orderedIds.Count != _deliverables.Count
+            || orderedIds.Distinct().Count() != orderedIds.Count
+            || orderedIds.Any(id => _deliverables.All(d => d.Id != id)))
+        {
+            return Result.Failure("The new order must name each of the project's deliverables exactly once.");
+        }
+
+        Guid[] previousOrder = [.. _deliverables.OrderBy(d => d.Order).Select(d => d.Id)];
+        if (previousOrder.SequenceEqual(orderedIds))
+            return Result.Success();
+
+        for (var i = 0; i < orderedIds.Count; i++)
+        {
+            _deliverables.Single(d => d.Id == orderedIds[i]).SetOrder(i + 1);
+        }
+
+        Raise(new ProjectDeliverablesReorderedEvent(Id, Key, previousOrder, [.. orderedIds], actor.ToEventActor(), timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Deletes a deliverable, on behalf of an actor who must be authorized to manage the project. Allowed only
+    /// before work on the project begins — while it is Proposed or Approved — and while the deliverable is still
+    /// in a Proposed status. Later, a deliverable is descoped instead, which keeps it and why. Needs that
+    /// deliverable loaded.
+    /// </summary>
+    public Result RemoveDeliverable(PpmActor actor, ProjectAncestryRoles ancestry, Guid deliverableId, Instant timestamp)
+    {
+        var found = ManageableDeliverable(actor, ancestry, deliverableId);
+        if (found.IsFailure)
+            return found;
+
+        var deliverable = found.Value;
+
+        if (Status is not (ProjectStatus.Proposed or ProjectStatus.Approved) || deliverable.StatusCategory != StatusCategory.Proposed)
+            return Result.Failure("Only a deliverable not yet started, on a project not yet started, can be deleted. Descope it instead.");
+
+        _deliverables.Remove(deliverable);
+
+        Raise(new ProjectDeliverableRemovedEvent(Id, Key, deliverable.Id, deliverable.Name, actor.ToEventActor(), timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// The loaded deliverable an actor may change: they manage the project, and the project is still open.
+    /// </summary>
+    private Result<ProjectDeliverable> ManageableDeliverable(PpmActor actor, ProjectAncestryRoles ancestry, Guid deliverableId)
+    {
+        if (!CanManageProject(actor, ancestry))
+            return Result.Failure<ProjectDeliverable>(UnauthorizedDeliverableActorError);
+
+        if (IsClosed)
+            return Result.Failure<ProjectDeliverable>(ClosedProjectDeliverablesError);
+
+        var deliverable = _deliverables.FirstOrDefault(d => d.Id == deliverableId);
+        return deliverable is null
+            ? Result.Failure<ProjectDeliverable>($"Deliverable {deliverableId} not found on project {Key}.")
+            : deliverable;
+    }
+
+    #endregion Deliverables
+
+    /// <summary>
+    /// Raises a change to the project record or its deliverables, advancing <see cref="Revision"/> with it.
+    /// </summary>
+    /// <remarks>
+    /// Every such change raises an event, so tying the two together means no change can forget the revision.
+    /// Creation events are added directly instead: they wait for the first save, and a new project starts at
+    /// revision 0.
+    /// </remarks>
+    private void Raise(DomainEvent domainEvent)
+    {
+        Revision++;
+        AddDomainEvent(domainEvent);
+    }
 
     /// <summary>
     /// Creates a new project.

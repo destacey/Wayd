@@ -31,6 +31,7 @@ using Wayd.Infrastructure.SystemSettings;
 using Wayd.Planning.Application.PokerSessions.Interfaces;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
 using Wayd.ProductManagement.Domain;
+using Wayd.ProjectPortfolioManagement.Domain;
 namespace Wayd.Infrastructure;
 
 public static class ConfigureServices
@@ -88,6 +89,7 @@ public static class ConfigureServices
         // the engine holds no module's vocabulary. Idempotent, so a second call is harmless.
         ProductWorkflowOwners.Register();
         DemandManagementWorkflowOwners.Register();
+        PpmWorkflowOwners.Register();
 
         // Registered by hand rather than by the marker scan: that scan binds one implementation per
         // interface, so migrators sharing IStatusRecordMigrator would collapse to whichever was
@@ -99,6 +101,7 @@ public static class ConfigureServices
         services.AddScoped<IStatusRecordMigrator, ReleasePackageStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, DeploymentStatusRecordMigrator>();
         services.AddScoped<IStatusRecordMigrator, IntakeRequestStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordMigrator, ProjectDeliverableStatusRecordMigrator>();
 
         services.AddScoped<IStatusRecordCounter, ProductStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, VersionStatusRecordMigrator>();
@@ -106,6 +109,7 @@ public static class ConfigureServices
         services.AddScoped<IStatusRecordCounter, ReleasePackageStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, DeploymentStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, IntakeRequestStatusRecordMigrator>();
+        services.AddScoped<IStatusRecordCounter, ProjectDeliverableStatusRecordMigrator>();
 
         services.AddFollowing();
         services.AddDiscussions();

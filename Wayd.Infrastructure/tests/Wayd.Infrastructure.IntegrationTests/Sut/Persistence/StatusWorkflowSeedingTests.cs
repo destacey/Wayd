@@ -13,6 +13,7 @@ using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Infrastructure.Persistence.Initialization;
 using Wayd.ProductManagement.Domain;
+using Wayd.ProjectPortfolioManagement.Domain;
 
 namespace Wayd.Infrastructure.IntegrationTests.Sut.Persistence;
 
@@ -39,12 +40,14 @@ public sealed class StatusWorkflowSeedingTests(SqlServerDbContextFixture fixture
     }
 
     /// <summary>Every owner type a module seeds a default workflow for.</summary>
-    private static WorkflowOwnerDescriptor[] SeededOwners => [.. ProductWorkflowOwners.All, .. DemandManagementWorkflowOwners.All];
+    private static WorkflowOwnerDescriptor[] SeededOwners =>
+        [.. ProductWorkflowOwners.All, .. DemandManagementWorkflowOwners.All, .. PpmWorkflowOwners.All];
 
     private async Task SeedAll(WaydDbContext context)
     {
         await new ProductManagementWorkflowSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
         await new DemandManagementWorkflowSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
+        await new PpmWorkflowSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
         await new WorkflowAliasNameSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
         await new ProductTypeSeeder().Initialize(context, DateTimeProvider(), TestContext.Current.CancellationToken);
     }

@@ -346,7 +346,7 @@ What you can change depends on your role:
 | **Tag axes offered** | Yes | Yes |
 | **Conversations**: internal notes, mentions | Yes | Yes |
 | Name or remove **Agents** | Yes | Yes |
-| **Review workflow** | Yes, while no request is on it | Yes, while no request is on it |
+| **Review workflow** | Yes | Yes |
 | Name or remove **Desk Admins** | No | Yes |
 | **Visibility** | No | Yes |
 | **Delete** the desk | No | Yes, while no request is on it |
@@ -394,7 +394,15 @@ The desk uses the scale's version current when it was chosen. When the scale's v
 
 **Review Workflow** in the desk's Settings names the workflow its requests follow, marked **Organization default** while the desk follows the default. **Change Workflow** lets a Desk Admin or the Demand Management Admin choose any published intake workflow. The workflows themselves are built and changed in [Settings → Status Workflows](../settings/status-workflows.mdx), which needs the status workflow permissions.
 
-Choosing a workflow other than the default gives the desk its own, so a later change to the default no longer reaches it. Choosing the default's workflow again puts the desk back on the default, and changes to it reach the desk once more. A desk's workflow can be chosen only while no request is on it, closed ones included — moving a desk's requests onto another workflow is not supported yet. Choose it when you set the desk up, before requesters can pick it.
+Choosing a workflow other than the default gives the desk its own, so a later change to the default no longer reaches it. Choosing the default's workflow again puts the desk back on the default, and changes to it reach the desk once more.
+
+Every request on the desk, closed ones included, moves to the new workflow with it. The change runs in three steps, or two for a desk with no request, which has nothing to map:
+
+1. **Workflow** — choose a published intake workflow other than the one the desk follows. Wayd says how many requests on the desk will move.
+2. **Mapping** — each status of the current workflow, with how many of the desk's requests are in it, and the status they land in. Wayd matches what it can, by meaning, then by name, then by category when the new workflow has only one status there; choose the rest, and change any match you disagree with. A request lands in a Duplicate status only while it names the request it duplicates, and in a closing status that needs a reason only while it has one. A mapping that would break either is refused, nothing moves, and Wayd returns you to this step naming every request it refused, with your choices kept and the counts refreshed.
+3. **Confirm** — the number of requests moving, from which workflow to which.
+
+Each request's move is recorded in its status history and its Activity. A request keeps its reason while it lands in a closed status, and loses it when it lands in an open one; one that lands anywhere but Duplicate no longer names a surviving request. Moving back is another change, recorded the same way. The mapping steps are the same as [reassigning a workflow in Settings](../settings/status-workflows.mdx#changing-which-workflow-is-used).
 
 If someone else changes the desk while you have its settings or members open, your save is refused with a message to reload, rather than quietly undoing their change — and saving again from the same form is refused too. Close the form, reopen it to see their change, and make yours again.
 

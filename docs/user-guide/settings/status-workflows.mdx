@@ -241,7 +241,7 @@ A record type can have several workflows — the one in use, a draft being prepa
 This is the only operation in Wayd that rewrites every record of a type at once, so it runs in three reviewed steps.
 
 :::note[Intake requests are chosen per desk]
-Each intake desk follows the organization's default Intake Request workflow — the one **Change workflow** acts on here — unless its Desk Admins choose another on the [desk's own Settings](../demand-management/index.mdx#choosing-a-desks-review-workflow). Moving intake requests onto another workflow is not supported yet, so reassigning the default is refused while any request follows it, and a desk's workflow can be chosen only while no request is on it.
+Each intake desk follows the organization's default Intake Request workflow — the one **Change workflow** acts on here — unless its Desk Admins choose another on the [desk's own Settings](../demand-management/index.mdx#choosing-a-desks-review-workflow). Reassigning the default moves only the requests on desks that follow it; a desk with its own workflow keeps its requests where they are.
 :::
 
 ### 1. Choose a target

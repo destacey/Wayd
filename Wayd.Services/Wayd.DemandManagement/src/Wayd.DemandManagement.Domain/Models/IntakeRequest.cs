@@ -473,6 +473,59 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         category is StatusCategory.Proposed or StatusCategory.Active;
 
     /// <summary>
+    /// Moves the request onto the workflow its desk is changing to, into the status the remap sends its own
+    /// status to. Needs <see cref="Outcomes"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Exempt from the target workflow's transitions, like any workflow migration, but not from what a status
+    /// means for a request: a request lands in a Duplicate status only while it names the request it duplicates,
+    /// and in a status needing a reason (<see cref="NeedsReason"/>) only while it has one. The reason and the
+    /// surviving request are kept while they still describe the status it lands in, and cleared otherwise. A
+    /// request already on the target workflow is left as it is, so an interrupted migration can be repeated.
+    /// </remarks>
+    public Result FollowWorkflowChange(StatusRemap remap, EventActor actor, Instant timestamp)
+    {
+        var allowed = CanFollowWorkflowChange(remap);
+        if (allowed.IsFailure)
+            return allowed;
+
+        var switched = SwitchWorkflow(remap, actor, timestamp);
+        if (switched.IsFailure)
+            return switched;
+
+        if (StatusAlias != IntakeRequestStatusAlias.Duplicate)
+            DuplicateOfId = null;
+        if (IsOpen)
+            StatusReason = null;
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Whether <see cref="FollowWorkflowChange"/> would accept the status the remap sends this request to,
+    /// without changing anything, so a migration can name every refused request before moving any. Needs
+    /// <see cref="Outcomes"/> loaded.
+    /// </summary>
+    public Result CanFollowWorkflowChange(StatusRemap remap)
+    {
+        Guard.Against.Null(remap);
+
+        if (remap.For(StatusId) is not { } target)
+            return Result.Success();
+
+        var alias = (IntakeRequestStatusAlias)target.Alias;
+        if (alias == IntakeRequestStatusAlias.Duplicate && DuplicateOfId is null)
+            return Result.Failure(
+                $"Request {Key} would move to '{target.Name}', which is only for a duplicate. Choose another status for '{StatusName}'.");
+
+        if (NeedsReason(target.Category, alias, _outcomes.Count > 0) && StatusReason is null)
+            return Result.Failure(
+                $"Request {Key} would move to '{target.Name}', which needs a reason it does not have. Choose another status for '{StatusName}'.");
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Whether moving a request into a status needs a reason the requester can read: closing it in any Removed
     /// status but Withdrawn, and finishing it with no outcome.
     /// </summary>

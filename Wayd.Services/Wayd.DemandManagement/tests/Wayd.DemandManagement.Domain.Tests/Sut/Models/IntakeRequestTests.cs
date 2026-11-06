@@ -1176,6 +1176,153 @@ public sealed class IntakeRequestTests
 
     #endregion Reroute
 
+    #region FollowWorkflowChange
+
+    private static IntakeRequest RequestIn(StatusWorkflow workflow, string statusName, string? reason = null, Guid? duplicateOfId = null)
+    {
+        var status = workflow.Status(statusName);
+        return new IntakeRequestFaker()
+            .WithStatusWorkflowId(workflow.Id)
+            .WithStatusId(status.Id)
+            .WithStatusName(status.Name)
+            .WithStatusCategory(status.Category)
+            .WithStatusAlias((IntakeRequestStatusAlias)status.Alias)
+            .WithStatusReason(reason)
+            .WithDuplicateOfId(duplicateOfId)
+            .Generate();
+    }
+
+    private static (StatusWorkflow From, StatusWorkflow To, StatusRemap Remap) AWorkflowChange()
+    {
+        var from = IntakeWorkflowFactory.Default("Current");
+        var to = IntakeWorkflowFactory.Default("Target");
+        return (from, to, StatusRemap.AutoMap(from, to).Value);
+    }
+
+    [Fact]
+    public void FollowWorkflowChange_MovesTheRequestOntoTheTargetAndRecordsTheSwitch()
+    {
+        // Arrange
+        var (from, to, remap) = AWorkflowChange();
+        var sut = RequestIn(from, "Accepted");
+
+        // Act
+        var result = sut.FollowWorkflowChange(remap, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusWorkflowId.Should().Be(to.Id);
+        sut.StatusId.Should().Be(to.Status("Accepted").Id);
+        sut.StatusTransitions.Should().ContainSingle();
+        var switched = sut.DomainEvents.OfType<StatusWorkflowSwitchedEvent>().Should().ContainSingle().Subject;
+        switched.FromWorkflowId.Should().Be(from.Id);
+        switched.ToWorkflowId.Should().Be(to.Id);
+        switched.Reason.Should().BeNull();
+    }
+
+    [Fact]
+    public void FollowWorkflowChange_ForAClosedRequestLandingClosed_KeepsItsReason()
+    {
+        // Arrange
+        var (from, _, remap) = AWorkflowChange();
+        var sut = RequestIn(from, "Declined", reason: "Out of scope this year.");
+
+        // Act
+        var result = sut.FollowWorkflowChange(remap, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusReason.Should().Be("Out of scope this year.");
+    }
+
+    [Fact]
+    public void FollowWorkflowChange_LandingOpen_ClearsTheReason()
+    {
+        // Arrange
+        var (from, to, remap) = AWorkflowChange();
+        remap.Resolve(from.Status("Declined").Id, to.Status("In Review"));
+        var sut = RequestIn(from, "Declined", reason: "Out of scope this year.");
+
+        // Act
+        var result = sut.FollowWorkflowChange(remap, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusId.Should().Be(to.Status("In Review").Id);
+        sut.StatusReason.Should().BeNull();
+    }
+
+    [Fact]
+    public void FollowWorkflowChange_ForADuplicateLandingElsewhere_ClearsTheSurvivor()
+    {
+        // Arrange
+        var (from, to, remap) = AWorkflowChange();
+        remap.Resolve(from.Status("Duplicate").Id, to.Status("Declined"));
+        var sut = RequestIn(from, "Duplicate", reason: "Same ask as #12.", duplicateOfId: Guid.NewGuid());
+
+        // Act
+        var result = sut.FollowWorkflowChange(remap, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DuplicateOfId.Should().BeNull();
+        sut.StatusReason.Should().Be("Same ask as #12.");
+    }
+
+    [Fact]
+    public void FollowWorkflowChange_IntoDuplicateWithoutASurvivor_FailsAndChangesNothing()
+    {
+        // Arrange
+        var (from, to, remap) = AWorkflowChange();
+        remap.Resolve(from.Status("Declined").Id, to.Status("Duplicate"));
+        var sut = RequestIn(from, "Declined", reason: "Out of scope this year.");
+
+        // Act
+        var result = sut.FollowWorkflowChange(remap, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("only for a duplicate");
+        sut.StatusWorkflowId.Should().Be(from.Id);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void FollowWorkflowChange_IntoAStatusNeedingAReasonWithoutOne_FailsAndChangesNothing()
+    {
+        // Arrange
+        var (from, to, remap) = AWorkflowChange();
+        remap.Resolve(from.Status("In Review").Id, to.Status("Declined"));
+        var sut = RequestIn(from, "In Review");
+
+        // Act
+        var result = sut.FollowWorkflowChange(remap, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("needs a reason");
+        sut.StatusWorkflowId.Should().Be(from.Id);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void FollowWorkflowChange_ForARequestAlreadyOnTheTarget_ChangesNothing()
+    {
+        // Arrange — an interrupted migration is repeated
+        var (_, to, remap) = AWorkflowChange();
+        var sut = RequestIn(to, "Accepted");
+
+        // Act
+        var result = sut.FollowWorkflowChange(remap, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.StatusTransitions.Should().BeEmpty();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion FollowWorkflowChange
+
     #region ChangeStatus
 
     [Theory]

@@ -1,21 +1,40 @@
 ﻿namespace Wayd.Common.Domain.FeatureManagement;
 
 /// <summary>
-/// Defines all known feature flag names used in the application.
-/// Add new entries here when introducing a feature flag.
-/// The seeder will automatically create any missing flags on startup.
+/// Every feature flag the application knows, and the only source of each flag's display name,
+/// description and module. Add an entry here when introducing a flag: on startup the seeder creates
+/// missing flags, brings existing ones in line with these definitions, and archives flags no longer
+/// listed here.
 /// </summary>
 public static class FeatureFlags
 {
-    public static readonly FeatureFlagDefinition PlanningPoker = new(Names.PlanningPoker, "Planning Poker", "Controls visibility of the Planning Poker feature.");
-    public static readonly FeatureFlagDefinition StoryMaps = new(Names.StoryMaps, "Story Maps", "Controls visibility of the Story Maps feature.");
-    public static readonly FeatureFlagDefinition ProductManagement = new(Names.ProductManagement, "Product Management", "Controls availability of the Product Management module.");
-    public static readonly FeatureFlagDefinition DeliveryForecasting = new(Names.DeliveryForecasting, "Delivery Forecasting", "Controls availability of Monte Carlo delivery forecasts.");
-    public static readonly FeatureFlagDefinition McpServer = new(Names.McpServer, "MCP Server", "Controls availability of the hosted MCP endpoint (/mcp) that exposes the API as agent tools.");
-    public static readonly FeatureFlagDefinition TeamCapacityManagement = new(Names.TeamCapacityManagement, "Team Capacity Management", "Controls availability of employee allocation to teams and team capacity planning.");
-    public static readonly FeatureFlagDefinition DemandManagement = new(Names.DemandManagement, "Demand Management", "Controls availability of the Demand Management module: intake requests and the desks that review them.");
-    public static readonly FeatureFlagDefinition Following = new(Names.Following, "Following", "Controls availability of following projects, programs, planning interval objectives and intake requests, the Following list, and in-app notifications about changes to those records.");
-    public static readonly FeatureFlagDefinition IncidentManagement = new(Names.IncidentManagement, "Incident Management", "Controls availability of incident management under product management, including severity scales and incident records.");
+    /// <summary>Following records, the Following list and in-app notifications.</summary>
+    public static readonly FeatureFlagDefinition Following = new(Names.Following, "Following", "Follow projects, programs, PI objectives and intake requests, with a Following list and in-app notifications when they change.", FeatureFlagModule.Platform);
+    /// <summary>The hosted MCP endpoint.</summary>
+    public static readonly FeatureFlagDefinition McpServer = new(Names.McpServer, "MCP Server", "The hosted MCP endpoint (/mcp) that exposes the Wayd API as tools for AI agents.", FeatureFlagModule.Platform);
+    /// <summary>Planning Poker sessions.</summary>
+    public static readonly FeatureFlagDefinition PlanningPoker = new(Names.PlanningPoker, "Planning Poker", "Estimate work together in live poker sessions.", FeatureFlagModule.Planning);
+    /// <summary>Story maps.</summary>
+    public static readonly FeatureFlagDefinition StoryMaps = new(Names.StoryMaps, "Story Maps", "Lay out work along a user journey to plan releases.", FeatureFlagModule.Planning);
+    /// <summary>Monte Carlo delivery forecasts.</summary>
+    public static readonly FeatureFlagDefinition DeliveryForecasting = new(Names.DeliveryForecasting, "Delivery Forecasting", "Monte Carlo forecasts of when work will finish, from team throughput.", FeatureFlagModule.Planning);
+    /// <summary>Employee allocation to teams and team capacity planning.</summary>
+    public static readonly FeatureFlagDefinition TeamCapacityManagement = new(Names.TeamCapacityManagement, "Team Capacity Management", "Allocate employees to teams and plan team capacity, including time away and working days.", FeatureFlagModule.Organization);
+    /// <summary>The Product Management module; its switch.</summary>
+    public static readonly FeatureFlagDefinition ProductManagement = new(Names.ProductManagement, "Product Management", "The Product Management module: product catalog, versions, releases and deployments.", FeatureFlagModule.ProductManagement, IsModuleSwitch: true);
+    /// <summary>Incident severity scales and records; needs <see cref="ProductManagement"/> too.</summary>
+    public static readonly FeatureFlagDefinition IncidentManagement = new(Names.IncidentManagement, "Incident Management", "Severity scales and incident records for products.", FeatureFlagModule.ProductManagement);
+    /// <summary>The Demand Management module; its switch.</summary>
+    public static readonly FeatureFlagDefinition DemandManagement = new(Names.DemandManagement, "Demand Management", "The Demand Management module: intake requests and the desks that review them.", FeatureFlagModule.DemandManagement, IsModuleSwitch: true);
+
+    private static readonly Lazy<IReadOnlyList<FeatureFlagDefinition>> _all = new(() => typeof(FeatureFlags)
+        .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+        .Where(f => f.FieldType == typeof(FeatureFlagDefinition))
+        .Select(f => (FeatureFlagDefinition)f.GetValue(null)!)
+        .ToArray());
+
+    /// <summary>Every definition above, in declaration order.</summary>
+    public static IReadOnlyList<FeatureFlagDefinition> All => _all.Value;
 
     /// <summary>
     /// Compile-time constant names for use in attributes (e.g., [FeatureGate]).
@@ -35,9 +54,24 @@ public static class FeatureFlags
 }
 
 /// <summary>
-/// Represents a feature flag definition to be seeded.
-/// <paramref name="DefaultEnabled"/> sets the initial state when the seeder first
-/// creates the flag (admins can toggle it afterward; the seeder never overwrites
-/// an existing flag).
+/// A feature flag as the code defines it.
 /// </summary>
-public sealed record FeatureFlagDefinition(string Name, string DisplayName, string? Description, bool DefaultEnabled = false);
+/// <param name="Name">The kebab-case key the code gates on. Never rename it: a renamed key is a new flag.</param>
+/// <param name="DisplayName">The name shown on the Feature Flags page.</param>
+/// <param name="Description">What turning the flag on makes available, shown beneath its name.</param>
+/// <param name="Module">The area of the app the flag belongs to.</param>
+/// <param name="IsModuleSwitch">
+/// Whether the flag turns its whole module on or off. The page shows it in the module's header and
+/// disables the module's other flags while it is off. At most one flag per module.
+/// </param>
+/// <param name="DefaultEnabled">
+/// The flag's state when the seeder first creates it. Admins toggle it afterwards; the seeder never
+/// changes an existing flag's state.
+/// </param>
+public sealed record FeatureFlagDefinition(
+    string Name,
+    string DisplayName,
+    string Description,
+    FeatureFlagModule Module,
+    bool IsModuleSwitch = false,
+    bool DefaultEnabled = false);

@@ -450,7 +450,7 @@ public sealed class WaydSeedClient : IDisposable
     /// </remarks>
     public async Task<bool> EnsureFeatureFlagEnabled(string name, CancellationToken cancellationToken)
     {
-        var flags = await _featureFlagsClient.FeatureFlagsAsync(includeArchived: false, cancellationToken);
+        var flags = await _featureFlagsClient.FeatureFlagsAsync(cancellationToken);
         var flag = flags.FirstOrDefault(f => string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase))
             ?? throw new SeedException($"The environment has no '{name}' feature flag. Is the API older than this tool?");
 

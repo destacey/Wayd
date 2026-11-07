@@ -1233,16 +1233,11 @@ export class FeatureFlagsClient {
     }
 
     /**
-     * Get a list of all feature flags.
-     * @param includeArchived (optional) 
+     * Get the feature flags defined in code.
      * @return OK
      */
-    featureFlags(includeArchived?: boolean | undefined, cancelToken?: CancelToken): Promise<FeatureFlagListDto[]> {
-        let url_ = this.baseUrl + "/api/admin/feature-flags?";
-        if (includeArchived === null)
-            throw new globalThis.Error("The parameter 'includeArchived' cannot be null.");
-        else if (includeArchived !== undefined)
-            url_ += "includeArchived=" + encodeURIComponent("" + includeArchived) + "&";
+    featureFlags( cancelToken?: CancelToken): Promise<FeatureFlagDto[]> {
+        let url_ = this.baseUrl + "/api/admin/feature-flags";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -1265,7 +1260,7 @@ export class FeatureFlagsClient {
         });
     }
 
-    protected processFeatureFlags(response: AxiosResponse): Promise<FeatureFlagListDto[]> {
+    protected processFeatureFlags(response: AxiosResponse): Promise<FeatureFlagDto[]> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1280,31 +1275,21 @@ export class FeatureFlagsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<FeatureFlagListDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
+            return Promise.resolve<FeatureFlagDto[]>(result200);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<FeatureFlagListDto[]>(null as any);
+        return Promise.resolve<FeatureFlagDto[]>(null as any);
     }
 
     /**
-     * Get feature flag details.
+     * Get the modules feature flags are grouped under.
      * @return OK
      */
-    featureFlag(id: number, cancelToken?: CancelToken): Promise<FeatureFlagDto> {
-        let url_ = this.baseUrl + "/api/admin/feature-flags/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+    modules( cancelToken?: CancelToken): Promise<FeatureFlagModuleDto[]> {
+        let url_ = this.baseUrl + "/api/admin/feature-flags/modules";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -1323,11 +1308,11 @@ export class FeatureFlagsClient {
                 throw _error;
             }
         }).then((_response: AxiosResponse) => {
-            return this.processFeatureFlag(_response);
+            return this.processModules(_response);
         });
     }
 
-    protected processFeatureFlag(response: AxiosResponse): Promise<FeatureFlagDto> {
+    protected processModules(response: AxiosResponse): Promise<FeatureFlagModuleDto[]> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -1342,89 +1327,13 @@ export class FeatureFlagsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<FeatureFlagDto>(result200);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
+            return Promise.resolve<FeatureFlagModuleDto[]>(result200);
 
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<FeatureFlagDto>(null as any);
-    }
-
-    /**
-     * Update a feature flag.
-     * @return No Content
-     */
-    update(id: number, request: UpdateFeatureFlagRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/admin/feature-flags/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUpdate(_response);
-        });
-    }
-
-    protected processUpdate(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 422) {
-            const _responseText = response.data;
-            let result422: any = null;
-            let resultData422  = _responseText;
-            result422 = resultData422;
-            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
+        return Promise.resolve<FeatureFlagModuleDto[]>(null as any);
     }
 
     /**
@@ -1462,64 +1371,6 @@ export class FeatureFlagsClient {
     }
 
     protected processToggle(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-
-    /**
-     * Archive a feature flag.
-     * @return No Content
-     */
-    archive(id: number, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/admin/feature-flags/{id}/archive";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "PUT",
-            url: url_,
-            headers: {
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processArchive(_response);
-        });
-    }
-
-    protected processArchive(response: AxiosResponse): Promise<void> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -62527,6 +62378,11 @@ export interface CommonEnumDto {
 }
 
 /** One value of a closed set of options, carrying the stable `code` that endpoints filtering on the set accept. */
+export interface CommonEnumDtoOfFeatureFlagModule extends CommonEnumDto {
+    code: FeatureFlagModule;
+}
+
+/** One value of a closed set of options, carrying the stable `code` that endpoints filtering on the set accept. */
 export interface CommonEnumDtoOfIntakeDeskRole extends CommonEnumDto {
     code: IntakeDeskRole;
 }
@@ -64298,25 +64154,34 @@ export interface FailDeploymentRequest {
     completedAt?: Date | undefined;
 }
 
+/** A feature flag as the Feature Flags page shows it. Everything but bool FeatureFlagDto.IsEnabled comes from the flag's definition in code. */
 export interface FeatureFlagDto {
+    /** The flag's id, used to toggle it. */
     id: number;
+    /** The kebab-case key the code gates on. */
     name: string;
+    /** The flag's display name. */
     displayName: string;
+    /** What turning the flag on makes available. */
     description?: string | undefined;
+    /** The area of the app the flag belongs to. */
+    module: FeatureFlagModule;
+    /** Whether the flag turns its whole module on or off. While it is off, the module's other flags have no effect. */
+    isModuleSwitch: boolean;
+    /** Whether the feature is on for the whole organization. */
     isEnabled: boolean;
-    isArchived: boolean;
-    isSystem: boolean;
-    created: Date;
-    lastModified: Date;
 }
 
-export interface FeatureFlagListDto {
-    id: number;
-    name: string;
-    displayName: string;
-    isEnabled: boolean;
-    isArchived: boolean;
-    isSystem: boolean;
+export enum FeatureFlagModule {
+    Platform = "Platform",
+    Planning = "Planning",
+    Organization = "Organization",
+    ProductManagement = "ProductManagement",
+    DemandManagement = "DemandManagement",
+}
+
+/** An area of the app that feature flags are grouped under, with its name, description and display order. */
+export interface FeatureFlagModuleDto extends CommonEnumDtoOfFeatureFlagModule {
 }
 
 /** How many records the caller follows and can still read, by owner type and by "needs a look" view. */
@@ -71405,12 +71270,6 @@ export interface UpdateExpenditureCategoryRequest {
     requiresDepreciation: boolean;
     /** Reporting codes or financial classifications for the expenditure category. */
     accountingCode?: string | undefined;
-}
-
-export interface UpdateFeatureFlagRequest {
-    id: number;
-    displayName: string;
-    description?: string | undefined;
 }
 
 /** A free tag's new name and description. Every request carrying the tag reads the new name. */

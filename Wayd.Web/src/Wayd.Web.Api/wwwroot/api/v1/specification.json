@@ -49020,19 +49020,9 @@
         "tags": [
           "FeatureFlags"
         ],
-        "summary": "Get a list of all feature flags.",
+        "summary": "Get the feature flags defined in code.",
+        "description": "Each flag's name, description and module come from its definition in code; only whether it is enabled can change. Flags no longer defined in code are archived and left out.",
         "operationId": "FeatureFlags_FeatureFlags",
-        "parameters": [
-          {
-            "name": "includeArchived",
-            "in": "query",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "x-position": 1
-          }
-        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -49041,18 +49031,8 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/FeatureFlagListDto"
+                    "$ref": "#/components/schemas/FeatureFlagDto"
                   }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
                 }
               }
             }
@@ -49065,103 +49045,23 @@
         ]
       }
     },
-    "/api/admin/feature-flags/{id}": {
+    "/api/admin/feature-flags/modules": {
       "get": {
         "tags": [
           "FeatureFlags"
         ],
-        "summary": "Get feature flag details.",
-        "operationId": "FeatureFlags_FeatureFlag",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "x-position": 1
-          }
-        ],
+        "summary": "Get the modules feature flags are grouped under.",
+        "operationId": "FeatureFlags_Modules",
         "responses": {
           "200": {
             "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FeatureFlagDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": [ ]
-          }
-        ]
-      },
-      "put": {
-        "tags": [
-          "FeatureFlags"
-        ],
-        "summary": "Update a feature flag.",
-        "operationId": "FeatureFlags_Update",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "x-position": 1
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateFeatureFlagRequest"
-              }
-            }
-          },
-          "required": true,
-          "x-name": "request",
-          "x-position": 2
-        },
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeatureFlagModuleDto"
+                  }
                 }
               }
             }
@@ -49205,47 +49105,6 @@
           "x-name": "request",
           "x-position": 2
         },
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": [ ]
-          }
-        ]
-      }
-    },
-    "/api/admin/feature-flags/{id}/archive": {
-      "put": {
-        "tags": [
-          "FeatureFlags"
-        ],
-        "summary": "Archive a feature flag.",
-        "operationId": "FeatureFlags_Archive",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "x-position": 1
-          }
-        ],
         "responses": {
           "204": {
             "description": "No Content"
@@ -55628,6 +55487,26 @@
         },
         "additionalProperties": false
       },
+      "CommonEnumDtoOfFeatureFlagModule": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDto"
+          },
+          {
+            "required": [
+              "code"
+            ],
+            "type": "object",
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/FeatureFlagModule"
+              }
+            },
+            "additionalProperties": false
+          }
+        ],
+        "description": "One value of a closed set of options, carrying the stable `code` that endpoints\nfiltering on the set accept."
+      },
       "CommonEnumDtoOfIntakeDeskRole": {
         "allOf": [
           {
@@ -61167,80 +61046,71 @@
           "id",
           "name",
           "displayName",
-          "isEnabled",
-          "isArchived",
-          "isSystem",
-          "created",
-          "lastModified"
+          "module",
+          "isModuleSwitch",
+          "isEnabled"
         ],
         "type": "object",
         "properties": {
           "id": {
             "type": "integer",
+            "description": "The flag's id, used to toggle it.",
             "format": "int32"
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "The kebab-case key the code gates on."
           },
           "displayName": {
-            "type": "string"
+            "type": "string",
+            "description": "The flag's display name."
           },
           "description": {
             "type": "string",
+            "description": "What turning the flag on makes available.",
             "nullable": true
           },
+          "module": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FeatureFlagModule"
+              }
+            ],
+            "description": "The area of the app the flag belongs to."
+          },
+          "isModuleSwitch": {
+            "type": "boolean",
+            "description": "Whether the flag turns its whole module on or off. While it is off, the module's other flags have no effect."
+          },
           "isEnabled": {
-            "type": "boolean"
-          },
-          "isArchived": {
-            "type": "boolean"
-          },
-          "isSystem": {
-            "type": "boolean"
-          },
-          "created": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "lastModified": {
-            "type": "string",
-            "format": "date-time"
+            "type": "boolean",
+            "description": "Whether the feature is on for the whole organization."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "A feature flag as the Feature Flags page shows it. Everything but bool FeatureFlagDto.IsEnabled comes from the\nflag's definition in code."
       },
-      "FeatureFlagListDto": {
-        "required": [
-          "id",
-          "name",
-          "displayName",
-          "isEnabled",
-          "isArchived",
-          "isSystem"
+      "FeatureFlagModule": {
+        "enum": [
+          "Platform",
+          "Planning",
+          "Organization",
+          "ProductManagement",
+          "DemandManagement"
         ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
+        "type": "string"
+      },
+      "FeatureFlagModuleDto": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonEnumDtoOfFeatureFlagModule"
           },
-          "name": {
-            "type": "string"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "isEnabled": {
-            "type": "boolean"
-          },
-          "isArchived": {
-            "type": "boolean"
-          },
-          "isSystem": {
-            "type": "boolean"
+          {
+            "type": "object",
+            "additionalProperties": false
           }
-        },
-        "additionalProperties": false
+        ],
+        "description": "An area of the app that feature flags are grouped under, with its name, description and display order."
       },
       "FollowCountsDto": {
         "required": [
@@ -82964,32 +82834,6 @@
             "maxLength": 64,
             "type": "string",
             "description": "Reporting codes or financial classifications for the expenditure category.",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "UpdateFeatureFlagRequest": {
-        "required": [
-          "id",
-          "displayName"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "minimum": 0,
-            "exclusiveMinimum": true,
-            "type": "integer",
-            "format": "int32"
-          },
-          "displayName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          },
-          "description": {
-            "maxLength": 1024,
-            "type": "string",
             "nullable": true
           }
         },

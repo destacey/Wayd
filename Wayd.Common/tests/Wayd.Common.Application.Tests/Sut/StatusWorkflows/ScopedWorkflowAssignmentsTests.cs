@@ -415,6 +415,59 @@ public sealed class ScopedWorkflowAssignmentsTests : StatusWorkflowHandlerTestBa
     }
 
     [Fact]
+    public async Task Unassign_RecordsTheOrganizationsSchemeTheScopeFollowsNow_WithoutSaving()
+    {
+        // Arrange
+        var organizationDefault = SeedWorkflow("Default", publish: true);
+        var organization = Assign(organizationDefault, null);
+        var own = Assign(SeedWorkflow("Own", publish: true), _scopeId);
+
+        // Act
+        var result = await CreateSut().Unassign(Widget.Key, _scopeId, EventActor.System, Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        // The scope stays, so the event names where it lands rather than reading as the scope being removed.
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeTrue();
+        DbContext.WorkflowAssignments.Should().ContainSingle().Which.Should().BeSameAs(organization);
+        var removed = own.DomainEvents.OfType<WorkflowAssignmentRemovedEvent>().Should().ContainSingle().Subject;
+        removed.ToWorkflowId.Should().Be(organizationDefault.Id);
+        removed.ToSchemeId.Should().Be(organization.SchemeId);
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Unassign_LeavesTheScopeFollowingNothing_WhenTheOrganizationHasNoAssignment()
+    {
+        // Arrange
+        var own = Assign(SeedWorkflow("Own", publish: true), _scopeId);
+
+        // Act
+        var result = await CreateSut().Unassign(Widget.Key, _scopeId, EventActor.System, Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Value.Should().BeTrue();
+        DbContext.WorkflowAssignments.Should().BeEmpty();
+        var removed = own.DomainEvents.OfType<WorkflowAssignmentRemovedEvent>().Should().ContainSingle().Subject;
+        (removed.ToWorkflowId, removed.ToSchemeId).Should().Be((null, null));
+    }
+
+    [Fact]
+    public async Task Unassign_ReportsNothingRemoved_ForAScopeWithoutItsOwn()
+    {
+        // Arrange
+        Assign(SeedWorkflow("Default", publish: true), null);
+
+        // Act
+        var result = await CreateSut().Unassign(Widget.Key, _scopeId, EventActor.System, Now, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().BeFalse();
+        DbContext.WorkflowAssignments.Should().ContainSingle();
+    }
+
+    [Fact]
     public async Task Change_ToADraftWorkflow_Fails()
     {
         // Arrange

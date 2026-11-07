@@ -4,6 +4,7 @@ using NodaTime;
 using Wayd.Common.Domain.Data;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Domain.StatusWorkflows;
 
@@ -102,6 +103,13 @@ public sealed class WorkflowAssignment : BaseAuditableEntity
             return Result.Success();
         }
 
+        // A sync keeps a scope on its managed scheme (SyncFromSource) and would quietly undo the change, and the
+        // records it governs take their statuses from the source rather than from a remap.
+        if (current.Ownership == WorkflowOwnership.Managed || scheme.Ownership == WorkflowOwnership.Managed)
+        {
+            return Result.Failure("A managed scheme is assigned by its sync, so this scope cannot be reassigned here.");
+        }
+
         foreach (var change in StatusWorkflowScheme.WorkflowChanges(current, scheme))
         {
             var remap = remaps.FirstOrDefault(r =>
@@ -130,6 +138,49 @@ public sealed class WorkflowAssignment : BaseAuditableEntity
     }
 
     /// <summary>
+    /// Points this scope at the managed scheme its source now uses, as when an Azure DevOps project moves to
+    /// another process.
+    /// </summary>
+    /// <param name="scheme">The managed scheme the scope follows from now on.</param>
+    /// <param name="defaultWorkflow">That scheme's default workflow, named in the event.</param>
+    /// <remarks>
+    /// No remap is asked for, unlike <see cref="ReassignTo"/>: records under a managed scheme take their
+    /// status from the source, so the next sync of each record lands it in its type's new workflow.
+    /// </remarks>
+    public Result SyncFromSource(StatusWorkflowScheme scheme, StatusWorkflow defaultWorkflow, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(scheme, nameof(scheme));
+
+        if (scheme.Ownership != WorkflowOwnership.Managed)
+        {
+            return Result.Failure("Only a managed scheme is assigned by a sync.");
+        }
+
+        var target = GuardTarget(OwnerType, scheme, defaultWorkflow);
+        if (target.IsFailure)
+        {
+            return target;
+        }
+
+        if (scheme.Id == SchemeId)
+        {
+            return Result.Success();
+        }
+
+        var current = Scheme ?? throw new InvalidOperationException(
+            "The assignment's current scheme must be loaded to reassign it.");
+
+        var (fromSchemeId, fromWorkflowId) = (SchemeId, current.DefaultWorkflowId);
+        SchemeId = scheme.Id;
+        Scheme = scheme;
+
+        AddDomainEvent(new WorkflowAssignedEvent(
+            OwnerType, ScopeId, fromWorkflowId, defaultWorkflow.Id, defaultWorkflow.Name, fromSchemeId, scheme.Id, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Records that a narrower scope's own assignment is being removed, so the scope follows the
     /// organization's scheme again, or because the scope itself is gone. Removing it is the caller's.
     /// </summary>
@@ -139,7 +190,8 @@ public sealed class WorkflowAssignment : BaseAuditableEntity
     /// it is the fallback every scope relies on.
     /// </remarks>
     /// <param name="organizationSchemeId">
-    /// The organization's scheme the scope follows from now on, or <c>null</c> when the scope itself is gone.
+    /// The organization's scheme the scope follows from now on, or <c>null</c> when it follows none: the scope
+    /// itself is gone, or the organization has no assignment.
     /// </param>
     /// <param name="organizationWorkflowId">That scheme's default workflow, or <c>null</c> with it.</param>
     public Result Remove(Guid? organizationSchemeId, Guid? organizationWorkflowId, EventActor actor, Instant timestamp)

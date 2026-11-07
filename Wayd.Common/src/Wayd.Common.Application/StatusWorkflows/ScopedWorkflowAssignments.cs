@@ -73,6 +73,17 @@ public interface IScopedWorkflowAssignments : IScopedService
     /// save: the caller saves it together with the scope's removal.
     /// </summary>
     Task<Result> RemoveScope(string ownerType, Guid scopeId, EventActor actor, Instant timestamp, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Removes a scope's own assignment, when it has one, from a scope that stays: it follows the organization's
+    /// scheme from now on, or none when the organization has no assignment. Does not save.
+    /// </summary>
+    /// <remarks>
+    /// Like <see cref="RemoveScope"/>, it moves no records, so it suits records whose status a source decides
+    /// and that land in their new workflow on their own next sync.
+    /// </remarks>
+    /// <returns>Whether the scope had an assignment to remove.</returns>
+    Task<Result<bool>> Unassign(string ownerType, Guid scopeId, EventActor actor, Instant timestamp, CancellationToken cancellationToken);
 }
 
 /// <summary>The workflow governing a scope.</summary>
@@ -244,6 +255,28 @@ public sealed class ScopedWorkflowAssignments(
             return Result.Failure<int>(pointed.Error);
 
         return await Save(moved, cancellationToken);
+    }
+
+    public async Task<Result<bool>> Unassign(string ownerType, Guid scopeId, EventActor actor, Instant timestamp, CancellationToken cancellationToken)
+    {
+        var descriptor = WorkflowOwners.Resolve(ownerType);
+        if (descriptor.IsFailure)
+            return Result.Failure<bool>(descriptor.Error);
+
+        var key = descriptor.Value.Key;
+
+        var own = await OwnAssignment(key, scopeId, cancellationToken);
+        if (own is null)
+            return Result.Success(false);
+
+        var organization = await OrganizationScheme(key, cancellationToken);
+        var removed = own.Remove(organization?.SchemeId, organization?.WorkflowId, actor, timestamp);
+        if (removed.IsFailure)
+            return Result.Failure<bool>(removed.Error);
+
+        _dbContext.WorkflowAssignments.Remove(own);
+
+        return Result.Success(true);
     }
 
     public async Task<Result> RemoveScope(string ownerType, Guid scopeId, EventActor actor, Instant timestamp, CancellationToken cancellationToken)

@@ -33,6 +33,7 @@ internal static class ProcessWorkItemTypeDtoExtensions
 
         var azdoWorkType = new AzdoWorkType
         {
+            ExternalKey = workItemType.ReferenceName,
             Name = workItemType.Name,
             Description = workItemType.Description,
             WorkTypeLevelId = backlogLevelId,
@@ -41,26 +42,25 @@ internal static class ProcessWorkItemTypeDtoExtensions
             //WorkflowStates = workItemType.States.Select(workItemState => workItemState.ToAzdoWorkflowState()).ToList<IExternalWorkflowState>()
         };
 
-        // there seems to be a bug in the API when including states that duplicates hidden states. Override with the last one for now.
-        foreach (var state in workItemType.States)
+        // An inherited state the process hides is listed twice under one id: the system copy, then the
+        // inherited copy that hides it. The last copy is the one in force, so it decides the state.
+        foreach (var group in workItemType.States.GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase))
         {
-            var existing = azdoWorkType.WorkflowStates.SingleOrDefault(s => s.StatusName == state.Name);
-            if (existing is null)
-            {
-                azdoWorkType.WorkflowStates.Add(state.ToAzdoWorkflowState());
-            }
-            else
-            {
-                var duplicate = state.ToAzdoWorkflowState();
-
-                existing.Category = duplicate.Category;
-                existing.Order = duplicate.Order;
-                existing.IsActive = duplicate.IsActive;
-            }
+            var state = group.Last().ToAzdoWorkflowState();
+            state.StatusName = group.Key;
+            state.ExternalKey = KeyOf(group).Id.ToString("D");
+            azdoWorkType.WorkflowStates.Add(state);
         }
 
         return azdoWorkType;
     }
+
+    /// <summary>
+    /// The copy of a state whose id keys it. The copies of a hidden state share one id; should two ever
+    /// differ, the lowest is taken, so the key does not depend on the order the copies arrive in.
+    /// </summary>
+    private static ProcessWorkItemStateDto KeyOf(IEnumerable<ProcessWorkItemStateDto> copies) =>
+        copies.OrderBy(c => c.Id.ToString("D"), StringComparer.Ordinal).First();
 
     public static IList<IExternalWorkTypeWorkflow> ToIExternalWorkTypes(this List<ProcessWorkItemTypeDto> workItemTypes)
     {

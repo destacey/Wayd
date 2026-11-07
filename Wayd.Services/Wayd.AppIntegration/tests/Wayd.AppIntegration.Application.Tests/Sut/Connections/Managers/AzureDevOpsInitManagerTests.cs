@@ -15,6 +15,7 @@ using Wayd.Common.Application.Requests.WorkManagement.Queries;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Models;
 using Moq;
+using Wayd.AppIntegration.Application.Interfaces;
 using Moq.AutoMock;
 
 namespace Wayd.AppIntegration.Application.Tests.Sut.Connections.Managers;
@@ -431,7 +432,7 @@ public class AzureDevOpsInitManagerTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(wpInternalId);
+        result.Value.Should().Be(new WorkProcessIntegration(wpInternalId, ReadFromSource: false));
         _mocker.GetMock<IDispatcher>()
             .Verify(s => s.Send(It.IsAny<CreateExternalWorkProcessCommand>(), It.IsAny<CancellationToken>()), Times.Never);
         _mocker.GetMock<IDispatcher>()
@@ -498,7 +499,7 @@ public class AzureDevOpsInitManagerTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(wpInternalId);
+        result.Value.Should().Be(new WorkProcessIntegration(wpInternalId, ReadFromSource: false));
 
         // Should NOT create a new work process
         _mocker.GetMock<IDispatcher>()
@@ -579,15 +580,63 @@ public class AzureDevOpsInitManagerTests
             .Setup(s => s.Send(It.IsAny<UpdateAzureDevOpsWorkProcessIntegrationStateCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
 
+        // SyncExternalWorkProcessWorkflowsCommand
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<SyncExternalWorkProcessWorkflowsCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+
         // Act
         var result = await _sut.EnsureWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Should().Be(wpInternalId);
+        result.Value.Should().Be(new WorkProcessIntegration(wpInternalId, ReadFromSource: true));
+        // The process is mirrored in the status workflow engine from what was just read.
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.Is<SyncExternalWorkProcessWorkflowsCommand>(c => c.WorkProcess == mockWpConfig.Object), It.IsAny<CancellationToken>()), Times.Once);
         // Callers refresh the organization configuration themselves.
         _mocker.GetMock<IAzureDevOpsService>()
             .Verify(s => s.TestConnection(It.IsAny<AzureDevOpsConnectionContext>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task EnsureWorkProcessIntegration_WhenTheEngineRefusesTheProcess_StillSetsItUp()
+    {
+        // Arrange
+        var connectionId = Guid.CreateVersion7();
+        var wpExternalId = Guid.CreateVersion7();
+        var wpInternalId = Guid.CreateVersion7();
+
+        var details = CreateConnectionDetails(connectionId,
+            workProcesses: [new AzureDevOpsWorkProcessDto { ExternalId = wpExternalId, Name = "Agile" }]);
+        SetupConnectionQuery(connectionId, details);
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<ExternalWorkProcessExistsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
+        var mockWpConfig = new Mock<IExternalWorkProcessConfiguration>();
+        mockWpConfig.Setup(p => p.Name).Returns("Agile");
+        mockWpConfig.Setup(p => p.WorkTypes).Returns(new List<IExternalWorkTypeWorkflow>());
+        mockWpConfig.Setup(p => p.WorkStatuses).Returns(new List<IExternalWorkStatus>());
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), wpExternalId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(mockWpConfig.Object));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<CreateExternalWorkProcessCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(IntegrationState<Guid>.Create(wpInternalId, true)));
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<UpdateAzureDevOpsWorkProcessIntegrationStateCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<SyncExternalWorkProcessWorkflowsCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure("Unable to sync the workflow for Bug: The source lists New twice."));
+
+        // Act
+        var result = await _sut.EnsureWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
+
+        // Assert
+        // The process is created either way; the next sync of it retries the engine copy.
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Should().Be(new WorkProcessIntegration(wpInternalId, ReadFromSource: true));
     }
 
     #endregion

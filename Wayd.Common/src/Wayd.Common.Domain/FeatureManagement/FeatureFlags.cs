@@ -26,6 +26,11 @@ public static class FeatureFlags
     public static readonly FeatureFlagDefinition IncidentManagement = new(Names.IncidentManagement, "Incident Management", "Severity scales and incident records for products.", FeatureFlagModule.ProductManagement);
     /// <summary>The Demand Management module; its switch.</summary>
     public static readonly FeatureFlagDefinition DemandManagement = new(Names.DemandManagement, "Demand Management", "The Demand Management module: intake requests and the desks that review them.", FeatureFlagModule.DemandManagement, IsModuleSwitch: true);
+    /// <summary>
+    /// Work items' synced workflows, record types and schemes in Status Workflows settings. The sync keeps
+    /// them whether the flag is on or off; it only decides whether administration shows them.
+    /// </summary>
+    public static readonly FeatureFlagDefinition WorkItemStatusWorkflows = new(Names.WorkItemStatusWorkflows, "Work Item Status Workflows", "Shows the workflows, record types and schemes synced for work items in Status Workflows settings. Work items do not follow them yet.", FeatureFlagModule.Platform);
 
     private static readonly Lazy<IReadOnlyList<FeatureFlagDefinition>> _all = new(() => typeof(FeatureFlags)
         .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
@@ -50,6 +55,7 @@ public static class FeatureFlags
         public const string DemandManagement = "demand-management";
         public const string Following = "following";
         public const string IncidentManagement = "incident-management";
+        public const string WorkItemStatusWorkflows = "work-item-status-workflows";
     }
 }
 

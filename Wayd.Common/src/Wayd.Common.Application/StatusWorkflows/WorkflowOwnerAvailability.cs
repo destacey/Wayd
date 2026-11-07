@@ -12,8 +12,9 @@ namespace Wayd.Common.Application.StatusWorkflows;
 /// is absent while the flag is off: its workflows and assignments appear in no list and read as not found,
 /// and none can be created, cloned or reassigned, so an unreleased module shows nowhere in Settings. Edits
 /// to one workflow by id are not checked: they need an id that no read hands out while the flag is off.
-/// Only administration asks this. Resolving a record's workflow does not, because the module's own
-/// endpoints are gated by the same flag.
+/// Only administration asks this. A sync keeping managed workflows does not, since its source changes
+/// whatever the flag, and resolving a record's workflow does not either: a flag may hide only the owner
+/// type's administration (work items' does) rather than the whole module.
 /// </remarks>
 public interface IWorkflowOwnerAvailability : IScopedService
 {

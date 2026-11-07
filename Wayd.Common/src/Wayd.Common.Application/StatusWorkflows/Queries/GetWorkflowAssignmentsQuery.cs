@@ -8,8 +8,9 @@ namespace Wayd.Common.Application.StatusWorkflows.Queries;
 /// Which workflow governs each scope.
 /// </summary>
 /// <remarks>
-/// One row per owner type today: every consumer assigns organization-wide, so the scope is always null.
-/// The shape allows for narrower scopes because the domain does.
+/// One row per assignment: an owner type's organization-wide one, with a null scope, and each scope's own,
+/// such as an intake desk or a synced workspace. An owner type need not have an organization-wide row: work
+/// items have only their workspaces'.
 /// </remarks>
 public sealed record GetWorkflowAssignmentsQuery(string? OwnerType) : IQuery<List<WorkflowAssignmentDto>>;
 

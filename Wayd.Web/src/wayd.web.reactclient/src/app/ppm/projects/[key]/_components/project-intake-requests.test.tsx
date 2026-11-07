@@ -16,6 +16,12 @@ jest.mock(
   }),
 )
 
+const mockDeliverables = jest.fn()
+jest.mock('@/src/store/features/ppm/project-deliverables-api', () => ({
+  useGetProjectDeliverablesQuery: (projectId: string) =>
+    mockDeliverables(projectId),
+}))
+
 const requests: ProjectIntakeRequestDto[] = [
   {
     request: { id: 'r-7', key: 7, title: 'Export invoices' },
@@ -27,12 +33,39 @@ const requests: ProjectIntakeRequestDto[] = [
     },
     kind: IntakeRequestOutcomeKind.ExistingProjectScope,
     note: 'The export screen',
+    deliverableIds: [] as string[],
   } as ProjectIntakeRequestDto,
 ]
 
 describe('ProjectIntakeRequests', () => {
   beforeEach(() => {
     mockQuery.mockReset()
+    mockDeliverables.mockReset()
+    mockDeliverables.mockReturnValue({ data: [] })
+  })
+
+  it('names the deliverables a request waits on, by their names on the project', () => {
+    // Arrange
+    mockQuery.mockReturnValue({
+      data: [{ ...requests[0], deliverableIds: ['d-2', 'd-1'] }],
+      isLoading: false,
+    })
+    mockDeliverables.mockReturnValue({
+      data: [
+        { id: 'd-1', name: 'Customer portal' },
+        { id: 'd-2', name: 'Reports' },
+        { id: 'd-3', name: 'Archive' },
+      ],
+    })
+
+    // Act
+    render(<ProjectIntakeRequests projectId="p-1" />)
+
+    // Assert
+    expect(mockDeliverables).toHaveBeenCalledWith('p-1')
+    expect(
+      screen.getByText('Waits on Reports, Customer portal'),
+    ).toBeInTheDocument()
   })
 
   it('lists the requests behind the project, linking each', () => {

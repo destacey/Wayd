@@ -40,6 +40,8 @@ import {
   useReorderProjectDeliverablesMutation,
 } from '@/src/store/features/ppm/project-deliverables-api'
 import { useGetProjectPlanTreeQuery } from '@/src/store/features/ppm/projects-api'
+import { useGetProjectIntakeRequestsQuery } from '@/src/store/features/demand-management/demand-management-api'
+import { requestHref } from '@/src/app/demand-management/_components/intake-requests-grid'
 import { toApiError } from '@/src/utils'
 import { formatCalendarDate } from '@/src/utils/calendar-date'
 import { Card, Flex, Switch, Tag, Typography } from 'antd'
@@ -65,6 +67,8 @@ export interface ProjectDeliverablesProps {
   /** Raised by the section's Add Deliverable action, which the page renders. */
   addRequested: boolean
   onAddClosed: () => void
+  /** Demand Management is on, so each deliverable lists the intake requests it serves. */
+  showIntakeRequests?: boolean
 }
 
 /** Deliverables can be deleted only before the project starts, and only before work on them starts. */
@@ -122,9 +126,18 @@ const ProjectDeliverables = ({
   projectRefreshing,
   addRequested,
   onAddClosed,
+  showIntakeRequests = false,
 }: ProjectDeliverablesProps) => {
   const messageApi = useMessage()
   const { selectedId, select, clear } = useSelectedRecord()
+
+  // Demand Management decides which requests the reader may see, so one on a private desk is simply absent.
+  const { data: intakeRequests = [] } = useGetProjectIntakeRequestsQuery(
+    project.id,
+    { skip: !showIntakeRequests },
+  )
+  const requestsServedBy = (deliverableId: string) =>
+    intakeRequests.filter((r) => r.deliverableIds.includes(deliverableId))
 
   const { data, isLoading, isFetching, refetch } =
     useGetProjectDeliverablesQuery(project.id)
@@ -319,6 +332,18 @@ const ProjectDeliverables = ({
       size: 160,
       meta: { columnType: 'dateTime' },
     },
+    ...(showIntakeRequests
+      ? [
+          {
+            id: 'intakeRequests',
+            header: 'Requests',
+            size: 110,
+            enableColumnFilter: false,
+            accessorFn: (d: ProjectDeliverableDto) =>
+              requestsServedBy(d.id).length,
+          } satisfies ColumnDef<ProjectDeliverableDto, number>,
+        ]
+      : []),
   ]
 
   const details = selected && (
@@ -367,6 +392,21 @@ const ProjectDeliverables = ({
       )}
       {selected.statusReason && (
         <LabeledContent label="Reason">{selected.statusReason}</LabeledContent>
+      )}
+      {showIntakeRequests && (
+        <LabeledContent label="Intake Requests">
+          {requestsServedBy(selected.id).length === 0 ? (
+            <Text type="secondary">None you can see</Text>
+          ) : (
+            <Flex vertical gap={2}>
+              {requestsServedBy(selected.id).map((r) => (
+                <Link key={r.request.id} href={requestHref(r.request.key)}>
+                  {r.request.key} · {r.request.title}
+                </Link>
+              ))}
+            </Flex>
+          )}
+        </LabeledContent>
       )}
       <LabeledContent label="Description">
         {selected.description ? (

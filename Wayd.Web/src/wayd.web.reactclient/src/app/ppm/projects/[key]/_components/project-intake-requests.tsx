@@ -5,6 +5,7 @@ import { outcomeKindLabel } from '@/src/app/demand-management/_components/outcom
 import WaydList from '@/src/components/common/wayd-list'
 import { WorkflowStatusTag } from '@/src/components/common/status-workflows'
 import { useGetProjectIntakeRequestsQuery } from '@/src/store/features/demand-management/demand-management-api'
+import { useGetProjectDeliverablesQuery } from '@/src/store/features/ppm/project-deliverables-api'
 import { Alert, Button, Flex, Spin, Tag, Typography } from 'antd'
 import NextLink from 'next/link'
 import { FC } from 'react'
@@ -24,6 +25,10 @@ const ProjectIntakeRequests: FC<ProjectIntakeRequestsProps> = ({
 }) => {
   const { data, isLoading, error, refetch } =
     useGetProjectIntakeRequestsQuery(projectId)
+  // Named from PPM's own list, which the reader can see since they are on the project's page.
+  const { data: deliverables = [] } = useGetProjectDeliverablesQuery(projectId)
+  const deliverableName = (id: string) =>
+    deliverables.find((d) => d.id === id)?.name
 
   if (isLoading) return <Spin />
 
@@ -65,7 +70,22 @@ const ProjectIntakeRequests: FC<ProjectIntakeRequestsProps> = ({
                 <Tag>{outcomeKindLabel[item.kind]}</Tag>
               </Flex>
             }
-            description={item.note && <Text>{item.note}</Text>}
+            description={
+              (item.note || item.deliverableIds.length > 0) && (
+                <Flex vertical gap={4}>
+                  {item.note && <Text>{item.note}</Text>}
+                  {item.deliverableIds.length > 0 && (
+                    <Text type="secondary">
+                      Waits on{' '}
+                      {item.deliverableIds
+                        .map((id) => deliverableName(id))
+                        .filter((name): name is string => !!name)
+                        .join(', ') || 'deliverables since deleted'}
+                    </Text>
+                  )}
+                </Flex>
+              )
+            }
           />
         </WaydList.Item>
       )}

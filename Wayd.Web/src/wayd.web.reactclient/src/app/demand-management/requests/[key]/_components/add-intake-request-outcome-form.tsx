@@ -12,6 +12,7 @@ import { useSearchWorkItemsQuery } from '@/src/store/features/work-management/wo
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Form, Input, Modal, Radio, Select, Typography } from 'antd'
 import { FC, useState } from 'react'
+import OutcomeDeliverablesSelect from './outcome-deliverables-select'
 
 const { Item } = Form
 const { Paragraph } = Typography
@@ -28,6 +29,7 @@ interface AddOutcomeFormValues {
   projectId?: string
   workItemId?: string
   note?: string
+  deliverableIds?: string[]
 }
 
 /**
@@ -70,6 +72,8 @@ const AddIntakeRequestOutcomeForm: FC<AddIntakeRequestOutcomeFormProps> = ({
     useModalForm<AddOutcomeFormValues>({
       onSubmit: async (values, form) => {
         const isWorkItem = values.kind === IntakeRequestOutcomeKind.WorkItem
+        const isScope =
+          values.kind === IntakeRequestOutcomeKind.ExistingProjectScope
         try {
           await addOutcome({
             requestId: request.summary.id,
@@ -78,6 +82,7 @@ const AddIntakeRequestOutcomeForm: FC<AddIntakeRequestOutcomeFormProps> = ({
               projectId: isWorkItem ? undefined : values.projectId,
               workItemId: isWorkItem ? values.workItemId : undefined,
               note: values.note,
+              deliverableIds: isScope ? values.deliverableIds : undefined,
             },
           }).unwrap()
           messageApi.success('Outcome added.')
@@ -189,9 +194,30 @@ const AddIntakeRequestOutcomeForm: FC<AddIntakeRequestOutcomeFormProps> = ({
                   placeholder="Select a project"
                   loading={projectsLoading}
                   options={projectOptions}
+                  // Deliverables belong to one project, so choosing another clears them.
+                  onChange={() => form.setFieldValue('deliverableIds', [])}
                 />
               </Item>
             )
+          }
+        </Item>
+        {/* From the form's store, like the picker above, so it appears on the render the project is chosen. */}
+        <Item noStyle dependencies={['kind', 'projectId']}>
+          {({ getFieldValue }) =>
+            getFieldValue('kind') ===
+              IntakeRequestOutcomeKind.ExistingProjectScope &&
+            getFieldValue('projectId') ? (
+              <Item
+                name="deliverableIds"
+                label="Deliverables"
+                extra="Optional: the project's deliverables that meet this request. It counts as met once every one is accepted."
+              >
+                <OutcomeDeliverablesSelect
+                  requestId={request.summary.id}
+                  projectId={getFieldValue('projectId')}
+                />
+              </Item>
+            ) : null
           }
         </Item>
         <Item

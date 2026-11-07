@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event'
 import {
   IntakeRequestDetailsDto,
   IntakeRequestOutcomeKind,
+  ProjectDeliverableStatusAlias,
+  StatusCategory,
 } from '@/src/services/wayd-api'
 import AddIntakeRequestOutcomeForm from './add-intake-request-outcome-form'
 
@@ -56,8 +58,12 @@ jest.mock(
   '@/src/store/features/demand-management/demand-management-api',
   () => ({
     useAddIntakeRequestOutcomeMutation: () => [mockAdd],
+    useGetIntakeRequestProjectDeliverablesQuery: (args: unknown) =>
+      mockProjectDeliverables(args),
   }),
 )
+
+const mockProjectDeliverables = jest.fn()
 
 const mockSearchWorkItems = jest.fn()
 jest.mock('@/src/store/features/work-management/workspace-api', () => ({
@@ -104,6 +110,25 @@ describe('AddIntakeRequestOutcomeForm', () => {
   beforeEach(() => {
     mockAdd.mockReset()
     mockValidationFailures.length = 0
+    mockProjectDeliverables.mockReset()
+    mockProjectDeliverables.mockReturnValue({
+      data: [
+        {
+          id: 'd-1',
+          name: 'Customer portal',
+          statusCategory: StatusCategory.Active,
+          statusAlias: ProjectDeliverableStatusAlias.InProgress,
+        },
+        {
+          id: 'd-2',
+          name: 'Reports',
+          statusCategory: StatusCategory.Proposed,
+          statusAlias: ProjectDeliverableStatusAlias.NotStarted,
+        },
+      ],
+      isFetching: false,
+      isError: false,
+    })
     mockSearchWorkItems.mockReset()
     mockSearchWorkItems.mockImplementation((term: string) => ({
       data:
@@ -273,6 +298,64 @@ describe('AddIntakeRequestOutcomeForm', () => {
       },
     })
     expect(onFormComplete).toHaveBeenCalled()
+  })
+
+  it('maps existing project scope to the project deliverables chosen', async () => {
+    // Arrange
+    mockAdd.mockReturnValue({ unwrap: () => Promise.resolve(null) })
+    await renderForm()
+    await act(() =>
+      userEvent.click(
+        screen.getByLabelText('Scope added to an existing project'),
+      ),
+    )
+    await openProjectPicker()
+    await act(() => userEvent.click(screen.getByTitle('Borealis (BOREAL)')))
+    await act(() =>
+      userEvent.type(
+        screen.getByLabelText('Note', { selector: 'textarea' }),
+        'The export screen',
+      ),
+    )
+    const picker = screen
+      .getByText('Deliverables')
+      .closest('.ant-form-item')!
+      .querySelector('input')!
+    await act(() => userEvent.click(picker))
+    await act(() => userEvent.click(screen.getByTitle('Reports · Not Started')))
+
+    // Act
+    await act(() =>
+      userEvent.click(screen.getByRole('button', { name: 'Add' })),
+    )
+
+    // Assert
+    expect(mockProjectDeliverables).toHaveBeenCalledWith({
+      requestId: 'r-42',
+      projectId: 'p-2',
+    })
+    expect(mockAdd).toHaveBeenCalledWith({
+      requestId: 'r-42',
+      request: {
+        kind: IntakeRequestOutcomeKind.ExistingProjectScope,
+        projectId: 'p-2',
+        note: 'The export screen',
+        deliverableIds: ['d-2'],
+      },
+    })
+  })
+
+  it('does not offer deliverables for a new project', async () => {
+    // Arrange
+    await renderForm()
+
+    // Act
+    await openProjectPicker()
+    await act(() => userEvent.click(screen.getByTitle('Borealis (BOREAL)')))
+
+    // Assert
+    expect(screen.queryByText('Deliverables')).toBeNull()
+    expect(mockProjectDeliverables).not.toHaveBeenCalled()
   })
 
   it('refuses existing project scope without saying what was absorbed', async () => {

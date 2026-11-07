@@ -57400,6 +57400,13 @@ export class BackgroundJobsClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status !== 200 && status !== 204) {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
@@ -66933,6 +66940,14 @@ export interface JobSummaryResponse {
     timestampLabel?: string | undefined;
     exceptionType?: string | undefined;
     exceptionMessage?: string | undefined;
+    /** The scheduler server running the job, matching a server's `name` from the servers endpoint.
+Set for processing jobs only. */
+    serverName?: string | undefined;
+    /** When the successful run began. Set for succeeded jobs only. */
+    startedAt?: Date | undefined;
+    /** How long the successful run took, in milliseconds, excluding time spent waiting in the queue.
+Set for succeeded jobs only. */
+    durationMilliseconds?: number | undefined;
 }
 
 /** Joins the caller to a poker session. */

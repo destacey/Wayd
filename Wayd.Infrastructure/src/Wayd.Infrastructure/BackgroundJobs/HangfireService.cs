@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.Linq.Expressions;
 using Hangfire;
 using Hangfire.Common;
+using Hangfire.States;
 using Hangfire.Storage;
 using Hangfire.Storage.Monitoring;
 using NodaTime;
@@ -49,7 +51,10 @@ public class HangfireService : IJobService
             JobStateFilter.Processing => Page(
                 monitoring.ProcessingCount(),
                 monitoring.ProcessingJobs(from, pageSize),
-                (id, job) => Summary(id, job.Job, "Processing", ToInstant(job.StartedAt), "Started")),
+                (id, job) => Summary(id, job.Job, "Processing", ToInstant(job.StartedAt), "Started") with
+                {
+                    ServerName = job.ServerId,
+                }),
 
             JobStateFilter.Scheduled => Page(
                 monitoring.ScheduledCount(),
@@ -68,7 +73,16 @@ public class HangfireService : IJobService
             JobStateFilter.Succeeded => Page(
                 monitoring.SucceededListCount(),
                 monitoring.SucceededJobs(from, pageSize),
-                (id, job) => Summary(id, job.Job, "Succeeded", ToInstant(job.SucceededAt), "Succeeded")),
+                (id, job) =>
+                {
+                    var succeededAt = ToInstant(job.SucceededAt);
+                    var (startedAt, duration) = SucceededRunTiming(job.StateData, succeededAt);
+                    return Summary(id, job.Job, "Succeeded", succeededAt, "Succeeded") with
+                    {
+                        StartedAt = startedAt,
+                        DurationMilliseconds = duration,
+                    };
+                }),
 
             JobStateFilter.Deleted => Page(
                 monitoring.DeletedListCount(),
@@ -118,8 +132,9 @@ public class HangfireService : IJobService
             return null;
         }
 
-        // Hangfire records history newest-last; the UI reads it as a timeline, most recent first.
-        var history = details.History?.Reverse().Select(h => new JobStateHistoryDto
+        // The monitoring API returns history newest-first, the order the UI reads it in, so the first entry
+        // is the current state.
+        var history = details.History?.Select(h => new JobStateHistoryDto
         {
             State = h.StateName,
             Reason = h.Reason,
@@ -266,11 +281,31 @@ public class HangfireService : IJobService
     private static int TotalCount(long total) => (int)Math.Min(total, int.MaxValue);
 
     /// <summary>
-    /// The failure that left the job in its current state. History is oldest-first and a retried job
-    /// records one entry per attempt, so the last failure — not the first — is the current one.
+    /// The failure that left the job in its current state. The monitoring API returns history newest-first
+    /// and a retried job records one entry per attempt, so the first failure listed is the current one.
     /// </summary>
     internal static StateHistoryDto? CurrentFailure(IEnumerable<StateHistoryDto>? history) =>
-        history?.LastOrDefault(h => h.StateName == FailedStateName);
+        history?.FirstOrDefault(h => h.StateName == FailedStateName);
+
+    /// <summary>
+    /// When a successful run began and how long it took. Hangfire records the run time as
+    /// <c>PerformanceDuration</c> (milliseconds) on the succeeded state; <see cref="SucceededJobDto.TotalDuration"/>
+    /// is not used because it adds the time the job waited in the queue. Both are null when the state carries
+    /// no run time, as with a job forced into Succeeded by hand.
+    /// </summary>
+    internal static (Instant? StartedAt, long? DurationMilliseconds) SucceededRunTiming(
+        IDictionary<string, string>? stateData, Instant? succeededAt)
+    {
+        if (stateData is null
+            || !stateData.TryGetValue("PerformanceDuration", out var raw)
+            || !long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var duration)
+            || duration < 0)
+        {
+            return (null, null);
+        }
+
+        return (succeededAt - Duration.FromMilliseconds(duration), duration);
+    }
 
     private static JobSummaryDto Summary(string id, Job? job, string state, Instant? timestamp, string timestampLabel) => new()
     {
@@ -320,6 +355,25 @@ public class HangfireService : IJobService
 
     public bool Requeue(string jobId, string fromState) =>
         BackgroundJob.Requeue(jobId, fromState);
+
+    public RequeueOutcome RequeueIfNotRunning(string jobId)
+    {
+        using var connection = JobStorage.Current.GetConnection();
+        var state = connection.GetStateData(jobId)?.Name;
+
+        if (state is null)
+        {
+            return RequeueOutcome.NotFound;
+        }
+
+        if (state == ProcessingState.StateName)
+        {
+            return RequeueOutcome.Running;
+        }
+
+        // The expected state makes the transition conditional, so a job that moved since the read is untouched.
+        return BackgroundJob.Requeue(jobId, state) ? RequeueOutcome.Requeued : RequeueOutcome.StateChanged;
+    }
 
     public string Schedule(Expression<Action> methodCall, TimeSpan delay) =>
         BackgroundJob.Schedule(methodCall, delay);

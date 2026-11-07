@@ -49962,6 +49962,7 @@
           "BackgroundJobs"
         ],
         "summary": "Requeue a job for another attempt.",
+        "description": "Refused with 409 while a worker is running the job, or when the job changes state during the request, because requeueing would start a second copy.",
         "operationId": "BackgroundJobs_RequeueJob",
         "parameters": [
           {
@@ -49980,6 +49981,16 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -67330,6 +67341,23 @@
           },
           "exceptionMessage": {
             "type": "string",
+            "nullable": true
+          },
+          "serverName": {
+            "type": "string",
+            "description": "The scheduler server running the job, matching a server's `name` from the servers endpoint.\nSet for processing jobs only.",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "When the successful run began. Set for succeeded jobs only.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "durationMilliseconds": {
+            "type": "integer",
+            "description": "How long the successful run took, in milliseconds, excluding time spent waiting in the queue.\nSet for succeeded jobs only.",
+            "format": "int64",
             "nullable": true
           }
         },

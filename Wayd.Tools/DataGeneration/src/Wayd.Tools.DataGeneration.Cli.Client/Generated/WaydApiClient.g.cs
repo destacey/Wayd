@@ -104414,6 +104414,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Requeue a job for another attempt.
         /// </summary>
+        /// <remarks>
+        /// Refused with 409 while a worker is running the job, or when the job changes state during the request, because requeueing would start a second copy.
+        /// </remarks>
         /// <returns>Accepted</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RequeueJobAsync(string jobId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -105382,6 +105385,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Requeue a job for another attempt.
         /// </summary>
+        /// <remarks>
+        /// Refused with 409 while a worker is running the job, or when the job changes state during the request, because requeueing would start a second copy.
+        /// </remarks>
         /// <returns>Accepted</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task RequeueJobAsync(string jobId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -105441,6 +105447,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -127358,6 +127374,26 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("exceptionMessage")]
         public string? ExceptionMessage { get; set; } = default!;
+
+        /// <summary>
+        /// The scheduler server running the job, matching a server's `name` from the servers endpoint.
+        /// <br/>Set for processing jobs only.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("serverName")]
+        public string? ServerName { get; set; } = default!;
+
+        /// <summary>
+        /// When the successful run began. Set for succeeded jobs only.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("startedAt")]
+        public System.DateTimeOffset? StartedAt { get; set; } = default!;
+
+        /// <summary>
+        /// How long the successful run took, in milliseconds, excluding time spent waiting in the queue.
+        /// <br/>Set for succeeded jobs only.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("durationMilliseconds")]
+        public long? DurationMilliseconds { get; set; } = default!;
 
     }
 

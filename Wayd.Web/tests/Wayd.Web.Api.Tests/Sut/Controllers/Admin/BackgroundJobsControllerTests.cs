@@ -200,4 +200,48 @@ public sealed class BackgroundJobsControllerTests
         problem.Errors.Keys.Should().Equal(parameter);
         _mocker.GetMock<IJobService>().Verify(s => s.GetJobs(It.IsAny<JobStateFilter>(), It.IsAny<PageRequest>()), Times.Never);
     }
+
+    [Fact]
+    public void RequeueJob_WhenRequeued_ReturnsAccepted()
+    {
+        // Arrange
+        _mocker.GetMock<IJobService>().Setup(s => s.RequeueIfNotRunning("42")).Returns(RequeueOutcome.Requeued);
+
+        // Act
+        var result = CreateController().RequeueJob("42");
+
+        // Assert
+        result.Should().BeOfType<AcceptedResult>();
+    }
+
+    [Fact]
+    public void RequeueJob_WhenJobIsUnknown_ReturnsNotFound()
+    {
+        // Arrange
+        _mocker.GetMock<IJobService>().Setup(s => s.RequeueIfNotRunning("42")).Returns(RequeueOutcome.NotFound);
+
+        // Act
+        var result = CreateController().RequeueJob("42");
+
+        // Assert
+        result.Should().BeOfType<NotFoundResult>();
+    }
+
+    [Theory]
+    [InlineData(RequeueOutcome.Running, "running")]
+    [InlineData(RequeueOutcome.StateChanged, "changed state")]
+    public void RequeueJob_WhenTheJobCannotBeRequeued_ReturnsConflict(RequeueOutcome outcome, string expectedDetail)
+    {
+        // Arrange
+        _mocker.GetMock<IJobService>().Setup(s => s.RequeueIfNotRunning("42")).Returns(outcome);
+
+        // Act
+        var result = CreateController().RequeueJob("42");
+
+        // Assert — accepting it would let a stale list or a double click start a second copy of a running job.
+        var problem = result.Should().BeOfType<ConflictObjectResult>()
+            .Which.Value.Should().BeAssignableTo<ProblemDetails>().Subject;
+        problem.Detail.Should().Contain(expectedDetail);
+        _mocker.GetMock<IJobService>().Verify(s => s.Requeue(It.IsAny<string>()), Times.Never);
+    }
 }

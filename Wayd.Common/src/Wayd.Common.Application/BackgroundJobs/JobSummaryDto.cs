@@ -25,4 +25,19 @@ public sealed record JobSummaryDto
     public string? ExceptionType { get; set; }
 
     public string? ExceptionMessage { get; set; }
+
+    /// <summary>Populated for processing jobs only; the scheduler server running the job.</summary>
+    public string? ServerName { get; set; }
+
+    /// <summary>
+    /// Populated for succeeded jobs only; when the successful run began, derived from its completion time
+    /// and <see cref="DurationMilliseconds"/>.
+    /// </summary>
+    public Instant? StartedAt { get; set; }
+
+    /// <summary>
+    /// Populated for succeeded jobs only; how long the successful run took, excluding the time the job
+    /// waited in the queue.
+    /// </summary>
+    public long? DurationMilliseconds { get; set; }
 }

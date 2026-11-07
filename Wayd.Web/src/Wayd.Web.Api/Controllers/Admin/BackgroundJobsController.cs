@@ -214,10 +214,20 @@ public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, 
     [HttpPost("jobs/{jobId}/requeue")]
     [MustHavePermission(ApplicationAction.Run, ApplicationResource.BackgroundJobs)]
     [EndpointSummary("Requeue a job for another attempt.")]
+    [EndpointDescription("Refused with 409 while a worker is running the job, or when the job changes state during the request, because requeueing would start a second copy.")]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public IActionResult RequeueJob(string jobId) =>
-        _jobService.Requeue(jobId) ? Accepted() : NotFound();
+        _jobService.RequeueIfNotRunning(jobId) switch
+        {
+            RequeueOutcome.Requeued => Accepted(),
+            RequeueOutcome.NotFound => NotFound(),
+            RequeueOutcome.Running => Conflict(ProblemDetailsExtensions.ForConflict(
+                "The job is running. Requeueing it would start a second copy.", HttpContext)),
+            _ => Conflict(ProblemDetailsExtensions.ForConflict(
+                "The job changed state before it could be requeued. Refresh and try again.", HttpContext)),
+        };
 
     [HttpDelete("jobs/{jobId}")]
     [MustHavePermission(ApplicationAction.Delete, ApplicationResource.BackgroundJobs)]

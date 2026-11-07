@@ -438,6 +438,9 @@ const JobsTab = ({ state, onStateChange, counts }: JobsTabProps) => {
         style={{ marginBottom: 12 }}
       />
       <WaydGrid
+        // Each state has its own columns, so a sort or filter on one (Duration, Exception Type) must not
+        // carry into a state that lacks it. Column widths persist by page and are unaffected.
+        key={state}
         columns={columns}
         data={jobs?.items}
         getRowId={(job) => job.id}

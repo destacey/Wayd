@@ -15,6 +15,7 @@ namespace Wayd.ProjectPortfolioManagement.IntegrationTests.Infrastructure;
 public sealed record ProposedProjectWithLinkedPlan(
     Guid ProjectId,
     string ProjectKey,
+    Guid EmployeeId,
     Guid PortalId,
     Guid ReportsId,
     Guid DesignId,
@@ -22,9 +23,12 @@ public sealed record ProposedProjectWithLinkedPlan(
     Guid TestId)
 {
     /// <summary>Resets the PPM data and seeds the project and its linked plan.</summary>
-    public static async Task<ProposedProjectWithLinkedPlan> Seed(SqlServerDbContextFixture fixture, CancellationToken cancellationToken)
+    /// <param name="employeeOwnsThePortfolio">Makes the employee lead the project through its portfolio.</param>
+    public static async Task<ProposedProjectWithLinkedPlan> Seed(
+        SqlServerDbContextFixture fixture, CancellationToken cancellationToken, bool employeeOwnsThePortfolio = false)
     {
-        var seed = await ActiveProjectWithDeliverable.Seed(fixture, acceptTheDeliverable: false, cancellationToken, activateTheProject: false);
+        var seed = await ActiveProjectWithDeliverable.Seed(fixture, acceptTheDeliverable: false, cancellationToken,
+            employeeOwnsThePortfolio: employeeOwnsThePortfolio, activateTheProject: false);
         await using var context = fixture.CreateContext();
 
         var lifecycle = ProjectLifecycle.Create("Standard", "Standard delivery lifecycle", [("Delivery", "Delivery stage")]);
@@ -52,6 +56,6 @@ public sealed record ProposedProjectWithLinkedPlan(
         project.SetDeliverableTasks(reports.Id, [build.Id]).IsSuccess.Should().BeTrue();
         await context.SaveChangesAsync(cancellationToken);
 
-        return new ProposedProjectWithLinkedPlan(seed.ProjectId, project.Key.Value, seed.DeliverableId, reports.Id, design.Id, build.Id, test.Id);
+        return new ProposedProjectWithLinkedPlan(seed.ProjectId, project.Key.Value, seed.EmployeeId, seed.DeliverableId, reports.Id, design.Id, build.Id, test.Id);
     }
 }

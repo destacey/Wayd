@@ -113,6 +113,7 @@ public sealed record SetProjectDeliverableTasksRequest
     public List<Guid> TaskIds { get; set; } = [];
 }
 
+/// <summary>Validates a <see cref="SetProjectDeliverableTasksRequest"/>.</summary>
 public sealed class SetProjectDeliverableTasksRequestValidator : CustomValidator<SetProjectDeliverableTasksRequest>
 {
     public SetProjectDeliverableTasksRequestValidator()

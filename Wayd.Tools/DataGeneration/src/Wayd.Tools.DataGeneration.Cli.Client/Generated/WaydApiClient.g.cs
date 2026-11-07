@@ -45944,7 +45944,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a project's deliverables, in their order.
         /// </summary>
         /// <remarks>
-        /// Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open. `progress` is derived from the plan tasks linked to the deliverable, weighted by planned duration, and is null when none is linked.
+        /// Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open. `progress` is derived from the plan tasks linked to the deliverable, weighted by planned duration and leaving canceled tasks out, and is null when none is linked.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -46040,7 +46040,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set which plan tasks serve a deliverable.
         /// </summary>
         /// <remarks>
-        /// `taskIds` replaces the deliverable's links: a task not named is unlinked, and an empty list unlinks them all. Tasks must belong to the same project (Tasks_GetProjectTasks); a task can serve several deliverables. The deliverable's `progress` is derived from its linked tasks, using a linked summary task's subtasks. Linking is plan work: it needs no project role and does not change the project's `revision`.
+        /// `taskIds` replaces the deliverable's links: a task not named is unlinked, and an empty list unlinks them all. Tasks must belong to the same project (Tasks_GetProjectTasks); a task can serve several deliverables. The deliverable's `progress` is derived from its linked tasks, using a linked summary task's subtasks. Linking is plan work: it needs no project role and does not change the project's `revision`, so it takes no `expectedRevision`. It can unlink tasks, so read the current links first and confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -46112,7 +46112,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a project's deliverables, in their order.
         /// </summary>
         /// <remarks>
-        /// Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open. `progress` is derived from the plan tasks linked to the deliverable, weighted by planned duration, and is null when none is linked.
+        /// Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open. `progress` is derived from the plan tasks linked to the deliverable, weighted by planned duration and leaving canceled tasks out, and is null when none is linked.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -47124,7 +47124,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set which plan tasks serve a deliverable.
         /// </summary>
         /// <remarks>
-        /// `taskIds` replaces the deliverable's links: a task not named is unlinked, and an empty list unlinks them all. Tasks must belong to the same project (Tasks_GetProjectTasks); a task can serve several deliverables. The deliverable's `progress` is derived from its linked tasks, using a linked summary task's subtasks. Linking is plan work: it needs no project role and does not change the project's `revision`.
+        /// `taskIds` replaces the deliverable's links: a task not named is unlinked, and an empty list unlinks them all. Tasks must belong to the same project (Tasks_GetProjectTasks); a task can serve several deliverables. The deliverable's `progress` is derived from its linked tasks, using a linked summary task's subtasks. Linking is plan work: it needs no project role and does not change the project's `revision`, so it takes no `expectedRevision`. It can unlink tasks, so read the current links first and confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -47206,6 +47206,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)
@@ -132253,8 +132263,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public EmployeeNavigationDto? AcceptedBy { get; set; } = default!;
 
         /// <summary>
-        /// How far the plan work serving the deliverable has got, 0 to 100, derived from its linked tasks when read.
-        /// <br/>Null when no task is linked: a deliverable nothing in the plan serves has no progress, not 0%.
+        /// How far the plan work serving the deliverable has got, 0 to 100, derived from its linked tasks when read,
+        /// <br/>leaving canceled work out. Null when no task is linked, or every linked task is canceled: a deliverable with
+        /// <br/>no work to count has no progress, not 0%.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("progress")]
         public decimal? Progress { get; set; } = default!;

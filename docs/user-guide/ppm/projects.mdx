@@ -336,7 +336,10 @@ toward each deliverable has got, in the terms the project committed to.
   tasks beneath them, weighted by planned duration in days. A milestone, an undated task, or a task with no end date
   counts as one day. Work linked twice — a task and a task above it — counts once. A task linked to two deliverables
   counts fully toward each.
-- A deliverable with **no linked tasks has no progress**, shown as *No linked tasks* rather than 0%.
+- **Canceled tasks are left out**, with everything beneath them, since work that will not be done should not hold a
+  deliverable short of 100%. A completed task counts at the progress recorded on it.
+- A deliverable with **no linked tasks has no progress**, shown as *No linked tasks* rather than 0%; so does one
+  whose linked tasks are all canceled.
 - **Progress is not acceptance.** A deliverable whose linked work is 100% done is still open until it is accepted.
 - The [Gantt chart](#gantt-chart)'s summary bars give milestones and undated tasks no weight, so a summary bar can
   differ slightly from the progress of a deliverable it is linked to.

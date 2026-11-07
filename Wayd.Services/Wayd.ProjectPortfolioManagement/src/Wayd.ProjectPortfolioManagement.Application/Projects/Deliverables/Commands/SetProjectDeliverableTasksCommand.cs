@@ -4,12 +4,15 @@ namespace Wayd.ProjectPortfolioManagement.Application.Projects.Deliverables.Comm
 /// Sets which plan tasks serve a deliverable, replacing its links. Linking is plan work: it needs the permission
 /// to update projects and no delivery leadership, and it leaves the project's revision alone.
 /// </summary>
+/// <param name="ProjectId">The project the deliverable and tasks belong to.</param>
+/// <param name="DeliverableId">The deliverable whose links are replaced.</param>
 /// <param name="TaskIds">Every task that should serve the deliverable; empty unlinks them all.</param>
 public sealed record SetProjectDeliverableTasksCommand(
     Guid ProjectId,
     Guid DeliverableId,
     IReadOnlyList<Guid> TaskIds) : ICommand;
 
+/// <summary>Validates a <see cref="SetProjectDeliverableTasksCommand"/> before it runs.</summary>
 public sealed class SetProjectDeliverableTasksCommandValidator : CustomValidator<SetProjectDeliverableTasksCommand>
 {
     public SetProjectDeliverableTasksCommandValidator()
@@ -21,6 +24,7 @@ public sealed class SetProjectDeliverableTasksCommandValidator : CustomValidator
     }
 }
 
+/// <summary>Replaces a deliverable's task links, loading only that deliverable and the named tasks.</summary>
 public sealed class SetProjectDeliverableTasksCommandHandler(IProjectPortfolioManagementDbContext ppmDbContext)
     : ICommandHandler<SetProjectDeliverableTasksCommand>
 {
@@ -47,7 +51,16 @@ public sealed class SetProjectDeliverableTasksCommandHandler(IProjectPortfolioMa
         if (linked.IsFailure)
             return linked;
 
-        await _ppmDbContext.SaveChangesAsync(cancellationToken);
-        return Result.Success();
+        try
+        {
+            await _ppmDbContext.SaveChangesAsync(cancellationToken);
+            return Result.Success();
+        }
+        catch (DbUpdateException)
+        {
+            // Links carry no concurrency token, so another request adding the same link first surfaces here as
+            // a duplicate key; answering it as stale lets the caller reload and retry.
+            return Result.Failure(ProjectSaves.StaleError);
+        }
     }
 }

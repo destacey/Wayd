@@ -20008,7 +20008,7 @@
           "ProjectDeliverables"
         ],
         "summary": "Get a project's deliverables, in their order.",
-        "description": "Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open. `progress` is derived from the plan tasks linked to the deliverable, weighted by planned duration, and is null when none is linked.",
+        "description": "Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open. `progress` is derived from the plan tasks linked to the deliverable, weighted by planned duration and leaving canceled tasks out, and is null when none is linked.",
         "operationId": "ProjectDeliverables_GetDeliverables",
         "parameters": [
           {
@@ -20692,7 +20692,7 @@
           "ProjectDeliverables"
         ],
         "summary": "Set which plan tasks serve a deliverable.",
-        "description": "`taskIds` replaces the deliverable's links: a task not named is unlinked, and an empty list unlinks them all. Tasks must belong to the same project (Tasks_GetProjectTasks); a task can serve several deliverables. The deliverable's `progress` is derived from its linked tasks, using a linked summary task's subtasks. Linking is plan work: it needs no project role and does not change the project's `revision`.",
+        "description": "`taskIds` replaces the deliverable's links: a task not named is unlinked, and an empty list unlinks them all. Tasks must belong to the same project (Tasks_GetProjectTasks); a task can serve several deliverables. The deliverable's `progress` is derived from its linked tasks, using a linked summary task's subtasks. Linking is plan work: it needs no project role and does not change the project's `revision`, so it takes no `expectedRevision`. It can unlink tasks, so read the current links first and confirm with the user before calling.",
         "operationId": "ProjectDeliverables_SetDeliverableTasks",
         "parameters": [
           {
@@ -20744,6 +20744,16 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -72328,7 +72338,7 @@
           },
           "progress": {
             "type": "number",
-            "description": "How far the plan work serving the deliverable has got, 0 to 100, derived from its linked tasks when read.\nNull when no task is linked: a deliverable nothing in the plan serves has no progress, not 0%.",
+            "description": "How far the plan work serving the deliverable has got, 0 to 100, derived from its linked tasks when read,\nleaving canceled work out. Null when no task is linked, or every linked task is canceled: a deliverable with\nno work to count has no progress, not 0%.",
             "format": "decimal",
             "nullable": true
           },

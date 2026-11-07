@@ -134,7 +134,8 @@ public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDis
             },
             $"Project task with ID '{id}' not found.",
             UpdateProjectTaskRequest.FromDto,
-            (request, ct) => _dispatcher.Send((request with { Id = id }).ToUpdateProjectTaskCommand(), ct),
+            (request, ct) => _dispatcher.Send(
+                UpdateProjectTaskRequest.AfterPatch(request with { Id = id }, patchDocument).ToUpdateProjectTaskCommand(), ct),
             cancellationToken);
 
     [HttpDelete("{id}")]

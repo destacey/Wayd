@@ -351,6 +351,7 @@ public class ProjectDeliverableConfiguration : IEntityTypeConfiguration<ProjectD
     }
 }
 
+/// <summary>Maps the links between plan tasks and the deliverables they serve.</summary>
 public class ProjectDeliverableTaskConfiguration : IEntityTypeConfiguration<ProjectDeliverableTask>
 {
     public void Configure(EntityTypeBuilder<ProjectDeliverableTask> builder)

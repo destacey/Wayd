@@ -3,6 +3,7 @@ using NodaTime;
 using Wayd.Common.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
+using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 
 namespace Wayd.ProjectPortfolioManagement.Domain.Tests.Sut.Models;
 
@@ -10,8 +11,8 @@ public sealed class DeliverableProgressCalculatorTests
 {
     private static readonly LocalDate Start = new(2027, 1, 4);
 
-    private static DeliverableProgressTask Task(decimal progress, int days, Guid? parentId = null) =>
-        new(Guid.NewGuid(), parentId, ProjectTaskType.Task, progress, new FlexibleDateRange(Start, Start.PlusDays(days - 1)));
+    private static DeliverableProgressTask Task(decimal progress, int days, Guid? parentId = null, TaskStatus status = TaskStatus.InProgress) =>
+        new(Guid.NewGuid(), parentId, ProjectTaskType.Task, status, progress, new FlexibleDateRange(Start, Start.PlusDays(days - 1)));
 
     [Fact]
     public void Calculate_WhenNothingIsLinked_ReturnsNull()
@@ -91,9 +92,9 @@ public sealed class DeliverableProgressCalculatorTests
     public void Calculate_WeighsMilestonesUndatedAndOpenEndedTasksOneDay()
     {
         // Arrange
-        var milestone = new DeliverableProgressTask(Guid.NewGuid(), null, ProjectTaskType.Milestone, 100, null);
-        var undated = new DeliverableProgressTask(Guid.NewGuid(), null, ProjectTaskType.Task, 100, null);
-        var openEnded = new DeliverableProgressTask(Guid.NewGuid(), null, ProjectTaskType.Task, 100, new FlexibleDateRange(Start));
+        var milestone = new DeliverableProgressTask(Guid.NewGuid(), null, ProjectTaskType.Milestone, TaskStatus.Completed, 100, null);
+        var undated = new DeliverableProgressTask(Guid.NewGuid(), null, ProjectTaskType.Task, TaskStatus.Completed, 100, null);
+        var openEnded = new DeliverableProgressTask(Guid.NewGuid(), null, ProjectTaskType.Task, TaskStatus.Completed, 100, new FlexibleDateRange(Start));
         var notStarted = Task(0, 7);
         var calculator = new DeliverableProgressCalculator([milestone, undated, openEnded, notStarted]);
 
@@ -102,6 +103,54 @@ public sealed class DeliverableProgressCalculatorTests
 
         // Assert
         progress.Should().Be(30m);
+    }
+
+    [Fact]
+    public void Calculate_LeavesOutCanceledTasksAndEverythingBeneathThem()
+    {
+        // Arrange
+        var done = Task(100, 10);
+        var canceled = Task(30, 10, status: TaskStatus.Canceled);
+        var canceledSummary = Task(0, 10, status: TaskStatus.Canceled);
+        var beneathCanceled = Task(0, 10, canceledSummary.Id);
+        var calculator = new DeliverableProgressCalculator([done, canceled, canceledSummary, beneathCanceled]);
+
+        // Act
+        var progress = calculator.Calculate([done.Id, canceled.Id, canceledSummary.Id]);
+
+        // Assert
+        progress.Should().Be(100m, "canceled work will not be done, so it cannot hold the deliverable short");
+    }
+
+    [Fact]
+    public void Calculate_WhenEveryLinkedTaskIsCanceled_ReturnsNull()
+    {
+        // Arrange
+        var canceled = Task(30, 10, status: TaskStatus.Canceled);
+        var calculator = new DeliverableProgressCalculator([canceled]);
+
+        // Act
+        var progress = calculator.Calculate([canceled.Id]);
+
+        // Assert
+        progress.Should().BeNull();
+    }
+
+    [Fact]
+    public void Calculate_WhenThePlanHasAParentCycle_StillFinishes()
+    {
+        // Arrange
+        var firstId = Guid.NewGuid();
+        var secondId = Guid.NewGuid();
+        var first = new DeliverableProgressTask(firstId, secondId, ProjectTaskType.Task, TaskStatus.InProgress, 50, null);
+        var second = new DeliverableProgressTask(secondId, firstId, ProjectTaskType.Task, TaskStatus.InProgress, 50, null);
+        var calculator = new DeliverableProgressCalculator([first, second]);
+
+        // Act
+        var progress = calculator.Calculate([firstId]);
+
+        // Assert
+        progress.Should().BeNull("a loop has no leaf to count, and the descent still ends");
     }
 
     [Fact]

@@ -38,6 +38,7 @@ public static class ProjectDeliverableProgress
                 t.Id,
                 t.ParentId,
                 t.Type,
+                t.Status,
                 t.Progress,
                 Start = t.PlannedDateRange == null ? (LocalDate?)null : t.PlannedDateRange.Start,
                 End = t.PlannedDateRange == null ? null : t.PlannedDateRange.End,
@@ -48,6 +49,7 @@ public static class ProjectDeliverableProgress
             t.Id,
             t.ParentId,
             t.Type,
+            t.Status,
             t.Progress.Value,
             t.Start is { } start ? new FlexibleDateRange(start, t.End) : null)));
         var linksByDeliverable = links.ToLookup(l => l.ProjectDeliverableId, l => l.ProjectTaskId);

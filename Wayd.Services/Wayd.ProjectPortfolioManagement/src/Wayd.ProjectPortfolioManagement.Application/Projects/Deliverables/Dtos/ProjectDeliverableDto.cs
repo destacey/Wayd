@@ -48,8 +48,9 @@ public sealed record ProjectDeliverableDto : IMapFrom<ProjectDeliverable>
     public EmployeeNavigationDto? AcceptedBy { get; init; }
 
     /// <summary>
-    /// How far the plan work serving the deliverable has got, 0 to 100, derived from its linked tasks when read.
-    /// Null when no task is linked: a deliverable nothing in the plan serves has no progress, not 0%.
+    /// How far the plan work serving the deliverable has got, 0 to 100, derived from its linked tasks when read,
+    /// leaving canceled work out. Null when no task is linked, or every linked task is canceled: a deliverable with
+    /// no work to count has no progress, not 0%.
     /// </summary>
     public decimal? Progress { get; init; }
 

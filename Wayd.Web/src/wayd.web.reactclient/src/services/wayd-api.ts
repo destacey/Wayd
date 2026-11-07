@@ -24658,6 +24658,13 @@ export class ProjectDeliverablesClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -68583,8 +68590,9 @@ export interface ProjectDeliverableDto {
     acceptedOn?: Date | undefined;
     /** Who accepted it. Null unless its status means Accepted, or when an import did. */
     acceptedBy?: EmployeeNavigationDto | undefined;
-    /** How far the plan work serving the deliverable has got, 0 to 100, derived from its linked tasks when read.
-Null when no task is linked: a deliverable nothing in the plan serves has no progress, not 0%. */
+    /** How far the plan work serving the deliverable has got, 0 to 100, derived from its linked tasks when read,
+leaving canceled work out. Null when no task is linked, or every linked task is canceled: a deliverable with
+no work to count has no progress, not 0%. */
     progress?: number | undefined;
     /** How many plan tasks are linked to the deliverable. */
     linkedTaskCount: number;

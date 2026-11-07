@@ -8,12 +8,14 @@ namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 /// <param name="Id">The task.</param>
 /// <param name="ParentId">Its parent task, or null for a top-level task.</param>
 /// <param name="Type">Whether it is a task or a milestone.</param>
+/// <param name="Status">Its status; a canceled task is left out.</param>
 /// <param name="Progress">Its own progress, 0 to 100.</param>
 /// <param name="PlannedDateRange">Its planned dates, which weight it.</param>
 public sealed record DeliverableProgressTask(
     Guid Id,
     Guid? ParentId,
     ProjectTaskType Type,
+    Enums.TaskStatus Status,
     decimal Progress,
     FlexibleDateRange? PlannedDateRange);
 
@@ -26,6 +28,10 @@ public sealed record DeliverableProgressTask(
 /// by planned duration in days. A linked task whose ancestor is also linked adds nothing, so shared work is
 /// counted once. Milestones, undated tasks and open-ended tasks weigh one day, so a deliverable served only by
 /// them still shows progress. The plan Gantt weights those by zero, so its summary bars can differ.
+/// <para>
+/// A canceled task, with everything beneath it, is left out: work that will not be done cannot hold a deliverable
+/// short of 100%. A completed task counts at its recorded progress.
+/// </para>
 /// <para>
 /// Built once over a project's whole plan, then asked for each deliverable: a leaf beneath a linked task is
 /// found only if every task of the plan was supplied.
@@ -48,7 +54,8 @@ public sealed class DeliverableProgressCalculator
 
     /// <summary>
     /// The progress of a deliverable served by <paramref name="linkedTaskIds"/>, 0 to 100 to two decimal places,
-    /// or null when none of them is in the plan: a deliverable with no linked tasks has no progress, not 0%.
+    /// or null when none of them is in the plan or all of them are canceled: a deliverable with no work to count
+    /// has no progress, not 0%.
     /// </summary>
     public decimal? Calculate(IEnumerable<Guid> linkedTaskIds)
     {
@@ -59,6 +66,9 @@ public sealed class DeliverableProgressCalculator
         decimal weighted = 0;
         decimal weight = 0;
 
+        // Guards against a parent cycle in bad data, which would otherwise never end the descent.
+        var visited = new HashSet<Guid>();
+
         foreach (var rootId in linked.Where(id => !HasLinkedAncestor(id, linked)))
         {
             var pending = new Stack<DeliverableProgressTask>();
@@ -66,6 +76,9 @@ public sealed class DeliverableProgressCalculator
 
             while (pending.TryPop(out var task))
             {
+                if (task.Status == Enums.TaskStatus.Canceled || !visited.Add(task.Id))
+                    continue;
+
                 var children = _children[task.Id];
                 if (children.Any())
                 {
@@ -79,6 +92,9 @@ public sealed class DeliverableProgressCalculator
                 weight += taskWeight;
             }
         }
+
+        if (weight == 0)
+            return null;
 
         return Math.Round(weighted / weight, 2, MidpointRounding.AwayFromZero);
     }

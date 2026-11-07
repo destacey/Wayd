@@ -28,6 +28,7 @@ import {
   SyncTriggerSource,
   SyncType,
 } from '@/src/services/wayd-api'
+import { formatDuration } from '@/src/utils/duration'
 import styles from './sync-history-tab.module.css'
 
 // Work-sync per-workspace detail shape. The backend no longer exposes this as a typed DTO —
@@ -98,19 +99,6 @@ type RangeHours = (typeof RANGE_OPTIONS)[number]['value']
 
 function toDate(value: string | Date): Date {
   return value instanceof Date ? value : new Date(value)
-}
-
-function formatDuration(
-  startedAt: string | Date,
-  finishedAt?: string | Date,
-): string {
-  if (!finishedAt) return '—'
-  const ms = toDate(finishedAt).getTime() - toDate(startedAt).getTime()
-  const seconds = Math.floor(ms / 1000)
-  if (seconds < 60) return `${seconds}s`
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`
 }
 
 // --- Category-specific schemas + renderers -----------------------------------
@@ -419,7 +407,8 @@ export default function SyncHistoryTab({ connectionId, category, isActive }: Pro
     {
       title: 'Duration',
       key: 'duration',
-      render: (_, r) => formatDuration(r.startedAt, r.finishedAt),
+      render: (_, r) =>
+        r.finishedAt ? formatDuration(r.startedAt, r.finishedAt) : '—',
       width: 100,
     },
     {

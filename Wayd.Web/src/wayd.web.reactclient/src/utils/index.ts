@@ -51,6 +51,7 @@ export { saveElementAsImage } from './save-element-as-image'
 export { toFileName } from './file-name'
 export { getInitials } from './get-initials'
 export { chunk } from './chunk'
+export { formatDuration } from './duration'
 
 export {
   default as toFormErrors,

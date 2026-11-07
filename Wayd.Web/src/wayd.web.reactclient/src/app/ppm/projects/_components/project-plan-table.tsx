@@ -54,6 +54,7 @@ import {
   useCreateProjectTaskMutation,
 } from '@/src/store/features/ppm/project-tasks-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
+import { useGetProjectDeliverablesQuery } from '@/src/store/features/ppm/project-deliverables-api'
 import {
   projectsApi,
   usePatchProjectStageMutation,
@@ -69,6 +70,8 @@ interface ProjectPlanTableProps {
   canManageTasks: boolean
   refetch: () => Promise<any>
   enableDragAndDrop?: boolean
+  /** The toolbar's left slot, where the plan's Group by choice sits. */
+  leftSlot?: React.ReactNode
 }
 
 const ProjectPlanTable = ({
@@ -79,6 +82,7 @@ const ProjectPlanTable = ({
   canManageTasks,
   refetch,
   enableDragAndDrop = true,
+  leftSlot,
 }: ProjectPlanTableProps) => {
   const [form] = Form.useForm()
   const treeGridRef = useRef<WaydGridHandle>(null)
@@ -112,6 +116,8 @@ const ProjectPlanTable = ({
   const { data: taskPriorityOptions = [] } = useGetTaskPriorityOptionsQuery()
   const { data: taskTypeOptions = [] } = useGetTaskTypeOptionsQuery()
   const { data: employeeOptions = [] } = useGetEmployeeOptionsQuery(false)
+  const { data: deliverables = [] } = useGetProjectDeliverablesQuery(projectId)
+  const deliverableNames = new Map(deliverables.map((d) => [d.id, d.name]))
 
   const milestoneTypeValue = useMemo(
     () => taskTypeOptions.find((opt) => opt.label === 'Milestone')?.value,
@@ -196,6 +202,7 @@ const ProjectPlanTable = ({
       progress: 0,
       order: draft.order,
       children: [],
+      deliverableIds: [],
     }),
     [],
   )
@@ -928,6 +935,7 @@ const ProjectPlanTable = ({
               isStageNode,
               handleEditStage,
               openPlanItemDrawer: handleOpenPlanItemDrawer,
+              deliverableNames,
             })
           }
           actionsSlot={
@@ -1024,7 +1032,7 @@ const ProjectPlanTable = ({
             draftsRef.current = drafts
           }}
           csvFileName="project-tasks"
-          leftSlot={() => null}
+          leftSlot={leftSlot ?? (() => null)}
           helpContent={<ProjectPlanHelp />}
           emptyMessage="No plan found"
         />
@@ -1033,6 +1041,7 @@ const ProjectPlanTable = ({
       {openCreateTaskForm && (
         <CreateProjectTaskForm
           projectIdOrKey={projectKey}
+          projectId={projectId}
           parentTaskId={createParentTaskId}
           onFormComplete={() => onCreateTaskFormClosed(true)}
           onFormCancel={() => onCreateTaskFormClosed(false)}
@@ -1041,6 +1050,7 @@ const ProjectPlanTable = ({
       {openEditTaskForm && selectedTaskId && (
         <EditProjectTaskForm
           projectIdOrKey={projectKey}
+          projectId={projectId}
           taskIdOrKey={selectedTaskId}
           onFormComplete={() => onEditTaskFormClosed(true)}
           onFormCancel={() => onEditTaskFormClosed(false)}

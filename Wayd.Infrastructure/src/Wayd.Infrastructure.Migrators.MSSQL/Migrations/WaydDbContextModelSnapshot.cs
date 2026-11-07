@@ -6679,6 +6679,35 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("ProjectDeliverables", "Ppm");
                 });
 
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectDeliverableTask", b =>
+                {
+                    b.Property<Guid>("ProjectDeliverableId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectTaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("ProjectDeliverableId", "ProjectTaskId");
+
+                    b.HasIndex("ProjectTaskId");
+
+                    b.ToTable("ProjectDeliverableTasks", "Ppm");
+                });
+
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectHealthCheck", b =>
                 {
                     b.Property<Guid>("Id")
@@ -11361,6 +11390,25 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Owner");
                 });
 
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectDeliverableTask", b =>
+                {
+                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectDeliverable", "ProjectDeliverable")
+                        .WithMany("TaskLinks")
+                        .HasForeignKey("ProjectDeliverableId")
+                        .OnDelete(DeleteBehavior.ClientCascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectTask", "ProjectTask")
+                        .WithMany("DeliverableLinks")
+                        .HasForeignKey("ProjectTaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProjectDeliverable");
+
+                    b.Navigation("ProjectTask");
+                });
+
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectHealthCheck", b =>
                 {
                     b.HasOne("Wayd.ProjectPortfolioManagement.Domain.Models.Project", null)
@@ -12492,6 +12540,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Tasks");
                 });
 
+            modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectDeliverable", b =>
+                {
+                    b.Navigation("TaskLinks");
+                });
+
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectLifecycle", b =>
                 {
                     b.Navigation("Stages");
@@ -12516,6 +12569,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             modelBuilder.Entity("Wayd.ProjectPortfolioManagement.Domain.Models.ProjectTask", b =>
                 {
                     b.Navigation("Children");
+
+                    b.Navigation("DeliverableLinks");
 
                     b.Navigation("Predecessors");
 

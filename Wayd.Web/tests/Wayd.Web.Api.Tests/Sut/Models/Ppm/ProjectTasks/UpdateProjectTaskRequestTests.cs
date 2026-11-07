@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
 using NodaTime;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Employees.Dtos;
@@ -37,6 +38,7 @@ public sealed class UpdateProjectTaskRequestTests
         PlannedEnd = new LocalDate(2026, 3, 20),
         PlannedDate = new LocalDate(2026, 3, 21),
         EstimatedEffortHours = 16m,
+        DeliverableIds = [Guid.NewGuid()],
     };
 
     [Fact]
@@ -72,6 +74,56 @@ public sealed class UpdateProjectTaskRequestTests
         request.PlannedEnd.Should().Be(task.PlannedEnd);
         request.PlannedDate.Should().Be(task.PlannedDate);
         request.EstimatedEffortHours.Should().Be(16m);
+        request.DeliverableIds.Should().Equal(task.DeliverableIds);
+    }
+
+    [Fact]
+    public void AfterPatch_WhenThePatchDoesNotNameTheDeliverables_LeavesTheLinksUnchanged()
+    {
+        // Arrange — another change may have linked the task since it was read, so writing back the links read
+        // then would undo it
+        var request = UpdateProjectTaskRequest.FromDto(FullyPopulatedTask());
+        var patch = new JsonPatchDocument<UpdateProjectTaskRequest>().Replace(r => r.Name, "Renamed");
+
+        // Act
+        var sent = UpdateProjectTaskRequest.AfterPatch(request, patch);
+
+        // Assert
+        sent.DeliverableIds.Should().BeNull("null leaves a task's links as they are");
+        sent.Name.Should().Be(request.Name, "only the links are dropped; the patch is applied by the caller");
+    }
+
+    [Theory]
+    [InlineData("/deliverableIds")]
+    [InlineData("/deliverableIds/-")]
+    [InlineData("/DeliverableIds/0")]
+    public void AfterPatch_WhenThePatchNamesTheDeliverables_SendsThem(string path)
+    {
+        // Arrange
+        var request = UpdateProjectTaskRequest.FromDto(FullyPopulatedTask());
+        var patch = new JsonPatchDocument<UpdateProjectTaskRequest>();
+        patch.Operations.Add(new(op: "add", path: path, from: null, value: Guid.NewGuid()));
+
+        // Act
+        var sent = UpdateProjectTaskRequest.AfterPatch(request, patch);
+
+        // Assert
+        sent.DeliverableIds.Should().Equal(request.DeliverableIds);
+    }
+
+    [Fact]
+    public void AfterPatch_DoesNotMistakeAnotherFieldForTheDeliverables()
+    {
+        // Arrange
+        var request = UpdateProjectTaskRequest.FromDto(FullyPopulatedTask());
+        var patch = new JsonPatchDocument<UpdateProjectTaskRequest>();
+        patch.Operations.Add(new(op: "replace", path: "/deliverableIdsNote", from: null, value: "x"));
+
+        // Act
+        var sent = UpdateProjectTaskRequest.AfterPatch(request, patch);
+
+        // Assert
+        sent.DeliverableIds.Should().BeNull();
     }
 
     [Fact]

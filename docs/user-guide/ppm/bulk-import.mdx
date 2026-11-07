@@ -95,9 +95,9 @@ Reference data (expenditure categories, project lifecycles — created in Settin
   → Portfolios
   → Programs
   → Projects
+  → Project deliverables
   → Project tasks
   → Project stage statuses
-  → Project deliverables
   → Strategic initiatives (with KPIs)
   → Finalize (close historical programs and portfolios)
 ```
@@ -285,6 +285,7 @@ parent cycle is rejected.
 | `PlannedDate` | Conditional | Required for **milestones**: the milestone's date. Not allowed for tasks. |
 | `EstimatedEffortHours` | No | Greater than 0 when present. |
 | `Assignees` | No | Semicolon-separated employee numbers. |
+| `DeliverableIds` | No | Semicolon-separated ids of the [deliverables](./projects.mdx#project-deliverables) the task serves. Each must belong to the task's own project, so import deliverables first. |
 
 ## Project stage statuses import
 

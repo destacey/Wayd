@@ -103,7 +103,18 @@ interface ProjectPlanTableColumnsParams {
   isStageNode?: (node: ProjectPlanNodeDto | null | undefined) => boolean
   handleEditStage?: (stage: ProjectPlanNodeDto) => void
   openPlanItemDrawer?: (taskId: string) => void
+  /** The project's deliverable names by id, for the Deliverables column. */
+  deliverableNames?: ReadonlyMap<string, string>
 }
+
+/** The names of the deliverables a plan task serves, in the order the task lists them. */
+const deliverableNamesOf = (
+  task: ProjectPlanNodeDto,
+  deliverableNames: ReadonlyMap<string, string>,
+) =>
+  (task.deliverableIds ?? [])
+    .map((id) => deliverableNames.get(id))
+    .filter((name): name is string => !!name)
 
 export const getProjectPlanTableColumns = ({
   canManageTasks,
@@ -130,6 +141,7 @@ export const getProjectPlanTableColumns = ({
   isStageNode = () => false,
   handleEditStage,
   openPlanItemDrawer,
+  deliverableNames = new Map(),
 }: ProjectPlanTableColumnsParams): ColumnDef<ProjectPlanNodeDto>[] => {
   return [
     ...(canManageTasks
@@ -756,6 +768,20 @@ export const getProjectPlanTableColumns = ({
             />
           </FormItem>
         )
+      },
+    },
+    {
+      // Read-only here: a task's deliverables are set in its edit form.
+      id: 'deliverables',
+      accessorFn: (row) => deliverableNamesOf(row, deliverableNames).join(', '),
+      header: 'Deliverables',
+      size: 220,
+      enableGlobalFilter: true,
+      enableColumnFilter: true,
+      sortFn: 'text',
+      cell: (info) => {
+        const names = deliverableNamesOf(info.row.original, deliverableNames)
+        return names.length === 0 ? '' : <TagListCell values={names} />
       },
     },
     {

@@ -18,6 +18,10 @@ namespace Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Dtos;
 /// and a progress value. The domain enforces both, and the validator mirrors them so a bad row is rejected
 /// before the run starts.
 /// </para>
+/// <para>
+/// <see cref="DeliverableIds"/> links the task to deliverables its project already has, by id; one of another
+/// project is rejected as not found.
+/// </para>
 /// </remarks>
 public sealed record ImportProjectTaskDto(
     ProjectKey ProjectKey,
@@ -34,7 +38,8 @@ public sealed record ImportProjectTaskDto(
     LocalDate? PlannedEnd,
     LocalDate? PlannedDate,
     decimal? EstimatedEffortHours,
-    IReadOnlyList<string> AssigneeEmployeeNumbers);
+    IReadOnlyList<string> AssigneeEmployeeNumbers,
+    IReadOnlyList<Guid> DeliverableIds);
 
 public sealed class ImportProjectTaskDtoValidator : CustomValidator<ImportProjectTaskDto>
 {
@@ -71,6 +76,9 @@ public sealed class ImportProjectTaskDtoValidator : CustomValidator<ImportProjec
         RuleFor(t => t.EstimatedEffortHours)
             .GreaterThan(0)
             .When(t => t.EstimatedEffortHours.HasValue);
+
+        RuleForEach(t => t.DeliverableIds)
+            .NotEmpty();
 
         When(t => t.Type is ProjectTaskType.Milestone, () =>
         {

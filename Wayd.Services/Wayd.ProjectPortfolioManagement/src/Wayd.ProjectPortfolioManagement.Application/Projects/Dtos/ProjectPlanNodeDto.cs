@@ -70,4 +70,9 @@ public sealed record ProjectPlanNodeDto
     /// The estimated effort in hours. Null for stage nodes.
     /// </summary>
     public decimal? EstimatedEffortHours { get; set; }
+
+    /// <summary>
+    /// The project deliverables this task serves, by id. Empty for stage nodes.
+    /// </summary>
+    public List<Guid> DeliverableIds { get; set; } = [];
 }

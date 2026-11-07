@@ -141,6 +141,60 @@ public class PpmGeneratorTests
     }
 
     [Fact]
+    public void Generate_MostTopLevelTasksServeOneDeliverableAFewTwoAndSomeNone()
+    {
+        // Arrange
+        var ppm = Generate();
+
+        // Act
+        var topLevel = ppm.ProjectTasks.Where(t => t.ParentTaskName is null).ToList();
+        var servedBy = topLevel.Select(t => Split(t.Deliverables).Count()).ToList();
+
+        // Assert
+        topLevel.Should().NotBeEmpty();
+        servedBy.Should().OnlyContain(n => n <= 2);
+        servedBy.Count(n => n == 1).Should().BeGreaterThan(servedBy.Count / 2, "most top-level tasks serve one deliverable");
+        servedBy.Should().Contain(2, "a few serve two");
+        servedBy.Should().Contain(0, "some serve none");
+    }
+
+    [Fact]
+    public void Generate_OnlyTopLevelTasksServeDeliverablesAndOnlyTheirOwnProjects()
+    {
+        // Arrange — a subtask already counts toward its parent's deliverable, and the import rejects a
+        // deliverable of another project
+        var ppm = Generate();
+        var deliverablesByProject = ppm.ProjectDeliverables.ToLookup(d => d.ProjectKey, d => d.Name);
+
+        // Act
+        var subtasksLinked = ppm.ProjectTasks.Where(t => t.ParentTaskName is not null && t.Deliverables is not null).ToList();
+        var foreign = ppm.ProjectTasks
+            .SelectMany(t => Split(t.Deliverables).Select(name => (t.ProjectKey, name)))
+            .Where(link => !deliverablesByProject[link.ProjectKey].Contains(link.name))
+            .ToList();
+
+        // Assert
+        subtasksLinked.Should().BeEmpty();
+        foreign.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_LinkingTasksLeavesTheTasksAndDeliverablesUnchanged()
+    {
+        // Arrange — links draw from their own stream, so the tasks and deliverables a seed produces are the
+        // ones it produced before tasks served deliverables
+        var without = Generate(new PpmOptions { DeliverablesPerProject = 0 });
+
+        // Act
+        var with = Generate(new PpmOptions { DeliverablesPerProject = 4 });
+
+        // Assert
+        without.ProjectTasks.Should().OnlyContain(t => t.Deliverables == null);
+        with.ProjectTasks.Select(t => (t.ProjectKey, t.Name, t.Status, t.Progress))
+            .Should().Equal(without.ProjectTasks.Select(t => (t.ProjectKey, t.Name, t.Status, t.Progress)));
+    }
+
+    [Fact]
     public void Generate_NothingIsProposedOnADayThatHasNotHappened()
     {
         // Arrange — the window runs two years ahead, so a record starting in the future would otherwise

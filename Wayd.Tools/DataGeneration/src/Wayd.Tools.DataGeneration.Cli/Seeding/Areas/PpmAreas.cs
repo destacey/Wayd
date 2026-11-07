@@ -213,10 +213,11 @@ public sealed class ProjectsArea() : PpmSeedArea(
 
 /// <summary>
 /// Loads the work breakdown. Projects are still named by key here — that is a natural key the import
-/// keeps — so the only reference that had to change is a task's parent, which now names the parent row.
+/// keeps — so the references that had to change are a task's parent, which now names the parent row, and the
+/// deliverables it serves, which are ids. Runs after the deliverables for those ids.
 /// </summary>
 public sealed class ProjectTasksArea() : PpmSeedArea(
-    PpmArea.ProjectTasks, PpmArea.Projects, OrganizationArea.Employees)
+    PpmArea.ProjectTasks, PpmArea.Projects, PpmArea.ProjectDeliverables, OrganizationArea.Employees)
 {
     public override string BatchedImport => "ppm.project-tasks";
 
@@ -243,6 +244,9 @@ public sealed class ProjectTasksArea() : PpmSeedArea(
             PlannedDate = t.PlannedDate,
             EstimatedEffortHours = t.EstimatedEffortHours,
             Assignees = t.Assignees,
+            DeliverableIds = t.Deliverables is null
+                ? null
+                : Join(context.Ids(PpmArea.ProjectDeliverables, Split(t.Deliverables).Select(n => $"{t.ProjectKey}|{n}")).Select(id => id.ToString())),
         });
 
         // Batched by project, because a dense breakdown across a few hundred projects runs past the row cap
@@ -409,10 +413,12 @@ public sealed class StrategicInitiativesArea() : PpmSeedArea(
 /// <remarks>
 /// The domain only lets work be added to an active program or portfolio, but only lets one close once
 /// everything inside it is closed — so historical items are imported active and finished here. The row
-/// names its target by id, read per Type.
+/// names its target by id, read per Type. It waits on every area that loads a project's contents too, so
+/// nothing lands in a project after its program or portfolio has closed.
 /// </remarks>
 public sealed class PpmFinalizeArea() : PpmSeedArea(
-    PpmArea.Finalize, PpmArea.Portfolios, PpmArea.Programs, PpmArea.Projects, PpmArea.Initiatives)
+    PpmArea.Finalize, PpmArea.Portfolios, PpmArea.Programs, PpmArea.Projects, PpmArea.ProjectDeliverables,
+    PpmArea.ProjectTasks, PpmArea.ProjectStages, PpmArea.Initiatives)
 {
     public override bool ShouldRun(SeedContext context) => context.Ppm?.Finalizations.Count > 0;
 

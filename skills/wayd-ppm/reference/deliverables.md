@@ -15,6 +15,7 @@ A deliverable is something a project has committed to produce for it to count as
 | Its status changes, newest first          | `Projects_GetDeliverableStatusHistory` |
 | Put them in a new order                   | `Projects_ReorderDeliverables`         |
 | Delete one added by mistake               | `Projects_DeleteDeliverable`           |
+| Set which plan tasks serve it             | `Projects_SetDeliverableTasks`         |
 
 - **Ids.** The reads take the project's UUID or key; every write takes the project's **UUID** and the deliverable's UUID.
 - **Name** must be new to the project: two deliverables of one project never share a name, ignoring case, and descoped ones count.
@@ -22,8 +23,17 @@ A deliverable is something a project has committed to produce for it to count as
 - **Description and acceptance criteria** are Markdown, at most 4096 characters each; the name at most 256.
 - **Status** follows a company-configurable workflow. The default has Not Started, In Progress, Accepted and Descoped, but a company may rename or add stages, so pick the `statusId` from `Projects_GetDeliverableStatusOptions` rather than by name. An option whose `conditions` include `RequiresReason` needs a `reason` — descoping always does.
 - **Revision.** `Projects_GetProject` returns the project's `revision`. Send it as `expectedRevision` on a write: if the project changed since, the call answers 409 and you should re-read before retrying.
-- Every write requires delivery leadership (see SKILL.md), and a completed or canceled project's deliverables cannot be changed — `Projects_GetDeliverableStatusOptions` returns no options for one.
+- Every write except linking tasks requires delivery leadership (see SKILL.md), and a completed or canceled project's deliverables cannot be changed — `Projects_GetDeliverableStatusOptions` returns no options for one.
 - A deliverable id that is not on the project answers 404.
+
+## Linking plan tasks
+
+A deliverable is served by the plan tasks linked to it, and a task can serve several deliverables. Links stay within one project.
+
+- **Set them from either side.** `Projects_SetDeliverableTasks` replaces a deliverable's tasks: a task not named is unlinked, and an empty `taskIds` unlinks them all. `deliverableIds` on `Tasks_CreateProjectTask`, `Tasks_UpdateProjectTask` or `Tasks_PatchProjectTask` replaces a task's deliverables; leaving it out of an update keeps them. Read the current links first (`deliverableIds` on each task, or the tasks of `Tasks_GetProjectTasks` that name the deliverable) and send the whole set that should remain.
+- **Progress** on a deliverable is derived when read: the mean progress of the leaf tasks beneath its linked tasks, weighted by planned duration in days, with milestones and undated tasks weighing one day; canceled tasks, and everything beneath them, are left out. Linking a summary task counts its subtasks; work linked twice through a task and its ancestor counts once. `progress` is null, not 0, when no task is linked; `linkedTaskCount` says how many are.
+- **Permissions.** Linking is plan work: it needs only the permission to update projects, no delivery leadership, and it does not change the project's `revision`, so it takes no `expectedRevision`.
+- **Progress is not acceptance.** A deliverable at 100% is still open until it is accepted.
 
 ## Accept, descope, or delete
 

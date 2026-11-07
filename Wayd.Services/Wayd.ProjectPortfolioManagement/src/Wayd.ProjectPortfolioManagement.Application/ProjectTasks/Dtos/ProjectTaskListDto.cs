@@ -35,6 +35,11 @@ public sealed record ProjectTaskListDto : IMapFrom<ProjectTask>
     public LocalDate? PlannedDate { get; set; }
     public decimal? EstimatedEffortHours { get; set; }
 
+    /// <summary>
+    /// The project deliverables this task serves, by id.
+    /// </summary>
+    public List<Guid> DeliverableIds { get; set; } = [];
+
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<ProjectTask, ProjectTaskListDto>()
@@ -42,6 +47,7 @@ public sealed record ProjectTaskListDto : IMapFrom<ProjectTask>
             .Map(dest => dest.Type, src => SimpleNavigationDto.FromEnum(src.Type))
             .Map(dest => dest.Status, src => SimpleNavigationDto.FromEnum(src.Status))
             .Map(dest => dest.Progress, src => src.Progress.Value)
+            .Map(dest => dest.DeliverableIds, src => src.DeliverableLinks.Select(l => l.ProjectDeliverableId).ToList())
             .Map(dest => dest.Assignees, src => src.Roles.Where(r => r.Role == TaskRole.Assignee).Select(r => EmployeeNavigationDto.From(r.Employee!)).ToList())
             .Map(dest => dest.Priority, src => SimpleNavigationDto.FromEnum(src.Priority))
             .Map(dest => dest.PlannedStart, src => src.PlannedDateRange != null ? src.PlannedDateRange.Start : (LocalDate?)null)

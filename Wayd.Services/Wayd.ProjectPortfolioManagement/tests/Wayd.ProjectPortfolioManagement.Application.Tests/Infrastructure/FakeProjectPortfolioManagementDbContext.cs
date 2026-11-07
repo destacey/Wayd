@@ -52,6 +52,7 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
 
     // Deliverables live inside their projects, as they do in the database, so the set reads them from there.
     public DbSet<ProjectDeliverable> ProjectDeliverables => _projects.SelectMany(p => p.Deliverables).ToList().AsDbSet();
+    public DbSet<ProjectDeliverableTask> ProjectDeliverableTasks => _projects.SelectMany(p => p.Deliverables).SelectMany(d => d.TaskLinks).ToList().AsDbSet();
     public DbSet<ProjectScore> ProjectScores => _projectScores.AsDbSet();
     public DbSet<ProjectStatusHistory> ProjectStatusHistory => _projectStatusHistory.AsDbSet();
     public DbSet<ProjectTask> ProjectTasks => _projectTasks.AsDbSet();

@@ -511,6 +511,29 @@ public sealed class WorkflowAssignmentTests
         assignment.DomainEvents.Should().BeEmpty();
     }
 
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void ReassignTo_ShouldBeRefused_WhenEitherSchemeIsManaged(bool currentManaged, bool targetManaged)
+    {
+        // Arrange
+        var standard = PublishedWidgetWorkflow("Standard", Ticket.Key);
+        var current = currentManaged ? ManagedTicketScheme(standard) : TicketScheme(standard);
+        var target = targetManaged ? ManagedTicketScheme(standard, "process-scrum") : TicketScheme(standard);
+        var assignment = WorkflowAssignment.Create(Ticket.Key, Guid.NewGuid(), current, standard, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        assignment.ClearDomainEvents();
+
+        // Act
+        var result = assignment.ReassignTo(target, standard, [], EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Assert
+        // The sync keeps a scope on its managed scheme and would quietly undo the change.
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A managed scheme is assigned by its sync, so this scope cannot be reassigned here.");
+        assignment.SchemeId.Should().Be(current.Id);
+        assignment.DomainEvents.Should().BeEmpty();
+    }
+
     [Fact]
     public void ReassignTo_ShouldThrow_WhenTheCurrentSchemeIsNotLoaded()
     {

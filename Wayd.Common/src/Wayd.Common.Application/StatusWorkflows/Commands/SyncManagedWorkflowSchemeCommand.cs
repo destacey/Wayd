@@ -14,7 +14,11 @@ namespace Wayd.Common.Application.StatusWorkflows.Commands;
 /// <see cref="ExternalKey"/>. Every workflow named must already exist, so the sync runs
 /// <see cref="SyncManagedWorkflowCommand"/> and <see cref="SyncManagedRecordTypeCommand"/> first.
 /// </remarks>
+/// <param name="OwnerType">The registered owner type whose records the scheme governs.</param>
+/// <param name="ExternalKey">The source object's stable identifier, namespaced by the sync.</param>
+/// <param name="Name">What the source calls the object, which the scheme takes as its name.</param>
 /// <param name="DefaultWorkflowId">The workflow a record follows when its type has no entry.</param>
+/// <param name="Entries">The workflow each of the source's record types follows.</param>
 /// <returns>The scheme's id.</returns>
 public sealed record SyncManagedWorkflowSchemeCommand(
     string OwnerType,
@@ -24,6 +28,8 @@ public sealed record SyncManagedWorkflowSchemeCommand(
     IReadOnlyList<ManagedSchemeEntry> Entries) : ICommand<Guid>;
 
 /// <summary>One record type of a managed scheme and the workflow it follows.</summary>
+/// <param name="RecordTypeId">The record type, from <see cref="SyncManagedRecordTypeCommand"/>.</param>
+/// <param name="WorkflowId">Its workflow, from <see cref="SyncManagedWorkflowCommand"/>.</param>
 public sealed record ManagedSchemeEntry(Guid RecordTypeId, Guid WorkflowId);
 
 public sealed class SyncManagedWorkflowSchemeCommandValidator : AbstractValidator<SyncManagedWorkflowSchemeCommand>

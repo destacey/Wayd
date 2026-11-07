@@ -929,7 +929,8 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
 
     /// <summary>
     /// Creates the published mirror of a source system's workflow, identified there by
-    /// <paramref name="externalKey"/>, holding <paramref name="statuses"/> in the source's order.
+    /// <paramref name="externalKey"/>, holding <paramref name="statuses"/> in the source's order, with any the
+    /// source hides placed last and retired.
     /// </summary>
     /// <remarks>
     /// Published at once, because records synced from the source need it now. Its checks only warn
@@ -960,6 +961,13 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure<StatusWorkflow>(invalid.Error);
         }
 
+        // A workflow that starts with every status retired could never give a record one. An existing workflow
+        // whose source hides everything is kept (SyncFromSource), because records and history still hold it.
+        if (statuses.All(s => s.IsHidden))
+        {
+            return Result.Failure<StatusWorkflow>("A managed workflow needs at least one status its source offers.");
+        }
+
         var workflow = new StatusWorkflow(name, description: null, descriptor.Value.Key, isSystem: false, WorkflowOwnership.Managed, externalKey.Trim());
 
         // Hidden statuses take the last places, where a retired status sits.
@@ -979,7 +987,8 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         workflow.RaiseCreated(sourceWorkflowId: null, actor, timestamp);
         workflow.MarkPublished(actor, timestamp);
 
-        // Created like the rest and retired straight away, so the history reads as the workflow arrived.
+        // The creation event lists every status as the source has it; a retirement event per hidden status then
+        // records that the source has hidden it.
         foreach (var hidden in statuses.Where(s => s.IsHidden))
         {
             var status = workflow._statuses.Single(s => string.Equals(s.ExternalKey, hidden.ExternalKey.Trim(), StringComparison.OrdinalIgnoreCase));

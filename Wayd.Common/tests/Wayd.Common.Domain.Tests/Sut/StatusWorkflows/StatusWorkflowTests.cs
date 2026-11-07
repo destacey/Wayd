@@ -2467,6 +2467,53 @@ public sealed class StatusWorkflowTests
     }
 
     [Fact]
+    public void CreateManaged_ShouldBeRefused_WhenTheSourceHidesEveryStatus()
+    {
+        // Act
+        var result = StatusWorkflow.CreateManaged(
+            "Agile: Bug", Synced.Key, "conn-1:agile:bug", [SourceNew with { IsHidden = true }, SourceClosed with { IsHidden = true }], EventActor.Sync(null), At);
+
+        // Assert
+        // It could never give a record a status.
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A managed workflow needs at least one status its source offers.");
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldRetireEveryStatus_WhenTheSourceHidesThemAll()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+
+        // Act
+        var result = workflow.SyncFromSource(
+            "Agile: Bug", [SourceNew with { IsHidden = true }, SourceActive with { IsHidden = true }, SourceClosed with { IsHidden = true }], EventActor.Sync(null), At);
+
+        // Assert
+        // Records and history holding them still resolve; none can be given a status any more.
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        workflow.Statuses.Should().HaveCount(3).And.OnlyContain(s => s.IsRetired);
+        workflow.ActiveStatuses.Should().BeEmpty();
+        workflow.DomainEvents.OfType<WorkflowStatusRetiredEvent>().Should().HaveCount(3);
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldPlaceANewHiddenStatus_AfterOnesAlreadyRetired()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+        workflow.SyncFromSource("Agile: Bug", [SourceNew, SourceClosed], EventActor.Sync(null), At);
+        workflow.ClearDomainEvents();
+        var resolved = new SourceStatus("resolved", "Resolved", StatusCategory.Active, IsHidden: true);
+
+        // Act
+        workflow.SyncFromSource("Agile: Bug", [SourceNew, resolved, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        workflow.Statuses.OrderBy(s => s.Order).Select(s => s.ExternalKey).Should().Equal("new", "closed", "active", "resolved");
+    }
+
+    [Fact]
     public void SyncFromSource_ShouldLetANewStatusTakeARetiredOnesName()
     {
         // Arrange

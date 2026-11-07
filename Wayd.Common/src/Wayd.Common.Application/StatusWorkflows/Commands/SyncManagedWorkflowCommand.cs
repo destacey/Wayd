@@ -87,6 +87,7 @@ public sealed class SyncManagedWorkflowCommandHandler(
                 if (synced.IsFailure)
                 {
                     workflow.ClearDomainEvents();
+                    workflow.ClearPostPersistenceActions();
 
                     _logger.LogWarning(
                         "Unable to sync managed workflow {WorkflowId}. Error message: {Error}", workflow.Id, synced.Error);

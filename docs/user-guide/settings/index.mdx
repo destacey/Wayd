@@ -571,32 +571,35 @@ Wayd runs recurring and on-demand work — syncs, replication, maintenance — a
 
 ### What the page shows
 
-Counts are split into two rows, because they answer different questions:
+A summary strip at the top answers whether the scheduler is working and whether anything is stuck or failing:
 
-- **Current** — jobs that exist right now. Each tile agrees with the matching tab: Processing, Enqueued, Scheduled, Failed, Succeeded, plus Recurring schedules and Servers. **Retries** (jobs waiting out a retry delay, also counted under Scheduled) and **Awaiting** (continuations held until the job they depend on finishes) appear when the scheduler reports them.
-- **All time** — running totals of everything that has ever succeeded or been deleted. These keep climbing after the job records themselves are purged, so they are normally far higher than the Current figures.
+- **Scheduler health** — the number of servers and workers and the most recent heartbeat. It reads **Servers not responding** when no server has reported for five minutes, and **No servers running** when there are none; in either case nothing will run.
+- **Processing, Enqueued, Scheduled, Failed** — jobs that exist right now. Select a count to open that state on the Jobs tab. Processing shows how many of the workers are busy; Scheduled notes how many of its jobs are waiting out a retry delay.
+- **All time** — running totals of everything that has ever succeeded or been deleted. These keep climbing after the job records themselves are purged, so they are normally far higher than the counts on the Succeeded and Deleted states, which hold only the jobs still on record.
 
-:::note[Succeeded appears in both rows, with different meanings]
-Succeeded jobs are retained only briefly before being purged. **Current → Succeeded** counts the ones still on record — often a handful, or none. **All time → Succeeded** counts every job that has ever completed. A large gap between them is expected, not a fault.
-:::
-
-Three tabs sit below the tiles:
+Three tabs sit below the strip, with the number of schedules and servers on their labels:
 
 | Tab | What it is for |
 |---|---|
-| **Jobs** | Browse jobs by state — Processing, Scheduled, Enqueued, Failed, Succeeded, Deleted — 50 to a page; the pager above the grid moves between pages and shows up to 500 at a time. Select a job to open its detail panel. |
+| **Jobs** | Browse jobs by state — Processing, Enqueued, Scheduled, Failed, Succeeded, Deleted — each with its count, and a red badge on Failed when any have failed. 50 to a page; the pager above the grid moves between pages and shows up to 500 at a time. Select a job to open its detail panel. |
 | **Recurring** | Every registered schedule, with its cron expression, next and last run, and the outcome of the last run. Remove a schedule here. |
 | **Servers** | The worker processes polling for jobs, with their heartbeat. No servers means nothing will run. |
 
+**Processing** shows how long each job has been running and which server is running it. The longest-running job on the page is marked **longest**, which is where a stuck job shows first. A running job can be deleted but not requeued: requeueing would start a second copy while the first keeps going, so Wayd refuses it, including when the job starts running between your looking and your click.
+
 ### Diagnosing a failure
 
-Open the **Failed** state on the Jobs tab and select the job. The detail panel carries the exception type and message, the **full stack trace**, the arguments the job ran with, and its state history — every transition and why.
+Open the **Failed** state on the Jobs tab. Each job's exception message sits beside its name, so a shared cause is visible without opening anything. Select a job for its detail panel: the exception type and message, the **full stack trace**, the arguments the job ran with, and its state history — every transition and why.
 
 From there you can **Requeue** the job to try again, or **Delete** it.
 
+### Acting on several jobs
+
+Tick the jobs — or the header checkbox for every job shown — and use **Requeue** or **Delete** above the grid. Each job is processed separately; if some fail, for example because they changed state in the meantime, the message says how many. Only jobs on screen are acted on: a selected job that finishes, moves to another state or is hidden by a grid filter drops out of the selection, and the selection clears when you change state.
+
 ### Running and scheduling jobs
 
-**Actions** offers every job type for an immediate run, grouped as Integration Jobs, Data Replication Jobs and Maintenance Jobs. The job types are:
+**Run a Job** offers every job type for an immediate run, grouped as Integration Jobs, Data Replication Jobs and Maintenance Jobs; hover a job type for what it does. The job types are:
 
 - **Work Full Sync** and **Work Differential Sync** — Synchronize work data from every active work-management connection (Azure DevOps). Differential fetches only items changed since the last sync. A failed run is retried up to three times.
 - **People Full Sync** and **People Differential Sync** — Synchronize people from the active people connection (Entra or Workday). A connector that cannot fetch only changes, such as Entra, runs a differential sync as a full one. A failed run is not retried: fix the cause and run it again. The run fails when more than one people connection is active.
@@ -606,7 +609,7 @@ From there you can **Requeue** the job to try again, or **Delete** it.
 - **Import Retention Sweep** — Discards the stored copy of each row once an import is past its 30-day retention window. Scheduled nightly by default as `import-retention-sweep`; like the stall sweep, the schedule can be changed and a deleted one is restored the next time the server starts. See [Imports](./imports.mdx#limits-and-rules).
 - **Notification Retention Sweep** — Deletes notifications about changes more than 90 days old, read or not; the activity log keeps what happened. Scheduled nightly by default as `notification-retention-sweep`; the schedule can be changed, and a deleted one is restored the next time the server starts. See [Following](../following.mdx#notifications).
 
-**Create Recurring Job** schedules a job with a cron expression. It offers only the job types that can run on a schedule — the cross-domain replication syncs (Projects, Teams, Iterations, Strategic Themes) are driven by the changes that trigger them, so they are available to run on demand but not to schedule. No sync is scheduled out of the box: to sync connections on a timetable, create a recurring **Work** or **People** sync job here.
+**Create Recurring Job**, in the **Actions** menu, schedules a job with a cron expression. It offers only the job types that can run on a schedule — the cross-domain replication syncs (Projects, Teams, Iterations, Strategic Themes) are driven by the changes that trigger them, so they are available to run on demand but not to schedule. No sync is scheduled out of the box: to sync connections on a timetable, create a recurring **Work** or **People** sync job here.
 
 With `Permissions.Hangfire.View`, **Actions** also links to the **Hangfire Dashboard**, the scheduler's own console.
 

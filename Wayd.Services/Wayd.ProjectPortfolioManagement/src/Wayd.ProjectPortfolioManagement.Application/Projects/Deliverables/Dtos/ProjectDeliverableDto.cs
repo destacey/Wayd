@@ -47,10 +47,22 @@ public sealed record ProjectDeliverableDto : IMapFrom<ProjectDeliverable>
     /// <summary>Who accepted it. Null unless its status means Accepted, or when an import did.</summary>
     public EmployeeNavigationDto? AcceptedBy { get; init; }
 
+    /// <summary>
+    /// How far the plan work serving the deliverable has got, 0 to 100, derived from its linked tasks when read,
+    /// leaving canceled work out. Null when no task is linked, or every linked task is canceled: a deliverable with
+    /// no work to count has no progress, not 0%.
+    /// </summary>
+    public decimal? Progress { get; init; }
+
+    /// <summary>How many plan tasks are linked to the deliverable.</summary>
+    public int LinkedTaskCount { get; init; }
+
     public void ConfigureMapping(TypeAdapterConfig config)
     {
         config.NewConfig<ProjectDeliverable, ProjectDeliverableDto>()
             .Map(dest => dest.Owner, src => src.Owner == null ? null : EmployeeNavigationDto.From(src.Owner))
+            .Map(dest => dest.LinkedTaskCount, src => src.TaskLinks.Count)
+            .Ignore(dest => dest.Progress)
             .Map(dest => dest.AcceptedBy, src => src.AcceptedBy == null ? null : EmployeeNavigationDto.From(src.AcceptedBy))
             .Map(dest => dest.IsOpen, src => src.StatusCategory == StatusCategory.Proposed
                 || src.StatusCategory == StatusCategory.Active)

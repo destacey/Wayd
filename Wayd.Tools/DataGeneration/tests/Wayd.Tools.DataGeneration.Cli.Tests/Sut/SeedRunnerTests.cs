@@ -82,7 +82,8 @@ public class SeedRunnerTests
     {
         // Arrange & Act — a program or portfolio only closes once everything inside it is closed, so this
         // one is ordered by every area that creates something it might have to wait on
-        ShouldDependOn(PpmArea.Finalize, PpmArea.Projects, PpmArea.Initiatives);
+        ShouldDependOn(PpmArea.Finalize, PpmArea.Projects, PpmArea.ProjectDeliverables, PpmArea.ProjectTasks,
+            PpmArea.ProjectStages, PpmArea.Initiatives);
 
         // Assert
         Ordered().Last().Should().Be(PpmArea.Finalize);
@@ -101,6 +102,13 @@ public class SeedRunnerTests
     {
         // Arrange & Act & Assert — a row names its project by key and its owner by employee number
         ShouldDependOn(PpmArea.ProjectDeliverables, PpmArea.Projects, OrganizationArea.Employees);
+    }
+
+    [Fact]
+    public void Areas_DeclareTasksAfterTheDeliverablesTheyServe()
+    {
+        // Arrange & Act & Assert — a task row names the deliverables it serves by id
+        ShouldDependOn(PpmArea.ProjectTasks, PpmArea.Projects, PpmArea.ProjectDeliverables);
     }
 
     [Fact]

@@ -11,6 +11,7 @@ public interface IProjectPortfolioManagementDbContext : IWaydDbContext
     DbSet<Program> Programs { get; }
     DbSet<Project> Projects { get; }
     DbSet<ProjectDeliverable> ProjectDeliverables { get; }
+    DbSet<ProjectDeliverableTask> ProjectDeliverableTasks { get; }
     DbSet<ProjectHealthCheck> ProjectHealthChecks { get; }
     DbSet<ProjectScore> ProjectScores { get; }
     DbSet<ProjectStatusHistory> ProjectStatusHistory { get; }

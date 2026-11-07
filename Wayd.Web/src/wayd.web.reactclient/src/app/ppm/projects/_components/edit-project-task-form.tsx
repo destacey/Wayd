@@ -33,6 +33,7 @@ import {
   getMilestoneParentExpansionHint,
   findOwnChildrenSpan,
 } from './project-parent-date-hint'
+import ProjectDeliverableSelect from './project-deliverable-select'
 import {
   getChildrenContainmentError,
   isShiftOnlyChange,
@@ -45,6 +46,8 @@ const { RangePicker } = DatePicker
 
 export interface EditProjectTaskFormProps {
   projectIdOrKey: string
+  /** The project's id, which its deliverables are read by. */
+  projectId: string
   taskIdOrKey: string
   onFormComplete: () => void
   onFormCancel: () => void
@@ -56,6 +59,7 @@ interface EditProjectTaskFormValues {
   status: number
   priority?: number
   assigneeIds: string[]
+  deliverableIds?: string[]
   progress?: number
   parentId?: string
   plannedRange?: any[]
@@ -74,6 +78,7 @@ const mapToRequestValues = (
     statusId: values.status,
     priorityId: values.priority,
     assigneeIds: values.assigneeIds,
+    deliverableIds: values.deliverableIds ?? [],
     progress: values.progress,
     parentId: values.parentId,
     plannedStart: (values.plannedRange?.[0] as any)?.format('YYYY-MM-DD'),
@@ -85,6 +90,7 @@ const mapToRequestValues = (
 
 const EditProjectTaskForm = ({
   projectIdOrKey,
+  projectId,
   taskIdOrKey,
   onFormComplete,
   onFormCancel,
@@ -193,6 +199,7 @@ const EditProjectTaskForm = ({
       status: taskData.status.id,
       priority: taskData.priority?.id,
       assigneeIds: taskData.assignees.map((a: any) => a.id),
+      deliverableIds: taskData.deliverableIds,
       progress: taskData.progress,
       parentId: taskData.parent?.id ?? taskData.projectStageId,
       plannedRange,
@@ -296,6 +303,10 @@ const EditProjectTaskForm = ({
             allowMultiple={true}
             placeholder="Select Assignees"
           />
+        </Item>
+
+        <Item name="deliverableIds" label="Deliverables">
+          <ProjectDeliverableSelect projectId={projectId} />
         </Item>
 
         {!isMilestone ? (

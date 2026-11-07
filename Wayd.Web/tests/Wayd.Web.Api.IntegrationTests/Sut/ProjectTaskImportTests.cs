@@ -150,7 +150,8 @@ public sealed class ProjectTaskImportTests(WaydSqlServerApiFactory factory)
             End,
             PlannedDate: null,
             EstimatedEffortHours: null,
-            AssigneeEmployeeNumbers: []);
+            AssigneeEmployeeNumbers: [],
+            DeliverableIds: []);
 
     /// <summary>
     /// Two active projects in one portfolio, sharing an active lifecycle so both carry the stage the task

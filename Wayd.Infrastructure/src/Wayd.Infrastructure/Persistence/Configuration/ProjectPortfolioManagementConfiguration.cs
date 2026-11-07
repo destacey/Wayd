@@ -341,6 +341,31 @@ public class ProjectDeliverableConfiguration : IEntityTypeConfiguration<ProjectD
             .WithMany()
             .HasForeignKey(d => d.AcceptedById)
             .OnDelete(DeleteBehavior.NoAction);
+
+        // SQL Server refuses two cascade paths from a project to a link (through its task and through its
+        // deliverable). The task side cascades in the database; deleting a deliverable removes its loaded links.
+        builder.HasMany(d => d.TaskLinks)
+            .WithOne(l => l.ProjectDeliverable)
+            .HasForeignKey(l => l.ProjectDeliverableId)
+            .OnDelete(DeleteBehavior.ClientCascade);
+    }
+}
+
+/// <summary>Maps the links between plan tasks and the deliverables they serve.</summary>
+public class ProjectDeliverableTaskConfiguration : IEntityTypeConfiguration<ProjectDeliverableTask>
+{
+    public void Configure(EntityTypeBuilder<ProjectDeliverableTask> builder)
+    {
+        builder.ToTable("ProjectDeliverableTasks", SchemaNames.ProjectPortfolioManagement);
+
+        builder.HasKey(l => new { l.ProjectDeliverableId, l.ProjectTaskId });
+
+        builder.HasIndex(l => l.ProjectTaskId);
+
+        builder.HasOne(l => l.ProjectTask)
+            .WithMany(t => t.DeliverableLinks)
+            .HasForeignKey(l => l.ProjectTaskId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 

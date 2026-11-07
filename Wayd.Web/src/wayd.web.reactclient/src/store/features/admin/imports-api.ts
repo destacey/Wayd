@@ -96,6 +96,8 @@ const IMPORTED_RECORD_TAGS: Record<ImportKey, ImportedRecordTag[]> = {
     QueryTags.ProjectTask,
     QueryTags.ProjectTaskTree,
     QueryTags.ProjectPlanTree,
+    // Imported tasks can serve deliverables, whose progress they move.
+    QueryTags.ProjectDeliverable,
   ],
   'ppm.project-stages': [QueryTags.ProjectPlanTree, QueryTags.ProjectTaskTree],
   'ppm.project-deliverables': [QueryTags.ProjectDeliverable, QueryTags.Project],

@@ -27,6 +27,19 @@ const afterChange = (projectId: string) => [
   ...projectActivityTags(projectId),
 ]
 
+/**
+ * Tasks carry the ids of the deliverables they serve, and the plan is fetched
+ * by project key while deliverables are fetched by id, so a link change
+ * refreshes every plan and task list rather than one it cannot name. Links do
+ * not move the project's revision, so the project itself is left alone.
+ */
+const afterLinkChange = (projectId: string) => [
+  { type: QueryTags.ProjectDeliverable, id: projectId },
+  { type: QueryTags.ProjectPlanTree },
+  { type: QueryTags.ProjectTask },
+  { type: QueryTags.ProjectTaskTree },
+]
+
 export const projectDeliverablesApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getProjectDeliverables: builder.query<ProjectDeliverableDto[], string>({
@@ -171,6 +184,27 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
         afterChange(projectId),
     }),
 
+    setProjectDeliverableTasks: builder.mutation<
+      null,
+      ProjectDeliverableRef & { taskIds: string[] }
+    >({
+      queryFn: async ({ projectId, deliverableId, taskIds }) => {
+        try {
+          await getProjectDeliverablesClient().setDeliverableTasks(
+            projectId,
+            deliverableId,
+            { taskIds },
+          )
+          return { data: null }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (_result, _error, { projectId }) =>
+        afterLinkChange(projectId),
+    }),
+
     deleteProjectDeliverable: builder.mutation<
       null,
       ProjectDeliverableRef & { expectedRevision: number }
@@ -188,8 +222,11 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: (_result, _error, { projectId }) =>
-        afterChange(projectId),
+      // Deleting a deliverable unlinks the tasks that served it.
+      invalidatesTags: (_result, _error, { projectId }) => [
+        ...afterChange(projectId),
+        ...afterLinkChange(projectId),
+      ],
     }),
   }),
 })
@@ -202,5 +239,6 @@ export const {
   useUpdateProjectDeliverableMutation,
   useChangeProjectDeliverableStatusMutation,
   useReorderProjectDeliverablesMutation,
+  useSetProjectDeliverableTasksMutation,
   useDeleteProjectDeliverableMutation,
 } = projectDeliverablesApi

@@ -12,6 +12,7 @@ import {
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import { getBackgroundJobsClient } from '@/src/services/clients'
+import { chunk } from '@/src/utils/chunk'
 
 export interface GetJobsRequest {
   state: JobStateFilter
@@ -21,10 +22,33 @@ export interface GetJobsRequest {
 }
 
 /** Every list/tile view reflects a mutation, so job actions invalidate all of them. */
-const jobViewTags = [
-  QueryTags.BackgroundJob,
-  QueryTags.BackgroundJobStatistics,
-]
+const jobViewTags = [QueryTags.BackgroundJob, QueryTags.BackgroundJobStatistics]
+
+/** How a bulk job action went: how many jobs it covered and how many of them it could not act on. */
+export interface BulkJobOutcome {
+  total: number
+  failed: number
+}
+
+/** Requests a bulk action keeps in flight at once, so a 500-job page doesn't fire 500 at the API together. */
+export const BULK_JOB_CONCURRENCY = 10
+
+/**
+ * Runs `action` for every job id, {@link BULK_JOB_CONCURRENCY} at a time, and
+ * counts the failures rather than stopping at the first one: each job stands
+ * alone, so one that changed state must not block the rest.
+ */
+export const settleJobsInBatches = async (
+  jobIds: string[],
+  action: (jobId: string) => Promise<unknown>,
+): Promise<BulkJobOutcome> => {
+  let failed = 0
+  for (const slice of chunk(jobIds, BULK_JOB_CONCURRENCY)) {
+    const results = await Promise.allSettled(slice.map(action))
+    failed += results.filter((r) => r.status === 'rejected').length
+  }
+  return { total: jobIds.length, failed }
+}
 
 /**
  * Jobs move without the user doing anything, so the page polls while it is open.
@@ -186,6 +210,24 @@ export const backgroundJobsApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: jobViewTags,
     }),
+    // The bulk mutations call the client directly, so the lists refetch once
+    // for the batch rather than once per job.
+    requeueJobs: builder.mutation<BulkJobOutcome, string[]>({
+      queryFn: async (jobIds) => ({
+        data: await settleJobsInBatches(jobIds, (jobId) =>
+          getBackgroundJobsClient().requeueJob(jobId),
+        ),
+      }),
+      invalidatesTags: jobViewTags,
+    }),
+    deleteJobs: builder.mutation<BulkJobOutcome, string[]>({
+      queryFn: async (jobIds) => ({
+        data: await settleJobsInBatches(jobIds, (jobId) =>
+          getBackgroundJobsClient().deleteJob(jobId),
+        ),
+      }),
+      invalidatesTags: jobViewTags,
+    }),
     createRecurringJob: builder.mutation<void, CreateRecurringJobRequest>({
       queryFn: async (request) => {
         try {
@@ -225,6 +267,8 @@ export const {
   useRunJobMutation,
   useRequeueJobMutation,
   useDeleteJobMutation,
+  useRequeueJobsMutation,
+  useDeleteJobsMutation,
   useCreateRecurringJobMutation,
   useRemoveRecurringJobMutation,
 } = backgroundJobsApi

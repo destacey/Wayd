@@ -66,6 +66,11 @@ public sealed record CreateProjectTaskRequest
     /// </summary>
     public decimal? EstimatedEffortHours { get; set; }
 
+    /// <summary>
+    /// The deliverables of the same project the task serves, by id (optional).
+    /// </summary>
+    public List<Guid>? DeliverableIds { get; set; }
+
     public CreateProjectTaskCommand ToCreateProjectTaskCommand(Guid projectId)
     {
         var plannedDateRange = PlannedStart is null || PlannedEnd is null
@@ -84,7 +89,8 @@ public sealed record CreateProjectTaskRequest
             plannedDateRange,
             PlannedDate,
             EstimatedEffortHours,
-            AssigneeIds
+            AssigneeIds,
+            DeliverableIds
         );
     }
 }
@@ -115,6 +121,10 @@ public sealed class CreateProjectTaskRequestValidator : CustomValidator<CreatePr
         RuleFor(x => x.AssigneeIds)
             .Must(ids => ids == null || ids.All(id => id != Guid.Empty))
             .WithMessage("AssigneeIds cannot contain empty GUIDs.");
+
+        RuleFor(x => x.DeliverableIds)
+            .Must(ids => ids == null || ids.All(id => id != Guid.Empty))
+            .WithMessage("DeliverableIds cannot contain empty GUIDs.");
 
         RuleFor(x => x.Progress)
             .NotNull()

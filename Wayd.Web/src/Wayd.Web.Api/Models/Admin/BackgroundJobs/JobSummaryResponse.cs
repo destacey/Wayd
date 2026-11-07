@@ -18,6 +18,21 @@ public class JobSummaryResponse
     public string? ExceptionType { get; set; }
     public string? ExceptionMessage { get; set; }
 
+    /// <summary>
+    /// The scheduler server running the job, matching a server's <c>name</c> from the servers endpoint.
+    /// Set for processing jobs only.
+    /// </summary>
+    public string? ServerName { get; set; }
+
+    /// <summary>When the successful run began. Set for succeeded jobs only.</summary>
+    public Instant? StartedAt { get; set; }
+
+    /// <summary>
+    /// How long the successful run took, in milliseconds, excluding time spent waiting in the queue.
+    /// Set for succeeded jobs only.
+    /// </summary>
+    public long? DurationMilliseconds { get; set; }
+
     internal static JobSummaryResponse From(JobSummaryDto job) => new()
     {
         Id = job.Id,
@@ -29,5 +44,8 @@ public class JobSummaryResponse
         TimestampLabel = job.TimestampLabel,
         ExceptionType = job.ExceptionType,
         ExceptionMessage = job.ExceptionMessage,
+        ServerName = job.ServerName,
+        StartedAt = job.StartedAt,
+        DurationMilliseconds = job.DurationMilliseconds,
     };
 }

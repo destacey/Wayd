@@ -62,5 +62,11 @@ public interface IJobService : IScopedService
 
     bool Requeue(string jobId, string fromState);
 
+    /// <summary>
+    /// Requeues a job unless a worker is running it. The requeue only applies while the job is still in the
+    /// state it was read in, so a job that starts running in between is not duplicated either.
+    /// </summary>
+    RequeueOutcome RequeueIfNotRunning(string jobId);
+
     void AddOrUpdate(string jobId, Expression<Func<Task>> methodCall, Func<string> cronExpression);
 }

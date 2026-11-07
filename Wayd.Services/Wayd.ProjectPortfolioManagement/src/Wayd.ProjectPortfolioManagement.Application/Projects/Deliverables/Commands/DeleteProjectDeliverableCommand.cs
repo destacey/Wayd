@@ -37,6 +37,8 @@ public sealed class DeleteProjectDeliverableCommandHandler(
         var project = await _ppmDbContext.Projects
             .WithLeadership()
             .Include(p => p.Deliverables.Where(d => d.Id == request.DeliverableId))
+                // The database does not cascade a deliverable's links; unloaded, they fail the save.
+                .ThenInclude(d => d.TaskLinks)
             .FirstOrDefaultAsync(p => p.Id == request.ProjectId, cancellationToken);
         if (project is null)
             return Result.Failure(ProjectDeliverableCommandSupport.ProjectNotFoundError);

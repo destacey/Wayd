@@ -105,3 +105,20 @@ public sealed class ReorderProjectDeliverablesRequestValidator : CustomValidator
         RuleFor(r => r.DeliverableIds).NotNull();
     }
 }
+
+/// <summary>The plan tasks that serve a deliverable, replacing its links.</summary>
+public sealed record SetProjectDeliverableTasksRequest
+{
+    /// <summary>Every task of the same project that should serve the deliverable, by id. Empty unlinks them all.</summary>
+    public List<Guid> TaskIds { get; set; } = [];
+}
+
+/// <summary>Validates a <see cref="SetProjectDeliverableTasksRequest"/>.</summary>
+public sealed class SetProjectDeliverableTasksRequestValidator : CustomValidator<SetProjectDeliverableTasksRequest>
+{
+    public SetProjectDeliverableTasksRequestValidator()
+    {
+        RuleFor(r => r.TaskIds).NotNull();
+        RuleForEach(r => r.TaskIds).NotEmpty();
+    }
+}

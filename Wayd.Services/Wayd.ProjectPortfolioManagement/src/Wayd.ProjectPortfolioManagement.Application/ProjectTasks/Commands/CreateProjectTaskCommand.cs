@@ -15,7 +15,8 @@ public sealed record CreateProjectTaskCommand(
     FlexibleDateRange? PlannedDateRange,
     LocalDate? PlannedDate,
     decimal? EstimatedEffortHours,
-    List<Guid>? AssigneeIds
+    List<Guid>? AssigneeIds,
+    List<Guid>? DeliverableIds = null
 ) : ICommand<ProjectTaskIdAndKey>;
 
 public sealed class CreateProjectTaskCommandValidator : AbstractValidator<CreateProjectTaskCommand>
@@ -79,6 +80,10 @@ public sealed class CreateProjectTaskCommandValidator : AbstractValidator<Create
         RuleFor(x => x.AssigneeIds)
             .Must(ids => ids == null || ids.All(id => id != Guid.Empty))
             .WithMessage("AssigneeIds cannot contain empty GUIDs.");
+
+        RuleFor(x => x.DeliverableIds)
+            .Must(ids => ids == null || ids.All(id => id != Guid.Empty))
+            .WithMessage("DeliverableIds cannot contain empty GUIDs.");
     }
 }
 
@@ -96,10 +101,15 @@ public sealed class CreateProjectTaskCommandHandler(
     {
         try
         {
-            // Load the project with stages and tasks so the domain can resolve parentId
+            var deliverableIds = request.DeliverableIds?.Distinct().ToList() ?? [];
+
+            // Load the project with stages and tasks so the domain can resolve parentId, and only the named
+            // deliverables to link the task to.
             var project = await _ppmDbContext.Projects
+                .AsSplitQuery()
                 .Include(p => p.Stages)
                 .Include(p => p.Tasks)
+                .Include(p => p.Deliverables.Where(d => deliverableIds.Contains(d.Id)))
                 .FirstOrDefaultAsync(p => p.Id == request.ProjectId, cancellationToken);
             if (project is null)
             {
@@ -142,9 +152,16 @@ public sealed class CreateProjectTaskCommandHandler(
                 return Result.Failure<ProjectTaskIdAndKey>(createResult.Error);
             }
 
-            await _ppmDbContext.SaveChangesAsync(cancellationToken);
-
             var task = createResult.Value;
+
+            if (deliverableIds.Count > 0)
+            {
+                var linkResult = project.SetTaskDeliverables(task.Id, deliverableIds);
+                if (linkResult.IsFailure)
+                    return Result.Failure<ProjectTaskIdAndKey>(linkResult.Error);
+            }
+
+            await _ppmDbContext.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Project task {TaskId} created with Key {TaskKey} for project {ProjectId}.",
                 task.Id, task.Key.Value, request.ProjectId);

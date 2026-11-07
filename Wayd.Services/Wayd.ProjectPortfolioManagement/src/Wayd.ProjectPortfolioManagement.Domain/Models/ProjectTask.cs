@@ -17,6 +17,7 @@ public sealed class ProjectTask : BaseAuditableEntity, IHasIdAndKey<ProjectTaskK
     private readonly HashSet<RoleAssignment<TaskRole>> _roles = [];
     private readonly List<ProjectTaskDependency> _predecessors = [];
     private readonly List<ProjectTaskDependency> _successors = [];
+    private readonly List<ProjectDeliverableTask> _deliverableLinks = [];
 
     private ProjectTask() { }
 
@@ -187,6 +188,12 @@ public sealed class ProjectTask : BaseAuditableEntity, IHasIdAndKey<ProjectTaskK
     /// The dependencies where this task is the successor.
     /// </summary>
     public IReadOnlyList<ProjectTaskDependency> Predecessors => _predecessors.AsReadOnly();
+
+    /// <summary>
+    /// The deliverables this task serves. Setting them (<see cref="Project.SetTaskDeliverables"/>) needs this
+    /// collection loaded: an unloaded one reads as no links, so setting would add rows that already exist.
+    /// </summary>
+    public IReadOnlyCollection<ProjectDeliverableTask> DeliverableLinks => _deliverableLinks.AsReadOnly();
 
     #region Domain Methods
 
@@ -389,6 +396,12 @@ public sealed class ProjectTask : BaseAuditableEntity, IHasIdAndKey<ProjectTaskK
     #endregion
 
     #region Helper Methods
+
+    /// <summary>Adds a link to a deliverable. Only the project calls it, having checked the deliverable is its own.</summary>
+    internal void AddDeliverableLink(ProjectDeliverableTask link) => _deliverableLinks.Add(link);
+
+    /// <summary>Removes a link to a deliverable. Only the project calls it.</summary>
+    internal void RemoveDeliverableLink(ProjectDeliverableTask link) => _deliverableLinks.Remove(link);
 
     /// <summary>
     /// Adds a child task (called internally from parent task or project).

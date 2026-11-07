@@ -57,4 +57,32 @@ public sealed class ImportProjectTaskRequestValidatorTests
         // Assert
         result.ShouldHaveValidationErrorFor(t => t.EstimatedEffortHours);
     }
+
+    [Fact]
+    public void DeliverableIds_SeparatedBySemicolons_Pass()
+    {
+        // Arrange
+        var request = Request();
+        request.DeliverableIds = $"{Guid.NewGuid()}; {Guid.NewGuid()}";
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(t => t.DeliverableIds);
+    }
+
+    [Fact]
+    public void DeliverableIds_WithAValueThatIsNotAnId_Fails()
+    {
+        // Arrange
+        var request = Request();
+        request.DeliverableIds = $"{Guid.NewGuid()};Customer portal";
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(t => t.DeliverableIds);
+    }
 }

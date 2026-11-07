@@ -1,4 +1,5 @@
-﻿using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
+﻿using Microsoft.AspNetCore.JsonPatch.SystemTextJson;
+using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Commands;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Dtos;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
@@ -68,6 +69,12 @@ public sealed record UpdateProjectTaskRequest
     public decimal? EstimatedEffortHours { get; set; }
 
     /// <summary>
+    /// The deliverables of the same project the task serves, by id, replacing its links. Null leaves its links as
+    /// they are; an empty list unlinks it from every deliverable.
+    /// </summary>
+    public List<Guid>? DeliverableIds { get; set; }
+
+    /// <summary>
     /// Creates an UpdateProjectTaskRequest from a ProjectTaskDto.
     /// </summary>
     public static UpdateProjectTaskRequest FromDto(ProjectTaskDto dto)
@@ -85,9 +92,28 @@ public sealed record UpdateProjectTaskRequest
             PlannedEnd = dto.PlannedEnd,
             PlannedDate = dto.PlannedDate,
             EstimatedEffortHours = dto.EstimatedEffortHours,
-            AssigneeIds = [.. dto.Assignees.Select(a => a.Id)]
+            AssigneeIds = [.. dto.Assignees.Select(a => a.Id)],
+            DeliverableIds = [.. dto.DeliverableIds]
         };
     }
+
+    /// <summary>
+    /// The update a task patch sends once applied. A patch that does not name the deliverables leaves the task's
+    /// links alone, rather than writing back the ones read before it: another change may have linked the task since.
+    /// </summary>
+    public static UpdateProjectTaskRequest AfterPatch(
+        UpdateProjectTaskRequest patched, JsonPatchDocument<UpdateProjectTaskRequest> patchDocument)
+    {
+        var namesDeliverables = patchDocument.Operations.Any(o =>
+            NamesDeliverables(o.path) || NamesDeliverables(o.from));
+
+        return namesDeliverables ? patched : patched with { DeliverableIds = null };
+    }
+
+    private static bool NamesDeliverables(string? path) =>
+        path is not null
+        && (path.Equals("/deliverableIds", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/deliverableIds/", StringComparison.OrdinalIgnoreCase));
 
     public UpdateProjectTaskCommand ToUpdateProjectTaskCommand()
     {
@@ -106,7 +132,8 @@ public sealed record UpdateProjectTaskRequest
             plannedDateRange,
             PlannedDate,
             EstimatedEffortHours,
-            AssigneeIds
+            AssigneeIds,
+            DeliverableIds
         );
     }
 }
@@ -136,6 +163,10 @@ public sealed class UpdateProjectTaskRequestValidator : CustomValidator<UpdatePr
         RuleFor(x => x.AssigneeIds)
             .Must(ids => ids == null || ids.All(id => id != Guid.Empty))
             .WithMessage("AssigneeIds cannot contain empty GUIDs.");
+
+        RuleFor(x => x.DeliverableIds)
+            .Must(ids => ids == null || ids.All(id => id != Guid.Empty))
+            .WithMessage("DeliverableIds cannot contain empty GUIDs.");
 
         RuleFor(x => x.PlannedStart)
             .Must((request, plannedStart) => (request.PlannedStart == null && request.PlannedEnd == null) || (request.PlannedStart != null && request.PlannedEnd != null))

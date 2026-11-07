@@ -27,6 +27,12 @@ public sealed class PpmGenerator
     /// </summary>
     private readonly Faker _deliverableFaker;
 
+    /// <summary>
+    /// Draws for which deliverables a task serves only, on its own stream for the same reason as
+    /// <see cref="_deliverableFaker"/>: linking tasks shifts no draw of the tasks or deliverables themselves.
+    /// </summary>
+    private readonly Faker _deliverableLinkFaker;
+
     private readonly List<StrategicThemeModel> _themes = [];
     private readonly List<PortfolioModel> _portfolios = [];
     private readonly List<ProgramModel> _programs = [];
@@ -69,6 +75,11 @@ public sealed class PpmGenerator
     // About one project in six is standalone (portfolio-direct) rather than grouped under a program.
     private const double PortfolioDirectFraction = 0.15;
 
+    // Of a project's top-level tasks, about one in five serves no deliverable and about one in seven serves two;
+    // the rest serve one.
+    private const double UnlinkedTaskFraction = 0.20;
+    private const double TwoDeliverableTaskFraction = 0.15;
+
     /// <summary>The area name this generator draws its seed under.</summary>
     public const string AreaName = "ppm";
 
@@ -92,6 +103,7 @@ public sealed class PpmGenerator
         // Derived from the area name, so adding another generator does not shift this one's data.
         _faker = new Faker { Random = new Randomizer(context.SeedFor(AreaName)) };
         _deliverableFaker = new Faker { Random = new Randomizer(context.SeedFor(AreaName + ".deliverables")) };
+        _deliverableLinkFaker = new Faker { Random = new Randomizer(context.SeedFor(AreaName + ".deliverable-links")) };
     }
 
     public GeneratedPpm Generate()
@@ -591,6 +603,7 @@ public sealed class PpmGenerator
                 PlannedDate = stageEnd,
                 EstimatedEffortHours = null,
                 Assignees = Join([Holder(positions.FirstOrDefault(), milestoneStatus == "Completed" ? stageEnd : Today)]),
+                Deliverables = DeliverablesServedBy(projectKey, stageEnd),
             });
 
             // The import applies stage status as data (it does not derive it from tasks), so the generator
@@ -664,7 +677,37 @@ public sealed class PpmGenerator
             PlannedDate = null,
             EstimatedEffortHours = _faker.Random.Int(8, 120),
             Assignees = Join([Holder(_faker.PickRandom(positions.DefaultIfEmpty(null)), status == "Completed" ? end : Today)]),
+            Deliverables = parent is null ? DeliverablesServedBy(projectKey, end) : null,
         });
+    }
+
+    /// <summary>
+    /// Which of its project's deliverables a top-level task ending on <paramref name="end"/> serves: the first
+    /// one due on or after that day (or the last, for work finishing after every target), and for a few tasks
+    /// the one due next as well. Some serve none. Its subtasks are not linked: linking the top-level task already
+    /// counts them toward the deliverable's progress.
+    /// </summary>
+    private string? DeliverablesServedBy(string projectKey, DateOnly end)
+    {
+        var deliverables = _deliverables
+            .Where(d => string.Equals(d.ProjectKey, projectKey, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        if (deliverables.Count == 0)
+            return null;
+
+        var roll = _deliverableLinkFaker.Random.Double();
+        if (roll < UnlinkedTaskFraction)
+            return null;
+
+        var first = deliverables.FindIndex(d => d.TargetDate >= end);
+        if (first < 0)
+            first = deliverables.Count - 1;
+
+        List<string> served = [deliverables[first].Name];
+        if (roll >= 1 - TwoDeliverableTaskFraction && deliverables.Count > 1)
+            served.Add(deliverables[first + 1 < deliverables.Count ? first + 1 : first - 1].Name);
+
+        return Join(served);
     }
 
     // ---- Strategic initiatives ----------------------------------------------------------------

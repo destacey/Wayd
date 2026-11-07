@@ -29,7 +29,7 @@ public class ProjectDeliverablesController(IDispatcher dispatcher, ICsvService c
     [HttpGet("{idOrKey}/deliverables")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
     [EndpointSummary("Get a project's deliverables, in their order.")]
-    [EndpointDescription("Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open.")]
+    [EndpointDescription("Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open. `progress` is derived from the plan tasks linked to the deliverable, weighted by planned duration and leaving canceled tasks out, and is null when none is linked.")]
     [McpTool("Projects_GetDeliverables", "List project deliverables")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -161,6 +161,26 @@ public class ProjectDeliverablesController(IDispatcher dispatcher, ICsvService c
     public async Task<ActionResult> ReorderDeliverables(Guid id, [FromBody] ReorderProjectDeliverablesRequest request, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new ReorderProjectDeliverablesCommand(id, request.DeliverableIds, request.ExpectedRevision), cancellationToken);
+
+        return NoContentOr(result);
+    }
+
+    [HttpPut("{id}/deliverables/{deliverableId}/tasks")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Projects)]
+    [EndpointSummary("Set which plan tasks serve a deliverable.")]
+    [EndpointDescription(
+        "`taskIds` replaces the deliverable's links: a task not named is unlinked, and an empty list unlinks them all. Tasks must belong to the same project (Tasks_GetProjectTasks); a task can serve several deliverables. " +
+        "The deliverable's `progress` is derived from its linked tasks, using a linked summary task's subtasks. Linking is plan work: it needs no project role and does not change the project's `revision`, so it takes no `expectedRevision`. " +
+        "It can unlink tasks, so read the current links first and confirm with the user before calling.")]
+    [McpTool("Projects_SetDeliverableTasks", "Set deliverable tasks", Idempotent = true)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> SetDeliverableTasks(Guid id, Guid deliverableId, [FromBody] SetProjectDeliverableTasksRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new SetProjectDeliverableTasksCommand(id, deliverableId, request.TaskIds), cancellationToken);
 
         return NoContentOr(result);
     }

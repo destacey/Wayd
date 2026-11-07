@@ -89,6 +89,12 @@ public sealed class ProjectTaskModel
     public DateOnly? PlannedDate { get; init; }
     public decimal? EstimatedEffortHours { get; init; }
     public string? Assignees { get; init; }
+
+    /// <summary>
+    /// The deliverables of the same project this task serves, by name, separated by semicolons. Only a
+    /// top-level task names any; null for one that serves none.
+    /// </summary>
+    public string? Deliverables { get; init; }
 }
 
 /// <summary>A generated stage status: one stage of one project, set to exactly the status the generator computed from that stage’s tasks.</summary>

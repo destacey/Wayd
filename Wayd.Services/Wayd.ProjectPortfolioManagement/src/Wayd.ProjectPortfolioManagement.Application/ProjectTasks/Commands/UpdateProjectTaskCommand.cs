@@ -14,7 +14,8 @@ public sealed record UpdateProjectTaskCommand(
     FlexibleDateRange? PlannedDateRange,
     LocalDate? PlannedDate,
     decimal? EstimatedEffortHours,
-    List<Guid>? AssigneeIds
+    List<Guid>? AssigneeIds,
+    List<Guid>? DeliverableIds = null
 ) : ICommand;
 
 public sealed class UpdateProjectTaskCommandValidator : AbstractValidator<UpdateProjectTaskCommand>
@@ -48,6 +49,10 @@ public sealed class UpdateProjectTaskCommandValidator : AbstractValidator<Update
         RuleFor(x => x.AssigneeIds)
             .Must(ids => ids == null || ids.All(id => id != Guid.Empty))
             .WithMessage("AssigneeIds cannot contain empty GUIDs.");
+
+        RuleFor(x => x.DeliverableIds)
+            .Must(ids => ids == null || ids.All(id => id != Guid.Empty))
+            .WithMessage("DeliverableIds cannot contain empty GUIDs.");
     }
 }
 
@@ -67,11 +72,17 @@ public sealed class UpdateProjectTaskCommandHandler(
     {
         try
         {
+            var deliverableIds = request.DeliverableIds?.Distinct().ToList() ?? [];
+
+            // Only this task's deliverable links and the named deliverables: setting links reads no others.
             var project = await _ppmDbContext.Projects
                 .AsSplitQuery()
                 .Include(p => p.Stages)
                 .Include(p => p.Tasks)
                 .ThenInclude(t => t.Roles)
+                .Include(p => p.Tasks)
+                .ThenInclude(t => t.DeliverableLinks.Where(l => l.ProjectTaskId == request.Id))
+                .Include(p => p.Deliverables.Where(d => deliverableIds.Contains(d.Id)))
                 .FirstOrDefaultAsync(p => p.Tasks.Any(t => t.Id == request.Id), cancellationToken);
             if (project is null)
             {
@@ -151,6 +162,15 @@ public sealed class UpdateProjectTaskCommandHandler(
             if (updateRolesResult.IsFailure)
             {
                 return await HandleDomainFailure(project, updateRolesResult, cancellationToken);
+            }
+
+            if (request.DeliverableIds is not null)
+            {
+                var linkResult = project.SetTaskDeliverables(task.Id, deliverableIds);
+                if (linkResult.IsFailure)
+                {
+                    return await HandleDomainFailure(project, linkResult, cancellationToken);
+                }
             }
 
             await _ppmDbContext.SaveChangesAsync(cancellationToken);

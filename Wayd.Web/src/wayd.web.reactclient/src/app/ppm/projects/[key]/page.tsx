@@ -493,6 +493,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           <ProjectDeliverables
             project={projectData}
             canManage={canManageDeliverables}
+            canLinkTasks={canUpdateProject}
             projectRefreshing={isFetchingProject}
             addRequested={openAddDeliverableForm}
             onAddClosed={() => setOpenAddDeliverableForm(false)}

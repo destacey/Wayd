@@ -13,9 +13,9 @@ On a **team of teams** the report covers every team beneath it: its child teams,
 
 ## What Counts
 
-The report counts **Requirement-tier** work items, such as User Stories and Bugs, whose status category became **Done** within the date range. Dates are whole days in UTC, and both ends of the range are included. A range can be at most 366 days: a full year, with room for a leap day.
+The report counts **Requirement-tier** work items, such as User Stories and Bugs, whose status category became **Done** within the date range. Dates are whole days in the time zone of the team's [operating model](../organizations/index.mdx#operating-model) — for a team of teams, its [own operating model's](../organizations/index.mdx#team-of-teams-operating-model), for every team beneath it — and both ends of the range are included. A note below the report names the zone. On a team of teams, the day a work item was done — which decides the parent its team had and how that team sized — is read in the team of teams' zone, so it can differ by a day from the child team's own report for work done near midnight. A range can be at most 366 days: a full year, with room for a leap day.
 
-Choose the range with **Completed**. The report opens on the last 90 days, ending yesterday, and offers **Last 30 days**, **Last 90 days**, **Last quarter** (the previous calendar quarter), **Last 6 months** and **Last 12 months**. A range cannot end after today. Nothing is saved: the report opens on its defaults each time.
+Choose the range with **Completed**. The report opens on the last 90 days, ending yesterday in that time zone, and offers **Last 30 days**, **Last 90 days**, **Last quarter** (the previous calendar quarter), **Last 6 months** and **Last 12 months**. A range cannot end after today. Nothing is saved: the report opens on its defaults each time.
 
 - **Removed** work items never count, even though they also carry a done date.
 - **Portfolio-tier** items such as Epics and Features are not counted, so a feature is never counted on top of the stories beneath it.

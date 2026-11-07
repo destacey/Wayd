@@ -66,9 +66,20 @@ The roadmap detail page offers two views:
 
 **Timeline View** (default) — Visual timeline showing activities, milestones, and timeboxes. Owners can drag items to change their dates (see [Editing Items](#editing-items-owners-only)). Single-day activity and timebox ranges use a compact marker treatment with the label beside the marker.
 
-**List View** — Hierarchical tree grid showing all items with Name, Type, Start, End, and Color, paired with a [Gantt chart](#gantt-chart). It can be used without a mouse — arrow keys move between cells, Right and Left on a Name expand and collapse, Enter or F2 moves to the item's link (or, for owners, edits the row), and Shift+F10 opens the row's menu. For owners it supports inline editing with keyboard shortcuts (all listed under the grid's help), **Create Item** to add an activity or timebox, dragging activities to reorder them or move them under another activity, and a row menu with **Edit** and **Delete**.
+**List View** — Hierarchical tree grid showing all items with Name, Type, Start, End, and Color, paired with a [Gantt chart](#gantt-chart). It can be used without a mouse — arrow keys move between cells, and Right and Left on a Name expand and collapse. Without edit rights, Enter on a Name moves to its link, and Enter again opens the item. Owners edit items cell by cell (see [Editing in the List View](#editing-in-the-list-view-owners-only)), add items with **Create Item**, drag activities to reorder them or move them under another activity, and open a row's menu with Shift+F10: **View Details**, **Add Child Item** (activities), **Edit** (activities and timeboxes) and **Delete**. The grid's **?** button lists every key.
 
-Clicking an item opens the **Roadmap Item Details** drawer with its full details and, for owners, **Edit**.
+Clicking an item's name opens the **Roadmap Item Details** drawer with its full details and, for owners, **Edit**.
+
+### Editing in the List View (owners only)
+
+The list edits like a spreadsheet: one cell at a time, saved as soon as you leave it. There is no Save button and no confirmation message.
+
+- **Open a cell** with Enter, F2, a double-click, or a click on the cell that is already selected. Typing a character in Name starts over with that character.
+- **Save** with Enter (and move down), Tab (and move to the next cell), or by clicking anywhere else. Escape closes an open list or calendar, then undoes the edit.
+- **Name, Start, End and Color** can be edited on any item. A milestone's single date is in the Start column, and timeboxes have no color. Color is picked from the roadmap's palette when it has one (Delete clears it); otherwise type a hex value such as `#1677FF`, or press ↓ to pick a swatch. **Type** is chosen only for a new item.
+- **Start and End are saved together.** Tab from Start to End holds Start until you leave the pair, then both are checked: End can't be before Start, and an activity can't be shortened behind one of its children. Moving both dates by the same number of days is a shift, which moves the children along (see [Activity Date Rollup](#activity-date-rollup)).
+- **A cell that is waiting or failed is marked.** An underline means not yet saved, a bar on the left means saving, and a tinted cell with a bar means it failed. Select a failed cell to see why. Its value stays until you fix it (Enter) or discard it (Escape).
+- **New items.** **Create Item**, or **Add Child Item** on an activity, adds a row with its Name open. The item is created once it has a Name, a Start and an End, filled in any order; until then, the cells it still needs are marked, and Enter on the Name opens the first of them. Escape on an empty new row removes it.
 
 **Actions:**
 - **Edit** — name, description, dates, owners and visibility (owners)

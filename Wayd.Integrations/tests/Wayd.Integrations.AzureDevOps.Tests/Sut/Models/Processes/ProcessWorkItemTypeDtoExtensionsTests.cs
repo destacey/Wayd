@@ -59,6 +59,72 @@ public class ProcessWorkItemTypeDtoExtensionsTests : CommonResponseOptions
 
 
 
+    [Fact]
+    public void ToAzdoWorkType_KeysTheTypeByReferenceName_AndEachStateById()
+    {
+        // Arrange
+        var json = GetToAzdoWorkTypeJson();
+        var workItemType = JsonSerializer.Deserialize<ProcessWorkItemTypeDto>(json, _options);
+
+        // Act
+        var workType = workItemType!.ToAzdoWorkType();
+
+        // Assert
+        // Both survive a rename in Azure DevOps, which the names do not.
+        workType.ExternalKey.Should().Be("TestAgileProcess.Epic");
+        workType.WorkflowStates.Take(3).Select(s => (s.ExternalKey, s.StatusName)).Should().Equal(
+            ("7b7e3e8c-e500-40b6-ad56-d59b8d64d757", "New"),
+            ("277237cd-0bc0-4ffb-bdc6-d358b154ba9e", "Active"),
+            ("f36cfea7-889a-448e-b5d1-fbc9b134ec82", "Resolved"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ToAzdoWorkType_WithADuplicatedState_KeysItByTheVisibleCopyWhicheverComesFirst(bool hiddenFirst)
+    {
+        // Arrange
+        var hidden = new ProcessWorkItemStateDto { Id = Guid.Parse("11111111-0000-0000-0000-000000000000"), Name = "Closed", StateCategory = "Completed", Order = 3, Hidden = true };
+        var visible = new ProcessWorkItemStateDto { Id = Guid.Parse("99999999-0000-0000-0000-000000000000"), Name = "closed", StateCategory = "Completed", Order = 4 };
+        var workItemType = new ProcessWorkItemTypeDto
+        {
+            ReferenceName = "Custom.Bug",
+            Name = "Bug",
+            States = hiddenFirst ? [hidden, visible] : [visible, hidden],
+        };
+
+        // Act
+        var workType = workItemType.ToAzdoWorkType();
+
+        // Assert
+        // The visible copy is the one that stays if the API stops returning the hidden duplicate, and a key
+        // that followed the API's order could change between syncs, retiring the status and adding it again.
+        // Names are compared without case, as the engine compares status names.
+        workType.WorkflowStates.Should().ContainSingle().Which.ExternalKey.Should().Be("99999999-0000-0000-0000-000000000000");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ToAzdoWorkType_WithADuplicatedState_KeysTwoVisibleCopiesByTheLowestId(bool lowestFirst)
+    {
+        // Arrange
+        var low = new ProcessWorkItemStateDto { Id = Guid.Parse("11111111-0000-0000-0000-000000000000"), Name = "Closed", StateCategory = "Completed", Order = 3 };
+        var high = new ProcessWorkItemStateDto { Id = Guid.Parse("99999999-0000-0000-0000-000000000000"), Name = "Closed", StateCategory = "Completed", Order = 4 };
+        var workItemType = new ProcessWorkItemTypeDto
+        {
+            ReferenceName = "Custom.Bug",
+            Name = "Bug",
+            States = lowestFirst ? [low, high] : [high, low],
+        };
+
+        // Act
+        var workType = workItemType.ToAzdoWorkType();
+
+        // Assert
+        workType.WorkflowStates.Should().ContainSingle().Which.ExternalKey.Should().Be("11111111-0000-0000-0000-000000000000");
+    }
+
     private static string GetToAzdoWorkTypeJson()
     {
         return """

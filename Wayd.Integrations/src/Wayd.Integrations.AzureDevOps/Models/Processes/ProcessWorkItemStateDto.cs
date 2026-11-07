@@ -27,6 +27,7 @@ internal static class ProcessWorkItemStateDtoExtensions
     {
         return new AzdoWorkflowState
         {
+            ExternalKey = workItemState.Id.ToString("D"),
             StatusName = workItemState.Name,
             Category = workItemState.StateCategory switch
             {

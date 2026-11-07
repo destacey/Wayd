@@ -33,6 +33,7 @@ internal static class ProcessWorkItemTypeDtoExtensions
 
         var azdoWorkType = new AzdoWorkType
         {
+            ExternalKey = workItemType.ReferenceName,
             Name = workItemType.Name,
             Description = workItemType.Description,
             WorkTypeLevelId = backlogLevelId,
@@ -42,25 +43,24 @@ internal static class ProcessWorkItemTypeDtoExtensions
         };
 
         // there seems to be a bug in the API when including states that duplicates hidden states. Override with the last one for now.
-        foreach (var state in workItemType.States)
+        foreach (var group in workItemType.States.GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase))
         {
-            var existing = azdoWorkType.WorkflowStates.SingleOrDefault(s => s.StatusName == state.Name);
-            if (existing is null)
-            {
-                azdoWorkType.WorkflowStates.Add(state.ToAzdoWorkflowState());
-            }
-            else
-            {
-                var duplicate = state.ToAzdoWorkflowState();
-
-                existing.Category = duplicate.Category;
-                existing.Order = duplicate.Order;
-                existing.IsActive = duplicate.IsActive;
-            }
+            var state = group.Last().ToAzdoWorkflowState();
+            state.StatusName = group.Key;
+            state.ExternalKey = KeyOf(group).Id.ToString("D");
+            azdoWorkType.WorkflowStates.Add(state);
         }
 
         return azdoWorkType;
     }
+
+    /// <summary>
+    /// The copy of a state whose id keys it. A visible copy is preferred, since it is the one that stays
+    /// should the API stop returning the hidden duplicate; the lowest id breaks a tie, so the key does not
+    /// depend on the order the copies arrive in.
+    /// </summary>
+    private static ProcessWorkItemStateDto KeyOf(IEnumerable<ProcessWorkItemStateDto> copies) =>
+        copies.OrderBy(c => c.Hidden).ThenBy(c => c.Id.ToString("D"), StringComparer.Ordinal).First();
 
     public static IList<IExternalWorkTypeWorkflow> ToIExternalWorkTypes(this List<ProcessWorkItemTypeDto> workItemTypes)
     {

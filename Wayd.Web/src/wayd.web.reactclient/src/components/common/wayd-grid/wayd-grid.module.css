@@ -785,6 +785,15 @@
   flex: 0 0 24px;
 }
 
+/* The tree column's open editor: one .indentSpacer per level, plus the
+   expander slot every tree row keeps. */
+.treeEditorIndent {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  padding-left: calc((var(--wayd-grid-tree-depth, 0) + 1) * 24px);
+}
+
 .stageName {
   font-weight: 600;
   white-space: nowrap;

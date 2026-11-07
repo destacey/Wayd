@@ -28,10 +28,12 @@ import RoadmapColorPicker from './roadmap-color-picker'
 import {
   findOwnChildrenSpan,
   findParentActivityRange,
-  getChildrenContainmentError,
   getParentExpansionHint,
-  isShiftOnlyChange,
 } from './roadmap-parent-date-hint'
+import {
+  getChildrenContainmentError,
+  isShiftOnlyChange,
+} from '@/src/utils/date-containment'
 
 const { Item } = Form
 const { TextArea } = Input

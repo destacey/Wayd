@@ -76,6 +76,11 @@ export interface CellEditor<T = any, V = any, E = any> {
   validate?: (value: V, row: T) => string | undefined
   /** Whether this row's cell is editable. Every row by default. */
   editable?: (row: T, context: { isDraft: boolean }) => boolean
+  /**
+   * A draft is not created until this cell holds a value too, as well as its
+   * Name. Only cells editable on the draft count.
+   */
+  requiredToCreate?: boolean
   /** Whether two model values are the same. `Object.is`, or element-wise for
    *  arrays, by default. */
   equals?: (a: V, b: V) => boolean

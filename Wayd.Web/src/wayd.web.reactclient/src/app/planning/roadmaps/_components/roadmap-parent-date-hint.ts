@@ -1,8 +1,6 @@
 import dayjs, { Dayjs } from 'dayjs'
-import type {
-  RoadmapActivityListDto,
-  RoadmapItemListDto,
-} from '@/src/services/wayd-api'
+import type { RoadmapActivityListDto } from '@/src/services/wayd-api'
+import { childrenSpan, type ChildrenSpan } from '@/src/utils/date-containment'
 
 /**
  * Helpers for the non-blocking "this will expand the parent" hints shown on the
@@ -82,30 +80,31 @@ export const getMilestoneParentExpansionHint = (
   return `This date falls outside the parent activity “${parent.name}”, which will expand to include it.`
 }
 
-interface ChildrenSpan {
-  start: Dayjs
-  end: Dayjs
-  /** The child whose start/end defines the relevant boundary, for messaging. */
-  earliest: string
-  latest: string
+/** A roadmap item's dates, as both the API's items and the grid's rows carry them. */
+interface DatedItem {
+  name?: string
+  start?: Date | null
+  end?: Date | null
+  date?: Date | null
 }
 
 /** The effective [start, end] of a child item: a range for Activity/Timebox, the date for a Milestone. */
-const childItemRange = (child: RoadmapItemListDto): [Dayjs, Dayjs] | null => {
-  const anyChild = child as RoadmapItemListDto & {
-    start?: Date
-    end?: Date
-    date?: Date
-  }
-  if (anyChild.date) {
-    const d = dayjs(anyChild.date)
+const childItemRange = (child: DatedItem): [Dayjs, Dayjs] | null => {
+  if (child.date) {
+    const d = dayjs(child.date)
     return [d, d]
   }
-  if (anyChild.start && anyChild.end) {
-    return [dayjs(anyChild.start), dayjs(anyChild.end)]
+  if (child.start && child.end) {
+    return [dayjs(child.start), dayjs(child.end)]
   }
   return null
 }
+
+/** The collective span of the given items' dates, or null when none has any. */
+export const datedItemsSpan = (
+  items: readonly DatedItem[] | undefined,
+): ChildrenSpan | null =>
+  childrenSpan(items, childItemRange, (item) => item.name)
 
 /**
  * Finds an activity by id in the (possibly nested) tree and returns the collective
@@ -121,26 +120,7 @@ export const findOwnChildrenSpan = (
   while (stack.length > 0) {
     const node = stack.pop()!
     if (node.id === itemId) {
-      const children = (node.children ?? []) as RoadmapItemListDto[]
-      let span: ChildrenSpan | null = null
-      for (const child of children) {
-        const range = childItemRange(child)
-        if (!range) continue
-        const [start, end] = range
-        if (!span) {
-          span = { start, end, earliest: child.name ?? '', latest: child.name ?? '' }
-        } else {
-          if (start.isBefore(span.start, 'day')) {
-            span.start = start
-            span.earliest = child.name ?? ''
-          }
-          if (end.isAfter(span.end, 'day')) {
-            span.end = end
-            span.latest = child.name ?? ''
-          }
-        }
-      }
-      return span
+      return datedItemsSpan((node.children ?? []) as DatedItem[])
     }
     const childActivities = node.children as RoadmapActivityListDto[] | undefined
     if (childActivities?.length) {
@@ -149,43 +129,4 @@ export const findOwnChildrenSpan = (
   }
 
   return null
-}
-
-/**
- * Blocking validation for the item being edited: an Activity's range must contain
- * all of its own children. Returns an error message when the proposed range would
- * fall inside the children, or null when valid / not applicable.
- *
- * This mirrors the domain rule (a parent cannot be shrunk behind its children) so
- * the user gets feedback before the API call.
- */
-export const getChildrenContainmentError = (
-  span: ChildrenSpan | null,
-  start: Dayjs | null | undefined,
-  end: Dayjs | null | undefined,
-): string | null => {
-  if (!span || !start || !end) return null
-
-  if (start.isAfter(span.start, 'day')) {
-    return `Start date must be on or before child item “${span.earliest}” (${span.start.format('MMM D, YYYY')}).`
-  }
-  if (end.isBefore(span.end, 'day')) {
-    return `End date must be on or after child item “${span.latest}” (${span.end.format('MMM D, YYYY')}).`
-  }
-  return null
-}
-
-/**
- * Checks if a date change is a pure shift (duration is identical, but shifted in time).
- */
-export const isShiftOnlyChange = (
-  originalStart: Dayjs | null | undefined,
-  originalEnd: Dayjs | null | undefined,
-  newStart: Dayjs | null | undefined,
-  newEnd: Dayjs | null | undefined,
-): boolean => {
-  if (!originalStart || !originalEnd || !newStart || !newEnd) return false
-  const startDelta = newStart.diff(originalStart, 'day')
-  const endDelta = newEnd.diff(originalEnd, 'day')
-  return startDelta === endDelta && startDelta !== 0
 }

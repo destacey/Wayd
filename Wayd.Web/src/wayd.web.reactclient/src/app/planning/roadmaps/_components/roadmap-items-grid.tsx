@@ -1,17 +1,13 @@
 'use client'
 
 import {
-  CreateRoadmapActivityRequest,
-  CreateRoadmapTimeboxRequest,
-  JsonPatchOperation,
-  JsonPatchOperationType,
   RoadmapActivityListDto,
   RoadmapItemListDto,
   RoadmapMilestoneListDto,
   RoadmapTimeboxListDto,
 } from '@/src/services/wayd-api'
 import { PlusOutlined } from '@ant-design/icons'
-import { Button, Form } from 'antd'
+import { Button } from 'antd'
 import dayjs from 'dayjs'
 import { toCalendarDate } from '@/src/utils/calendar-date'
 import {
@@ -33,12 +29,15 @@ import {
   useUpdateRoadmapItemDatesMutation,
 } from '@/src/store/features/planning/roadmaps-api'
 import { isApiError, type ApiError } from '@/src/utils'
-import { FC, ReactNode, useCallback, useMemo, useRef, useState } from 'react'
+import { FC, ReactNode, useCallback, useMemo, useState } from 'react'
 import EditRoadmapActivityForm from './edit-roadmap-activity-form'
 import DeleteRoadmapItemForm from './delete-roadmap-item-form'
 import EditRoadmapTimeboxForm from './edit-roadmap-timebox-form'
 import { getRoadmapItemsGridColumns } from './roadmap-items-grid.columns'
-import { RoadmapItemsHelp } from './roadmap-items-grid.keyboard-shortcuts'
+import {
+  toCreateRoadmapItemRequest,
+  toRoadmapItemPatch,
+} from './roadmap-items-grid.editors'
 import {
   useRoadmapGantt,
   computeGanttDomain,
@@ -86,10 +85,11 @@ const TYPE_FILTER_OPTIONS: FilterOption[] = [
   //{ label: 'Milestone', value: 'Milestone' },
   { label: 'Timebox', value: 'Timebox' },
 ]
-const CREATE_TYPE_OPTIONS = [
-  { label: 'Activity', value: 'activity' },
-  { label: 'Timebox', value: 'timebox' },
-]
+/**
+ * A milestone's `date` errors belong to its Start column, where the single
+ * date is edited.
+ */
+const FIELD_TO_COLUMN = { date: 'start' }
 
 const parseRoadmapCalendarDate = (value: unknown): Date | null => {
   if (!value) return null
@@ -105,50 +105,6 @@ const parseRoadmapCalendarDate = (value: unknown): Date | null => {
 
   const parsed = new Date(raw)
   return Number.isNaN(parsed.getTime()) ? null : parsed
-}
-
-// The effective [start, end] of a child node: a range for Activity/Timebox, the date for a Milestone.
-const childNodeRange = (
-  child: RoadmapItemTreeNode,
-): [dayjs.Dayjs, dayjs.Dayjs] | null => {
-  if (child.type === 'Milestone' && child.date) {
-    const d = dayjs(child.date)
-    return [d, d]
-  }
-  if (child.start && child.end) {
-    return [dayjs(child.start), dayjs(child.end)]
-  }
-  return null
-}
-
-/**
- * Validates that an item's range contains all of its direct children. Returns the
- * offending field + message when the range would fall inside the children, matching
- * the domain rule that a parent cannot be shrunk behind a child.
- */
-const childrenContainmentError = (
-  item: RoadmapItemTreeNode,
-  start: dayjs.Dayjs,
-  end: dayjs.Dayjs,
-): { field: 'start' | 'end'; message: string } | null => {
-  for (const child of item.children ?? []) {
-    const range = childNodeRange(child)
-    if (!range) continue
-    const [childStart, childEnd] = range
-    if (childStart.isBefore(start, 'day')) {
-      return {
-        field: 'start',
-        message: `Start must be on or before child “${child.name}” (${childStart.format('MMM D, YYYY')}).`,
-      }
-    }
-    if (childEnd.isAfter(end, 'day')) {
-      return {
-        field: 'end',
-        message: `End must be on or after child “${child.name}” (${childEnd.format('MMM D, YYYY')}).`,
-      }
-    }
-  }
-  return null
 }
 
 function mapToTreeNode(item: RoadmapItemUnion): RoadmapItemTreeNode {
@@ -186,8 +142,6 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   openRoadmapItemDrawer,
   canManage,
 }) => {
-  const [form] = Form.useForm()
-  const selectedDraftItemType = Form.useWatch('itemType', form)
   const messageApi = useMessage()
 
   const { data: roadmap } = useGetRoadmapQuery(roadmapId)
@@ -200,11 +154,9 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   const [openDeleteRoadmapItemForm, setOpenDeleteRoadmapItemForm] =
     useState(false)
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   // Show/hide the chart. Persisted across roadmaps (see useGanttVisibility).
   const ganttVisibility = useGanttVisibility('roadmap')
   const showGantt = ganttVisibility.visible
-  const draftsRef = useRef<DraftItem[]>([])
 
   const [createRoadmapItem] = useCreateRoadmapItemMutation()
   const [patchRoadmapItem] = usePatchRoadmapItemMutation()
@@ -385,399 +337,40 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
     [],
   )
 
-  const handleSaveRoadmapItem = useCallback(
-    async (itemId: string, updates: Record<string, any>): Promise<boolean> => {
-      const isDraft = itemId.startsWith('draft-')
-
-      try {
-        if (isDraft) {
-          const draft = draftsRef.current.find((d) => d.id === itemId)
-          if (!draft) return false
-
-          const itemType =
-            updates.itemType === 'timebox' ? 'timebox' : 'activity'
-          const request:
-            CreateRoadmapActivityRequest | CreateRoadmapTimeboxRequest = {
-            $type: itemType,
-            roadmapId,
-            parentId: draft.parentId,
-            name: updates.name || '',
-            start: updates.start,
-            end: updates.end,
-            ...(itemType === 'activity' ? { color: updates.color } : {}),
-          } as CreateRoadmapActivityRequest | CreateRoadmapTimeboxRequest
-
-          const response = await createRoadmapItem(request)
-          if (response.error) throw response.error
-        } else {
-          const item = findNodeById(
-            treeData,
-            itemId,
-          ) as RoadmapItemTreeNode | null
-          if (!item) return false
-
-          const patchOperations: JsonPatchOperation[] = []
-
-          if (updates.name !== undefined) {
-            patchOperations.push({
-              op: JsonPatchOperationType.Replace,
-              path: '/name',
-              value: updates.name,
-            })
-          }
-          if (updates.start !== undefined) {
-            patchOperations.push({
-              op: JsonPatchOperationType.Replace,
-              path: item.type === 'Milestone' ? '/date' : '/start',
-              value: updates.start,
-            })
-          }
-          if (updates.end !== undefined && item.type !== 'Milestone') {
-            patchOperations.push({
-              op: JsonPatchOperationType.Replace,
-              path: '/end',
-              value: updates.end,
-            })
-          }
-          if (updates.color !== undefined) {
-            patchOperations.push({
-              op: JsonPatchOperationType.Replace,
-              path: '/color',
-              value: updates.color,
-            })
-          }
-
-          if (patchOperations.length === 0) return true
-
-          await patchRoadmapItem({
-            roadmapId,
-            itemId,
-            patchOperations,
-          }).unwrap()
-        }
-
-        setFieldErrors({})
-        messageApi.success(
-          isDraft
-            ? updates.itemType === 'timebox'
-              ? 'Roadmap timebox created successfully.'
-              : 'Roadmap activity created successfully.'
-            : 'Roadmap item updated successfully.',
-        )
-        refreshRoadmapItems()
-        return true
-      } catch (error: any) {
-        const status = error?.status ?? error?.data?.status
-        const errors = error?.errors ?? error?.data?.errors
-        const detail = error?.detail ?? error?.data?.detail
-
-        if (status === 422 && errors) {
-          const errorMap: Record<string, string> = {}
-          const errorFields: string[] = []
-          Object.entries(errors).forEach(([key, messages]) => {
-            const apiField = key.charAt(0).toLowerCase() + key.slice(1)
-            const fieldName =
-              apiField === 'type' || apiField === '$type'
-                ? 'itemType'
-                : apiField === 'date'
-                  ? 'start'
-                  : apiField
-            errorMap[fieldName] = Array.isArray(messages)
-              ? String(messages[0] ?? '')
-              : String(messages)
-            errorFields.push(fieldName)
-          })
-          setFieldErrors(errorMap)
-
-          setTimeout(() => {
-            const fieldToColumn: Record<string, string> = {
-              itemType: 'type',
-              type: 'type',
-            }
-
-            let focused = false
-            for (const errorField of errorFields) {
-              const columnId = fieldToColumn[errorField] ?? errorField
-              const cellElement = document.querySelector(
-                `[data-cell-id="${itemId}-${columnId}"]`,
-              )
-              if (!cellElement) continue
-
-              const input = cellElement.querySelector(
-                'input, .ant-select, .ant-picker',
-              ) as HTMLElement | null
-              if (input) {
-                input.focus({ preventScroll: true })
-                focused = true
-                break
-              }
-            }
-
-            if (!focused) {
-              const cellElement = document.querySelector(
-                `[data-cell-id="${itemId}-name"]`,
-              )
-              const input = cellElement?.querySelector(
-                'input',
-              ) as HTMLElement | null
-              input?.focus({ preventScroll: true })
-            }
-          }, 0)
-
-          messageApi.error('Correct the validation error(s) to continue.')
-          return false
-        }
-
-        messageApi.error(
-          detail ??
-            `An error occurred while ${isDraft ? 'creating' : 'updating'} the roadmap item. Please try again.`,
-        )
-        return false
-      }
-    },
-    [
-      createRoadmapItem,
-      messageApi,
-      patchRoadmapItem,
-      refreshRoadmapItems,
+  /** Saves one edited cell (or a start/end pair) of an existing item. */
+  const commitRoadmapItem = async (
+    itemId: string,
+    patch: Record<string, unknown>,
+  ) => {
+    await patchRoadmapItem({
       roadmapId,
-      treeData,
-    ],
-  )
+      itemId,
+      patchOperations: toRoadmapItemPatch(patch),
+    }).unwrap()
+  }
 
-  const getFormValues = useCallback(
-    (rowId: string, data: RoadmapItemTreeNode[]) => {
-      const item = findNodeById(data, rowId) as RoadmapItemTreeNode | null
-      const isDraft = rowId.startsWith('draft-')
+  /** Creates a new row once it has a name and dates; returns its id. */
+  const createRoadmapItemFromDraft = (
+    parentId: string | null,
+    values: Record<string, unknown>,
+  ) =>
+    createRoadmapItem(
+      toCreateRoadmapItemRequest(roadmapId, parentId, values),
+    ).unwrap()
 
-      if (isDraft || !item) {
-        return {
-          name: '',
-          itemType: 'activity',
-          start: null,
-          end: null,
-          color: null,
-        }
-      }
-
-      return {
-        name: item.name,
-        itemType: item.$type,
-        start:
-          item.type === 'Milestone'
-            ? item.date
-              ? dayjs(item.date)
-              : null
-            : item.start
-              ? dayjs(item.start)
-              : null,
-        end: item.end ? dayjs(item.end) : null,
-        color: item.color ?? null,
-      }
-    },
-    [],
-  )
-
-  const computeChanges = useCallback(
-    (
-      rowId: string,
-      formValues: Record<string, any>,
-      _data: RoadmapItemTreeNode[],
-    ) => {
-      if (!rowId.startsWith('draft-')) return null
-
-      const values = formValues as any
-      return {
-        name: values.name || '',
-        itemType: values.itemType || 'activity',
-        start: values.start ? values.start.format('YYYY-MM-DD') : null,
-        end: values.end ? values.end.format('YYYY-MM-DD') : null,
-        color: values.color ?? null,
-      }
-    },
-    [],
-  )
-
-  const computeRoadmapItemChanges = useCallback(
-    (
-      rowId: string,
-      formValues: Record<string, any>,
-      data: RoadmapItemTreeNode[],
-    ) => {
-      if (rowId.startsWith('draft-')) {
-        return computeChanges(rowId, formValues, data)
-      }
-
-      const item = findNodeById(data, rowId) as RoadmapItemTreeNode | null
-      if (!item) return null
-
-      const values = formValues as any
-      const updates: Record<string, any> = {}
-      let hasChanges = false
-
-      if (values.name !== item.name) {
-        updates.name = values.name
-        hasChanges = true
-      }
-
-      const currentStart =
-        item.type === 'Milestone'
-          ? item.date
-            ? dayjs(item.date).format('YYYY-MM-DD')
-            : null
-          : item.start
-            ? dayjs(item.start).format('YYYY-MM-DD')
-            : null
-      const nextStart = values.start ? values.start.format('YYYY-MM-DD') : null
-      if (nextStart !== currentStart) {
-        updates.start = nextStart
-        hasChanges = true
-      }
-
-      if (item.type !== 'Milestone') {
-        const currentEnd = item.end
-          ? dayjs(item.end).format('YYYY-MM-DD')
-          : null
-        const nextEnd = values.end ? values.end.format('YYYY-MM-DD') : null
-        if (nextEnd !== currentEnd) {
-          updates.end = nextEnd
-          hasChanges = true
-        }
-      }
-
-      const currentColor = item.color ?? null
-      const nextColor = values.color ?? null
-      if (nextColor !== currentColor) {
-        updates.color = nextColor
-        hasChanges = true
-      }
-
-      return hasChanges ? updates : null
-    },
-    [computeChanges],
-  )
-
-  const validateFields = useCallback(
-    (rowId: string, formValues: Record<string, any>) => {
-      if (!rowId.startsWith('draft-')) return {}
-
-      const errors: Record<string, string> = {}
-      const name = String(formValues.name ?? '').trim()
-      const start = formValues.start
-      const end = formValues.end
-
-      if (!name) {
-        errors.name = 'Name is required.'
-      }
-
-      if (!start || !end) {
-        const message = 'Start and end dates are required.'
-        errors.start = message
-        errors.end = message
-      } else if (dayjs(end).isBefore(dayjs(start), 'day')) {
-        errors.end = 'End date must be on or after start date.'
-      }
-
-      return errors
-    },
-    [],
-  )
-
-  const validateRoadmapItemFields = useCallback(
-    (rowId: string, formValues: Record<string, any>) => {
-      if (rowId.startsWith('draft-')) {
-        return validateFields(rowId, formValues)
-      }
-
-      const item = findNodeById(treeData, rowId) as RoadmapItemTreeNode | null
-      if (!item) return {}
-
-      const errors: Record<string, string> = {}
-      const name = String(formValues.name ?? '').trim()
-      const start = formValues.start
-      const end = formValues.end
-
-      if (!name) {
-        errors.name = 'Name is required.'
-      }
-
-      if (item.type === 'Milestone') {
-        if (!start) {
-          errors.start = 'Date is required.'
-        }
-        return errors
-      }
-
-      if (!start || !end) {
-        const message = 'Start and end dates are required.'
-        errors.start = message
-        errors.end = message
-      } else if (dayjs(end).isBefore(dayjs(start), 'day')) {
-        errors.end = 'End date must be on or after start date.'
-      } else {
-        // An activity's range must contain all of its children (matches the domain
-        // rule that a parent cannot be shrunk behind a child).
-        const originalStart = item.start ? dayjs(item.start) : null
-        const originalEnd = item.end ? dayjs(item.end) : null
-        const newStart = dayjs(start)
-        const newEnd = dayjs(end)
-
-        let isShift = false
-        if (
-          originalStart &&
-          originalEnd &&
-          originalStart.isValid() &&
-          originalEnd.isValid()
-        ) {
-          const startDelta = newStart.diff(originalStart, 'day')
-          const endDelta = newEnd.diff(originalEnd, 'day')
-          isShift = startDelta === endDelta && startDelta !== 0
-        }
-
-        if (!isShift) {
-          const containment = childrenContainmentError(item, newStart, newEnd)
-          if (containment) {
-            errors[containment.field] = containment.message
-          }
-        }
-      }
-
-      return errors
-    },
-    [treeData, validateFields],
-  )
-
-  const columns = useCallback(
-    (ctx: GridColumnContext) =>
-      getRoadmapItemsGridColumns({
-        canManage,
-        selectedRowId: ctx.selectedRowId,
-        onEditItem,
-        onDeleteItem,
-        handleSaveRoadmapItem,
-        getFieldError: ctx.getFieldError,
-        handleKeyDown: ctx.handleKeyDown,
-        openRoadmapItemDrawer,
-        typeFilterOptions: TYPE_FILTER_OPTIONS,
-        isDragEnabled: ctx.isDragEnabled,
-        enableDragAndDrop,
-        addDraftItemAsChild: ctx.addDraftAsChild,
-        canCreateItems: ctx.canCreateDraft,
-        createTypeOptions: CREATE_TYPE_OPTIONS,
-        isSelectedDraftActivity: selectedDraftItemType !== 'timebox',
-        roadmapColors,
-      }),
-    [
+  const columns = (ctx: GridColumnContext) =>
+    getRoadmapItemsGridColumns({
       canManage,
-      openRoadmapItemDrawer,
       onEditItem,
       onDeleteItem,
-      handleSaveRoadmapItem,
+      openRoadmapItemDrawer,
+      typeFilterOptions: TYPE_FILTER_OPTIONS,
+      isDragEnabled: ctx.isDragEnabled,
       enableDragAndDrop,
-      selectedDraftItemType,
+      addDraftItemAsChild: ctx.addDraftAsChild,
+      canCreateItems: ctx.canCreateDraft,
       roadmapColors,
-    ],
-  )
+    })
 
   const onUpdateRoadmapActivityFormClosed = (wasSaved: boolean) => {
     setOpenUpdateRoadmapActivityForm(false)
@@ -805,86 +398,56 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
 
   return (
     <>
-      <Form form={form} component={false}>
-        <WaydGrid<RoadmapItemTreeNode>
-          data={treeData}
-          getSubRows={(row) => row.children}
-          isLoading={roadmapItemsIsLoading}
-          columns={columns}
-          actionsSlot={
-            <GanttToolbarActions
-              visible={showGantt}
-              onToggle={ganttVisibility.toggle}
-              zoom={zoom}
-            />
-          }
-          rightSlot={viewSelector}
-          rightPane={
-            showGantt
-              ? {
-                  header: gantt.header,
-                  defaultWidth: gantt.defaultWidth,
-                  renderRow: gantt.renderRow,
-                  renderBackground: gantt.renderBackground,
-                  // Ctrl/Cmd+wheel zooms the chart (matches the timeline).
-                  onWheel: zoom.onWheel,
-                }
-              : undefined
-          }
-          onRefresh={async () => refreshRoadmapItems()}
-          emptyMessage="No Roadmap Items"
-          csvFileName="roadmap-items"
-          enableDragAndDrop={enableDragAndDrop}
-          onNodeMove={handleNodeMove}
-          onMoveRejected={(reason) =>
-            messageApi.warning(reason || 'Cannot move item to this location')
-          }
-          moveValidator={roadmapActivityMoveValidator}
-          editingConfig={{
-            canEdit: canManage,
-            form,
-            editableColumnIds: (rowId) => {
-              if (rowId?.startsWith('draft-')) {
-                return selectedDraftItemType === 'timebox'
-                  ? ['name', 'type', 'start', 'end']
-                  : ['name', 'type', 'start', 'end', 'color']
+      <WaydGrid<RoadmapItemTreeNode>
+        data={treeData}
+        getSubRows={(row) => row.children}
+        isLoading={roadmapItemsIsLoading}
+        columns={columns}
+        actionsSlot={
+          <GanttToolbarActions
+            visible={showGantt}
+            onToggle={ganttVisibility.toggle}
+            zoom={zoom}
+          />
+        }
+        rightSlot={viewSelector}
+        rightPane={
+          showGantt
+            ? {
+                header: gantt.header,
+                defaultWidth: gantt.defaultWidth,
+                renderRow: gantt.renderRow,
+                renderBackground: gantt.renderBackground,
+                // Ctrl/Cmd+wheel zooms the chart (matches the timeline).
+                onWheel: zoom.onWheel,
               }
-
-              const item = rowId
-                ? (findNodeById(treeData, rowId) as RoadmapItemTreeNode | null)
-                : null
-              if (item?.type === 'Timebox') {
-                return ['name', 'start', 'end']
-              }
-
-              return ['name', 'start', 'end', 'color']
-            },
-            onSave: handleSaveRoadmapItem,
-            getFormValues,
-            computeChanges: computeRoadmapItemChanges,
-            validateFields: validateRoadmapItemFields,
-            cellIdColumnMatchOrder: ['start', 'type', 'name', 'color', 'end'],
-          }}
-          fieldErrors={fieldErrors}
-          onFieldErrorsChange={setFieldErrors}
-          createDraftNode={createDraftRoadmapItem}
-          onDraftsChange={(drafts) => {
-            draftsRef.current = drafts
-          }}
-          leftSlot={(ctx) =>
-            canManage && (
-              <Button
-                icon={<PlusOutlined />}
-                onClick={() => ctx.addDraftAtRoot()}
-                disabled={!ctx.canCreateDraft}
-              >
-                Create Item
-              </Button>
-            )
-          }
-          helpContent={<RoadmapItemsHelp />}
-        />
-      </Form>
+            : undefined
+        }
+        onRefresh={async () => refreshRoadmapItems()}
+        emptyMessage="No Roadmap Items"
+        csvFileName="roadmap-items"
+        enableDragAndDrop={enableDragAndDrop}
+        onNodeMove={handleNodeMove}
+        onMoveRejected={(reason) =>
+          messageApi.warning(reason || 'Cannot move item to this location')
+        }
+        moveValidator={roadmapActivityMoveValidator}
+        onCommit={canManage ? commitRoadmapItem : undefined}
+        onCreate={canManage ? createRoadmapItemFromDraft : undefined}
+        fieldToColumn={FIELD_TO_COLUMN}
+        createDraftNode={canManage ? createDraftRoadmapItem : undefined}
+        leftSlot={(ctx) =>
+          canManage && (
+            <Button
+              icon={<PlusOutlined />}
+              onClick={() => ctx.addDraftAtRoot()}
+              disabled={!ctx.canCreateDraft}
+            >
+              Create Item
+            </Button>
+          )
+        }
+      />
       {openUpdateRoadmapActivityForm && selectedItemId !== null && (
         <EditRoadmapActivityForm
           activityId={selectedItemId}

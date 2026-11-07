@@ -1,4 +1,4 @@
-import { toApiError } from '@/src/utils/problem-details'
+import { toApiError, type ApiError } from '@/src/utils/problem-details'
 import type { CellEditor, CellEditPhase } from './types'
 
 /**
@@ -164,6 +164,19 @@ export interface MappedServerErrors {
 }
 
 /**
+ * A commit's rejection as problem details. An RTK Query mutation's `unwrap()`
+ * rejects with `{ status, data }`, the response body in `data`; a client call
+ * rejects with the body itself or an `ApiException`.
+ */
+const responseError = (error: unknown): ApiError => {
+  const apiError = toApiError(error)
+  if (apiError.errors || apiError.detail) return apiError
+  const data = (error as { data?: unknown } | null)?.data
+  if (typeof data !== 'object' || data === null) return apiError
+  return { ...toApiError(data), status: apiError.status }
+}
+
+/**
  * Places a failed commit's errors on cells. A 422's keys are matched to
  * columns through `fieldToColumn` first, then by the field an editor writes
  * (ignoring the server's casing); anything left over is reported unmatched.
@@ -178,7 +191,7 @@ export function mapServerErrors(
     fieldToColumn?: Record<string, string>
   },
 ): MappedServerErrors {
-  const apiError = toApiError(error)
+  const apiError = responseError(error)
   const result: MappedServerErrors = { byColumn: {}, unmatched: [] }
   const errors = apiError.errors ?? {}
   const keys = Object.keys(errors)

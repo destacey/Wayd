@@ -16,7 +16,13 @@ dayjs.extend(customParseFormat)
 /** What every built-in editor factory takes besides its own options. */
 type EditorBase<T, V> = Pick<
   CellEditor<T, V>,
-  'field' | 'get' | 'apply' | 'validate' | 'editable' | 'equals'
+  | 'field'
+  | 'get'
+  | 'apply'
+  | 'validate'
+  | 'editable'
+  | 'equals'
+  | 'requiredToCreate'
 >
 
 /** The ARIA a control takes from the grid: its name and its error state. */

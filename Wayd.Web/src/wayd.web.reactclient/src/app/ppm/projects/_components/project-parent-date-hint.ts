@@ -1,4 +1,5 @@
 import dayjs, { Dayjs } from 'dayjs'
+import { childrenSpan, type ChildrenSpan } from '@/src/utils/date-containment'
 
 interface ParentRange {
   name: string
@@ -67,13 +68,6 @@ export const getMilestoneParentExpansionHint = (
   return `This date falls outside the parent “${parent.name}”, which will expand to include it.`
 }
 
-export interface ChildrenSpan {
-  start: Dayjs
-  end: Dayjs
-  earliest: string
-  latest: string
-}
-
 const childItemRange = (child: any): [Dayjs, Dayjs] | null => {
   if (child.plannedDate) {
     const d = dayjs(child.plannedDate)
@@ -102,26 +96,11 @@ export const findOwnChildrenSpan = (
   while (stack.length > 0) {
     const node = stack.pop()!
     if (node.id.toLowerCase() === itemId.toLowerCase()) {
-      const children = node.children ?? []
-      let span: ChildrenSpan | null = null
-      for (const child of children) {
-        const range = childItemRange(child)
-        if (!range) continue
-        const [start, end] = range
-        if (!span) {
-          span = { start, end, earliest: child.name ?? '', latest: child.name ?? '' }
-        } else {
-          if (start.isBefore(span.start, 'day')) {
-            span.start = start
-            span.earliest = child.name ?? ''
-          }
-          if (end.isAfter(span.end, 'day')) {
-            span.end = end
-            span.latest = child.name ?? ''
-          }
-        }
-      }
-      return span
+      return childrenSpan(
+        node.children ?? [],
+        childItemRange,
+        (child: any) => child.name,
+      )
     }
     const children = node.children
     if (children?.length) {
@@ -130,38 +109,4 @@ export const findOwnChildrenSpan = (
   }
 
   return null
-}
-
-/**
- * Validates that a parent's proposed dates contain all child items.
- */
-export const getChildrenContainmentError = (
-  span: ChildrenSpan | null,
-  start: Dayjs | null | undefined,
-  end: Dayjs | null | undefined,
-): string | null => {
-  if (!span || !start || !end) return null
-
-  if (start.isAfter(span.start, 'day')) {
-    return `Start date must be on or before child item “${span.earliest}” (${span.start.format('MMM D, YYYY')}).`
-  }
-  if (end.isBefore(span.end, 'day')) {
-    return `End date must be on or after child item “${span.latest}” (${span.end.format('MMM D, YYYY')}).`
-  }
-  return null
-}
-
-/**
- * Checks if a date change is a pure shift (duration is identical, but shifted in time).
- */
-export const isShiftOnlyChange = (
-  originalStart: Dayjs | null | undefined,
-  originalEnd: Dayjs | null | undefined,
-  newStart: Dayjs | null | undefined,
-  newEnd: Dayjs | null | undefined,
-): boolean => {
-  if (!originalStart || !originalEnd || !newStart || !newEnd) return false
-  const startDelta = newStart.diff(originalStart, 'day')
-  const endDelta = newEnd.diff(originalEnd, 'day')
-  return startDelta === endDelta && startDelta !== 0
 }

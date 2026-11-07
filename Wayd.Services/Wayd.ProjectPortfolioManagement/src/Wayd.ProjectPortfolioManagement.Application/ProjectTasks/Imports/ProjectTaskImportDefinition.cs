@@ -137,6 +137,16 @@ public sealed class ProjectTaskImportDefinition(
                     break;
                 }
 
+                if (data.DeliverableIds is { Count: > 0 } deliverableIds)
+                {
+                    var linked = project.SetTaskDeliverables(created.Value.Id, deliverableIds);
+                    if (linked.IsFailure)
+                    {
+                        row.Failed($"Could not link task '{data.Name}' in project '{group.Key}' to its deliverables: {linked.Error}");
+                        break;
+                    }
+                }
+
                 nextNumbers[project.Id] = nextNumber + 1;
                 createdByImportId[row.ImportId] = created.Value;
                 row.Created(created.Value.Id);
@@ -227,17 +237,24 @@ public sealed class ProjectTaskImportDefinition(
         };
     }
 
-    /// <summary>Loads each referenced project with the stages and tasks the aggregate needs to place new work.</summary>
+    /// <summary>
+    /// Loads each referenced project with the stages and tasks the aggregate needs to place new work, and the
+    /// deliverables the rows link to. A named deliverable of another project is not loaded, so linking to it
+    /// fails as not found.
+    /// </summary>
     private async Task<Dictionary<string, Project>> ResolveProjects(
         ImportPassContext<ImportProjectTaskDto> context, CancellationToken cancellationToken)
     {
         // Key is persisted through a value converter, so compare against ProjectKey instances: the
         // property translates but a member of it does not.
         var keys = context.Rows.Select(r => r.Data.ProjectKey).Distinct().ToList();
+        var deliverableIds = context.Rows.SelectMany(r => r.Data.DeliverableIds ?? []).Distinct().ToList();
 
         return (await _projectPortfolioManagementDbContext.Projects
+                .AsSplitQuery()
                 .Include(p => p.Stages)
                 .Include(p => p.Tasks)
+                .Include(p => p.Deliverables.Where(d => deliverableIds.Contains(d.Id)))
                 .Where(p => keys.Contains(p.Key))
                 .ToListAsync(cancellationToken))
             .ToDictionary(p => p.Key.Value, p => p, StringComparer.OrdinalIgnoreCase);

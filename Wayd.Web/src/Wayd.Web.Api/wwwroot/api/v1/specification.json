@@ -64627,6 +64627,12 @@
             "description": "Semicolon-separated employee numbers assigned to the task.",
             "nullable": true,
             "x-csv-column": "Assignees"
+          },
+          "deliverableIds": {
+            "type": "string",
+            "description": "Semicolon-separated ids of the deliverables of the same project the task serves.",
+            "nullable": true,
+            "x-csv-column": "DeliverableIds"
           }
         },
         "additionalProperties": false,

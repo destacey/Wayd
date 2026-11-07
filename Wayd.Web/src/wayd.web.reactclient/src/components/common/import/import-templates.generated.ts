@@ -995,6 +995,13 @@ export const importTemplates = {
             description:
               'Semicolon-separated employee numbers assigned to the task.',
           },
+          {
+            name: 'DeliverableIds',
+            type: 'text',
+            required: false,
+            description:
+              'Semicolon-separated ids of the deliverables of the same project the task serves.',
+          },
         ],
       },
     ],

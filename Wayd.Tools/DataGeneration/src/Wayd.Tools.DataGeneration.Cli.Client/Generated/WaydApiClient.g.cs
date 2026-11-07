@@ -124604,6 +124604,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("assignees")]
         public string? Assignees { get; set; } = default!;
 
+        /// <summary>
+        /// Semicolon-separated ids of the deliverables of the same project the task serves.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverableIds")]
+        public string? DeliverableIds { get; set; } = default!;
+
     }
 
     /// <summary>

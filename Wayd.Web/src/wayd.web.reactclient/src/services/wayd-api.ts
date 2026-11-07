@@ -66002,6 +66002,8 @@ row is known by its position instead, but the column itself must be in the file.
     estimatedEffortHours?: number | undefined;
     /** Semicolon-separated employee numbers assigned to the task. */
     assignees?: string | undefined;
+    /** Semicolon-separated ids of the deliverables of the same project the task serves. */
+    deliverableIds?: string | undefined;
 }
 
 /** Where a person goes to see what an import row did: the record it created, or — for a record with no page of its own, such as a membership or a dependency — the record it belongs to. */

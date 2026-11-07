@@ -5,6 +5,8 @@ using NodaTime.Extensions;
 using Wayd.Common.Application.Imports;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.Imports;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Tests.Data;
@@ -298,6 +300,44 @@ public sealed class ProjectTaskImportDefinitionTests : IDisposable
         outcome.Error.Should().Contain("GEMINI");
     }
 
+    [Fact]
+    public async Task CreateTasks_LinksTheTaskToTheDeliverablesTheRowNames()
+    {
+        // Arrange
+        var portal = AddDeliverable("Portal");
+        var reports = AddDeliverable("Reports");
+
+        // Act
+        var result = await Run(TaskRow("Design") with { DeliverableIds = [portal.Id, reports.Id] });
+
+        // Assert
+        result.Value.Rows.Single().Failed.Should().BeFalse();
+        var task = _project.Tasks.Single();
+        task.DeliverableLinks.Select(l => l.ProjectDeliverableId).Should().BeEquivalentTo([portal.Id, reports.Id]);
+    }
+
+    [Fact]
+    public async Task CreateTasks_RejectsADeliverableTheProjectDoesNotHave()
+    {
+        // Arrange
+        var foreignDeliverableId = Guid.NewGuid();
+
+        // Act
+        var result = await Run(TaskRow("Design") with { DeliverableIds = [foreignDeliverableId] });
+
+        // Assert
+        var outcome = result.Value.Rows.Single();
+        outcome.Failed.Should().BeTrue();
+        outcome.Error.Should().Contain(foreignDeliverableId.ToString());
+    }
+
+    private ProjectDeliverable AddDeliverable(string name)
+    {
+        var now = Instant.FromUtc(2024, 7, 1, 0, 0);
+        return _project.AddDeliverable(PpmActor.System, ProjectAncestryRoles.None, name, null, null, null, null,
+            DeliverableWorkflow.Published(now).Ref(ProjectDeliverableStatusAlias.NotStarted), now).Value;
+    }
+
     private static ImportProjectTaskDto TaskRow(string name, string? parentImportId = null) =>
         new(
             new ProjectKey(ProjectKeyValue),
@@ -314,5 +354,6 @@ public sealed class ProjectTaskImportDefinitionTests : IDisposable
             _end,
             null,
             null,
+            [],
             []);
 }

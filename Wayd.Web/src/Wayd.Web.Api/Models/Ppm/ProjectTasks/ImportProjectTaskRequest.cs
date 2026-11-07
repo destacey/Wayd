@@ -66,6 +66,9 @@ public sealed class ImportProjectTaskRequest
     /// <summary>Semicolon-separated employee numbers assigned to the task.</summary>
     public string? Assignees { get; set; }
 
+    /// <summary>Semicolon-separated ids of the deliverables of the same project the task serves.</summary>
+    public string? DeliverableIds { get; set; }
+
     public ImportProjectTaskDto ToImportProjectTaskDto()
     {
         var type = Enum.Parse<ProjectTaskType>(Type.Trim(), ignoreCase: true);
@@ -87,7 +90,8 @@ public sealed class ImportProjectTaskRequest
             PlannedEnd?.ToLocalDate(),
             PlannedDate?.ToLocalDate(),
             EstimatedEffortHours,
-            CsvList.Split(Assignees));
+            CsvList.Split(Assignees),
+            CsvList.SplitIds(DeliverableIds));
     }
 }
 
@@ -140,5 +144,9 @@ public sealed class ImportProjectTaskRequestValidator : CustomValidator<ImportPr
         RuleFor(t => t.PlannedEnd)
             .Must((t, end) => end is null || t.PlannedStart is null || t.PlannedStart <= end)
                 .WithMessage("PlannedEnd must be on or after PlannedStart.");
+
+        RuleFor(t => t.DeliverableIds)
+            .Must(CsvList.AreAllIds)
+                .WithMessage("DeliverableIds must be deliverable ids separated by semicolons.");
     }
 }

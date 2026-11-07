@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { IntakeRequestOutcomeDto } from '@/src/services/wayd-api'
 import { useSetIntakeRequestOutcomeDeliverablesMutation } from '@/src/store/features/demand-management/demand-management-api'
-import { toApiError } from '@/src/utils'
+import { toApiError, toFormErrors } from '@/src/utils'
 import { Form, Modal, Typography } from 'antd'
 import { FC } from 'react'
 import OutcomeDeliverablesSelect from './outcome-deliverables-select'
@@ -26,7 +26,8 @@ interface SetOutcomeDeliverablesFormValues {
 
 /**
  * Changes which of the project's deliverables an existing project scope outcome is mapped to. Sends this one
- * outcome's whole mapping, which is all the endpoint replaces, so another outcome changed meanwhile is untouched.
+ * outcome's whole mapping with the mapping it opened on, so a change another agent made meanwhile is refused
+ * rather than undone.
  */
 const SetOutcomeDeliverablesForm: FC<SetOutcomeDeliverablesFormProps> = ({
   requestId,
@@ -39,20 +40,34 @@ const SetOutcomeDeliverablesForm: FC<SetOutcomeDeliverablesFormProps> = ({
 
   const { form, isOpen, isSaving, handleOk, handleCancel } =
     useModalForm<SetOutcomeDeliverablesFormValues>({
-      onSubmit: async (values) => {
+      onSubmit: async (values, form) => {
         try {
           await setDeliverables({
             requestId,
             targetId: outcome.targetId,
             deliverableIds: values.deliverableIds ?? [],
+            expectedDeliverableIds: outcome.deliverables.map((d) => d.id),
           }).unwrap()
           messageApi.success('Deliverables updated.')
           return true
         } catch (error) {
           const apiError = toApiError(error)
-          messageApi.error(
-            apiError.detail ?? 'Failed to update the deliverables.',
-          )
+          if (apiError.status === 409) {
+            // Another change landed first; the request reloads, and closing lets the agent start from it.
+            messageApi.error(
+              apiError.detail ??
+                'The deliverables changed since you opened this. Open it again to see them.',
+            )
+            return true
+          }
+          if (apiError.status === 422 && apiError.errors) {
+            form.setFields(toFormErrors(apiError.errors))
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ?? 'Failed to update the deliverables.',
+            )
+          }
           return false
         }
       },

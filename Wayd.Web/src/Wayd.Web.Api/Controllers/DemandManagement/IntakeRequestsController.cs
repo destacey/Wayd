@@ -475,17 +475,26 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
         NoContentOrError(await _dispatcher.Send(new RemoveIntakeRequestOutcomeCommand(id, targetId), cancellationToken));
 
     [HttpPut("{id}/outcomes/{targetId}/deliverables")]
-    [McpTool("IntakeRequests_SetOutcomeDeliverables", "Set intake request outcome deliverables", Idempotent = true)]
+    // Not idempotent: a repeat sends a mapping the first call already replaced, and is refused as stale.
+    [McpTool("IntakeRequests_SetOutcomeDeliverables", "Set intake request outcome deliverables", Idempotent = false)]
     [Authorize]
     [EndpointSummary("Set the project deliverables an existing project scope outcome is mapped to.")]
-    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it. Each must be a deliverable of that project (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.")]
+    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it. `expectedDeliverableIds` is the outcome's mapping as you read it (the ids of its `deliverables` on the request); when the outcome no longer holds exactly those, the change is refused with 409, so read the request again and redo it. Each deliverable must be one of that project's (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult> SetOutcomeDeliverables(Guid id, Guid targetId, [FromBody] SetIntakeRequestOutcomeDeliverablesRequest request, CancellationToken cancellationToken) =>
-        NoContentOrError(await _dispatcher.Send(
-            new SetIntakeRequestOutcomeDeliverablesCommand(id, targetId, request.DeliverableIds), cancellationToken));
+    public async Task<ActionResult> SetOutcomeDeliverables(Guid id, Guid targetId, [FromBody] SetIntakeRequestOutcomeDeliverablesRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new SetIntakeRequestOutcomeDeliverablesCommand(id, targetId, request.DeliverableIds, request.ExpectedDeliverableIds),
+            cancellationToken);
+
+        return result.IsFailure && result.Error == SetIntakeRequestOutcomeDeliverablesCommandHandler.StaleError
+            ? Conflict(ProblemDetailsExtensions.ForConflict(result.Error, HttpContext))
+            : NoContentOrError(result);
+    }
 
     [HttpGet("{id}/projects/{projectId}/deliverables")]
     [McpTool("IntakeRequests_GetProjectDeliverables", "List project deliverables for an intake request outcome")]

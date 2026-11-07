@@ -94,6 +94,8 @@ export interface SetIntakeRequestOutcomeDeliverablesArgs {
   targetId: string
   /** The outcome's whole mapping after the change; an empty list clears it. */
   deliverableIds: string[]
+  /** The mapping the change was made against; a different current one refuses it with 409. */
+  expectedDeliverableIds: string[]
 }
 
 export interface GetIntakeRequestProjectDeliverablesArgs {
@@ -688,12 +690,17 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       void,
       SetIntakeRequestOutcomeDeliverablesArgs
     >({
-      queryFn: async ({ requestId, targetId, deliverableIds }) => {
+      queryFn: async ({
+        requestId,
+        targetId,
+        deliverableIds,
+        expectedDeliverableIds,
+      }) => {
         try {
           const data = await getIntakeRequestsClient().setOutcomeDeliverables(
             requestId,
             targetId,
-            { deliverableIds },
+            { deliverableIds, expectedDeliverableIds },
           )
           return { data }
         } catch (error) {

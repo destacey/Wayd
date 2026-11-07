@@ -46976,7 +46976,7 @@
           "IntakeRequests"
         ],
         "summary": "Set the project deliverables an existing project scope outcome is mapped to.",
-        "description": "Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it. Each must be a deliverable of that project (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.",
+        "description": "Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it. `expectedDeliverableIds` is the outcome's mapping as you read it (the ids of its `deliverables` on the request); when the outcome no longer holds exactly those, the change is refused with 409, so read the request again and redo it. Each deliverable must be one of that project's (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.",
         "operationId": "IntakeRequests_SetOutcomeDeliverables",
         "parameters": [
           {
@@ -47028,6 +47028,16 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/json": {
                 "schema": {
@@ -77671,7 +77681,8 @@
       },
       "SetIntakeRequestOutcomeDeliverablesRequest": {
         "required": [
-          "deliverableIds"
+          "deliverableIds",
+          "expectedDeliverableIds"
         ],
         "type": "object",
         "properties": {
@@ -77682,6 +77693,14 @@
               "format": "uuid"
             },
             "description": "Every deliverable the outcome is to be mapped to, replacing its current mapping; an empty list clears it.\nEach must be a deliverable of the outcome's project, unless the outcome is already mapped to it."
+          },
+          "expectedDeliverableIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The deliverables the outcome was mapped to when you read it, from the request's outcome. The change is\nrefused with 409 when the outcome no longer holds exactly these, so another agent's change is never undone."
           }
         },
         "additionalProperties": false,

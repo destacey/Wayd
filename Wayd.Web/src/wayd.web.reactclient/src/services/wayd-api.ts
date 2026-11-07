@@ -53651,6 +53651,13 @@ export class IntakeRequestsClient {
             result404 = resultData404;
             return throwException("Not Found", status, _responseText, _headers, result404);
 
+        } else if (status === 409) {
+            const _responseText = response.data;
+            let result409: any = null;
+            let resultData409  = _responseText;
+            result409 = resultData409;
+            return throwException("Conflict", status, _responseText, _headers, result409);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -70394,6 +70401,9 @@ export interface SetIntakeRequestOutcomeDeliverablesRequest {
     /** Every deliverable the outcome is to be mapped to, replacing its current mapping; an empty list clears it.
 Each must be a deliverable of the outcome's project, unless the outcome is already mapped to it. */
     deliverableIds: string[];
+    /** The deliverables the outcome was mapped to when you read it, from the request's outcome. The change is
+refused with 409 when the outcome no longer holds exactly these, so another agent's change is never undone. */
+    expectedDeliverableIds: string[];
 }
 
 /** Whether requests can be given a tag. */

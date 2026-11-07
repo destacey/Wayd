@@ -926,7 +926,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         await using (var context = _fixture.CreateContext())
         {
             set = await new SetIntakeRequestOutcomeDeliverablesCommandHandler(context, Principal(agent.Id), User(), _clock)
-                .Handle(new SetIntakeRequestOutcomeDeliverablesCommand(requestId, projectId, [portal, reports]), ct);
+                .Handle(new SetIntakeRequestOutcomeDeliverablesCommand(requestId, projectId, [portal, reports], [portal]), ct);
         }
 
         // Assert
@@ -959,7 +959,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         await using (var context = _fixture.CreateContext())
         {
             set = await new SetIntakeRequestOutcomeDeliverablesCommandHandler(context, Principal(agent.Id), User(), _clock)
-                .Handle(new SetIntakeRequestOutcomeDeliverablesCommand(requestId, projectId, [theirs]), ct);
+                .Handle(new SetIntakeRequestOutcomeDeliverablesCommand(requestId, projectId, [theirs], []), ct);
         }
 
         // Assert
@@ -999,8 +999,7 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Rows[0].Failed.Should().BeFalse(result.Value.Rows[0].Error);
-        result.Value.Rows[1].Failed.Should().BeTrue("the portal belongs to the first project");
-        await using var reader = _fixture.CreateContext();
+        result.Value.Rows[1].Failed.Should().BeTrue("the portal belongs to the first project");        await using var reader = _fixture.CreateContext();
         var outcome = await reader.IntakeRequests.Where(r => r.Id == requestId)
             .SelectMany(r => r.Outcomes).Include(o => o.Deliverables).SingleAsync(ct);
         outcome.TargetId.Should().Be(projectId);

@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.DemandManagement.Application.IntakeRequests;
@@ -29,7 +30,7 @@ public sealed class SetIntakeRequestOutcomeDeliverablesCommandHandlerTests
 
         // Act
         var result = await CreateHandler().Handle(
-            new SetIntakeRequestOutcomeDeliverablesCommand(request.Id, project.Id, [added.Id]), TestContext.Current.CancellationToken);
+            new SetIntakeRequestOutcomeDeliverablesCommand(request.Id, project.Id, [added.Id], [dropped.Id]), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -54,7 +55,7 @@ public sealed class SetIntakeRequestOutcomeDeliverablesCommandHandlerTests
 
         // Act
         var result = await CreateHandler().Handle(
-            new SetIntakeRequestOutcomeDeliverablesCommand(request.Id, project.Id, [deleted, added.Id]), TestContext.Current.CancellationToken);
+            new SetIntakeRequestOutcomeDeliverablesCommand(request.Id, project.Id, [deleted, added.Id], [deleted]), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -74,7 +75,7 @@ public sealed class SetIntakeRequestOutcomeDeliverablesCommandHandlerTests
 
         // Act
         var result = await CreateHandler().Handle(
-            new SetIntakeRequestOutcomeDeliverablesCommand(request.Id, project.Id, [theirs.Id]), TestContext.Current.CancellationToken);
+            new SetIntakeRequestOutcomeDeliverablesCommand(request.Id, project.Id, [theirs.Id], []), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -97,7 +98,7 @@ public sealed class SetIntakeRequestOutcomeDeliverablesCommandHandlerTests
 
         // Act
         var result = await CreateHandler().Handle(
-            new SetIntakeRequestOutcomeDeliverablesCommand(request.Id, project.Id, [deliverable.Id]), TestContext.Current.CancellationToken);
+            new SetIntakeRequestOutcomeDeliverablesCommand(request.Id, project.Id, [deliverable.Id], []), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -115,11 +116,58 @@ public sealed class SetIntakeRequestOutcomeDeliverablesCommandHandlerTests
 
         // Act
         var result = await CreateHandler().Handle(
-            new SetIntakeRequestOutcomeDeliverablesCommand(request.Id, Guid.NewGuid(), []), TestContext.Current.CancellationToken);
+            new SetIntakeRequestOutcomeDeliverablesCommand(request.Id, Guid.NewGuid(), [], []), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(IntakeRequest.OutcomeNotFoundError);
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_AgainstAMappingThatHasSinceChanged_IsRefusedAndKeepsTheOtherChange()
+    {
+        // Arrange — the caller read {portal}; another agent has since added reports.
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var project = _scenario.Project();
+        var portal = _scenario.Deliverable(project, "Portal");
+        var reports = _scenario.Deliverable(project, "Reports");
+        var archive = _scenario.Deliverable(project, "Archive");
+        _scenario.Outcome(request, project.Id, agent, IntakeRequestOutcomeKind.ExistingProjectScope, "Export", [portal.Id, reports.Id]);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new SetIntakeRequestOutcomeDeliverablesCommand(request.Id, project.Id, [portal.Id, archive.Id], [portal.Id]),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(SetIntakeRequestOutcomeDeliverablesCommandHandler.StaleError);
+        request.Outcomes.Single().DeliverableIds().Should().BeEquivalentTo([portal.Id, reports.Id]);
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheSaveCollidesWithAnotherChange_ReportsItAsStale()
+    {
+        // Arrange — another save mapped the same deliverable, or removed the outcome, after this one read it.
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var project = _scenario.Project();
+        var portal = _scenario.Deliverable(project, "Portal");
+        _scenario.Outcome(request, project.Id, agent, IntakeRequestOutcomeKind.ExistingProjectScope, "Export");
+        _scenario.SignedInAs(agent);
+        _scenario.DbContext.FailNextSaveWith = new DbUpdateException("PK_IntakeRequestOutcomeDeliverables");
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new SetIntakeRequestOutcomeDeliverablesCommand(request.Id, project.Id, [portal.Id], []),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(SetIntakeRequestOutcomeDeliverablesCommandHandler.StaleError);
     }
 }

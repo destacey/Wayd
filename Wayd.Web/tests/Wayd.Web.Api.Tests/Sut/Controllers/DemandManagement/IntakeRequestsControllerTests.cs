@@ -187,16 +187,33 @@ public sealed class IntakeRequestsControllerTests
             .ReturnsAsync(Result.Success());
 
         // Act
+        var expectedId = Guid.NewGuid();
         var result = await CreateController().SetOutcomeDeliverables(requestId, projectId,
-            new SetIntakeRequestOutcomeDeliverablesRequest { DeliverableIds = [deliverableId] },
+            new SetIntakeRequestOutcomeDeliverablesRequest { DeliverableIds = [deliverableId], ExpectedDeliverableIds = [expectedId] },
             TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeOfType<NoContentResult>();
         Dispatcher.Verify(d => d.Send(
             It.Is<SetIntakeRequestOutcomeDeliverablesCommand>(c => c.Id == requestId && c.TargetId == projectId
-                && c.DeliverableIds.SequenceEqual(new[] { deliverableId })),
+                && c.DeliverableIds.SequenceEqual(new[] { deliverableId })
+                && c.ExpectedDeliverableIds.SequenceEqual(new[] { expectedId })),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetOutcomeDeliverables_AgainstAMappingThatHasChanged_IsAConflict()
+    {
+        // Arrange
+        Dispatcher.Setup(d => d.Send(It.IsAny<SetIntakeRequestOutcomeDeliverablesCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure(SetIntakeRequestOutcomeDeliverablesCommandHandler.StaleError));
+
+        // Act
+        var result = await CreateController().SetOutcomeDeliverables(Guid.NewGuid(), Guid.NewGuid(),
+            new SetIntakeRequestOutcomeDeliverablesRequest(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeOfType<ConflictObjectResult>();
     }
 
     [Fact]

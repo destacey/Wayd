@@ -63701,7 +63701,7 @@
           },
           "addedOn": {
             "type": "string",
-            "description": "When the outcome was recorded, with its offset. Blank for the moment it is imported.",
+            "description": "When the outcome was recorded, with its offset: not before the request was submitted, and not in the future.\nBlank for the moment it is imported.",
             "nullable": true,
             "x-csv-column": "AddedOn"
           }

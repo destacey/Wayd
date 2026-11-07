@@ -33,6 +33,7 @@ public sealed record IntakeRequestProjectDeliverableDto
     public ProjectDeliverableStatusAlias StatusAlias { get; init; }
 }
 
+/// <summary>Lists a project's deliverable copies for an agent on the request's desk.</summary>
 public sealed class GetIntakeRequestProjectDeliverablesQueryHandler(
     IDemandManagementDbContext dbContext,
     ICurrentPrincipal currentPrincipal)

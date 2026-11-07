@@ -976,12 +976,14 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         var portal = await SeedDeliverableCopy(projectId, "Portal", ct);
         var otherProjectId = await SeedProjectCopy(ct);
         var theirs = await SeedDeliverableCopy(otherProjectId, "Audit", ct);
+        var earlierProjectId = await SeedProjectCopy(ct);
         var dispatcher = new Mock<IDispatcher>();
         var featureFlags = new Mock<IFeatureFlags>();
         ImportIntakeRequestOutcomeDto[] rows =
         [
             new(requestId, IntakeRequestOutcomeKind.ExistingProjectScope, projectId, null, "Export screen", [portal], agent.Id, Now),
             new(requestId, IntakeRequestOutcomeKind.ExistingProjectScope, otherProjectId, null, "Audit trail", [portal, theirs], agent.Id, Now),
+            new(requestId, IntakeRequestOutcomeKind.NewProject, earlierProjectId, null, null, [], agent.Id, Now.Minus(Duration.FromDays(1))),
         ];
 
         // Act
@@ -999,7 +1001,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Rows[0].Failed.Should().BeFalse(result.Value.Rows[0].Error);
-        result.Value.Rows[1].Failed.Should().BeTrue("the portal belongs to the first project");        await using var reader = _fixture.CreateContext();
+        result.Value.Rows[1].Failed.Should().BeTrue("the portal belongs to the first project");
+        result.Value.Rows[2].Error.Should().Be("AddedOn cannot be before the request was submitted.");        await using var reader = _fixture.CreateContext();
         var outcome = await reader.IntakeRequests.Where(r => r.Id == requestId)
             .SelectMany(r => r.Outcomes).Include(o => o.Deliverables).SingleAsync(ct);
         outcome.TargetId.Should().Be(projectId);

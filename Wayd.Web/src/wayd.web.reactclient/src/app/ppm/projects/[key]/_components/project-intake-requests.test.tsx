@@ -68,6 +68,28 @@ describe('ProjectIntakeRequests', () => {
     ).toBeInTheDocument()
   })
 
+  it('counts mapped deliverables since deleted, and says nothing of them until the names load', () => {
+    // Arrange
+    mockQuery.mockReturnValue({
+      data: [{ ...requests[0], deliverableIds: ['d-1', 'd-gone'] }],
+      isLoading: false,
+    })
+    mockDeliverables.mockReturnValue({ data: undefined })
+
+    // Act
+    const { rerender } = render(<ProjectIntakeRequests projectId="p-1" />)
+
+    // Assert
+    expect(screen.queryByText(/Waits on/)).toBeNull()
+    mockDeliverables.mockReturnValue({
+      data: [{ id: 'd-1', name: 'Customer portal' }],
+    })
+    rerender(<ProjectIntakeRequests projectId="p-1" />)
+    expect(
+      screen.getByText('Waits on Customer portal, 1 deliverable since deleted'),
+    ).toBeInTheDocument()
+  })
+
   it('lists the requests behind the project, linking each', () => {
     // Arrange
     mockQuery.mockReturnValue({ data: requests, isLoading: false })

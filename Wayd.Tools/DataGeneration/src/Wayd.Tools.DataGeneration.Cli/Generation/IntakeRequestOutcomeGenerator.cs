@@ -12,7 +12,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 /// project is one that has finished; an accepted request maps whatever its project has under way. The data then
 /// holds requests whose deliverables are all accepted as well as ones still waiting on them.
 /// <para>
-/// Draws from a stream of its own, so generating outcomes never shifts the requests or the projects.
+/// Draws from a stream of its own, so generating outcomes never shifts the requests or the projects. Within the
+/// stream one request's draws move the next one's, so a change here reshuffles every later outcome.
 /// </para>
 /// </remarks>
 public sealed class IntakeRequestOutcomeGenerator
@@ -55,7 +56,6 @@ public sealed class IntakeRequestOutcomeGenerator
             if (!fulfilled && request.Status != DemandManagementVocabulary.Accepted)
                 continue;
 
-            // Drawn for every request, used or not, so one request's outcome never moves the next one's.
             var roll = _faker.Random.Double();
             var addedBy = request.AssigneeEmployeeNumber
                 ?? (desksByName.TryGetValue(request.DeskName, out var desk) ? desk.Members.FirstOrDefault()?.EmployeeNumber : null);

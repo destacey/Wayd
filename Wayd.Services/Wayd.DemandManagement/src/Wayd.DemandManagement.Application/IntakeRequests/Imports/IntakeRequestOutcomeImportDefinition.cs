@@ -126,8 +126,21 @@ public sealed class IntakeRequestOutcomeImportDefinition(
                 continue;
             }
 
+            var addedOn = data.AddedOn ?? now;
+            if (addedOn > now)
+            {
+                row.Failed("AddedOn cannot be in the future.");
+                continue;
+            }
+
+            if (references.ArrivedOnByRequestId.TryGetValue(request.Id, out var arrivedOn) && addedOn < arrivedOn)
+            {
+                row.Failed("AddedOn cannot be before the request was submitted.");
+                continue;
+            }
+
             var recorded = request.ImportOutcome(data.Kind, targetId, data.Note, [.. data.DeliverableIds.Distinct()],
-                addedById.Value, EventActor.Import(userId, addedById), data.AddedOn ?? now);
+                addedById.Value, EventActor.Import(userId, addedById), addedOn);
             if (recorded.IsFailure)
             {
                 row.Failed(recorded.Error);
@@ -152,6 +165,13 @@ public sealed class IntakeRequestOutcomeImportDefinition(
             .Include(r => r.Outcomes)
             .Where(r => requestIds.Contains(r.Id))
             .ToDictionaryAsync(r => r.Id, cancellationToken);
+
+        // A request arrives with its first status, so that move is when it was submitted.
+        var arrivals = await _dbContext.IntakeRequestStatusTransitions
+            .Where(t => requestIds.Contains(t.RecordId))
+            .GroupBy(t => t.RecordId)
+            .Select(g => new { RequestId = g.Key, ArrivedOn = g.Min(t => t.ChangedOn) })
+            .ToDictionaryAsync(a => a.RequestId, a => a.ArrivedOn, cancellationToken);
 
         var projectIds = rows.Where(r => r.Kind != IntakeRequestOutcomeKind.WorkItem).Select(r => r.TargetId).Distinct().ToList();
         var projects = await _dbContext.DemandProjects
@@ -180,12 +200,13 @@ public sealed class IntakeRequestOutcomeImportDefinition(
             .Select(e => e.Id)
             .ToListAsync(cancellationToken);
 
-        return new ResolvedReferences(requests, [.. projects], deliverables, workItems, [.. employees]);
+        return new ResolvedReferences(requests, arrivals, [.. projects], deliverables, workItems, [.. employees]);
     }
 
     /// <summary>The records a chunk's rows point at, by id.</summary>
     private sealed record ResolvedReferences(
         Dictionary<Guid, IntakeRequest> RequestsById,
+        Dictionary<Guid, Instant> ArrivedOnByRequestId,
         HashSet<Guid> ProjectIds,
         Dictionary<Guid, Guid> DeliverableProjectIds,
         IReadOnlySet<Guid> WorkItemIds,

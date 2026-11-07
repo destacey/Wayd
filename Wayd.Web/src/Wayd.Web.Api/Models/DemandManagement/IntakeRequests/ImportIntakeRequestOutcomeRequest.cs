@@ -47,9 +47,13 @@ public sealed class ImportIntakeRequestOutcomeRequest
     /// <summary>The employee who recorded the outcome, by id. Blank for the request's assignee; required when it has none.</summary>
     public Guid? AddedById { get; set; }
 
-    /// <summary>When the outcome was recorded, with its offset. Blank for the moment it is imported.</summary>
+    /// <summary>
+    /// When the outcome was recorded, with its offset: not before the request was submitted, and not in the future.
+    /// Blank for the moment it is imported.
+    /// </summary>
     public string? AddedOn { get; set; }
 
+    /// <summary>The row as the import applies it, once the validator has accepted its shape.</summary>
     public ImportIntakeRequestOutcomeDto ToImportIntakeRequestOutcomeDto() =>
         new(RequestId,
             ParseKind(Kind)!.Value,

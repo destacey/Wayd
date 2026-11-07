@@ -141,8 +141,8 @@ The run links each imported row to the request it created.
 Each row records one [outcome](./index.mdx#outcomes): one thing a request already in
 Wayd became. Unlike recording one on the request page, which needs the request accepted, an imported outcome may
 be on a request in **any status**, so a request imported as Fulfilled takes the outcomes it had. Rows can name the
-same request more than once, for a request that became several things, but never the same project or work item
-twice.
+same request more than once, for a request that became several things, but a request never names the same
+project or work item twice. Different requests may name the same project.
 
 **Every column must be in the file**, even one whose cells are all blank, as for every import.
 
@@ -156,7 +156,7 @@ twice.
 | `Note` | For `ExistingProjectScope` | What the outcome covers; for existing project scope, what the project absorbed. Max 1024 characters. |
 | `DeliverableIds` | No | `ExistingProjectScope` only: semicolon-separated ids of that project's [deliverables](../ppm/projects.mdx#project-deliverables) that meet the request. The request counts as met once every one is Accepted. Blank maps none. |
 | `AddedById` | When the request has no assignee | The employee who recorded the outcome. Blank for the request's assignee. |
-| `AddedOn` | No | When the outcome was recorded, with its offset. Blank for the moment of import. |
+| `AddedOn` | No | When the outcome was recorded, with its offset. Not before the request was submitted, and not in the future. Blank for the moment of import. |
 
 Projects and their deliverables are checked against Demand Management's own copy of them, which follows PPM
 within moments of each change. Import the projects and deliverables first; a row naming a project imported only
@@ -164,7 +164,8 @@ seconds earlier may be rejected as not found, and can be retried once the copy h
 
 A row is rejected, with the reason, when the request, project, work item or employee it names does not exist;
 when a deliverable is not one of the row's project's; when the request already points at that project or work
-item; or when an `ExistingProjectScope` row has no note. A file in which two rows name the same request and
+item; when `AddedOn` is before the request was submitted or in the future; or when an `ExistingProjectScope`
+row has no note. A file in which two rows name the same request and
 target is refused whole.
 
 The run links each imported row to its request.

@@ -81,6 +81,9 @@ const canDelete = (
 
 type Dialog = 'edit' | 'status' | 'delete' | 'tasks'
 
+/** A grid row: the deliverable, with how many of the intake requests the reader can see it serves. */
+type DeliverableRow = ProjectDeliverableDto & { requestCount: number }
+
 const Count = ({
   label,
   value,
@@ -168,9 +171,13 @@ const ProjectDeliverables = ({
   const open = deliverables.filter((d) => d.isOpen)
   const overdue = open.filter(isOverdue)
 
-  const rows = showDescoped
-    ? deliverables
-    : deliverables.filter((d) => d.status.category !== StatusCategory.Removed)
+  // The count rides on the row data: the grid caches each row's column values until its data changes, so a
+  // column reading the separately fetched requests would keep the count it first saw.
+  const rows: DeliverableRow[] = (
+    showDescoped
+      ? deliverables
+      : deliverables.filter((d) => d.status.category !== StatusCategory.Removed)
+  ).map((d) => ({ ...d, requestCount: requestsServedBy(d.id).length }))
 
   const selected = deliverables.find((d) => d.id === selectedId) ?? null
   const selectedTasks = selected ? linkedTasks(plan, selected.id) : []
@@ -229,9 +236,7 @@ const ProjectDeliverables = ({
     ]
   }
 
-  const onRowReorder = async (
-    event: RowReorderEvent<ProjectDeliverableDto>,
-  ) => {
+  const onRowReorder = async (event: RowReorderEvent<DeliverableRow>) => {
     if (isBusy) return
     const ordered = mergeDeliverableOrder(
       deliverables.map((d) => d.id),
@@ -257,9 +262,9 @@ const ProjectDeliverables = ({
 
   const columns = (
     context: GridColumnContext,
-  ): ColumnDef<ProjectDeliverableDto, any>[] => [
+  ): ColumnDef<DeliverableRow, any>[] => [
     // The grab handle shares the ⋯ cell, so one column holds everything that acts on a row.
-    createActionsColumn<ProjectDeliverableDto>({
+    createActionsColumn<DeliverableRow>({
       getItems: getActionItems,
       ariaLabel: 'Deliverable actions',
       unavailable: !canManage && !canLinkTasks,
@@ -336,12 +341,11 @@ const ProjectDeliverables = ({
       ? [
           {
             id: 'intakeRequests',
+            accessorKey: 'requestCount',
             header: 'Requests',
             size: 110,
             enableColumnFilter: false,
-            accessorFn: (d: ProjectDeliverableDto) =>
-              requestsServedBy(d.id).length,
-          } satisfies ColumnDef<ProjectDeliverableDto, number>,
+          } satisfies ColumnDef<DeliverableRow, number>,
         ]
       : []),
   ]

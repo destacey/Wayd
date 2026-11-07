@@ -21,9 +21,10 @@ public sealed class IntakeRequestOutcomeImportDefinitionTests
 {
     private const int RecordPass = 0;
 
-    private static readonly Instant RecordedAt = Instant.FromUtc(2026, 6, 15, 14, 0, 0);
-
     private readonly IntakeScenario _scenario = new();
+
+    /// <summary>When the scenario's requests are submitted, which is also now: the earliest and latest an outcome may be.</summary>
+    private Instant RecordedAt => _scenario.Clock.Now;
     private readonly Mock<IDispatcher> _dispatcher = new();
     private readonly IntakeRequestOutcomeImportDefinition _definition;
 
@@ -167,6 +168,24 @@ public sealed class IntakeRequestOutcomeImportDefinitionTests
         result.Value.Rows[1].Error.Should().Contain(unknown.ToString());
         request.Outcomes.Select(o => o.TargetId).Should().Equal(known);
         request.Outcomes.Single().AddedOn.Should().Be(_scenario.Clock.Now);
+    }
+
+    [Theory]
+    [InlineData(-1, "AddedOn cannot be before the request was submitted.")]
+    [InlineData(1, "AddedOn cannot be in the future.")]
+    public async Task RecordOutcomes_DatedBeforeTheRequestOrInTheFuture_FailsTheRow(int hours, string error)
+    {
+        // Arrange — the scenario submits its requests now, so an hour either side is out of bounds.
+        var request = _scenario.RequestInStatus(_desk, _scenario.Employee(), "Accepted");
+
+        // Act
+        var result = await Run(ScopeRow(request.Id) with { AddedOn = RecordedAt.Plus(Duration.FromHours(hours)) });
+
+        // Assert
+        var row = result.Value.Rows.Single();
+        row.Failed.Should().BeTrue();
+        row.Error.Should().Be(error);
+        request.Outcomes.Should().BeEmpty();
     }
 
     [Fact]

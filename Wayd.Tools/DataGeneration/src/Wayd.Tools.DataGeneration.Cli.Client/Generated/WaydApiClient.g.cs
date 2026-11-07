@@ -123856,7 +123856,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Guid? AddedById { get; set; } = default!;
 
         /// <summary>
-        /// When the outcome was recorded, with its offset. Blank for the moment it is imported.
+        /// When the outcome was recorded, with its offset: not before the request was submitted, and not in the future.
+        /// <br/>Blank for the moment it is imported.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("addedOn")]
         public string? AddedOn { get; set; } = default!;

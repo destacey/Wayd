@@ -65865,7 +65865,8 @@ request. The request counts as met once every one is Accepted. Blank maps none. 
     deliverableIds?: string | undefined;
     /** The employee who recorded the outcome, by id. Blank for the request's assignee; required when it has none. */
     addedById?: string | undefined;
-    /** When the outcome was recorded, with its offset. Blank for the moment it is imported. */
+    /** When the outcome was recorded, with its offset: not before the request was submitted, and not in the future.
+Blank for the moment it is imported. */
     addedOn?: string | undefined;
 }
 

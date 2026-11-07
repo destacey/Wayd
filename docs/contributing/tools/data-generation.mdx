@@ -22,8 +22,8 @@ tasks, strategic themes, and strategic initiatives with KPIs), the Product Manag
 (products and the dependencies between them, versions, release packages, releases, deployment environments
 and deployments), and the
 Planning dataset (planning intervals with their teams, objectives and risks), and the Request Desk dataset
-(intake desks with their members, tag categories, intake requests, and what they became). Use the `org-only` recipe for the
-organization on its own, or `--skip-ppm` / `--skip-product-management` / `--skip-planning` /
+(intake desks with their members, tag categories, intake requests, and what they became). Use the `org-only`
+recipe for the organization on its own, or `--skip-ppm` / `--skip-product-management` / `--skip-planning` /
 `--skip-demand-management` to leave out one area.
 Work items, sprints and objective health checks are not generated. Database **reset** is a separate,
 out-of-band operation (an Aspire dashboard command), not part of this tool.
@@ -69,8 +69,8 @@ and `members.csv` for the organization; `strategic-themes.csv`, `portfolios.csv`
 `products.csv`, `product-dependencies.csv`, `versions.csv`, `release-packages.csv`,
 `release-package-components.csv`, `releases.csv`, `release-contents.csv` and `deployments.csv` for Product
 Management; `planning-intervals.csv`, `planning-interval-objectives.csv` and `risks.csv` for Planning; and
-`intake-desks.csv`, `intake-requests.csv` and `intake-request-outcomes.csv` for the Request Desk. The desks file is for reading only: desks
-and tag categories are created through the API at seed time. An area that is switched off writes none of its files. Roles and accounts are created through the API at
+`intake-desks.csv`, `intake-requests.csv` and `intake-request-outcomes.csv` for the Request Desk. The desks
+file is for reading only: desks and tag categories are created through the API at seed time. An area that is switched off writes none of its files. Roles and accounts are created through the API at
 seed time and have no file.
 
 ## Authentication

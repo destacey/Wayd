@@ -15,6 +15,7 @@ namespace Wayd.DemandManagement.Application.DemandProjectDeliverables.Commands;
 public sealed record SyncDemandProjectDeliverablesCommand(IEnumerable<ISimpleProjectDeliverable> Deliverables, Instant AsOf)
     : ICommand, ILongRunningRequest;
 
+/// <summary>Creates, resyncs and deletes copies to match the source as read, never moving a watermark backwards.</summary>
 public sealed class SyncDemandProjectDeliverablesCommandHandler(
     IDemandManagementDbContext dbContext,
     ILogger<SyncDemandProjectDeliverablesCommandHandler> logger)

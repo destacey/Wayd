@@ -33,7 +33,9 @@ public sealed record IntakeRequestOutcomeDeliverablesChangedEvent : DomainEvent<
         Timestamp = timestamp;
     }
 
+    /// <summary>The request.</summary>
     public Guid Id { get; }
+    /// <summary>The request's number.</summary>
     public int Key { get; }
     /// <summary>The project the outcome points at.</summary>
     public Guid TargetId { get; }

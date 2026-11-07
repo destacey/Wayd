@@ -26,9 +26,23 @@ const ProjectIntakeRequests: FC<ProjectIntakeRequestsProps> = ({
   const { data, isLoading, error, refetch } =
     useGetProjectIntakeRequestsQuery(projectId)
   // Named from PPM's own list, which the reader can see since they are on the project's page.
-  const { data: deliverables = [] } = useGetProjectDeliverablesQuery(projectId)
-  const deliverableName = (id: string) =>
-    deliverables.find((d) => d.id === id)?.name
+  const { data: deliverables } = useGetProjectDeliverablesQuery(projectId)
+
+  /** What a request waits on, by name; nothing until the names are known, so none reads as deleted meanwhile. */
+  const waitsOn = (deliverableIds: string[]) => {
+    if (!deliverables || deliverableIds.length === 0) return null
+    const names = deliverableIds
+      .map((id) => deliverables.find((d) => d.id === id)?.name)
+      .filter((name): name is string => !!name)
+    const deleted = deliverableIds.length - names.length
+    const parts = [
+      ...names,
+      ...(deleted > 0
+        ? [`${deleted} deliverable${deleted === 1 ? '' : 's'} since deleted`]
+        : []),
+    ]
+    return `Waits on ${parts.join(', ')}`
+  }
 
   if (isLoading) return <Spin />
 
@@ -71,17 +85,11 @@ const ProjectIntakeRequests: FC<ProjectIntakeRequestsProps> = ({
               </Flex>
             }
             description={
-              (item.note || item.deliverableIds.length > 0) && (
+              (item.note || waitsOn(item.deliverableIds)) && (
                 <Flex vertical gap={4}>
                   {item.note && <Text>{item.note}</Text>}
-                  {item.deliverableIds.length > 0 && (
-                    <Text type="secondary">
-                      Waits on{' '}
-                      {item.deliverableIds
-                        .map((id) => deliverableName(id))
-                        .filter((name): name is string => !!name)
-                        .join(', ') || 'deliverables since deleted'}
-                    </Text>
+                  {waitsOn(item.deliverableIds) && (
+                    <Text type="secondary">{waitsOn(item.deliverableIds)}</Text>
                   )}
                 </Flex>
               )

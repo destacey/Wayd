@@ -28,6 +28,7 @@ public sealed class DemandProjectDeliverableSyncHandler(
     private readonly IDispatcher _dispatcher = dispatcher;
     private readonly ILogger<DemandProjectDeliverableSyncHandler> _logger = logger;
 
+    /// <summary>Builds the new deliverable's copy from its source, unless one already exists.</summary>
     public async Task Handle(ProjectDeliverableAddedEvent @event, CancellationToken cancellationToken)
     {
         if (await _dbContext.DemandProjectDeliverables.AnyAsync(x => x.Id == @event.DeliverableId, cancellationToken))
@@ -39,12 +40,14 @@ public sealed class DemandProjectDeliverableSyncHandler(
         await CreateFromSource(@event.DeliverableId, @event.Timestamp, cancellationToken);
     }
 
+    /// <summary>Applies a rename; the copy keeps no other detail.</summary>
     public async Task Handle(ProjectDeliverableDetailsUpdatedEvent @event, CancellationToken cancellationToken)
     {
         await Apply(@event.DeliverableId, @event.Timestamp,
             d => d.ApplyName(@event.Details.Name, @event.Timestamp), "name", cancellationToken);
     }
 
+    /// <summary>Applies a move to another status: what decides whether the requests it serves are met.</summary>
     public async Task Handle(ProjectDeliverableStatusChangedEvent @event, CancellationToken cancellationToken)
     {
         await Apply(@event.DeliverableId, @event.Timestamp,
@@ -65,6 +68,7 @@ public sealed class DemandProjectDeliverableSyncHandler(
             "workflow switch", cancellationToken);
     }
 
+    /// <summary>Removes the deleted deliverable's copy; outcomes mapped to it keep its id.</summary>
     public async Task Handle(ProjectDeliverableRemovedEvent @event, CancellationToken cancellationToken)
     {
         var existing = await _dbContext.DemandProjectDeliverables.FirstOrDefaultAsync(x => x.Id == @event.DeliverableId, cancellationToken);

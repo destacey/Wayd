@@ -8,6 +8,7 @@ import { Button, Drawer, Flex, Space, Table, Typography } from 'antd'
 import { FC, useEffect, useState } from 'react'
 import { LabeledContent } from '@/src/components/common/content'
 import useBackgroundJobActions from './use-background-job-actions'
+import { isRequeueableState } from './job-health'
 
 export interface JobDetailsDrawerProps {
   jobId: string
@@ -52,10 +53,12 @@ const JobDetailsDrawer: FC<JobDetailsDrawerProps> = ({
     }
   }, [error, messageApi])
 
+  const canRequeue = canRun && isRequeueableState(job?.state)
+
   const extraActions =
-    job && (canRun || canDelete) ? (
+    job && (canRequeue || canDelete) ? (
       <Space>
-        {canRun && (
+        {canRequeue && (
           <Button onClick={() => handleRequeue(job, onDrawerClose)}>
             Requeue
           </Button>
@@ -138,7 +141,9 @@ const JobDetailsDrawer: FC<JobDetailsDrawerProps> = ({
                   key: 'reason',
                   render: (value: string | undefined) =>
                     value ? (
-                      <Typography.Text type="secondary">{value}</Typography.Text>
+                      <Typography.Text type="secondary">
+                        {value}
+                      </Typography.Text>
                     ) : null,
                 },
               ]}

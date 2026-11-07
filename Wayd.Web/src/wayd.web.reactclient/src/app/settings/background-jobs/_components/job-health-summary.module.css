@@ -1,0 +1,126 @@
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius-lg);
+  overflow: hidden;
+  margin-bottom: var(--ant-margin);
+}
+
+.cell {
+  flex: 1 1 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 12px 16px;
+  border: 0;
+  border-right: 1px solid var(--ant-color-border-secondary);
+  background: transparent;
+  color: var(--ant-color-text);
+  font: inherit;
+  text-align: left;
+}
+
+.cell:last-child {
+  border-right: 0;
+}
+
+button.cell {
+  cursor: pointer;
+}
+
+button.cell:hover {
+  background: var(--ant-color-fill-quaternary);
+}
+
+button.cell:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: -2px;
+}
+
+.health {
+  flex: 2 1 260px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.healthy {
+  background: var(--ant-color-success-bg);
+}
+
+.stale {
+  background: var(--ant-color-warning-bg);
+}
+
+.down {
+  background: var(--ant-color-error-bg);
+}
+
+.healthIcon {
+  font-size: var(--ant-font-size-heading-4);
+}
+
+.healthy .healthIcon,
+.healthy .healthTitle {
+  color: var(--ant-color-success-text);
+}
+
+.stale .healthIcon,
+.stale .healthTitle {
+  color: var(--ant-color-warning-text);
+}
+
+.down .healthIcon,
+.down .healthTitle {
+  color: var(--ant-color-error-text);
+}
+
+.healthTitle {
+  display: block;
+  font-weight: 600;
+}
+
+/* A ticking duration: equal-width digits keep it from jittering each second. */
+.elapsed {
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  font-size: var(--ant-font-size-sm);
+  color: var(--ant-color-text-secondary);
+}
+
+.value {
+  font-size: var(--ant-font-size-heading-4);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.qualifier {
+  font-size: var(--ant-font-size-sm);
+  font-weight: 400;
+  color: var(--ant-color-text-secondary);
+}
+
+.retrying {
+  font-size: var(--ant-font-size-sm);
+  font-weight: 400;
+  color: var(--ant-color-warning-text);
+}
+
+.failed {
+  background: var(--ant-color-error-bg);
+}
+
+.failed .label,
+.failed .value {
+  color: var(--ant-color-error-text);
+}
+
+.allTime {
+  flex: 1.5 1 200px;
+  font-size: var(--ant-font-size-sm);
+}

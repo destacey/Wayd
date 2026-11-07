@@ -1,17 +1,20 @@
 'use client'
 
 import PageTitle from '@/src/components/common/page-title'
-import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import { useState } from 'react'
-import { Flex, MenuProps, Tabs, Typography } from 'antd'
+import { Button, Dropdown, Flex, MenuProps, Tabs } from 'antd'
+import { DownOutlined } from '@ant-design/icons'
 import Link from 'next/link'
 import { ItemType } from 'antd/es/menu/interface'
 import { authorizePage } from '@/src/components/hoc'
 import useAuth from '@/src/components/contexts/auth'
 import { useDocumentTitle } from '@/src/hooks'
 import { PageActions } from '@/src/components/common'
+import { JobStateFilter } from '@/src/services/wayd-api'
 import {
+  JOB_SERVER_POLLING_MS,
   STATISTICS_POLLING_MS,
+  useGetJobServersQuery,
   useGetJobStatisticsQuery,
   useGetJobTypesQuery,
   useRunJobMutation,
@@ -22,15 +25,22 @@ import CreateRecurringJobForm from './create-recurring-job-form'
 import JobsTab from './_components/jobs-tab'
 import RecurringJobsTab from './_components/recurring-jobs-tab'
 import JobServersTab from './_components/job-servers-tab'
+import JobHealthSummary from './_components/job-health-summary'
 
 /** The scheduler's three peer views. */
 type JobsView = 'jobs' | 'recurring' | 'servers'
+
+const tabLabel = (label: string, count: number | undefined) =>
+  count === undefined ? label : `${label} (${count.toLocaleString()})`
 
 const BackgroundJobsListPage = () => {
   useDocumentTitle('Background Jobs')
   const [openCreateRecurringJobForm, setOpenCreateRecurringJobForm] =
     useState(false)
   const [view, setView] = useState<JobsView>('jobs')
+  const [jobState, setJobState] = useState<JobStateFilter>(
+    JobStateFilter.Processing,
+  )
 
   const messageApi = useMessage()
   const { hasPermissionClaim } = useAuth()
@@ -47,9 +57,11 @@ const BackgroundJobsListPage = () => {
     useGetJobStatisticsQuery(undefined, {
       pollingInterval: STATISTICS_POLLING_MS,
     })
+  const { data: servers } = useGetJobServersQuery(undefined, {
+    pollingInterval: JOB_SERVER_POLLING_MS,
+  })
 
   const current = statistics?.current
-  const allTime = statistics?.allTime
   const { data: jobTypeData = [] } = useGetJobTypesQuery()
   const [runJob] = useRunJobMutation()
 
@@ -62,40 +74,14 @@ const BackgroundJobsListPage = () => {
     }
   }
 
-  const actionsMenuItems: MenuProps['items'] = (() => {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
-    const items: ItemType[] = []
+  const showJobsInState = (state: JobStateFilter) => {
+    setJobState(state)
+    setView('jobs')
+  }
 
-    // Guarded on the base URL as well as the permission: without it the link would
-    // resolve to "undefined/jobs" (same treatment as the API Specification link in profile-menu).
-    if (canViewHangfire && apiBaseUrl) {
-      items.push({
-        label: (
-          <Link href={`${apiBaseUrl}/jobs`} target="_blank">
-            Hangfire Dashboard
-          </Link>
-        ),
-        key: 'view-hangfire',
-      })
-    }
-
-    if (!canRunBackgroundJobs || jobTypeData.length === 0) {
-      return items
-    }
-
-    if (items.length > 0) {
-      items.push({ type: 'divider' })
-    }
-
-    items.push({
-      label: 'Create Recurring Job',
-      key: 'create-recurring-job',
-      onClick: () => setOpenCreateRecurringJobForm(true),
-    })
-    items.push({ type: 'divider' })
-
-    // Every job type can be run on demand, including the ones that cannot be
-    // scheduled — the recurring form filters on IsSchedulable, this menu does not.
+  // Every job type can be run on demand, including the ones that cannot be
+  // scheduled — the recurring form filters on IsSchedulable, this menu does not.
+  const runJobMenuItems: ItemType[] = (() => {
     const grouped = new Map<string, typeof jobTypeData>()
     for (const jobType of [...jobTypeData].sort(
       (a, b) =>
@@ -106,16 +92,44 @@ const BackgroundJobsListPage = () => {
       grouped.set(jobType.groupName, group)
     }
 
-    for (const [groupName, jobTypes] of grouped) {
+    return [...grouped].map(([groupName, jobTypes]) => ({
+      key: groupName,
+      type: 'group' as const,
+      label: groupName,
+      children: jobTypes.map((jobType) => ({
+        label: jobType.name,
+        key: `job-type-${jobType.id}`,
+        title: jobType.description,
+        onClick: () => handleRunJob(jobType.id, jobType.name),
+      })),
+    }))
+  })()
+
+  const actionsMenuItems: MenuProps['items'] = (() => {
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
+    const items: ItemType[] = []
+
+    if (canRunBackgroundJobs && jobTypeData.length > 0) {
       items.push({
-        key: groupName,
-        type: 'group',
-        label: groupName,
-        children: jobTypes.map((jobType) => ({
-          label: jobType.name,
-          key: `job-type-${jobType.id}`,
-          onClick: () => handleRunJob(jobType.id, jobType.name),
-        })),
+        label: 'Create Recurring Job',
+        key: 'create-recurring-job',
+        onClick: () => setOpenCreateRecurringJobForm(true),
+      })
+    }
+
+    // Guarded on the base URL as well as the permission: without it the link would
+    // resolve to "undefined/jobs" (same treatment as the API Specification link in profile-menu).
+    if (canViewHangfire && apiBaseUrl) {
+      if (items.length > 0) {
+        items.push({ type: 'divider' })
+      }
+      items.push({
+        label: (
+          <Link href={`${apiBaseUrl}/jobs`} target="_blank">
+            Hangfire Dashboard
+          </Link>
+        ),
+        key: 'view-hangfire',
       })
     }
 
@@ -130,102 +144,25 @@ const BackgroundJobsListPage = () => {
     <div className="page-gutters">
       <PageTitle
         title="Background Jobs"
-        actions={<PageActions actionItems={actionsMenuItems} />}
+        actions={
+          <Flex gap="small" align="center">
+            {canRunBackgroundJobs && runJobMenuItems.length > 0 && (
+              <Dropdown menu={{ items: runJobMenuItems }} trigger={['click']}>
+                <Button type="primary">
+                  Run a Job <DownOutlined />
+                </Button>
+              </Dropdown>
+            )}
+            <PageActions actionItems={actionsMenuItems} />
+          </Flex>
+        }
       />
-      <Typography.Text type="secondary" style={{ display: 'block' }}>
-        Current
-      </Typography.Text>
-      <Flex gap={12} wrap style={{ marginTop: 8, marginBottom: 16 }}>
-        <MetricCard
-          cardStyle={METRIC_CARD_FLEX}
-          title="Processing"
-          value={current?.processing ?? 0}
-          loading={statisticsLoading}
-          tooltip="Jobs a worker is executing right now."
-        />
-        <MetricCard
-          cardStyle={METRIC_CARD_FLEX}
-          title="Enqueued"
-          value={current?.enqueued ?? 0}
-          loading={statisticsLoading}
-          tooltip="Jobs waiting for a free worker."
-        />
-        <MetricCard
-          cardStyle={METRIC_CARD_FLEX}
-          title="Scheduled"
-          value={current?.scheduled ?? 0}
-          loading={statisticsLoading}
-          tooltip="Jobs queued to run at a future time, including failed jobs waiting out a retry delay."
-        />
-        {current?.retries != null && (
-          <MetricCard
-            cardStyle={METRIC_CARD_FLEX}
-            title="Retries"
-            value={current.retries}
-            loading={statisticsLoading}
-            tooltip="Jobs waiting out a retry cooldown after a failed attempt. These also appear under Scheduled."
-          />
-        )}
-        {current?.awaiting != null && (
-          <MetricCard
-            cardStyle={METRIC_CARD_FLEX}
-            title="Awaiting"
-            value={current.awaiting}
-            loading={statisticsLoading}
-            tooltip="Continuations held until the job they depend on finishes."
-          />
-        )}
-        <MetricCard
-          cardStyle={METRIC_CARD_FLEX}
-          title="Failed"
-          value={current?.failed ?? 0}
-          loading={statisticsLoading}
-          valueStyle={
-            current?.failed ? { color: 'var(--ant-color-error)' } : undefined
-          }
-          tooltip="Jobs that exhausted every retry. These persist until requeued or deleted."
-        />
-        <MetricCard
-          cardStyle={METRIC_CARD_FLEX}
-          title="Succeeded"
-          value={current?.succeeded ?? 0}
-          loading={statisticsLoading}
-          tooltip="Succeeded jobs still retained. They are purged after a short window, so this stays low even on a busy system — see All time for the running total."
-        />
-        <MetricCard
-          cardStyle={METRIC_CARD_FLEX}
-          title="Recurring"
-          value={current?.recurring ?? 0}
-          loading={statisticsLoading}
-          tooltip="Registered cron schedules. Manage them on the Recurring tab."
-        />
-        <MetricCard
-          cardStyle={METRIC_CARD_FLEX}
-          title="Servers"
-          value={current?.servers ?? 0}
-          loading={statisticsLoading}
-          tooltip="Worker processes polling for jobs. Zero means nothing will run."
-        />
-      </Flex>
-      <Typography.Text type="secondary" style={{ display: 'block' }}>
-        All time
-      </Typography.Text>
-      <Flex gap={12} wrap style={{ marginTop: 8, marginBottom: 16 }}>
-        <MetricCard
-          cardStyle={METRIC_CARD_FLEX}
-          title="Succeeded"
-          value={allTime?.succeeded ?? 0}
-          loading={statisticsLoading}
-          tooltip="Every job that has ever completed successfully. A running total kept by the scheduler's counters — it keeps climbing after the job records themselves are purged."
-        />
-        <MetricCard
-          cardStyle={METRIC_CARD_FLEX}
-          title="Deleted"
-          value={allTime?.deleted ?? 0}
-          loading={statisticsLoading}
-          tooltip="Every job that has ever been deleted, whether manually or by exhausting its retries."
-        />
-      </Flex>
+      <JobHealthSummary
+        statistics={statistics}
+        servers={servers}
+        isLoading={statisticsLoading}
+        onSelectState={showJobsInState}
+      />
       {/*
         Tabs, not a record's section rail: these are three peer views of the
         scheduler rather than sections of an entity, and this page has no
@@ -236,13 +173,27 @@ const BackgroundJobsListPage = () => {
         activeKey={view}
         onChange={(next) => setView(next as JobsView)}
         items={[
-          { key: 'jobs', label: 'Jobs', children: <JobsTab /> },
+          {
+            key: 'jobs',
+            label: 'Jobs',
+            children: (
+              <JobsTab
+                state={jobState}
+                onStateChange={setJobState}
+                counts={current}
+              />
+            ),
+          },
           {
             key: 'recurring',
-            label: 'Recurring',
+            label: tabLabel('Recurring', current?.recurring),
             children: <RecurringJobsTab />,
           },
-          { key: 'servers', label: 'Servers', children: <JobServersTab /> },
+          {
+            key: 'servers',
+            label: tabLabel('Servers', servers?.length),
+            children: <JobServersTab />,
+          },
         ]}
       />
       {openCreateRecurringJobForm && (

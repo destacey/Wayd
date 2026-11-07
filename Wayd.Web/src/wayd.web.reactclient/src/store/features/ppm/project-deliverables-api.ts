@@ -108,7 +108,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     }),
 
     updateProjectDeliverable: builder.mutation<
-      void,
+      null,
       ProjectDeliverableRef & { request: UpdateProjectDeliverableRequest }
     >({
       queryFn: async ({ projectId, deliverableId, request }) => {
@@ -118,7 +118,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
             deliverableId,
             request,
           )
-          return { data: undefined }
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -129,7 +129,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     }),
 
     changeProjectDeliverableStatus: builder.mutation<
-      void,
+      null,
       ProjectDeliverableRef & {
         request: ChangeProjectDeliverableStatusRequest
       }
@@ -141,7 +141,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
             deliverableId,
             request,
           )
-          return { data: undefined }
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -152,7 +152,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     }),
 
     reorderProjectDeliverables: builder.mutation<
-      void,
+      null,
       { projectId: string; deliverableIds: string[]; expectedRevision: number }
     >({
       queryFn: async ({ projectId, deliverableIds, expectedRevision }) => {
@@ -161,7 +161,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
             deliverableIds,
             expectedRevision,
           })
-          return { data: undefined }
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }
@@ -172,7 +172,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     }),
 
     deleteProjectDeliverable: builder.mutation<
-      void,
+      null,
       ProjectDeliverableRef & { expectedRevision: number }
     >({
       queryFn: async ({ projectId, deliverableId, expectedRevision }) => {
@@ -182,7 +182,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
             deliverableId,
             expectedRevision,
           )
-          return { data: undefined }
+          return { data: null }
         } catch (error) {
           console.error('API Error:', error)
           return { error }

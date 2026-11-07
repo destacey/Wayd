@@ -31,7 +31,7 @@ public static class PpmWorkflowOwners
     /// </para>
     /// </remarks>
     public static readonly WorkflowOwnerDescriptor ProjectDeliverable = new(
-        "ppm.project-deliverable",
+        ProjectDeliverableWorkflow.OwnerType,
         "Project Deliverable",
         new Dictionary<int, WorkflowAlias>
         {

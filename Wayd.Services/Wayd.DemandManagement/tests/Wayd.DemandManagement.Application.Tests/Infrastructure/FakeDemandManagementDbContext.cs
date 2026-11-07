@@ -25,11 +25,13 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     private readonly List<Employee> _employees = [];
     private readonly List<StatusTransition> _transitions = [];
     private readonly List<DemandProject> _projects = [];
+    private readonly List<DemandProjectDeliverable> _deliverables = [];
     private readonly List<DemandEstimationScale> _estimationScales = [];
     private readonly List<ScoringModel> _scoringModels = [];
 
     public DbSet<IntakeChannel> IntakeChannels => _channels.AsDbSet();
     public DbSet<DemandProject> DemandProjects => _projects.AsDbSet();
+    public DbSet<DemandProjectDeliverable> DemandProjectDeliverables => _deliverables.AsDbSet();
     public DbSet<DemandEstimationScale> DemandEstimationScales => _estimationScales.AsDbSet();
     public DbSet<IntakeDesk> IntakeDesks => _desks.AsDbSet();
     public DbSet<IntakeRequest> IntakeRequests => _requests.AsDbSet();
@@ -85,6 +87,7 @@ public sealed class FakeDemandManagementDbContext : IDemandManagementDbContext
     /// </summary>
     public void AddTags(params IntakeRequestTag[] tags) => _tags.AddRange(tags);
     public void AddProjects(params DemandProject[] projects) => _projects.AddRange(projects);
+    public void AddDeliverables(params DemandProjectDeliverable[] deliverables) => _deliverables.AddRange(deliverables);
 
     public void AddEstimationScales(params DemandEstimationScale[] scales) => _estimationScales.AddRange(scales);
 

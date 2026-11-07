@@ -6,6 +6,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Organization;
 using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.Events.StrategicManagement;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
@@ -109,6 +110,8 @@ public sealed class DurableEventRoutingTests(WaydSqlServerApiFactory factory)
         Type[] durableEventTypes =
         [
             typeof(ProjectCreatedEvent),
+            typeof(ProjectDeliverableStatusChangedEvent),
+            typeof(StatusWorkflowSwitchedEvent),
             typeof(IterationCreatedEventV3),
             typeof(StrategicThemeCreatedEvent),
             typeof(IntegrationStateChangedEvent<Guid>),

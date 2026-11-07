@@ -463,6 +463,33 @@ public class DemandProjectConfiguration : IEntityTypeConfiguration<DemandProject
     }
 }
 
+public class DemandProjectDeliverableConfiguration : IEntityTypeConfiguration<DemandProjectDeliverable>
+{
+    public void Configure(EntityTypeBuilder<DemandProjectDeliverable> builder)
+    {
+        builder.ToTable("DemandProjectDeliverables", SchemaNames.DemandManagement);
+
+        builder.HasKey(d => d.Id);
+        builder.HasIndex(d => d.ProjectId);
+
+        builder.Property(d => d.Id).ValueGeneratedNever();
+        builder.Property(d => d.Name).IsRequired().HasMaxLength(256);
+        builder.Property(d => d.StatusCategory).IsRequired()
+            .HasConversion<EnumConverter<StatusCategory>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+        builder.Property(d => d.StatusAlias).IsRequired().HasConversion<int>();
+
+        // Both are copies, so the deliverables go with their project's copy: nothing of PPM's is deleted.
+        builder.HasOne<DemandProject>()
+            .WithMany()
+            .HasForeignKey(d => d.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.ConfigureReplicaTracking(d => d.Watermarks);
+    }
+}
+
 public class DemandEstimationScaleConfiguration : IEntityTypeConfiguration<DemandEstimationScale>
 {
     public void Configure(EntityTypeBuilder<DemandEstimationScale> builder)

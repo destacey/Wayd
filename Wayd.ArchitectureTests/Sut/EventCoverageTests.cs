@@ -214,6 +214,7 @@ public partial class EventCoverageTests
         // Copies built from another module's events, which are their history.
         [typeof(DemandEstimationScale)] = "A copy of Planning's EstimationScale.",
         [typeof(DemandProject)] = "A copy of PPM's Project.",
+        [typeof(DemandProjectDeliverable)] = "A copy of PPM's ProjectDeliverable.",
         [typeof(PlanningSprint)] = "A copy of Work's Iteration.",
         [typeof(PlanningTeam)] = "A copy of Organization's team.",
         [typeof(PpmStrategicTheme)] = "A copy of Strategic Management's StrategicTheme.",

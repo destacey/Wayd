@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Events.Planning.Iterations;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervalObjectives;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.Events.StrategicManagement;
 
 namespace Wayd.Infrastructure.Messaging;
@@ -54,6 +55,15 @@ public static class DurableEventRoutes
         typeof(ProjectDetailsUpdatedEvent),
         typeof(ProjectKeyChangedEventV2),
         typeof(ProjectDeletedEvent),
+
+        // PPM ProjectDeliverable → Demand Management DemandProjectDeliverable. A workflow migration moves a
+        // deliverable's status through the engine's shared switch event alone, so that is routed too; every
+        // other owner type's switch has no subscriber and is a no-op.
+        typeof(ProjectDeliverableAddedEvent),
+        typeof(ProjectDeliverableDetailsUpdatedEvent),
+        typeof(ProjectDeliverableStatusChangedEvent),
+        typeof(ProjectDeliverableRemovedEvent),
+        typeof(StatusWorkflowSwitchedEvent),
 
         // Superseded, but an envelope written as it before the switch may still be in the outbox; routed
         // durably so it is delivered to the handler that still accepts it.

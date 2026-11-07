@@ -125,8 +125,13 @@ const JobDetailsDrawer: FC<JobDetailsDrawerProps> = ({
             <Table
               size="small"
               pagination={false}
-              rowKey={(record, index) => `${record.state}-${index}`}
-              dataSource={job.history}
+              rowKey="key"
+              // A job can pass through the same state many times, so the
+              // position in its fixed, newest-first history is the identity.
+              dataSource={job.history.map((entry, position) => ({
+                ...entry,
+                key: `${position}-${entry.state}`,
+              }))}
               columns={[
                 { title: 'State', dataIndex: 'state', key: 'state' },
                 {

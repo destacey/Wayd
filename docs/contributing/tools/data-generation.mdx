@@ -537,6 +537,11 @@ delivery teams:
   than the moment the seed runs, since the import refuses a status change in the future. Deliverables draw from
   their own random stream, so changing how many a project gets leaves every other generated record the same for
   a seed.
+- **Task links to deliverables** — about one top-level task in five serves no deliverable, about one in seven
+  serves two, and the rest serve one: the first deliverable due on or after the task ends (or the last, for work
+  ending after every target date), plus the one due next for those serving two. Subtasks are not linked, since a
+  linked task's subtasks already count toward its deliverable's progress. Links draw from their own random
+  stream too, so the tasks and deliverables a seed produces are unchanged by them.
 - **Strategic themes** — a handful of active themes, tagged onto programs and projects.
 - **Strategic initiatives + KPIs** — one per portfolio, linking a few of its projects, each with a couple
   of KPIs.
@@ -782,9 +787,10 @@ employees + teams + team member roles (created as needed) → team staffing
 
 employees → portfolios → programs (+ strategic themes)
   → projects (+ expenditure categories and lifecycle, the settings bootstrap)
-      → project tasks → project stage statuses
       → project deliverables (after the employees who own them)
-      → strategic initiatives (+ KPIs) → finalize (close historical programs/portfolios)
+          → project tasks (linked to the deliverables they serve) → project stage statuses
+      → strategic initiatives (+ KPIs)
+  → finalize (close historical programs/portfolios, after everything above)
 
 product-management feature flag → deployment environments
                     teams + flag → products → product dependencies

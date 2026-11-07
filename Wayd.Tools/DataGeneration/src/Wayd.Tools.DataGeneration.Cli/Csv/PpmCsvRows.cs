@@ -127,6 +127,9 @@ public sealed class ProjectTaskCsvRow
     public DateOnly? PlannedDate { get; init; }
     public decimal? EstimatedEffortHours { get; init; }
     public string? Assignees { get; init; }
+
+    /// <summary>The ids of the deliverables of the same project the task serves, separated by semicolons.</summary>
+    public string? DeliverableIds { get; init; }
 }
 
 /// <summary>One row of the project stages CSV: sets one stage's status.</summary>

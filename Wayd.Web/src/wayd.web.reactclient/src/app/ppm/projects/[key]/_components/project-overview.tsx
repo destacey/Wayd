@@ -5,7 +5,7 @@ import StageTimeline from '@/src/app/ppm/_components/stage-timeline'
 import ProjectTaskMetrics from '@/src/app/ppm/projects/_components/project-task-metrics'
 import { ProjectDetailsDto } from '@/src/services/wayd-api'
 import { useGetProjectPlanSummaryQuery } from '@/src/store/features/ppm/projects-api'
-import { Flex } from 'antd'
+import { Card, Flex } from 'antd'
 import Block from './overview-block'
 import ProjectDeliverablesSummary from './project-deliverables-summary'
 
@@ -35,6 +35,7 @@ const ProjectOverview = ({ project }: ProjectOverviewProps) => {
     <ProjectDeliverablesSummary
       projectId={project.id}
       projectKey={project.key}
+      style={{ flex: '1 1 420px', minWidth: 0 }}
     />
   )
 
@@ -55,13 +56,19 @@ const ProjectOverview = ({ project }: ProjectOverviewProps) => {
         </Block>
       )}
 
-      {deliverables}
-
-      {hasTasks && (
-        <Block title="Task Summary">
-          <ProjectTaskMetrics projectKey={project.key} />
-        </Block>
-      )}
+      {/* Side by side on wide screens; each wraps to full width on narrow ones. */}
+      <Flex gap="middle" wrap align="stretch">
+        {deliverables}
+        {hasTasks && (
+          <Card
+            size="small"
+            title="Task Summary"
+            style={{ flex: '1 1 420px', minWidth: 0 }}
+          >
+            <ProjectTaskMetrics projectKey={project.key} />
+          </Card>
+        )}
+      </Flex>
     </Flex>
   )
 }

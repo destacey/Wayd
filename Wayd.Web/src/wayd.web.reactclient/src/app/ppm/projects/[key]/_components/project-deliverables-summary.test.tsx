@@ -64,16 +64,45 @@ describe('ProjectDeliverablesSummary', () => {
 
     // Assert
     expect(mockQuery).toHaveBeenCalledWith('p-1')
-    expect(screen.getByText('1 of 3 accepted')).toBeInTheDocument()
+    expect(
+      screen.getByLabelText('1 of 3 deliverables accepted'),
+    ).toBeInTheDocument()
     expect(screen.getByText('Data migration')).toBeInTheDocument()
     expect(screen.getByText('Production release')).toBeInTheDocument()
     expect(screen.queryByText('Pilot release')).not.toBeInTheDocument()
     expect(screen.queryByText('Training')).not.toBeInTheDocument()
     expect(screen.getAllByText('Overdue')).toHaveLength(1)
-    expect(screen.getByRole('link', { name: 'View all' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /View all/ })).toHaveAttribute(
       'href',
       '/ppm/projects/CPM?section=deliverables',
     )
+  })
+
+  it('lists only the next three open deliverables, soonest due first and undated last', () => {
+    // Arrange
+    mockQuery.mockReturnValue({
+      data: [
+        deliverable('Undated', StatusCategory.Proposed),
+        deliverable('Latest', StatusCategory.Proposed, '2027-03-01'),
+        deliverable('Soonest', StatusCategory.Active, '2026-12-01'),
+        deliverable('Middle', StatusCategory.Proposed, '2027-01-15'),
+      ],
+    })
+
+    // Act
+    render(<ProjectDeliverablesSummary projectId="p-1" projectKey="CPM" />)
+
+    // Assert
+    const names = ['Soonest', 'Middle', 'Latest', 'Undated'].filter((n) =>
+      screen.queryByText(n),
+    )
+    expect(names).toEqual(['Soonest', 'Middle', 'Latest'])
+    const soonest = screen.getByText('Soonest')
+    const latest = screen.getByText('Latest')
+    expect(
+      soonest.compareDocumentPosition(latest) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
   })
 
   it('renders nothing when every deliverable was descoped', () => {

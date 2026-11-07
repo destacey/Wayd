@@ -17,6 +17,10 @@ import { Dayjs } from 'dayjs'
 import { deliverableErrorMessage } from './project-deliverable-errors'
 
 const { Item } = Form
+const { TextArea } = Input
+
+/** The server's limit on the stored markdown of the description and acceptance criteria. */
+const TEXT_MAX_LENGTH = 4096
 
 export interface ProjectDeliverableFormProps {
   projectId: string
@@ -105,7 +109,7 @@ const ProjectDeliverableForm = ({
     <Modal
       title={isEdit ? 'Edit Deliverable' : 'Add Deliverable'}
       open={isOpen}
-      width="60vw"
+      width="min(90vw, 560px)"
       onOk={handleOk}
       okButtonProps={{ disabled: !isValid }}
       okText={isEdit ? 'Save' : 'Add'}
@@ -137,23 +141,26 @@ const ProjectDeliverableForm = ({
             { max: 256 },
           ]}
         >
-          <Input showCount maxLength={256} />
-        </Item>
-        <Item
-          name="acceptanceCriteria"
-          label="Acceptance Criteria"
-          extra="How the project will know this is done. It is accepted against these."
-          rules={[{ max: 4096 }]}
-        >
-          <MarkdownEditor maxLength={4096} />
+          <TextArea
+            autoSize={{ minRows: 1, maxRows: 2 }}
+            showCount
+            maxLength={256}
+          />
         </Item>
         <Item
           name="description"
           label="Description"
-          extra="What the deliverable is."
-          rules={[{ max: 4096 }]}
+          rules={[{ max: TEXT_MAX_LENGTH }]}
         >
-          <MarkdownEditor maxLength={4096} />
+          <MarkdownEditor maxLength={TEXT_MAX_LENGTH} rows={4} />
+        </Item>
+        <Item
+          name="acceptanceCriteria"
+          label="Acceptance Criteria"
+          tooltip="How the project will know this is done. It is accepted against these."
+          rules={[{ max: TEXT_MAX_LENGTH }]}
+        >
+          <MarkdownEditor maxLength={TEXT_MAX_LENGTH} rows={4} />
         </Item>
         <Item name="ownerId" label="Owner">
           <EmployeeSelect

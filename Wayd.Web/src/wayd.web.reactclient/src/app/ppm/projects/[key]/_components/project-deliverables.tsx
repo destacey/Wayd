@@ -4,7 +4,10 @@ import ChangeProjectDeliverableStatusForm from '@/src/app/ppm/projects/_componen
 import DeleteProjectDeliverableForm from '@/src/app/ppm/projects/_components/delete-project-deliverable-form'
 import { deliverableErrorMessage } from '@/src/app/ppm/projects/_components/project-deliverable-errors'
 import ProjectDeliverableForm from '@/src/app/ppm/projects/_components/project-deliverable-form'
-import { WaydEmpty } from '@/src/components/common'
+import {
+  ListDetailLayout,
+  useSelectedRecord,
+} from '@/src/components/common/list-detail'
 import { LabeledContent } from '@/src/components/common/content'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import {
@@ -17,7 +20,10 @@ import {
   type GridColumnContext,
   type RowReorderEvent,
 } from '@/src/components/common/wayd-grid'
-import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import {
+  createActionsColumn,
+  type ColumnDef,
+} from '@/src/components/common/wayd-grid-core'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   ProjectDeliverableDto,
@@ -31,14 +37,14 @@ import {
 } from '@/src/store/features/ppm/project-deliverables-api'
 import { toApiError } from '@/src/utils'
 import { formatCalendarDate } from '@/src/utils/calendar-date'
-import { Button, Card, Flex, Grid, Switch, Tag, Typography } from 'antd'
+import { Card, Flex, Switch, Tag, Typography } from 'antd'
+import type { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
 import { useState } from 'react'
 import { mergeDeliverableOrder } from './deliverable-order'
 import { isOverdue } from './deliverable-status'
 
 const { Text } = Typography
-const { useBreakpoint } = Grid
 
 export interface ProjectDeliverablesProps {
   project: ProjectDetailsDto
@@ -61,6 +67,8 @@ const canDelete = (
 ) =>
   (project.status.name === 'Proposed' || project.status.name === 'Approved') &&
   deliverable.status.category === StatusCategory.Proposed
+
+type Dialog = 'edit' | 'status' | 'delete'
 
 const Count = ({
   label,
@@ -85,10 +93,15 @@ const Count = ({
   </Card>
 )
 
+const OwnerLink = ({ owner }: { owner: ProjectDeliverableDto['owner'] }) =>
+  owner ? (
+    <Link href={`/organizations/employees/${owner.key}`}>{owner.name}</Link>
+  ) : null
+
 /**
  * What the project has committed to produce: a count of where they stand, the
- * deliverables in their order, and the one selected in full — its acceptance
- * criteria, its status history, and what can be done with it.
+ * deliverables in their order, and — once one is opened — that deliverable in
+ * full in a side panel (a drawer on narrow screens).
  *
  * The grid's order is the deliverables' order, so dragging a row reorders
  * them. Descoped deliverables are hidden until asked for, since they no longer
@@ -103,7 +116,7 @@ const ProjectDeliverables = ({
   onAddClosed,
 }: ProjectDeliverablesProps) => {
   const messageApi = useMessage()
-  const screens = useBreakpoint()
+  const { selectedId, select, clear } = useSelectedRecord()
 
   const { data, isLoading, isFetching, refetch } =
     useGetProjectDeliverablesQuery(project.id)
@@ -111,12 +124,11 @@ const ProjectDeliverables = ({
     useReorderProjectDeliverablesMutation()
 
   const [showDescoped, setShowDescoped] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [editing, setEditing] = useState<ProjectDeliverableDto | null>(null)
-  const [changingStatus, setChangingStatus] =
-    useState<ProjectDeliverableDto | null>(null)
-  const [deleting, setDeleting] = useState<ProjectDeliverableDto | null>(null)
-  // Keyed by deliverable, so the history closes when the selection moves on by itself.
+  const [active, setActive] = useState<{
+    dialog: Dialog
+    target: ProjectDeliverableDto
+  } | null>(null)
+  // Keyed by deliverable, so the history closes when another one is opened.
   const [historyFor, setHistoryFor] = useState<string | null>(null)
 
   // A change sent before the last one's new project revision arrives would be refused as stale.
@@ -136,10 +148,7 @@ const ProjectDeliverables = ({
     ? deliverables
     : deliverables.filter((d) => d.status.category !== StatusCategory.Removed)
 
-  // The first open deliverable until the reader picks one, so the panel is never empty when
-  // there is something to show.
-  const selected =
-    rows.find((d) => d.id === selectedId) ?? open[0] ?? rows[0] ?? null
+  const selected = deliverables.find((d) => d.id === selectedId) ?? null
   const showHistory = !!selected && historyFor === selected.id
 
   const { data: history, isLoading: historyLoading } =
@@ -147,6 +156,38 @@ const ProjectDeliverables = ({
       { projectId: project.id, deliverableId: selected?.id ?? '' },
       { skip: !selected || !showHistory },
     )
+
+  const getActionItems = (deliverable: ProjectDeliverableDto): ItemType[] => {
+    if (!canManage) return []
+    const openDialog = (dialog: Dialog) => () =>
+      setActive({ dialog, target: deliverable })
+    return [
+      {
+        key: 'status',
+        label: 'Change Status',
+        disabled: isBusy,
+        onClick: openDialog('status'),
+      },
+      {
+        key: 'edit',
+        label: 'Edit',
+        disabled: isBusy,
+        onClick: openDialog('edit'),
+      },
+      ...(canDelete(project, deliverable)
+        ? [
+            { key: 'delete-divider', type: 'divider' as const },
+            {
+              key: 'delete',
+              label: 'Delete',
+              danger: true,
+              disabled: isBusy,
+              onClick: openDialog('delete'),
+            },
+          ]
+        : []),
+    ]
+  }
 
   const onRowReorder = async (
     event: RowReorderEvent<ProjectDeliverableDto>,
@@ -177,33 +218,31 @@ const ProjectDeliverables = ({
   const columns = (
     context: GridColumnContext,
   ): ColumnDef<ProjectDeliverableDto, any>[] => [
-    ...(canManage
-      ? [
-          {
-            id: 'drag',
-            header: '',
-            size: 36,
-            enableSorting: false,
-            enableColumnFilter: false,
-            enableResizing: false,
-            enableGlobalFilter: false,
-            enableHiding: false,
-            meta: { enableReordering: false },
-            cell: () => (
-              <DragHandleCell
-                isDragEnabled={context.isDragEnabled && !isBusy}
-                disabledTooltip={
-                  isBusy
-                    ? 'Saving the last change.'
-                    : 'Clear sorting, filters, and search to reorder deliverables.'
-                }
-              />
-            ),
-          } as ColumnDef<ProjectDeliverableDto, any>,
-        ]
-      : []),
-    { id: 'order', accessorKey: 'order', header: '#', size: 56 },
-    { id: 'name', accessorKey: 'name', header: 'Deliverable', size: 300 },
+    // The grab handle shares the ⋯ cell, so one column holds everything that acts on a row.
+    createActionsColumn<ProjectDeliverableDto>({
+      getItems: getActionItems,
+      ariaLabel: 'Deliverable actions',
+      unavailable: !canManage,
+      size: 70,
+      leading: (
+        <DragHandleCell
+          isDragEnabled={context.isDragEnabled && !isBusy}
+          disabledTooltip={
+            isBusy
+              ? 'Saving the last change.'
+              : 'Clear sorting, filters, and search to reorder deliverables.'
+          }
+        />
+      ),
+    }),
+    {
+      id: 'order',
+      accessorKey: 'order',
+      header: '#',
+      size: 60,
+      enableColumnFilter: false,
+    },
+    { id: 'name', accessorKey: 'name', header: 'Deliverable', size: 280 },
     {
       id: 'status',
       accessorKey: 'status.name',
@@ -217,18 +256,13 @@ const ProjectDeliverables = ({
       accessorKey: 'owner.name',
       header: 'Owner',
       size: 180,
-      cell: ({ row }) =>
-        row.original.owner ? (
-          <Link href={`/organizations/employees/${row.original.owner.key}`}>
-            {row.original.owner.name}
-          </Link>
-        ) : null,
+      cell: ({ row }) => <OwnerLink owner={row.original.owner} />,
     },
     {
       id: 'targetDate',
       accessorKey: 'targetDate',
       header: 'Target Date',
-      size: 160,
+      size: 170,
       meta: { columnType: 'dateOnly' },
       cell: ({ row }) => (
         <Flex gap={6} align="center">
@@ -241,10 +275,69 @@ const ProjectDeliverables = ({
       id: 'acceptedOn',
       accessorKey: 'acceptedOn',
       header: 'Accepted On',
-      size: 150,
+      size: 160,
       meta: { columnType: 'dateTime' },
     },
   ]
+
+  const details = selected && (
+    <Flex vertical gap={12}>
+      <Flex gap="small" align="center" wrap>
+        <StatusHistoryTag
+          status={selected.status}
+          onOpenHistory={() => setHistoryFor(showHistory ? null : selected.id)}
+        />
+        {isOverdue(selected) && <Tag color="warning">Overdue</Tag>}
+      </Flex>
+      <LabeledContent label="Owner">
+        {selected.owner ? (
+          <OwnerLink owner={selected.owner} />
+        ) : (
+          <Text type="secondary">Not named</Text>
+        )}
+      </LabeledContent>
+      <LabeledContent label="Target Date">
+        {selected.targetDate ? (
+          formatCalendarDate(selected.targetDate)
+        ) : (
+          <Text type="secondary">Not set</Text>
+        )}
+      </LabeledContent>
+      {selected.acceptedBy && (
+        <LabeledContent label="Accepted By">
+          {selected.acceptedBy.name}
+        </LabeledContent>
+      )}
+      {selected.statusReason && (
+        <LabeledContent label="Reason">{selected.statusReason}</LabeledContent>
+      )}
+      <LabeledContent label="Description">
+        {selected.description ? (
+          <MarkdownRenderer markdown={selected.description} />
+        ) : (
+          <Text type="secondary">Not provided</Text>
+        )}
+      </LabeledContent>
+      <LabeledContent label="Acceptance Criteria">
+        {selected.acceptanceCriteria ? (
+          <MarkdownRenderer markdown={selected.acceptanceCriteria} />
+        ) : (
+          <Text type="secondary">Not provided</Text>
+        )}
+      </LabeledContent>
+      {showHistory && (
+        <LabeledContent label="Status History">
+          <StatusHistoryTimeline
+            transitions={history}
+            isLoading={historyLoading}
+            emptyDescription="This deliverable has no status changes yet."
+          />
+        </LabeledContent>
+      )}
+    </Flex>
+  )
+
+  const close = () => setActive(null)
 
   return (
     <Flex vertical gap="middle">
@@ -255,136 +348,47 @@ const ProjectDeliverables = ({
         <Count label="Descoped" value={descoped.length} />
       </Flex>
 
-      <Flex gap="middle" vertical={!screens.lg} align="start">
-        {/* A plain block around the grid: as a flex item itself it would collapse to its toolbar. */}
-        <div style={{ flex: 1, minWidth: 0, width: '100%' }}>
-          <WaydGrid
-            variant="simple"
-            columns={columns}
-            data={rows}
-            isLoading={isLoading}
-            onRefresh={() => refetch()}
-            getRowId={(d) => d.id}
-            onRowActivate={(d) => setSelectedId(d.id)}
-            activatedRowId={selected?.id ?? null}
-            getRowActivateLabel={(d) => d.name}
-            onRowReorder={canManage ? onRowReorder : undefined}
-            emptyMessage="No deliverables yet."
-            rightSlot={
-              <Flex gap={6} align="center">
-                <Switch
-                  id="show-descoped-deliverables"
-                  size="small"
-                  checked={showDescoped}
-                  onChange={setShowDescoped}
-                />
-                <label htmlFor="show-descoped-deliverables">
-                  <Text type="secondary">Show descoped</Text>
-                </label>
-              </Flex>
-            }
-          />
-        </div>
-
-        <Card
-          size="small"
-          style={{ width: screens.lg ? 380 : '100%', flex: 'none' }}
-          title={selected?.name ?? 'Deliverable'}
-        >
-          {!selected ? (
-            <WaydEmpty message="Add the deliverables this project has committed to." />
-          ) : (
-            <Flex vertical gap={12}>
-              <Flex gap="small" align="center" wrap>
-                <StatusHistoryTag
-                  status={selected.status}
-                  onOpenHistory={() =>
-                    setHistoryFor(showHistory ? null : selected.id)
-                  }
-                />
-                {isOverdue(selected) && <Tag color="warning">Overdue</Tag>}
-              </Flex>
-              <Flex gap="large" wrap>
-                <LabeledContent label="Owner">
-                  {selected.owner ? (
-                    <Link
-                      href={`/organizations/employees/${selected.owner.key}`}
-                    >
-                      {selected.owner.name}
-                    </Link>
-                  ) : (
-                    <Text type="secondary">Not named</Text>
-                  )}
-                </LabeledContent>
-                <LabeledContent label="Target Date">
-                  {selected.targetDate ? (
-                    formatCalendarDate(selected.targetDate)
-                  ) : (
-                    <Text type="secondary">Not set</Text>
-                  )}
-                </LabeledContent>
-                {selected.acceptedBy && (
-                  <LabeledContent label="Accepted By">
-                    {selected.acceptedBy.name}
-                  </LabeledContent>
-                )}
-              </Flex>
-              {selected.statusReason && (
-                <LabeledContent label="Reason">
-                  {selected.statusReason}
-                </LabeledContent>
-              )}
-              <LabeledContent label="Acceptance Criteria">
-                {selected.acceptanceCriteria ? (
-                  <MarkdownRenderer markdown={selected.acceptanceCriteria} />
-                ) : (
-                  <Text type="secondary">Not provided</Text>
-                )}
-              </LabeledContent>
-              {selected.description && (
-                <LabeledContent label="Description">
-                  <MarkdownRenderer markdown={selected.description} />
-                </LabeledContent>
-              )}
-              {canManage && (
-                <Flex gap="small" wrap>
-                  <Button
-                    type="primary"
-                    disabled={isBusy}
-                    onClick={() => setChangingStatus(selected)}
-                  >
-                    Change Status
-                  </Button>
-                  <Button
-                    disabled={isBusy}
-                    onClick={() => setEditing(selected)}
-                  >
-                    Edit
-                  </Button>
-                  {canDelete(project, selected) && (
-                    <Button
-                      danger
-                      disabled={isBusy}
-                      onClick={() => setDeleting(selected)}
-                    >
-                      Delete
-                    </Button>
-                  )}
-                </Flex>
-              )}
-              {showHistory && (
-                <LabeledContent label="Status History">
-                  <StatusHistoryTimeline
-                    transitions={history}
-                    isLoading={historyLoading}
-                    emptyDescription="This deliverable has no status changes yet."
-                  />
-                </LabeledContent>
-              )}
+      <ListDetailLayout
+        open={!!selected}
+        onClose={clear}
+        title={selected?.name}
+        details={details}
+        actionItems={selected ? getActionItems(selected) : undefined}
+      >
+        <WaydGrid
+          columns={columns}
+          data={rows}
+          isLoading={isLoading}
+          onRefresh={async () => {
+            refetch()
+          }}
+          persistStateKey="ppm-project-deliverables"
+          csvFileName={`${project.key}-deliverables`}
+          getRowId={(d) => d.id}
+          onRowActivate={(d) => select(d.id)}
+          activatedRowId={selected?.id ?? null}
+          getRowActivateLabel={(d) => d.name}
+          onRowReorder={canManage ? onRowReorder : undefined}
+          emptyMessage={
+            descoped.length > 0
+              ? 'Every deliverable was descoped.'
+              : 'No deliverables yet.'
+          }
+          rightSlot={
+            <Flex gap={6} align="center">
+              <Switch
+                id="show-descoped-deliverables"
+                size="small"
+                checked={showDescoped}
+                onChange={setShowDescoped}
+              />
+              <label htmlFor="show-descoped-deliverables">
+                <Text type="secondary">Show descoped</Text>
+              </label>
             </Flex>
-          )}
-        </Card>
-      </Flex>
+          }
+        />
+      </ListDetailLayout>
 
       {addRequested && (
         <ProjectDeliverableForm
@@ -394,34 +398,34 @@ const ProjectDeliverables = ({
           onFormCancel={onAddClosed}
         />
       )}
-      {editing && (
+      {active?.dialog === 'edit' && (
         <ProjectDeliverableForm
           projectId={project.id}
           projectRevision={project.revision}
-          deliverable={editing}
-          onFormComplete={() => setEditing(null)}
-          onFormCancel={() => setEditing(null)}
+          deliverable={active.target}
+          onFormComplete={close}
+          onFormCancel={close}
         />
       )}
-      {changingStatus && (
+      {active?.dialog === 'status' && (
         <ChangeProjectDeliverableStatusForm
           projectId={project.id}
           projectRevision={project.revision}
-          deliverable={changingStatus}
-          onFormComplete={() => setChangingStatus(null)}
-          onFormCancel={() => setChangingStatus(null)}
+          deliverable={active.target}
+          onFormComplete={close}
+          onFormCancel={close}
         />
       )}
-      {deleting && (
+      {active?.dialog === 'delete' && (
         <DeleteProjectDeliverableForm
           projectId={project.id}
           projectRevision={project.revision}
-          deliverable={deleting}
+          deliverable={active.target}
           onFormComplete={() => {
-            setDeleting(null)
-            setSelectedId(null)
+            if (active.target.id === selectedId) clear()
+            close()
           }}
-          onFormCancel={() => setDeleting(null)}
+          onFormCancel={close}
         />
       )}
     </Flex>

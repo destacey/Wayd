@@ -1,0 +1,56 @@
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 4px 0;
+  white-space: normal;
+}
+
+.moduleDescription {
+  font-weight: normal;
+  font-size: var(--ant-font-size-sm);
+  color: var(--ant-color-text-secondary);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ant-padding-xs) var(--ant-padding-lg);
+  padding: var(--ant-padding-sm);
+}
+
+.row + .row {
+  border-top: 1px solid var(--ant-color-border-secondary);
+}
+
+.rowText {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rowHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--ant-padding-xs);
+  flex-wrap: wrap;
+}
+
+.key {
+  font-size: var(--ant-font-size-sm);
+  font-weight: normal;
+}
+
+.description {
+  color: var(--ant-color-text-secondary);
+}
+
+.moduleOffNote {
+  padding: var(--ant-padding-sm) var(--ant-padding-sm) 0;
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+}

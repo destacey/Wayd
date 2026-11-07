@@ -276,13 +276,13 @@ See [docs/contributing/architecture.mdx](docs/contributing/architecture.mdx#perm
 
 ### Feature Flags
 
-Microsoft.FeatureManagement — defined in code, stored in database, managed via Settings UI.
+Microsoft.FeatureManagement, state in the database ([feature-flags.mdx](docs/reference/feature-flags.mdx)).
 
-1. Define in `Wayd.Common.Domain/FeatureManagement/FeatureFlags.cs`
-2. Gate backend: `[FeatureGate(FeatureFlags.Names.MyFlag)]` on the controller for an endpoint that exists only with the flag on; inject `IFeatureFlags` (`Common.Application`) in a handler for behaviour a flag changes inside an endpoint. The application layers do not reference `Microsoft.FeatureManagement`
+1. Define in `FeatureFlags.cs` with a `FeatureFlagModule`; code alone owns its name, description and module
+2. Gate backend: `[FeatureGate(FeatureFlags.Names.MyFlag)]` on a controller whose endpoints exist only with the flag on; for behaviour a flag changes inside an endpoint, inject `IFeatureFlags` in the handler. The application layers do not reference `Microsoft.FeatureManagement`
 3. Gate frontend: `requireFeatureFlag` HOC or `useFeatureFlag` hook
 4. Gate menus: pass flag state into menu builder functions
-5. Deploy — seeder creates flag as disabled; admin enables via UI
+5. Deploy — seeded disabled; an admin turns it on
 
 ### System Settings
 

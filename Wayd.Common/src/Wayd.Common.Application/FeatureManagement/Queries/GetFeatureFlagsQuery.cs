@@ -3,22 +3,22 @@ using Wayd.Common.Application.FeatureManagement.Dtos;
 
 namespace Wayd.Common.Application.FeatureManagement.Queries;
 
-public sealed record GetFeatureFlagsQuery(bool IncludeArchived = false) : IQuery<List<FeatureFlagListDto>>;
+/// <summary>The feature flags defined in code, by display name. Archived flags are left out.</summary>
+public sealed record GetFeatureFlagsQuery : IQuery<List<FeatureFlagDto>>;
 
-public sealed class GetFeatureFlagsQueryHandler(IFeatureManagementDbContext dbContext) : IQueryHandler<GetFeatureFlagsQuery, List<FeatureFlagListDto>>
+/// <summary>Reads the active feature flags for the Feature Flags page.</summary>
+public sealed class GetFeatureFlagsQueryHandler(IFeatureManagementDbContext dbContext) : IQueryHandler<GetFeatureFlagsQuery, List<FeatureFlagDto>>
 {
     private readonly IFeatureManagementDbContext _dbContext = dbContext;
 
-    public async Task<List<FeatureFlagListDto>> Handle(GetFeatureFlagsQuery request, CancellationToken cancellationToken)
+    /// <inheritdoc />
+    public async Task<List<FeatureFlagDto>> Handle(GetFeatureFlagsQuery request, CancellationToken cancellationToken)
     {
-        var query = _dbContext.FeatureFlags.AsNoTracking();
-
-        if (!request.IncludeArchived)
-            query = query.Where(f => !f.IsArchived);
-
-        return await query
-            .OrderBy(f => f.Name)
-            .ProjectToType<FeatureFlagListDto>()
+        return await _dbContext.FeatureFlags
+            .AsNoTracking()
+            .Where(f => !f.IsArchived)
+            .OrderBy(f => f.DisplayName)
+            .ProjectToType<FeatureFlagDto>()
             .ToListAsync(cancellationToken);
     }
 }

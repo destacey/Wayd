@@ -7,58 +7,44 @@ public sealed class FeatureFlagTests
 {
     private readonly FeatureFlagFaker _faker = new();
 
+    private static FeatureFlagDefinition Definition(
+        string name = "my-feature",
+        string displayName = "My Feature",
+        string description = "A test feature flag.",
+        FeatureFlagModule module = FeatureFlagModule.Planning,
+        bool isModuleSwitch = false,
+        bool defaultEnabled = false)
+        => new(name, displayName, description, module, isModuleSwitch, defaultEnabled);
+
     #region Create
 
     [Fact]
-    public void Create_ShouldReturnSuccess_WhenValidData()
+    public void Create_ShouldCopyTheDefinition()
     {
         // Arrange
-        var name = "my-feature";
-        var displayName = "My Feature";
-        var description = "A test feature flag.";
+        var definition = Definition(module: FeatureFlagModule.ProductManagement, isModuleSwitch: true, defaultEnabled: true);
 
         // Act
-        var result = FeatureFlag.Create(name, displayName, description, true);
+        var result = FeatureFlag.Create(definition);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         var flag = result.Value;
-        flag.Name.Should().Be(name);
-        flag.DisplayName.Should().Be(displayName);
-        flag.Description.Should().Be(description);
+        flag.Name.Should().Be("my-feature");
+        flag.DisplayName.Should().Be("My Feature");
+        flag.Description.Should().Be("A test feature flag.");
+        flag.Module.Should().Be(FeatureFlagModule.ProductManagement);
+        flag.IsModuleSwitch.Should().BeTrue();
         flag.IsEnabled.Should().BeTrue();
         flag.IsArchived.Should().BeFalse();
-        flag.IsSystem.Should().BeFalse();
         flag.FiltersJson.Should().BeNull();
     }
 
     [Fact]
-    public void Create_ShouldSetIsSystemTrue_WhenSpecified()
+    public void Create_ShouldStartDisabled_WhenTheDefinitionDefaultsOff()
     {
         // Act
-        var result = FeatureFlag.Create("system-flag", "System Flag", null, false, isSystem: true);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.IsSystem.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Create_ShouldDefaultIsSystemToFalse()
-    {
-        // Act
-        var result = FeatureFlag.Create("user-flag", "User Flag", null, false);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.IsSystem.Should().BeFalse();
-    }
-
-    [Fact]
-    public void Create_ShouldReturnSuccess_WhenDisabled()
-    {
-        // Act
-        var result = FeatureFlag.Create("disabled-flag", "Disabled Flag", null, false);
+        var result = FeatureFlag.Create(Definition(defaultEnabled: false));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -66,21 +52,10 @@ public sealed class FeatureFlagTests
     }
 
     [Fact]
-    public void Create_ShouldReturnSuccess_WhenDescriptionIsNull()
-    {
-        // Act
-        var result = FeatureFlag.Create("no-desc", "No Description", null, true);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        result.Value.Description.Should().BeNull();
-    }
-
-    [Fact]
     public void Create_ShouldTrimAndLowercaseName()
     {
         // Act
-        var result = FeatureFlag.Create("  My-Feature  ", "My Feature", null, true);
+        var result = FeatureFlag.Create(Definition(name: "  My-Feature  "));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -91,7 +66,7 @@ public sealed class FeatureFlagTests
     public void Create_ShouldTrimDisplayNameAndDescription()
     {
         // Act
-        var result = FeatureFlag.Create("test-flag", "  My Feature  ", "  Some description  ", true);
+        var result = FeatureFlag.Create(Definition(displayName: "  My Feature  ", description: "  Some description  "));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -102,11 +77,10 @@ public sealed class FeatureFlagTests
     [Theory]
     [InlineData("")]
     [InlineData("  ")]
-    [InlineData(null)]
-    public void Create_ShouldReturnFailure_WhenNameIsNullOrWhitespace(string? name)
+    public void Create_ShouldReturnFailure_WhenNameIsWhitespace(string name)
     {
         // Act
-        var result = FeatureFlag.Create(name!, "Display Name", null, true);
+        var result = FeatureFlag.Create(Definition(name: name));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -116,11 +90,10 @@ public sealed class FeatureFlagTests
     [Theory]
     [InlineData("")]
     [InlineData("  ")]
-    [InlineData(null)]
-    public void Create_ShouldReturnFailure_WhenDisplayNameIsNullOrWhitespace(string? displayName)
+    public void Create_ShouldReturnFailure_WhenDisplayNameIsWhitespace(string displayName)
     {
         // Act
-        var result = FeatureFlag.Create("valid-name", displayName!, null, true);
+        var result = FeatureFlag.Create(Definition(displayName: displayName));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -138,7 +111,7 @@ public sealed class FeatureFlagTests
     public void Create_ShouldReturnFailure_WhenNameIsNotKebabCase(string name)
     {
         // Act
-        var result = FeatureFlag.Create(name, "Display Name", null, true);
+        var result = FeatureFlag.Create(Definition(name: name));
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -154,7 +127,7 @@ public sealed class FeatureFlagTests
     public void Create_ShouldReturnSuccess_WhenNameIsValidKebabCase(string name)
     {
         // Act
-        var result = FeatureFlag.Create(name, "Display Name", null, true);
+        var result = FeatureFlag.Create(Definition(name: name));
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -163,70 +136,69 @@ public sealed class FeatureFlagTests
 
     #endregion Create
 
-    #region Update
+    #region SyncWith
 
     [Fact]
-    public void Update_ShouldReturnSuccess_WhenValidData()
+    public void SyncWith_ShouldApplyTheDefinition_AndKeepTheEnabledState()
     {
         // Arrange
-        var flag = FeatureFlag.Create("test-flag", "Original Name", "Original description", true).Value;
+        var flag = _faker.WithName("my-feature").WithDisplayName("Old Name").WithDescription("Old description")
+            .WithModule(FeatureFlagModule.Platform).AsEnabled().Generate();
 
         // Act
-        var result = flag.Update("Updated Name", "Updated description");
+        var changed = flag.SyncWith(Definition(module: FeatureFlagModule.ProductManagement, isModuleSwitch: true, defaultEnabled: false));
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        flag.DisplayName.Should().Be("Updated Name");
-        flag.Description.Should().Be("Updated description");
-    }
-
-    [Fact]
-    public void Update_ShouldTrimValues()
-    {
-        // Arrange
-        var flag = FeatureFlag.Create("test-flag", "Original", null, true).Value;
-
-        // Act
-        var result = flag.Update("  Updated Name  ", "  Updated description  ");
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        flag.DisplayName.Should().Be("Updated Name");
-        flag.Description.Should().Be("Updated description");
+        changed.Should().BeTrue();
+        flag.DisplayName.Should().Be("My Feature");
+        flag.Description.Should().Be("A test feature flag.");
+        flag.Module.Should().Be(FeatureFlagModule.ProductManagement);
+        flag.IsModuleSwitch.Should().BeTrue();
+        flag.IsEnabled.Should().BeTrue();
     }
 
     [Fact]
-    public void Update_ShouldAllowNullDescription()
+    public void SyncWith_ShouldReportNoChange_WhenTheFlagAlreadyMatches()
     {
         // Arrange
-        var flag = FeatureFlag.Create("test-flag", "Original", "Has description", true).Value;
+        var flag = FeatureFlag.Create(Definition()).Value;
 
         // Act
-        var result = flag.Update("Updated Name", null);
+        var changed = flag.SyncWith(Definition());
 
         // Assert
-        result.IsSuccess.Should().BeTrue();
-        flag.Description.Should().BeNull();
+        changed.Should().BeFalse();
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("  ")]
-    [InlineData(null)]
-    public void Update_ShouldReturnFailure_WhenDisplayNameIsNullOrWhitespace(string? displayName)
+    [Fact]
+    public void SyncWith_ShouldRestoreAnArchivedFlag_AndLeaveItOff()
     {
         // Arrange
-        var flag = FeatureFlag.Create("test-flag", "Original", null, true).Value;
+        var flag = _faker.WithName("my-feature").AsArchived().Generate();
 
         // Act
-        var result = flag.Update(displayName!, null);
+        var changed = flag.SyncWith(Definition(defaultEnabled: true));
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("Display name is required");
+        changed.Should().BeTrue();
+        flag.IsArchived.Should().BeFalse();
+        flag.IsEnabled.Should().BeFalse();
     }
 
-    #endregion Update
+    [Fact]
+    public void SyncWith_ShouldThrow_WhenTheDefinitionIsForAnotherFlag()
+    {
+        // Arrange
+        var flag = FeatureFlag.Create(Definition(name: "one-flag")).Value;
+
+        // Act
+        var act = () => flag.SyncWith(Definition(name: "another-flag"));
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    #endregion SyncWith
 
     #region Toggle
 
@@ -234,7 +206,7 @@ public sealed class FeatureFlagTests
     public void Toggle_ShouldEnableFlag()
     {
         // Arrange
-        var flag = FeatureFlag.Create("test-flag", "Test", null, false).Value;
+        var flag = FeatureFlag.Create(Definition(defaultEnabled: false)).Value;
 
         // Act
         flag.Toggle(true);
@@ -247,7 +219,7 @@ public sealed class FeatureFlagTests
     public void Toggle_ShouldDisableFlag()
     {
         // Arrange
-        var flag = FeatureFlag.Create("test-flag", "Test", null, true).Value;
+        var flag = FeatureFlag.Create(Definition(defaultEnabled: true)).Value;
 
         // Act
         flag.Toggle(false);
@@ -261,10 +233,10 @@ public sealed class FeatureFlagTests
     #region Archive
 
     [Fact]
-    public void Archive_ShouldReturnSuccess_WhenNotArchived()
+    public void Archive_ShouldArchiveAndDisableTheFlag()
     {
         // Arrange
-        var flag = FeatureFlag.Create("test-flag", "Test", null, true).Value;
+        var flag = FeatureFlag.Create(Definition(defaultEnabled: true)).Value;
 
         // Act
         var result = flag.Archive();
@@ -276,25 +248,10 @@ public sealed class FeatureFlagTests
     }
 
     [Fact]
-    public void Archive_ShouldDisableEnabledFlag()
-    {
-        // Arrange
-        var flag = FeatureFlag.Create("test-flag", "Test", null, true).Value;
-        flag.IsEnabled.Should().BeTrue();
-
-        // Act
-        var result = flag.Archive();
-
-        // Assert
-        result.IsSuccess.Should().BeTrue();
-        flag.IsEnabled.Should().BeFalse();
-    }
-
-    [Fact]
     public void Archive_ShouldReturnFailure_WhenAlreadyArchived()
     {
         // Arrange
-        var flag = FeatureFlag.Create("test-flag", "Test", null, true).Value;
+        var flag = FeatureFlag.Create(Definition()).Value;
         flag.Archive();
 
         // Act
@@ -303,20 +260,6 @@ public sealed class FeatureFlagTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("already archived");
-    }
-
-    [Fact]
-    public void Archive_ShouldReturnFailure_WhenSystemFlag()
-    {
-        // Arrange
-        var flag = FeatureFlag.Create("system-flag", "System Flag", null, true, isSystem: true).Value;
-
-        // Act
-        var result = flag.Archive();
-
-        // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Contain("System feature flags cannot be archived");
     }
 
     #endregion Archive

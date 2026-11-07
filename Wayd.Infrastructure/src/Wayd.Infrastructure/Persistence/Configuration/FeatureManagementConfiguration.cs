@@ -4,6 +4,7 @@ using Wayd.Common.Domain.FeatureManagement;
 
 namespace Wayd.Infrastructure.Persistence.Configuration;
 
+/// <summary>Maps <see cref="FeatureFlag"/> to <c>FeatureManagement.FeatureFlags</c>, unique by name.</summary>
 public class FeatureFlagConfiguration : IEntityTypeConfiguration<FeatureFlag>
 {
     public void Configure(EntityTypeBuilder<FeatureFlag> builder)
@@ -21,10 +22,10 @@ public class FeatureFlagConfiguration : IEntityTypeConfiguration<FeatureFlag>
 
         builder.Property(f => f.DisplayName)
             .IsRequired()
-            .HasMaxLength(128);
+            .HasMaxLength(FeatureFlag.DisplayNameMaxLength);
 
         builder.Property(f => f.Description)
-            .HasMaxLength(1024);
+            .HasMaxLength(FeatureFlag.DescriptionMaxLength);
 
         builder.Property(f => f.IsEnabled)
             .IsRequired();
@@ -32,7 +33,12 @@ public class FeatureFlagConfiguration : IEntityTypeConfiguration<FeatureFlag>
         builder.Property(f => f.IsArchived)
             .IsRequired();
 
-        builder.Property(f => f.IsSystem)
+        builder.Property(f => f.Module)
+            .IsRequired()
+            .HasConversion<string>()
+            .HasMaxLength(32);
+
+        builder.Property(f => f.IsModuleSwitch)
             .IsRequired();
 
         builder.Property(f => f.FiltersJson)

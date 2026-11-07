@@ -30,6 +30,18 @@ public sealed record IntakeRequestOutcomeDto
     /// <summary>What the outcome covers, in the agent's words. Always present for existing project scope.</summary>
     public string? Note { get; init; }
 
+    /// <summary>
+    /// For existing project scope, the project's deliverables that meet the request, by name; empty for the other
+    /// kinds.
+    /// </summary>
+    public IReadOnlyList<IntakeRequestOutcomeDeliverableDto> Deliverables { get; init; } = [];
+
+    /// <summary>
+    /// Whether the mapped deliverables meet the request: true when every one still on the project is Accepted,
+    /// false while any is not (a descoped one included), and null when none is mapped. Derived when read.
+    /// </summary>
+    public bool? IsMet { get; init; }
+
     /// <summary>The employee who recorded the outcome.</summary>
     public required EmployeeNavigationDto AddedBy { get; init; }
 

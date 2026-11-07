@@ -46733,7 +46733,7 @@
           "IntakeRequests"
         ],
         "summary": "Record that an accepted intake request became a project or work item.",
-        "description": "Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.",
+        "description": "Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `ExistingProjectScope` can also name `deliverableIds`, deliverables of that project that meet the request (list them with `IntakeRequests_GetProjectDeliverables`); the request counts as met once every one is Accepted. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.",
         "operationId": "IntakeRequests_AddOutcome",
         "parameters": [
           {
@@ -46841,6 +46841,152 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/outcomes/{targetId}/deliverables": {
+      "put": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Set the project deliverables an existing project scope outcome is mapped to.",
+        "description": "Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it. Each must be a deliverable of that project (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.",
+        "operationId": "IntakeRequests_SetOutcomeDeliverables",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "targetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetIntakeRequestOutcomeDeliverablesRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/{id}/projects/{projectId}/deliverables": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get the deliverables of a project that an intake request's outcome can be mapped to.",
+        "description": "Needs an agent on the request's desk; anyone else gets 404, as for a project Demand Management has no copy of. Ordered by name, with each deliverable's status category and meaning (`statusAlias`), descoped ones included. Read from Demand Management's copy, so a deliverable added moments ago may not be listed yet.",
+        "operationId": "IntakeRequests_GetProjectDeliverables",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeRequestProjectDeliverableDto"
+                  }
                 }
               }
             }
@@ -54760,6 +54906,15 @@
             "maxLength": 1024,
             "type": "string",
             "description": "What the outcome covers. Required for existing project scope, where it says what the project absorbed.",
+            "nullable": true
+          },
+          "deliverableIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "For `ExistingProjectScope` only, deliverables of the project that meet the request; the request counts as\nmet once every one is Accepted. Leave it out for the other kinds. Mapping them does not change the project.",
             "nullable": true
           }
         },
@@ -66180,6 +66335,11 @@
             },
             "description": "What the request became, oldest first. Summary tier, so everyone who sees the request sees them."
           },
+          "deliverablesMet": {
+            "type": "boolean",
+            "description": "Whether the request is met by the deliverables its outcomes are mapped to: true when every mapped deliverable\nstill on its project is Accepted, false while any is not, and null when no outcome maps one. New project and\nwork item outcomes play no part. Derived when read; reaching it changes nothing on the request.",
+            "nullable": true
+          },
           "canChangeOutcomes": {
             "type": "boolean",
             "description": "Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted."
@@ -66393,11 +66553,55 @@
         "additionalProperties": false,
         "description": "The upstream record an intake request arrived from."
       },
+      "IntakeRequestOutcomeDeliverableDto": {
+        "required": [
+          "id",
+          "isOnProject"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The deliverable, by its id in PPM.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "What the deliverable is called; null once it has been deleted from the project.",
+            "nullable": true
+          },
+          "statusCategory": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusCategory"
+              }
+            ],
+            "description": "The category of the deliverable's status; null once it has been deleted from the project.",
+            "nullable": true
+          },
+          "statusAlias": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectDeliverableStatusAlias"
+              }
+            ],
+            "description": "The well-known meaning of the deliverable's status — `Accepted` is what the request waits for, and\n`Descoped` means it was dropped; null once it has been deleted from the project.",
+            "nullable": true
+          },
+          "isOnProject": {
+            "type": "boolean",
+            "description": "Whether the deliverable is still on the project. One deleted before work on the project began stays on the\noutcome as the record of what was mapped, and does not count toward whether the outcome is met."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A project deliverable an existing project scope outcome is mapped to, as Demand Management's copy holds it.\nSummary tier, like the outcome."
+      },
       "IntakeRequestOutcomeDto": {
         "required": [
           "addedBy",
           "kind",
           "targetId",
+          "deliverables",
           "addedOn"
         ],
         "type": "object",
@@ -66436,6 +66640,18 @@
           "note": {
             "type": "string",
             "description": "What the outcome covers, in the agent's words. Always present for existing project scope.",
+            "nullable": true
+          },
+          "deliverables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntakeRequestOutcomeDeliverableDto"
+            },
+            "description": "For existing project scope, the project's deliverables that meet the request, by name; empty for the other\nkinds."
+          },
+          "isMet": {
+            "type": "boolean",
+            "description": "Whether the mapped deliverables meet the request: true when every one still on the project is Accepted,\nfalse while any is not (a descoped one included), and null when none is mapped. Derived when read.",
             "nullable": true
           },
           "addedBy": {
@@ -66539,6 +66755,44 @@
         },
         "additionalProperties": false,
         "description": "A participant on an intake request: who, and who added them when."
+      },
+      "IntakeRequestProjectDeliverableDto": {
+        "required": [
+          "name",
+          "id",
+          "statusCategory",
+          "statusAlias"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The deliverable, by its id in PPM.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "What the deliverable is called."
+          },
+          "statusCategory": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusCategory"
+              }
+            ],
+            "description": "The category of the deliverable's status."
+          },
+          "statusAlias": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectDeliverableStatusAlias"
+              }
+            ],
+            "description": "The well-known meaning of the deliverable's status."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A deliverable of a project, as offered for mapping to an intake request's outcome."
       },
       "IntakeRequestReplyRequest": {
         "required": [
@@ -72379,6 +72633,16 @@
         "additionalProperties": false,
         "description": "Something a project has committed to produce, with the criteria it is accepted against and where it stands."
       },
+      "ProjectDeliverableStatusAlias": {
+        "enum": [
+          "None",
+          "NotStarted",
+          "InProgress",
+          "Accepted",
+          "Descoped"
+        ],
+        "type": "string"
+      },
       "ProjectDetailsDto": {
         "required": [
           "key",
@@ -72826,7 +73090,8 @@
         "required": [
           "request",
           "status",
-          "kind"
+          "kind",
+          "deliverableIds"
         ],
         "type": "object",
         "properties": {
@@ -72858,6 +73123,14 @@
             "type": "string",
             "description": "What the project took on from the request, in the agent's words.",
             "nullable": true
+          },
+          "deliverableIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "For existing project scope, the project's deliverables the request is mapped to, which it waits on; empty\notherwise."
           }
         },
         "additionalProperties": false,
@@ -77215,6 +77488,24 @@
           }
         },
         "additionalProperties": false
+      },
+      "SetIntakeRequestOutcomeDeliverablesRequest": {
+        "required": [
+          "deliverableIds"
+        ],
+        "type": "object",
+        "properties": {
+          "deliverableIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Every deliverable the outcome is to be mapped to, replacing its current mapping; an empty list clears it.\nEach must be a deliverable of the outcome's project, unless the outcome is already mapped to it."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The project deliverables an existing project scope outcome is mapped to: those whose acceptance the request\nwaits for."
       },
       "SetIntakeRequestTagActiveRequest": {
         "required": [

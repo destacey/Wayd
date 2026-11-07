@@ -74,4 +74,37 @@ internal static class IntakeRequestAccess
         Guid employeeId,
         CancellationToken cancellationToken) =>
         dbContext.Employees.AnyAsync(e => e.Id == employeeId && e.IsActive, cancellationToken);
+
+    /// <summary>
+    /// Whether every deliverable is one of the project's, by Demand Management's copy of them. One the outcome is
+    /// already mapped to passes too, so a deliverable deleted from the project can stay mapped while others change.
+    /// </summary>
+    /// <param name="alreadyMapped">The deliverables the outcome is mapped to now.</param>
+    public static async Task<Result> CheckDeliverablesOfProject(
+        this IDemandManagementDbContext dbContext,
+        Guid projectId,
+        IReadOnlyCollection<Guid> deliverableIds,
+        IReadOnlyCollection<Guid> alreadyMapped,
+        CancellationToken cancellationToken)
+    {
+        var toCheck = deliverableIds.Except(alreadyMapped).ToList();
+        if (toCheck.Count == 0)
+            return Result.Success();
+
+        var found = await dbContext.DemandProjectDeliverables
+            .Where(d => d.ProjectId == projectId && toCheck.Contains(d.Id))
+            .Select(d => d.Id)
+            .ToListAsync(cancellationToken);
+
+        var missing = toCheck.Except(found).ToList();
+        return missing.Count == 0
+            ? Result.Success()
+            : Result.Failure($"{DeliverablesNotOnProjectError} {string.Join(", ", missing)}.");
+    }
+
+    /// <summary>
+    /// The failure, followed by the ids, for mapping deliverables the outcome's project does not have; a
+    /// deliverable added to it moments ago may not have reached Demand Management's copy yet.
+    /// </summary>
+    public const string DeliverablesNotOnProjectError = "These deliverables were not found on the project:";
 }

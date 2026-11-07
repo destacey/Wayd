@@ -62,6 +62,13 @@ public sealed record IntakeRequestDetailsDto
     public IReadOnlyList<IntakeRequestOutcomeDto> Outcomes { get; init; } = [];
 
     /// <summary>
+    /// Whether the request is met by the deliverables its outcomes are mapped to: true when every mapped deliverable
+    /// still on its project is Accepted, false while any is not, and null when no outcome maps one. New project and
+    /// work item outcomes play no part. Derived when read; reaching it changes nothing on the request.
+    /// </summary>
+    public bool? DeliverablesMet { get; init; }
+
+    /// <summary>
     /// Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted.
     /// </summary>
     public bool CanChangeOutcomes { get; init; }

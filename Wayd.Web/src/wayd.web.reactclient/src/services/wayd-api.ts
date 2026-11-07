@@ -53498,6 +53498,150 @@ export class IntakeRequestsClient {
     }
 
     /**
+     * Set the project deliverables an existing project scope outcome is mapped to.
+     * @return No Content
+     */
+    setOutcomeDeliverables(id: string, targetId: string, request: SetIntakeRequestOutcomeDeliverablesRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/outcomes/{targetId}/deliverables";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (targetId === undefined || targetId === null)
+            throw new globalThis.Error("The parameter 'targetId' must be defined.");
+        url_ = url_.replace("{targetId}", encodeURIComponent("" + targetId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetOutcomeDeliverables(_response);
+        });
+    }
+
+    protected processSetOutcomeDeliverables(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get the deliverables of a project that an intake request's outcome can be mapped to.
+     * @return OK
+     */
+    getProjectDeliverables(id: string, projectId: string, cancelToken?: CancelToken): Promise<IntakeRequestProjectDeliverableDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/{id}/projects/{projectId}/deliverables";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (projectId === undefined || projectId === null)
+            throw new globalThis.Error("The parameter 'projectId' must be defined.");
+        url_ = url_.replace("{projectId}", encodeURIComponent("" + projectId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetProjectDeliverables(_response);
+        });
+    }
+
+    protected processGetProjectDeliverables(response: AxiosResponse): Promise<IntakeRequestProjectDeliverableDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeRequestProjectDeliverableDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeRequestProjectDeliverableDto[]>(null as any);
+    }
+
+    /**
      * Get the intake requests a project came from or absorbed, that you can see.
      * @return OK
      */
@@ -62784,6 +62928,9 @@ does not change it. */
     workItemId?: string | undefined;
     /** What the outcome covers. Required for existing project scope, where it says what the project absorbed. */
     note?: string | undefined;
+    /** For `ExistingProjectScope` only, deliverables of the project that meet the request; the request counts as
+met once every one is Accepted. Leave it out for the other kinds. Mapping them does not change the project. */
+    deliverableIds?: string[] | undefined;
 }
 
 /** Someone to give access to an intake request as a participant. */
@@ -66553,6 +66700,10 @@ request sees its tags. */
     canChangeTags: boolean;
     /** What the request became, oldest first. Summary tier, so everyone who sees the request sees them. */
     outcomes: IntakeRequestOutcomeDto[];
+    /** Whether the request is met by the deliverables its outcomes are mapped to: true when every mapped deliverable
+still on its project is Accepted, false while any is not, and null when no outcome maps one. New project and
+work item outcomes play no part. Derived when read; reaching it changes nothing on the request. */
+    deliverablesMet?: boolean | undefined;
     /** Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted. */
     canChangeOutcomes: boolean;
     /** Whether the reader may set, change or clear the request's estimate: an agent on its desk, while the request
@@ -66637,6 +66788,22 @@ export interface IntakeRequestOriginDto {
     url?: string | undefined;
 }
 
+/** A project deliverable an existing project scope outcome is mapped to, as Demand Management's copy holds it. Summary tier, like the outcome. */
+export interface IntakeRequestOutcomeDeliverableDto {
+    /** The deliverable, by its id in PPM. */
+    id: string;
+    /** What the deliverable is called; null once it has been deleted from the project. */
+    name?: string | undefined;
+    /** The category of the deliverable's status; null once it has been deleted from the project. */
+    statusCategory?: StatusCategory | undefined;
+    /** The well-known meaning of the deliverable's status — `Accepted` is what the request waits for, and
+`Descoped` means it was dropped; null once it has been deleted from the project. */
+    statusAlias?: ProjectDeliverableStatusAlias | undefined;
+    /** Whether the deliverable is still on the project. One deleted before work on the project began stays on the
+outcome as the record of what was mapped, and does not count toward whether the outcome is met. */
+    isOnProject: boolean;
+}
+
 /** One thing an intake request became. Summary tier. */
 export interface IntakeRequestOutcomeDto {
     /** What the request became. */
@@ -66651,6 +66818,12 @@ deleted. */
     workItem?: IntakeRequestOutcomeWorkItemDto | undefined;
     /** What the outcome covers, in the agent's words. Always present for existing project scope. */
     note?: string | undefined;
+    /** For existing project scope, the project's deliverables that meet the request, by name; empty for the other
+kinds. */
+    deliverables: IntakeRequestOutcomeDeliverableDto[];
+    /** Whether the mapped deliverables meet the request: true when every one still on the project is Accepted,
+false while any is not (a descoped one included), and null when none is mapped. Derived when read. */
+    isMet?: boolean | undefined;
     /** The employee who recorded the outcome. */
     addedBy: EmployeeNavigationDto;
     /** When the outcome was recorded. */
@@ -66687,6 +66860,18 @@ export interface IntakeRequestParticipantDto {
     addedBy?: EmployeeNavigationDto | undefined;
     /** When they were added. */
     addedOn: Date;
+}
+
+/** A deliverable of a project, as offered for mapping to an intake request's outcome. */
+export interface IntakeRequestProjectDeliverableDto {
+    /** The deliverable, by its id in PPM. */
+    id: string;
+    /** What the deliverable is called. */
+    name: string;
+    /** The category of the deliverable's status. */
+    statusCategory: StatusCategory;
+    /** The well-known meaning of the deliverable's status. */
+    statusAlias: ProjectDeliverableStatusAlias;
 }
 
 /** A top-level reply in an intake request's conversation, which the requester and participants read. */
@@ -68613,6 +68798,14 @@ no work to count has no progress, not 0%. */
     linkedTaskCount: number;
 }
 
+export enum ProjectDeliverableStatusAlias {
+    None = "None",
+    NotStarted = "NotStarted",
+    InProgress = "InProgress",
+    Accepted = "Accepted",
+    Descoped = "Descoped",
+}
+
 export interface ProjectDetailsDto {
     id: string;
     /** The project's unique key, an alternate to its `id`. Endpoints differ in which of the two they accept; a uuid parameter takes the id. */
@@ -68765,6 +68958,9 @@ export interface ProjectIntakeRequestDto {
     kind: IntakeRequestOutcomeKind;
     /** What the project took on from the request, in the agent's words. */
     note?: string | undefined;
+    /** For existing project scope, the project's deliverables the request is mapped to, which it waits on; empty
+otherwise. */
+    deliverableIds: string[];
 }
 
 export interface ProjectLifecycleDetailsDto {
@@ -70076,6 +70272,13 @@ export interface SetGoalPersonasRequest {
 export interface SetIncidentSeveritySetActiveStatusRequest {
     id: string;
     isActive: boolean;
+}
+
+/** The project deliverables an existing project scope outcome is mapped to: those whose acceptance the request waits for. */
+export interface SetIntakeRequestOutcomeDeliverablesRequest {
+    /** Every deliverable the outcome is to be mapped to, replacing its current mapping; an empty list clears it.
+Each must be a deliverable of the outcome's project, unless the outcome is already mapped to it. */
+    deliverableIds: string[];
 }
 
 /** Whether requests can be given a tag. */

@@ -28,6 +28,12 @@ public sealed record AddIntakeRequestOutcomeRequest
     /// What the outcome covers. Required for existing project scope, where it says what the project absorbed.
     /// </summary>
     public string? Note { get; set; }
+
+    /// <summary>
+    /// For `ExistingProjectScope` only, deliverables of the project that meet the request; the request counts as
+    /// met once every one is Accepted. Leave it out for the other kinds. Mapping them does not change the project.
+    /// </summary>
+    public List<Guid>? DeliverableIds { get; set; }
 }
 
 public sealed class AddIntakeRequestOutcomeRequestValidator : CustomValidator<AddIntakeRequestOutcomeRequest>
@@ -45,5 +51,10 @@ public sealed class AddIntakeRequestOutcomeRequestValidator : CustomValidator<Ad
             RuleFor(r => r.WorkItemId).Null().WithMessage("Leave the work item out of a project outcome.");
         });
         RuleFor(r => r.Note).MaximumLength(1024);
+        RuleFor(r => r.DeliverableIds)
+            .Must(ids => ids is null || ids.Count == 0)
+            .When(r => r.Kind != IntakeRequestOutcomeKind.ExistingProjectScope)
+            .WithMessage("Only an existing project scope outcome can name deliverables.");
+        RuleForEach(r => r.DeliverableIds).NotEqual(Guid.Empty);
     }
 }

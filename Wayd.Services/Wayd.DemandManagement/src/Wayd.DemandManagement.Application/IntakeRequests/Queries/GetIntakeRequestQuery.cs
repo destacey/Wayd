@@ -74,6 +74,8 @@ public sealed class GetIntakeRequestQueryHandler(
         var (pinnedVersionId, estimateValues) = canChangeEstimate
             ? await PinnedVersion(summary.Desk.Id, cancellationToken)
             : (null, []);
+        var outcomes = await Outcomes(record.Id, cancellationToken);
+        var mappedOutcomes = outcomes.Where(o => o.IsMet is not null).ToList();
 
         return new IntakeRequestDetailsDto
         {
@@ -93,7 +95,9 @@ public sealed class GetIntakeRequestQueryHandler(
             CanChangeStatus = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id),
             CanChangeAssignee = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id),
             CanChangeTags = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id),
-            Outcomes = await Outcomes(record.Id, cancellationToken),
+            Outcomes = outcomes,
+            // Every mapped deliverable accepted is every outcome that maps one being met.
+            DeliverablesMet = mappedOutcomes.Count == 0 ? null : mappedOutcomes.All(o => o.IsMet == true),
             CanChangeOutcomes = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id)
                 && record.StatusCategory == StatusCategory.Active,
             CanChangeEstimate = canChangeEstimate,
@@ -129,6 +133,7 @@ public sealed class GetIntakeRequestQueryHandler(
                     .Select(e => new EmployeeNavigationDto { Id = e.Id, Key = e.Key, Name = e.Name.FirstName + " " + e.Name.LastName })
                     .First(),
                 o.AddedOn,
+                DeliverableIds = o.Deliverables.Select(d => d.DeliverableId).ToList(),
             })
             .ToListAsync(cancellationToken);
         if (outcomes.Count == 0)
@@ -140,6 +145,14 @@ public sealed class GetIntakeRequestQueryHandler(
             .Where(p => targetIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, cancellationToken);
 
+        var mappedIds = outcomes.SelectMany(o => o.DeliverableIds).Distinct().ToList();
+        var deliverables = mappedIds.Count == 0
+            ? []
+            : await _dbContext.DemandProjectDeliverables
+                .AsNoTracking()
+                .Where(d => mappedIds.Contains(d.Id))
+                .ToDictionaryAsync(d => d.Id, cancellationToken);
+
         return
         [
             .. outcomes.Select(o => new IntakeRequestOutcomeDto
@@ -150,6 +163,15 @@ public sealed class GetIntakeRequestQueryHandler(
                     ? new DemandProjectNavigationDto { Id = p.Id, Key = p.Key.Value, Name = p.Name }
                     : null,
                 Note = o.Note,
+                Deliverables =
+                [
+                    .. o.DeliverableIds
+                        .Select(id => IntakeRequestOutcomeDeliverableDto.From(id, deliverables.GetValueOrDefault(id)))
+                        .OrderBy(d => d.IsOnProject ? 0 : 1)
+                        .ThenBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+                        .ThenBy(d => d.Id),
+                ],
+                IsMet = IntakeRequestOutcome.IsMet(o.DeliverableIds.Select(deliverables.GetValueOrDefault).OfType<DemandProjectDeliverable>()),
                 AddedBy = o.AddedBy,
                 AddedOn = o.AddedOn,
             }),

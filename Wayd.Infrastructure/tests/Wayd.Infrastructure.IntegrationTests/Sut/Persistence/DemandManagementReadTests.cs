@@ -8,6 +8,7 @@ using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Scoring.ScoringModels.Dtos;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
@@ -732,7 +733,61 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         outcome.AddedBy.Id.Should().Be(scenario.Agent.Id);
     }
 
+    [Fact]
+    public async Task MappedOutcomes_ReadBackWithTheirDeliverablesCopies_AndTheProjectsChoices()
+    {
+        // Arrange — an outcome mapped to an accepted deliverable and to one since deleted from the project; a
+        // third deliverable of the project is unmapped
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        var projectId = Guid.CreateVersion7();
+        var accepted = new DeliverableSource(Guid.CreateVersion7(), projectId, "Reports", StatusCategory.Done, ProjectDeliverableStatusAlias.Accepted);
+        var unmapped = new DeliverableSource(Guid.CreateVersion7(), projectId, "Archive", StatusCategory.Proposed, ProjectDeliverableStatusAlias.NotStarted);
+        var deletedId = Guid.CreateVersion7();
+        await using (var arrange = _fixture.CreateContext())
+        {
+            arrange.DemandProjects.Add(new DemandProject(new Source(projectId, new ProjectKey("P" + Guid.NewGuid().ToString("N")[..10]), "Atlas"), Now));
+            arrange.DemandProjectDeliverables.AddRange(new DemandProjectDeliverable(accepted, Now), new DemandProjectDeliverable(unmapped, Now));
+            var request = await arrange.IntakeRequests.Include(r => r.Outcomes).SingleAsync(r => r.Id == scenario.OnPrivate.Id, ct);
+            var acceptedStatus = new StatusRef(request.StatusWorkflowId, Guid.CreateVersion7(), "Accepted", StatusCategory.Active,
+                (int)IntakeRequestStatusAlias.Accepted);
+            request.ChangeStatus(acceptedStatus, null, null, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            request.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, projectId, "Export screen", [accepted.Id, deletedId],
+                scenario.Agent.Id, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            await arrange.SaveChangesAsync(ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var onRequest = await new GetIntakeRequestQueryHandler(context, Principal(scenario.Agent.Id))
+            .Handle(new GetIntakeRequestQuery(new IdOrKey(scenario.OnPrivate.Id)), ct);
+        var fromProject = await new GetProjectIntakeRequestsQueryHandler(context, Principal(scenario.Agent.Id))
+            .Handle(new GetProjectIntakeRequestsQuery(projectId), ct);
+        var choices = await new GetIntakeRequestProjectDeliverablesQueryHandler(context, Principal(scenario.Agent.Id))
+            .Handle(new GetIntakeRequestProjectDeliverablesQuery(scenario.OnPrivate.Id, projectId), ct);
+        var choicesForSomeoneElse = await new GetIntakeRequestProjectDeliverablesQueryHandler(context, Principal(Guid.NewGuid()))
+            .Handle(new GetIntakeRequestProjectDeliverablesQuery(scenario.OnPrivate.Id, projectId), ct);
+
+        // Assert
+        var outcome = onRequest!.Outcomes.Should().ContainSingle().Subject;
+        outcome.Deliverables.Select(d => (d.Id, d.Name, d.StatusAlias, d.IsOnProject)).Should().Equal(
+            (accepted.Id, "Reports", ProjectDeliverableStatusAlias.Accepted, true),
+            (deletedId, null, null, false));
+        outcome.IsMet.Should().BeTrue();
+        onRequest.DeliverablesMet.Should().BeTrue();
+
+        fromProject.Should().ContainSingle().Which.DeliverableIds.Should().BeEquivalentTo([accepted.Id, deletedId]);
+
+        choices!.Select(d => (d.Id, d.Name, d.StatusAlias)).Should().Equal(
+            (unmapped.Id, "Archive", ProjectDeliverableStatusAlias.NotStarted),
+            (accepted.Id, "Reports", ProjectDeliverableStatusAlias.Accepted));
+        choicesForSomeoneElse.Should().BeNull("only an agent on the request's desk is offered the choice");
+    }
+
     private sealed record Source(Guid Id, ProjectKey Key, string Name, string Description = "desc") : ISimpleProject;
+
+    private sealed record DeliverableSource(Guid Id, Guid ProjectId, string Name, StatusCategory StatusCategory,
+        ProjectDeliverableStatusAlias StatusAlias) : ISimpleProjectDeliverable;
 
     private static ICurrentPrincipal Principal(Guid employeeId, bool holdsView = true, bool holdsAdminister = false,
         bool isReadOnly = false)

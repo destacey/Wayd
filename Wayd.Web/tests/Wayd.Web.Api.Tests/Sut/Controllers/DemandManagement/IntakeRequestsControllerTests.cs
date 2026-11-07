@@ -149,6 +149,70 @@ public sealed class IntakeRequestsControllerTests
         Dispatcher.Verify(d => d.Send(It.IsAny<GetWorkItemsByIdsQuery>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
+    [Fact]
+    public async Task AddOutcome_ForExistingProjectScope_HandsOnItsDeliverables()
+    {
+        // Arrange
+        var projectId = Guid.NewGuid();
+        Guid[] deliverableIds = [Guid.NewGuid(), Guid.NewGuid()];
+        Dispatcher.Setup(d => d.Send(It.IsAny<AddIntakeRequestOutcomeCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+
+        // Act
+        var result = await CreateController().AddOutcome(Guid.NewGuid(),
+            new AddIntakeRequestOutcomeRequest
+            {
+                Kind = IntakeRequestOutcomeKind.ExistingProjectScope,
+                ProjectId = projectId,
+                Note = "Export screen",
+                DeliverableIds = [.. deliverableIds],
+            },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeOfType<NoContentResult>();
+        Dispatcher.Verify(d => d.Send(
+            It.Is<AddIntakeRequestOutcomeCommand>(c => c.TargetId == projectId && c.DeliverableIds!.SequenceEqual(deliverableIds)),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SetOutcomeDeliverables_SendsTheOutcomesWholeMapping()
+    {
+        // Arrange
+        var requestId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var deliverableId = Guid.NewGuid();
+        Dispatcher.Setup(d => d.Send(It.IsAny<SetIntakeRequestOutcomeDeliverablesCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+
+        // Act
+        var result = await CreateController().SetOutcomeDeliverables(requestId, projectId,
+            new SetIntakeRequestOutcomeDeliverablesRequest { DeliverableIds = [deliverableId] },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeOfType<NoContentResult>();
+        Dispatcher.Verify(d => d.Send(
+            It.Is<SetIntakeRequestOutcomeDeliverablesCommand>(c => c.Id == requestId && c.TargetId == projectId
+                && c.DeliverableIds.SequenceEqual(new[] { deliverableId })),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetProjectDeliverables_WhenTheReaderMayNotChoose_IsNotFound()
+    {
+        // Arrange
+        Dispatcher.Setup(d => d.Send(It.IsAny<GetIntakeRequestProjectDeliverablesQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyList<IntakeRequestProjectDeliverableDto>?)null);
+
+        // Act
+        var result = await CreateController().GetProjectDeliverables(Guid.NewGuid(), Guid.NewGuid(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Result.Should().BeOfType<NotFoundResult>();
+    }
+
     private void SetupRequest(params IntakeRequestOutcomeDto[] outcomes) =>
         Dispatcher.Setup(d => d.Send(It.IsAny<GetIntakeRequestQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new IntakeRequestDetailsDto { Summary = null!, Outcomes = outcomes });

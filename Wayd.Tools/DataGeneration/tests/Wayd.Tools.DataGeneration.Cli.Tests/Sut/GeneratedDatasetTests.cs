@@ -57,7 +57,7 @@ public class GeneratedDatasetTests : IDisposable
             "release-package-components.csv", "releases.csv", "release-contents.csv", "deployments.csv",
             "product-dependencies.csv",
             "planning-intervals.csv", "planning-interval-objectives.csv", "risks.csv",
-            "intake-desks.csv", "intake-requests.csv",
+            "intake-desks.csv", "intake-requests.csv", "intake-request-outcomes.csv",
         ]);
     }
 

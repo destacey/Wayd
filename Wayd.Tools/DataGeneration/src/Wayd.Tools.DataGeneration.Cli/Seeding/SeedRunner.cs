@@ -53,6 +53,7 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         new DemandManagementSettingsArea(),
         new IntakeDesksArea(),
         new IntakeRequestsArea(),
+        new IntakeRequestOutcomesArea(),
         new UserRolesArea(),
         new UserAccountsArea(),
     ];

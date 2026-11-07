@@ -34,6 +34,7 @@ public sealed class WaydSeedClient : IDisposable
     private readonly IntakeChannelsClient _intakeChannelsClient;
     private readonly IntakeDesksClient _intakeDesksClient;
     private readonly IntakeRequestTagCategoriesClient _intakeTagCategoriesClient;
+    private readonly IntakeRequestsClient _intakeRequestsClient;
     private readonly ImportAwaiter _awaiter;
 
     /// <summary>
@@ -69,6 +70,7 @@ public sealed class WaydSeedClient : IDisposable
         _intakeChannelsClient = new IntakeChannelsClient(root, _httpClient);
         _intakeDesksClient = new IntakeDesksClient(root, _httpClient);
         _intakeTagCategoriesClient = new IntakeRequestTagCategoriesClient(root, _httpClient);
+        _intakeRequestsClient = new IntakeRequestsClient(root, _httpClient);
         _awaiter = new ImportAwaiter(_importsClient, PollInterval, ImportTimeout);
     }
 
@@ -257,6 +259,52 @@ public sealed class WaydSeedClient : IDisposable
 
     public Task<ImportRun> ImportIntakeRequests(byte[] csv, CancellationToken cancellationToken) =>
         Import("api/demand-management/intake-requests/import", csv, "intake-requests.csv", "intake requests", cancellationToken);
+
+    public Task<ImportRun> ImportIntakeRequestOutcomes(byte[] csv, CancellationToken cancellationToken) =>
+        Import("api/demand-management/intake-requests/outcomes/import", csv, "intake-request-outcomes.csv", "intake request outcomes", cancellationToken);
+
+    /// <summary>
+    /// Waits until Demand Management's copy of each project holds the deliverables named, asking through a request
+    /// that points at it. The copies follow PPM's events in the background, so a seed can reach the outcome import
+    /// before they land.
+    /// </summary>
+    /// <param name="expected">For each project, a request on a desk the seed administers and the deliverables it must hold.</param>
+    public async Task WaitForDemandProjectCopies(
+        IReadOnlyCollection<(Guid RequestId, Guid ProjectId, IReadOnlyCollection<Guid> DeliverableIds)> expected,
+        TimeSpan timeout,
+        CancellationToken cancellationToken)
+    {
+        var deadline = DateTimeOffset.UtcNow + timeout;
+        var waiting = expected.ToList();
+
+        while (true)
+        {
+            List<(Guid RequestId, Guid ProjectId, IReadOnlyCollection<Guid> DeliverableIds)> stillWaiting = [];
+            foreach (var item in waiting)
+            {
+                try
+                {
+                    var copies = await _intakeRequestsClient.GetProjectDeliverablesAsync(item.RequestId, item.ProjectId, cancellationToken);
+                    var held = copies.Select(d => d.Id).ToHashSet();
+                    if (!item.DeliverableIds.All(held.Contains))
+                        stillWaiting.Add(item);
+                }
+                catch (WaydApiException ex) when (ex.StatusCode == 404)
+                {
+                    stillWaiting.Add(item);
+                }
+            }
+
+            if (stillWaiting.Count == 0)
+                return;
+
+            if (DateTimeOffset.UtcNow >= deadline)
+                throw new SeedException($"Demand Management had not copied {stillWaiting.Count} project(s) and their deliverables after {timeout.TotalSeconds:0}s.");
+
+            waiting = stillWaiting;
+            await Task.Delay(PollInterval, cancellationToken);
+        }
+    }
 
     /// <summary>The company's active channels, by name.</summary>
     /// <remarks>

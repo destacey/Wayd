@@ -162,6 +162,14 @@ public class SeedRunnerTests
     }
 
     [Fact]
+    public void Areas_DeclareOutcomesAfterTheRequestsProjectsAndDeliverablesTheyName()
+    {
+        // Arrange & Act & Assert — a row names its request, project and deliverables by id, and who recorded it
+        ShouldDependOn(DemandManagementArea.IntakeRequestOutcomes, DemandManagementArea.IntakeRequests,
+            PpmArea.Projects, PpmArea.ProjectDeliverables, OrganizationArea.Employees);
+    }
+
+    [Fact]
     public void Areas_DeclarePlanningAfterStaffing()
     {
         // Arrange & Act & Assert — Planning resolves teams against its own copy, which fills asynchronously
@@ -192,6 +200,7 @@ public class SeedRunnerTests
             PlanningArea.Objectives,
             PlanningArea.Risks,
             DemandManagementArea.IntakeRequests,
+            DemandManagementArea.IntakeRequestOutcomes,
         ]);
     }
 

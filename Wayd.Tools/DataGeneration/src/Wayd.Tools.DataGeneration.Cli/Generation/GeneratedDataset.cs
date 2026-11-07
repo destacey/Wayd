@@ -42,6 +42,15 @@ public sealed record GeneratedDataset(
             ? new DemandManagementGenerator(org, resolved.DemandManagement, resolved.Context).Generate()
             : null;
 
+        // Outcomes point at projects, so they need both datasets.
+        if (demandManagement is not null && ppm is not null)
+        {
+            demandManagement = demandManagement with
+            {
+                Outcomes = new IntakeRequestOutcomeGenerator(demandManagement, ppm, resolved.Context).Generate(),
+            };
+        }
+
         return new GeneratedDataset(org, ppm, productManagement, planning, demandManagement);
     }
 
@@ -129,6 +138,16 @@ public sealed record GeneratedDataset(
                 r.AssigneeEmployeeNumber,
                 Tags = string.Join(';', r.Tags),
             }));
+            CsvFile.Write(Path.Combine(directory, "intake-request-outcomes.csv"), demandManagement.Outcomes.Select(o => new
+            {
+                o.RequestHandle,
+                o.Kind,
+                o.ProjectKey,
+                o.Note,
+                Deliverables = string.Join(';', o.DeliverableNames),
+                o.AddedByEmployeeNumber,
+                o.AddedOn,
+            }));
         }
     }
 
@@ -160,7 +179,8 @@ public sealed record GeneratedDataset(
         }
 
         if (DemandManagement is { } demandManagement)
-            yield return $"Generated {demandManagement.Desks.Count} intake desks and {demandManagement.Requests.Count} intake requests.";
+            yield return $"Generated {demandManagement.Desks.Count} intake desks, {demandManagement.Requests.Count} intake requests "
+                + $"and {demandManagement.Outcomes.Count} outcomes.";
     }
 
     /// <summary>What was generated, for a run summary or a preview.</summary>

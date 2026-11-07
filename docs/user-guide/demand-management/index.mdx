@@ -280,9 +280,19 @@ A request with an outcome can be finished without a reason, since the outcome sa
 
 A project created moments ago is offered straight away, but adding it may be refused as not found for a short while; if so, try again shortly.
 
+#### Deliverables that meet a request
+
+When a request becomes **existing project scope**, its outcome can also name the project's [deliverables](../ppm/projects.mdx#project-deliverables) that meet it: the parts of the project the request is waiting for. Choose them under **Deliverables** when adding the outcome, or later with **Edit Deliverables** on it. The list offers the outcome's project's deliverables only, with each one's status, and descoped ones too. Naming them is optional, a deliverable can serve several requests, and naming one never changes the project.
+
+Each mapped deliverable is shown on the request with its status. An outcome is **Met** once every deliverable it names is Accepted, and **Waiting on deliverables** until then. A descoped deliverable stays on the outcome, shown as Descoped, and keeps it from being met: what the request needed was dropped, which the desk decides how to answer. A deliverable deleted from the project before work on it began stays on the outcome too, marked as deleted, but no longer counts; an agent can take it off.
+
+When every deliverable the request's outcomes name has been accepted, an accepted request says it **may be ready to fulfil**. Reaching that point never moves the request: finishing it, and telling the requester, stays the desk's decision. New project and work item outcomes play no part in it.
+
+A deliverable's status reaches the request a moment after it changes in PPM. Changing which deliverables an outcome names, like changing outcomes at all, is allowed only while the request is accepted.
+
 #### From the project or work item
 
-With Demand Management on, a project's page has a **Requests** section listing the requests it came from or absorbed, with each request's status and what the project took on. A work item's page has the same section, listing the requests the work item delivers. Each request is listed only to people who can see it, by its desk's rules: a request on a private desk you are not part of does not appear, and nothing says it is there.
+With Demand Management on, a project's page has a **Requests** section listing the requests it came from or absorbed, with each request's status, what the project took on, and the deliverables it waits on. In the project's **Deliverables** section, each deliverable shows how many requests it serves, and opening it lists them. A work item's page has the same **Requests** section, listing the requests the work item delivers. Each request is listed only to people who can see it, by its desk's rules: a request on a private desk you are not part of does not appear, and nothing says it is there.
 
 ### Withdrawing a request
 

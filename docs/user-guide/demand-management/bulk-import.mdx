@@ -1,6 +1,6 @@
 ---
 title: Bulk Import
-description: Loading a backlog of intake requests into Wayd from CSV via the import API.
+description: Loading a backlog of intake requests, and what they became, into Wayd from CSV via the import API.
 sidebar_position: 2
 audience: [user, agent]
 ---
@@ -9,7 +9,9 @@ audience: [user, agent]
 
 A company adopting Demand Management usually has requests already: in spreadsheets, forms or another tool. The
 **intake request import** brings them across in one CSV file, each request landing on its desk in the status its
-review has reached. It is a single `POST` of one CSV file (`multipart/form-data`, field name `file`).
+review has reached. The **intake request outcome import** then records what each became: a project started for
+it, scope an existing project absorbed, or a work item. Each is a single `POST` of one CSV file
+(`multipart/form-data`, field name `file`).
 
 :::info[Screen or API]
 The import can be run from [Settings → System → Imports](../settings/imports.mdx#importing-a-file), which lists the
@@ -25,8 +27,11 @@ in a category from `GET /api/demand-management/intake-request-tag-categories` an
 `GET /api/demand-management/intake-request-tags`, and employees from the employee list.
 :::
 
-Only intake requests are imported. Desks, channels and tag categories are a handful of settings, set up by hand in
-**Demand Management** before the import runs.
+Only intake requests and their outcomes are imported. Desks, channels and tag categories are a handful of settings,
+set up by hand in **Demand Management** before the import runs.
+
+Run them in this order: the projects and their deliverables (see [PPM → Bulk Import](../ppm/bulk-import.mdx)) and
+the work items first, then the intake requests, then their outcomes, which point at both.
 
 ## How the import works
 
@@ -50,8 +55,8 @@ Each row is then applied the way the request would have been handled by hand:
 The status change follows the same rules as one made on the request page:
 
 - **Every closing status except Withdrawn** — Declined, Duplicate, and any your desk adds — needs a
-  `StatusReason` the requester can read, and so does finishing a request. Imported requests carry no outcomes,
-  so a request imported as Fulfilled always needs one.
+  `StatusReason` the requester can read, and so does finishing a request. The request import carries no
+  outcomes, which come later from their own import, so a request imported as Fulfilled always needs one.
 - **Withdrawn** is recorded as the requester's own move. Every other status, like the assignment, tags and
   estimate, is recorded against the assignee when the row names one.
 - **Duplicate** needs `DuplicateOfId`, a request **already in Wayd**. A row cannot point at another row of the same
@@ -71,6 +76,7 @@ underlying problem, and retry the rejected rows.
 | Import | Permission |
 |---|---|
 | Intake requests | Administer Demand Management |
+| Intake request outcomes | Administer Demand Management |
 
 Who may act on a request is decided by desk role rather than a permission, and the only role that spans every
 desk is the Demand Management Admin, so that is who imports.
@@ -80,6 +86,7 @@ desk is the Demand Management Admin, so that is who imports.
 | Import | Rows per file | Applied |
 |---|---|---|
 | Intake requests | 10,000 | Row by row |
+| Intake request outcomes | 10,000 | Row by row |
 
 The rules every file shares — request size, `ImportId` length, how rows are chunked, retries and retention — are
 in [Settings → System → Imports → Limits and rules](../settings/imports.mdx#limits-and-rules).
@@ -124,3 +131,40 @@ that takes one; when its estimate is not a value of the desk's scale, or the des
 is already taken. A file in which two rows share an origin is refused whole.
 
 The run links each imported row to the request it created.
+
+---
+
+## Intake request outcomes import
+
+`POST /api/demand-management/intake-requests/outcomes/import`
+
+Each row records one [outcome](./index.mdx#outcomes): one thing a request already in
+Wayd became. Unlike recording one on the request page, which needs the request accepted, an imported outcome may
+be on a request in **any status**, so a request imported as Fulfilled takes the outcomes it had. Rows can name the
+same request more than once, for a request that became several things, but never the same project or work item
+twice.
+
+**Every column must be in the file**, even one whose cells are all blank, as for every import.
+
+| Column | Required | Description |
+|---|---|---|
+| `ImportId` | No | Your key for the row, unique within the file. |
+| `RequestId` | Yes | The intake request, already in Wayd, by id. |
+| `Kind` | Yes | What the request became: `NewProject` (a project started for it), `ExistingProjectScope` (an existing project that absorbed it) or `WorkItem`. |
+| `ProjectId` | For the project kinds | The project, by id. Blank for `WorkItem`. |
+| `WorkItemId` | For `WorkItem` | The work item, by id. Blank for the project kinds. |
+| `Note` | For `ExistingProjectScope` | What the outcome covers; for existing project scope, what the project absorbed. Max 1024 characters. |
+| `DeliverableIds` | No | `ExistingProjectScope` only: semicolon-separated ids of that project's [deliverables](../ppm/projects.mdx#project-deliverables) that meet the request. The request counts as met once every one is Accepted. Blank maps none. |
+| `AddedById` | When the request has no assignee | The employee who recorded the outcome. Blank for the request's assignee. |
+| `AddedOn` | No | When the outcome was recorded, with its offset. Blank for the moment of import. |
+
+Projects and their deliverables are checked against Demand Management's own copy of them, which follows PPM
+within moments of each change. Import the projects and deliverables first; a row naming a project imported only
+seconds earlier may be rejected as not found, and can be retried once the copy has caught up.
+
+A row is rejected, with the reason, when the request, project, work item or employee it names does not exist;
+when a deliverable is not one of the row's project's; when the request already points at that project or work
+item; or when an `ExistingProjectScope` row has no note. A file in which two rows name the same request and
+target is refused whole.
+
+The run links each imported row to its request.

@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using Wayd.Common.Application.Discussions;
 using Wayd.Common.Application.FeatureManagement;
+using Wayd.Common.Application.Imports;
+using Wayd.Common.Domain.Imports;
+using Wayd.DemandManagement.Application.IntakeRequests.Imports;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows;
@@ -962,6 +965,46 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         // Assert
         set.IsFailure.Should().BeTrue();
         set.Error.Should().StartWith("These deliverables were not found on the project:").And.Contain(theirs.ToString());
+    }
+
+    [Fact]
+    public async Task IntakeRequestOutcomeImport_RecordsAMappedOutcomeAndRefusesAnotherProjectsDeliverable()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (requestId, agent, projectId) = await SeedAcceptedWithAProject(ct);
+        var portal = await SeedDeliverableCopy(projectId, "Portal", ct);
+        var otherProjectId = await SeedProjectCopy(ct);
+        var theirs = await SeedDeliverableCopy(otherProjectId, "Audit", ct);
+        var dispatcher = new Mock<IDispatcher>();
+        var featureFlags = new Mock<IFeatureFlags>();
+        ImportIntakeRequestOutcomeDto[] rows =
+        [
+            new(requestId, IntakeRequestOutcomeKind.ExistingProjectScope, projectId, null, "Export screen", [portal], agent.Id, Now),
+            new(requestId, IntakeRequestOutcomeKind.ExistingProjectScope, otherProjectId, null, "Audit trail", [portal, theirs], agent.Id, Now),
+        ];
+
+        // Act
+        CSharpFunctionalExtensions.Result<ImportPassResult> result;
+        await using (var context = _fixture.CreateContext())
+        {
+            var definition = new IntakeRequestOutcomeImportDefinition(context, dispatcher.Object, User(), _clock, featureFlags.Object,
+                new ImportPayloadSerializer());
+            result = await definition.ExecutePass(Guid.CreateVersion7(), 0,
+                [.. rows.Select((r, i) => ImportProcessRow.Create($"r{i + 1}", i + 1, definition.SerializeRow(r)))],
+                isFinalChunk: true, ct);
+            await context.SaveChangesAsync(ct);
+        }
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Rows[0].Failed.Should().BeFalse(result.Value.Rows[0].Error);
+        result.Value.Rows[1].Failed.Should().BeTrue("the portal belongs to the first project");
+        await using var reader = _fixture.CreateContext();
+        var outcome = await reader.IntakeRequests.Where(r => r.Id == requestId)
+            .SelectMany(r => r.Outcomes).Include(o => o.Deliverables).SingleAsync(ct);
+        outcome.TargetId.Should().Be(projectId);
+        outcome.DeliverableIds().Should().Equal(portal);
     }
 
     private async Task<Guid> SeedDeliverableCopy(Guid projectId, string name, CancellationToken ct)

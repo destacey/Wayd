@@ -209,6 +209,55 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
         }
     }
 
+    [HttpPost("outcomes/import")]
+    [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
+    [EndpointSummary(
+        "Submit a csv file of intake request outcomes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
+    [EndpointDescription(
+        "Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` needs a `Note`, and can name `DeliverableIds`, semicolon-separated deliverables of that project. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [CsvImport(IntakeRequestOutcomeImportDefinition.ImportKey)]
+    public async Task<ActionResult> ImportOutcomes([FromForm, CsvRows(typeof(ImportIntakeRequestOutcomeRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var imported = _csvService.ReadCsv<ImportIntakeRequestOutcomeRequest>(file.OpenReadStream()).ToList();
+
+            List<SubmittedImportRow<ImportIntakeRequestOutcomeDto>> rows = [];
+            var validator = new ImportIntakeRequestOutcomeRequestValidator();
+            for (var i = 0; i < imported.Count; i++)
+            {
+                var request = imported[i];
+
+                var validationResults = await validator.ValidateAsync(request, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Row: {SubmittedImportRow.KeyFor(request.ImportId, i + 1)})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+                }
+
+                rows.Add(new SubmittedImportRow<ImportIntakeRequestOutcomeDto>(request.ImportId, request.ToImportIntakeRequestOutcomeDto()));
+            }
+
+            var result = await _dispatcher.Send(new ImportIntakeRequestOutcomesCommand(rows, submissionGroupId, validateOnly), cancellationToken);
+
+            return result.IsSuccess
+                ? await responder.Respond(this, result.Value, cancellationToken)
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
+    }
+
     [HttpPut("{id}")]
     [McpTool("IntakeRequests_Update", "Update intake request")]
     [Authorize]

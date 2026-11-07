@@ -52422,6 +52422,95 @@ export class IntakeRequestsClient {
     }
 
     /**
+     * Submit a csv file of intake request outcomes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+     * @param submissionGroupId (optional) 
+     * @param validateOnly (optional) 
+     * @param file (optional) 
+     * @return OK
+     */
+    importOutcomes(submissionGroupId?: string | null | undefined, validateOnly?: boolean | undefined, file?: FileParameter | undefined, cancelToken?: CancelToken): Promise<ImportProcessDto> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/outcomes/import?";
+        if (submissionGroupId !== undefined && submissionGroupId !== null)
+            url_ += "submissionGroupId=" + encodeURIComponent("" + submissionGroupId) + "&";
+        if (validateOnly === null)
+            throw new globalThis.Error("The parameter 'validateOnly' cannot be null.");
+        else if (validateOnly !== undefined)
+            url_ += "validateOnly=" + encodeURIComponent("" + validateOnly) + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (file === null || file === undefined)
+            throw new globalThis.Error("The parameter 'file' cannot be null.");
+        else
+            content_.append("file", file.data, file.fileName ? file.fileName : "file");
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processImportOutcomes(_response);
+        });
+    }
+
+    protected processImportOutcomes(response: AxiosResponse): Promise<ImportProcessDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ImportProcessDto>(result200);
+
+        } else if (status === 202) {
+            const _responseText = response.data;
+            let result202: any = null;
+            let resultData202  = _responseText;
+            result202 = resultData202;
+            return Promise.resolve<ImportProcessDto>(result202);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ImportProcessDto>(null as any);
+    }
+
+    /**
      * Update an intake request.
      * @return No Content
      */
@@ -65745,6 +65834,32 @@ in the file. */
 primary; these are additional addresses the person is known by in other systems — typically ones
 left behind by a domain or tenant move. Home and personal addresses do not belong here. */
     additionalEmails?: string | undefined;
+}
+
+/** A single CSV row for the intake request outcome import: one thing a request already in Wayd became. The request, project, work item, deliverables and people are named by id. Every column must be in the file, even one whose cells are all blank. Timestamps are instants, and each must carry its offset. */
+export interface ImportIntakeRequestOutcomeRequest {
+    /** The caller's own key for this row, unique within the file (case-insensitively). Results are
+reported against it. Leave a cell blank and the row is known by its position instead, but the
+column itself must be in the file. */
+    importId?: string | undefined;
+    /** The intake request, by id. It may be in any status. */
+    requestId: string;
+    /** What the request became, case-insensitively: `NewProject` (a project started for it),
+`ExistingProjectScope` (an existing project that absorbed it) or `WorkItem`. */
+    kind: string;
+    /** The project, by id, for `NewProject` and `ExistingProjectScope`; blank for `WorkItem`. */
+    projectId?: string | undefined;
+    /** The work item, by id, for `WorkItem`; blank for the project kinds. */
+    workItemId?: string | undefined;
+    /** What the outcome covers. Required for `ExistingProjectScope`, saying what the project absorbed. Max 1024 chars. */
+    note?: string | undefined;
+    /** For `ExistingProjectScope` only: semicolon-separated ids of the project's deliverables that meet the
+request. The request counts as met once every one is Accepted. Blank maps none. */
+    deliverableIds?: string | undefined;
+    /** The employee who recorded the outcome, by id. Blank for the request's assignee; required when it has none. */
+    addedById?: string | undefined;
+    /** When the outcome was recorded, with its offset. Blank for the moment it is imported. */
+    addedOn?: string | undefined;
 }
 
 /** A single CSV row for the intake request import: one request, as it was submitted and where its review has got to. Desks, channels, tags and people are named by id. A request starts in the status meaning Submitted and is moved to `Status` when the row names another, recorded at `StatusChangedAt`. Timestamps are instants, and each must carry its offset. */

@@ -45868,6 +45868,113 @@
         }
       }
     },
+    "/api/demand-management/intake-requests/outcomes/import": {
+      "post": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Submit a csv file of intake request outcomes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
+        "description": "Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` needs a `Note`, and can name `DeliverableIds`, semicolon-separated deliverables of that project. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.",
+        "operationId": "IntakeRequests_ImportOutcomes",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ],
+        "x-wayd-import": {
+          "key": "demand-management.intake-request-outcomes",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportIntakeRequestOutcomeRequest",
+              "required": true
+            }
+          ]
+        }
+      }
+    },
     "/api/demand-management/intake-requests/{id}": {
       "put": {
         "tags": [
@@ -63518,6 +63625,79 @@
         },
         "additionalProperties": false,
         "description": "A single CSV row for the employee import. References the row's manager by employee number so an entire\nmanagement tree can be imported at once; linkage is resolved server-side after all rows are created."
+      },
+      "ImportIntakeRequestOutcomeRequest": {
+        "required": [
+          "requestId",
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "importId": {
+            "type": "string",
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are\nreported against it. Leave a cell blank and the row is known by its position instead, but the\ncolumn itself must be in the file.",
+            "nullable": true,
+            "x-csv-column": "ImportId"
+          },
+          "requestId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The intake request, by id. It may be in any status.",
+            "format": "uuid",
+            "x-csv-column": "RequestId"
+          },
+          "kind": {
+            "type": "string",
+            "description": "What the request became, case-insensitively: `NewProject` (a project started for it),\n`ExistingProjectScope` (an existing project that absorbed it) or `WorkItem`.",
+            "x-csv-column": "Kind",
+            "x-csv-values": [
+              "NewProject",
+              "ExistingProjectScope",
+              "WorkItem"
+            ]
+          },
+          "projectId": {
+            "type": "string",
+            "description": "The project, by id, for `NewProject` and `ExistingProjectScope`; blank for `WorkItem`.",
+            "format": "uuid",
+            "nullable": true,
+            "x-csv-column": "ProjectId"
+          },
+          "workItemId": {
+            "type": "string",
+            "description": "The work item, by id, for `WorkItem`; blank for the project kinds.",
+            "format": "uuid",
+            "nullable": true,
+            "x-csv-column": "WorkItemId"
+          },
+          "note": {
+            "type": "string",
+            "description": "What the outcome covers. Required for `ExistingProjectScope`, saying what the project absorbed. Max 1024 chars.",
+            "nullable": true,
+            "x-csv-column": "Note"
+          },
+          "deliverableIds": {
+            "type": "string",
+            "description": "For `ExistingProjectScope` only: semicolon-separated ids of the project's deliverables that meet the\nrequest. The request counts as met once every one is Accepted. Blank maps none.",
+            "nullable": true,
+            "x-csv-column": "DeliverableIds"
+          },
+          "addedById": {
+            "type": "string",
+            "description": "The employee who recorded the outcome, by id. Blank for the request's assignee; required when it has none.",
+            "format": "uuid",
+            "nullable": true,
+            "x-csv-column": "AddedById"
+          },
+          "addedOn": {
+            "type": "string",
+            "description": "When the outcome was recorded, with its offset. Blank for the moment it is imported.",
+            "nullable": true,
+            "x-csv-column": "AddedOn"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single CSV row for the intake request outcome import: one thing a request already in Wayd became. The\nrequest, project, work item, deliverables and people are named by id. Every column must be in the file,\neven one whose cells are all blank. Timestamps are instants, and each must carry its offset."
       },
       "ImportIntakeRequestRequest": {
         "required": [

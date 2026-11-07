@@ -733,6 +733,20 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// Records an outcome the request had in the system it is imported from. Needs <see cref="Outcomes"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="AddOutcome"/>, allowed whatever the request's status: an import records history, and a
+    /// request imported already fulfilled became what its outcomes say. Everything else an outcome needs still
+    /// holds, and the caller checks the target and its deliverables exist, as for an agent's.
+    /// </remarks>
+    /// <param name="deliverableIds">For existing project scope, deliverables of the project; otherwise empty.</param>
+    /// <param name="addedById">The employee who recorded the outcome there.</param>
+    public Result ImportOutcome(IntakeRequestOutcomeKind kind, Guid targetId, string? note, IReadOnlyCollection<Guid> deliverableIds,
+        Guid addedById, EventActor actor, Instant timestamp) =>
+        RecordOutcome(kind, targetId, note, deliverableIds, addedById, actor, timestamp);
+
+    /// <summary>
     /// Changes the deliverables an existing project scope outcome is mapped to: those whose acceptance the request
     /// waits for. Needs <see cref="Outcomes"/> loaded with their <see cref="IntakeRequestOutcome.Deliverables"/>.
     /// </summary>

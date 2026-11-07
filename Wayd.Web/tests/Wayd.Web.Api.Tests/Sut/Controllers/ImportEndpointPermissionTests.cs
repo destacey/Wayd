@@ -72,6 +72,7 @@ public sealed class ImportEndpointPermissionTests
         (typeof(VersionsController), nameof(VersionsController.Import), typeof(VersionImportDefinition)),
         (typeof(StrategicThemesController), nameof(StrategicThemesController.Import), typeof(StrategicThemeImportDefinition)),
         (typeof(IntakeRequestsController), nameof(IntakeRequestsController.Import), typeof(IntakeRequestImportDefinition)),
+        (typeof(IntakeRequestsController), nameof(IntakeRequestsController.ImportOutcomes), typeof(IntakeRequestOutcomeImportDefinition)),
     ];
 
     public static TheoryData<Type, string, Type> Endpoints =>

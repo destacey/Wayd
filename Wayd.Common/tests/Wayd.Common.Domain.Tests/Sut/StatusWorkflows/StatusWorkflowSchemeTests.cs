@@ -16,7 +16,10 @@ public sealed class StatusWorkflowSchemeTests
     private static readonly WorkflowOwnerDescriptor Plain = new(
         "test.scheme.plain", "Plain", new Dictionary<int, WorkflowAlias>(), []);
 
-    public StatusWorkflowSchemeTests() => WorkflowOwners.Register(Ticket, Plain);
+    private static readonly WorkflowOwnerDescriptor Other = new(
+        "test.scheme.other", "Other", new Dictionary<int, WorkflowAlias>(), [], hasRecordTypes: true);
+
+    public StatusWorkflowSchemeTests() => WorkflowOwners.Register(Ticket, Plain, Other);
 
     private static StatusWorkflow Published(string name, string? ownerType = null, bool withActive = true)
     {
@@ -548,6 +551,261 @@ public sealed class StatusWorkflowSchemeTests
 
     #endregion UpdateDetails
 
+    #region Managed
+
+    private static StatusWorkflowScheme ManagedOn(StatusWorkflow defaultWorkflow, params (RecordType, StatusWorkflow)[] entries) =>
+        Saved(StatusWorkflowScheme.CreateManaged(Ticket.Key, "Agile", "process-agile", defaultWorkflow, EventActor.System, Now, entries).Value);
+
+    [Fact]
+    public void CreateManaged_WithEntries_ShouldRecordThemInTheCreationEvent()
+    {
+        // Arrange
+        var standard = Published("Standard");
+        var bugFlow = Published("Bug Flow");
+        var bug = Type("Bug");
+
+        // Act
+        var result = StatusWorkflowScheme.CreateManaged(Ticket.Key, "Agile", "process-agile", standard, EventActor.System, Now, [(bug, bugFlow)]);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var scheme = result.Value;
+        scheme.WorkflowFor(bug.Id).Should().Be(bugFlow.Id);
+        scheme.SetPrivate(s => s.Key, 9);
+        scheme.ExecutePostPersistenceActions();
+        var created = scheme.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowSchemeCreatedEvent>().Subject;
+        created.Entries.Should().Equal(new WorkflowSchemeEntryValues(bug.Id, bugFlow.Id));
+    }
+
+    [Fact]
+    public void CreateManaged_ShouldFail_WhenTheSourceSendsATypeToTwoWorkflows()
+    {
+        // Arrange
+        var standard = Published("Standard");
+        var bug = Type("Bug");
+
+        // Act
+        var result = StatusWorkflowScheme.CreateManaged(
+            Ticket.Key, "Agile", "process-agile", standard, EventActor.System, Now, [(bug, standard), (bug, Published("Bug Flow"))]);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Bug");
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldSendEachListedTypeToItsWorkflow_WithoutARemap()
+    {
+        // Arrange
+        var standard = Published("Standard");
+        var bugFlow = Published("Bug Flow");
+        var storyFlow = Published("Story Flow");
+        var bug = Type("Bug");
+        var story = Type("Story");
+        var scheme = ManagedOn(standard, (bug, standard));
+
+        // Act
+        var result = scheme.SyncFromSource("Agile", standard, [(bug, bugFlow), (story, storyFlow)], EventActor.System, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        scheme.WorkflowFor(bug.Id).Should().Be(bugFlow.Id);
+        scheme.WorkflowFor(story.Id).Should().Be(storyFlow.Id);
+        var sets = scheme.DomainEvents.Should().AllBeOfType<WorkflowSchemeEntrySetEvent>().Subject.ToList();
+        sets.Should().HaveCount(2);
+        sets.Should().ContainSingle(e => e.RecordTypeId == bug.Id && e.FromWorkflowId == standard.Id && e.ToWorkflowId == bugFlow.Id && e.HadEntry);
+        sets.Should().ContainSingle(e => e.RecordTypeId == story.Id && e.FromWorkflowId == standard.Id && e.ToWorkflowId == storyFlow.Id && !e.HadEntry);
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldKeepTheEntryOfATypeTheSourceNoLongerLists()
+    {
+        // Arrange
+        var standard = Published("Standard");
+        var bugFlow = Published("Bug Flow");
+        var bug = Type("Bug");
+        var scheme = ManagedOn(standard, (bug, bugFlow));
+
+        // Act
+        var result = scheme.SyncFromSource("Agile", standard, [], EventActor.System, Now);
+
+        // Assert
+        // Records of a retired type still hold statuses from its workflow, so they must keep resolving to it.
+        result.IsSuccess.Should().BeTrue();
+        scheme.WorkflowFor(bug.Id).Should().Be(bugFlow.Id);
+        scheme.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldTakeTheSourcesNameAndDefault()
+    {
+        // Arrange
+        var standard = Published("Standard");
+        var replacement = Published("Replacement");
+        var scheme = ManagedOn(standard);
+
+        // Act
+        var result = scheme.SyncFromSource("Agile 2", replacement, [], EventActor.System, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        scheme.Name.Should().Be("Agile 2");
+        scheme.DefaultWorkflowId.Should().Be(replacement.Id);
+        scheme.DomainEvents.OfType<WorkflowSchemeDetailsUpdatedEvent>().Should().ContainSingle()
+            .Which.Previous.Should().Be(new WorkflowSchemeDetails("Agile", null));
+        scheme.DomainEvents.OfType<WorkflowSchemeDefaultChangedEvent>().Should().ContainSingle()
+            .Which.Should().Match<WorkflowSchemeDefaultChangedEvent>(e => e.FromWorkflowId == standard.Id && e.ToWorkflowId == replacement.Id);
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldRaiseNothing_WhenTheSchemeAlreadyMatchesItsSource()
+    {
+        // Arrange
+        var standard = Published("Standard");
+        var bugFlow = Published("Bug Flow");
+        var bug = Type("Bug");
+        var scheme = ManagedOn(standard, (bug, bugFlow));
+
+        // Act
+        var result = scheme.SyncFromSource("Agile", standard, [(bug, bugFlow)], EventActor.System, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        scheme.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldFail_ForAnOwnedScheme()
+    {
+        // Arrange
+        var standard = Published("Standard");
+        var bugFlow = Published("Bug Flow");
+        var bug = Type("Bug");
+        var scheme = SchemeOn(standard);
+
+        // Act
+        var result = scheme.SyncFromSource("Engineering", standard, [(bug, bugFlow)], EventActor.System, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        scheme.WorkflowFor(bug.Id).Should().Be(standard.Id);
+        scheme.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldFail_WhenAWorkflowIsNotPublished()
+    {
+        // Arrange
+        var standard = Published("Standard");
+        var draft = StatusWorkflow.Create("Draft", null, Ticket.Key, EventActor.System, Now).Value;
+        var bug = Type("Bug");
+        var scheme = ManagedOn(standard);
+
+        // Act
+        var result = scheme.SyncFromSource("Agile", standard, [(bug, draft)], EventActor.System, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        scheme.WorkflowFor(bug.Id).Should().Be(standard.Id);
+        scheme.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AdministratorEdits_ShouldBeRefused_OnAManagedScheme()
+    {
+        // Arrange
+        var standard = Published("Standard");
+        var bugFlow = Published("Bug Flow");
+        var bug = Type("Bug");
+        var scheme = ManagedOn(standard, (bug, bugFlow));
+
+        // Act
+        var setEntry = scheme.SetEntry(bug, standard, Remap(bugFlow, standard), EventActor.System, Now);
+        var removeEntry = scheme.RemoveEntry(bug.Id, Remap(bugFlow, standard), EventActor.System, Now);
+        var changeDefault = scheme.ChangeDefault(bugFlow, Remap(standard, bugFlow), EventActor.System, Now);
+        var rename = scheme.UpdateDetails("Renamed", null, EventActor.System, Now);
+
+        // Assert
+        new[] { setEntry, removeEntry, changeDefault }.Should().OnlyContain(
+            r => r.IsFailure && r.Error == "A managed scheme takes its workflows from its source, so it cannot be changed here.");
+        rename.IsFailure.Should().BeTrue();
+        rename.Error.Should().Be("A managed scheme takes its name from its source.");
+        scheme.WorkflowFor(bug.Id).Should().Be(bugFlow.Id);
+        scheme.DefaultWorkflowId.Should().Be(standard.Id);
+        scheme.Name.Should().Be("Agile");
+        scheme.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldChangeTheDescription_OfAManagedScheme()
+    {
+        // Arrange
+        var scheme = ManagedOn(Published("Standard"));
+
+        // Act
+        var result = scheme.UpdateDetails("Agile", "Synced from Azure DevOps", EventActor.System, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        scheme.Description.Should().Be("Synced from Azure DevOps");
+        scheme.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowSchemeDetailsUpdatedEvent>();
+    }
+
+    [Fact]
+    public void Delete_ShouldBeRefused_ForAManagedScheme_EvenWhenUnassigned()
+    {
+        // Arrange
+        var scheme = ManagedOn(Published("Standard"));
+
+        // Act
+        var result = scheme.Delete(isAssigned: false, EventActor.System, Now);
+
+        // Assert
+        // The sync would recreate it under a new identity, splitting its history.
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A managed scheme stays while its source keeps it.");
+        scheme.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldChangeTheDefaultBeforeAddingEntries()
+    {
+        // Arrange
+        var standard = Published("Standard");
+        var replacement = Published("Replacement");
+        var bugFlow = Published("Bug Flow");
+        var bug = Type("Bug");
+        var scheme = ManagedOn(standard);
+
+        // Act
+        var result = scheme.SyncFromSource("Agile", replacement, [(bug, bugFlow)], EventActor.System, Now);
+
+        // Assert
+        // A new entry moves its type from the default it now has, so the events read in order.
+        result.IsSuccess.Should().BeTrue();
+        scheme.DomainEvents.Select(e => e.GetType()).Should().Equal(typeof(WorkflowSchemeDefaultChangedEvent), typeof(WorkflowSchemeEntrySetEvent));
+        scheme.DomainEvents.OfType<WorkflowSchemeEntrySetEvent>().Single().FromWorkflowId.Should().Be(replacement.Id);
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldFail_ForARecordTypeOfAnotherOwnerType()
+    {
+        // Arrange
+        var standard = Published("Standard");
+        var scheme = ManagedOn(standard);
+        var other = Type("Bug", Other.Key);
+
+        // Act
+        var result = scheme.SyncFromSource("Agile", standard, [(other, standard)], EventActor.System, Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        scheme.Entries.Should().BeEmpty();
+        scheme.DomainEvents.Should().BeEmpty();
+    }
+
+    #endregion Managed
+
     #region Clone
 
     [Fact]
@@ -556,9 +814,8 @@ public sealed class StatusWorkflowSchemeTests
         // Arrange
         var standard = Published("Standard");
         var bugFlow = Published("Bug Flow");
-        var source = Saved(StatusWorkflowScheme.CreateManaged(Ticket.Key, "Agile", "agile", standard, EventActor.System, Now).Value);
         var bug = Type("Bug");
-        source.SetEntry(bug, bugFlow, Remap(standard, bugFlow), EventActor.System, Now);
+        var source = Saved(StatusWorkflowScheme.CreateManaged(Ticket.Key, "Agile", "agile", standard, EventActor.System, Now, [(bug, bugFlow)]).Value);
 
         // Act
         var result = source.Clone("Agile (Payments)", null, EventActor.System, Now);

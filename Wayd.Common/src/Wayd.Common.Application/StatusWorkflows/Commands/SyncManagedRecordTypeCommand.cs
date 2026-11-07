@@ -27,8 +27,7 @@ public sealed class SyncManagedRecordTypeCommandValidator : AbstractValidator<Sy
 public sealed class SyncManagedRecordTypeCommandHandler(
     IStatusWorkflowDbContext dbContext,
     IDateTimeProvider dateTimeProvider,
-    ILogger<SyncManagedRecordTypeCommandHandler> logger,
-    IWorkflowOwnerAvailability ownerAvailability)
+    ILogger<SyncManagedRecordTypeCommandHandler> logger)
     : ICommandHandler<SyncManagedRecordTypeCommand, Guid>
 {
     private const string AppRequestName = nameof(SyncManagedRecordTypeCommand);
@@ -36,13 +35,14 @@ public sealed class SyncManagedRecordTypeCommandHandler(
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<SyncManagedRecordTypeCommandHandler> _logger = logger;
-    private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
 
     public async Task<Result<Guid>> Handle(SyncManagedRecordTypeCommand request, CancellationToken cancellationToken)
     {
         try
         {
-            if (!await _ownerAvailability.IsAvailable(request.OwnerType, cancellationToken))
+            // Registration, not availability: a feature flag hides an owner type from administration, but
+            // its source still changes, and the sync keeps up with it.
+            if (WorkflowOwners.Resolve(request.OwnerType).IsFailure)
             {
                 return Result.Failure<Guid>($"'{request.OwnerType}' is not a registered workflow owner type.");
             }

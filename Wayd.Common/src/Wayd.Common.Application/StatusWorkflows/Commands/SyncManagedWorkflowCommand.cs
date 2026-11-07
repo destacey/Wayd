@@ -9,8 +9,8 @@ namespace Wayd.Common.Application.StatusWorkflows.Commands;
 /// </summary>
 /// <remarks>
 /// The sync's only way to change a managed workflow's structure; no endpoint dispatches it. The workflow
-/// is found by <see cref="OwnerType"/> and <see cref="ExternalKey"/>, which the sync namespaces by its
-/// connection so two sources cannot collide.
+/// is found by <see cref="OwnerType"/> and <see cref="ExternalKey"/>, which the sync namespaces by its source
+/// object (a work process) so two sources cannot collide.
 /// </remarks>
 /// <returns>The workflow's id.</returns>
 public sealed record SyncManagedWorkflowCommand(
@@ -39,8 +39,7 @@ public sealed class SyncManagedWorkflowCommandValidator : AbstractValidator<Sync
 public sealed class SyncManagedWorkflowCommandHandler(
     IStatusWorkflowDbContext dbContext,
     IDateTimeProvider dateTimeProvider,
-    ILogger<SyncManagedWorkflowCommandHandler> logger,
-    IWorkflowOwnerAvailability ownerAvailability)
+    ILogger<SyncManagedWorkflowCommandHandler> logger)
     : ICommandHandler<SyncManagedWorkflowCommand, Guid>
 {
     private const string AppRequestName = nameof(SyncManagedWorkflowCommand);
@@ -48,13 +47,14 @@ public sealed class SyncManagedWorkflowCommandHandler(
     private readonly IStatusWorkflowDbContext _dbContext = dbContext;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<SyncManagedWorkflowCommandHandler> _logger = logger;
-    private readonly IWorkflowOwnerAvailability _ownerAvailability = ownerAvailability;
 
     public async Task<Result<Guid>> Handle(SyncManagedWorkflowCommand request, CancellationToken cancellationToken)
     {
         try
         {
-            if (!await _ownerAvailability.IsAvailable(request.OwnerType, cancellationToken))
+            // Registration, not availability: a feature flag hides an owner type from administration, but
+            // its source still changes, and the sync keeps up with it.
+            if (WorkflowOwners.Resolve(request.OwnerType).IsFailure)
             {
                 return Result.Failure<Guid>($"'{request.OwnerType}' is not a registered workflow owner type.");
             }

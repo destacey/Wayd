@@ -962,11 +962,12 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
 
         var workflow = new StatusWorkflow(name, description: null, descriptor.Value.Key, isSystem: false, WorkflowOwnership.Managed, externalKey.Trim());
 
-        for (var i = 0; i < statuses.Count; i++)
+        // Hidden statuses take the last places, where a retired status sits.
+        var position = 1;
+        foreach (var source in statuses.Where(s => !s.IsHidden).Concat(statuses.Where(s => s.IsHidden)))
         {
-            var source = statuses[i];
             workflow._statuses.Add(new WorkflowStatus(
-                workflow.Id, source.Name.Trim(), description: null, source.Category, NoAlias, i + 1, externalKey: source.ExternalKey.Trim()));
+                workflow.Id, source.Name.Trim(), description: null, source.Category, NoAlias, position++, externalKey: source.ExternalKey.Trim()));
         }
 
         var publishable = workflow.GuardPublishable();
@@ -978,13 +979,20 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         workflow.RaiseCreated(sourceWorkflowId: null, actor, timestamp);
         workflow.MarkPublished(actor, timestamp);
 
+        // Created like the rest and retired straight away, so the history reads as the workflow arrived.
+        foreach (var hidden in statuses.Where(s => s.IsHidden))
+        {
+            var status = workflow._statuses.Single(s => string.Equals(s.ExternalKey, hidden.ExternalKey.Trim(), StringComparison.OrdinalIgnoreCase));
+            workflow.RetireStatus(status, actor, timestamp);
+        }
+
         return Result.Success(workflow);
     }
 
     /// <summary>
     /// Brings a managed workflow into line with its source: <paramref name="statuses"/> is every status the
     /// source has now, in its order. Matched by <see cref="SourceStatus.ExternalKey"/>, a status is renamed,
-    /// added, retired when the source has dropped it, or reinstated when the source brings it back.
+    /// added, retired when the source has dropped or hidden it, or reinstated when the source offers it again.
     /// </summary>
     /// <remarks>
     /// The only way a managed workflow's structure changes. It never refuses for what the source holds: a
@@ -1025,11 +1033,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
 
         var previousOrder = StatusOrder();
         var byKey = _statuses.Where(s => s.ExternalKey is not null).ToDictionary(s => s.ExternalKey!, StringComparer.OrdinalIgnoreCase);
-        var incomingKeys = statuses.Select(s => s.ExternalKey.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var offeredKeys = statuses.Where(s => !s.IsHidden).Select(s => s.ExternalKey.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var dropped in _statuses.Where(s => !s.IsRetired && s.ExternalKey is not null && !incomingKeys.Contains(s.ExternalKey)).ToList())
+        foreach (var withdrawn in _statuses.Where(s => !s.IsRetired && s.ExternalKey is not null && !offeredKeys.Contains(s.ExternalKey)).ToList())
         {
-            RetireStatus(dropped, actor, timestamp);
+            RetireStatus(withdrawn, actor, timestamp);
         }
 
         var added = new List<WorkflowStatus>();
@@ -1038,7 +1046,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         {
             if (byKey.TryGetValue(source.ExternalKey.Trim(), out var status))
             {
-                if (status.IsRetired)
+                if (status.IsRetired && !source.IsHidden)
                 {
                     status.Reinstate();
                     var (statusId, statusKey) = (status.Id, status.ExternalKey!);
@@ -1054,7 +1062,10 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
                 added.Add(status);
             }
 
-            sourceOrder.Add(status);
+            if (!source.IsHidden)
+            {
+                sourceOrder.Add(status);
+            }
         }
 
         var retired = _statuses.Where(s => s.IsRetired).OrderBy(s => s.Order).ToList();
@@ -1064,9 +1075,21 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             status.Reorder(position++);
         }
 
+        // A hidden status new to the workflow follows the retired ones, then is announced and retired.
+        var hiddenAdded = added.Where(s => !s.IsRetired && !sourceOrder.Contains(s)).ToList();
+        foreach (var status in hiddenAdded)
+        {
+            status.Reorder(position++);
+        }
+
         foreach (var status in added)
         {
             RaiseStatusAdded(status, actor, timestamp);
+        }
+
+        foreach (var status in hiddenAdded)
+        {
+            RetireStatus(status, actor, timestamp);
         }
 
         // Compared over the statuses that were already here, so adding one is not also reported as a reorder.

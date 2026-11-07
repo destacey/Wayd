@@ -15,7 +15,7 @@ public sealed class SyncManagedRecordTypeCommandHandlerTests : StatusWorkflowHan
     public SyncManagedRecordTypeCommandHandlerTests() => WorkflowOwners.Register(Synced);
 
     private SyncManagedRecordTypeCommandHandler CreateSut() =>
-        new(DbContext, DateTimeProvider.Object, Logger<SyncManagedRecordTypeCommandHandler>(), OwnerAvailability);
+        new(DbContext, DateTimeProvider.Object, Logger<SyncManagedRecordTypeCommandHandler>());
 
     private RecordType SeedManaged(string externalKey, string name)
     {

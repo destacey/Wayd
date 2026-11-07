@@ -31,7 +31,8 @@ public sealed class WorkflowAssignmentTests
         "Ticket",
         new Dictionary<int, WorkflowAlias> { [NotableAlias] = new("Notable", StatusCategory.Active), [TerminalAlias] = new("Terminal", StatusCategory.Done) },
         [NotableAlias, TerminalAlias],
-        hasRecordTypes: true);
+        hasRecordTypes: true,
+        hasManagedWorkflows: true);
 
     public WorkflowAssignmentTests() => WorkflowOwners.Register(Widget, Gadget, Ticket);
 
@@ -441,6 +442,73 @@ public sealed class WorkflowAssignmentTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("have nowhere to go");
         assignment.SchemeId.Should().Be(current.Id);
+    }
+
+    private static StatusWorkflowScheme ManagedTicketScheme(StatusWorkflow defaultWorkflow, string externalKey = "process-agile") =>
+        StatusWorkflowScheme.CreateManaged(Ticket.Key, "Agile", externalKey, defaultWorkflow, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+
+    [Fact]
+    public void SyncFromSource_ShouldMoveTheScopeToAnotherManagedScheme_WithoutARemap()
+    {
+        // Arrange
+        var standard = PublishedWidgetWorkflow("Standard", Ticket.Key);
+        var scrum = PublishedWidgetWorkflow("Scrum", Ticket.Key);
+        var current = ManagedTicketScheme(standard);
+        var target = ManagedTicketScheme(scrum, "process-scrum");
+        var scopeId = Guid.NewGuid();
+        var assignment = WorkflowAssignment.Create(Ticket.Key, scopeId, current, standard, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        assignment.ClearDomainEvents();
+
+        // Act
+        var result = assignment.SyncFromSource(target, scrum, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        assignment.SchemeId.Should().Be(target.Id);
+        var assigned = assignment.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<WorkflowAssignedEvent>().Subject;
+        assigned.ScopeId.Should().Be(scopeId);
+        assigned.FromSchemeId.Should().Be(current.Id);
+        assigned.ToSchemeId.Should().Be(target.Id);
+        assigned.FromWorkflowId.Should().Be(standard.Id);
+        assigned.ToWorkflowId.Should().Be(scrum.Id);
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldRaiseNothing_WhenTheScopeIsAlreadyOnTheScheme()
+    {
+        // Arrange
+        var standard = PublishedWidgetWorkflow("Standard", Ticket.Key);
+        var scheme = ManagedTicketScheme(standard);
+        var assignment = WorkflowAssignment.Create(Ticket.Key, Guid.NewGuid(), scheme, standard, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        assignment.ClearDomainEvents();
+
+        // Act
+        var result = assignment.SyncFromSource(scheme, standard, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        assignment.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldFail_ForAnOwnedScheme()
+    {
+        // Arrange
+        var standard = PublishedWidgetWorkflow("Standard", Ticket.Key);
+        var bugFlow = PublishedWidgetWorkflow("Bug Flow", Ticket.Key);
+        var current = ManagedTicketScheme(standard);
+        var owned = TicketScheme(bugFlow);
+        var assignment = WorkflowAssignment.Create(Ticket.Key, Guid.NewGuid(), current, standard, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0)).Value;
+        assignment.ClearDomainEvents();
+
+        // Act
+        var result = assignment.SyncFromSource(owned, bugFlow, EventActor.System, Instant.FromUtc(2026, 1, 15, 9, 30, 0));
+
+        // Assert
+        // An owned scheme's records must be remapped, which only an administrator's reassignment does.
+        result.IsFailure.Should().BeTrue();
+        assignment.SchemeId.Should().Be(current.Id);
+        assignment.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]

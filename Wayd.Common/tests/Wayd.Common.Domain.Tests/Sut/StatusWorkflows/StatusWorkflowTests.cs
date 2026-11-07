@@ -2367,6 +2367,106 @@ public sealed class StatusWorkflowTests
     }
 
     [Fact]
+    public void CreateManaged_ShouldKeepAHiddenStatusRetired_AfterTheOnesTheSourceOffers()
+    {
+        // Arrange
+        var resolved = new SourceStatus("resolved", "Resolved", StatusCategory.Active, IsHidden: true);
+
+        // Act
+        var result = StatusWorkflow.CreateManaged("Agile: Bug", Synced.Key, "conn-1:agile:bug", [SourceNew, resolved, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        // History may hold a state the source has hidden, so it must resolve, with its category.
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var workflow = result.Value;
+        workflow.Statuses.Select(s => (s.ExternalKey, s.Category, s.IsRetired, s.Order)).Should().Equal(
+            ("new", StatusCategory.Proposed, false, 1),
+            ("closed", StatusCategory.Done, false, 2),
+            ("resolved", StatusCategory.Active, true, 3));
+        workflow.ActiveStatuses.Select(s => s.ExternalKey).Should().Equal("new", "closed");
+
+        workflow.SetPrivate(w => w.Key, 9);
+        workflow.ExecutePostPersistenceActions();
+        workflow.DomainEvents.Select(e => e.GetType()).Should().Equal(
+            typeof(WorkflowCreatedEvent), typeof(WorkflowPublishedEventV2), typeof(WorkflowStatusRetiredEvent));
+        workflow.DomainEvents.OfType<WorkflowStatusRetiredEvent>().Single().ExternalKey.Should().Be("resolved");
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldRetireAStatusTheSourceHides_AndKeepItsMapping()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+        var active = StatusKeyed(workflow, "active");
+        workflow.ReclassifyStatus(active.Id, StatusCategory.Done, StatusWorkflow.NoAlias, EventActor.System, At);
+        workflow.ClearDomainEvents();
+
+        // Act
+        var result = workflow.SyncFromSource(
+            "Agile: Bug", [SourceNew, SourceActive with { Name = "In Progress", IsHidden = true }, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        active.IsRetired.Should().BeTrue();
+        active.Name.Should().Be("In Progress", "a hidden status still takes the source's name");
+        active.Category.Should().Be(StatusCategory.Done, "the administrators' mapping is kept");
+        workflow.Statuses.Last().Should().Be(active);
+        workflow.DomainEvents.OfType<WorkflowStatusRetiredEvent>().Should().ContainSingle().Which.StatusId.Should().Be(active.Id);
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldReinstateAHiddenStatus_WhenTheSourceOffersItAgain()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+        var active = StatusKeyed(workflow, "active");
+        workflow.SyncFromSource("Agile: Bug", [SourceNew, SourceActive with { IsHidden = true }, SourceClosed], EventActor.Sync(null), At);
+        workflow.ClearDomainEvents();
+
+        // Act
+        workflow.SyncFromSource("Agile: Bug", [SourceNew, SourceActive, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        active.IsRetired.Should().BeFalse();
+        workflow.Statuses.Select(s => s.ExternalKey).Should().Equal("new", "active", "closed");
+        workflow.DomainEvents.OfType<WorkflowStatusReinstatedEvent>().Should().ContainSingle().Which.StatusId.Should().Be(active.Id);
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldAddANewHiddenStatus_AsRetired()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+        var resolved = new SourceStatus("resolved", "Resolved", StatusCategory.Active, IsHidden: true);
+
+        // Act
+        var result = workflow.SyncFromSource("Agile: Bug", [SourceNew, resolved, SourceActive, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var added = StatusKeyed(workflow, "resolved");
+        added.IsRetired.Should().BeTrue();
+        workflow.Statuses.Last().Should().Be(added);
+        workflow.ActiveStatuses.Select(s => s.ExternalKey).Should().Equal("new", "active", "closed");
+        workflow.DomainEvents.Select(e => e.GetType()).Should().Equal(typeof(WorkflowStatusAddedEvent), typeof(WorkflowStatusRetiredEvent));
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldRaiseNothing_WhenAHiddenStatusStaysHidden()
+    {
+        // Arrange
+        var hidden = SourceActive with { IsHidden = true };
+        var workflow = ManagedWorkflow(SourceNew, hidden, SourceClosed);
+
+        // Act
+        var result = workflow.SyncFromSource("Agile: Bug", [SourceNew, hidden, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        workflow.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
     public void SyncFromSource_ShouldLetANewStatusTakeARetiredOnesName()
     {
         // Arrange

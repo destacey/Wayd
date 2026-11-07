@@ -15,4 +15,8 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// The category the source suggests. Used only when the status first appears: from then on the category is
 /// the administrators' mapping, and the sync never overwrites it.
 /// </param>
-public sealed record SourceStatus(string ExternalKey, string Name, StatusCategory Category);
+/// <param name="IsHidden">
+/// Whether the source keeps the status but no longer offers it, as Azure DevOps does with a hidden state. It
+/// is kept as a retired status, so records and history that hold it still resolve to it and its category.
+/// </param>
+public sealed record SourceStatus(string ExternalKey, string Name, StatusCategory Category, bool IsHidden = false);

@@ -4,6 +4,7 @@ using NodaTime;
 using Wayd.Common.Domain.Data;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Common.Domain.StatusWorkflows;
 
@@ -118,6 +119,49 @@ public sealed class WorkflowAssignment : BaseAuditableEntity
                     $"{remap.Unresolved.Count} status(es) have nowhere to go. Map every status before reassigning.");
             }
         }
+
+        var (fromSchemeId, fromWorkflowId) = (SchemeId, current.DefaultWorkflowId);
+        SchemeId = scheme.Id;
+        Scheme = scheme;
+
+        AddDomainEvent(new WorkflowAssignedEvent(
+            OwnerType, ScopeId, fromWorkflowId, defaultWorkflow.Id, defaultWorkflow.Name, fromSchemeId, scheme.Id, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Points this scope at the managed scheme its source now uses, as when an Azure DevOps project moves to
+    /// another process.
+    /// </summary>
+    /// <param name="scheme">The managed scheme the scope follows from now on.</param>
+    /// <param name="defaultWorkflow">That scheme's default workflow, named in the event.</param>
+    /// <remarks>
+    /// No remap is asked for, unlike <see cref="ReassignTo"/>: records under a managed scheme take their
+    /// status from the source, so the next sync of each record lands it in its type's new workflow.
+    /// </remarks>
+    public Result SyncFromSource(StatusWorkflowScheme scheme, StatusWorkflow defaultWorkflow, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(scheme, nameof(scheme));
+
+        if (scheme.Ownership != WorkflowOwnership.Managed)
+        {
+            return Result.Failure("Only a managed scheme is assigned by a sync.");
+        }
+
+        var target = GuardTarget(OwnerType, scheme, defaultWorkflow);
+        if (target.IsFailure)
+        {
+            return target;
+        }
+
+        if (scheme.Id == SchemeId)
+        {
+            return Result.Success();
+        }
+
+        var current = Scheme ?? throw new InvalidOperationException(
+            "The assignment's current scheme must be loaded to reassign it.");
 
         var (fromSchemeId, fromWorkflowId) = (SchemeId, current.DefaultWorkflowId);
         SchemeId = scheme.Id;

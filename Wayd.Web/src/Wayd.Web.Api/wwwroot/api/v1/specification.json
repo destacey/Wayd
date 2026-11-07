@@ -67347,6 +67347,18 @@
             "type": "string",
             "description": "The scheduler server running the job, matching a server's `name` from the servers endpoint.\nSet for processing jobs only.",
             "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "description": "When the successful run began. Set for succeeded jobs only.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "durationMilliseconds": {
+            "type": "integer",
+            "description": "How long the successful run took, in milliseconds, excluding time spent waiting in the queue.\nSet for succeeded jobs only.",
+            "format": "int64",
+            "nullable": true
           }
         },
         "additionalProperties": false,

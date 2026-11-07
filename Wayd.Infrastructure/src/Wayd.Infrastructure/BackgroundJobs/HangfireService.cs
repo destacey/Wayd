@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq.Expressions;
 using Hangfire;
 using Hangfire.Common;
@@ -72,7 +73,16 @@ public class HangfireService : IJobService
             JobStateFilter.Succeeded => Page(
                 monitoring.SucceededListCount(),
                 monitoring.SucceededJobs(from, pageSize),
-                (id, job) => Summary(id, job.Job, "Succeeded", ToInstant(job.SucceededAt), "Succeeded")),
+                (id, job) =>
+                {
+                    var succeededAt = ToInstant(job.SucceededAt);
+                    var (startedAt, duration) = SucceededRunTiming(job.StateData, succeededAt);
+                    return Summary(id, job.Job, "Succeeded", succeededAt, "Succeeded") with
+                    {
+                        StartedAt = startedAt,
+                        DurationMilliseconds = duration,
+                    };
+                }),
 
             JobStateFilter.Deleted => Page(
                 monitoring.DeletedListCount(),
@@ -276,6 +286,26 @@ public class HangfireService : IJobService
     /// </summary>
     internal static StateHistoryDto? CurrentFailure(IEnumerable<StateHistoryDto>? history) =>
         history?.FirstOrDefault(h => h.StateName == FailedStateName);
+
+    /// <summary>
+    /// When a successful run began and how long it took. Hangfire records the run time as
+    /// <c>PerformanceDuration</c> (milliseconds) on the succeeded state; <see cref="SucceededJobDto.TotalDuration"/>
+    /// is not used because it adds the time the job waited in the queue. Both are null when the state carries
+    /// no run time, as with a job forced into Succeeded by hand.
+    /// </summary>
+    internal static (Instant? StartedAt, long? DurationMilliseconds) SucceededRunTiming(
+        IDictionary<string, string>? stateData, Instant? succeededAt)
+    {
+        if (stateData is null
+            || !stateData.TryGetValue("PerformanceDuration", out var raw)
+            || !long.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var duration)
+            || duration < 0)
+        {
+            return (null, null);
+        }
+
+        return (succeededAt - Duration.FromMilliseconds(duration), duration);
+    }
 
     private static JobSummaryDto Summary(string id, Job? job, string state, Instant? timestamp, string timestampLabel) => new()
     {

@@ -66943,6 +66943,11 @@ export interface JobSummaryResponse {
     /** The scheduler server running the job, matching a server's `name` from the servers endpoint.
 Set for processing jobs only. */
     serverName?: string | undefined;
+    /** When the successful run began. Set for succeeded jobs only. */
+    startedAt?: Date | undefined;
+    /** How long the successful run took, in milliseconds, excluding time spent waiting in the queue.
+Set for succeeded jobs only. */
+    durationMilliseconds?: number | undefined;
 }
 
 /** Joins the caller to a poker session. */

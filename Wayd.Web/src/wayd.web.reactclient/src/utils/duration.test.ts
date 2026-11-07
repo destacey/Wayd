@@ -1,4 +1,21 @@
-import { formatDuration } from './duration'
+import { formatDuration, formatMilliseconds } from './duration'
+
+describe('formatMilliseconds', () => {
+  it.each([
+    [0, '0ms'],
+    [350, '350ms'],
+    [999, '999ms'],
+    [1000, '1s'],
+    [134250, '2m 14s'],
+    [3_900_000, '1h 05m'],
+  ])('should format %d ms as %s', (milliseconds, expected) => {
+    // Arrange / Act
+    const result = formatMilliseconds(milliseconds)
+
+    // Assert
+    expect(result).toBe(expected)
+  })
+})
 
 describe('formatDuration', () => {
   const end = '2026-11-07T12:00:00Z'

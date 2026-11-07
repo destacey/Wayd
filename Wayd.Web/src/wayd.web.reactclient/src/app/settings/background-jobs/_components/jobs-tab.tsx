@@ -25,35 +25,56 @@ import JobDetailsDrawer from './job-details-drawer'
 import ElapsedTime from './elapsed-time'
 import { findLongestRunningJobId, isRequeueableState } from './job-health'
 import useBackgroundJobActions from './use-background-job-actions'
+import { formatMilliseconds } from '@/src/utils/duration'
+import styles from './job-health-summary.module.css'
 
-/** The states in the order the summary strip reads them: live work first, then outcomes. */
+/**
+ * The states in the order the summary strip reads them: live work first, then
+ * outcomes. `timestampLabel` names each state's timestamp column, matching the
+ * label the API sends with each row, for a list with no rows to read it from.
+ */
 const states: {
   label: string
   value: JobStateFilter
+  timestampLabel: string
   count: (c: CurrentJobCountsResponse) => number
 }[] = [
   {
     label: 'Processing',
     value: JobStateFilter.Processing,
+    timestampLabel: 'Started',
     count: (c) => c.processing,
   },
   {
     label: 'Enqueued',
     value: JobStateFilter.Enqueued,
+    timestampLabel: 'Enqueued',
     count: (c) => c.enqueued,
   },
   {
     label: 'Scheduled',
     value: JobStateFilter.Scheduled,
+    timestampLabel: 'Runs At',
     count: (c) => c.scheduled,
   },
-  { label: 'Failed', value: JobStateFilter.Failed, count: (c) => c.failed },
+  {
+    label: 'Failed',
+    value: JobStateFilter.Failed,
+    timestampLabel: 'Failed',
+    count: (c) => c.failed,
+  },
   {
     label: 'Succeeded',
     value: JobStateFilter.Succeeded,
+    timestampLabel: 'Succeeded',
     count: (c) => c.succeeded,
   },
-  { label: 'Deleted', value: JobStateFilter.Deleted, count: (c) => c.deleted },
+  {
+    label: 'Deleted',
+    value: JobStateFilter.Deleted,
+    timestampLabel: 'Deleted',
+    count: (c) => c.deleted,
+  },
 ]
 
 const sameIds = (a: string[], b: string[]) =>
@@ -90,6 +111,7 @@ const JobsTab = ({ state, onStateChange, counts }: JobsTabProps) => {
 
   const isProcessing = state === JobStateFilter.Processing
   const isFailed = state === JobStateFilter.Failed
+  const isSucceeded = state === JobStateFilter.Succeeded
   // Requeueing a running job starts a second copy while the first keeps going.
   const canRequeueInState = canRun && !isProcessing
   const showRowActions = canRequeueInState || canDelete
@@ -159,7 +181,10 @@ const JobsTab = ({ state, onStateChange, counts }: JobsTabProps) => {
     ? findLongestRunningJobId(jobs?.items)
     : undefined
   // The meaningful timestamp differs per state; the API labels it.
-  const timestampLabel = jobs?.items?.[0]?.timestampLabel ?? 'Timestamp'
+  const timestampLabel =
+    jobs?.items?.[0]?.timestampLabel ??
+    states.find((s) => s.value === state)?.timestampLabel ??
+    'Timestamp'
 
   const selectColumn: ColumnDef<JobSummaryResponse, any> = {
     id: 'select',
@@ -300,12 +325,40 @@ const JobsTab = ({ state, onStateChange, counts }: JobsTabProps) => {
       size: 220,
       meta: { filterType: 'set' },
     },
+    // A run reads start, end, length; Started and Duration sit either side of Succeeded.
+    ...(isSucceeded
+      ? ([
+          {
+            id: 'startedAt',
+            accessorKey: 'startedAt',
+            header: 'Started',
+            meta: { columnType: 'dateTime' },
+          },
+        ] as ColumnDef<JobSummaryResponse, any>[])
+      : []),
     {
       id: 'timestamp',
       accessorKey: 'timestamp',
       header: timestampLabel,
       meta: { columnType: 'dateTime' },
     },
+    ...(isSucceeded
+      ? ([
+          {
+            id: 'durationMilliseconds',
+            accessorKey: 'durationMilliseconds',
+            header: 'Duration',
+            size: 120,
+            enableColumnFilter: false,
+            cell: ({ row }) =>
+              row.original.durationMilliseconds != null ? (
+                <span className={styles.elapsed}>
+                  {formatMilliseconds(row.original.durationMilliseconds)}
+                </span>
+              ) : null,
+          },
+        ] as ColumnDef<JobSummaryResponse, any>[])
+      : []),
     ...(isProcessing ? processingColumns : []),
     {
       id: 'namespace',

@@ -24,6 +24,15 @@ public class JobSummaryResponse
     /// </summary>
     public string? ServerName { get; set; }
 
+    /// <summary>When the successful run began. Set for succeeded jobs only.</summary>
+    public Instant? StartedAt { get; set; }
+
+    /// <summary>
+    /// How long the successful run took, in milliseconds, excluding time spent waiting in the queue.
+    /// Set for succeeded jobs only.
+    /// </summary>
+    public long? DurationMilliseconds { get; set; }
+
     internal static JobSummaryResponse From(JobSummaryDto job) => new()
     {
         Id = job.Id,
@@ -36,5 +45,7 @@ public class JobSummaryResponse
         ExceptionType = job.ExceptionType,
         ExceptionMessage = job.ExceptionMessage,
         ServerName = job.ServerName,
+        StartedAt = job.StartedAt,
+        DurationMilliseconds = job.DurationMilliseconds,
     };
 }

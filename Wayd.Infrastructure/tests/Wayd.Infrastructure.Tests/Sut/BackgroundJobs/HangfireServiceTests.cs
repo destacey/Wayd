@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Hangfire.Storage.Monitoring;
+using NodaTime;
 using Wayd.Common.Application.Models;
 using Wayd.Infrastructure.BackgroundJobs;
 
@@ -98,5 +99,51 @@ public sealed class HangfireServiceTests
         // Assert
         offset.Should().BePositive();
         offset.Should().Be(int.MaxValue - pageSize);
+    }
+
+    [Fact]
+    public void SucceededRunTiming_WithARecordedRunTime_StartsThatLongBeforeTheSuccess()
+    {
+        // Arrange
+        var succeededAt = Instant.FromUtc(2026, 11, 7, 12, 0, 0);
+        var stateData = new Dictionary<string, string> { ["PerformanceDuration"] = "134250", ["Latency"] = "90000" };
+
+        // Act
+        var (startedAt, duration) = HangfireService.SucceededRunTiming(stateData, succeededAt);
+
+        // Assert — the queue wait (Latency) is not part of the run.
+        duration.Should().Be(134250);
+        startedAt.Should().Be(Instant.FromUtc(2026, 11, 7, 11, 57, 45).Plus(Duration.FromMilliseconds(750)));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("not-a-number")]
+    [InlineData("-5")]
+    public void SucceededRunTiming_WithoutAUsableRunTime_ReturnsNothing(string? performanceDuration)
+    {
+        // Arrange
+        var stateData = performanceDuration is null
+            ? new Dictionary<string, string>()
+            : new Dictionary<string, string> { ["PerformanceDuration"] = performanceDuration };
+
+        // Act
+        var (startedAt, duration) = HangfireService.SucceededRunTiming(stateData, Instant.FromUtc(2026, 11, 7, 12, 0));
+
+        // Assert
+        startedAt.Should().BeNull();
+        duration.Should().BeNull();
+    }
+
+    [Fact]
+    public void SucceededRunTiming_WithoutStateData_ReturnsNothing()
+    {
+        // Act
+        var (startedAt, duration) = HangfireService.SucceededRunTiming(null, Instant.FromUtc(2026, 11, 7, 12, 0));
+
+        // Assert
+        startedAt.Should().BeNull();
+        duration.Should().BeNull();
     }
 }

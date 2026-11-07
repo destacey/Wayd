@@ -585,6 +585,8 @@ Three tabs sit below the strip, with the number of schedules and servers on thei
 | **Recurring** | Every registered schedule, with its cron expression, next and last run, and the outcome of the last run. Remove a schedule here. |
 | **Servers** | The worker processes polling for jobs, with their heartbeat. No servers means nothing will run. |
 
+**Succeeded** shows when each run started and finished and how long it took. The duration counts only the run itself, not the time the job waited in the queue; a job with no recorded run time leaves both blank.
+
 **Processing** shows how long each job has been running and which server is running it. The longest-running job on the page is marked **longest**, which is where a stuck job shows first. A running job can be deleted but not requeued: requeueing would start a second copy while the first keeps going, so Wayd refuses it, including when the job starts running between your looking and your click.
 
 ### Diagnosing a failure

@@ -127382,6 +127382,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("serverName")]
         public string? ServerName { get; set; } = default!;
 
+        /// <summary>
+        /// When the successful run began. Set for succeeded jobs only.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("startedAt")]
+        public System.DateTimeOffset? StartedAt { get; set; } = default!;
+
+        /// <summary>
+        /// How long the successful run took, in milliseconds, excluding time spent waiting in the queue.
+        /// <br/>Set for succeeded jobs only.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("durationMilliseconds")]
+        public long? DurationMilliseconds { get; set; } = default!;
+
     }
 
     /// <summary>

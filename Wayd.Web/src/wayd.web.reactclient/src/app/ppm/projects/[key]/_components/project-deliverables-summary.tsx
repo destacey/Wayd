@@ -9,6 +9,7 @@ import {
 import { RightOutlined } from '@ant-design/icons'
 import { Card, Flex, Progress, Tag, Typography } from 'antd'
 import Link from 'next/link'
+import DeliverableProgress from '@/src/app/ppm/projects/_components/deliverable-progress'
 import { isOverdue } from './deliverable-status'
 
 const { Text } = Typography
@@ -33,7 +34,8 @@ const byTargetDate = (a: ProjectDeliverableDto, b: ProjectDeliverableDto) => {
 
 /**
  * Where the project stands against what it committed to: how many deliverables
- * are accepted, and the next few still open, soonest due first. Descoped
+ * are accepted, and the next few still open, soonest due first, each with how
+ * far its linked plan work has got when any is linked. Descoped
  * deliverables leave the count, since they no longer stand between the project
  * and done. Renders nothing for a project with no deliverables in scope.
  */
@@ -101,6 +103,9 @@ const ProjectDeliverablesSummary = ({
                   {d.name}
                 </Text>
                 <Flex gap="small" align="center">
+                  {d.progress !== null && d.progress !== undefined && (
+                    <DeliverableProgress progress={d.progress} width={90} />
+                  )}
                   <Text type="secondary" style={{ whiteSpace: 'nowrap' }}>
                     {d.targetDate
                       ? formatCalendarDate(d.targetDate)

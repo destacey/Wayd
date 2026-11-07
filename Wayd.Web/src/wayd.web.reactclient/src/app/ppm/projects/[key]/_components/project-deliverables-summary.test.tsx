@@ -105,6 +105,29 @@ describe('ProjectDeliverablesSummary', () => {
     ).toBeTruthy()
   })
 
+  it('shows the linked work progress of an open deliverable that has any', () => {
+    // Arrange
+    mockQuery.mockReturnValue({
+      data: [
+        {
+          ...deliverable('Data migration', StatusCategory.Active, '2026-12-01'),
+          progress: 42,
+          linkedTaskCount: 3,
+        },
+        deliverable('Training', StatusCategory.Proposed, '2027-01-15'),
+      ],
+    })
+
+    // Act
+    render(<ProjectDeliverablesSummary projectId="p-1" projectKey="CPM" />)
+
+    // Assert
+    expect(
+      screen.getByLabelText('42% of the linked plan work done'),
+    ).toBeInTheDocument()
+    expect(screen.getAllByRole('progressbar')).toHaveLength(2)
+  })
+
   it('renders nothing when every deliverable was descoped', () => {
     // Arrange
     mockQuery.mockReturnValue({

@@ -2,6 +2,10 @@
 
 import ChangeProjectDeliverableStatusForm from '@/src/app/ppm/projects/_components/change-project-deliverable-status-form'
 import DeleteProjectDeliverableForm from '@/src/app/ppm/projects/_components/delete-project-deliverable-form'
+import DeliverableProgress from '@/src/app/ppm/projects/_components/deliverable-progress'
+import SetDeliverableTasksForm, {
+  linkedTasks,
+} from '@/src/app/ppm/projects/_components/set-deliverable-tasks-form'
 import { deliverableErrorMessage } from '@/src/app/ppm/projects/_components/project-deliverable-errors'
 import ProjectDeliverableForm from '@/src/app/ppm/projects/_components/project-deliverable-form'
 import {
@@ -35,6 +39,7 @@ import {
   useGetProjectDeliverablesQuery,
   useReorderProjectDeliverablesMutation,
 } from '@/src/store/features/ppm/project-deliverables-api'
+import { useGetProjectPlanTreeQuery } from '@/src/store/features/ppm/projects-api'
 import { toApiError } from '@/src/utils'
 import { formatCalendarDate } from '@/src/utils/calendar-date'
 import { Card, Flex, Switch, Tag, Typography } from 'antd'
@@ -50,6 +55,8 @@ export interface ProjectDeliverablesProps {
   project: ProjectDetailsDto
   /** The caller holds Update and leads the project, and the project is still open. */
   canManage: boolean
+  /** The caller holds Update. Linking plan tasks is plan work, which needs no project role. */
+  canLinkTasks: boolean
   /**
    * The project is being refetched. Every change sends the project's revision
    * back, so a change made before the new revision arrives would be refused.
@@ -68,7 +75,7 @@ const canDelete = (
   (project.status.name === 'Proposed' || project.status.name === 'Approved') &&
   deliverable.status.category === StatusCategory.Proposed
 
-type Dialog = 'edit' | 'status' | 'delete'
+type Dialog = 'edit' | 'status' | 'delete' | 'tasks'
 
 const Count = ({
   label,
@@ -104,13 +111,14 @@ const OwnerLink = ({ owner }: { owner: ProjectDeliverableDto['owner'] }) =>
  * full in a side panel (a drawer on narrow screens).
  *
  * The grid's order is the deliverables' order, so dragging a row reorders
- * them. Descoped deliverables are hidden until asked for, since they no longer
+ * them. Progress is derived from the plan tasks linked to each one. Descoped deliverables are hidden until asked for, since they no longer
  * count toward the project being done; reordering the rest leaves them where
  * they were.
  */
 const ProjectDeliverables = ({
   project,
   canManage,
+  canLinkTasks,
   projectRefreshing,
   addRequested,
   onAddClosed,
@@ -122,6 +130,9 @@ const ProjectDeliverables = ({
     useGetProjectDeliverablesQuery(project.id)
   const [reorder, { isLoading: isReordering }] =
     useReorderProjectDeliverablesMutation()
+  const { data: plan = [] } = useGetProjectPlanTreeQuery(project.key, {
+    skip: !project.projectLifecycle,
+  })
 
   const [showDescoped, setShowDescoped] = useState(false)
   const [active, setActive] = useState<{
@@ -149,6 +160,7 @@ const ProjectDeliverables = ({
     : deliverables.filter((d) => d.status.category !== StatusCategory.Removed)
 
   const selected = deliverables.find((d) => d.id === selectedId) ?? null
+  const selectedTasks = selected ? linkedTasks(plan, selected.id) : []
   const showHistory = !!selected && historyFor === selected.id
 
   const { data: history, isLoading: historyLoading } =
@@ -158,10 +170,22 @@ const ProjectDeliverables = ({
     )
 
   const getActionItems = (deliverable: ProjectDeliverableDto): ItemType[] => {
-    if (!canManage) return []
     const openDialog = (dialog: Dialog) => () =>
       setActive({ dialog, target: deliverable })
+    // Links do not move the project's revision, so they wait on nothing.
+    const linkItems: ItemType[] =
+      canLinkTasks && project.projectLifecycle
+        ? [
+            {
+              key: 'tasks',
+              label: 'Link Tasks',
+              onClick: openDialog('tasks'),
+            },
+          ]
+        : []
+    if (!canManage) return linkItems
     return [
+      ...linkItems,
       {
         key: 'status',
         label: 'Change Status',
@@ -222,7 +246,7 @@ const ProjectDeliverables = ({
     createActionsColumn<ProjectDeliverableDto>({
       getItems: getActionItems,
       ariaLabel: 'Deliverable actions',
-      unavailable: !canManage,
+      unavailable: !canManage && !canLinkTasks,
       size: 70,
       leading: (
         <DragHandleCell
@@ -250,6 +274,19 @@ const ProjectDeliverables = ({
       size: 140,
       meta: { filterType: 'set' },
       cell: ({ row }) => <StatusHistoryTag status={row.original.status} />,
+    },
+    {
+      id: 'progress',
+      accessorKey: 'progress',
+      header: 'Progress',
+      size: 150,
+      meta: {
+        filterType: 'numericRange',
+        filterPlaceholder: 'e.g. >=50',
+      },
+      cell: ({ row }) => (
+        <DeliverableProgress progress={row.original.progress} width={120} />
+      ),
     },
     {
       id: 'owner',
@@ -289,6 +326,22 @@ const ProjectDeliverables = ({
         />
         {isOverdue(selected) && <Tag color="warning">Overdue</Tag>}
       </Flex>
+      <LabeledContent label="Progress">
+        <DeliverableProgress progress={selected.progress} width={200} />
+      </LabeledContent>
+      <LabeledContent label="Linked Tasks">
+        {selectedTasks.length === 0 ? (
+          <Text type="secondary">None</Text>
+        ) : (
+          <Flex vertical gap={2}>
+            {selectedTasks.map((t) => (
+              <Text key={t.id}>
+                <Text type="secondary">{t.key}</Text> {t.name}
+              </Text>
+            ))}
+          </Flex>
+        )}
+      </LabeledContent>
       <LabeledContent label="Owner">
         {selected.owner ? (
           <OwnerLink owner={selected.owner} />
@@ -412,6 +465,15 @@ const ProjectDeliverables = ({
           projectId={project.id}
           projectRevision={project.revision}
           deliverable={active.target}
+          onFormComplete={close}
+          onFormCancel={close}
+        />
+      )}
+      {active?.dialog === 'tasks' && (
+        <SetDeliverableTasksForm
+          projectId={project.id}
+          deliverable={active.target}
+          plan={plan}
           onFormComplete={close}
           onFormCancel={close}
         />

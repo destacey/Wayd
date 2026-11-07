@@ -44,6 +44,9 @@ export const projectTaskMutationTags = (projectIdOrKey: string) => [
   { type: QueryTags.ProjectPlanTree, id: projectIdOrKey },
   { type: QueryTags.ProjectPlanTree },
   { type: QueryTags.Project, id: 'MY_TASK_METRICS' },
+  // A deliverable's progress is derived from its tasks, and deliverables are
+  // tagged by project GUID, which a key cannot reach.
+  { type: QueryTags.ProjectDeliverable },
 ]
 
 export const projectTasksApi = apiSlice.injectEndpoints({

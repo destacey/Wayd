@@ -16,6 +16,11 @@ internal static class IntakeRequestAccess
     /// <summary>
     /// The request, tracked, when the reader may see it; otherwise null.
     /// </summary>
+    /// <param name="deliverablesOfTargetId">
+    /// Loads the outcomes, and the mapped deliverables of the one outcome pointing at this target only: what
+    /// changing or removing that outcome reads. Every other outcome's deliverables stay unloaded, so nothing may
+    /// change them.
+    /// </param>
     public static Task<IntakeRequest?> FindVisible(
         this IDemandManagementDbContext dbContext,
         IntakeRequestReader reader,
@@ -24,14 +29,18 @@ internal static class IntakeRequestAccess
         CancellationToken cancellationToken,
         bool includeTags = false,
         bool includeOutcomes = false,
-        bool includeScores = false)
+        bool includeScores = false,
+        Guid? deliverablesOfTargetId = null)
     {
         var query = dbContext.IntakeRequests.AsQueryable();
         if (includeParticipants)
             query = query.Include(r => r.Participants);
         if (includeTags)
             query = query.Include(r => r.Tags);
-        if (includeOutcomes)
+        if (deliverablesOfTargetId is { } targetId)
+            query = query.Include(r => r.Outcomes)
+                .ThenInclude(o => o.Deliverables.Where(d => d.TargetId == targetId));
+        else if (includeOutcomes)
             query = query.Include(r => r.Outcomes);
         if (includeScores)
             query = query.Include(r => r.Scores);

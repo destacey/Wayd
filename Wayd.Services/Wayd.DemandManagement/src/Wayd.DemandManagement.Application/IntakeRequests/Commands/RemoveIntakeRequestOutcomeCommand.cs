@@ -40,8 +40,9 @@ public sealed class RemoveIntakeRequestOutcomeCommandHandler(
         if (reader.EmployeeId is null)
             LinkedEmployeeRequired.Throw();
 
+        // The removed outcome's deliverables are read for the event that records what it was mapped to.
         var intakeRequest = await _dbContext.FindVisible(reader, request.Id, includeParticipants: false, cancellationToken,
-            includeOutcomes: true);
+            deliverablesOfTargetId: request.TargetId);
         if (intakeRequest is null)
             return Result.Failure(IntakeRequestAccess.NotFoundError);
 

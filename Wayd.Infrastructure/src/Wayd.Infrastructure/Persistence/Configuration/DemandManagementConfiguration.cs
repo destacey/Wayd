@@ -441,6 +441,29 @@ public class IntakeRequestOutcomeConfiguration : IEntityTypeConfiguration<Intake
             .WithMany()
             .HasForeignKey(o => o.AddedById)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(o => o.Deliverables)
+            .WithOne()
+            .HasForeignKey(d => new { d.RequestId, d.TargetId })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(o => o.Deliverables).HasField("_deliverables").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class IntakeRequestOutcomeDeliverableConfiguration : IEntityTypeConfiguration<IntakeRequestOutcomeDeliverable>
+{
+    public void Configure(EntityTypeBuilder<IntakeRequestOutcomeDeliverable> builder)
+    {
+        builder.ToTable("IntakeRequestOutcomeDeliverables", SchemaNames.DemandManagement);
+
+        // An outcome names a deliverable at most once.
+        builder.HasKey(d => new { d.RequestId, d.TargetId, d.DeliverableId });
+
+        // "Which requests does this deliverable serve": the reverse view on the project's page.
+        builder.HasIndex(d => d.DeliverableId);
+
+        // No foreign key on DeliverableId: the mapping outlives a deliverable deleted from its project, as the
+        // outcome outlives its project.
     }
 }
 

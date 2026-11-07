@@ -1695,7 +1695,7 @@ public sealed class IntakeRequestTests
         var timestamp = _dateTimeProvider.Now;
 
         // Act
-        var result = sut.AddOutcome(IntakeRequestOutcomeKind.NewProject, projectId, " Phase one ", addedById, EventActor.System, timestamp);
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.NewProject, projectId, " Phase one ", [], addedById, EventActor.System, timestamp);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1725,7 +1725,7 @@ public sealed class IntakeRequestTests
         var sut = new IntakeRequestFaker().InStatus(category).Generate();
 
         // Act
-        var result = sut.AddOutcome(IntakeRequestOutcomeKind.NewProject, Guid.NewGuid(), null, Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.NewProject, Guid.NewGuid(), null, [], Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1743,7 +1743,7 @@ public sealed class IntakeRequestTests
         var sut = AnAcceptedRequest();
 
         // Act
-        var result = sut.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, Guid.NewGuid(), note, Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, Guid.NewGuid(), note, [], Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1759,7 +1759,7 @@ public sealed class IntakeRequestTests
         var workItemId = Guid.NewGuid();
 
         // Act
-        var result = sut.AddOutcome(IntakeRequestOutcomeKind.WorkItem, workItemId, null, Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.WorkItem, workItemId, null, [], Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1782,7 +1782,7 @@ public sealed class IntakeRequestTests
             .Generate();
 
         // Act
-        var result = sut.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, projectId, "Export screen", Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, projectId, "Export screen", [], Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1798,7 +1798,7 @@ public sealed class IntakeRequestTests
         var sut = new IntakeRequestFaker().WithKey(0).InStatus(StatusCategory.Active).Generate();
 
         // Act
-        var result = sut.AddOutcome(IntakeRequestOutcomeKind.NewProject, Guid.NewGuid(), null, Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.NewProject, Guid.NewGuid(), null, [], Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1859,6 +1859,197 @@ public sealed class IntakeRequestTests
         result.Error.Should().Be(IntakeRequest.OutcomeNeedsAcceptedRequestError);
         sut.Outcomes.Should().ContainSingle();
     }
+
+    [Fact]
+    public void AddOutcome_ExistingProjectScopeWithDeliverables_MapsThemOnceAndRaisesThem()
+    {
+        // Arrange
+        var sut = AnAcceptedRequest();
+        var projectId = Guid.NewGuid();
+        var portal = Guid.NewGuid();
+        var reports = Guid.NewGuid();
+
+        // Act
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, projectId, "Export screen",
+            [portal, reports, portal], Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var outcome = sut.Outcomes.Should().ContainSingle().Subject;
+        outcome.Deliverables.Should().BeEquivalentTo(new[]
+        {
+            new { RequestId = sut.Id, TargetId = projectId, DeliverableId = portal },
+            new { RequestId = sut.Id, TargetId = projectId, DeliverableId = reports },
+        });
+        sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestOutcomeAddedEvent>()
+            .Which.DeliverableIds.Should().BeEquivalentTo([portal, reports]);
+    }
+
+    [Theory]
+    [InlineData(IntakeRequestOutcomeKind.NewProject)]
+    [InlineData(IntakeRequestOutcomeKind.WorkItem)]
+    public void AddOutcome_OtherThanExistingProjectScopeWithDeliverables_FailsAndRecordsNothing(IntakeRequestOutcomeKind kind)
+    {
+        // Arrange
+        var sut = AnAcceptedRequest();
+
+        // Act
+        var result = sut.AddOutcome(kind, Guid.NewGuid(), "Note", [Guid.NewGuid()], Guid.NewGuid(), EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.DeliverablesNeedExistingProjectScopeError);
+        sut.Outcomes.Should().BeEmpty();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetOutcomeDeliverables_AddsAndRemovesAndRaisesBothEndsWithTheResultingSet()
+    {
+        // Arrange
+        var projectId = Guid.NewGuid();
+        var kept = Guid.NewGuid();
+        var dropped = Guid.NewGuid();
+        var added = Guid.NewGuid();
+        var sut = AnAcceptedScopeRequest(projectId, kept, dropped);
+
+        // Act
+        var result = sut.SetOutcomeDeliverables(projectId, [kept, added], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Outcomes.Single().DeliverableIds().Should().BeEquivalentTo([kept, added]);
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestOutcomeDeliverablesChangedEvent>().Subject;
+        changed.TargetId.Should().Be(projectId);
+        changed.Added.Should().Equal(added);
+        changed.Removed.Should().Equal(dropped);
+        changed.DeliverableIds.Should().BeEquivalentTo([kept, added]);
+    }
+
+    [Fact]
+    public void SetOutcomeDeliverables_KeepsTheRowsThatStay()
+    {
+        // Arrange — the row kept must be the same instance, or EF would delete and reinsert it.
+        var projectId = Guid.NewGuid();
+        var kept = Guid.NewGuid();
+        var sut = AnAcceptedScopeRequest(projectId, kept);
+        var row = sut.Outcomes.Single().Deliverables.Single();
+
+        // Act
+        sut.SetOutcomeDeliverables(projectId, [kept, Guid.NewGuid()], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.Outcomes.Single().Deliverables.Should().Contain(d => ReferenceEquals(d, row));
+    }
+
+    [Fact]
+    public void SetOutcomeDeliverables_ToTheSameSet_RaisesNothing()
+    {
+        // Arrange
+        var projectId = Guid.NewGuid();
+        var first = Guid.NewGuid();
+        var second = Guid.NewGuid();
+        var sut = AnAcceptedScopeRequest(projectId, first, second);
+
+        // Act
+        var result = sut.SetOutcomeDeliverables(projectId, [second, first], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetOutcomeDeliverables_ToNone_ClearsTheMapping()
+    {
+        // Arrange
+        var projectId = Guid.NewGuid();
+        var only = Guid.NewGuid();
+        var sut = AnAcceptedScopeRequest(projectId, only);
+
+        // Act
+        var result = sut.SetOutcomeDeliverables(projectId, [], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Outcomes.Single().Deliverables.Should().BeEmpty();
+        sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestOutcomeDeliverablesChangedEvent>()
+            .Which.Removed.Should().Equal(only);
+    }
+
+    [Fact]
+    public void SetOutcomeDeliverables_OnANewProjectOutcome_Fails()
+    {
+        // Arrange
+        var projectId = Guid.NewGuid();
+        var sut = AnAcceptedRequest(projectId);
+
+        // Act
+        var result = sut.SetOutcomeDeliverables(projectId, [Guid.NewGuid()], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.DeliverablesNeedExistingProjectScopeError);
+        sut.Outcomes.Single().Deliverables.Should().BeEmpty();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetOutcomeDeliverables_ForAnOutcomeItDoesNotHave_Fails()
+    {
+        // Arrange
+        var sut = AnAcceptedScopeRequest(Guid.NewGuid());
+
+        // Act
+        var result = sut.SetOutcomeDeliverables(Guid.NewGuid(), [Guid.NewGuid()], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.OutcomeNotFoundError);
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Proposed)]
+    [InlineData(StatusCategory.Done)]
+    [InlineData(StatusCategory.Removed)]
+    public void SetOutcomeDeliverables_WhenNotAccepted_FailsAndKeepsTheMapping(StatusCategory category)
+    {
+        // Arrange
+        var projectId = Guid.NewGuid();
+        var mapped = Guid.NewGuid();
+        var sut = new IntakeRequestFaker().InStatus(category).WithProjectScopeOutcome(projectId, mapped).Generate();
+
+        // Act
+        var result = sut.SetOutcomeDeliverables(projectId, [], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.OutcomeNeedsAcceptedRequestError);
+        sut.Outcomes.Single().DeliverableIds().Should().Equal(mapped);
+    }
+
+    [Fact]
+    public void RemoveOutcome_MappedToDeliverables_RaisesWhatItWasMappedTo()
+    {
+        // Arrange
+        var projectId = Guid.NewGuid();
+        var mapped = Guid.NewGuid();
+        var sut = AnAcceptedScopeRequest(projectId, mapped);
+
+        // Act
+        var result = sut.RemoveOutcome(projectId, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestOutcomeRemovedEvent>()
+            .Which.DeliverableIds.Should().Equal(mapped);
+    }
+
+    private static IntakeRequest AnAcceptedScopeRequest(Guid projectId, params Guid[] deliverableIds) =>
+        new IntakeRequestFaker()
+            .InStatus(StatusCategory.Active, IntakeRequestStatusAlias.Accepted)
+            .WithProjectScopeOutcome(projectId, deliverableIds)
+            .Generate();
 
     [Fact]
     public void ChangeStatus_ToFinishedWithAnOutcome_NeedsNoReason()

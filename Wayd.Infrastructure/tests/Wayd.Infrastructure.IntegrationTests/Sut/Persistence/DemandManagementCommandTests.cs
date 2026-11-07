@@ -826,6 +826,80 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         saved.Note.Should().BeNull();
     }
 
+    [Fact]
+    public async Task RemoveIntakeRequestOutcome_MappedToDeliverables_TakesItsMappingAndLeavesTheOtherOutcomesMapping()
+    {
+        // Arrange — two existing project scope outcomes, each mapped; the handler loads only the removed one's.
+        var ct = TestContext.Current.CancellationToken;
+        var (requestId, agent, removedProjectId) = await SeedAcceptedWithAProject(ct);
+        var keptProjectId = await SeedProjectCopy(ct);
+        Guid[] removedDeliverables = [Guid.NewGuid(), Guid.NewGuid()];
+        var keptDeliverable = Guid.NewGuid();
+        await using (var mapping = _fixture.CreateContext())
+        {
+            var request = await mapping.IntakeRequests.Include(r => r.Outcomes).SingleAsync(r => r.Id == requestId, ct);
+            request.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, removedProjectId, "Export screen", removedDeliverables,
+                agent.Id, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            request.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, keptProjectId, "Audit trail", [keptDeliverable],
+                agent.Id, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            await mapping.SaveChangesAsync(ct);
+        }
+
+        // Act
+        Result removed;
+        await using (var context = _fixture.CreateContext())
+        {
+            removed = await new RemoveIntakeRequestOutcomeCommandHandler(context, Principal(agent.Id), User(), _clock)
+                .Handle(new RemoveIntakeRequestOutcomeCommand(requestId, removedProjectId), ct);
+        }
+
+        // Assert
+        removed.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        var outcomes = await reader.IntakeRequests.Where(r => r.Id == requestId)
+            .SelectMany(r => r.Outcomes).Include(o => o.Deliverables).ToListAsync(ct);
+        outcomes.Should().ContainSingle().Which.DeliverableIds().Should().Equal(keptDeliverable);
+        var payload = await reader.ActivityLogs
+            .Where(a => a.AggregateId == requestId && a.EventType == nameof(IntakeRequestOutcomeRemovedEvent))
+            .Select(a => a.Payload)
+            .SingleAsync(ct);
+        payload.Should().Contain(removedDeliverables[0].ToString()).And.Contain(removedDeliverables[1].ToString());
+    }
+
+    [Fact]
+    public async Task SaveChanges_AMappedOutcome_RoundTripsItsDeliverables()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (requestId, agent, projectId) = await SeedAcceptedWithAProject(ct);
+        Guid[] deliverables = [Guid.NewGuid(), Guid.NewGuid()];
+
+        // Act
+        await using (var mapping = _fixture.CreateContext())
+        {
+            var request = await mapping.IntakeRequests.Include(r => r.Outcomes).SingleAsync(r => r.Id == requestId, ct);
+            request.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, projectId, "Export screen", deliverables,
+                agent.Id, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            await mapping.SaveChangesAsync(ct);
+        }
+
+        // Assert
+        await using var reader = _fixture.CreateContext();
+        var outcome = await reader.IntakeRequests.Where(r => r.Id == requestId)
+            .SelectMany(r => r.Outcomes).Include(o => o.Deliverables).SingleAsync(ct);
+        outcome.DeliverableIds().Should().BeEquivalentTo(deliverables);
+    }
+
+    private async Task<Guid> SeedProjectCopy(CancellationToken ct)
+    {
+        var projectId = Guid.NewGuid();
+        await using var context = _fixture.CreateContext();
+        context.DemandProjects.Add(new DemandProject(
+            new SourceProject(projectId, new ProjectKey("P" + Guid.NewGuid().ToString("N")[..10]), "Borealis"), Now));
+        await context.SaveChangesAsync(ct);
+        return projectId;
+    }
+
     /// <summary>A request accepted by its desk's admin, and a project Demand Management holds a copy of.</summary>
     private async Task<(Guid RequestId, Employee Agent, Guid ProjectId)> SeedAcceptedWithAProject(CancellationToken ct)
     {

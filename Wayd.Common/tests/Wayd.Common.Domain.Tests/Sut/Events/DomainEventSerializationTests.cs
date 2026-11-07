@@ -539,6 +539,53 @@ public sealed class DomainEventSerializationTests
 #pragma warning restore CS0618
 
     [Fact]
+    public void IntakeRequestOutcomeAddedEvent_WrittenBeforeDeliverables_ReadsAsMappingNone()
+    {
+        // Arrange — a 1.1 payload, from before outcomes could be mapped to deliverables
+        var original = new IntakeRequestOutcomeAddedEvent(Guid.NewGuid(), 42, IntakeRequestOutcomeKind.ExistingProjectScope,
+            Guid.NewGuid(), "Export screen", [Guid.NewGuid()], [Guid.NewGuid()], EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+        var payload = JsonNode.Parse(JsonSerializer.Serialize(original, Options))!.AsObject();
+        payload.Remove(nameof(IntakeRequestOutcomeAddedEvent.DeliverableIds)).Should().BeTrue();
+
+        // Act
+        var read = JsonSerializer.Deserialize<IntakeRequestOutcomeAddedEvent>(payload.ToJsonString(), Options)!;
+
+        // Assert
+        read.DeliverableIds.Should().BeEmpty();
+        read.TargetIds.Should().Equal(original.TargetIds);
+    }
+
+    [Fact]
+    public void IntakeRequestOutcomeRemovedEvent_WrittenBeforeDeliverables_ReadsAsMappingNone()
+    {
+        // Arrange — a 1.1 payload, from before outcomes could be mapped to deliverables
+        var original = new IntakeRequestOutcomeRemovedEvent(Guid.NewGuid(), 42, IntakeRequestOutcomeKind.NewProject,
+            Guid.NewGuid(), null, [], [Guid.NewGuid()], EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+        var payload = JsonNode.Parse(JsonSerializer.Serialize(original, Options))!.AsObject();
+        payload.Remove(nameof(IntakeRequestOutcomeRemovedEvent.DeliverableIds)).Should().BeTrue();
+
+        // Act
+        var read = JsonSerializer.Deserialize<IntakeRequestOutcomeRemovedEvent>(payload.ToJsonString(), Options)!;
+
+        // Assert
+        read.DeliverableIds.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void IntakeRequestOutcomeDeliverablesChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var original = new IntakeRequestOutcomeDeliverablesChangedEvent(Guid.NewGuid(), 42, Guid.NewGuid(),
+            [Guid.NewGuid()], [Guid.NewGuid()], [Guid.NewGuid(), Guid.NewGuid()], EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
+    [Fact]
     public void IntakeRequestNeedByChangedEvent_RoundTripsThroughDurableSerializer()
     {
         // Arrange — both ends, the second one cleared

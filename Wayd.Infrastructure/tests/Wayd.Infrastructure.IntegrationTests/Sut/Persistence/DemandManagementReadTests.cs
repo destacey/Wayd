@@ -653,11 +653,11 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
                 var accepted = new StatusRef(request.StatusWorkflowId, Guid.CreateVersion7(), "Accepted", StatusCategory.Active,
                     (int)IntakeRequestStatusAlias.Accepted);
                 request.ChangeStatus(accepted, null, null, EventActor.System, Now).IsSuccess.Should().BeTrue();
-                request.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, projectId, "Export screen", scenario.Agent.Id,
+                request.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, projectId, "Export screen", [], scenario.Agent.Id,
                     EventActor.System, Now).IsSuccess.Should().BeTrue();
             }
             requests.Single(r => r.Id == scenario.OnOpen.Id)
-                .AddOutcome(IntakeRequestOutcomeKind.NewProject, deletedProjectId, null, scenario.Agent.Id, EventActor.System, Now)
+                .AddOutcome(IntakeRequestOutcomeKind.NewProject, deletedProjectId, null, [], scenario.Agent.Id, EventActor.System, Now)
                 .IsSuccess.Should().BeTrue();
             await arrange.SaveChangesAsync(ct);
         }
@@ -703,7 +703,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
                 var accepted = new StatusRef(request.StatusWorkflowId, Guid.CreateVersion7(), "Accepted", StatusCategory.Active,
                     (int)IntakeRequestStatusAlias.Accepted);
                 request.ChangeStatus(accepted, null, null, EventActor.System, Now).IsSuccess.Should().BeTrue();
-                request.AddOutcome(IntakeRequestOutcomeKind.WorkItem, workItemId, "The export screen", scenario.Agent.Id,
+                request.AddOutcome(IntakeRequestOutcomeKind.WorkItem, workItemId, "The export screen", [], scenario.Agent.Id,
                     EventActor.System, Now).IsSuccess.Should().BeTrue();
             }
             await arrange.SaveChangesAsync(ct);

@@ -2562,6 +2562,24 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("IntakeRequestOutcomes", "DemandManagement");
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestOutcomeDeliverable", b =>
+                {
+                    b.Property<Guid>("RequestId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("DeliverableId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("RequestId", "TargetId", "DeliverableId");
+
+                    b.HasIndex("DeliverableId");
+
+                    b.ToTable("IntakeRequestOutcomeDeliverables", "DemandManagement");
+                });
+
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestParticipant", b =>
                 {
                     b.Property<Guid>("RequestId")
@@ -10308,6 +10326,15 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestOutcomeDeliverable", b =>
+                {
+                    b.HasOne("Wayd.DemandManagement.Domain.Models.IntakeRequestOutcome", null)
+                        .WithMany("Deliverables")
+                        .HasForeignKey("RequestId", "TargetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestParticipant", b =>
                 {
                     b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
@@ -12396,6 +12423,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Scores");
 
                     b.Navigation("Tags");
+                });
+
+            modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestOutcome", b =>
+                {
+                    b.Navigation("Deliverables");
                 });
 
             modelBuilder.Entity("Wayd.DemandManagement.Domain.Models.IntakeRequestTagCategory", b =>

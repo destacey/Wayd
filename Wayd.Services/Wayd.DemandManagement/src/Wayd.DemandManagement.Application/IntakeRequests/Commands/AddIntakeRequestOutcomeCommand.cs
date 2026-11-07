@@ -76,7 +76,7 @@ public sealed class AddIntakeRequestOutcomeCommandHandler(
         if (targetCheck.IsFailure)
             return targetCheck;
 
-        var result = intakeRequest.AddOutcome(request.Kind, request.TargetId, request.Note, employeeId,
+        var result = intakeRequest.AddOutcome(request.Kind, request.TargetId, request.Note, [], employeeId,
             EventActor.User(_currentUser.GetUserId(), employeeId), _dateTimeProvider.Now);
         if (result.IsFailure)
             return result;

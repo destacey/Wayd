@@ -58,6 +58,7 @@ const createHealth = (): TeamBacklogHealthDto =>
     lookbackDays: 90,
     from: '2026-06-24',
     to: '2026-09-21',
+    timeZone: 'America/Chicago',
     totalWorkItems: 2,
     sizingMethod: SizingMethod.StoryPoints,
     totalEstimate: 8,
@@ -131,7 +132,7 @@ describe('BacklogHealthReportView', () => {
 
     expect(
       screen.getByText(
-        /30 completed, 28 created\. .*top 10 work items\. Aging beyond 12\.3 days\./,
+        /\(America\/Chicago\): 30 completed, 28 created\. .*top 10 work items\. Aging beyond 12\.3 days\./,
       ),
     ).toBeInTheDocument()
   })

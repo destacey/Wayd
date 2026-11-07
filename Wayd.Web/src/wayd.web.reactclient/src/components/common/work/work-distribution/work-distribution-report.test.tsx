@@ -9,7 +9,9 @@ import {
   ThemeCounting,
   UnestimatedHandling,
 } from '@/src/services/wayd-api'
+import { useGetTeamWorkDistributionQuery } from '@/src/store/features/organizations/team-api'
 import {
+  WorkDistributionReport,
   WorkDistributionReportView,
   WorkDistributionSettings,
 } from './work-distribution-report'
@@ -39,6 +41,7 @@ const createWorkDistribution = (): TeamWorkDistributionDto =>
     },
     from: new Date('2026-07-01'),
     to: new Date('2026-09-28'),
+    timeZone: 'Europe/London',
     summary: {
       itemsCompleted: 4,
       itemsInPointSizedTeams: 3,
@@ -90,7 +93,64 @@ const createWorkDistribution = (): TeamWorkDistributionDto =>
     periods: [],
   }) as unknown as TeamWorkDistributionDto
 
+describe('WorkDistributionReport', () => {
+  it.each([
+    ['Pacific/Kiritimati', '2026-06-25', '2026-09-22'],
+    ['Etc/GMT+12', '2026-06-23', '2026-09-20'],
+  ])(
+    'ends the default range on yesterday in the team time zone %s',
+    (timeZone, from, to) => {
+      // Arrange
+      jest.useFakeTimers({ now: new Date('2026-09-22T11:00:00Z') })
+      const query = jest.mocked(useGetTeamWorkDistributionQuery)
+      query.mockReturnValue({
+        data: undefined,
+        isFetching: true,
+        error: undefined,
+      } as unknown as ReturnType<typeof useGetTeamWorkDistributionQuery>)
+
+      try {
+        // Act
+        render(
+          <WorkDistributionReport
+            teamType="team"
+            teamCode="PAY"
+            timeZone={timeZone}
+          />,
+        )
+
+        // Assert
+        expect(query).toHaveBeenLastCalledWith(
+          expect.objectContaining({ from, to }),
+        )
+      } finally {
+        jest.useRealTimers()
+      }
+    },
+  )
+})
+
 describe('WorkDistributionReportView', () => {
+  it('names the time zone the days are counted in', () => {
+    // Act
+    render(
+      <WorkDistributionReportView
+        distribution={createWorkDistribution()}
+        isLoading={false}
+        settings={settings}
+        onSettingsChange={jest.fn()}
+        isTeamOfTeams
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByText(
+        /whole days in the team of teams' time zone, Europe\/London at the end of the range/,
+      ),
+    ).toBeInTheDocument()
+  })
+
   it('lists each group with its share and names no project work', () => {
     render(
       <WorkDistributionReportView

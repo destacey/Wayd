@@ -20,6 +20,7 @@ import {
   useGetTeamOfTeamsActivitiesQuery,
   useGetTeamOfTeamsDetailsQuery,
   useGetTeamOfTeamsMembershipsQuery,
+  useGetTeamOfTeamsOperatingModelsQuery,
   useGetTeamOfTeamsRisksQuery,
   useLazyGetTeamOfTeamsActivitiesQuery,
 } from '@/src/store/features/organizations/team-api'
@@ -61,11 +62,9 @@ const WorkDistributionReport = dynamic(
 
 const DependencyAnalysisReport = dynamic(
   () =>
-    import('@/src/components/common/work/dependency-analysis').then(
-      (mod) => ({
-        default: mod.DependencyAnalysisReport,
-      }),
-    ),
+    import('@/src/components/common/work/dependency-analysis').then((mod) => ({
+      default: mod.DependencyAnalysisReport,
+    })),
   { ssr: false, loading: () => <Spin /> },
 )
 
@@ -162,6 +161,20 @@ const TeamOfTeamsDetailsPage = (props: {
     { skip: !team?.id || activeTab !== TeamOfTeamsTabs.Activities },
   )
   const [fetchActivityLogPage] = useLazyGetTeamOfTeamsActivitiesQuery()
+
+  // The date reports default to today in the team of teams' own time zone.
+  const operatingModelsQuery = useGetTeamOfTeamsOperatingModelsQuery(
+    team?.id ?? '',
+    {
+      skip:
+        !team?.id ||
+        (activeTab !== TeamOfTeamsTabs.WorkDistribution &&
+          activeTab !== TeamOfTeamsTabs.DependencyAnalysis),
+    },
+  )
+  const currentTimeZone = operatingModelsQuery.data?.find(
+    (m) => m.isCurrent,
+  )?.timeZone
 
   const activityLog = useActivityLog({
     idOrKey: team?.id,
@@ -299,18 +312,27 @@ const TeamOfTeamsDetailsPage = (props: {
             canUpdate={canUpdateTeam}
           />
         )
+      // The reports read their default range once, so they wait for the zone and start afresh when it changes.
       case TeamOfTeamsTabs.WorkDistribution:
-        return (
+        return operatingModelsQuery.isLoading ? (
+          <Spin />
+        ) : (
           <WorkDistributionReport
+            key={currentTimeZone}
             teamType="team-of-teams"
             teamCode={team!.code}
+            timeZone={currentTimeZone}
           />
         )
       case TeamOfTeamsTabs.DependencyAnalysis:
-        return (
+        return operatingModelsQuery.isLoading ? (
+          <Spin />
+        ) : (
           <DependencyAnalysisReport
+            key={currentTimeZone}
             teamType="team-of-teams"
             teamCode={team!.code}
+            timeZone={currentTimeZone}
           />
         )
       case TeamOfTeamsTabs.CapacityReport:

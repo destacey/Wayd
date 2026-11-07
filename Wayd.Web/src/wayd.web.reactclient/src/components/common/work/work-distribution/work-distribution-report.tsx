@@ -13,7 +13,7 @@ import {
   theme,
 } from 'antd'
 import type { TimeRangePickerProps } from 'antd'
-import dayjs, { Dayjs } from 'dayjs'
+import { Dayjs } from 'dayjs'
 import { FC, ReactNode, useState } from 'react'
 import {
   WorkDistributionDimension,
@@ -23,6 +23,7 @@ import {
   UnestimatedHandling,
 } from '@/src/services/wayd-api'
 import { useGetTeamWorkDistributionQuery } from '@/src/store/features/organizations/team-api'
+import { parseCalendarDate, todayInZone } from '@/src/utils/calendar-date'
 import { isApiError } from '@/src/utils/problem-details'
 import { METRIC_CARD_FLEX, MetricCard } from '../../metrics'
 import WaydTooltip from '../../wayd-tooltip'
@@ -49,35 +50,52 @@ const DATE_FORMAT = 'YYYY-MM-DD'
 /** A year with room for a leap day, both ends inclusive; the API rejects longer ranges. */
 const MAX_RANGE_DAYS = 366
 
-/** Completed work only, so ranges end yesterday: today is not over. */
-const yesterday = () => dayjs().subtract(1, 'day').startOf('day')
+/** Today in the team's time zone, as a picker value; in UTC without one, as the API counts it. */
+const todayFor = (timeZone: string | undefined) =>
+  parseCalendarDate(todayInZone(timeZone ?? 'UTC'))
 
-const lastQuarter = (): [Dayjs, Dayjs] => {
-  const start = dayjs()
+/** Completed work only, so ranges end yesterday: today is not over. */
+const yesterdayFor = (timeZone: string | undefined) =>
+  todayFor(timeZone).subtract(1, 'day')
+
+const lastQuarter = (timeZone: string | undefined): [Dayjs, Dayjs] => {
+  const today = todayFor(timeZone)
+  const start = today
     .startOf('month')
-    .subtract((dayjs().month() % 3) + 3, 'month')
+    .subtract((today.month() % 3) + 3, 'month')
   return [start, start.add(2, 'month').endOf('month').startOf('day')]
 }
 
-const RANGE_PRESETS: TimeRangePickerProps['presets'] = [
-  {
-    label: 'Last 30 days',
-    value: () => [yesterday().subtract(29, 'day'), yesterday()],
-  },
-  {
-    label: 'Last 90 days',
-    value: () => [yesterday().subtract(89, 'day'), yesterday()],
-  },
-  { label: 'Last quarter', value: lastQuarter },
-  {
-    label: 'Last 6 months',
-    value: () => [yesterday().subtract(6, 'month').add(1, 'day'), yesterday()],
-  },
-  {
-    label: 'Last 12 months',
-    value: () => [yesterday().subtract(12, 'month').add(1, 'day'), yesterday()],
-  },
-]
+const rangePresets = (
+  timeZone: string | undefined,
+): TimeRangePickerProps['presets'] => {
+  const yesterday = () => yesterdayFor(timeZone)
+  return [
+    {
+      label: 'Last 30 days',
+      value: () => [yesterday().subtract(29, 'day'), yesterday()],
+    },
+    {
+      label: 'Last 90 days',
+      value: () => [yesterday().subtract(89, 'day'), yesterday()],
+    },
+    { label: 'Last quarter', value: () => lastQuarter(timeZone) },
+    {
+      label: 'Last 6 months',
+      value: () => [
+        yesterday().subtract(6, 'month').add(1, 'day'),
+        yesterday(),
+      ],
+    },
+    {
+      label: 'Last 12 months',
+      value: () => [
+        yesterday().subtract(12, 'month').add(1, 'day'),
+        yesterday(),
+      ],
+    },
+  ]
+}
 
 /** The API's validation messages, when the request was rejected as invalid. */
 const validationMessages = (error: unknown): string[] =>
@@ -99,6 +117,8 @@ export interface WorkDistributionReportViewProps {
   onSettingsChange: (settings: WorkDistributionSettings) => void
   /** A team of teams rolls up the teams beneath it, which the By Team view breaks out. */
   isTeamOfTeams: boolean
+  /** The team's time zone, which decides what today is; UTC when absent. */
+  timeZone?: string
 }
 
 const SummaryCards: FC<{
@@ -213,6 +233,7 @@ export const WorkDistributionReportView: FC<
   settings,
   onSettingsChange,
   isTeamOfTeams,
+  timeZone,
 }) => {
   const { token } = theme.useToken()
   const [view, setView] = useState<WorkDistributionView>('breakdown')
@@ -286,10 +307,10 @@ export const WorkDistributionReportView: FC<
           <RangePicker
             allowClear={false}
             value={settings.range}
-            presets={RANGE_PRESETS}
+            presets={rangePresets(timeZone)}
             // Once one end is picked, the other can be at most a year away, as the API allows.
             disabledDate={(date, { from }) =>
-              date.isAfter(dayjs(), 'day') ||
+              date.isAfter(todayFor(timeZone), 'day') ||
               (!!from && Math.abs(date.diff(from, 'day')) + 1 > MAX_RANGE_DAYS)
             }
             onChange={(range) =>
@@ -418,6 +439,13 @@ export const WorkDistributionReportView: FC<
               teams.
             </Text>
           )}
+          {distribution && (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              The date range and periods are whole days in the{' '}
+              {isTeamOfTeams ? "team of teams'" : "team's"} time zone,{' '}
+              {distribution.timeZone} at the end of the range.
+            </Text>
+          )}
         </>
       )}
     </Flex>
@@ -427,10 +455,14 @@ export const WorkDistributionReportView: FC<
 export interface WorkDistributionReportProps {
   teamType: 'team' | 'team-of-teams'
   teamCode: string
+  /** The time zone of the team's, or the team of teams', current operating model. */
+  timeZone?: string
 }
 
-const defaultSettings = (): WorkDistributionSettings => ({
-  range: [yesterday().subtract(89, 'day'), yesterday()],
+const defaultSettings = (
+  timeZone: string | undefined,
+): WorkDistributionSettings => ({
+  range: [yesterdayFor(timeZone).subtract(89, 'day'), yesterdayFor(timeZone)],
   dimension: WorkDistributionDimension.Portfolio,
   measure: WorkDistributionMeasure.Count,
   unestimated: UnestimatedHandling.Exclude,
@@ -440,9 +472,11 @@ const defaultSettings = (): WorkDistributionSettings => ({
 export const WorkDistributionReport: FC<WorkDistributionReportProps> = ({
   teamType,
   teamCode,
+  timeZone,
 }) => {
-  const [settings, setSettings] =
-    useState<WorkDistributionSettings>(defaultSettings)
+  const [settings, setSettings] = useState<WorkDistributionSettings>(() =>
+    defaultSettings(timeZone),
+  )
 
   const { data, isFetching, error } = useGetTeamWorkDistributionQuery({
     teamType,
@@ -463,6 +497,7 @@ export const WorkDistributionReport: FC<WorkDistributionReportProps> = ({
       settings={settings}
       onSettingsChange={setSettings}
       isTeamOfTeams={teamType === 'team-of-teams'}
+      timeZone={timeZone}
     />
   )
 }

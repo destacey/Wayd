@@ -21,7 +21,10 @@ public static class ManagedWorkflowKeys
     /// the type renames the workflow rather than starting another.
     /// </summary>
     public static string Workflow(Guid workProcessExternalId, string workTypeExternalKey) =>
-        $"work-process:{workProcessExternalId:D}:{workTypeExternalKey.Trim()}";
+        $"{WorkflowPrefix(workProcessExternalId)}{workTypeExternalKey.Trim()}";
+
+    /// <summary>What every workflow key of a work process starts with.</summary>
+    public static string WorkflowPrefix(Guid workProcessExternalId) => $"work-process:{workProcessExternalId:D}:";
 
     /// <summary>
     /// The record type for a work type. Its name, not its source key, because Work keeps one work type per

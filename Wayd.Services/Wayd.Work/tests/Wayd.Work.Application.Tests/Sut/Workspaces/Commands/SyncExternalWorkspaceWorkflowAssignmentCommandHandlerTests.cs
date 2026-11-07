@@ -12,6 +12,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Tests.Shared;
+using Wayd.Tests.Shared.Extensions;
 using Wayd.Tests.Shared.Infrastructure;
 using Wayd.Work.Application.Tests.Infrastructure;
 using Wayd.Work.Application.Workspaces.Commands;
@@ -38,8 +39,8 @@ public sealed class SyncExternalWorkspaceWorkflowAssignmentCommandHandlerTests :
 
         _statusWorkflowDbContext.Setup(c => c.StatusWorkflowSchemes).Returns(() => _schemes.AsDbSet());
         _workflowAssignments
-            .Setup(a => a.RemoveScope(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<Instant>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(Result.Success());
+            .Setup(a => a.Unassign(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<Instant>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(true));
 
         _dispatcher.Setup(d => d.Send(It.IsAny<SyncManagedWorkflowAssignmentCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success(Guid.NewGuid()));
@@ -88,7 +89,7 @@ public sealed class SyncExternalWorkspaceWorkflowAssignmentCommandHandlerTests :
         _dispatcher.Verify(d => d.Send(
             new SyncManagedWorkflowAssignmentCommand(WorkWorkflowOwners.WorkItem.Key, workspaceId, $"work-process:{processExternalId:D}"),
             It.IsAny<CancellationToken>()), Times.Once);
-        _workflowAssignments.Verify(a => a.RemoveScope(
+        _workflowAssignments.Verify(a => a.Unassign(
             It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<Instant>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
@@ -108,10 +109,64 @@ public sealed class SyncExternalWorkspaceWorkflowAssignmentCommandHandlerTests :
         // A workspace that moved here keeps no scheme of the process it left; this process's own sync
         // assigns it once a scheme exists.
         result.IsSuccess.Should().BeTrue();
-        _workflowAssignments.Verify(a => a.RemoveScope(
+        _workflowAssignments.Verify(a => a.Unassign(
             WorkWorkflowOwners.WorkItem.Key, workspaceId, It.IsAny<EventActor>(), Now, It.IsAny<CancellationToken>()), Times.Once);
         _statusWorkflowDbContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
         _dispatcher.Verify(d => d.Send(It.IsAny<SyncManagedWorkflowAssignmentCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSaveNothing_WhenAWorkspaceWithNoSchemeHasNoAssignmentToRemove()
+    {
+        // Arrange
+        var workspaceId = SeedWorkspaceOnProcess(Guid.NewGuid());
+        _workflowAssignments
+            .Setup(a => a.Unassign(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<Instant>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(false));
+
+        // Act
+        var result = await _handler.Handle(new SyncExternalWorkspaceWorkflowAssignmentCommand(workspaceId), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _statusWorkflowDbContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenTheWorkspaceCannotBeUnassigned()
+    {
+        // Arrange
+        var workspaceId = SeedWorkspaceOnProcess(Guid.NewGuid());
+        _workflowAssignments
+            .Setup(a => a.Unassign(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<EventActor>(), It.IsAny<Instant>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure<bool>("The organization's workflow assignment cannot be removed."));
+
+        // Act
+        var result = await _handler.Handle(new SyncExternalWorkspaceWorkflowAssignmentCommand(workspaceId), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _statusWorkflowDbContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldIgnoreASchemeOfAnotherOwnerType_WithTheSameKey()
+    {
+        // Arrange
+        var processExternalId = Guid.NewGuid();
+        var workspaceId = SeedWorkspaceOnProcess(processExternalId);
+        var other = _schemes.Count;
+        SeedScheme($"work-process:{processExternalId:D}");
+        _schemes[other].SetPrivate(s => s.OwnerType, "test.other-owner");
+
+        // Act
+        var result = await _handler.Handle(new SyncExternalWorkspaceWorkflowAssignmentCommand(workspaceId), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _dispatcher.Verify(d => d.Send(It.IsAny<SyncManagedWorkflowAssignmentCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+        _workflowAssignments.Verify(a => a.Unassign(
+            WorkWorkflowOwners.WorkItem.Key, workspaceId, It.IsAny<EventActor>(), It.IsAny<Instant>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

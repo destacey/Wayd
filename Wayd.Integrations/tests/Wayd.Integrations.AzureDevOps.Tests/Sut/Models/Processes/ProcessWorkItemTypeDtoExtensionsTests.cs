@@ -78,35 +78,39 @@ public class ProcessWorkItemTypeDtoExtensionsTests : CommonResponseOptions
             ("f36cfea7-889a-448e-b5d1-fbc9b134ec82", "Resolved"));
     }
 
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void ToAzdoWorkType_WithADuplicatedState_KeysItByTheVisibleCopyWhicheverComesFirst(bool hiddenFirst)
+    [Fact]
+    public void ToAzdoWorkType_WithAHiddenInheritedState_TakesTheCopyThatHidesIt()
     {
         // Arrange
-        var hidden = new ProcessWorkItemStateDto { Id = Guid.Parse("11111111-0000-0000-0000-000000000000"), Name = "Closed", StateCategory = "Completed", Order = 3, Hidden = true };
-        var visible = new ProcessWorkItemStateDto { Id = Guid.Parse("99999999-0000-0000-0000-000000000000"), Name = "closed", StateCategory = "Completed", Order = 4 };
+        // As Azure DevOps lists a hidden inherited state: the system copy, then the inherited copy that hides
+        // it, under one id (see GetJson in ProcessWorkItemTypeDtoTests).
+        var id = Guid.Parse("f36cfea7-889a-448e-b5d1-fbc9b134ec82");
         var workItemType = new ProcessWorkItemTypeDto
         {
-            ReferenceName = "Custom.Bug",
-            Name = "Bug",
-            States = hiddenFirst ? [hidden, visible] : [visible, hidden],
+            ReferenceName = "TestAgileProcess.Epic",
+            Name = "Epic",
+            States =
+            [
+                new() { Id = Guid.Parse("7b7e3e8c-e500-40b6-ad56-d59b8d64d757"), Name = "New", StateCategory = "Proposed", Order = 1 },
+                new() { Id = id, Name = "Resolved", StateCategory = "InProgress", Order = 3 },
+                new() { Id = id, Name = "resolved", StateCategory = "Resolved", Order = 6, Hidden = true },
+            ],
         };
 
         // Act
         var workType = workItemType.ToAzdoWorkType();
 
         // Assert
-        // The visible copy is the one that stays if the API stops returning the hidden duplicate, and a key
-        // that followed the API's order could change between syncs, retiring the status and adding it again.
-        // Names are compared without case, as the engine compares status names.
-        workType.WorkflowStates.Should().ContainSingle().Which.ExternalKey.Should().Be("99999999-0000-0000-0000-000000000000");
+        // One state, in its first place and under its first spelling, hidden as the last copy says.
+        workType.WorkflowStates.Select(s => (s.ExternalKey, s.StatusName, s.Order, s.IsActive)).Should().Equal(
+            ("7b7e3e8c-e500-40b6-ad56-d59b8d64d757", "New", 1, true),
+            ("f36cfea7-889a-448e-b5d1-fbc9b134ec82", "Resolved", 6, false));
     }
 
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ToAzdoWorkType_WithADuplicatedState_KeysTwoVisibleCopiesByTheLowestId(bool lowestFirst)
+    public void ToAzdoWorkType_WithCopiesUnderDifferentIds_KeysThemByTheLowestId(bool lowestFirst)
     {
         // Arrange
         var low = new ProcessWorkItemStateDto { Id = Guid.Parse("11111111-0000-0000-0000-000000000000"), Name = "Closed", StateCategory = "Completed", Order = 3 };

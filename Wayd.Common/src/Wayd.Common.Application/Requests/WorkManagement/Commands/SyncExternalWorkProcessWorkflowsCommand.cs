@@ -1,4 +1,5 @@
 using Wayd.Common.Application.Interfaces.ExternalWork;
+using Wayd.Common.Application.Validators;
 
 namespace Wayd.Common.Application.Requests.WorkManagement.Commands;
 
@@ -12,3 +13,13 @@ namespace Wayd.Common.Application.Requests.WorkManagement.Commands;
 /// piece is found by its source key and brought into line.
 /// </remarks>
 public sealed record SyncExternalWorkProcessWorkflowsCommand(IExternalWorkProcessConfiguration WorkProcess) : ICommand;
+
+public sealed class SyncExternalWorkProcessWorkflowsCommandValidator : CustomValidator<SyncExternalWorkProcessWorkflowsCommand>
+{
+    public SyncExternalWorkProcessWorkflowsCommandValidator()
+    {
+        RuleFor(c => c.WorkProcess).NotNull();
+        RuleFor(c => c.WorkProcess.Id).NotEmpty().When(c => c.WorkProcess is not null);
+        RuleFor(c => c.WorkProcess.WorkTypes).NotNull().When(c => c.WorkProcess is not null);
+    }
+}

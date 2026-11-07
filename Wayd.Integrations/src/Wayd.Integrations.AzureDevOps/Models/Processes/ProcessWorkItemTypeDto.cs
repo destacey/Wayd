@@ -42,7 +42,8 @@ internal static class ProcessWorkItemTypeDtoExtensions
             //WorkflowStates = workItemType.States.Select(workItemState => workItemState.ToAzdoWorkflowState()).ToList<IExternalWorkflowState>()
         };
 
-        // there seems to be a bug in the API when including states that duplicates hidden states. Override with the last one for now.
+        // An inherited state the process hides is listed twice under one id: the system copy, then the
+        // inherited copy that hides it. The last copy is the one in force, so it decides the state.
         foreach (var group in workItemType.States.GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase))
         {
             var state = group.Last().ToAzdoWorkflowState();
@@ -55,12 +56,11 @@ internal static class ProcessWorkItemTypeDtoExtensions
     }
 
     /// <summary>
-    /// The copy of a state whose id keys it. A visible copy is preferred, since it is the one that stays
-    /// should the API stop returning the hidden duplicate; the lowest id breaks a tie, so the key does not
-    /// depend on the order the copies arrive in.
+    /// The copy of a state whose id keys it. The copies of a hidden state share one id; should two ever
+    /// differ, the lowest is taken, so the key does not depend on the order the copies arrive in.
     /// </summary>
     private static ProcessWorkItemStateDto KeyOf(IEnumerable<ProcessWorkItemStateDto> copies) =>
-        copies.OrderBy(c => c.Hidden).ThenBy(c => c.Id.ToString("D"), StringComparer.Ordinal).First();
+        copies.OrderBy(c => c.Id.ToString("D"), StringComparer.Ordinal).First();
 
     public static IList<IExternalWorkTypeWorkflow> ToIExternalWorkTypes(this List<ProcessWorkItemTypeDto> workItemTypes)
     {

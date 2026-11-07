@@ -12,9 +12,10 @@ namespace Wayd.Work.Application.Workspaces.Commands;
 /// </summary>
 /// <remarks>
 /// A process with no scheme — its workflows have not reached the engine yet, or none of its work types has
-/// an active state — leaves the workspace with no assignment, so it never keeps the scheme of a process it
-/// has left. The process's own sync (<see cref="SyncExternalWorkProcessWorkflowsCommand"/>) assigns it once
-/// the scheme exists.
+/// ever offered a state — leaves the workspace with no assignment of its own, so it never keeps the scheme of
+/// a process it has left. The process's own sync (<see cref="SyncExternalWorkProcessWorkflowsCommand"/>)
+/// assigns it once the scheme exists. A scheme, once it exists, stays: its entries keep the workflows the
+/// process's records hold statuses from, even if the process later offers no state at all.
 /// </remarks>
 public sealed class SyncExternalWorkspaceWorkflowAssignmentCommandHandler(
     IWorkDbContext workDbContext,
@@ -54,30 +55,25 @@ public sealed class SyncExternalWorkspaceWorkflowAssignmentCommandHandler(
             .AnyAsync(s => s.OwnerType == ownerType && s.ExternalKey == schemeKey, cancellationToken);
         if (!schemeExists)
         {
-            _logger.LogWarning("{AppRequestName}: the work process of workspace {WorkspaceName} has no managed scheme, so the workspace is left unassigned.", AppRequestName, workspace.Name);
+            _logger.LogDebug("{AppRequestName}: the work process of workspace {WorkspaceName} has no managed scheme, so the workspace is left unassigned.", AppRequestName, workspace.Name);
             return await Unassign(workspace.Id, ownerType, cancellationToken);
         }
 
         var result = await _dispatcher.Send(new SyncManagedWorkflowAssignmentCommand(ownerType, workspace.Id, schemeKey!), cancellationToken);
         if (result.IsFailure)
-        {
-            _logger.LogError("{AppRequestName}: unable to assign workspace {WorkspaceName} its scheme. Error: {Error}", AppRequestName, workspace.Name, result.Error);
             return Result.Failure(result.Error);
-        }
 
         return Result.Success();
     }
 
     private async Task<Result> Unassign(Guid workspaceId, string ownerType, CancellationToken cancellationToken)
     {
-        var removed = await _workflowAssignments.RemoveScope(ownerType, workspaceId, EventActor.Sync(null), _dateTimeProvider.Now, cancellationToken);
+        var removed = await _workflowAssignments.Unassign(ownerType, workspaceId, EventActor.Sync(null), _dateTimeProvider.Now, cancellationToken);
         if (removed.IsFailure)
-        {
-            _logger.LogError("{AppRequestName}: unable to unassign workspace {WorkspaceId}. Error: {Error}", AppRequestName, workspaceId, removed.Error);
-            return removed;
-        }
+            return Result.Failure(removed.Error);
 
-        await _statusWorkflowDbContext.SaveChangesAsync(cancellationToken);
+        if (removed.Value)
+            await _statusWorkflowDbContext.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
     }

@@ -4,10 +4,13 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalWork;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.StatusWorkflows.Commands;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Tests.Shared.Infrastructure;
 using Wayd.Work.Application.Tests.Infrastructure;
 using Wayd.Work.Application.WorkProcesses.Commands;
 using Wayd.Work.Domain;
@@ -20,6 +23,7 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandlerTests : IDispo
 {
     private readonly FakeWorkDbContext _dbContext = new();
     private readonly Mock<IDispatcher> _dispatcher = new();
+    private readonly List<StatusWorkflow> _engineWorkflows = [];
     private readonly List<object> _sent = [];
     private readonly Dictionary<string, Guid> _recordTypeIds = [];
     private readonly Dictionary<string, Guid> _workflowIds = [];
@@ -27,6 +31,10 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandlerTests : IDispo
 
     public SyncExternalWorkProcessWorkflowsCommandHandlerTests()
     {
+        WorkWorkflowOwners.Register();
+        var statusWorkflowDbContext = new Mock<IStatusWorkflowDbContext>();
+        statusWorkflowDbContext.Setup(c => c.StatusWorkflows).Returns(() => _engineWorkflows.AsDbSet());
+
         _dispatcher.Setup(d => d.Send(It.IsAny<SyncManagedRecordTypeCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((SyncManagedRecordTypeCommand c, CancellationToken _) => Sent(c, Id(_recordTypeIds, c.ExternalKey)));
         _dispatcher.Setup(d => d.Send(It.IsAny<SyncManagedWorkflowCommand>(), It.IsAny<CancellationToken>()))
@@ -37,7 +45,7 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandlerTests : IDispo
             .ReturnsAsync((SyncManagedWorkflowAssignmentCommand c, CancellationToken _) => Sent(c, Guid.NewGuid()));
 
         _handler = new SyncExternalWorkProcessWorkflowsCommandHandler(
-            _dbContext, _dispatcher.Object, NullLogger<SyncExternalWorkProcessWorkflowsCommandHandler>.Instance);
+            _dbContext, statusWorkflowDbContext.Object, _dispatcher.Object, NullLogger<SyncExternalWorkProcessWorkflowsCommandHandler>.Instance);
     }
 
     public void Dispose() => _dbContext.Dispose();
@@ -260,6 +268,59 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandlerTests : IDispo
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("workspace assignment");
         attempts.Should().Be(1);
+    }
+
+    /// <summary>A workflow the engine already keeps for one of the process's work types.</summary>
+    private void SeedEngineWorkflow(IExternalWorkProcessConfiguration process, string workTypeName) =>
+        _engineWorkflows.Add(StatusWorkflow.CreateManaged(
+            $"{process.Name} - {workTypeName}",
+            WorkWorkflowOwners.WorkItem.Key,
+            $"work-process:{process.Id:D}:Custom.{workTypeName}",
+            [new SourceStatus($"state-{workTypeName}-New", "New", StatusCategory.Proposed)],
+            EventActor.Sync(null),
+            NodaTime.Instant.FromUtc(2026, 11, 7, 9, 0)).Value);
+
+    [Fact]
+    public async Task Handle_ShouldNameTheRecordTypeAsWorkDoes_WhateverTheSourcesCasing()
+    {
+        // Arrange
+        var process = ExternalProcess("Agile", WorkType("BUG", ("New", StatusCategory.Proposed, 1, true)));
+        SeedProcess(process);
+        _dbContext.AddWorkType(new WorkTypeFaker().WithName("Bug").Generate());
+
+        // Act
+        var result = await _handler.Handle(new SyncExternalWorkProcessWorkflowsCommand(process), TestContext.Current.CancellationToken);
+
+        // Assert
+        // Work keeps one "Bug" for every spelling; two processes spelling it differently must not rename the
+        // one record type back and forth on every sync.
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        SentOf<SyncManagedRecordTypeCommand>().Should().ContainSingle()
+            .Which.Should().Be(new SyncManagedRecordTypeCommand(WorkWorkflowOwners.WorkItem.Key, "Bug", "Bug"));
+    }
+
+    [Fact]
+    public async Task Handle_ShouldKeepSyncingAWorkflow_OnceEveryStateOfItsTypeIsHidden()
+    {
+        // Arrange
+        var process = ExternalProcess("Agile",
+            WorkType("Story", ("New", StatusCategory.Proposed, 1, true)),
+            WorkType("Bug", ("New", StatusCategory.Proposed, 1, false), ("Closed", StatusCategory.Done, 2, false)));
+        SeedProcess(process);
+        SeedEngineWorkflow(process, "Bug");
+
+        // Act
+        var result = await _handler.Handle(new SyncExternalWorkProcessWorkflowsCommand(process), TestContext.Current.CancellationToken);
+
+        // Assert
+        // Its statuses retire rather than stay as they were, and records holding them still resolve.
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var bugWorkflowKey = $"work-process:{process.Id:D}:Custom.Bug";
+        SentOf<SyncManagedWorkflowCommand>().Single(c => c.ExternalKey == bugWorkflowKey).Statuses.Should().OnlyContain(s => s.IsHidden);
+        var scheme = SentOf<SyncManagedWorkflowSchemeCommand>().Should().ContainSingle().Subject;
+        scheme.Entries.Should().HaveCount(2);
+        // Bug sorts first, but no record could be given a status in its workflow.
+        scheme.DefaultWorkflowId.Should().Be(_workflowIds[$"work-process:{process.Id:D}:Custom.Story"]);
     }
 
     [Fact]

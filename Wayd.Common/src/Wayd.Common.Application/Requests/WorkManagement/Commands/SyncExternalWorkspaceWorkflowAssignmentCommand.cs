@@ -1,3 +1,5 @@
+using Wayd.Common.Application.Validators;
+
 namespace Wayd.Common.Application.Requests.WorkManagement.Commands;
 
 /// <summary>
@@ -6,3 +8,11 @@ namespace Wayd.Common.Application.Requests.WorkManagement.Commands;
 /// </summary>
 /// <param name="WorkspaceId">The internal Wayd workspace id.</param>
 public sealed record SyncExternalWorkspaceWorkflowAssignmentCommand(Guid WorkspaceId) : ICommand;
+
+public sealed class SyncExternalWorkspaceWorkflowAssignmentCommandValidator : CustomValidator<SyncExternalWorkspaceWorkflowAssignmentCommand>
+{
+    public SyncExternalWorkspaceWorkflowAssignmentCommandValidator()
+    {
+        RuleFor(c => c.WorkspaceId).NotEmpty();
+    }
+}

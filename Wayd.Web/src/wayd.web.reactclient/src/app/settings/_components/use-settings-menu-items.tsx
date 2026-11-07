@@ -297,6 +297,62 @@ export const firstSettingsRoute = (
 }
 
 /**
+ * An item's display text.
+ *
+ * A group's label is the plain string; a leaf's is a `<Link>` wrapping it, so
+ * the text has to be read through the element. Reading only strings silently
+ * matched nothing but group names.
+ */
+export const labelText = (item: ItemType<MenuItemType>): string => {
+  const label = (item as { label?: unknown }).label
+  if (typeof label === 'string') return label
+  const child = (label as { props?: { children?: unknown } })?.props?.children
+  return typeof child === 'string' ? child : ''
+}
+
+/**
+ * The key of the menu item whose route is `pathname` or a page beneath it,
+ * preferring the longest such route. Undefined when none is.
+ *
+ * Stricter than `findMenuKeysByPathname`, whose segment fallback matches every
+ * settings path to some item because all of them share `settings`. A page the
+ * menu omits — its flag off, or the data deciding it still loading — would
+ * then be named as the first page in the menu.
+ */
+export const settingsKeyForPath = (
+  pathname: string,
+  routeKeyMap: Map<string, string>,
+): string | undefined => {
+  let best: { route: string; key: string } | undefined
+  for (const [route, key] of routeKeyMap) {
+    const covers = pathname === route || pathname.startsWith(`${route}/`)
+    if (covers && (!best || route.length > best.route.length)) {
+      best = { route, key }
+    }
+  }
+  return best?.key
+}
+
+/**
+ * The group and page names of the menu item with `key`, for showing where the
+ * viewer is when the rail itself is hidden. Undefined when no item has it.
+ */
+export const settingsLocation = (
+  items: ItemType<MenuItemType>[],
+  key: string | undefined,
+): { group?: string; page: string } | undefined => {
+  if (!key) return undefined
+  for (const item of items) {
+    if (item == null) continue
+    if (item.key === key) return { page: labelText(item) }
+    const children = (item as { children?: ItemType<MenuItemType>[] }).children
+    const child = children?.find((c) => c != null && c.key === key)
+    if (child) return { group: labelText(item), page: labelText(child) }
+  }
+  return undefined
+}
+
+/**
  * The settings menu's items and its route→key map, built from the same helpers
  * as the app sider's so the two navs stay one kind of object rather than two.
  */

@@ -35,7 +35,7 @@ interface TaskTreeOption {
 }
 
 /** The plan as picker options: stages head the tree but cannot be picked, since only tasks serve a deliverable. */
-const toTreeOptions = (plan: ProjectPlanNodeDto[]): TaskTreeOption[] => {
+export const toTreeOptions = (plan: ProjectPlanNodeDto[]): TaskTreeOption[] => {
   const toOption = (node: ProjectPlanNodeDto): TaskTreeOption => ({
     value: node.id,
     title: node.nodeType === 'Stage' ? node.name : `${node.wbs} ${node.name}`,

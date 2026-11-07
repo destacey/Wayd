@@ -6,10 +6,18 @@ import {
 /** The heading the plan work no deliverable is served by sits under. */
 export const NO_DELIVERABLE = 'No deliverable'
 
+/**
+ * The group key of {@link NO_DELIVERABLE}. Rows group by id rather than name,
+ * so a deliverable that happens to be named "No deliverable" stays apart.
+ */
+export const NO_DELIVERABLE_KEY = ''
+
 /** One plan task under one deliverable heading of the plan grouped by deliverable. */
 export interface DeliverablePlanRow {
   /** Unique per heading, since a task serving two deliverables appears under both. */
   rowId: string
+  /** What the rows group on: the deliverable's id, or {@link NO_DELIVERABLE_KEY}. */
+  groupKey: string
   /** The deliverable's name, or {@link NO_DELIVERABLE}. */
   deliverableName: string
   /** The deliverable, or null under {@link NO_DELIVERABLE}. */
@@ -18,11 +26,6 @@ export interface DeliverablePlanRow {
 }
 
 const isTask = (node: ProjectPlanNodeDto) => node.nodeType === 'Task'
-
-/** Whether the task or any task beneath it serves a deliverable. */
-const servesAny = (task: ProjectPlanNodeDto): boolean =>
-  (task.deliverableIds?.length ?? 0) > 0 ||
-  (task.children ?? []).filter(isTask).some(servesAny)
 
 /**
  * The plan regrouped by deliverable, in the deliverables' order with
@@ -40,6 +43,16 @@ export const buildDeliverablePlanRows = (
   deliverables: ProjectDeliverableDto[],
 ): DeliverablePlanRow[] => {
   const byId = new Map(deliverables.map((d) => [d.id, d]))
+
+  // Only deliverables that are known count: a link to one deleted since the
+  // plan was read would otherwise drop its task from every heading.
+  const knownLinks = (task: ProjectPlanNodeDto) =>
+    (task.deliverableIds ?? []).filter((id) => byId.has(id))
+
+  /** Whether the task or any task beneath it serves a known deliverable. */
+  const servesAny = (task: ProjectPlanNodeDto): boolean =>
+    knownLinks(task).length > 0 ||
+    (task.children ?? []).filter(isTask).some(servesAny)
   const linked = new Map<string, DeliverablePlanRow[]>()
   const unlinked: DeliverablePlanRow[] = []
 
@@ -49,6 +62,7 @@ export const buildDeliverablePlanRows = (
       if (covered.size === 0) {
         unlinked.push({
           rowId: `none:${task.id}`,
+          groupKey: NO_DELIVERABLE_KEY,
           deliverableName: NO_DELIVERABLE,
           deliverable: null,
           task,
@@ -58,13 +72,14 @@ export const buildDeliverablePlanRows = (
     }
 
     const below = new Set(covered)
-    for (const id of task.deliverableIds ?? []) {
+    for (const id of knownLinks(task)) {
       below.add(id)
-      const deliverable = byId.get(id)
-      if (!deliverable || covered.has(id)) continue
+      if (covered.has(id)) continue
+      const deliverable = byId.get(id)!
       const rows = linked.get(id) ?? []
       rows.push({
         rowId: `${id}:${task.id}`,
+        groupKey: id,
         deliverableName: deliverable.name,
         deliverable,
         task,

@@ -43,10 +43,15 @@ const columns: ColumnDef<DeliverablePlanRow, any>[] = [
     // Grouped on, so the groups come out in this column's sort: a group row's
     // original is its first row, which carries the deliverable.
     id: 'deliverable',
-    accessorKey: 'deliverableName',
+    accessorKey: 'groupKey',
     header: 'Deliverable',
     size: 220,
     sortFn: byDeliverableOrder,
+    enableGlobalFilter: false,
+    meta: {
+      exportFormatter: (_value: unknown, row: DeliverablePlanRow) =>
+        row.deliverableName,
+    },
   },
   { id: 'wbs', accessorKey: 'task.wbs', header: '#', size: 80 },
   { id: 'key', accessorKey: 'task.key', header: 'Key', size: 120 },
@@ -100,13 +105,12 @@ const columns: ColumnDef<DeliverablePlanRow, any>[] = [
 ]
 
 const renderGroupHeader = ({
-  value,
   leafRows,
 }: GroupHeaderContext<DeliverablePlanRow>) => {
   const deliverable = leafRows[0]?.deliverable
   return (
     <Flex gap="middle" align="center" wrap>
-      <span>{String(value)}</span>
+      <span>{leafRows[0]?.deliverableName}</span>
       <Text type="secondary">
         {leafRows.length} {leafRows.length === 1 ? 'task' : 'tasks'}
       </Text>

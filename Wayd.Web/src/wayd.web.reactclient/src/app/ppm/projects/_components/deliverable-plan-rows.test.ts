@@ -112,6 +112,31 @@ describe('buildDeliverablePlanRows', () => {
     expect(rows).toEqual(['Portal: api', `${NO_DELIVERABLE}: docs`])
   })
 
+  it('keeps a deliverable named like the unlinked heading apart from it', () => {
+    // Arrange
+    const lookalike = deliverable('lookalike', NO_DELIVERABLE)
+    const plan = [stage([task('build', ['lookalike']), task('test')])]
+
+    // Act
+    const keys = buildDeliverablePlanRows(plan, [lookalike]).map(
+      (r) => r.groupKey,
+    )
+
+    // Assert
+    expect(new Set(keys).size).toBe(2)
+  })
+
+  it('lists a task whose only deliverable is unknown as unlinked', () => {
+    // Arrange
+    const plan = [stage([task('build', ['deleted'])])]
+
+    // Act
+    const rows = summarize(plan)
+
+    // Assert
+    expect(rows).toEqual([`${NO_DELIVERABLE}: build`])
+  })
+
   it('gives each row an id unique across headings', () => {
     // Arrange
     const plan = [stage([task('build', ['portal', 'reports'])])]

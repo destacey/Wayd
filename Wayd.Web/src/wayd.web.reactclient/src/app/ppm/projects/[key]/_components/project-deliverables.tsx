@@ -173,8 +173,11 @@ const ProjectDeliverables = ({
     const openDialog = (dialog: Dialog) => () =>
       setActive({ dialog, target: deliverable })
     // Links do not move the project's revision, so they wait on nothing.
+    // A descoped deliverable takes no new work, matching the task form's picker.
     const linkItems: ItemType[] =
-      canLinkTasks && project.projectLifecycle
+      canLinkTasks &&
+      project.projectLifecycle &&
+      deliverable.status.category !== StatusCategory.Removed
         ? [
             {
               key: 'tasks',
@@ -248,7 +251,8 @@ const ProjectDeliverables = ({
       ariaLabel: 'Deliverable actions',
       unavailable: !canManage && !canLinkTasks,
       size: 70,
-      leading: (
+      // Only those who can reorder get a handle; anyone else sees just the ⋯.
+      leading: canManage ? (
         <DragHandleCell
           isDragEnabled={context.isDragEnabled && !isBusy}
           disabledTooltip={
@@ -257,7 +261,7 @@ const ProjectDeliverables = ({
               : 'Clear sorting, filters, and search to reorder deliverables.'
           }
         />
-      ),
+      ) : undefined,
     }),
     {
       id: 'order',

@@ -20,13 +20,15 @@ public sealed class GetProjectDeliverablesQueryHandler(IProjectPortfolioManageme
         if (projectId is null)
             return null;
 
-        return await _ppmDbContext.ProjectDeliverables
+        var deliverables = await _ppmDbContext.ProjectDeliverables
             .Where(d => d.ProjectId == projectId)
             .OrderBy(d => d.Order)
             // Id last, so an MCP caller's offset slices the same list on every call.
             .ThenBy(d => d.Id)
             .ProjectToType<ProjectDeliverableDto>()
             .ToListAsync(cancellationToken);
+
+        return await _ppmDbContext.WithProgress(projectId.Value, deliverables, cancellationToken);
     }
 }
 
@@ -42,9 +44,13 @@ public sealed class GetProjectDeliverableQueryHandler(IProjectPortfolioManagemen
     {
         var projects = _ppmDbContext.Projects.Where(request.ProjectIdOrKey.CreateFilter<Domain.Models.Project>());
 
-        return await _ppmDbContext.ProjectDeliverables
+        var deliverable = await _ppmDbContext.ProjectDeliverables
             .Where(d => d.Id == request.DeliverableId && projects.Any(p => p.Id == d.ProjectId))
             .ProjectToType<ProjectDeliverableDto>()
             .FirstOrDefaultAsync(cancellationToken);
+        if (deliverable is null)
+            return null;
+
+        return (await _ppmDbContext.WithProgress(deliverable.ProjectId, [deliverable], cancellationToken)).Single();
     }
 }

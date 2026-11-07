@@ -196,6 +196,7 @@ const ProjectPlanTable = ({
       progress: 0,
       order: draft.order,
       children: [],
+      deliverableIds: [],
     }),
     [],
   )

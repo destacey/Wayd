@@ -37,6 +37,7 @@ public sealed class UpdateProjectTaskRequestTests
         PlannedEnd = new LocalDate(2026, 3, 20),
         PlannedDate = new LocalDate(2026, 3, 21),
         EstimatedEffortHours = 16m,
+        DeliverableIds = [Guid.NewGuid()],
     };
 
     [Fact]
@@ -72,6 +73,7 @@ public sealed class UpdateProjectTaskRequestTests
         request.PlannedEnd.Should().Be(task.PlannedEnd);
         request.PlannedDate.Should().Be(task.PlannedDate);
         request.EstimatedEffortHours.Should().Be(16m);
+        request.DeliverableIds.Should().Equal(task.DeliverableIds);
     }
 
     [Fact]

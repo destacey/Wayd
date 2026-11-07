@@ -24594,6 +24594,85 @@ export class ProjectDeliverablesClient {
     }
 
     /**
+     * Set which plan tasks serve a deliverable.
+     * @return No Content
+     */
+    setDeliverableTasks(id: string, deliverableId: string, request: SetProjectDeliverableTasksRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/ppm/projects/{id}/deliverables/{deliverableId}/tasks";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (deliverableId === undefined || deliverableId === null)
+            throw new globalThis.Error("The parameter 'deliverableId' must be defined.");
+        url_ = url_.replace("{deliverableId}", encodeURIComponent("" + deliverableId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processSetDeliverableTasks(_response);
+        });
+    }
+
+    protected processSetDeliverableTasks(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Submit a csv file of project deliverables to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
      * @param submissionGroupId (optional) 
      * @param validateOnly (optional) 
@@ -63890,6 +63969,8 @@ If it matches a task, the new task becomes a child of that task and inherits the
     plannedDate?: string | undefined;
     /** The estimated effort in hours (optional). */
     estimatedEffortHours?: number | undefined;
+    /** The deliverables of the same project the task serves, by id (optional). */
+    deliverableIds?: string[] | undefined;
 }
 
 /** A request to define a record type for an owner type that has them. */
@@ -68500,6 +68581,11 @@ export interface ProjectDeliverableDto {
     acceptedOn?: Date | undefined;
     /** Who accepted it. Null unless its status means Accepted, or when an import did. */
     acceptedBy?: EmployeeNavigationDto | undefined;
+    /** How far the plan work serving the deliverable has got, 0 to 100, derived from its linked tasks when read.
+Null when no task is linked: a deliverable nothing in the plan serves has no progress, not 0%. */
+    progress?: number | undefined;
+    /** How many plan tasks are linked to the deliverable. */
+    linkedTaskCount: number;
 }
 
 export interface ProjectDetailsDto {
@@ -68780,6 +68866,8 @@ export interface ProjectPlanNodeDto {
     plannedDate?: string | undefined;
     /** The estimated effort in hours. Null for stage nodes. */
     estimatedEffortHours?: number | undefined;
+    /** The project deliverables this task serves, by id. Empty for stage nodes. */
+    deliverableIds: string[];
 }
 
 /** Summary metrics for a project's plan, computed from leaf tasks. */
@@ -69036,6 +69124,8 @@ export interface ProjectTaskDto {
     plannedDate?: string | undefined;
     /** The estimated effort in hours. */
     estimatedEffortHours?: number | undefined;
+    /** The project deliverables this task serves, by id. */
+    deliverableIds: string[];
 }
 
 /** Represents an object's ID and task key (e.g., "APOLLO-1"). */
@@ -69064,6 +69154,8 @@ export interface ProjectTaskListDto {
     plannedEnd?: string | undefined;
     plannedDate?: string | undefined;
     estimatedEffortHours?: number | undefined;
+    /** The project deliverables this task serves, by id. */
+    deliverableIds: string[];
 }
 
 /** Navigation DTO for a project task. */
@@ -70026,6 +70118,12 @@ export interface SetProductTypeActiveRequest {
     id: string;
     /** Whether new products can be created with this type. */
     isActive: boolean;
+}
+
+/** The plan tasks that serve a deliverable, replacing its links. */
+export interface SetProjectDeliverableTasksRequest {
+    /** Every task of the same project that should serve the deliverable, by id. Empty unlinks them all. */
+    taskIds: string[];
 }
 
 /** Replaces everything a release announces — the packages it shipped and the versions it carries directly. */
@@ -72695,6 +72793,9 @@ export interface UpdateProjectTaskRequest {
     plannedDate?: string | undefined;
     /** The estimated effort in hours (optional). */
     estimatedEffortHours?: number | undefined;
+    /** The deliverables of the same project the task serves, by id, replacing its links. Null leaves its links as
+they are; an empty list unlinks it from every deliverable. */
+    deliverableIds?: string[] | undefined;
 }
 
 /** A whole-record update of a release's descriptive fields. */

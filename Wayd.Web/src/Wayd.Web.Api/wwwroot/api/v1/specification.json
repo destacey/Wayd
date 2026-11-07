@@ -20008,7 +20008,7 @@
           "ProjectDeliverables"
         ],
         "summary": "Get a project's deliverables, in their order.",
-        "description": "Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open.",
+        "description": "Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open. `progress` is derived from the plan tasks linked to the deliverable, weighted by planned duration, and is null when none is linked.",
         "operationId": "ProjectDeliverables_GetDeliverables",
         "parameters": [
           {
@@ -20660,6 +20660,90 @@
           },
           "409": {
             "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/ppm/projects/{id}/deliverables/{deliverableId}/tasks": {
+      "put": {
+        "tags": [
+          "ProjectDeliverables"
+        ],
+        "summary": "Set which plan tasks serve a deliverable.",
+        "description": "`taskIds` replaces the deliverable's links: a task not named is unlinked, and an empty list unlinks them all. Tasks must belong to the same project (Tasks_GetProjectTasks); a task can serve several deliverables. The deliverable's `progress` is derived from its linked tasks, using a linked summary task's subtasks. Linking is plan work: it needs no project role and does not change the project's `revision`.",
+        "operationId": "ProjectDeliverables_SetDeliverableTasks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "deliverableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProjectDeliverableTasksRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
             "content": {
               "application/json": {
                 "schema": {
@@ -24735,7 +24819,7 @@
           "ProjectTasks"
         ],
         "summary": "Partially update a project task using JSON Patch (RFC 6902).",
-        "description": "Prefer this to Tasks_UpdateProjectTask for any partial change. Paths are the update's camelCase fields: /name, /description, /statusId and /priorityId (ids from Tasks_GetTaskStatuses and Tasks_GetTaskPriorities), /assigneeIds, /progress, /parentId (a parent task, or the stage for a top-level task), /plannedStart and /plannedEnd (set both, or clear both), /plannedDate, /estimatedEffortHours. `replace` changes a field; `add` with `/assigneeIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.",
+        "description": "Prefer this to Tasks_UpdateProjectTask for any partial change. Paths are the update's camelCase fields: /name, /description, /statusId and /priorityId (ids from Tasks_GetTaskStatuses and Tasks_GetTaskPriorities), /assigneeIds, /progress, /parentId (a parent task, or the stage for a top-level task), /plannedStart and /plannedEnd (set both, or clear both), /plannedDate, /estimatedEffortHours, /deliverableIds (deliverables of the same project, from Projects_GetDeliverables). `replace` changes a field; `add` with `/assigneeIds/-` or `/deliverableIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.",
         "operationId": "ProjectTasks_PatchProjectTask",
         "parameters": [
           {
@@ -58578,6 +58662,15 @@
             "description": "The estimated effort in hours (optional).",
             "format": "decimal",
             "nullable": true
+          },
+          "deliverableIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The deliverables of the same project the task serves, by id (optional).",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -72154,7 +72247,8 @@
           "id",
           "projectId",
           "order",
-          "isOpen"
+          "isOpen",
+          "linkedTaskCount"
         ],
         "type": "object",
         "properties": {
@@ -72225,6 +72319,17 @@
             ],
             "description": "Who accepted it. Null unless its status means Accepted, or when an import did.",
             "nullable": true
+          },
+          "progress": {
+            "type": "number",
+            "description": "How far the plan work serving the deliverable has got, 0 to 100, derived from its linked tasks when read.\nNull when no task is linked: a deliverable nothing in the plan serves has no progress, not 0%.",
+            "format": "decimal",
+            "nullable": true
+          },
+          "linkedTaskCount": {
+            "type": "integer",
+            "description": "How many plan tasks are linked to the deliverable.",
+            "format": "int32"
           }
         },
         "additionalProperties": false,
@@ -73016,7 +73121,8 @@
           "order",
           "progress",
           "assignees",
-          "children"
+          "children",
+          "deliverableIds"
         ],
         "type": "object",
         "properties": {
@@ -73115,6 +73221,14 @@
             "description": "The estimated effort in hours. Null for stage nodes.",
             "format": "decimal",
             "nullable": true
+          },
+          "deliverableIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The project deliverables this task serves, by id. Empty for stage nodes."
           }
         },
         "additionalProperties": false,
@@ -73871,7 +73985,8 @@
           "projectId",
           "progress",
           "order",
-          "projectStageId"
+          "projectStageId",
+          "deliverableIds"
         ],
         "type": "object",
         "properties": {
@@ -73982,6 +74097,14 @@
             "description": "The estimated effort in hours.",
             "format": "decimal",
             "nullable": true
+          },
+          "deliverableIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The project deliverables this task serves, by id."
           }
         },
         "additionalProperties": false,
@@ -74016,7 +74139,8 @@
           "id",
           "projectId",
           "progress",
-          "order"
+          "order",
+          "deliverableIds"
         ],
         "type": "object",
         "properties": {
@@ -74091,6 +74215,14 @@
             "type": "number",
             "format": "decimal",
             "nullable": true
+          },
+          "deliverableIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The project deliverables this task serves, by id."
           }
         },
         "additionalProperties": false,
@@ -77217,6 +77349,25 @@
         },
         "additionalProperties": false,
         "description": "Takes a product type out of use, or puts it back."
+      },
+      "SetProjectDeliverableTasksRequest": {
+        "required": [
+          "taskIds"
+        ],
+        "type": "object",
+        "properties": {
+          "taskIds": {
+            "type": "array",
+            "items": {
+              "minLength": 1,
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Every task of the same project that should serve the deliverable, by id. Empty unlinks them all."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The plan tasks that serve a deliverable, replacing its links."
       },
       "SetReleaseContentsRequest": {
         "required": [
@@ -85425,6 +85576,15 @@
             "type": "number",
             "description": "The estimated effort in hours (optional).",
             "format": "decimal",
+            "nullable": true
+          },
+          "deliverableIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The deliverables of the same project the task serves, by id, replacing its links. Null leaves its links as\nthey are; an empty list unlinks it from every deliverable.",
             "nullable": true
           }
         },

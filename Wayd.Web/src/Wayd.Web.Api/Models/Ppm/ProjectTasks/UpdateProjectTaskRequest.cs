@@ -68,6 +68,12 @@ public sealed record UpdateProjectTaskRequest
     public decimal? EstimatedEffortHours { get; set; }
 
     /// <summary>
+    /// The deliverables of the same project the task serves, by id, replacing its links. Null leaves its links as
+    /// they are; an empty list unlinks it from every deliverable.
+    /// </summary>
+    public List<Guid>? DeliverableIds { get; set; }
+
+    /// <summary>
     /// Creates an UpdateProjectTaskRequest from a ProjectTaskDto.
     /// </summary>
     public static UpdateProjectTaskRequest FromDto(ProjectTaskDto dto)
@@ -85,7 +91,8 @@ public sealed record UpdateProjectTaskRequest
             PlannedEnd = dto.PlannedEnd,
             PlannedDate = dto.PlannedDate,
             EstimatedEffortHours = dto.EstimatedEffortHours,
-            AssigneeIds = [.. dto.Assignees.Select(a => a.Id)]
+            AssigneeIds = [.. dto.Assignees.Select(a => a.Id)],
+            DeliverableIds = [.. dto.DeliverableIds]
         };
     }
 
@@ -106,7 +113,8 @@ public sealed record UpdateProjectTaskRequest
             plannedDateRange,
             PlannedDate,
             EstimatedEffortHours,
-            AssigneeIds
+            AssigneeIds,
+            DeliverableIds
         );
     }
 }
@@ -136,6 +144,10 @@ public sealed class UpdateProjectTaskRequestValidator : CustomValidator<UpdatePr
         RuleFor(x => x.AssigneeIds)
             .Must(ids => ids == null || ids.All(id => id != Guid.Empty))
             .WithMessage("AssigneeIds cannot contain empty GUIDs.");
+
+        RuleFor(x => x.DeliverableIds)
+            .Must(ids => ids == null || ids.All(id => id != Guid.Empty))
+            .WithMessage("DeliverableIds cannot contain empty GUIDs.");
 
         RuleFor(x => x.PlannedStart)
             .Must((request, plannedStart) => (request.PlannedStart == null && request.PlannedEnd == null) || (request.PlannedStart != null && request.PlannedEnd != null))

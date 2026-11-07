@@ -37,6 +37,7 @@ public sealed class GetProjectPlanTreeQueryHandler(IProjectPortfolioManagementDb
 
         var project = await _ppmDbContext.Projects
             .AsNoTracking()
+            .AsSplitQuery()
             .Where(request.ProjectIdOrKeyFilter)
             .Include(p => p.Stages)
                 .ThenInclude(p => p.Roles)
@@ -44,6 +45,8 @@ public sealed class GetProjectPlanTreeQueryHandler(IProjectPortfolioManagementDb
             .Include(p => p.Tasks)
                 .ThenInclude(t => t.Roles)
                     .ThenInclude(r => r.Employee)
+            .Include(p => p.Tasks)
+                .ThenInclude(t => t.DeliverableLinks)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (project is null)
@@ -120,6 +123,7 @@ public sealed class GetProjectPlanTreeQueryHandler(IProjectPortfolioManagementDb
             ProjectStageId = task.ProjectStageId,
             PlannedDate = task.PlannedDate,
             EstimatedEffortHours = task.EstimatedEffortHours,
+            DeliverableIds = [.. task.DeliverableLinks.Select(l => l.ProjectDeliverableId)],
         };
 
         // Recursively build children

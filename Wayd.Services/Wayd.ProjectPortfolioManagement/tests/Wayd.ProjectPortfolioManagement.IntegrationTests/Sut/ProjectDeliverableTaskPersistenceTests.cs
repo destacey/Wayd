@@ -1,6 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
-using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
 using Wayd.ProjectPortfolioManagement.IntegrationTests.Infrastructure;
@@ -25,45 +23,6 @@ public sealed class ProjectDeliverableTaskPersistenceTests
         _fixture = fixture;
     }
 
-    private sealed record Plan(Guid ProjectId, Guid PortalId, Guid ReportsId, Guid DesignId, Guid BuildId, Guid TestId);
-
-    /// <summary>
-    /// The seeded project with a second deliverable and three tasks, where Design and Build serve the portal and
-    /// Build also serves the reports. The project is left Proposed, so its deliverables can still be deleted.
-    /// </summary>
-    private async Task<Plan> SeedPlan(CancellationToken ct)
-    {
-        var seed = await ActiveProjectWithDeliverable.Seed(_fixture, acceptTheDeliverable: false, ct, activateTheProject: false);
-        await using var context = _fixture.CreateContext();
-
-        var lifecycle = ProjectLifecycle.Create("Standard", "Standard delivery lifecycle", [("Delivery", "Delivery stage")]);
-        lifecycle.Activate();
-        await context.ProjectLifecycles.AddAsync(lifecycle, ct);
-        await context.SaveChangesAsync(ct);
-
-        var project = await context.Projects
-            .Include(p => p.Deliverables)
-            .SingleAsync(p => p.Id == seed.ProjectId, ct);
-        project.AssignLifecycle(PpmActor.System, ProjectAncestryRoles.None, lifecycle, SqlServerDbContextFixture.FixedNow)
-            .IsSuccess.Should().BeTrue();
-        var stageId = project.Stages.Single().Id;
-
-        var reports = project.AddDeliverable(PpmActor.System, ProjectAncestryRoles.None, "Reports", null, null, null, null,
-            seed.Statuses[ProjectDeliverableStatusAlias.NotStarted], SqlServerDbContextFixture.FixedNow).Value;
-
-        ProjectTask Create(int number, string name) => project.CreateTask(number, name, null, ProjectTaskType.Task,
-            Domain.Enums.TaskStatus.NotStarted, TaskPriority.Medium, null, stageId, null, null, null, null).Value;
-        var design = Create(1, "Design");
-        var build = Create(2, "Build");
-        var test = Create(3, "Test");
-
-        project.SetDeliverableTasks(seed.DeliverableId, [design.Id, build.Id]).IsSuccess.Should().BeTrue();
-        project.SetDeliverableTasks(reports.Id, [build.Id]).IsSuccess.Should().BeTrue();
-        await context.SaveChangesAsync(ct);
-
-        return new Plan(seed.ProjectId, seed.DeliverableId, reports.Id, design.Id, build.Id, test.Id);
-    }
-
     private async Task<List<(Guid DeliverableId, Guid TaskId)>> Links(CancellationToken ct)
     {
         await using var verify = _fixture.CreateContext();
@@ -78,7 +37,7 @@ public sealed class ProjectDeliverableTaskPersistenceTests
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var plan = await SeedPlan(ct);
+        var plan = await ProposedProjectWithLinkedPlan.Seed(_fixture, ct);
         await using var context = _fixture.CreateContext();
         var named = new[] { plan.BuildId, plan.TestId };
         var project = await context.Projects
@@ -107,7 +66,7 @@ public sealed class ProjectDeliverableTaskPersistenceTests
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var plan = await SeedPlan(ct);
+        var plan = await ProposedProjectWithLinkedPlan.Seed(_fixture, ct);
         await using var context = _fixture.CreateContext();
         var named = new[] { plan.ReportsId };
         var project = await context.Projects
@@ -134,7 +93,7 @@ public sealed class ProjectDeliverableTaskPersistenceTests
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var plan = await SeedPlan(ct);
+        var plan = await ProposedProjectWithLinkedPlan.Seed(_fixture, ct);
         await using var context = _fixture.CreateContext();
         var project = await context.Projects
             .Include(p => p.Tasks.Where(t => t.Id == plan.DesignId))
@@ -157,7 +116,7 @@ public sealed class ProjectDeliverableTaskPersistenceTests
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var plan = await SeedPlan(ct);
+        var plan = await ProposedProjectWithLinkedPlan.Seed(_fixture, ct);
         await using var context = _fixture.CreateContext();
         var project = await context.Projects
             .Include(p => p.Deliverables.Where(d => d.Id == plan.ReportsId))
@@ -181,7 +140,7 @@ public sealed class ProjectDeliverableTaskPersistenceTests
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var plan = await SeedPlan(ct);
+        var plan = await ProposedProjectWithLinkedPlan.Seed(_fixture, ct);
         await using var context = _fixture.CreateContext();
         var project = await context.Projects
             .Include(p => p.Deliverables.Where(d => d.Id == plan.ReportsId))
@@ -201,7 +160,7 @@ public sealed class ProjectDeliverableTaskPersistenceTests
     {
         // Arrange
         var ct = TestContext.Current.CancellationToken;
-        var plan = await SeedPlan(ct);
+        var plan = await ProposedProjectWithLinkedPlan.Seed(_fixture, ct);
         await using var context = _fixture.CreateContext();
         var project = await context.Projects.SingleAsync(p => p.Id == plan.ProjectId, ct);
 

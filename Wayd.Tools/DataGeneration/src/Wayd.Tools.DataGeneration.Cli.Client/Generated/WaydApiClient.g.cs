@@ -45944,7 +45944,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a project's deliverables, in their order.
         /// </summary>
         /// <remarks>
-        /// Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open.
+        /// Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open. `progress` is derived from the plan tasks linked to the deliverable, weighted by planned duration, and is null when none is linked.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -46037,6 +46037,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Set which plan tasks serve a deliverable.
+        /// </summary>
+        /// <remarks>
+        /// `taskIds` replaces the deliverable's links: a task not named is unlinked, and an empty list unlinks them all. Tasks must belong to the same project (Tasks_GetProjectTasks); a task can serve several deliverables. The deliverable's `progress` is derived from its linked tasks, using a linked summary task's subtasks. Linking is plan work: it needs no project role and does not change the project's `revision`.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetDeliverableTasksAsync(System.Guid id, System.Guid deliverableId, SetProjectDeliverableTasksRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Submit a csv file of project deliverables to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
@@ -46101,7 +46112,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a project's deliverables, in their order.
         /// </summary>
         /// <remarks>
-        /// Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open.
+        /// Deliverables are what the project has committed to produce, each with acceptance criteria and a status. `isOpen` is true while one still has to be accepted or descoped; a project cannot complete while any is open. `progress` is derived from the plan tasks linked to the deliverable, weighted by planned duration, and is null when none is linked.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -47077,6 +47088,124 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set which plan tasks serve a deliverable.
+        /// </summary>
+        /// <remarks>
+        /// `taskIds` replaces the deliverable's links: a task not named is unlinked, and an empty list unlinks them all. Tasks must belong to the same project (Tasks_GetProjectTasks); a task can serve several deliverables. The deliverable's `progress` is derived from its linked tasks, using a linked summary task's subtasks. Linking is plan work: it needs no project role and does not change the project's `revision`.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetDeliverableTasksAsync(System.Guid id, System.Guid deliverableId, SetProjectDeliverableTasksRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (deliverableId == null)
+                throw new System.ArgumentNullException("deliverableId");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/ppm/projects/{id}/deliverables/{deliverableId}/tasks"
+                    urlBuilder_.Append("api/ppm/projects/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/deliverables/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(deliverableId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/tasks");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)
@@ -54556,7 +54685,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Partially update a project task using JSON Patch (RFC 6902).
         /// </summary>
         /// <remarks>
-        /// Prefer this to Tasks_UpdateProjectTask for any partial change. Paths are the update's camelCase fields: /name, /description, /statusId and /priorityId (ids from Tasks_GetTaskStatuses and Tasks_GetTaskPriorities), /assigneeIds, /progress, /parentId (a parent task, or the stage for a top-level task), /plannedStart and /plannedEnd (set both, or clear both), /plannedDate, /estimatedEffortHours. `replace` changes a field; `add` with `/assigneeIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.
+        /// Prefer this to Tasks_UpdateProjectTask for any partial change. Paths are the update's camelCase fields: /name, /description, /statusId and /priorityId (ids from Tasks_GetTaskStatuses and Tasks_GetTaskPriorities), /assigneeIds, /progress, /parentId (a parent task, or the stage for a top-level task), /plannedStart and /plannedEnd (set both, or clear both), /plannedDate, /estimatedEffortHours, /deliverableIds (deliverables of the same project, from Projects_GetDeliverables). `replace` changes a field; `add` with `/assigneeIds/-` or `/deliverableIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -55098,7 +55227,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Partially update a project task using JSON Patch (RFC 6902).
         /// </summary>
         /// <remarks>
-        /// Prefer this to Tasks_UpdateProjectTask for any partial change. Paths are the update's camelCase fields: /name, /description, /statusId and /priorityId (ids from Tasks_GetTaskStatuses and Tasks_GetTaskPriorities), /assigneeIds, /progress, /parentId (a parent task, or the stage for a top-level task), /plannedStart and /plannedEnd (set both, or clear both), /plannedDate, /estimatedEffortHours. `replace` changes a field; `add` with `/assigneeIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.
+        /// Prefer this to Tasks_UpdateProjectTask for any partial change. Paths are the update's camelCase fields: /name, /description, /statusId and /priorityId (ids from Tasks_GetTaskStatuses and Tasks_GetTaskPriorities), /assigneeIds, /progress, /parentId (a parent task, or the stage for a top-level task), /plannedStart and /plannedEnd (set both, or clear both), /plannedDate, /estimatedEffortHours, /deliverableIds (deliverables of the same project, from Projects_GetDeliverables). `replace` changes a field; `add` with `/assigneeIds/-` or `/deliverableIds/-` appends one id to a list; to remove from a list, `replace` the whole list with the set that should remain — never remove by index. A field the patch does not name keeps its value. Assignee ids are employee ids. Confirm with the user before calling.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -118593,6 +118722,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0", "79228162514264337593543950335")]
         public decimal? EstimatedEffortHours { get; set; } = default!;
 
+        /// <summary>
+        /// The deliverables of the same project the task serves, by id (optional).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverableIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? DeliverableIds { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -132111,6 +132246,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("acceptedBy")]
         public EmployeeNavigationDto? AcceptedBy { get; set; } = default!;
 
+        /// <summary>
+        /// How far the plan work serving the deliverable has got, 0 to 100, derived from its linked tasks when read.
+        /// <br/>Null when no task is linked: a deliverable nothing in the plan serves has no progress, not 0%.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("progress")]
+        public decimal? Progress { get; set; } = default!;
+
+        /// <summary>
+        /// How many plan tasks are linked to the deliverable.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("linkedTaskCount")]
+        public int LinkedTaskCount { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -132947,6 +133095,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("estimatedEffortHours")]
         public decimal? EstimatedEffortHours { get; set; } = default!;
 
+        /// <summary>
+        /// The project deliverables this task serves, by id. Empty for stage nodes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverableIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> DeliverableIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
     }
 
     /// <summary>
@@ -133718,6 +133873,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("estimatedEffortHours")]
         public decimal? EstimatedEffortHours { get; set; } = default!;
 
+        /// <summary>
+        /// The project deliverables this task serves, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverableIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> DeliverableIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
     }
 
     /// <summary>
@@ -133808,6 +133970,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("estimatedEffortHours")]
         public decimal? EstimatedEffortHours { get; set; } = default!;
+
+        /// <summary>
+        /// The project deliverables this task serves, by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverableIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> DeliverableIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
     }
 
@@ -136572,6 +136741,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The plan tasks that serve a deliverable, replacing its links.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetProjectDeliverableTasksRequest
+    {
+
+        /// <summary>
+        /// Every task of the same project that should serve the deliverable, by id. Empty unlinks them all.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("taskIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> TaskIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
     }
 
@@ -144493,6 +144678,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("estimatedEffortHours")]
         [System.ComponentModel.DataAnnotations.Range(typeof(decimal), "0", "79228162514264337593543950335")]
         public decimal? EstimatedEffortHours { get; set; } = default!;
+
+        /// <summary>
+        /// The deliverables of the same project the task serves, by id, replacing its links. Null leaves its links as
+        /// <br/>they are; an empty list unlinks it from every deliverable.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverableIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? DeliverableIds { get; set; } = default!;
 
     }
 

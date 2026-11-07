@@ -9,8 +9,9 @@ namespace Wayd.Work.Application.WorkItems.Forecasting;
 /// Builds each team's throughput sample from the Requirement-tier items it finished in a window.
 /// </summary>
 /// <remarks>
-/// Completion instants become calendar dates in UTC; Wayd does not yet track a time zone for
-/// users, teams or the organization.
+/// Completion instants become calendar dates in UTC. A forecast samples several teams over one window, and a
+/// few hours' shift at a window's ends barely moves a throughput sample; a report that names its days uses
+/// <see cref="WorkTeams.TeamReportCalendar"/> instead.
 /// </remarks>
 internal sealed class TeamThroughputSampler(IWorkDbContext workDbContext)
 {
@@ -25,11 +26,18 @@ internal sealed class TeamThroughputSampler(IWorkDbContext workDbContext)
     /// The <paramref name="days"/> whole UTC days before <paramref name="now"/>. Today is left
     /// out because it is not over, and would read as a slow day.
     /// </summary>
-    public static (LocalDate From, LocalDate To) LookbackWindow(Instant now, int days = ForecastOptions.DefaultLookbackDays)
+    public static (LocalDate From, LocalDate To) LookbackWindow(Instant now, int days = ForecastOptions.DefaultLookbackDays) =>
+        LookbackWindow(now.InUtc().Date, days);
+
+    /// <summary>
+    /// The <paramref name="days"/> whole days before <paramref name="today"/>, which is left out because it is
+    /// not over.
+    /// </summary>
+    public static (LocalDate From, LocalDate To) LookbackWindow(LocalDate today, int days)
     {
         Guard.Against.NegativeOrZero(days);
 
-        var to = now.InUtc().Date.PlusDays(-1);
+        var to = today.PlusDays(-1);
         return (to.PlusDays(1 - days), to);
     }
 

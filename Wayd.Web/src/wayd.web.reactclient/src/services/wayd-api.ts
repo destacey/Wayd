@@ -44965,8 +44965,8 @@ export class TeamsClient {
 
     /**
      * Report where a team's completed work went.
-     * @param from (optional) The first day of completed work to include (yyyy-MM-dd, UTC).
-     * @param to (optional) The last day of completed work to include (yyyy-MM-dd, UTC).
+     * @param from (optional) The first day of completed work to include (yyyy-MM-dd, in the team's time zone).
+     * @param to (optional) The last day of completed work to include (yyyy-MM-dd, in the team's time zone).
      * @param dimension (optional) What to group work by (default Portfolio).
      * @param measure (optional) How to weigh each work item (default Count).
      * @param unestimated (optional) StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).
@@ -45059,8 +45059,8 @@ export class TeamsClient {
 
     /**
      * Report where a team's cross-team dependencies ran over a date range.
-     * @param from (optional) The first day of the range (yyyy-MM-dd, UTC).
-     * @param to (optional) The last day of the range (yyyy-MM-dd, UTC).
+     * @param from (optional) The first day of the range (yyyy-MM-dd, in the team's time zone).
+     * @param to (optional) The last day of the range (yyyy-MM-dd, in the team's time zone).
      * @return OK
      */
     getDependencyAnalysis(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamDependencyAnalysisDto> {
@@ -47508,8 +47508,8 @@ export class TeamsOfTeamsClient {
 
     /**
      * Report where the completed work of a team of teams, and every team beneath it, went.
-     * @param from (optional) The first day of completed work to include (yyyy-MM-dd, UTC).
-     * @param to (optional) The last day of completed work to include (yyyy-MM-dd, UTC).
+     * @param from (optional) The first day of completed work to include (yyyy-MM-dd, in the team's time zone).
+     * @param to (optional) The last day of completed work to include (yyyy-MM-dd, in the team's time zone).
      * @param dimension (optional) What to group work by (default Portfolio).
      * @param measure (optional) How to weigh each work item (default Count).
      * @param unestimated (optional) StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).
@@ -47602,8 +47602,8 @@ export class TeamsOfTeamsClient {
 
     /**
      * Report where the cross-team dependencies of a team of teams, and every team beneath it, ran over a date range.
-     * @param from (optional) The first day of the range (yyyy-MM-dd, UTC).
-     * @param to (optional) The last day of the range (yyyy-MM-dd, UTC).
+     * @param from (optional) The first day of the range (yyyy-MM-dd, in the team's time zone).
+     * @param to (optional) The last day of the range (yyyy-MM-dd, in the team's time zone).
      * @return OK
      */
     getDependencyAnalysis(idOrCode: string, from?: string | null | undefined, to?: string | null | undefined, cancelToken?: CancelToken): Promise<TeamDependencyAnalysisDto> {
@@ -71453,10 +71453,16 @@ export interface TeamBacklogHealthDto {
     team: WorkTeamNavigationDto;
     /** The thresholds the backlog was graded against: the defaults, with any the caller overrode. */
     thresholds: BacklogHealthThresholds;
-    /** Days of history, ending yesterday (UTC), that throughput, cycle time and net flow were measured over. */
+    /** Days of history, ending yesterday in `timeZone`, that throughput, cycle time and net flow were
+measured over. */
     lookbackDays: number;
+    /** The first day of the history. */
     from: string;
+    /** The last day of the history, included: yesterday in `timeZone`. */
     to: string;
+    /** The IANA id of the time zone the history's days are counted in: that of the team's operating model in
+effect today. */
+    timeZone: string;
     /** The team's sizing method today, which every estimate in the report is in. A team that sizes by count has
 no estimates, so its estimate checks are not applicable. */
     sizingMethod: SizingMethod;
@@ -71844,14 +71850,17 @@ export interface TeamDayOffDto {
     percentOff: number;
 }
 
-/** Where a team's dependencies, or those of every team beneath a team of teams, ran from `from` to `to` (inclusive, UTC dates): which teams they ran between, how many, and how that changed over the range. */
+/** Where a team's dependencies, or those of every team beneath a team of teams, ran from `from` to `to` (inclusive, days in the team's time zone): which teams they ran between, how many, and how that changed over the range. */
 export interface TeamDependencyAnalysisDto {
     /** The team or team of teams the report is for. */
     team: WorkTeamNavigationDto;
-    /** The first day of the range (UTC). */
+    /** The first day of the range. */
     from: string;
-    /** The last day of the range (UTC), included. */
+    /** The last day of the range, included. */
     to: string;
+    /** The IANA id of the time zone the range and periods are counted in: that of the team's, or the team of
+teams', operating model in effect on `to`. */
+    timeZone: string;
     /** Totals for the range. */
     summary: DependencyAnalysisSummaryDto;
     /** Each predecessor team → successor team pair, most dependencies first. */
@@ -72154,8 +72163,13 @@ export interface TeamTypeDto {
 /** Where a team's completed work went from `from` to `to`, grouped by one dimension. For a team of teams it covers every team beneath it, each placed where it sat on the day the work was done. */
 export interface TeamWorkDistributionDto {
     team: WorkTeamNavigationDto;
+    /** The first day of the range. */
     from: string;
+    /** The last day of the range, included. */
     to: string;
+    /** The IANA id of the time zone the range and periods are counted in: that of the team's, or the team of
+teams', operating model in effect on `to`. */
+    timeZone: string;
     summary: WorkDistributionSummaryDto;
     groups: WorkDistributionGroupDto[];
     /** The team hierarchy, pre-ordered from the requested team, each placed under its latest parent in the window. */

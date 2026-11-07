@@ -1,8 +1,10 @@
 using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Application.Dtos;
+using Wayd.Common.Application.Requests.Organization;
 using Wayd.Work.Application.WorkItemDependencies.Dtos;
 using Wayd.Work.Application.WorkItems.Dtos;
+using Wayd.Work.Application.WorkTeams;
 using Wayd.Work.Application.WorkTeams.DependencyAnalysis;
 using Wayd.Work.Application.WorkTeams.Dtos;
 using Xunit;
@@ -67,7 +69,7 @@ public sealed class DependencyAnalysisCalculatorTests
     private static Instant On(int month, int day) => Instant.FromUtc(2026, month, day, 12, 0);
 
     private static TeamDependencyAnalysisDto Calculate(params DependencyAnalysisItem[] items) =>
-        DependencyAnalysisCalculator.Calculate(Root, From, To, Scope, items);
+        DependencyAnalysisCalculator.Calculate(Root, From, To, TeamReportCalendar.Utc, Scope, items);
 
     [Fact]
     public void Calculate_CountsOnlyDependenciesOpenDuringTheRange()
@@ -90,6 +92,27 @@ public sealed class DependencyAnalysisCalculatorTests
         result.Team.Should().Be(Root);
         result.From.Should().Be(From);
         result.To.Should().Be(To);
+    }
+
+    [Fact]
+    public void Calculate_CountsTheRangeAndPeriodsInTheCalendarsTimeZone()
+    {
+        // Arrange
+        var tokyo = TeamReportCalendar.From([new TeamTimeZonePeriod(new LocalDate(2026, 1, 1), null, "Asia/Tokyo")]);
+        // 01:00 on July 1st in Tokyo, still June 30th in UTC.
+        var createdOnTheFirstTokyoDay = Dependency(Payments, Mobile, Instant.FromUtc(2026, 6, 30, 16, 0));
+        // 01:00 on September 29th in Tokyo, after the range there although inside it in UTC.
+        var createdAfterTheLastTokyoDay = Dependency(Payments, Mobile, Instant.FromUtc(2026, 9, 28, 16, 0));
+
+        // Act
+        var result = DependencyAnalysisCalculator.Calculate(
+            Root, From, To, tokyo, Scope, [createdOnTheFirstTokyoDay, createdAfterTheLastTokyoDay]);
+
+        // Assert
+        result.TimeZone.Should().Be("Asia/Tokyo");
+        result.Dependencies.Select(d => d.Id).Should().Equal(createdOnTheFirstTokyoDay.Dependency.Id);
+        result.Summary.Created.Should().Be(1);
+        result.Periods[0].Created.Should().Be(1);
     }
 
     [Fact]

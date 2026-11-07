@@ -10,10 +10,10 @@ namespace Wayd.Web.Api.Models.Organizations.Teams;
 /// </summary>
 public sealed record GetTeamWorkDistributionRequest
 {
-    /// <summary>The first day of completed work to include (yyyy-MM-dd, UTC).</summary>
+    /// <summary>The first day of completed work to include (yyyy-MM-dd, in the team's time zone).</summary>
     public string? From { get; set; }
 
-    /// <summary>The last day of completed work to include (yyyy-MM-dd, UTC).</summary>
+    /// <summary>The last day of completed work to include (yyyy-MM-dd, in the team's time zone).</summary>
     public string? To { get; set; }
 
     /// <summary>What to group work by (default Portfolio).</summary>

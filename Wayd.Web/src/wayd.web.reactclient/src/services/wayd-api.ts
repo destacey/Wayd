@@ -72163,7 +72163,9 @@ export interface TeamTypeDto {
 /** Where a team's completed work went from `from` to `to`, grouped by one dimension. For a team of teams it covers every team beneath it, each placed where it sat on the day the work was done. */
 export interface TeamWorkDistributionDto {
     team: WorkTeamNavigationDto;
+    /** The first day of the range. */
     from: string;
+    /** The last day of the range, included. */
     to: string;
     /** The IANA id of the time zone the range and periods are counted in: that of the team's, or the team of
 teams', operating model in effect on `to`. */

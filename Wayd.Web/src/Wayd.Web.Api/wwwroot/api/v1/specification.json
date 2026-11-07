@@ -83545,10 +83545,12 @@
           },
           "from": {
             "type": "string",
+            "description": "The first day of the range.",
             "format": "date"
           },
           "to": {
             "type": "string",
+            "description": "The last day of the range, included.",
             "format": "date"
           },
           "timeZone": {

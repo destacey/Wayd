@@ -118,7 +118,7 @@ The project detail page has an identity bar naming the project, a section rail d
 
 The identity bar also shows a **Health tag** when the project has an active health check. Hovering the tag shows details (status, reported by, reported on, expiration, and note). Clicking the **status tag** opens the project's [status history](#project-status-history).
 
-**Overview** — [Stages](#project-stages), a Deliverables card for the project's [deliverables](#project-deliverables) (how many are accepted, and the next three still open, soonest due first), and, once tasks exist, a Task Summary card beside it. The deliverables summary shows even before a lifecycle is assigned.
+**Overview** — [Stages](#project-stages), a Deliverables card for the project's [deliverables](#project-deliverables) (how many are accepted, and the next three still open, soonest due first, each with its [progress](#linking-plan-tasks) when plan tasks are linked to it), and, once tasks exist, a Task Summary card beside it. The deliverables summary shows even before a lifecycle is assigned.
 
 The **Stage Timeline** is a step-based visualization showing each stage's status (completed, in progress, not started, canceled), date range, and progress percentage. It automatically adjusts between horizontal and vertical layout based on available space.
 
@@ -138,7 +138,8 @@ Warning alerts appear on Overview when requirements are missing:
 
 - **Tree grid** with hierarchical [tasks](#project-tasks) organized by [stage](#project-stages)
 - **Drag-and-drop** reordering (for users with update permission)
-- **Columns**: WBS, Key, Name, Type, Status, Priority, Schedule, Planned Start, Planned End, Assignees, Progress, and Est Effort (hrs). For a milestone, Planned Start and Planned End both show its planned date
+- **Columns**: WBS, Key, Name, Type, Status, Priority, Schedule, Planned Start, Planned End, Assignees, Deliverables, Progress, and Est Effort (hrs). For a milestone, Planned Start and Planned End both show its planned date. Deliverables lists the [deliverables a task serves](#linking-plan-tasks); it is set in the task's form, not inline
+- **By Stage / By Deliverable**: the toolbar switches between the work breakdown and the plan grouped by the deliverables it serves — a read-only list under one heading per deliverable, in their order, each heading with its task count and progress, and the work serving no deliverable last
 - **Inline editing** of Name, Type (Task/Milestone), Status, Priority, Planned Start, Planned End, Assignees, Progress, and Est Effort (hrs) on the selected row
 - **Schedule** — derived from the dates and read-only: **Overdue** when the planned end has passed, **Due This Week** when it falls between today and Saturday, **Upcoming** when it falls in the following week. Completed and Canceled items carry no label
 - **Row actions**: Edit task, Delete task, Add child task; on a stage row, Edit (the stage's description, status, assignees, planned date range, and progress) and Add Task
@@ -305,9 +306,9 @@ stages.
 ### The Deliverables section
 
 The **Deliverables** section of a project shows counts of open, overdue, accepted and descoped deliverables, then the
-deliverables in their order, with status, owner and target date. A deliverable still open after its target date is
-marked **Overdue**. Select one to see its acceptance criteria, description and the reason for its status; select its
-status to see its status history.
+deliverables in their order, with status, progress, owner and target date. A deliverable still open after its target
+date is marked **Overdue**. Select one to see its progress and linked tasks, acceptance criteria, description and the
+reason for its status; select its status to see its status history.
 
 With permission to change the project, you can:
 
@@ -318,6 +319,28 @@ With permission to change the project, you can:
 - **Reorder** — drag a row by its handle. Clear any sorting or filter first.
 
 Descoped deliverables are hidden until you turn on **Show descoped**.
+
+With the **Update Projects** permission alone, you can also **Link Tasks** — see [Linking plan tasks](#linking-plan-tasks).
+
+### Linking plan tasks
+
+A deliverable is served by the [plan tasks](#project-tasks) that produce it. Linking them shows how far the work
+toward each deliverable has got, in the terms the project committed to.
+
+- **Link from either side.** From a deliverable's **Link Tasks** action, pick the tasks that serve it; or pick a
+  task's **Deliverables** in its create or edit form. A task can serve several deliverables, and a deliverable can be
+  served by tasks in several stages. Links stay within one project.
+- **Link the summary task.** Linking a task with subtasks counts all of its subtasks, so they need no link of their
+  own.
+- **Progress** is worked out each time it is read, from the linked tasks: the average progress of the lowest-level
+  tasks beneath them, weighted by planned duration in days. A milestone, an undated task, or a task with no end date
+  counts as one day. Work linked twice — a task and a task above it — counts once. A task linked to two deliverables
+  counts fully toward each.
+- A deliverable with **no linked tasks has no progress**, shown as *No linked tasks* rather than 0%.
+- **Progress is not acceptance.** A deliverable whose linked work is 100% done is still open until it is accepted.
+- The [Gantt chart](#gantt-chart)'s summary bars give milestones and undated tasks no weight, so a summary bar can
+  differ slightly from the progress of a deliverable it is linked to.
+- Deleting a task removes its links; a deliverable can be deleted with tasks still linked, which unlinks them.
 
 ### Deliverable statuses
 
@@ -359,6 +382,10 @@ category, not its name, so renamed and added statuses keep them.
 Changing deliverables needs the **Update Projects** permission and the role of **Owner** or **Manager** on the
 project, its program, or its portfolio — the same as the project's other details. Sponsors and Members can read
 deliverables but not change them. Deliverables can also be [imported in bulk](./bulk-import.mdx#project-deliverables-import).
+
+Linking plan tasks to deliverables is plan work, like editing tasks: it needs only the **Update Projects** permission,
+and works on a project in any status. [Imported tasks](./bulk-import.mdx#project-tasks-import) can name the
+deliverables they serve.
 
 ## Project Lifecycles
 
@@ -411,6 +438,7 @@ Each stage has:
 - **Date Range** — Planned start and end dates (tasks) or Planned Date (milestones)
 - **Estimated Effort** — Hours estimate
 - **Roles** — Assignees
+- **Deliverables** — the project [deliverables the task serves](#linking-plan-tasks)
 - **[Dependencies](#task-dependencies)** — Finish-to-Start relationships between tasks
 
 ### Task Hierarchy

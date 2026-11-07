@@ -291,6 +291,7 @@ const treeRowClasses: TreeGridRowClasses = {
   trEditable: styles.trEditable,
   trSelected: styles.trSelected,
   editableCell: styles.editableCell,
+  treeEditorIndent: styles.treeEditorIndent,
 }
 
 const groupRowClasses: GroupGridRowClasses = {

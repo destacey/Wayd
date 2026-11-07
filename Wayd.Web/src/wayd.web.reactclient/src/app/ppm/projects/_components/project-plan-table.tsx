@@ -3,11 +3,11 @@
 import { ProjectPlanNodeDto } from '@/src/services/wayd-api'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dayjs from 'dayjs'
+import { findOwnChildrenSpan } from './project-parent-date-hint'
 import {
-  findOwnChildrenSpan,
   getChildrenContainmentError,
   isShiftOnlyChange,
-} from './project-parent-date-hint'
+} from '@/src/utils/date-containment'
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import {

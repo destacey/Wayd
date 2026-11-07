@@ -28,6 +28,12 @@ export interface ModaColorPickerProps {
   id?: string // required by antd for custom form controls
   value?: string // required by antd for custom form controls
   onChange?: (value: string | undefined) => void // required by antd for custom form controls
+  /** Whether the picker is open, when the caller controls it (a grid cell). */
+  open?: boolean
+  /** Called whenever the picker opens or closes. */
+  onOpenChange?: (open: boolean) => void
+  /** Shows the hex value beside the swatch. On by default. */
+  showText?: boolean
 }
 
 export interface ModaColorPickerRef {
@@ -61,7 +67,12 @@ const customPanelRender: ColorPickerProps['panelRender'] = (
 const WaydColorPicker = forwardRef<ModaColorPickerRef, ModaColorPickerProps>(
   (props, ref) => {
     const { value, onChange } = props
-    const [isOpen, setIsOpen] = useState(false)
+    const [ownOpen, setOwnOpen] = useState(false)
+    const isOpen = props.open ?? ownOpen
+    const setIsOpen = (open: boolean) => {
+      if (props.open === undefined) setOwnOpen(open)
+      props.onOpenChange?.(open)
+    }
     const [isTriggerFocused, setIsTriggerFocused] = useState(false)
     const rootRef = useRef<HTMLSpanElement | null>(null)
     const shouldRefocusOnCloseRef = useRef(false)
@@ -208,7 +219,7 @@ const WaydColorPicker = forwardRef<ModaColorPickerRef, ModaColorPickerProps>(
           value={value}
           presets={colorPresets}
           allowClear
-          showText
+          showText={props.showText ?? true}
           format="hex"
           size="small"
           onOpenChange={(open) => {

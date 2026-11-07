@@ -1,47 +1,9 @@
-import dayjs from 'dayjs'
 import {
+  findOwnChildrenSpan,
   findParentPlanNodeRange,
-  getChildrenContainmentError,
-  isShiftOnlyChange,
 } from './project-parent-date-hint'
 
 describe('project-parent-date-hint', () => {
-  describe('isShiftOnlyChange', () => {
-    it('returns true when start and end both shift by the same delta', () => {
-      const origStart = dayjs('2026-06-01')
-      const origEnd = dayjs('2026-06-10')
-      const newStart = dayjs('2026-06-05')
-      const newEnd = dayjs('2026-06-14')
-
-      expect(isShiftOnlyChange(origStart, origEnd, newStart, newEnd)).toBe(true)
-    })
-
-    it('returns false when only start changes', () => {
-      const origStart = dayjs('2026-06-01')
-      const origEnd = dayjs('2026-06-10')
-      const newStart = dayjs('2026-06-05')
-      const newEnd = dayjs('2026-06-10')
-
-      expect(isShiftOnlyChange(origStart, origEnd, newStart, newEnd)).toBe(false)
-    })
-
-    it('returns false when dates shift by different amounts', () => {
-      const origStart = dayjs('2026-06-01')
-      const origEnd = dayjs('2026-06-10')
-      const newStart = dayjs('2026-06-05')
-      const newEnd = dayjs('2026-06-12')
-
-      expect(isShiftOnlyChange(origStart, origEnd, newStart, newEnd)).toBe(false)
-    })
-
-    it('returns false when dates do not change', () => {
-      const origStart = dayjs('2026-06-01')
-      const origEnd = dayjs('2026-06-10')
-
-      expect(isShiftOnlyChange(origStart, origEnd, origStart, origEnd)).toBe(false)
-    })
-  })
-
   describe('findParentPlanNodeRange case-insensitivity', () => {
     const nodes = [
       {
@@ -67,33 +29,28 @@ describe('project-parent-date-hint', () => {
     })
   })
 
-  describe('getChildrenContainmentError', () => {
-    const span = {
-      start: dayjs('2026-06-05'),
-      end: dayjs('2026-06-15'),
-      earliest: 'Task 1',
-      latest: 'Task 2'
-    }
+  describe('findOwnChildrenSpan', () => {
+    it('spans the direct children, a milestone by its planned date', () => {
+      // Arrange
+      const nodes = [
+        {
+          id: 'STAGE-1',
+          name: 'Stage 1',
+          children: [
+            { id: 't1', name: 'Task 1', start: '2026-06-05', end: '2026-06-10' },
+            { id: 'm1', name: 'Launch', plannedDate: '2026-06-20' },
+          ]
+        }
+      ]
 
-    it('returns error when start is after children span', () => {
-      const start = dayjs('2026-06-06')
-      const end = dayjs('2026-06-20')
-      const err = getChildrenContainmentError(span, start, end)
-      expect(err).toContain('Start date must be on or before child item')
-    })
+      // Act
+      const span = findOwnChildrenSpan(nodes, 'stage-1')
 
-    it('returns error when end is before children span', () => {
-      const start = dayjs('2026-06-01')
-      const end = dayjs('2026-06-14')
-      const err = getChildrenContainmentError(span, start, end)
-      expect(err).toContain('End date must be on or after child item')
-    })
-
-    it('returns null when range contains all children', () => {
-      const start = dayjs('2026-06-01')
-      const end = dayjs('2026-06-20')
-      const err = getChildrenContainmentError(span, start, end)
-      expect(err).toBeNull()
+      // Assert
+      expect(span?.start.format('YYYY-MM-DD')).toBe('2026-06-05')
+      expect(span?.end.format('YYYY-MM-DD')).toBe('2026-06-20')
+      expect(span?.earliest).toBe('Task 1')
+      expect(span?.latest).toBe('Launch')
     })
   })
 })

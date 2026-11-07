@@ -577,6 +577,26 @@ describe('WaydGrid cell editing', () => {
       )
     })
 
+    it('reads the errors of an RTK Query rejection, in its data', async () => {
+      // Arrange
+      renderEditable({
+        onCommit: rejectWith({
+          status: 422,
+          data: { status: 422, errors: { OwnerId: ['Owner left.'] } },
+        }),
+      })
+      editName(0, 'Alpha 2')
+
+      // Act
+      press('Enter')
+      await flush()
+
+      // Assert
+      expect(cellAt(0, 'owner')).toHaveAccessibleDescription(
+        'Owner: Owner left.',
+      )
+    })
+
     it('maps an error key through fieldToColumn', async () => {
       // Arrange
       renderEditable({
@@ -1210,6 +1230,375 @@ describe('WaydGrid cell editing', () => {
 
       // Assert
       expect(onCommit).not.toHaveBeenCalled()
+    })
+
+    it('retries a failed create when any of its cells is changed', async () => {
+      // Arrange
+      const onCreate = jest
+        .fn()
+        .mockImplementationOnce(() => Promise.reject({ status: 500 }))
+        .mockImplementation(() => Promise.resolve('new-1'))
+      render(<DraftHarness onCreate={onCreate} />)
+      const draftRow = addDraft()
+      typeInEditor('First try')
+      press('Enter')
+      await flush()
+
+      // Act
+      focus(cellAt(draftRow, 'note'))
+      press('x')
+      press('Enter')
+      await flush()
+
+      // Assert
+      expect(onCreate.mock.calls).toStrictEqual([
+        [null, { name: 'First try' }],
+        [null, { name: 'First try', note: 'x' }],
+      ])
+    })
+
+    describe('cells required to create', () => {
+      // Text controls stand in for date pickers, as in the paired tests.
+      const [needStart, needEnd] = pairedEditors<
+        Item,
+        string | null,
+        string | null
+      >({
+        start: textEditor<Item>({
+          field: 'start',
+          get: (row) => row.start ?? '',
+          apply: (row, start) => ({ ...row, start }),
+          requiredToCreate: true,
+        }) as never,
+        end: textEditor<Item>({
+          field: 'end',
+          get: (row) => row.end ?? '',
+          apply: (row, end) => ({ ...row, end }),
+          requiredToCreate: true,
+        }) as never,
+        validate: ({ start, end }) =>
+          start && end && end < start
+            ? { end: 'End cannot be before Start.' }
+            : undefined,
+      })
+      const columnsWith = (end = needEnd) =>
+        editableColumns.map((column) =>
+          column.id === 'start'
+            ? { ...column, meta: { editor: needStart } }
+            : column.id === 'end'
+              ? { ...column, meta: { editor: end } }
+              : column,
+        )
+
+      /** Opens a draft cell and types into it. */
+      const fill = (row: number, columnId: string, value: string) => {
+        focus(cellAt(row, columnId))
+        press('Enter')
+        typeInEditor(value)
+      }
+
+      it('waits for them, marking each, and creates once the last is filled', async () => {
+        // Arrange
+        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        render(<DraftHarness columns={columnsWith()} onCreate={onCreate} />)
+        const draftRow = addDraft()
+        typeInEditor('Plan')
+        press('Tab')
+        await flush()
+        const callsAfterName = onCreate.mock.calls.length
+        const startMark = cellAt(draftRow, 'start').getAttribute(
+          'data-edit-state',
+        )
+
+        // Act
+        fill(draftRow, 'start', '2026-03-01')
+        press('Tab')
+        typeInEditor('2026-03-31')
+        press('Enter')
+        await flush()
+
+        // Assert
+        expect(callsAfterName).toBe(0)
+        expect(startMark).toBe('error')
+        expect(onCreate.mock.calls).toStrictEqual([
+          [null, { name: 'Plan', start: '2026-03-01', end: '2026-03-31' }],
+        ])
+      })
+
+      it('says which cells it still needs once it has a Name', async () => {
+        // Arrange
+        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        const draftRow = addDraft()
+        typeInEditor('Plan')
+
+        // Act
+        press('Tab')
+        await flush()
+
+        // Assert
+        expect(cellAt(draftRow, 'start')).toHaveAccessibleDescription(
+          'Start: Required to create the item.',
+        )
+        expect(cellAt(draftRow, 'end')).toHaveAccessibleDescription(
+          'End: Required to create the item.',
+        )
+      })
+
+      it('marks nothing before the draft has a Name', async () => {
+        // Arrange
+        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        const draftRow = addDraft()
+
+        // Act — moving to Note leaves the Name empty
+        fill(draftRow, 'note', 'x')
+        press('Enter')
+        await flush()
+
+        // Assert
+        expect(cellAt(draftRow, 'start')).not.toHaveAttribute('data-edit-state')
+      })
+
+      it('creates when the Name comes last', async () => {
+        // Arrange
+        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        render(<DraftHarness columns={columnsWith()} onCreate={onCreate} />)
+        const draftRow = addDraft()
+        fill(draftRow, 'start', '2026-03-01')
+        press('Tab')
+        typeInEditor('2026-03-31')
+        press('Enter')
+
+        // Act
+        fill(draftRow, 'name', 'Plan')
+        press('Enter')
+        await flush()
+
+        // Assert
+        expect(onCreate.mock.calls).toStrictEqual([
+          [null, { start: '2026-03-01', end: '2026-03-31', name: 'Plan' }],
+        ])
+      })
+
+      it('opens the first cell still needed with Enter on the Name', async () => {
+        // Arrange
+        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        const draftRow = addDraft()
+        typeInEditor('Plan')
+
+        // Act
+        press('Enter')
+        await flush()
+
+        // Assert
+        expect(cellAt(draftRow, 'start')).toContainElement(openEditor())
+        expect(openEditor()).toContainElement(
+          document.activeElement as HTMLElement,
+        )
+      })
+
+      it('checks the pair before creating', async () => {
+        // Arrange
+        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        render(<DraftHarness columns={columnsWith()} onCreate={onCreate} />)
+        const draftRow = addDraft()
+        typeInEditor('Plan')
+        press('Tab')
+        fill(draftRow, 'start', '2026-03-10')
+        press('Tab')
+        typeInEditor('2026-03-01')
+
+        // Act
+        press('Enter')
+        await flush()
+
+        // Assert
+        expect(onCreate).not.toHaveBeenCalled()
+        expect(cellAt(draftRow, 'end')).toHaveAccessibleDescription(
+          'End: End cannot be before Start.',
+        )
+      })
+
+      it('does not wait for a cell the draft cannot edit', async () => {
+        // Arrange
+        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        const lockedEnd = { ...needEnd, editable: () => false }
+        render(
+          <DraftHarness columns={columnsWith(lockedEnd)} onCreate={onCreate} />,
+        )
+        const draftRow = addDraft()
+        typeInEditor('Plan')
+        press('Tab')
+
+        // Act
+        fill(draftRow, 'start', '2026-03-01')
+        press('Enter')
+        await flush()
+
+        // Assert
+        expect(onCreate.mock.calls).toStrictEqual([
+          [null, { name: 'Plan', start: '2026-03-01' }],
+        ])
+      })
+
+      it('says aloud that the draft was not created yet', async () => {
+        // Arrange
+        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        addDraft()
+        typeInEditor('Plan')
+
+        // Act
+        press('Tab')
+        await flush()
+
+        // Assert
+        expect(
+          screen.getAllByRole('status').map((region) => region.textContent),
+        ).toContain(
+          'Not created yet. Start: Required to create the item. End: Required to create the item.',
+        )
+      })
+
+      it('says aloud when the pair check refuses the create', async () => {
+        // Arrange
+        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        const draftRow = addDraft()
+        typeInEditor('Plan')
+        press('Tab')
+        fill(draftRow, 'start', '2026-03-10')
+        press('Tab')
+        typeInEditor('2026-03-01')
+
+        // Act
+        press('Enter')
+        await flush()
+
+        // Assert
+        expect(
+          screen.getAllByRole('status').map((region) => region.textContent),
+        ).toContain('Not created. End: End cannot be before Start.')
+      })
+
+      it('leaves a hidden required cell to the server', async () => {
+        // Arrange
+        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        const columns = columnsWith().map((column) =>
+          column.id === 'end'
+            ? { ...column, meta: { ...column.meta, hiddenByDefault: true } }
+            : column,
+        )
+        render(<DraftHarness columns={columns} onCreate={onCreate} />)
+        const draftRow = addDraft()
+        typeInEditor('Plan')
+        press('Tab')
+
+        // Act
+        fill(draftRow, 'start', '2026-03-01')
+        press('Enter')
+        await flush()
+
+        // Assert
+        expect(onCreate.mock.calls).toStrictEqual([
+          [null, { name: 'Plan', start: '2026-03-01' }],
+        ])
+      })
+
+      it('keeps the other date when Escape is pressed on an empty required cell', async () => {
+        // Arrange
+        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        render(<DraftHarness columns={columnsWith()} onCreate={onCreate} />)
+        const draftRow = addDraft()
+        typeInEditor('Plan')
+        press('Tab')
+        fill(draftRow, 'end', '2026-03-31')
+        press('Enter')
+        await flush()
+        focus(cellAt(draftRow, 'start'))
+
+        // Act
+        press('Escape')
+        fill(draftRow, 'start', '2026-03-01')
+        press('Enter')
+        await flush()
+
+        // Assert
+        expect(onCreate.mock.calls).toStrictEqual([
+          [null, { name: 'Plan', end: '2026-03-31', start: '2026-03-01' }],
+        ])
+      })
+
+      it('lets Enter leave an empty Name', async () => {
+        // Arrange
+        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        const draftRow = addDraft()
+        fill(draftRow, 'start', '2026-03-01')
+        press('Enter')
+        focus(cellAt(draftRow, 'name'))
+        press('Enter')
+
+        // Act
+        press('Enter')
+        await flush()
+
+        // Assert
+        expect(openEditor()).toBeNull()
+      })
+
+      it('does not count a blank Name as named', async () => {
+        // Arrange
+        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        const draftRow = addDraft()
+        typeInEditor('   ')
+
+        // Act
+        press('Tab')
+        await flush()
+
+        // Assert
+        expect(cellAt(draftRow, 'start')).not.toHaveAttribute('data-edit-state')
+      })
+    })
+  })
+
+  describe('tree column editor', () => {
+    const TREE = [
+      item('1', 'Alpha', { children: [item('11', 'Alpha child')] }),
+      item('2', 'Beta'),
+    ]
+
+    it('sits past a nested row’s indent', () => {
+      // Arrange
+      render(
+        <WaydGrid<Item>
+          data={TREE}
+          columns={editableColumns}
+          includeIdColumn={false}
+          getSubRows={(row) => row.children}
+          onCommit={jest.fn(() => Promise.resolve())}
+        />,
+      )
+
+      // Act
+      focus(cellAt(1, 'name'))
+      press('Enter')
+
+      // Assert
+      expect(
+        openEditor()!.parentElement!.style.getPropertyValue(
+          '--wayd-grid-tree-depth',
+        ),
+      ).toBe('1')
+    })
+
+    it('is not indented in a flat grid', () => {
+      // Arrange
+      renderEditable()
+
+      // Act
+      focus(cellAt(0, 'name'))
+      press('Enter')
+
+      // Assert
+      expect(openEditor()!.parentElement!.tagName).toBe('TD')
     })
   })
 

@@ -32,9 +32,11 @@ import {
   getParentExpansionHint,
   getMilestoneParentExpansionHint,
   findOwnChildrenSpan,
+} from './project-parent-date-hint'
+import {
   getChildrenContainmentError,
   isShiftOnlyChange,
-} from './project-parent-date-hint'
+} from '@/src/utils/date-containment'
 
 const { Item } = Form
 const { TextArea } = Input

@@ -494,6 +494,7 @@ export function useGridCellEditing<T extends RowData>({
     if (open.isDraft) {
       if (!changed) {
         if (!inFlight) setEntry(key, null)
+        markMissingToCreate(rowKey)
         return
       }
       const error = editor.validate?.(value as never, raw)
@@ -501,7 +502,9 @@ export function useGridCellEditing<T extends RowData>({
         key,
         held(error ? 'error' : 'unsaved', error && `${open.label}: ${error}`),
       )
-      if (!error && columnId === draftColumnId()) createDraft(rowKey)
+      if (markMissingToCreate(rowKey).length === 0 && !error) {
+        createDraft(rowKey)
+      }
       return
     }
 
@@ -811,6 +814,178 @@ export function useGridCellEditing<T extends RowData>({
     latestRef.current.removeDraft(draftKey, created)
   }
 
+  /** The draft as shown, with the values held on its cells. */
+  const shownDraft = (draftKey: string) =>
+    findRowByKey(
+      applyEntries(
+        latestRef.current.data,
+        entriesRef.current,
+        rowKeyOf,
+        isTree,
+      ),
+      draftKey,
+      rowKeyOf,
+    )
+
+  /** A draft cell's value: the one held on it, else the draft's own. */
+  const draftValue = (draftKey: string, editor: CellEditor, draft: T) => {
+    const entry =
+      entriesRef.current[cellKey(draftKey, editorField(editor, draft))]
+    return entry?.hasValue ? entry.value : editor.get(draft)
+  }
+
+  const requiredMessage = (label: string) =>
+    `${label}: Required to create the item.`
+
+  /**
+   * The draft's cells that still need a value before it is created, in
+   * column order: its Name while empty or invalid, and every shown cell
+   * marked `requiredToCreate` that is editable on it. A hidden one is left
+   * to the server's validation, whose error is toasted as off screen.
+   */
+  const missingToCreate = (draftKey: string): string[] => {
+    const draft = shownDraft(draftKey)
+    if (!draft) return []
+    const nameColumn = draftColumnId()
+    return leafColumns()
+      .filter((column) => {
+        const editor = editorOf(column)
+        if (!editor) return false
+        const isName = column.id === nameColumn
+        if (!isName && (!editor.requiredToCreate || !column.getIsVisible())) {
+          return false
+        }
+        if (editor.editable && !editor.editable(draft, { isDraft: true })) {
+          return false
+        }
+        const value = draftValue(draftKey, editor, draft)
+        if (editorEquals(editor, value, null)) return true
+        return isName && !!editor.validate?.(value as never, draft)
+      })
+      .map((column) => column.id)
+  }
+
+  /**
+   * Once a draft has a Name, marks the required cells it still lacks, so the
+   * user sees why it was not created; clears marks a value has since filled
+   * or that no longer apply. Returns every cell still missing.
+   */
+  const markMissingToCreate = (draftKey: string): string[] => {
+    const missing = missingToCreate(draftKey)
+    const draft = shownDraft(draftKey)
+    const nameColumn = draftColumnId()
+    if (!draft) return missing
+    const named = !!nameColumn && !missing.includes(nameColumn)
+    const added: string[] = []
+    writeEntries((prev) => {
+      let next: CellEntries = prev
+      const edit = (): Record<string, CellEntry> =>
+        next === prev
+          ? (next = { ...prev })
+          : (next as Record<string, CellEntry>)
+      for (const column of leafColumns()) {
+        const editor = editorOf(column)
+        if (!editor?.requiredToCreate) continue
+        const field = editorField(editor, draft)
+        const key = cellKey(draftKey, field)
+        const entry = prev[key]
+        const message = requiredMessage(columnLabel(column, column.id))
+        const flag = named && missing.includes(column.id)
+        if (flag && !entry) {
+          added.push(message)
+          edit()[key] = {
+            rowKey: draftKey,
+            field,
+            columnId: column.id,
+            phase: 'error',
+            hasValue: false,
+            error: message,
+            seq: nextSeq(),
+          }
+        } else if (
+          !flag &&
+          entry &&
+          !entry.hasValue &&
+          entry.error === message
+        ) {
+          delete edit()[key]
+        }
+      }
+      return next
+    })
+    if (added.length > 0) setAnnouncement(`Not created yet. ${added.join(' ')}`)
+    return missing
+  }
+
+  /** Marks cells as failed by column, keeping any value they hold. */
+  const markErrors = (rowKey: string, row: T, errors: Record<string, string>) =>
+    writeEntries((prev) => {
+      const next = { ...prev }
+      for (const [columnId, message] of Object.entries(errors)) {
+        const editor = editorOf(columnById(columnId))
+        if (!editor) continue
+        const field = editorField(editor, row)
+        const key = cellKey(rowKey, field)
+        const entry = next[key]
+        next[key] = entry?.hasValue
+          ? { ...entry, phase: 'error', error: message, seq: nextSeq() }
+          : {
+              rowKey,
+              field,
+              columnId,
+              phase: 'error',
+              hasValue: false,
+              error: message,
+              seq: nextSeq(),
+            }
+      }
+      return next
+    })
+
+  /**
+   * Runs each pair's check over a draft's values, as an existing row's pair
+   * is checked before it is sent. Marks what fails and says whether any did.
+   */
+  const draftFailsPairCheck = (draftKey: string, draft: T): boolean => {
+    const groups = new Map<
+      object,
+      {
+        group: EditorGroup
+        members: { column: Column<T, unknown>; editor: CellEditor }[]
+      }
+    >()
+    for (const column of leafColumns()) {
+      const editor = editorOf(column)
+      if (!editor?.group?.validate) continue
+      const entry = groups.get(editor.group.id) ?? {
+        group: editor.group,
+        members: [],
+      }
+      entry.members.push({ column, editor })
+      groups.set(editor.group.id, entry)
+    }
+    const errors: Record<string, string> = {}
+    for (const { group, members } of groups.values()) {
+      const values: Record<string, unknown> = {}
+      for (const { editor } of members) {
+        if (editor.role)
+          values[editor.role] = draftValue(draftKey, editor, draft)
+      }
+      const result = group.validate!(values, draft) ?? {}
+      for (const [role, message] of Object.entries(result)) {
+        const member = members.find((m) => m.editor.role === role)
+        if (member && message) {
+          errors[member.column.id] =
+            `${columnLabel(member.column, member.column.id)}: ${message}`
+        }
+      }
+    }
+    if (Object.keys(errors).length === 0) return false
+    markErrors(draftKey, draft, errors)
+    setAnnouncement(`Not created. ${Object.values(errors).join(' ')}`)
+    return true
+  }
+
   /** Creates a draft from the values held on its cells, once. */
   const createDraft = (draftKey: string) => {
     const create = latestRef.current.onCreate
@@ -827,6 +1002,7 @@ export function useGridCellEditing<T extends RowData>({
       return !!draft && !!editor?.validate?.(entry.value as never, draft)
     })
     if (invalid) return
+    if (draft && draftFailsPairCheck(draftKey, draft)) return
     creatingRef.current.add(draftKey)
     const sent = held.map(([key, entry]) => ({ key, seq: nextSeq(), entry }))
     writeEntries((prev) => {
@@ -984,6 +1160,22 @@ export function useGridCellEditing<T extends RowData>({
               : null,
             focus: !below,
           })
+          // A named draft that still lacks a value it needs opens that cell
+          // next, rather than being left behind.
+          if (
+            open.isDraft &&
+            open.columnId === draftColumnId() &&
+            draftHasValues(open.rowKey)
+          ) {
+            const missing = missingToCreate(open.rowKey)
+            const nextMissing = nav.columnIds.find((id) => missing.includes(id))
+            const draftRow = nav.rows[rowIndex]
+            if (nextMissing && draftRow && !missing.includes(open.columnId)) {
+              nav.focusCell(draftRow.id, nextMissing)
+              openCell(draftRow, nextMissing)
+              return
+            }
+          }
           if (below) nav.focusCell(below.id, open.columnId)
           return
         }
@@ -1061,7 +1253,17 @@ export function useGridCellEditing<T extends RowData>({
     if (editor) {
       const key = cellKey(rowKey, editorField(editor, row.original))
       const entry = entriesRef.current[key]
-      if (entry && (entry.phase === 'error' || entry.phase === 'unsaved')) {
+      // A draft's "required" mark holds no value to discard; Escape on it
+      // must leave the other member's held value alone.
+      const requiredMark =
+        !!entry &&
+        !entry.hasValue &&
+        entry.error === requiredMessage(labelOf(columnId))
+      if (
+        entry &&
+        !requiredMark &&
+        (entry.phase === 'error' || entry.phase === 'unsaved')
+      ) {
         if (editor.group) {
           const groupId = editor.group.id
           const memberColumns = new Set(

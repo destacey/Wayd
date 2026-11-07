@@ -10,7 +10,7 @@ import {
   type PinnedCellClasses,
 } from './column-pinning'
 import type { RowData } from '@tanstack/react-table'
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import type { CellMark } from './cell-editing/types'
 import { cellMessageId } from './cell-editing/edit-state'
 import WaydTooltip from '../wayd-tooltip'
@@ -125,8 +125,21 @@ const cellEditProps = (
 const cellContent = <T extends RowData>(
   cell: Cell<T, unknown>,
   { editColumnId, editor, cellMarks, errorTipColumnId }: GridRowEditProps,
+  editorIndentClass?: string,
 ): ReactNode => {
-  if (editColumnId === cell.column.id && editor) return editor
+  if (editColumnId === cell.column.id && editor) {
+    if (!editorIndentClass) return editor
+    // The tree column's editor sits where the row's name does, past its
+    // indent and expander, as the column's own cell draws them.
+    return (
+      <span
+        className={editorIndentClass}
+        style={{ '--wayd-grid-tree-depth': cell.row.depth } as CSSProperties}
+      >
+        {editor}
+      </span>
+    )
+  }
   const content = flexRender(cell.column.columnDef.cell, cell.getContext())
   const error = cellMarks?.[cell.column.id]?.error
   if (!error) return content
@@ -406,6 +419,9 @@ export interface TreeGridRowClasses extends GridRowClasses {
   trEditable: string
   trSelected: string
   editableCell: string
+  /** Wraps the tree column's open editor, indenting it by the row's depth
+   *  (`--wayd-grid-tree-depth`). */
+  treeEditorIndent?: string
 }
 
 export interface TreeGridRowProps<T extends RowData>
@@ -496,7 +512,13 @@ export function TreeGridRow<T extends RowData>({
             {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
             {...editState.attrs}
           >
-            {cellContent(cell, edit)}
+            {cellContent(
+              cell,
+              edit,
+              cell.column.columnDef.meta?.treeColumn
+                ? classes.treeEditorIndent
+                : undefined,
+            )}
           </td>
         )
       })}

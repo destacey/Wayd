@@ -1,7 +1,7 @@
 'use client'
 
 import { RoadmapColorDto } from '@/src/services/wayd-api'
-import { Select, theme } from 'antd'
+import { Select, theme, type SelectProps } from 'antd'
 import { ReactNode } from 'react'
 
 const { useToken } = theme
@@ -15,8 +15,13 @@ export interface RoadmapColorPickerProps {
   onChange?: (value: string | undefined) => void
   /** Notifies when the dropdown opens/closes (used by the grid's keyboard nav). */
   onOpenChange?: (open: boolean) => void
-  /** Auto-opens the dropdown on mount (used when entering inline edit in the grid). */
-  defaultOpen?: boolean
+  /** Whether the dropdown is open, when the caller controls it (a grid cell). */
+  open?: boolean
+  size?: SelectProps['size']
+  status?: SelectProps['status']
+  'aria-label'?: string
+  'aria-invalid'?: boolean
+  'aria-describedby'?: string
 }
 
 const ColorOptionLabel = ({
@@ -67,7 +72,10 @@ const RoadmapColorPicker = ({
   value,
   onChange,
   onOpenChange,
-  defaultOpen,
+  open,
+  size,
+  status,
+  ...aria
 }: RoadmapColorPickerProps) => {
   const hasMatch = entries.some(
     (e) => e.color.toUpperCase() === value?.toUpperCase(),
@@ -88,7 +96,10 @@ const RoadmapColorPicker = ({
       value={value}
       onChange={(next) => onChange?.(next)}
       onOpenChange={onOpenChange}
-      defaultOpen={defaultOpen}
+      open={open}
+      size={size}
+      status={status}
+      {...aria}
       allowClear
       placeholder="Select a color"
       style={{ width: '100%' }}

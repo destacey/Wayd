@@ -18,11 +18,11 @@ import { toFormErrors, rangeErrorsOn } from '@/src/utils'
 import { DatePicker, Form, InputNumber, Modal, Radio } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect } from 'react'
+import { findOwnChildrenSpan } from './project-parent-date-hint'
 import {
-  findOwnChildrenSpan,
   getChildrenContainmentError,
   isShiftOnlyChange,
-} from './project-parent-date-hint'
+} from '@/src/utils/date-containment'
 
 const { Item } = Form
 const { RangePicker } = DatePicker

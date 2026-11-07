@@ -812,4 +812,214 @@ public sealed class ProjectDeliverableTests
     }
 
     #endregion SwitchWorkflow
+
+    #region Task links
+
+    private Project ProposedProjectWithPlan()
+    {
+        var project = ProposedProject();
+        var lifecycle = new ProjectLifecycleFaker().AsActiveWithStages(("Execute", "Execution stage"));
+        project.AssignLifecycle(Owner, NoProjectAncestry(), lifecycle, Now).IsSuccess.Should().BeTrue();
+        project.ClearDomainEvents();
+        return project;
+    }
+
+    private static ProjectTask AddTask(Project project, string name, Guid? parentId = null)
+    {
+        var result = project.CreateTask(project.Tasks.Count + 1, name, null, ProjectTaskType.Task, Enums.TaskStatus.NotStarted,
+            TaskPriority.Medium, null, parentId ?? project.Stages.First().Id, null, null, null, null);
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        return result.Value;
+    }
+
+    [Fact]
+    public void SetDeliverableTasks_LinksTheNamedTasksAndUnlinksTheRest()
+    {
+        // Arrange
+        var project = ProposedProjectWithPlan();
+        var deliverable = Add(project);
+        var design = AddTask(project, "Design");
+        var build = AddTask(project, "Build");
+        var test = AddTask(project, "Test");
+        project.SetDeliverableTasks(deliverable.Id, [design.Id, build.Id]).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = project.SetDeliverableTasks(deliverable.Id, [build.Id, test.Id]);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        deliverable.TaskLinks.Select(l => l.ProjectTaskId).Should().BeEquivalentTo([build.Id, test.Id]);
+        design.DeliverableLinks.Should().BeEmpty();
+        build.DeliverableLinks.Should().ContainSingle().Which.ProjectDeliverableId.Should().Be(deliverable.Id);
+        test.DeliverableLinks.Should().ContainSingle().Which.ProjectDeliverableId.Should().Be(deliverable.Id);
+    }
+
+    [Fact]
+    public void SetDeliverableTasks_KeepsTheExistingLinkForATaskNamedAgain()
+    {
+        // Arrange
+        var project = ProposedProjectWithPlan();
+        var deliverable = Add(project);
+        var build = AddTask(project, "Build");
+        project.SetDeliverableTasks(deliverable.Id, [build.Id]);
+        var existing = deliverable.TaskLinks.Single();
+
+        // Act
+        var result = project.SetDeliverableTasks(deliverable.Id, [build.Id, build.Id]);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        deliverable.TaskLinks.Should().ContainSingle().Which.Should().BeSameAs(existing);
+    }
+
+    [Fact]
+    public void SetDeliverableTasks_IsPlanWork_RaisingNoEventAndLeavingTheRevision()
+    {
+        // Arrange
+        var project = ProposedProjectWithPlan();
+        var deliverable = Add(project);
+        var build = AddTask(project, "Build");
+        var revision = project.Revision;
+
+        // Act
+        var result = project.SetDeliverableTasks(deliverable.Id, [build.Id]);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.DomainEvents.Should().BeEmpty();
+        project.Revision.Should().Be(revision);
+    }
+
+    [Fact]
+    public void SetDeliverableTasks_WhenATaskIsNotOnTheProject_FailsAndChangesNothing()
+    {
+        // Arrange
+        var project = ProposedProjectWithPlan();
+        var deliverable = Add(project);
+        var build = AddTask(project, "Build");
+        var foreignTaskId = Guid.NewGuid();
+
+        // Act
+        var result = project.SetDeliverableTasks(deliverable.Id, [build.Id, foreignTaskId]);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"Tasks not found on project {project.Key}: {foreignTaskId}.");
+        deliverable.TaskLinks.Should().BeEmpty();
+        build.DeliverableLinks.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetDeliverableTasks_WhenTheDeliverableIsNotOnTheProject_Fails()
+    {
+        // Arrange
+        var project = ProposedProjectWithPlan();
+        var build = AddTask(project, "Build");
+        var deliverableId = Guid.NewGuid();
+
+        // Act
+        var result = project.SetDeliverableTasks(deliverableId, [build.Id]);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"Deliverable {deliverableId} not found on project {project.Key}.");
+        build.DeliverableLinks.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetTaskDeliverables_LinksATaskToSeveralDeliverablesAndUnlinksTheRest()
+    {
+        // Arrange
+        var project = ProposedProjectWithPlan();
+        var portal = Add(project, "Portal");
+        var reports = Add(project, "Reports");
+        var training = Add(project, "Training");
+        var build = AddTask(project, "Build");
+        project.SetTaskDeliverables(build.Id, [portal.Id]).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = project.SetTaskDeliverables(build.Id, [reports.Id, training.Id]);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        build.DeliverableLinks.Select(l => l.ProjectDeliverableId).Should().BeEquivalentTo([reports.Id, training.Id]);
+        portal.TaskLinks.Should().BeEmpty();
+        reports.TaskLinks.Should().ContainSingle().Which.ProjectTaskId.Should().Be(build.Id);
+        training.TaskLinks.Should().ContainSingle().Which.ProjectTaskId.Should().Be(build.Id);
+        project.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetTaskDeliverables_WhenADeliverableIsNotOnTheProject_FailsAndChangesNothing()
+    {
+        // Arrange
+        var project = ProposedProjectWithPlan();
+        var portal = Add(project, "Portal");
+        var build = AddTask(project, "Build");
+        var foreignDeliverableId = Guid.NewGuid();
+
+        // Act
+        var result = project.SetTaskDeliverables(build.Id, [portal.Id, foreignDeliverableId]);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"Deliverables not found on project {project.Key}: {foreignDeliverableId}.");
+        build.DeliverableLinks.Should().BeEmpty();
+        portal.TaskLinks.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetTaskDeliverables_WhenTheTaskIsNotOnTheProject_Fails()
+    {
+        // Arrange
+        var project = ProposedProjectWithPlan();
+        var portal = Add(project, "Portal");
+        var taskId = Guid.NewGuid();
+
+        // Act
+        var result = project.SetTaskDeliverables(taskId, [portal.Id]);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"Task {taskId} not found on project {project.Key}.");
+        portal.TaskLinks.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoveDeliverable_RemovesItsTaskLinks()
+    {
+        // Arrange
+        var project = ProposedProjectWithPlan();
+        var deliverable = Add(project);
+        var build = AddTask(project, "Build");
+        project.SetDeliverableTasks(deliverable.Id, [build.Id]);
+
+        // Act
+        var result = project.RemoveDeliverable(Owner, NoProjectAncestry(), deliverable.Id, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        deliverable.TaskLinks.Should().BeEmpty();
+        build.DeliverableLinks.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void DeleteTask_RemovesItsDeliverableLinks()
+    {
+        // Arrange
+        var project = ProposedProjectWithPlan();
+        var deliverable = Add(project);
+        var build = AddTask(project, "Build");
+        var test = AddTask(project, "Test");
+        project.SetDeliverableTasks(deliverable.Id, [build.Id, test.Id]);
+
+        // Act
+        var result = project.DeleteTask(build.Id);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        deliverable.TaskLinks.Should().ContainSingle().Which.ProjectTaskId.Should().Be(test.Id);
+    }
+
+    #endregion Task links
 }

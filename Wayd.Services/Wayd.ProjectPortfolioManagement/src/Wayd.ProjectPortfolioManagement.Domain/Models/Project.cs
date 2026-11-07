@@ -1319,6 +1319,10 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         var parentId = task.ParentId;
 
+        // The database cascades a task's links; this keeps loaded deliverables in step.
+        foreach (var link in task.DeliverableLinks.ToList())
+            Unlink(link, _deliverables.FirstOrDefault(d => d.Id == link.ProjectDeliverableId), task);
+
         _tasks.Remove(task);
 
         ResetOrderForChildTasks(parentId);
@@ -2081,7 +2085,8 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// Deletes a deliverable, on behalf of an actor who must be authorized to manage the project. Allowed only
     /// before work on the project begins — while it is Proposed or Approved — and while the deliverable is still
     /// in a Proposed status. Later, a deliverable is descoped instead, which keeps it and why. Needs that
-    /// deliverable loaded.
+    /// deliverable loaded with its <see cref="ProjectDeliverable.TaskLinks"/>: the database does not cascade from a
+    /// deliverable to its links, so an unloaded link fails the save.
     /// </summary>
     public Result RemoveDeliverable(PpmActor actor, ProjectAncestryRoles ancestry, Guid deliverableId, Instant timestamp)
     {
@@ -2093,6 +2098,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
 
         if (Status is not (ProjectStatus.Proposed or ProjectStatus.Approved) || deliverable.StatusCategory != StatusCategory.Proposed)
             return Result.Failure("Only a deliverable not yet started, on a project not yet started, can be deleted. Descope it instead.");
+
+        foreach (var link in deliverable.TaskLinks.ToList())
+            Unlink(link, deliverable, _tasks.FirstOrDefault(t => t.Id == link.ProjectTaskId));
 
         _deliverables.Remove(deliverable);
 
@@ -2135,6 +2143,91 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     }
 
     #endregion Deliverables
+
+    #region Deliverable Links
+
+    /// <summary>
+    /// Sets which plan tasks serve a deliverable, replacing its links: a task not named is unlinked. Linking is
+    /// plan work, so it needs no delivery leadership, raises no event and leaves <see cref="Revision"/> alone.
+    /// </summary>
+    /// <remarks>
+    /// Needs that deliverable loaded with its <see cref="ProjectDeliverable.TaskLinks"/>, and every named task
+    /// loaded. A task the project has not loaded is refused as not found, which is also what keeps links within
+    /// one project.
+    /// </remarks>
+    public Result SetDeliverableTasks(Guid deliverableId, IReadOnlyCollection<Guid> taskIds)
+    {
+        Guard.Against.Null(taskIds, nameof(taskIds));
+
+        var deliverable = _deliverables.FirstOrDefault(d => d.Id == deliverableId);
+        if (deliverable is null)
+            return Result.Failure($"Deliverable {deliverableId} not found on project {Key}.");
+
+        var tasksById = _tasks.ToDictionary(t => t.Id);
+        var wanted = taskIds.ToHashSet();
+        var missing = wanted.Where(id => !tasksById.ContainsKey(id)).ToList();
+        if (missing.Count > 0)
+            return Result.Failure($"Tasks not found on project {Key}: {string.Join(", ", missing)}.");
+
+        foreach (var link in deliverable.TaskLinks.Where(l => !wanted.Contains(l.ProjectTaskId)).ToList())
+            Unlink(link, deliverable, tasksById.GetValueOrDefault(link.ProjectTaskId));
+
+        var linked = deliverable.TaskLinks.Select(l => l.ProjectTaskId).ToHashSet();
+        foreach (var taskId in wanted.Where(id => !linked.Contains(id)))
+            Link(deliverable, tasksById[taskId]);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Sets which deliverables a plan task serves, replacing its links: a deliverable not named is unlinked.
+    /// Linking is plan work, so it needs no delivery leadership, raises no event and leaves
+    /// <see cref="Revision"/> alone.
+    /// </summary>
+    /// <remarks>
+    /// Needs that task loaded with its <see cref="ProjectTask.DeliverableLinks"/>, and every named deliverable
+    /// loaded. A deliverable the project has not loaded is refused as not found, which is also what keeps links
+    /// within one project.
+    /// </remarks>
+    public Result SetTaskDeliverables(Guid taskId, IReadOnlyCollection<Guid> deliverableIds)
+    {
+        Guard.Against.Null(deliverableIds, nameof(deliverableIds));
+
+        var task = _tasks.FirstOrDefault(t => t.Id == taskId);
+        if (task is null)
+            return Result.Failure($"Task {taskId} not found on project {Key}.");
+
+        var deliverablesById = _deliverables.ToDictionary(d => d.Id);
+        var wanted = deliverableIds.ToHashSet();
+        var missing = wanted.Where(id => !deliverablesById.ContainsKey(id)).ToList();
+        if (missing.Count > 0)
+            return Result.Failure($"Deliverables not found on project {Key}: {string.Join(", ", missing)}.");
+
+        foreach (var link in task.DeliverableLinks.Where(l => !wanted.Contains(l.ProjectDeliverableId)).ToList())
+            Unlink(link, deliverablesById.GetValueOrDefault(link.ProjectDeliverableId), task);
+
+        var linked = task.DeliverableLinks.Select(l => l.ProjectDeliverableId).ToHashSet();
+        foreach (var deliverableId in wanted.Where(id => !linked.Contains(id)))
+            Link(deliverablesById[deliverableId], task);
+
+        return Result.Success();
+    }
+
+    private static void Link(ProjectDeliverable deliverable, ProjectTask task)
+    {
+        var link = ProjectDeliverableTask.Create(deliverable.Id, task.Id);
+        deliverable.AddTaskLink(link);
+        task.AddDeliverableLink(link);
+    }
+
+    /// <summary>Removes a link from whichever of its two ends are loaded.</summary>
+    private static void Unlink(ProjectDeliverableTask link, ProjectDeliverable? deliverable, ProjectTask? task)
+    {
+        deliverable?.RemoveTaskLink(link);
+        task?.RemoveDeliverableLink(link);
+    }
+
+    #endregion Deliverable Links
 
     /// <summary>
     /// Raises a change to the project record or its deliverables, advancing <see cref="Revision"/> with it.

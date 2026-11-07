@@ -43,11 +43,15 @@ public sealed record ActiveProjectWithDeliverable(
     /// Makes the employee the portfolio's owner, so they lead the project through its portfolio alone — they hold
     /// no role on the project itself.
     /// </param>
+    /// <param name="activateTheProject">
+    /// False leaves the project Proposed, for a test of what is allowed only before work begins.
+    /// </param>
     public static async Task<ActiveProjectWithDeliverable> Seed(
         SqlServerDbContextFixture fixture,
         bool acceptTheDeliverable,
         CancellationToken cancellationToken,
-        bool employeeOwnsThePortfolio = false)
+        bool employeeOwnsThePortfolio = false,
+        bool activateTheProject = true)
     {
         await fixture.ResetPpmData(cancellationToken);
         await using var context = fixture.CreateContext();
@@ -102,7 +106,10 @@ public sealed record ActiveProjectWithDeliverable(
             strategicThemes: null,
             SqlServerDbContextFixture.FixedNow,
             PpmActor.System).Value;
-        project.Activate(PpmActor.System, ProjectAncestryRoles.None, SqlServerDbContextFixture.FixedNow);
+        if (activateTheProject)
+        {
+            project.Activate(PpmActor.System, ProjectAncestryRoles.None, SqlServerDbContextFixture.FixedNow);
+        }
 
         var deliverable = project.AddDeliverable(PpmActor.System, ProjectAncestryRoles.None, "Customer portal", null, null, null, null,
             statuses[ProjectDeliverableStatusAlias.NotStarted], SqlServerDbContextFixture.FixedNow).Value;

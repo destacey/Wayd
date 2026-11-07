@@ -27,6 +27,8 @@ namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 /// </remarks>
 public sealed class ProjectDeliverable : StatusTrackedEntity
 {
+    private readonly List<ProjectDeliverableTask> _taskLinks = [];
+
     private ProjectDeliverable() { }
 
     private ProjectDeliverable(Guid projectId, string name, string? description, string? acceptanceCriteria, int order, Guid? ownerId, LocalDate? targetDate)
@@ -101,6 +103,14 @@ public sealed class ProjectDeliverable : StatusTrackedEntity
     /// <summary>The employee who accepted it.</summary>
     public Employee? AcceptedBy { get; private set; }
 
+    /// <summary>
+    /// The plan tasks that serve the deliverable, from which its progress is derived. Setting them
+    /// (<see cref="Project.SetDeliverableTasks"/>) and deleting the deliverable need this collection loaded: an
+    /// unloaded one reads as no links, so setting would add rows that already exist and a delete would leave rows
+    /// that block it.
+    /// </summary>
+    public IReadOnlyCollection<ProjectDeliverableTask> TaskLinks => _taskLinks.AsReadOnly();
+
     /// <summary>The well-known meaning of the current status.</summary>
     public ProjectDeliverableStatusAlias StatusAlias => (ProjectDeliverableStatusAlias)StatusAliasValue;
 
@@ -128,6 +138,12 @@ public sealed class ProjectDeliverable : StatusTrackedEntity
         OwnerId = ownerId;
         TargetDate = targetDate;
     }
+
+    /// <summary>Adds a link to a task. Only the project calls it, having checked the task is its own.</summary>
+    internal void AddTaskLink(ProjectDeliverableTask link) => _taskLinks.Add(link);
+
+    /// <summary>Removes a link to a task. Only the project calls it.</summary>
+    internal void RemoveTaskLink(ProjectDeliverableTask link) => _taskLinks.Remove(link);
 
     /// <summary>Sets the deliverable's position. Only the project's reorder calls it.</summary>
     internal void SetOrder(int order) => Order = order;

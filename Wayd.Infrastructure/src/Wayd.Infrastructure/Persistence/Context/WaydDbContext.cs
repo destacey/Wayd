@@ -201,6 +201,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<Program> Programs => Set<Program>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<ProjectDeliverable> ProjectDeliverables => Set<ProjectDeliverable>();
+    public DbSet<ProjectDeliverableTask> ProjectDeliverableTasks => Set<ProjectDeliverableTask>();
     public DbSet<ProjectHealthCheck> ProjectHealthChecks => Set<ProjectHealthCheck>();
     public DbSet<ProjectScore> ProjectScores => Set<ProjectScore>();
     public DbSet<ProjectStatusHistory> ProjectStatusHistory => Set<ProjectStatusHistory>();

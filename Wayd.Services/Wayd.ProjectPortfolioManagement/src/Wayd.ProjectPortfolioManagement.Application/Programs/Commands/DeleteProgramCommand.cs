@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Events;
+using Wayd.ProjectPortfolioManagement.Application.Projects;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Programs.Commands;
 
@@ -63,6 +64,10 @@ public sealed class DeleteProgramCommandHandler(
             _logger.LogInformation("Program {ProgramId} deleted. Key: {ProgramKey}, Name: {ProgramName}", program.Id, program.Key, program.Name);
 
             return Result.Success();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Result.Failure(ProjectSaves.StaleError);
         }
         catch (Exception ex)
         {

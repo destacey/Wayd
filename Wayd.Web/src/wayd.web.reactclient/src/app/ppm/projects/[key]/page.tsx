@@ -69,10 +69,16 @@ const ProjectHealthReport = dynamic(
   { ssr: false, loading: () => <Spin /> },
 )
 
+const ProjectDeliverables = dynamic(
+  () => import('./_components/project-deliverables'),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 enum ProjectSections {
   Overview = 'overview',
   Discussion = 'discussion',
   Definition = 'definition',
+  Deliverables = 'deliverables',
   Team = 'team',
   Plan = 'plan',
   WorkItems = 'work-items',
@@ -133,6 +139,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const [openCreateHealthCheckForm, setOpenCreateHealthCheckForm] =
     useState<boolean>(false)
   const [openStatusHistory, setOpenStatusHistory] = useState<boolean>(false)
+  const [openAddDeliverableForm, setOpenAddDeliverableForm] = useState(false)
   const [openAddWorkItemsForm, setOpenAddWorkItemsForm] = useState(false)
   const [openRevertStatusForm, setOpenRevertStatusForm] =
     useState<boolean>(false)
@@ -155,6 +162,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const {
     data: projectData,
     isLoading,
+    isFetching: isFetchingProject,
     refetch: refetchProject,
   } = useGetProjectQuery(projectKey)
 
@@ -172,6 +180,13 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     canDeleteProject,
     projectData?.canManageProject,
   )
+
+  // Deliverables take the same leadership as the project's details, and a
+  // completed or canceled project's deliverables are fixed.
+  const canManageDeliverables =
+    canManageProject &&
+    projectData?.status.name !== 'Completed' &&
+    projectData?.status.name !== 'Canceled'
 
   useDocumentTitle(`${projectData?.name ?? projectKey} - Project Details`)
 
@@ -425,6 +440,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const sections: RecordSection[] = [
     { id: ProjectSections.Overview, label: 'Overview' },
     { id: ProjectSections.Definition, label: 'Definition' },
+    { id: ProjectSections.Deliverables, label: 'Deliverables' },
     // Draws its own heading, with its counts and filters beside it.
     { id: ProjectSections.Discussion, label: 'Discussion', hideHeading: true },
     { id: ProjectSections.Team, label: 'Team' },
@@ -472,6 +488,16 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return <ProjectDiscussion project={projectData} />
       case ProjectSections.Definition:
         return <ProjectDefinition project={projectData} />
+      case ProjectSections.Deliverables:
+        return (
+          <ProjectDeliverables
+            project={projectData}
+            canManage={canManageDeliverables}
+            projectRefreshing={isFetchingProject}
+            addRequested={openAddDeliverableForm}
+            onAddClosed={() => setOpenAddDeliverableForm(false)}
+          />
+        )
       case ProjectSections.Team:
         return <ProjectTeamGrid projectIdOrKey={projectKey} />
       case ProjectSections.Plan:
@@ -567,7 +593,16 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         }}
         facts={<ProjectFacts project={projectData} />}
         sectionActions={
-          activeSection === ProjectSections.Plan ? (
+          activeSection === ProjectSections.Deliverables &&
+          canManageDeliverables ? (
+            <Button
+              size="small"
+              disabled={isFetchingProject}
+              onClick={() => setOpenAddDeliverableForm(true)}
+            >
+              Add Deliverable
+            </Button>
+          ) : activeSection === ProjectSections.Plan ? (
             <ProjectTaskMetricsInline projectKey={projectKey} />
           ) : activeSection === ProjectSections.Activities ? (
             <ActivityLogExportButton activityLog={activityLog} />

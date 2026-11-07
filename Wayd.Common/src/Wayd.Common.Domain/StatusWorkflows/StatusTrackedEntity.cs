@@ -236,6 +236,17 @@ public abstract class StatusTrackedEntity : StatusHoldingEntity
             : SwitchWorkflowTo(landing, actor, timestamp, reason);
     }
 
+    /// <summary>
+    /// Brings state that follows the status back in step after the record moved onto another workflow, where
+    /// it may hold a status of a different meaning. Called only when the status changed.
+    /// </summary>
+    /// <remarks>
+    /// A workflow switch bypasses the aggregate's own status methods, so a record that keeps fields tied to its
+    /// status — when it was accepted, say — would otherwise keep them whatever it lands in.
+    /// </remarks>
+    /// <param name="timestamp">When the switch happened.</param>
+    protected virtual void OnWorkflowSwitched(Instant timestamp) { }
+
     private Result MoveOntoWorkflow(StatusRef target, EventActor actor, Instant timestamp, string? reason)
     {
         var from = CurrentStatus
@@ -249,6 +260,8 @@ public abstract class StatusTrackedEntity : StatusHoldingEntity
 
         if (from.StatusId != target.StatusId)
         {
+            OnWorkflowSwitched(timestamp);
+
             var transition = _statusTransitions[^1];
 
             AddDomainEvent(new StatusWorkflowSwitchedEvent(

@@ -46,6 +46,101 @@ public class PpmGeneratorTests
     }
 
     [Fact]
+    public void Generate_AFinishedProjectsDeliverablesAreAllClosed()
+    {
+        // Arrange — the import refuses an open deliverable on a completed or canceled project, so one here
+        // fails that project's whole group at upload
+        var ppm = Generate();
+        var finished = ppm.Projects.Where(p => Closed(p.Status)).Select(p => p.Key).ToHashSet();
+
+        // Act
+        var open = ppm.ProjectDeliverables
+            .Where(d => finished.Contains(d.ProjectKey) && d.Status is not ("Accepted" or "Descoped"))
+            .Select(d => $"{d.ProjectKey}: {d.Name} ({d.Status})")
+            .ToList();
+
+        // Assert
+        finished.Should().NotBeEmpty();
+        open.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_DescopedDeliverablesSayWhyAndOthersStateNoReason()
+    {
+        // Arrange — descoping needs a reason, so a descoped row without one is refused
+        var ppm = Generate();
+
+        // Act
+        var descoped = ppm.ProjectDeliverables.Where(d => d.Status == "Descoped").ToList();
+        var others = ppm.ProjectDeliverables.Where(d => d.Status != "Descoped").ToList();
+
+        // Assert
+        descoped.Should().NotBeEmpty().And.AllSatisfy(d => d.StatusReason.Should().NotBeNullOrWhiteSpace());
+        others.Should().AllSatisfy(d => d.StatusReason.Should().BeNull());
+    }
+
+    [Fact]
+    public void Generate_AProjectNotYetStartedHasStartedNoDeliverable()
+    {
+        // Arrange
+        var ppm = Generate();
+        var notStarted = ppm.Projects.Where(p => !Reached(p.Status)).Select(p => p.Key).ToHashSet();
+
+        // Act
+        var deliverables = ppm.ProjectDeliverables.Where(d => notStarted.Contains(d.ProjectKey)).ToList();
+
+        // Assert
+        deliverables.Should().NotBeEmpty().And.AllSatisfy(d => d.Status.Should().Be("NotStarted"));
+    }
+
+    [Fact]
+    public void Generate_DeliverableNamesAreUniqueWithinAProjectAndInDeliveryOrder()
+    {
+        // Arrange — the import refuses two deliverables of one project with the same name
+        var ppm = Generate();
+
+        // Act
+        var byProject = ppm.ProjectDeliverables.GroupBy(d => d.ProjectKey).ToList();
+
+        // Assert
+        byProject.Should().AllSatisfy(g =>
+        {
+            g.Select(d => d.Name).Should().OnlyHaveUniqueItems();
+            g.Select(d => d.TargetDate).Should().BeInAscendingOrder();
+        });
+    }
+
+    [Theory]
+    [InlineData(0, 0, 0)]
+    [InlineData(4, 2, 6)]
+    public void Generate_GivesEachProjectAboutTheAskedNumberOfDeliverables(int perProject, int min, int max)
+    {
+        // Arrange
+        var options = new PpmOptions { DeliverablesPerProject = perProject };
+
+        // Act
+        var ppm = Generate(options);
+        var counts = ppm.Projects.Select(p => ppm.ProjectDeliverables.Count(d => d.ProjectKey == p.Key)).ToList();
+
+        // Assert
+        counts.Should().AllSatisfy(c => c.Should().BeInRange(min, max));
+    }
+
+    [Fact]
+    public void Generate_AddingDeliverablesLeavesTheRestOfTheDatasetUnchanged()
+    {
+        // Arrange — deliverables draw from their own stream, so a seed still produces the projects it always did
+        var without = Generate(new PpmOptions { DeliverablesPerProject = 0 });
+
+        // Act
+        var with = Generate(new PpmOptions { DeliverablesPerProject = 4 });
+
+        // Assert
+        with.Projects.Select(p => (p.Key, p.Status, p.Owners)).Should().Equal(without.Projects.Select(p => (p.Key, p.Status, p.Owners)));
+        with.ProjectTasks.Count.Should().Be(without.ProjectTasks.Count);
+    }
+
+    [Fact]
     public void Generate_NothingIsProposedOnADayThatHasNotHappened()
     {
         // Arrange — the window runs two years ahead, so a record starting in the future would otherwise

@@ -9,7 +9,7 @@ export interface ExpenditureCategoryPanelProps {
 }
 
 /**
- * An expenditure category's fields, for the config list's detail panel.
+ * An expenditure category's fields, for the list–detail layout's panel.
  *
  * `LabeledContent` rather than `Descriptions`: the panel is a narrow column,
  * where a label above its value reads better than a label beside it, and it

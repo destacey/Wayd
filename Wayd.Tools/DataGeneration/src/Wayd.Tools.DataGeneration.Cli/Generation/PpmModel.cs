@@ -99,6 +99,26 @@ public sealed class ProjectStageModel
     public required string Status { get; init; }
 }
 
+/// <summary>
+/// A generated deliverable of the project named by <see cref="ProjectKey"/>. Its status follows the project's: a
+/// finished project's deliverables are all closed, which the import requires.
+/// </summary>
+public sealed class ProjectDeliverableModel
+{
+    public required string ProjectKey { get; init; }
+    public required string Name { get; init; }
+    public string? Description { get; init; }
+    public string? AcceptanceCriteria { get; init; }
+    public string? Owner { get; init; }
+    public DateOnly? TargetDate { get; init; }
+    public required string Status { get; init; }
+
+    /// <summary>When it moved into <see cref="Status"/>; null for one still Not Started.</summary>
+    public DateOnly? StatusChangedOn { get; init; }
+
+    public string? StatusReason { get; init; }
+}
+
 /// <summary>A generated strategic initiative, under the portfolio named by <see cref="PortfolioName"/>, delivering through the projects named by <see cref="ProjectKeys"/>.</summary>
 public sealed class StrategicInitiativeModel
 {

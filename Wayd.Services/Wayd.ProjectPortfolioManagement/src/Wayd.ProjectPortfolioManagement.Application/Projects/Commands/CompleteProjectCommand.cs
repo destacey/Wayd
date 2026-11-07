@@ -39,6 +39,8 @@ public sealed class CompleteProjectCommandHandler(
                 .Include(p => p.Roles)
                 .Include(p => p.Portfolio).ThenInclude(p => p!.Roles)
                 .Include(p => p.Program).ThenInclude(p => p!.Roles)
+                // Complete refuses while a deliverable is open; unloaded, the set reads as empty and lets it through.
+                .Include(p => p.Deliverables)
                 .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
             if (project is null)
             {
@@ -62,6 +64,12 @@ public sealed class CompleteProjectCommandHandler(
             _logger.LogInformation("Project {ProjectId} completed.", request.Id);
 
             return Result.Success();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Another change to the project or its deliverables saved first — possibly reopening a deliverable
+            // this check saw as closed.
+            return Result.Failure(ProjectSaves.StaleError);
         }
         catch (Exception ex)
         {

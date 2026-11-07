@@ -136,7 +136,7 @@ describe('useSelectedRecord', () => {
 
   it('never scrolls on a selection change', () => {
     // Arrange — without scroll:false the router jumps to top, throwing the
-    // user's place in a long config list away on every row they open.
+    // user's place in a long list away on every row they open.
     const { result } = renderHook(() => useSelectedRecord())
 
     // Act

@@ -118,7 +118,7 @@ The project detail page has an identity bar naming the project, a section rail d
 
 The identity bar also shows a **Health tag** when the project has an active health check. Hovering the tag shows details (status, reported by, reported on, expiration, and note). Clicking the **status tag** opens the project's [status history](#project-status-history).
 
-**Overview** — [Stages](#project-stages) and, once tasks exist, a task summary.
+**Overview** — [Stages](#project-stages), a Deliverables card for the project's [deliverables](#project-deliverables) (how many are accepted, and the next three still open, soonest due first), and, once tasks exist, a Task Summary card beside it. The deliverables summary shows even before a lifecycle is assigned.
 
 The **Stage Timeline** is a step-based visualization showing each stage's status (completed, in progress, not started, canceled), date range, and progress percentage. It automatically adjusts between horizontal and vertical layout based on available space.
 
@@ -129,6 +129,8 @@ Warning alerts appear on Overview when requirements are missing:
 **Discussion** — The project's conversation: threads with subjects, read and posted by everyone who can see the project. See [Discussion](#discussion).
 
 **Definition** — Description, Business Case, and Expected Benefits, as expandable Markdown sections, edited in the [document editor](../formatting-text.mdx). Fields that have not been filled in read *Not provided* rather than being hidden, so a gap is visible on a project awaiting approval.
+
+**Deliverables** — what the project has committed to produce. See [Project Deliverables](#project-deliverables).
 
 **Team** — Grid of the people working on the project: everyone who holds a [project role](#project-roles), plus anyone assigned to an open task. Columns are Person, Roles, Assigned Stages, and Active Tasks — the Not Started and In Progress tasks assigned to that person, counting only tasks with no children.
 
@@ -287,6 +289,76 @@ Use this view to review trends and reporting history for the project.
 ### Permissions
 
 To create, edit, or delete project health checks, users need project update rights and management access on the project context (for example, project owner/manager or equivalent portfolio/program management access) — the same [delivery-leadership rule](../settings/permissions.mdx#delivery-leadership-in-ppm) that governs every other project change. Users with project view access can still view health checks and health reports.
+
+## Project Deliverables
+
+**Deliverables** are the things a project has committed to produce for it to count as done — a customer portal,
+a migrated data set, a signed-off policy. Each has a name, a description, **acceptance criteria** (how the project
+will know it is done), an optional owner and target date, and a status. They are usually agreed from the project's
+definition, before any plan exists, and they show progress in terms of what was promised rather than how the work
+is planned.
+
+Deliverables are not [stages](#project-stages). Stages are the phases every project's work moves through, and every
+task sits in one; a deliverable is something this project produces, and the work toward it usually crosses several
+stages.
+
+### The Deliverables section
+
+The **Deliverables** section of a project shows counts of open, overdue, accepted and descoped deliverables, then the
+deliverables in their order, with status, owner and target date. A deliverable still open after its target date is
+marked **Overdue**. Select one to see its acceptance criteria, description and the reason for its status; select its
+status to see its status history.
+
+With permission to change the project, you can:
+
+- **Add Deliverable** — from the section's heading. A new deliverable starts *Not Started* and goes last.
+- **Change Status** — pick from the statuses the workflow allows. A status such as *Descoped* asks for a reason.
+- **Edit** — the name, acceptance criteria, description, owner and target date.
+- **Delete** — only a deliverable not yet started, on a project that is still Proposed or Approved.
+- **Reorder** — drag a row by its handle. Clear any sorting or filter first.
+
+Descoped deliverables are hidden until you turn on **Show descoped**.
+
+### Deliverable statuses
+
+Deliverables follow a status workflow that administrators can customize under
+[Settings → Status Workflows](../settings/status-workflows.mdx). The default workflow is:
+
+| Status | Meaning |
+|---|---|
+| **Not Started** | Committed to, with no work begun. Every new deliverable starts here. |
+| **In Progress** | Being worked on. |
+| **Accepted** | Delivered and accepted against its acceptance criteria. Records who accepted it and when. |
+| **Descoped** | Deliberately dropped from the project's scope. Needs a reason. |
+
+A company can rename these or add its own, such as *In Review*. Every rule below is tied to a status's meaning or
+category, not its name, so renamed and added statuses keep them.
+
+### Rules
+
+- **A project cannot be completed while any deliverable is open** — still Not Started, In Progress, or another
+  open status. Accept or descope each one first.
+- **Canceling a project descopes every open deliverable**, with the reason *The project was canceled.*, recorded as
+  your change. Accepted and already descoped deliverables are left as they are. Reverting the cancellation leaves
+  them descoped; reopen any that should go on.
+- **Descoping keeps the deliverable**, with the reason, so the project's record shows what was dropped and why.
+- **Deleting** is only for a deliverable added by mistake: one not yet started, on a project that is still
+  Proposed or Approved. After that, descope it instead.
+- **Names are unique within a project**, ignoring capitals: two deliverables of one project cannot share a name,
+  and a descoped one still holds its name.
+- A **completed or canceled** project's deliverables cannot be changed.
+- When an administrator moves deliverables to another workflow, a completed or canceled project's deliverables
+  must land in a closed status (a Done or Removed one); a mapping that would reopen them is refused. A deliverable
+  moved into the status meaning *Accepted* is recorded as accepted at the move, with no one named as accepting it,
+  and one moved out of it loses its acceptance.
+- Two people editing the same project at once cannot overwrite each other: a change made against an out-of-date
+  copy of the project is refused, and the page asks you to reload.
+
+### Permissions
+
+Changing deliverables needs the **Update Projects** permission and the role of **Owner** or **Manager** on the
+project, its program, or its portfolio — the same as the project's other details. Sponsors and Members can read
+deliverables but not change them. Deliverables can also be [imported in bulk](./bulk-import.mdx#project-deliverables-import).
 
 ## Project Lifecycles
 

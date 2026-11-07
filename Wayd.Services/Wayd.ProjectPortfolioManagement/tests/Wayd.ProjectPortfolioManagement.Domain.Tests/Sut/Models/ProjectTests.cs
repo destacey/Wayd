@@ -697,6 +697,63 @@ public class ProjectTests
     }
 
     [Fact]
+    public void Complete_ShouldFail_WhenADeliverableIsOpen()
+    {
+        // Arrange
+        var actor = AnAuthorizedActor();
+        var statuses = new ProjectDeliverableStatuses();
+        var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
+        var accepted = project.AddDeliverable(actor, NoProjectAncestry(), "Portal", null, null, null, null, statuses.NotStarted, _dateTimeProvider.Now).Value;
+        project.AddDeliverable(actor, NoProjectAncestry(), "Reports", null, null, null, null, statuses.NotStarted, _dateTimeProvider.Now);
+        project.ChangeDeliverableStatus(actor, NoProjectAncestry(), accepted.Id, statuses.Accepted, null, _dateTimeProvider.Now);
+
+        // Act
+        var result = project.Complete(actor, NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("A deliverable is still open. Accept or descope it before completing the project.");
+        project.Status.Should().Be(ProjectStatus.Active);
+    }
+
+    [Fact]
+    public void Complete_ShouldSucceed_WhenEveryDeliverableIsAcceptedOrDescoped()
+    {
+        // Arrange
+        var actor = AnAuthorizedActor();
+        var statuses = new ProjectDeliverableStatuses();
+        var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
+        var accepted = project.AddDeliverable(actor, NoProjectAncestry(), "Portal", null, null, null, null, statuses.NotStarted, _dateTimeProvider.Now).Value;
+        var descoped = project.AddDeliverable(actor, NoProjectAncestry(), "Reports", null, null, null, null, statuses.NotStarted, _dateTimeProvider.Now).Value;
+        project.ChangeDeliverableStatus(actor, NoProjectAncestry(), accepted.Id, statuses.Accepted, null, _dateTimeProvider.Now);
+        project.ChangeDeliverableStatus(actor, NoProjectAncestry(), descoped.Id, statuses.Descoped, "Moved to phase two", _dateTimeProvider.Now);
+
+        // Act
+        var result = project.Complete(actor, NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        project.Status.Should().Be(ProjectStatus.Completed);
+    }
+
+    [Fact]
+    public void Revision_ShouldAdvance_WithEachRecordChangeButNotWithNoOps()
+    {
+        // Arrange
+        var project = _projectFaker.AsActive(_dateTimeProvider, Guid.NewGuid());
+        var newRange = new LocalDateRange(project.DateRange!.Start, project.DateRange.End.PlusDays(7));
+
+        // Act
+        project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), newRange, _dateTimeProvider.Now);
+        project.UpdateTimeline(AnAuthorizedActor(), NoProjectAncestry(), newRange, _dateTimeProvider.Now);
+        project.Cancel(AnAuthorizedActor(), NoProjectAncestry(), _dateTimeProvider.Now);
+
+        // Assert
+        project.Revision.Should().Be(2);
+        project.IsAtRevision(2).Should().BeTrue();
+    }
+
+    [Fact]
     public void Cancel_ShouldCancelActiveProjectSuccessfully()
     {
         // Arrange

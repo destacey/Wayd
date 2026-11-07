@@ -35,6 +35,7 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         new ProjectsArea(),
         new ProjectTasksArea(),
         new ProjectStagesArea(),
+        new ProjectDeliverablesArea(),
         new StrategicInitiativesArea(),
         new PpmFinalizeArea(),
         new ProductManagementFeatureFlagArea(),

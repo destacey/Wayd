@@ -71,6 +71,7 @@ public class ProjectScoresController(ILogger<ProjectScoresController> logger, ID
     [McpTool("Projects_RecordScore", "Record a project score", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<Guid>> RecordScore(Guid id, [FromBody] RecordProjectScoreRequest request, CancellationToken cancellationToken)
     {
@@ -78,6 +79,6 @@ public class ProjectScoresController(ILogger<ProjectScoresController> logger, ID
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetScore), new { id, scoreId = result.Value }, result.Value)
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+            : this.ProjectFailure(result.Error);
     }
 }

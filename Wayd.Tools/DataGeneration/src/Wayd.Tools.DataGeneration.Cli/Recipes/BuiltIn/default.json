@@ -23,7 +23,8 @@
     "functionPortfolios": 2,
     "concurrentProjectsPerArt": 10,
     "concurrentProgramsPerPortfolio": 5,
-    "programs": "Auto"
+    "programs": "Auto",
+    "deliverablesPerProject": 4
   },
   "users": {
     "enabled": true,

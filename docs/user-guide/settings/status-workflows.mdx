@@ -19,7 +19,7 @@ Renaming a status changes what people read; it does not change what Wayd does. T
 
 ### Record types
 
-Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Version, Release, Release Package, Deployment and Intake Request. The screens call it the **Owner Type** in the create form and **Owner** in the workflow list.
+Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Version, Release, Release Package, Deployment, Intake Request and Project Deliverable. The screens call it the **Owner Type** in the create form and **Owner** in the workflow list.
 
 A record type whose module is switched off is absent here: while the **Demand Management** feature flag is off, no Intake Request workflow is listed, and none can be created, cloned or reassigned.
 
@@ -58,6 +58,7 @@ Each record type also declares the categories it cannot do without, and a workfl
 | Release Package | Proposed, Done, Removed |
 | Deployment | Active, Done, Removed |
 | Intake Request | Proposed, Active, Done, Removed |
+| Project Deliverable | Proposed, Done, Removed |
 
 A deployment starts In Progress, so it has no Proposed stage. A release package can go straight from Planned to Released, since its Ready status is optional.
 
@@ -75,6 +76,7 @@ Each alias belongs to one category, and the editor offers only the aliases of th
 | Release Package | Released, Withdrawn |
 | Deployment | In Progress, Succeeded, Failed, Rolled Back |
 | Intake Request | Submitted, Waiting on Requester, Duplicate, Withdrawn |
+| Project Deliverable | Not Started, Accepted, Descoped |
 
 The category each alias belongs to:
 
@@ -84,8 +86,11 @@ The category each alias belongs to:
 | Version, Release, Release Package | | Ready | Released | Withdrawn |
 | Deployment | | In Progress | Succeeded | Failed, Rolled Back |
 | Intake Request | Submitted, Waiting on Requester | Accepted | Fulfilled | Duplicate, Withdrawn |
+| Project Deliverable | Not Started | In Progress | Accepted | Descoped |
 
 Intake Request's **Accepted** and **Fulfilled** aliases are optional, and its rules otherwise follow the category: any Done status, and any Removed status other than Withdrawn, needs a reason, and only Proposed and Active requests are open. Intake Request workflows always allow any move, because a requester must be able to withdraw from any open status.
+
+Project Deliverable's **In Progress** alias is optional. A deliverable in a Proposed or Active status is open, and a project cannot be completed while any of its deliverables is; any Removed status needs a reason. Every project follows the organization's deliverable workflow.
 
 An alias can be held by only one status in a workflow — two statuses both meaning Released would make "is it released?" unanswerable.
 

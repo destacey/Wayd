@@ -97,6 +97,7 @@ Reference data (expenditure categories, project lifecycles — created in Settin
   → Projects
   → Project tasks
   → Project stage statuses
+  → Project deliverables
   → Strategic initiatives (with KPIs)
   → Finalize (close historical programs and portfolios)
 ```
@@ -121,7 +122,7 @@ Each import requires the **Import** permission for the relevant resource:
 | Strategic themes | Import Strategic Themes |
 | Portfolios · Finalize | Import Portfolios |
 | Programs | Import Programs |
-| Projects · Tasks · Stages | Import Projects |
+| Projects · Tasks · Stages · Deliverables | Import Projects |
 | Strategic initiatives (+ KPIs) | Import Strategic Initiatives |
 
 ## Limits
@@ -138,6 +139,7 @@ its group was rejected says so and names that row, so the fix is always to one r
 | Projects | one project | that project |
 | Tasks | one **project** | that project's whole breakdown |
 | Stages | one **project** | that project's other stage changes |
+| Deliverables | one **project** | that project's other new deliverables |
 | Strategic initiatives | one initiative, with its KPIs | that initiative and its KPIs |
 | Finalize | one program or portfolio | that one record |
 
@@ -302,6 +304,31 @@ This import sets stage status to **exactly** the value supplied — it does **no
 from its tasks. Whatever produces the file decides what each stage's status should be, so you keep full
 control. (The [data-generation tool](../../contributing/tools/data-generation.mdx) rolls each stage's status
 up from its tasks and emits these rows for seeding.)
+:::
+
+## Project deliverables import
+
+`POST /api/ppm/projects/deliverables/import`
+
+Adds [deliverables](./projects.mdx#project-deliverables) to existing projects. A project's rows are added in file
+order, after any deliverables it already has, and that becomes their order.
+
+| Column | Required | Notes |
+|---|---|---|
+| `ProjectKey` | Yes | The project, by key. |
+| `Name` | Yes | Max 256 chars. Unique within its project, ignoring capitals — against the deliverables it already has, descoped ones included, and the file's other rows for it. |
+| `Description` | No | Markdown. Max 4096 chars. |
+| `AcceptanceCriteria` | No | Markdown. Max 4096 chars. How the project will know the deliverable is done. |
+| `OwnerEmployeeNumber` | No | The accountable employee, by employee number. An inactive employee is accepted, so a finished project can name whoever was accountable then. |
+| `TargetDate` | No | `YYYY-MM-DD`. |
+| `Status` | No | A status of the deliverable workflow, by name or by meaning (`NotStarted`, `InProgress`, `Accepted`, `Descoped`). Blank for *Not Started*. |
+| `StatusChangedAt` | No | When it moved into `Status`, as an ISO 8601 date and time with its offset, such as `2026-03-01T14:30:00Z`. A value without an offset, or a bare date, is refused rather than read in the server's time zone, and so is a time in the future. Blank for when the import runs. |
+| `StatusReason` | Required for *Descoped* | Why it is in that status. Max 1024 chars. |
+
+:::note[Finished projects]
+A project imported as *Completed* or *Canceled* accepts only closed deliverables — *Accepted*, *Descoped*, or
+another status in the Done or Removed category. An open deliverable would leave a finished project with work
+outstanding, so its row is refused.
 :::
 
 ## Strategic initiatives import

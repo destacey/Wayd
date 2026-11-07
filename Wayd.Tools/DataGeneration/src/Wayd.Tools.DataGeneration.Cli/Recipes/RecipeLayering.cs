@@ -156,6 +156,7 @@ public static class RecipeLayering
             ConcurrentProjectsPerArt = over.ConcurrentProjectsPerArt ?? under.ConcurrentProjectsPerArt,
             ConcurrentProgramsPerPortfolio = over.ConcurrentProgramsPerPortfolio ?? under.ConcurrentProgramsPerPortfolio,
             Programs = over.Programs ?? under.Programs,
+            DeliverablesPerProject = over.DeliverablesPerProject ?? under.DeliverablesPerProject,
         };
     }
 }

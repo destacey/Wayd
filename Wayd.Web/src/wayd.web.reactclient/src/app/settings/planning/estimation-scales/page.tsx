@@ -2,9 +2,9 @@
 
 import { PageTitle } from '@/src/components/common'
 import {
-  ConfigListPanel,
+  ListDetailLayout,
   useSelectedRecord,
-} from '@/src/components/common/config-list'
+} from '@/src/components/common/list-detail'
 import {
   WaydGrid,
   createActionsColumn,
@@ -136,7 +136,7 @@ const EstimationScalesPage = () => {
     <div className="page-gutters">
       <PageTitle title="Estimation Scales" actions={actions} />
 
-      <ConfigListPanel
+      <ListDetailLayout
         // Not just `selectedId`: a stale id from a pasted link, or a record
         // deleted from another row's menu, would hold the panel open on
         // nothing. The list is the whole record here, so its absence is
@@ -169,7 +169,7 @@ const EstimationScalesPage = () => {
           activatedRowId={selectedId}
           getRowActivateLabel={(scale) => scale.name}
         />
-      </ConfigListPanel>
+      </ListDetailLayout>
 
       {dialogs}
 

@@ -15,6 +15,7 @@ public sealed record GeneratedPpm(
     IReadOnlyList<ProjectModel> Projects,
     IReadOnlyList<ProjectTaskModel> ProjectTasks,
     IReadOnlyList<ProjectStageModel> ProjectStages,
+    IReadOnlyList<ProjectDeliverableModel> ProjectDeliverables,
     IReadOnlyList<StrategicInitiativeModel> StrategicInitiatives,
     IReadOnlyList<StrategicInitiativeKpiModel> StrategicInitiativeKpis,
     IReadOnlyList<PpmFinalizationModel> Finalizations,

@@ -26,11 +26,10 @@ export class RecordLayoutConstants {
 }
 
 /**
- * Layout constants for `ConfigListPanel` — the settings counterpart to a
- * record page, where the detail panel sits beside the list rather than on a
- * page of its own.
+ * Layout constants for `ListDetailLayout` — a list with the selected
+ * row's details in a panel beside it, rather than on a page of its own.
  */
-export class ConfigListConstants {
+export class ListDetailConstants {
   /** Default detail panel width. Wider than the facts rail: this panel is the
    *  record, not reference material beside one. */
   static readonly PANEL_WIDTH = 340

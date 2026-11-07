@@ -49,6 +49,9 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     public DbSet<Program> Programs => _programs.AsDbSet();
     public DbSet<Project> Projects => _projects.AsDbSet();
     public DbSet<ProjectHealthCheck> ProjectHealthChecks => _projectHealthChecks.AsDbSet();
+
+    // Deliverables live inside their projects, as they do in the database, so the set reads them from there.
+    public DbSet<ProjectDeliverable> ProjectDeliverables => _projects.SelectMany(p => p.Deliverables).ToList().AsDbSet();
     public DbSet<ProjectScore> ProjectScores => _projectScores.AsDbSet();
     public DbSet<ProjectStatusHistory> ProjectStatusHistory => _projectStatusHistory.AsDbSet();
     public DbSet<ProjectTask> ProjectTasks => _projectTasks.AsDbSet();
@@ -77,9 +80,18 @@ public class FakeProjectPortfolioManagementDbContext : IProjectPortfolioManageme
     /// </summary>
     public int SaveChangesCallCount { get; private set; }
 
+    /// <summary>
+    /// Thrown by the next save once set, after it is counted — as when another save changed a concurrency token
+    /// first, which an in-memory fake cannot otherwise produce.
+    /// </summary>
+    public Exception? SaveException { get; set; }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SaveChangesCallCount++;
+
+        if (SaveException is { } exception)
+            throw exception;
 
         // Return the total number of entities as a simple success indicator
         var count = _expenditureCategories.Count + _portfolios.Count + _programs.Count +

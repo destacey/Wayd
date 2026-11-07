@@ -12,30 +12,33 @@ import {
   Typography,
 } from 'antd'
 import { ReactNode, useEffect, useState } from 'react'
-import { ConfigListConstants } from '@/src/config/theme/theme-constants'
+import { ListDetailConstants } from '@/src/config/theme/theme-constants'
 import { useLocalStorageState, useRemainingHeight } from '@/src/hooks'
 import { getDrawerWidthPixels } from '@/src/utils'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
-import styles from './config-list-panel.module.css'
+import styles from './list-detail-layout.module.css'
 
 const { useBreakpoint } = Grid
 const { Title } = Typography
 
-/** Width is a display preference, shared by every config list. */
-export const CONFIG_PANEL_WIDTH_KEY = 'wayd-config-list:panel-width'
+/**
+ * Width is a display preference, shared by every list–detail layout. Changing
+ * the key, `config-list` prefix included, resets every user's saved width.
+ */
+export const LIST_DETAIL_PANEL_WIDTH_KEY = 'wayd-config-list:panel-width'
 
 /** Keyboard resize step, matching how a scrollbar arrow key behaves. */
 const KEYBOARD_STEP = 16
 
 /**
  * Half the gap the resize handle fills, so a drag measures from the handle's
- * centre rather than its left edge. Matches `--config-list-gap` in the
+ * centre rather than its left edge. Matches `--list-detail-gap` in the
  * stylesheet, kept in step by hand — the drag reads pointer position in page
  * coordinates, which CSS cannot tell it.
  */
 const RESIZER_OFFSET = 8
 
-export interface ConfigListPanelProps {
+export interface ListDetailLayoutProps {
   /** The list itself — a `WaydGrid` wired to `onRowActivate`. */
   children: ReactNode
   /** Whether a record is open. */
@@ -59,7 +62,7 @@ export interface ConfigListPanelProps {
 const PanelContents = ({
   details,
   isLoading,
-}: Pick<ConfigListPanelProps, 'details' | 'isLoading'>) => (
+}: Pick<ListDetailLayoutProps, 'details' | 'isLoading'>) => (
   <div className={styles.panelBody}>
     {isLoading ? <Skeleton active paragraph={{ rows: 4 }} /> : details}
   </div>
@@ -86,7 +89,7 @@ const PanelContents = ({
  * fall back to a real `Drawer` over the list — matching how the record facts
  * rail degrades and how the feature flags list already behaves.
  */
-const ConfigListPanel = ({
+const ListDetailLayout = ({
   children,
   open,
   onClose,
@@ -94,7 +97,7 @@ const ConfigListPanel = ({
   details,
   actionItems,
   isLoading,
-}: ConfigListPanelProps) => {
+}: ListDetailLayoutProps) => {
   const screens = useBreakpoint()
   const compact = !screens.md
   const [dragging, setDragging] = useState(false)
@@ -109,15 +112,15 @@ const ConfigListPanel = ({
     typeof window === 'undefined' ? undefined : getDrawerWidthPixels(),
   )
   const [width, setWidth] = useLocalStorageState<number>(
-    CONFIG_PANEL_WIDTH_KEY,
-    ConfigListConstants.PANEL_WIDTH,
+    LIST_DETAIL_PANEL_WIDTH_KEY,
+    ListDetailConstants.PANEL_WIDTH,
     { version: 1 },
   )
 
   const clamp = (w: number) =>
     Math.min(
-      ConfigListConstants.PANEL_MAX_WIDTH,
-      Math.max(ConfigListConstants.PANEL_MIN_WIDTH, w),
+      ListDetailConstants.PANEL_MAX_WIDTH,
+      Math.max(ListDetailConstants.PANEL_MIN_WIDTH, w),
     )
 
   // A stored width from a wider window (or a hand-edited value) must not be
@@ -213,8 +216,8 @@ const ConfigListPanel = ({
             aria-orientation="vertical"
             aria-label="Resize details panel"
             aria-valuenow={boundedWidth}
-            aria-valuemin={ConfigListConstants.PANEL_MIN_WIDTH}
-            aria-valuemax={ConfigListConstants.PANEL_MAX_WIDTH}
+            aria-valuemin={ListDetailConstants.PANEL_MIN_WIDTH}
+            aria-valuemax={ListDetailConstants.PANEL_MAX_WIDTH}
             tabIndex={0}
             onMouseDown={(e) => {
               e.preventDefault()
@@ -248,4 +251,4 @@ const ConfigListPanel = ({
   )
 }
 
-export default ConfigListPanel
+export default ListDetailLayout

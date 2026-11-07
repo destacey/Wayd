@@ -8,6 +8,7 @@ using Wayd.ProjectPortfolioManagement.Application.Programs.Imports;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Imports;
 using Wayd.ProjectPortfolioManagement.Application.ProjectTasks.Imports;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Imports;
+using Wayd.ProjectPortfolioManagement.Application.Projects.Deliverables.Imports;
 
 namespace Wayd.ProjectPortfolioManagement.Application;
 
@@ -23,6 +24,7 @@ public static class ConfigureServices
         services.AddScoped<IImportDefinition, ProjectImportDefinition>();
         services.AddScoped<IImportDefinition, ProjectStageImportDefinition>();
         services.AddScoped<IImportDefinition, ProjectTaskImportDefinition>();
+        services.AddScoped<IImportDefinition, ProjectDeliverableImportDefinition>();
         services.AddScoped<IImportDefinition, StrategicInitiativeImportDefinition>();
         services.AddScoped<IImportDefinition, PpmFinalizationImportDefinition>();
 

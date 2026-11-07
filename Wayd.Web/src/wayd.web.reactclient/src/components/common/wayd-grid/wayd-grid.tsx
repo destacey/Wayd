@@ -170,6 +170,9 @@ const ROW_HEIGHT_ESTIMATE = 28
 
 /** Column-header row height, for sizing a `variant="simple"` grid to its rows. */
 const SIMPLE_HEADER_HEIGHT = 39
+/** Body height a `variant="simple"` grid keeps with no rows, so its loading
+ * spinner or empty message has room to show. */
+const SIMPLE_EMPTY_BODY_HEIGHT = 140
 /** Rows rendered beyond the visible window on each side. Also what keeps
  * jsdom tests rendering rows at all: with no layout the viewport measures
  * 0px, so the virtualizer renders indexes 0..overscan. */
@@ -1169,8 +1172,10 @@ function WaydGridInner<T extends RowData>(
   // Sized from `data` rather than the table's row model, which is built later
   // in this component. Equivalent for a simple grid: filtering is off, so no
   // row is ever hidden.
-  const simpleHeight =
-    SIMPLE_HEADER_HEIGHT + (data?.length ?? 0) * ROW_HEIGHT_ESTIMATE + 2
+  const simpleBodyHeight = data?.length
+    ? data.length * ROW_HEIGHT_ESTIMATE
+    : SIMPLE_EMPTY_BODY_HEIGHT
+  const simpleHeight = SIMPLE_HEADER_HEIGHT + simpleBodyHeight + 2
   const resolvedHeight = height ?? (isSimple ? simpleHeight : autoHeight)
 
   // ─── Split header/body viewports ─────────────────────────

@@ -26,7 +26,7 @@ const ValueTags = ({ values }: { values: EstimationScaleValueDto[] }) => (
 )
 
 /**
- * An estimation scale's fields, for the config list's detail panel.
+ * An estimation scale's fields, for the list–detail layout's panel.
  *
  * The values are tags rather than a list: a scale's values are a single
  * bounded fact about it — the sequence you estimate in — not a child

@@ -54,6 +54,7 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
     [McpTool("Projects_CreateProjectHealthCheck", "Log a project health check", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<Guid>> CreateHealthCheck(Guid id, [FromBody] CreateProjectHealthCheckRequest request, CancellationToken cancellationToken)
     {
@@ -61,7 +62,7 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetHealthCheck), new { id, healthCheckId = result.Value }, result.Value)
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+            : this.ProjectFailure(result.Error);
     }
 
     [HttpPut("{id}/health-checks/{healthCheckId}")]
@@ -72,6 +73,7 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
     [McpTool("Projects_UpdateProjectHealthCheck", "Update project health check")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult<ProjectHealthCheckDetailsDto>> UpdateHealthCheck(Guid id, Guid healthCheckId, [FromBody] UpdateProjectHealthCheckRequest request, CancellationToken cancellationToken)
     {
@@ -79,7 +81,7 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
 
         return result.IsSuccess
             ? Ok(result.Value)
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+            : this.ProjectFailure(result.Error);
     }
 
     [HttpDelete("{id}/health-checks/{healthCheckId}")]
@@ -91,12 +93,11 @@ public class ProjectHealthChecksController(ILogger<ProjectHealthChecksController
     [McpTool("Projects_DeleteProjectHealthCheck", "Delete project health check")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<ActionResult> DeleteHealthCheck(Guid id, Guid healthCheckId, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new DeleteProjectHealthCheckCommand(id, healthCheckId), cancellationToken);
 
-        return result.IsSuccess
-            ? NoContent()
-            : BadRequest(result.ToBadRequestObject(HttpContext));
+        return this.NoContentOrProjectFailure(result);
     }
 }

@@ -6,6 +6,8 @@ using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
+using Microsoft.EntityFrameworkCore;
+using Wayd.ProjectPortfolioManagement.Application.Projects;
 using Wayd.ProjectPortfolioManagement.Application.Projects.HealthChecks.Commands;
 using Wayd.ProjectPortfolioManagement.Application.Tests.Infrastructure;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
@@ -67,6 +69,24 @@ public class CreateProjectHealthCheckCommandHandlerTests : IDisposable
         project.HealthChecks.Single().Id.Should().Be(result.Value);
         project.HealthChecks.Single().ReportedById.Should().Be(_currentEmployeeId);
         _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WhenAnotherSaveChangedTheProjectFirst_RefusesAsStale()
+    {
+        // Arrange
+        var project = ProjectWithOwnerAndPortfolio();
+        _dbContext.AddProject(project);
+        _dbContext.SaveException = new DbUpdateConcurrencyException();
+        var command = new CreateProjectHealthCheckCommand(
+            project.Id, HealthStatus.Healthy, _now.Plus(Duration.FromDays(7)), null);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ProjectSaves.StaleError);
     }
 
     [Fact]

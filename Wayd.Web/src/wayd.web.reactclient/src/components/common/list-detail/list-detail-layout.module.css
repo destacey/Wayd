@@ -10,14 +10,14 @@
 .layout {
   /* One definition for the row's gap and the handle that fills it. They
      drifted apart once already, which put the handle outside the panel. */
-  --config-list-gap: 16px;
+  --list-detail-gap: 16px;
 
   display: flex;
   /* Not `stretch`: the panel takes an explicit height matching the grid's own
      computed one, so stretching would fight it. The grid sizes itself to the
      remaining viewport, which is taller than the row's natural height. */
   align-items: flex-start;
-  gap: var(--config-list-gap);
+  gap: var(--list-detail-gap);
   min-height: 0;
   /* The grid virtualizer needs a measurable height, and a flex row gives its
      children `auto` by default — without this the list renders zero rows. */
@@ -70,10 +70,10 @@
  */
 .resizer {
   position: absolute;
-  left: calc(-1 * var(--config-list-gap));
+  left: calc(-1 * var(--list-detail-gap));
   top: 0;
   bottom: 0;
-  width: var(--config-list-gap);
+  width: var(--list-detail-gap);
   cursor: col-resize;
   z-index: 1;
   display: flex;

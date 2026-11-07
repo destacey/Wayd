@@ -64,7 +64,7 @@ The API base URL is shown in the Aspire dashboard when you run the stack
 
 `generate` writes one file per import, named for it: `employees.csv`, `teams.csv`, `team-memberships.csv`
 and `members.csv` for the organization; `strategic-themes.csv`, `portfolios.csv`, `programs.csv`,
-`projects.csv`, `project-tasks.csv`, `project-stages.csv`, `strategic-initiatives.csv`,
+`projects.csv`, `project-tasks.csv`, `project-stages.csv`, `project-deliverables.csv`, `strategic-initiatives.csv`,
 `strategic-initiative-kpis.csv` and `ppm-finalizations.csv` for PPM; `deployment-environments.csv`,
 `products.csv`, `product-dependencies.csv`, `versions.csv`, `release-packages.csv`,
 `release-package-components.csv`, `releases.csv`, `release-contents.csv` and `deployments.csv` for Product
@@ -383,6 +383,7 @@ anything you can compose in the page, you can also say on a command line.
 | `--function-portfolios` | `2` | Cross-cutting business-function portfolios, on top of one per value stream |
 | `--concurrent-projects-per-art` | `10` | Projects an ART has *in flight at once*; the total generated is derived from this across the window |
 | `--concurrent-programs-per-portfolio` | `5` | Thematic programs a portfolio runs at once; the total generated is derived from this across the window |
+| `--deliverables-per-project` | `4` | Deliverables each project commits to, give or take two (never fewer than one, nor more than eight); `0` generates none. At most `8`: a project's deliverables are drawn without repeats from a fixed set of eight, since names are unique within a project |
 | `--programs` | `Auto` | `Auto` / `On` / `Off` — whether value-stream portfolios group projects into programs. `Auto` leaves about one project in six standalone; `On` places every project in a covering program; `Off` generates none |
 | `--skip-product-management` | off | Skip the product catalog and its delivery history |
 | `--version-interval-days` | `14` | Average days between two versions of a service; web and mobile apps ship less often, libraries and tools far less |
@@ -526,6 +527,16 @@ delivery teams:
   status** is rolled up from its tasks (all done → Completed, some in flight → In Progress, none started →
   Not Started) and imported as data — the stage-status import applies exactly what the generator computes and
   never derives it server-side, so a real client keeps full control of stage status.
+- **Project deliverables** — about `--deliverables-per-project` per project, drawn in delivery order from a
+  fixed set (requirements sign-off, pilot, data migration, production release, handover, …), each with
+  acceptance criteria, an owner from the project team, and a target date spread across the project's window.
+  Statuses follow the project and today: a project not yet started has none begun; an active one has accepted
+  most of what fell due, is working on what is due within a month, and has not started the rest; a completed
+  one accepted nearly all of them; a canceled one accepted some of what fell due and descoped the rest. A
+  descoped deliverable always carries a reason. A status change is dated midday UTC on its day, but never later
+  than the moment the seed runs, since the import refuses a status change in the future. Deliverables draw from
+  their own random stream, so changing how many a project gets leaves every other generated record the same for
+  a seed.
 - **Strategic themes** — a handful of active themes, tagged onto programs and projects.
 - **Strategic initiatives + KPIs** — one per portfolio, linking a few of its projects, each with a couple
   of KPIs.
@@ -772,6 +783,7 @@ employees + teams + team member roles (created as needed) → team staffing
 employees → portfolios → programs (+ strategic themes)
   → projects (+ expenditure categories and lifecycle, the settings bootstrap)
       → project tasks → project stage statuses
+      → project deliverables (after the employees who own them)
       → strategic initiatives (+ KPIs) → finalize (close historical programs/portfolios)
 
 product-management feature flag → deployment environments

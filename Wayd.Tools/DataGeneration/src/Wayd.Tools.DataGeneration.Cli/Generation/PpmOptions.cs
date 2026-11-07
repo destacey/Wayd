@@ -35,4 +35,10 @@ public sealed class PpmOptions
     /// generates no programs, so every project reports straight to its portfolio.
     /// </summary>
     public StructureMode Programs { get; init; } = StructureMode.Auto;
+
+    /// <summary>
+    /// Average number of deliverables a project commits to. Each project gets this many give or take two, never
+    /// fewer than one; zero generates none.
+    /// </summary>
+    public int DeliverablesPerProject { get; init; } = 4;
 }

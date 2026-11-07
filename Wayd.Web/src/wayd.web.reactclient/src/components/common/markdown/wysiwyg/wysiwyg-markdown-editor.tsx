@@ -33,6 +33,11 @@ export interface WysiwygMarkdownEditorProps {
   onChange?: (value: string) => void
   /** Limit on the stored markdown, which is longer than the text shown. */
   maxLength: number
+  /**
+   * Lines the editor shows while empty. When set, it grows with its content instead of
+   * scrolling past a fixed height.
+   */
+  rows?: number
   /** Set by `Form.Item` while the field shows validation help or errors. */
   'aria-describedby'?: string
   /** Set by `Form.Item` while the field is invalid; also turns the border to the error color. */
@@ -66,6 +71,7 @@ const WysiwygMarkdownEditor = ({
   value,
   onChange,
   maxLength,
+  rows,
   'aria-describedby': ariaDescribedBy,
   'aria-invalid': ariaInvalid,
   'aria-required': ariaRequired,
@@ -258,6 +264,14 @@ const WysiwygMarkdownEditor = ({
         className={
           isInvalid ? `${styles.editor} ${styles.invalid}` : styles.editor
         }
+        style={
+          rows
+            ? ({
+                '--editor-min-height': `calc(${rows} * var(--ant-font-size) * var(--ant-line-height) + 2 * var(--ant-padding-xs))`,
+                '--editor-max-height': 'none',
+              } as React.CSSProperties)
+            : undefined
+        }
       >
         {editor && (
           <MarkdownToolbar
@@ -278,7 +292,7 @@ const WysiwygMarkdownEditor = ({
             id={id}
             className={styles.source}
             variant="borderless"
-            autoSize={{ minRows: 6 }}
+            autoSize={{ minRows: rows ?? 6 }}
             spellCheck
             value={sourceText}
             onChange={onSourceChange}

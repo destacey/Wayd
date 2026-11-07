@@ -97,6 +97,13 @@ public class SeedRunnerTests
     }
 
     [Fact]
+    public void Areas_DeclareDeliverablesAfterTheProjectsAndOwnersTheyName()
+    {
+        // Arrange & Act & Assert — a row names its project by key and its owner by employee number
+        ShouldDependOn(PpmArea.ProjectDeliverables, PpmArea.Projects, OrganizationArea.Employees);
+    }
+
+    [Fact]
     public void Areas_DeclareStaffingAfterThePeopleTheTeamsAndTheRoles()
     {
         // Arrange & Act & Assert — staffing resolves all three by natural key and creates none of them
@@ -167,6 +174,7 @@ public class SeedRunnerTests
             PpmArea.Projects,
             PpmArea.ProjectTasks,
             PpmArea.ProjectStages,
+            PpmArea.ProjectDeliverables,
             ProductManagementArea.ProductDependencies,
             ProductManagementArea.Versions,
             ProductManagementArea.ReleasePackages,

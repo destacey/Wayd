@@ -9,10 +9,10 @@ namespace Wayd.Web.Api.Models.Organizations.Teams;
 /// </summary>
 public sealed record GetTeamDependencyAnalysisRequest
 {
-    /// <summary>The first day of the range (yyyy-MM-dd, UTC).</summary>
+    /// <summary>The first day of the range (yyyy-MM-dd, in the team's time zone).</summary>
     public string? From { get; set; }
 
-    /// <summary>The last day of the range (yyyy-MM-dd, UTC).</summary>
+    /// <summary>The last day of the range (yyyy-MM-dd, in the team's time zone).</summary>
     public string? To { get; set; }
 
     /// <returns>False, with <paramref name="error"/> set, when a date is missing or malformed.</returns>

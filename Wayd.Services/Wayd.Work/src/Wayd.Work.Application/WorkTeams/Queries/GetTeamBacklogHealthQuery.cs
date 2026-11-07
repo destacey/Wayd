@@ -102,12 +102,14 @@ public sealed class GetTeamBacklogHealthQueryHandler(
             return Result.Success<TeamBacklogHealthDto?>(null);
 
         var now = _dateTimeProvider.Now;
-        var (from, to) = TeamThroughputSampler.LookbackWindow(now, request.LookbackDays);
-        var start = from.AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
-        var end = to.PlusDays(1).AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
+        var calendar = await TeamReportCalendar.Load(_dispatcher, team.Id, cancellationToken);
+        var today = calendar.DateOf(now);
+        var (from, to) = TeamThroughputSampler.LookbackWindow(today, request.LookbackDays);
+        var start = calendar.StartOf(from);
+        var end = calendar.StartOf(to.PlusDays(1));
 
-        // The backlog is measured now, so in the sizing method the team uses today (UTC, as the window is).
-        var schedule = await _dispatcher.Send(new GetTeamScheduleQuery(team.Id, now.InUtc().Date), cancellationToken);
+        // The backlog is measured now, so in the sizing method the team uses today.
+        var schedule = await _dispatcher.Send(new GetTeamScheduleQuery(team.Id, today), cancellationToken);
         var sizingMethod = schedule?.SizingMethod ?? SizingMethod.Count;
         double? EstimateOf(double? storyPoints, double? effort, double? size) =>
             sizingMethod == SizingMethod.Count ? null : WorkItemEstimate.Of(sizingMethod, storyPoints, effort, size);
@@ -245,6 +247,7 @@ public sealed class GetTeamBacklogHealthQueryHandler(
             LookbackDays = request.LookbackDays,
             From = from,
             To = to,
+            TimeZone = calendar.ZoneOn(today).Id,
             SizingMethod = sizingMethod,
             TotalWorkItems = backlog.Count,
             TotalEstimate = sizingMethod == SizingMethod.Count ? backlog.Count : backlog.Sum(i => i.Estimate ?? 0),

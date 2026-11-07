@@ -17,13 +17,22 @@ public sealed record TeamBacklogHealthDto
     public required BacklogHealthThresholds Thresholds { get; init; }
 
     /// <summary>
-    /// Days of history, ending yesterday (UTC), that throughput, cycle time and net flow were measured over.
+    /// Days of history, ending yesterday in <c>timeZone</c>, that throughput, cycle time and net flow were
+    /// measured over.
     /// </summary>
     public int LookbackDays { get; init; }
 
+    /// <summary>The first day of the history.</summary>
     public required LocalDate From { get; init; }
 
+    /// <summary>The last day of the history, included: yesterday in <c>timeZone</c>.</summary>
     public required LocalDate To { get; init; }
+
+    /// <summary>
+    /// The IANA id of the time zone the history's days are counted in: that of the team's operating model in
+    /// effect today.
+    /// </summary>
+    public required string TimeZone { get; init; }
 
     /// <summary>
     /// The team's sizing method today, which every estimate in the report is in. A team that sizes by count has

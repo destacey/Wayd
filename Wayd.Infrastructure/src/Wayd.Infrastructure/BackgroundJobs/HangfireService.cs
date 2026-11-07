@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Hangfire;
 using Hangfire.Common;
+using Hangfire.States;
 using Hangfire.Storage;
 using Hangfire.Storage.Monitoring;
 using NodaTime;
@@ -49,7 +50,10 @@ public class HangfireService : IJobService
             JobStateFilter.Processing => Page(
                 monitoring.ProcessingCount(),
                 monitoring.ProcessingJobs(from, pageSize),
-                (id, job) => Summary(id, job.Job, "Processing", ToInstant(job.StartedAt), "Started")),
+                (id, job) => Summary(id, job.Job, "Processing", ToInstant(job.StartedAt), "Started") with
+                {
+                    ServerName = job.ServerId,
+                }),
 
             JobStateFilter.Scheduled => Page(
                 monitoring.ScheduledCount(),
@@ -320,6 +324,25 @@ public class HangfireService : IJobService
 
     public bool Requeue(string jobId, string fromState) =>
         BackgroundJob.Requeue(jobId, fromState);
+
+    public RequeueOutcome RequeueIfNotRunning(string jobId)
+    {
+        using var connection = JobStorage.Current.GetConnection();
+        var state = connection.GetStateData(jobId)?.Name;
+
+        if (state is null)
+        {
+            return RequeueOutcome.NotFound;
+        }
+
+        if (state == ProcessingState.StateName)
+        {
+            return RequeueOutcome.Running;
+        }
+
+        // The expected state makes the transition conditional, so a job that moved since the read is untouched.
+        return BackgroundJob.Requeue(jobId, state) ? RequeueOutcome.Requeued : RequeueOutcome.StateChanged;
+    }
 
     public string Schedule(Expression<Action> methodCall, TimeSpan delay) =>
         BackgroundJob.Schedule(methodCall, delay);

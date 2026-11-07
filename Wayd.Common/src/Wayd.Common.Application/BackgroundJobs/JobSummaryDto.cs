@@ -25,4 +25,7 @@ public sealed record JobSummaryDto
     public string? ExceptionType { get; set; }
 
     public string? ExceptionMessage { get; set; }
+
+    /// <summary>Populated for processing jobs only; the scheduler server running the job.</summary>
+    public string? ServerName { get; set; }
 }

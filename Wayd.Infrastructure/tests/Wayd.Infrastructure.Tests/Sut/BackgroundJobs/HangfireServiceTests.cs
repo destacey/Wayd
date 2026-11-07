@@ -18,15 +18,16 @@ public sealed class HangfireServiceTests
     [Fact]
     public void CurrentFailure_ForRetriedJob_ReturnsTheMostRecentFailure()
     {
-        // Arrange — history is oldest-first, and a retried job records one entry per attempt.
+        // Arrange — the monitoring API returns history newest-first, and a retried job records one entry
+        // per attempt.
         var history = new[]
         {
-            State("Enqueued"),
-            State("Processing"),
-            State("Failed", "first attempt"),
-            State("Scheduled"),
-            State("Processing"),
             State("Failed", "final attempt"),
+            State("Processing"),
+            State("Scheduled"),
+            State("Failed", "first attempt"),
+            State("Processing"),
+            State("Enqueued"),
         };
 
         // Act
@@ -40,7 +41,7 @@ public sealed class HangfireServiceTests
     public void CurrentFailure_ForSingleFailure_ReturnsIt()
     {
         // Arrange
-        var history = new[] { State("Enqueued"), State("Processing"), State("Failed", "only") };
+        var history = new[] { State("Failed", "only"), State("Processing"), State("Enqueued") };
 
         // Act
         var failure = HangfireService.CurrentFailure(history);
@@ -53,7 +54,7 @@ public sealed class HangfireServiceTests
     public void CurrentFailure_WhenJobNeverFailed_ReturnsNull()
     {
         // Arrange
-        var history = new[] { State("Enqueued"), State("Processing"), State("Succeeded") };
+        var history = new[] { State("Succeeded"), State("Processing"), State("Enqueued") };
 
         // Act
         var failure = HangfireService.CurrentFailure(history);

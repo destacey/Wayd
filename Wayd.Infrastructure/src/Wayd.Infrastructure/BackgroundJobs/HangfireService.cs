@@ -122,8 +122,9 @@ public class HangfireService : IJobService
             return null;
         }
 
-        // Hangfire records history newest-last; the UI reads it as a timeline, most recent first.
-        var history = details.History?.Reverse().Select(h => new JobStateHistoryDto
+        // The monitoring API returns history newest-first, the order the UI reads it in, so the first entry
+        // is the current state.
+        var history = details.History?.Select(h => new JobStateHistoryDto
         {
             State = h.StateName,
             Reason = h.Reason,
@@ -270,11 +271,11 @@ public class HangfireService : IJobService
     private static int TotalCount(long total) => (int)Math.Min(total, int.MaxValue);
 
     /// <summary>
-    /// The failure that left the job in its current state. History is oldest-first and a retried job
-    /// records one entry per attempt, so the last failure — not the first — is the current one.
+    /// The failure that left the job in its current state. The monitoring API returns history newest-first
+    /// and a retried job records one entry per attempt, so the first failure listed is the current one.
     /// </summary>
     internal static StateHistoryDto? CurrentFailure(IEnumerable<StateHistoryDto>? history) =>
-        history?.LastOrDefault(h => h.StateName == FailedStateName);
+        history?.FirstOrDefault(h => h.StateName == FailedStateName);
 
     private static JobSummaryDto Summary(string id, Job? job, string state, Instant? timestamp, string timestampLabel) => new()
     {

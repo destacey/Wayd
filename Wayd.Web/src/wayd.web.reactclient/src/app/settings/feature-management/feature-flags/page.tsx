@@ -2,9 +2,9 @@
 
 import PageTitle from '@/src/components/common/page-title'
 import {
-  ConfigListPanel,
+  ListDetailLayout,
   useSelectedRecord,
-} from '@/src/components/common/config-list'
+} from '@/src/components/common/list-detail'
 import {
   WaydGrid,
   createActionsColumn,
@@ -168,7 +168,7 @@ const FeatureFlagsListPage = () => {
   return (
     <div className="page-gutters">
       <PageTitle title="Feature Flags" />
-      <ConfigListPanel
+      <ListDetailLayout
         open={!!selectedId}
         onClose={clear}
         title={selectedFlag?.displayName}
@@ -188,7 +188,7 @@ const FeatureFlagsListPage = () => {
           activatedRowId={selectedId}
           getRowActivateLabel={(flag) => flag.displayName}
         />
-      </ConfigListPanel>
+      </ListDetailLayout>
       {editingFlagId !== null && (
         <EditFeatureFlagForm
           featureFlagId={editingFlagId}

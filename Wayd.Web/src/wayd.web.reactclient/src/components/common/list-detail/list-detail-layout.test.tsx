@@ -1,6 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react'
-import { ConfigListConstants } from '@/src/config/theme/theme-constants'
-import ConfigListPanel, { CONFIG_PANEL_WIDTH_KEY } from './config-list-panel'
+import { ListDetailConstants } from '@/src/config/theme/theme-constants'
+import ListDetailLayout, {
+  LIST_DETAIL_PANEL_WIDTH_KEY,
+} from './list-detail-layout'
 
 const mockBreakpoint = jest.fn()
 /** Captures the props the Drawer was given, so deprecated ones are catchable. */
@@ -55,9 +57,11 @@ const narrow = () =>
     xxl: false,
   })
 
-const renderPanel = (props: Partial<React.ComponentProps<typeof ConfigListPanel>> = {}) =>
+const renderPanel = (
+  props: Partial<React.ComponentProps<typeof ListDetailLayout>> = {},
+) =>
   render(
-    <ConfigListPanel
+    <ListDetailLayout
       open
       onClose={jest.fn()}
       title="Capital"
@@ -65,10 +69,10 @@ const renderPanel = (props: Partial<React.ComponentProps<typeof ConfigListPanel>
       {...props}
     >
       <div>the list</div>
-    </ConfigListPanel>,
+    </ListDetailLayout>,
   )
 
-describe('ConfigListPanel', () => {
+describe('ListDetailLayout', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     wide()
@@ -199,11 +203,11 @@ describe('ConfigListPanel', () => {
       expect(handle).toHaveAttribute('tabindex', '0')
       expect(handle).toHaveAttribute(
         'aria-valuemin',
-        String(ConfigListConstants.PANEL_MIN_WIDTH),
+        String(ListDetailConstants.PANEL_MIN_WIDTH),
       )
       expect(handle).toHaveAttribute(
         'aria-valuemax',
-        String(ConfigListConstants.PANEL_MAX_WIDTH),
+        String(ListDetailConstants.PANEL_MAX_WIDTH),
       )
     })
 
@@ -248,7 +252,7 @@ describe('ConfigListPanel', () => {
       // backing store, so a persistence test has to install a real one. The
       // version lives in the key (`key:v1`); the value is the bare JSON.
       const store: Record<string, string> = {
-        [`${CONFIG_PANEL_WIDTH_KEY}:v1`]: JSON.stringify(5000),
+        [`${LIST_DETAIL_PANEL_WIDTH_KEY}:v1`]: JSON.stringify(5000),
       }
       const getItem = jest
         .spyOn(window.localStorage, 'getItem')
@@ -262,7 +266,7 @@ describe('ConfigListPanel', () => {
         screen.getByRole('separator', { name: 'Resize details panel' }),
       ).toHaveAttribute(
         'aria-valuenow',
-        String(ConfigListConstants.PANEL_MAX_WIDTH),
+        String(ListDetailConstants.PANEL_MAX_WIDTH),
       )
       getItem.mockRestore()
     })

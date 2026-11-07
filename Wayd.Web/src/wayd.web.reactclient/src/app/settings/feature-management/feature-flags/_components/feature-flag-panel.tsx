@@ -9,7 +9,7 @@ export interface FeatureFlagPanelProps {
 }
 
 /**
- * A feature flag's fields, for the config list's detail panel.
+ * A feature flag's fields, for the list–detail layout's panel.
  *
  * `name` is the value the code gates on, so it stays even though the list
  * shows `displayName` — someone reading this panel is usually about to search

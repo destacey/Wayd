@@ -2,9 +2,9 @@
 
 import { PageTitle } from '@/src/components/common'
 import {
-  ConfigListPanel,
+  ListDetailLayout,
   useSelectedRecord,
-} from '@/src/components/common/config-list'
+} from '@/src/components/common/list-detail'
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
@@ -160,7 +160,7 @@ const ExpenditureCategoriesPage = () => {
     <div className="page-gutters">
       <PageTitle title="Expenditure Categories" actions={actions} />
 
-      <ConfigListPanel
+      <ListDetailLayout
         open={!!selectedId}
         onClose={clear}
         title={selectedCategory?.name}
@@ -181,7 +181,7 @@ const ExpenditureCategoriesPage = () => {
           activatedRowId={selectedId}
           getRowActivateLabel={(category) => category.name}
         />
-      </ConfigListPanel>
+      </ListDetailLayout>
 
       {dialogs}
 

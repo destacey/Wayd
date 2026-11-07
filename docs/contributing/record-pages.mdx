@@ -119,20 +119,20 @@ Ask one question: **does the record have content that is not a flat list of its 
 
 | The record holds | Shape | Example |
 | --- | --- | --- |
-| Fields only | **Config list** — `ConfigListPanel` | Expenditure category, estimation scale |
+| Fields only | **List–detail layout** — `ListDetailLayout` | Expenditure category, estimation scale |
 | A child collection, a matrix, a sequence, an editor | **Record page** — `RecordLayout` | Work process (its work-type→workflow schemes), scoring model (criteria, scales, outputs) |
 | Neither — it is a dashboard or a tool | **Neither.** `PageTitle` and content | Background jobs, messaging |
 
 An operational page is not a record, so none of the section rules below apply to it — including the one against tab strips. Background jobs shows three peer views of the scheduler, and `Tabs` is still the right control for that: there is no record for a rail to belong to.
 
-A **config list** keeps the list on screen and renders the selected record's fields in a panel beside it. Selecting a row changes the panel rather than navigating, so comparing three categories costs three clicks instead of six. The open record lives in `?selected=`, because which record you are looking at is a place worth sharing — where a filter is a working preference and stays in local storage.
+A **list–detail layout** keeps the list on screen and renders the selected record's fields in a panel beside it (a drawer on narrow screens). Selecting a row changes the panel rather than navigating, so comparing three categories costs three clicks instead of six. The open record lives in `?selected=`, because which record you are looking at is a place worth sharing — where a filter is a working preference and stays in local storage.
 
-`useSelectedRecord()` owns that param — it returns `selectedId`, `select(id)` and `clear()`, writes with `router.replace` and `scroll: false`, and carries the rest of the query across. Wire it to `ConfigListPanel` and the grid's row activation (both from `@/src/components/common/config-list`):
+`useSelectedRecord()` owns that param — it returns `selectedId`, `select(id)` and `clear()`, writes with `router.replace` and `scroll: false`, and carries the rest of the query across. Wire it to `ListDetailLayout` and the grid's row activation (both from `@/src/components/common/list-detail`):
 
 ```tsx
 const { selectedId, select, clear } = useSelectedRecord()
 
-<ConfigListPanel
+<ListDetailLayout
   open={!!selectedId}
   onClose={clear}
   title={selected?.name}
@@ -147,10 +147,12 @@ const { selectedId, select, clear } = useSelectedRecord()
     activatedRowId={selectedId}
     getRowActivateLabel={(c) => c.name}
   />
-</ConfigListPanel>
+</ListDetailLayout>
 ```
 
 `useSelectedRecord` reads the query string, so the page needs a `Suspense` boundary around it. `app/settings/ppm/expenditure-categories/page.tsx` is the reference.
+
+The same layout serves a record page section whose rows are fields only, such as a project's deliverables: the section renders it, and `?selected=` sits beside `?section=`.
 
 :::warning[A child collection is content, even a small one]
 A work process's schemes list looked like "just one more field" and is not: it has its own query, its own row count, and grows independently of the record. That is a record page. The test is the shape of the data, not how much of it there happens to be today.
@@ -396,7 +398,7 @@ export class RecordLayoutConstants {
 }
 ```
 
-`ConfigListConstants` beside it sizes the config list's panel (340px default, 260–620px).
+`ListDetailConstants` beside it sizes the list–detail layout's panel (340px default, 260–620px).
 
 :::warning[Do not add a token for a one-off color]
 A value used in a single place is an inline style or a CSS module rule, not a token. Tokens are for values that must stay in agreement across many places — adding one for a single element means nine theme edits for no benefit.

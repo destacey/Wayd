@@ -2,9 +2,9 @@
 
 import { PageTitle, WaydTooltip } from '@/src/components/common'
 import {
-  ConfigListPanel,
+  ListDetailLayout,
   useSelectedRecord,
-} from '@/src/components/common/config-list'
+} from '@/src/components/common/list-detail'
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import useAuth from '@/src/components/contexts/auth'
@@ -39,8 +39,12 @@ const IncidentSeveritySetsPage = () => {
 
   const selectedSet = sets?.find((s) => s.id === selectedId)
   const { hasPermissionClaim } = useAuth()
-  const canCreate = hasPermissionClaim('Permissions.IncidentSeveritySets.Create')
-  const canUpdate = hasPermissionClaim('Permissions.IncidentSeveritySets.Update')
+  const canCreate = hasPermissionClaim(
+    'Permissions.IncidentSeveritySets.Create',
+  )
+  const canUpdate = hasPermissionClaim(
+    'Permissions.IncidentSeveritySets.Update',
+  )
 
   const [selectSet, { isLoading: selecting }] =
     useSelectIncidentSeveritySetMutation()
@@ -65,8 +69,7 @@ const IncidentSeveritySetsPage = () => {
           row.original.name
         ) : (
           <>
-            {row.original.name}{' '}
-            <Tag>Inactive</Tag>
+            {row.original.name} <Tag>Inactive</Tag>
           </>
         ),
     },
@@ -87,8 +90,7 @@ const IncidentSeveritySetsPage = () => {
       id: 'levels',
       header: 'Levels',
       size: 400,
-      cell: ({ row }) =>
-        row.original.levels.map((l) => l.name).join(' → '),
+      cell: ({ row }) => row.original.levels.map((l) => l.name).join(' → '),
     },
     {
       id: 'select',
@@ -140,7 +142,7 @@ const IncidentSeveritySetsPage = () => {
         actions={actions}
       />
 
-      <ConfigListPanel
+      <ListDetailLayout
         open={!!selectedSet || (!!selectedId && isLoading)}
         onClose={clear}
         title={selectedSet?.name}
@@ -170,7 +172,7 @@ const IncidentSeveritySetsPage = () => {
           activatedRowId={selectedId}
           getRowActivateLabel={(row) => row.name}
         />
-      </ConfigListPanel>
+      </ListDetailLayout>
 
       <CreateIncidentSeveritySetForm
         open={openCreate}

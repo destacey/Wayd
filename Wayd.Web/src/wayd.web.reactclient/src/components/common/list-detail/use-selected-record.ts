@@ -16,7 +16,7 @@ export interface SelectedRecordState {
 }
 
 /**
- * Reads and writes the config list's open record as a URL query param.
+ * Reads and writes the list–detail layout's open record as a URL query param.
  *
  * Deliberately in the URL, where a record section's filter is not: which
  * record you are looking at is a *place*, so it should survive a refresh, be

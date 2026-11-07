@@ -128,7 +128,7 @@ Where a variant sets a flag, that is the starting point — the defaults below d
 
 ### Opening a row
 
-`onRowActivate` makes whole rows openable — click, or Enter/Space on any of the row's cells (see [Keyboard and screen readers](#keyboard-and-screen-readers)) — so a list is keyboard-navigable without a link in every primary cell. Clicks on links, buttons, inputs, and anything marked `data-row-activate="ignore"` are left alone, so an actions dropdown inside the row still just opens. Pass `activatedRowId` (matched against `getRowId`) to highlight the open row, and `getRowActivateLabel` to give each row a short accessible name. Flat mode only: tree mode spends the row click on inline editing. A config list's panel is the reference consumer (see [Record Pages](./record-pages.mdx#does-it-get-a-record-page-at-all)).
+`onRowActivate` makes whole rows openable — click, or Enter/Space on any of the row's cells (see [Keyboard and screen readers](#keyboard-and-screen-readers)) — so a list is keyboard-navigable without a link in every primary cell. Clicks on links, buttons, inputs, and anything marked `data-row-activate="ignore"` are left alone, so an actions dropdown inside the row still just opens. Pass `activatedRowId` (matched against `getRowId`) to highlight the open row, and `getRowActivateLabel` to give each row a short accessible name. Flat mode only: tree mode spends the row click on inline editing. A list–detail layout is the reference consumer (see [Record Pages](./record-pages.mdx#does-it-get-a-record-page-at-all)).
 
 ### Keyboard and screen readers
 

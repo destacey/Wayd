@@ -134,6 +134,11 @@ public sealed class SyncManagedWorkflowSchemeCommandHandler(
 
             return Result.Success(scheme.Id);
         }
+        catch (DbUpdateException ex) when (ManagedSyncCollision.IsCollision(ex))
+        {
+            _logger.LogWarning(ex, "{CommandName}: the save failed at the database for {@Request}.", AppRequestName, request);
+            return Result.Failure<Guid>(ManagedSyncCollision.Message("workflow scheme", request.ExternalKey));
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception handling {CommandName} command for request {@Request}.", AppRequestName, request);

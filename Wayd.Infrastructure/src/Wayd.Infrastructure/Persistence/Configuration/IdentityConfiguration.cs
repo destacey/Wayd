@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -8,6 +9,12 @@ namespace Wayd.Infrastructure.Persistence.Configuration;
 
 public class ApplicationUserConfig : IEntityTypeConfiguration<ApplicationUser>
 {
+    /// <summary>Stores <see cref="HomeLayoutColumn"/> by its code, as the API carries it, so a member is never renamed.</summary>
+    private static readonly JsonSerializerOptions HomeLayoutJsonOptions = new()
+    {
+        Converters = { new JsonStringEnumConverter() },
+    };
+
     public void Configure(EntityTypeBuilder<ApplicationUser> builder)
     {
         builder.ToTable("Users", SchemaNames.Identity);
@@ -55,6 +62,11 @@ public class ApplicationUserConfig : IEntityTypeConfiguration<ApplicationUser>
                  .HasConversion(
                      v => v == null ? null : JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
                      v => v == null ? null : JsonSerializer.Deserialize<UserThemeConfig>(v, JsonSerializerOptions.Default)
+                 );
+            prefs.Property(p => p.HomeLayout)
+                 .HasConversion(
+                     v => v == null ? null : JsonSerializer.Serialize(v, HomeLayoutJsonOptions),
+                     v => v == null ? null : JsonSerializer.Deserialize<UserHomeLayout>(v, HomeLayoutJsonOptions)
                  );
         });
 

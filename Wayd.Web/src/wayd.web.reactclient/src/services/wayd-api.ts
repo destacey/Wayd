@@ -5484,285 +5484,6 @@ export class WorkStatusCategoriesClient {
     }
 }
 
-export class WorkStatusesClient {
-    protected instance: AxiosInstance;
-    protected baseUrl: string;
-    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
-
-    constructor(baseUrl?: string, instance?: AxiosInstance) {
-
-        this.instance = instance || axios.create();
-
-        this.baseUrl = baseUrl ?? "";
-
-    }
-
-    /**
-     * Get a list of all work statuses.
-     * @param includeInactive (optional) 
-     * @return OK
-     */
-    getList(includeInactive?: boolean | undefined, cancelToken?: CancelToken): Promise<WorkStatusDto[]> {
-        let url_ = this.baseUrl + "/api/work/work-statuses?";
-        if (includeInactive === null)
-            throw new globalThis.Error("The parameter 'includeInactive' cannot be null.");
-        else if (includeInactive !== undefined)
-            url_ += "includeInactive=" + encodeURIComponent("" + includeInactive) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetList(_response);
-        });
-    }
-
-    protected processGetList(response: AxiosResponse): Promise<WorkStatusDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkStatusDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkStatusDto[]>(null as any);
-    }
-
-    /**
-     * Create a work status.
-     * @return Created
-     */
-    create(request: CreateWorkStatusRequest, cancelToken?: CancelToken): Promise<number> {
-        let url_ = this.baseUrl + "/api/work/work-statuses";
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "POST",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processCreate(_response);
-        });
-    }
-
-    protected processCreate(response: AxiosResponse): Promise<number> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 201) {
-            const _responseText = response.data;
-            let result201: any = null;
-            let resultData201  = _responseText;
-            result201 = resultData201;
-            return Promise.resolve<number>(result201);
-
-        } else if (status === 422) {
-            const _responseText = response.data;
-            let result422: any = null;
-            let resultData422  = _responseText;
-            result422 = resultData422;
-            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<number>(null as any);
-    }
-
-    /**
-     * Get work status details using the id.
-     * @return OK
-     */
-    getById(id: number, cancelToken?: CancelToken): Promise<WorkStatusDto> {
-        let url_ = this.baseUrl + "/api/work/work-statuses/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetById(_response);
-        });
-    }
-
-    protected processGetById(response: AxiosResponse): Promise<WorkStatusDto> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<WorkStatusDto>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 404) {
-            const _responseText = response.data;
-            let result404: any = null;
-            let resultData404  = _responseText;
-            result404 = resultData404;
-            return throwException("Not Found", status, _responseText, _headers, result404);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<WorkStatusDto>(null as any);
-    }
-
-    /**
-     * Update a work status.
-     * @return No Content
-     */
-    update(id: number, request: UpdateWorkStatusRequest, cancelToken?: CancelToken): Promise<void> {
-        let url_ = this.baseUrl + "/api/work/work-statuses/{id}";
-        if (id === undefined || id === null)
-            throw new globalThis.Error("The parameter 'id' must be defined.");
-        url_ = url_.replace("{id}", encodeURIComponent("" + id));
-        url_ = url_.replace(/[?&]$/, "");
-
-        const content_ = JSON.stringify(request);
-
-        let options_: AxiosRequestConfig = {
-            data: content_,
-            method: "PUT",
-            url: url_,
-            headers: {
-                "Content-Type": "application/json",
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processUpdate(_response);
-        });
-    }
-
-    protected processUpdate(response: AxiosResponse): Promise<void> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 204) {
-            const _responseText = response.data;
-            return Promise.resolve<void>(null as any);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status === 422) {
-            const _responseText = response.data;
-            let result422: any = null;
-            let resultData422  = _responseText;
-            result422 = resultData422;
-            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<void>(null as any);
-    }
-}
-
 export class WorkTypeLevelsClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -64504,13 +64225,6 @@ export interface CreateWorkflowSchemeRequest {
     defaultWorkflowId: string;
 }
 
-export interface CreateWorkStatusRequest {
-    /** The name of the work status.  The name cannot be changed. */
-    name: string;
-    /** The description of the work status. */
-    description?: string | undefined;
-}
-
 export interface CreateWorkTypeLevelRequest {
     /** The name of the work type level.  The name cannot be changed. */
     name: string;
@@ -73552,12 +73266,6 @@ export interface UpdateWorkItemProjectRequest {
     projectId?: string | undefined;
 }
 
-export interface UpdateWorkStatusRequest {
-    id: number;
-    /** The description of the work status. */
-    description?: string | undefined;
-}
-
 export interface UpdateWorkTypeLevelRequest {
     id: number;
     /** The work type level's new name, unique among levels. */
@@ -73978,16 +73686,6 @@ export interface WorkflowAssignmentDto {
     workflow: NavigationDto;
 }
 
-export interface WorkflowDto {
-    id: string;
-    key: number;
-    name: string;
-    description?: string | undefined;
-    ownership: SimpleNavigationDto;
-    isActive: boolean;
-    schemes: WorkflowSchemeDto[];
-}
-
 /** A move one of the owner type's actions makes — cut, release, withdraw — located in a workflow. */
 export interface WorkflowMoveDto {
     /** The status the move starts from. */
@@ -74066,14 +73764,6 @@ export interface WorkflowSchemeDetailsDto {
     entries: WorkflowSchemeEntryDto[];
     /** The scopes pointing at the scheme; `null` is the organization-level assignment. */
     assignedScopeIds: (string | undefined)[];
-}
-
-export interface WorkflowSchemeDto {
-    id: string;
-    workStatus: WorkStatusDto;
-    workStatusCategory: SimpleNavigationDto;
-    order: number;
-    isActive: boolean;
 }
 
 /** One record type's workflow under a scheme. */
@@ -74362,11 +74052,45 @@ export interface WorkProcessListDto {
     isActive: boolean;
 }
 
+/** One work type in a work process, and the status workflow its work items follow. */
 export interface WorkProcessSchemeDto {
+    /** The scheme's id within the work process. */
     id: string;
+    /** The work type, with its level. */
     workType: WorkTypeDto;
-    workflow: WorkflowDto;
+    /** The status workflow the work type follows in this process, with its statuses; null when the process has
+no workflow for the type, such as a type whose source offers no state. */
+    workflow?: WorkProcessSchemeWorkflowDto | undefined;
+    /** Whether the work type is active in this process. */
     isActive: boolean;
+}
+
+/** One status of a work process's workflow. */
+export interface WorkProcessSchemeStatusDto {
+    /** The status's id, which work items in this workflow hold. */
+    id: string;
+    /** The status's name. */
+    name: string;
+    /** The status's category: its id, and its name as work items label it. */
+    category: SimpleNavigationDto;
+    /** The status's position in the workflow. */
+    order: number;
+    /** Whether the source has dropped the status. A retired status is given to no work item again, but the items
+and history that hold it keep it. */
+    isRetired: boolean;
+}
+
+/** A status workflow as a work process's scheme reports it. */
+export interface WorkProcessSchemeWorkflowDto {
+    /** The status workflow's id. */
+    id: string;
+    /** The status workflow's key, as the status workflow endpoints take it. */
+    key: number;
+    /** The status workflow's name. */
+    name: string;
+    /** The workflow's statuses in display order, retired ones last. A status belongs to this workflow alone;
+what workflows share is the category. */
+    statuses: WorkProcessSchemeStatusDto[];
 }
 
 export interface WorkProjectNavigationDto {
@@ -74404,16 +74128,6 @@ export interface WorkStatusCategoryListDto {
     name: string;
     description?: string | undefined;
     order: number;
-}
-
-export interface WorkStatusDto {
-    id: number;
-    /** The name of the work status. It cannot be changed. */
-    name: string;
-    /** The description of the work status; null when it has none. */
-    description?: string | undefined;
-    /** Whether the work status is active. */
-    isActive: boolean;
 }
 
 export interface WorkTeamNavigationDto extends NavigationDto {

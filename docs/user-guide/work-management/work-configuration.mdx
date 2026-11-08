@@ -1,6 +1,6 @@
 ---
 title: Work Configuration
-description: Work processes, work types, workflows, work statuses, and work status categories in Wayd.
+description: Work processes, work types, workflows, their statuses, and work status categories in Wayd.
 sidebar_position: 3
 audience: [user, agent]
 ---
@@ -16,16 +16,14 @@ erDiagram
     Workspace ||--|| WorkProcess : uses
     WorkProcess ||--o{ WorkProcessScheme : defines
     WorkProcessScheme ||--|| WorkType : "maps type"
-    WorkProcessScheme ||--|| Workflow : "to workflow"
-    Workflow ||--o{ WorkflowScheme : contains
-    WorkflowScheme ||--|| WorkStatus : "includes status"
-    WorkflowScheme ||--|| StatusCategory : "places status in"
+    WorkProcess ||--|| StatusWorkflowScheme : "kept as"
+    StatusWorkflowScheme ||--o{ StatusWorkflow : "gives each work type"
+    StatusWorkflow ||--o{ WorkflowStatus : contains
+    WorkflowStatus ||--|| StatusCategory : "is in"
+    Workspace ||--|| StatusWorkflowScheme : "assigned"
     Workspace ||--o{ WorkItem : contains
     WorkItem ||--|| WorkType : "is type"
     WorkItem ||--|| WorkflowStatus : "has status"
-    StatusWorkflow ||--o{ WorkflowStatus : contains
-    Workspace ||--|| StatusWorkflowScheme : "assigned"
-    StatusWorkflowScheme ||--o{ StatusWorkflow : "gives each work type"
     WorkItem ||--o| WorkItem : "parent of"
 ```
 
@@ -35,7 +33,7 @@ A **Work Process** defines the configuration of [work types](#work-types) and th
 
 A work process contains a **Work Process Scheme** that links:
 - **[Work Types](#work-types)** — What categories of work are available
-- **[Workflows](#workflows)** — What status transitions each work type follows
+- **[Workflows](#workflows)** — Which statuses each work type's items move through
 
 Work processes come from a [connection](../settings/index.mdx#connections) to an external system — an Azure DevOps process — together with their work types and workflows. Wayd has no screen for creating one or changing which work types and workflows it holds.
 
@@ -84,22 +82,14 @@ Custom Portfolio-tier levels can be added to support deeper hierarchies (e.g., a
 
 ## Workflows
 
-A **Workflow** is Work's record of the [statuses](#work-statuses) a work type's items can be in, and their order, as the external system defines them. Each work type in a [work process](#work-processes) is assigned a workflow.
+A **Workflow** is the set of statuses a work type's items can be in, and their order, as the external system defines them. Each work type in a [work process](#work-processes) follows one workflow, kept in the [status workflow engine](../settings/status-workflows.mdx#work-item-workflows).
 
-A workflow contains a **Workflow Scheme** that defines:
-- **[Work Statuses](#work-statuses)** — The available states
-- **[Work Status Categories](#work-status-categories)** — The normalization group for each status in this workflow
-- **Order** — The sequence of statuses
-
-Workflows come from the external system with their work process: each Azure DevOps work item type's states become a workflow named after the process and the type, and each state's Azure DevOps category is mapped to a [work status category](#work-status-categories). Wayd has no screen for creating or editing a workflow.
-
-:::note[A work item's status comes from the status workflow engine]
-The same sync keeps a copy of each process in the [status workflow engine](../settings/status-workflows.mdx#work-item-workflows), and that copy is what a work item and its history take their status and category from: the workflow its type follows in its workspace. The workflows and statuses on this page are Work's own record of the process; they do not decide an item's status.
-:::
+Workflows come from the external system with their work process: each Azure DevOps work item type's states become the statuses of a workflow named after the process and the type, and each state's Azure DevOps category is mapped to a [work status category](#work-status-categories). A work item and its history take their status and category from the workflow their type follows in their workspace. Wayd has no screen for adding, renaming or removing a workflow's statuses. While the **Work Item Status Workflows** [feature flag](../settings/index.mdx#feature-management) is on, [Status Workflows](../settings/status-workflows.mdx#work-item-workflows) lists each workflow with its statuses, and an administrator can change a status's category and meaning (alias) there.
 
 **Business rules:**
-- Each work status can only appear once in a workflow
-- A status's category is set in each workflow, so the same status can belong to different categories in different workflows
+- A status belongs to one workflow. Two workflows' "Active" are different statuses, and can sit in different categories; what workflows share is the [category](#work-status-categories)
+- A state renamed in the external system renames its status at the next sync, and its work items show the new name
+- A state the external system hides or removes is retired: no item is given it again unless the external system brings it back, but the items and history that hold it keep it
 
 **Example workflow:**
 
@@ -111,14 +101,6 @@ The same sync keeps a copy of each process in the [status workflow engine](../se
 | 4 | In Review | Active |
 | 5 | Done | Done |
 | 6 | Removed | Removed |
-
-## Work Statuses
-
-A **Work Status** represents a specific state within a [workflow](#workflows) (e.g., "New", "In Progress", "Done"). Work statuses are reusable — the same status can appear in multiple workflows.
-
-**Business rules:**
-- The name of a work status cannot be changed — a new name requires creating a new status
-- A work status has no category of its own: each [workflow](#workflows) places it in a [Work Status Category](#work-status-categories)
 
 ## Work Status Categories
 
@@ -135,7 +117,7 @@ This normalization enables Wayd to calculate metrics like [cycle time](./cycle-t
 
 ## Configuration Tasks
 
-Work types, work statuses and work processes are synced from the external system. In Wayd you place each work type in the hierarchy and turn work processes on or off.
+Work types, work processes and their workflows are synced from the external system. In Wayd you place each work type in the hierarchy and turn work processes on or off.
 
 ### Configuring Work Types
 
@@ -143,12 +125,8 @@ Work types, work statuses and work processes are synced from the external system
 2. Choose **Edit** on a work type to change its Description and its **Level**, which sets its [tier](#work-type-tiers) (Portfolio, Requirement, Task, or Other). A work type's name cannot be changed
 3. Open **Work Type Hierarchy** to add, rename and reorder [work type levels](#work-type-levels)
 
-### Viewing Work Statuses
-
-Navigate to [Settings > Work Management > Work Statuses](../settings/index.mdx#work-statuses) to see each status's Name, Description and Active state; **Include Inactive** shows inactive ones too. A status's [category](#work-status-categories) is set by each workflow that uses it.
-
 ### Configuring Work Processes
 
 1. Navigate to [Settings > Work Management > Work Processes](../settings/index.mdx#work-processes) to see each work process's Key, Name, Ownership and Active state
-2. Open a work process to see its [work types](#work-types) and the [workflow](#workflows) each one follows
+2. Open a work process to see its [work types](#work-types) and the [workflow](#workflows) each one follows; while the **Work Item Status Workflows** feature flag is on, the workflow's statuses are on its page in [Status Workflows](../settings/status-workflows.mdx#work-item-workflows)
 3. **Activate** or **Deactivate** the work process. Only an active work process can be assigned to [workspaces](./work-items.mdx#workspaces), and one in use by an active workspace cannot be deactivated

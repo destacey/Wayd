@@ -3745,7 +3745,7 @@
           "WorkProcesses"
         ],
         "summary": "Get work process schemes.",
-        "description": "`id` is the work process's UUID only. Returns one scheme per work type in the process: the `workType` (with its level), the `workflow` it follows, and whether the work type is active in this process. Returns 404 when no work process has the id.",
+        "description": "`id` is the work process's UUID only. Returns one scheme per work type in the process: the `workType` (with its level), whether it is active in this process, and the status `workflow` its work items follow, with that workflow's statuses inline (each with its UUID `id`, name, category, order, and whether it is retired). `workflow` is null when the process has no workflow for the type. A status belongs to one workflow; what workflows share is the category. Returns 404 when no work process has the id.",
         "operationId": "WorkProcesses_GetSchemes",
         "parameters": [
           {
@@ -4618,225 +4618,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": [ ]
-          }
-        ]
-      }
-    },
-    "/api/work/work-statuses": {
-      "get": {
-        "tags": [
-          "WorkStatuses"
-        ],
-        "summary": "Get a list of all work statuses.",
-        "description": "The statuses work items can be in, such as New, In Progress or Done, by name, each with an integer `id`. A status has no category of its own: each workflow places it in a work status category. Active statuses only unless `includeInactive` is true.",
-        "operationId": "WorkStatuses_GetList",
-        "parameters": [
-          {
-            "name": "includeInactive",
-            "in": "query",
-            "schema": {
-              "type": "boolean",
-              "default": false
-            },
-            "x-position": 1
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WorkStatusDto"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": [ ]
-          }
-        ]
-      },
-      "post": {
-        "tags": [
-          "WorkStatuses"
-        ],
-        "summary": "Create a work status.",
-        "description": "Returns the new status's integer id. The name must be unique and can never be changed. Statuses are normally created by syncing a work process from the source system, which reuses an existing status of the same name.",
-        "operationId": "WorkStatuses_Create",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateWorkStatusRequest"
-              }
-            }
-          },
-          "required": true,
-          "x-name": "request",
-          "x-position": 1
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "integer",
-                  "format": "int32"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": [ ]
-          }
-        ]
-      }
-    },
-    "/api/work/work-statuses/{id}": {
-      "get": {
-        "tags": [
-          "WorkStatuses"
-        ],
-        "summary": "Get work status details using the id.",
-        "operationId": "WorkStatuses_GetById",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "x-position": 1
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WorkStatusDto"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": [ ]
-          }
-        ]
-      },
-      "put": {
-        "tags": [
-          "WorkStatuses"
-        ],
-        "summary": "Update a work status.",
-        "description": "Changes a status's description, the only field that can change; its name cannot. `id` must match `id` in the body. A whole-record overwrite: an omitted description is cleared, so read the status first and pass back what should stay.",
-        "operationId": "WorkStatuses_Update",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
-            },
-            "x-position": 1
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateWorkStatusRequest"
-              }
-            }
-          },
-          "required": true,
-          "x-name": "request",
-          "x-position": 2
-        },
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -59875,27 +59656,6 @@
         "additionalProperties": false,
         "description": "A request to create a workflow scheme for an owner type with record types."
       },
-      "CreateWorkStatusRequest": {
-        "required": [
-          "name"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "maxLength": 64,
-            "minLength": 1,
-            "type": "string",
-            "description": "The name of the work status.  The name cannot be changed."
-          },
-          "description": {
-            "maxLength": 1024,
-            "type": "string",
-            "description": "The description of the work status.",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "CreateWorkTypeLevelRequest": {
         "required": [
           "name"
@@ -87452,25 +87212,6 @@
         },
         "additionalProperties": false
       },
-      "UpdateWorkStatusRequest": {
-        "required": [
-          "id"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "description": {
-            "maxLength": 1024,
-            "type": "string",
-            "description": "The description of the work status.",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "UpdateWorkTypeLevelRequest": {
         "required": [
           "id",
@@ -88784,47 +88525,6 @@
         "additionalProperties": false,
         "description": "Which workflow a scope's records currently use."
       },
-      "WorkflowDto": {
-        "required": [
-          "name",
-          "ownership",
-          "id",
-          "key",
-          "isActive",
-          "schemes"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "key": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "ownership": {
-            "$ref": "#/components/schemas/SimpleNavigationDto"
-          },
-          "isActive": {
-            "type": "boolean"
-          },
-          "schemes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/WorkflowSchemeDto"
-            }
-          }
-        },
-        "additionalProperties": false
-      },
       "WorkflowMoveDto": {
         "required": [
           "fromStatusId",
@@ -89056,36 +88756,6 @@
         },
         "additionalProperties": false,
         "description": "A workflow scheme with its entries."
-      },
-      "WorkflowSchemeDto": {
-        "required": [
-          "workStatus",
-          "workStatusCategory",
-          "id",
-          "order",
-          "isActive"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "workStatus": {
-            "$ref": "#/components/schemas/WorkStatusDto"
-          },
-          "workStatusCategory": {
-            "$ref": "#/components/schemas/SimpleNavigationDto"
-          },
-          "order": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "isActive": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
       },
       "WorkflowSchemeEntryDto": {
         "required": [
@@ -90197,7 +89867,6 @@
       "WorkProcessSchemeDto": {
         "required": [
           "workType",
-          "workflow",
           "id",
           "isActive"
         ],
@@ -90205,19 +89874,107 @@
         "properties": {
           "id": {
             "type": "string",
+            "description": "The scheme's id within the work process.",
             "format": "uuid"
           },
           "workType": {
-            "$ref": "#/components/schemas/WorkTypeDto"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkTypeDto"
+              }
+            ],
+            "description": "The work type, with its level."
           },
           "workflow": {
-            "$ref": "#/components/schemas/WorkflowDto"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WorkProcessSchemeWorkflowDto"
+              }
+            ],
+            "description": "The status workflow the work type follows in this process, with its statuses; null when the process has\nno workflow for the type, such as a type whose source offers no state.",
+            "nullable": true
           },
           "isActive": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the work type is active in this process."
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "One work type in a work process, and the status workflow its work items follow."
+      },
+      "WorkProcessSchemeStatusDto": {
+        "required": [
+          "name",
+          "category",
+          "id",
+          "order",
+          "isRetired"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The status's id, which work items in this workflow hold.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "The status's name."
+          },
+          "category": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SimpleNavigationDto"
+              }
+            ],
+            "description": "The status's category: its id, and its name as work items label it."
+          },
+          "order": {
+            "type": "integer",
+            "description": "The status's position in the workflow.",
+            "format": "int32"
+          },
+          "isRetired": {
+            "type": "boolean",
+            "description": "Whether the source has dropped the status. A retired status is given to no work item again, but the items\nand history that hold it keep it."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One status of a work process's workflow."
+      },
+      "WorkProcessSchemeWorkflowDto": {
+        "required": [
+          "name",
+          "statuses",
+          "id",
+          "key"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The status workflow's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "description": "The status workflow's key, as the status workflow endpoints take it.",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "The status workflow's name."
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkProcessSchemeStatusDto"
+            },
+            "description": "The workflow's statuses in display order, retired ones last. A status belongs to this workflow alone;\nwhat workflows share is the category."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A status workflow as a work process's scheme reports it."
       },
       "WorkProjectNavigationDto": {
         "required": [
@@ -90354,34 +90111,6 @@
           "order": {
             "type": "integer",
             "format": "int32"
-          }
-        },
-        "additionalProperties": false
-      },
-      "WorkStatusDto": {
-        "required": [
-          "name",
-          "id",
-          "isActive"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the work status. It cannot be changed."
-          },
-          "description": {
-            "type": "string",
-            "description": "The description of the work status; null when it has none.",
-            "nullable": true
-          },
-          "isActive": {
-            "type": "boolean",
-            "description": "Whether the work status is active."
           }
         },
         "additionalProperties": false
@@ -90604,9 +90333,6 @@
     },
     {
       "name": "WorkStatusCategories"
-    },
-    {
-      "name": "WorkStatuses"
     },
     {
       "name": "WorkTypeLevels"

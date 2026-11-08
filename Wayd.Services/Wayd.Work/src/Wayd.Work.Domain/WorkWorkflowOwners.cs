@@ -31,9 +31,9 @@ public static class WorkWorkflowOwners
     /// the source has already made it.
     /// </para>
     /// <para>
-    /// Hidden from administration behind <see cref="FeatureFlags.WorkItemStatusWorkflows"/> until work items
-    /// follow these workflows: while nothing reads them, an administrator's record type, scheme or assignment
-    /// could only clash with what the sync keeps. The sync writes them whatever the flag.
+    /// Hidden from administration behind <see cref="FeatureFlags.WorkItemStatusWorkflows"/>, which an administrator
+    /// turns on to see and reclassify each work type's statuses. Work items follow these workflows, and the sync
+    /// writes them, whatever the flag.
     /// </para>
     /// </remarks>
     public static readonly WorkflowOwnerDescriptor WorkItem = new(

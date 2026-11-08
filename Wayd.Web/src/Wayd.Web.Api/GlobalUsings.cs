@@ -19,5 +19,4 @@ global using Wayd.Infrastructure.Middleware;
 global using Wayd.Infrastructure.OpenApi;
 global using Wayd.Web.Api.Mcp;
 global using Wayd.Web.Api.Services;
-global using Wayd.Work.Application.WorkStatuses.Commands;
 global using NodaTime;

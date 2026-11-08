@@ -525,17 +525,17 @@ public sealed class AzureDevOpsWorkItemSource(
                 return syncWorkStatusesResult;
         }
 
-        var workProcessSchemes = await _dispatcher.Send(new GetWorkProcessSchemesQuery(workProcessInternalId), cancellationToken);
-        if (workProcessSchemes is null)
+        var workProcessWorkflows = await _dispatcher.Send(new GetExternalWorkProcessWorkflowsQuery(workProcessInternalId), cancellationToken);
+        if (workProcessWorkflows is null)
             return Result.Failure($"Work process {workProcessInternalId} not found.");
 
-        var workProcessSchemesByWorkTypeName = workProcessSchemes.ToDictionary(s => s.WorkType.Name);
+        var workflowsByWorkTypeName = workProcessWorkflows.ToDictionary(w => w.WorkTypeName);
 
         var workflowMappings = new List<CreateWorkProcessSchemeDto>(processResult.Value.WorkTypes.Count);
         foreach (var workType in processResult.Value.WorkTypes)
         {
-            workProcessSchemesByWorkTypeName.TryGetValue(workType.Name, out var scheme);
-            if (scheme is null || scheme.Workflow is null)
+            workflowsByWorkTypeName.TryGetValue(workType.Name, out var existing);
+            if (existing?.WorkflowId is not Guid workflowId)
             {
                 var createWorkflowResult = await _dispatcher.Send(new CreateExternalWorkflowCommand(
                     $"{processResult.Value.Name} - {workType.Name}",
@@ -548,11 +548,11 @@ public sealed class AzureDevOpsWorkItemSource(
             }
             else
             {
-                var syncWorkflowResult = await _dispatcher.Send(new UpdateExternalWorkflowCommand(scheme.Workflow.Id, scheme.Workflow.Name, scheme.Workflow.Description, workType), cancellationToken);
+                var syncWorkflowResult = await _dispatcher.Send(new UpdateExternalWorkflowCommand(workflowId, existing.WorkflowName!, existing.WorkflowDescription, workType), cancellationToken);
                 if (syncWorkflowResult.IsFailure)
                     return syncWorkflowResult;
 
-                workflowMappings.Add(CreateWorkProcessSchemeDto.Create(workType.Name, workType.IsActive, scheme.Workflow.Id));
+                workflowMappings.Add(CreateWorkProcessSchemeDto.Create(workType.Name, workType.IsActive, workflowId));
             }
         }
 

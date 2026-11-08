@@ -30,11 +30,17 @@ const { Text } = Typography
 export interface ActiveTeamSprintProps {
   teamId: string
   showTeamLink?: boolean
+  /**
+   * Draws the sprint as a section of the card it sits in — no border or
+   * padding of its own — rather than as a card nested inside another.
+   */
+  embedded?: boolean
 }
 
 const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
   teamId,
   showTeamLink = false,
+  embedded = false,
 }) => {
   const { token } = useTheme()
 
@@ -97,6 +103,8 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
       title={title}
       size="small"
       loading={metricsIsLoading || scopeIsLoading}
+      variant={embedded ? 'borderless' : undefined}
+      className={embedded ? styles.embedded : undefined}
     >
       <Flex vertical gap="small">
         <TimelineProgress

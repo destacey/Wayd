@@ -205,6 +205,12 @@ public sealed record StatusWorkflowDetailsDto
     public required bool CanReclassify { get; init; }
 
     /// <summary>
+    /// Whether a status's description may be changed: on any workflow but a system or archived one, a managed
+    /// one included, since a source supplies no descriptions.
+    /// </summary>
+    public required bool CanDescribe { get; init; }
+
+    /// <summary>
     /// What a check found wrong that does not stop this workflow being used, one sentence each. Only a
     /// managed workflow has any: it syncs regardless, and administration flags it until they are fixed.
     /// </summary>

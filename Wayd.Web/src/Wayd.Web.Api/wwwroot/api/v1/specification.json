@@ -52958,6 +52958,80 @@
         ]
       }
     },
+    "/api/status-workflows/{id}/statuses/{statusId}/description": {
+      "put": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Change a status's description.",
+        "description": "Changes only the description, so it works on a managed workflow, whose status names belong to its source. Refused for system and archived workflows.",
+        "operationId": "StatusWorkflows_DescribeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "statusId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DescribeWorkflowStatusRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/status-workflows/{id}/statuses/{statusId}/classification": {
       "put": {
         "tags": [
@@ -60786,6 +60860,19 @@
         },
         "additionalProperties": false,
         "description": "How often production deployments completed over the window."
+      },
+      "DescribeWorkflowStatusRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "maxLength": 512,
+            "type": "string",
+            "description": "What the status means, shown when picking it. Empty or omitted clears it.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to change only a status's description, leaving its name as it is."
       },
       "DescriptiveNavigationDto": {
         "allOf": [
@@ -79937,6 +80024,7 @@
           "misfiledAliases",
           "canEdit",
           "canReclassify",
+          "canDescribe",
           "warnings",
           "canPublish",
           "canArchive"
@@ -80058,6 +80146,10 @@
           "canReclassify": {
             "type": "boolean",
             "description": "Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one\nuntil it is archived. Retired statuses never."
+          },
+          "canDescribe": {
+            "type": "boolean",
+            "description": "Whether a status's description may be changed: on any workflow but a system or archived one, a managed\none included, since a source supplies no descriptions."
           },
           "warnings": {
             "type": "array",

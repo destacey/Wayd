@@ -37,6 +37,7 @@ public sealed class FakeStatusWorkflowDetailsReader(StatusWorkflow workflow) : I
         MisfiledAliases = [],
         CanEdit = false,
         CanReclassify = false,
+        CanDescribe = false,
         Warnings = [],
         CanPublish = false,
         CanArchive = false,

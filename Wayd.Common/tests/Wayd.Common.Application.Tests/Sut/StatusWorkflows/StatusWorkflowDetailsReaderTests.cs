@@ -240,7 +240,7 @@ public sealed class StatusWorkflowDetailsReaderTests : StatusWorkflowHandlerTest
     }
 
     [Fact]
-    public async Task Read_ShouldFlagAManagedWorkflowsWarnings_AndOfferOnlyReclassifying()
+    public async Task Read_ShouldFlagAManagedWorkflowsWarnings_AndOfferOnlyReclassifyingAndDescribing()
     {
         // Arrange — the source has no status for either required alias, and has dropped Blocked
         var workflow = StatusWorkflow.CreateManaged(
@@ -260,7 +260,7 @@ public sealed class StatusWorkflowDetailsReaderTests : StatusWorkflowHandlerTest
         result.Warnings.Should().Equal("A Synced workflow needs a status for each of: Notable, Terminal.");
         result.Statuses.Select(s => (s.Name, s.ExternalKey, s.IsRetired)).Should().Equal(
             ("New", "new", false), ("Closed", "closed", false), ("Blocked", "blocked", true));
-        (result.CanEdit, result.CanReclassify, result.CanPublish, result.CanArchive).Should().Be((false, true, false, false));
+        (result.CanEdit, result.CanReclassify, result.CanDescribe, result.CanPublish, result.CanArchive).Should().Be((false, true, true, false, false));
     }
 
     [Fact]
@@ -278,6 +278,6 @@ public sealed class StatusWorkflowDetailsReaderTests : StatusWorkflowHandlerTest
         result!.Ownership.Should().Be(WorkflowOwnership.Owned);
         result.Warnings.Should().BeEmpty();
         result.MissingRequiredAliases.Should().Equal("Notable", "Terminal");
-        (result.CanEdit, result.CanReclassify, result.CanPublish).Should().Be((true, true, false));
+        (result.CanEdit, result.CanReclassify, result.CanDescribe, result.CanPublish).Should().Be((true, true, true, false));
     }
 }

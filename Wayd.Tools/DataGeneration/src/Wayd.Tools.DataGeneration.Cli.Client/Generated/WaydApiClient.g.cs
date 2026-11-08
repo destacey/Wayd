@@ -141851,8 +141851,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<DependencyAnalysisPeriodDto> Periods { get; set; } = new System.Collections.ObjectModel.Collection<DependencyAnalysisPeriodDto>();
 
         /// <summary>
-        /// Every dependency counted in the range, oldest first, with its current state and health. A closed one's
-        /// <br/>health is Closed: planning health applies only while a dependency is open. One whose predecessor is
+        /// Every dependency counted in the range, oldest first, with its current state and stored health. A closed
+        /// <br/>one's health reads Closed once it has been recalculated, which each sync does: planning health applies only
+        /// <br/>while a dependency is open. One whose predecessor is
         /// <br/>Removed carries that in its source's status category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("dependencies")]

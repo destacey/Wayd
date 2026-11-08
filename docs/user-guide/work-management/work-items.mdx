@@ -58,7 +58,7 @@ Every work item has:
 - **Key** — Unique identifier in format `\{WorkspaceKey\}-\{Number\}` (e.g., `PLAT-1234`). See [Work Item Keys](#work-item-keys).
 - **Title** — A brief description of the work, kept in step with the external system
 - **[Type](./work-configuration.mdx#work-types)** — The category of work (defined by the workspace's work process)
-- **[Status](./work-configuration.mdx#work-statuses)** — Current position in the [workflow](./work-configuration.mdx#workflows)
+- **Status** — Current position in the [workflow](../settings/status-workflows.mdx#work-item-workflows) the item's type follows in its workspace
 - **[Status Category](./work-configuration.mdx#work-status-categories)** — Normalized grouping (Proposed, Active, Done, Removed)
 - **Priority** — Relative importance
 - **Stack Rank** — Ordering value for backlog prioritization
@@ -153,7 +153,7 @@ Each dependency tracks:
   - **Done** — Predecessor is Done
   - **Removed** — Predecessor is Removed
   - **Deleted** — The link was removed in the source system
-- **Planning Health** — Automatically calculated from each item's status and planned date, which is the last planned day of the [sprint](./sprints.mdx) it is in. An item in no sprint, or in a sprint whose last planned day (UTC) has passed, counts as unplanned:
+- **Planning Health** — Automatically calculated from each item's status and planned date, which is the last planned day of the [sprint](./sprints.mdx) it is in. An item in no sprint, or in a sprint whose last planned day is over in its team's time zone, counts as unplanned. Each item's sprint is read in its own team's zone, so a dependency between teams in different zones shows the same health everywhere. Health is recalculated each time work items sync, so a sprint ending shows in a dependency's health after the next sync:
 
 | Health | Condition |
 |--------|-----------|

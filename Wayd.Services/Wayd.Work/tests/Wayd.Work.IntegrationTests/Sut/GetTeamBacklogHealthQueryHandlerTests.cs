@@ -143,10 +143,6 @@ public sealed class GetTeamBacklogHealthQueryHandlerTests(SqlServerDbContextFixt
                 SELECT 'Health Story', 1, 0, MAX([Id]), SYSUTCDATETIME(), SYSUTCDATETIME()
                 FROM [Work].[WorkTypeLevels] WHERE [Name] = 'Health Level';
 
-            IF NOT EXISTS (SELECT 1 FROM [Work].[WorkStatuses] WHERE [Name] = 'Health Status')
-                INSERT INTO [Work].[WorkStatuses]
-                    ([Name], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
-                VALUES ('Health Status', 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME());
 
             INSERT INTO [Work].[WorkProcesses]
                 ([Id], [Name], [Ownership], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
@@ -180,14 +176,15 @@ public sealed class GetTeamBacklogHealthQueryHandlerTests(SqlServerDbContextFixt
         await context.Database.ExecuteSqlInterpolatedAsync(
             $"""
             DECLARE @TypeId int = (SELECT TOP 1 [Id] FROM [Work].[WorkTypes] WHERE [Name] = 'Health Story');
-            DECLARE @StatusId int = (SELECT TOP 1 [Id] FROM [Work].[WorkStatuses] WHERE [Name] = 'Health Status');
+            DECLARE @StatusId uniqueidentifier = '00000000-0000-0000-0000-000000000000';
+            DECLARE @StatusName nvarchar(64) = 'Health Status';
 
             INSERT INTO [Work].[WorkItems]
-                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId],
+                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId], [StatusName],
                  [StatusCategory], [Created], [LastModified], [StackRank],
                  [TeamId], [ParentId], [IterationId],
                  [SystemCreated], [SystemLastModified])
-            VALUES ({id}, {key}, 'Health item', {workspaceId}, {number}, @TypeId, @StatusId,
+            VALUES ({id}, {key}, 'Health item', {workspaceId}, {number}, @TypeId, @StatusId, @StatusName,
                     {statusCategory}, SYSUTCDATETIME(), SYSUTCDATETIME(), {stackRank},
                     {teamId}, {parentId}, {iterationId},
                     SYSUTCDATETIME(), SYSUTCDATETIME());

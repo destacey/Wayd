@@ -1,0 +1,36 @@
+/* Fills the layout's wrapper, which fixes the height. */
+.bar {
+  box-sizing: border-box;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--ant-color-bg-container);
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+}
+
+.trigger {
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* A long group and page name truncates rather than widening the page. */
+.location {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Read by a screen reader, so the button's name says what it opens. */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.group {
+  color: var(--ant-color-text-secondary);
+}

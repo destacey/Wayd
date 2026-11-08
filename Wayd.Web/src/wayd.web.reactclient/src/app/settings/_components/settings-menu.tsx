@@ -5,22 +5,8 @@ import { ItemType, MenuItemType } from 'antd/es/menu/interface'
 import { usePathname } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { findMenuKeysByPathname } from '@/src/app/_components/menu/menu-helper'
-import useSettingsMenuItems from './use-settings-menu-items'
+import useSettingsMenuItems, { labelText } from './use-settings-menu-items'
 import styles from './settings-menu.module.css'
-
-/**
- * An item's display text.
- *
- * A group's label is the plain string; a leaf's is a `<Link>` wrapping it, so
- * the text has to be read through the element. Reading only strings silently
- * matched nothing but group names.
- */
-const labelText = (item: ItemType<MenuItemType>): string => {
-  const label = (item as { label?: unknown }).label
-  if (typeof label === 'string') return label
-  const child = (label as { props?: { children?: unknown } })?.props?.children
-  return typeof child === 'string' ? child : ''
-}
 
 /**
  * Keeps groups whose own name matches, and groups with a matching child —
@@ -69,7 +55,12 @@ const filterMenu = (
  * filters the rail in place rather than searching the app — the global search
  * (Ctrl+K) already does that, and a second search surface would compete.
  */
-const SettingsMenu = () => {
+const SettingsMenu = ({
+  onNavigate,
+}: {
+  /** Called when an item is picked, so a drawer holding the menu can close. */
+  onNavigate?: () => void
+}) => {
   const { menuItems, routeKeyMap } = useSettingsMenuItems()
   const pathname = usePathname()
   const [query, setQuery] = useState('')
@@ -100,6 +91,7 @@ const SettingsMenu = () => {
         mode="inline"
         items={visibleItems}
         selectedKeys={selectedKeys}
+        onClick={onNavigate}
         className={styles.menu}
       />
 

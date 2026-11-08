@@ -32,6 +32,8 @@ public sealed class StatusWorkflowScheme : BaseAuditableEntity, IHasIdAndKey
 {
     private const string ImplicitError = "A workflow's default scheme follows its workflow and cannot be edited.";
 
+    private const string ManagedError = "A managed scheme takes its workflows from its source, so it cannot be changed here.";
+
     private readonly List<StatusWorkflowSchemeEntry> _entries = [];
 
     private StatusWorkflowScheme() { }
@@ -132,6 +134,7 @@ public sealed class StatusWorkflowScheme : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>Edits the scheme's name and description.</summary>
+    /// <remarks>A managed scheme takes its name from its source, so only its description is edited here.</remarks>
     public Result UpdateDetails(string name, string? description, EventActor actor, Instant timestamp)
     {
         if (IsImplicit)
@@ -139,6 +142,94 @@ public sealed class StatusWorkflowScheme : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure(ImplicitError);
         }
 
+        if (Ownership == WorkflowOwnership.Managed && name?.Trim() != Name)
+        {
+            return Result.Failure("A managed scheme takes its name from its source.");
+        }
+
+        return SetDetails(name, description, actor, timestamp);
+    }
+
+    /// <summary>
+    /// Brings a managed scheme into line with its source object: takes its name and default, and sends each
+    /// listed record type to its workflow.
+    /// </summary>
+    /// <param name="entries">
+    /// The workflow each of the source's record types follows. A type left out keeps its entry, so records
+    /// of a type the source retired still resolve to the workflow they hold statuses from.
+    /// </param>
+    /// <remarks>
+    /// No remap is asked for, unlike the administrators' edits. Records governed by a managed scheme take
+    /// their status from the source, so the sync of each record lands it in its type's workflow
+    /// (<see cref="ManagedStatusEntity"/>); a mapping chosen here would be overwritten by that.
+    /// </remarks>
+    public Result SyncFromSource(
+        string name,
+        StatusWorkflow defaultWorkflow,
+        IReadOnlyCollection<(RecordType RecordType, StatusWorkflow Workflow)> entries,
+        EventActor actor,
+        Instant timestamp)
+    {
+        Guard.Against.Null(entries, nameof(entries));
+
+        if (Ownership != WorkflowOwnership.Managed)
+        {
+            return Result.Failure("Only a managed scheme is kept by a sync.");
+        }
+
+        var sourceEntries = GuardSourceEntries(entries);
+        if (sourceEntries.IsFailure)
+        {
+            return sourceEntries;
+        }
+
+        var defaultAssignable = GuardAssignable(defaultWorkflow);
+        if (defaultAssignable.IsFailure)
+        {
+            return defaultAssignable;
+        }
+
+        var details = SetDetails(name, Description, actor, timestamp);
+        if (details.IsFailure)
+        {
+            return details;
+        }
+
+        if (defaultWorkflow.Id != DefaultWorkflowId)
+        {
+            var (fromDefaultId, toDefaultId) = (DefaultWorkflowId, defaultWorkflow.Id);
+            DefaultWorkflowId = defaultWorkflow.Id;
+            AddKeyedDomainEvent(() => new WorkflowSchemeDefaultChangedEvent(Id, Key, fromDefaultId, toDefaultId, actor, timestamp));
+        }
+
+        foreach (var (recordType, workflow) in entries.OrderBy(e => e.RecordType.Id))
+        {
+            var existing = _entries.SingleOrDefault(e => e.RecordTypeId == recordType.Id);
+            if (existing?.WorkflowId == workflow.Id)
+            {
+                continue;
+            }
+
+            var fromWorkflowId = existing?.WorkflowId ?? DefaultWorkflowId;
+            if (existing is null)
+            {
+                _entries.Add(new StatusWorkflowSchemeEntry(Id, recordType.Id, workflow.Id));
+            }
+            else
+            {
+                existing.WorkflowId = workflow.Id;
+            }
+
+            var (recordTypeId, toWorkflowId, hadEntry) = (recordType.Id, workflow.Id, existing is not null);
+            AddKeyedDomainEvent(() => new WorkflowSchemeEntrySetEvent(
+                Id, Key, recordTypeId, fromWorkflowId, toWorkflowId, hadEntry, actor, timestamp));
+        }
+
+        return Result.Success();
+    }
+
+    private Result SetDetails(string name, string? description, EventActor actor, Instant timestamp)
+    {
         var previous = new WorkflowSchemeDetails(Name, Description);
         Name = name;
         Description = description;
@@ -293,8 +384,17 @@ public sealed class StatusWorkflowScheme : BaseAuditableEntity, IHasIdAndKey
     /// <param name="isAssigned">
     /// Whether any scope points at this scheme. Supplied by the caller, which owns that query.
     /// </param>
+    /// <remarks>
+    /// A managed scheme is never deleted: it lasts as long as its source object, and the sync would only
+    /// create it again under a new identity, splitting its history.
+    /// </remarks>
     public Result Delete(bool isAssigned, EventActor actor, Instant timestamp)
     {
+        if (Ownership == WorkflowOwnership.Managed)
+        {
+            return Result.Failure("A managed scheme stays while its source keeps it.");
+        }
+
         if (isAssigned)
         {
             return Result.Failure("This scheme is still assigned. Reassign those scopes to another scheme first.");
@@ -340,8 +440,18 @@ public sealed class StatusWorkflowScheme : BaseAuditableEntity, IHasIdAndKey
     /// <summary>
     /// Records a scheme a sync keeps from its source object, identified there by <paramref name="externalKey"/>.
     /// </summary>
+    /// <param name="entries">
+    /// The workflow each of the source's record types follows, recorded in the creation event. See
+    /// <see cref="SyncFromSource"/>.
+    /// </param>
     public static Result<StatusWorkflowScheme> CreateManaged(
-        string ownerType, string name, string externalKey, StatusWorkflow defaultWorkflow, EventActor actor, Instant timestamp)
+        string ownerType,
+        string name,
+        string externalKey,
+        StatusWorkflow defaultWorkflow,
+        EventActor actor,
+        Instant timestamp,
+        IReadOnlyCollection<(RecordType RecordType, StatusWorkflow Workflow)>? entries = null)
     {
         Guard.Against.NullOrWhiteSpace(externalKey, nameof(externalKey));
 
@@ -350,7 +460,7 @@ public sealed class StatusWorkflowScheme : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure<StatusWorkflowScheme>($"{descriptor.DisplayName} schemes are not kept by a sync.");
         }
 
-        return Create(ownerType, name, description: null, WorkflowOwnership.Managed, externalKey.Trim(), defaultWorkflow, actor, timestamp);
+        return Create(ownerType, name, description: null, WorkflowOwnership.Managed, externalKey.Trim(), defaultWorkflow, actor, timestamp, entries);
     }
 
     /// <summary>
@@ -389,7 +499,8 @@ public sealed class StatusWorkflowScheme : BaseAuditableEntity, IHasIdAndKey
         string? externalKey,
         StatusWorkflow defaultWorkflow,
         EventActor actor,
-        Instant timestamp)
+        Instant timestamp,
+        IReadOnlyCollection<(RecordType RecordType, StatusWorkflow Workflow)>? entries = null)
     {
         Guard.Against.Null(defaultWorkflow, nameof(defaultWorkflow));
 
@@ -414,12 +525,55 @@ public sealed class StatusWorkflowScheme : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure<StatusWorkflowScheme>(assignable.Error);
         }
 
+        if (entries is not null)
+        {
+            var sourceEntries = scheme.GuardSourceEntries(entries);
+            if (sourceEntries.IsFailure)
+            {
+                return Result.Failure<StatusWorkflowScheme>(sourceEntries.Error);
+            }
+
+            foreach (var (recordType, workflow) in entries)
+            {
+                scheme._entries.Add(new StatusWorkflowSchemeEntry(scheme.Id, recordType.Id, workflow.Id));
+            }
+        }
+
         scheme.RaiseCreated(sourceSchemeId: null, actor, timestamp);
 
         return Result.Success(scheme);
     }
 
-    private Result GuardEditable() => IsImplicit ? Result.Failure(ImplicitError) : Result.Success();
+    /// <summary>Refuses source entries that name a type twice or a workflow that cannot govern this scheme's records.</summary>
+    private Result GuardSourceEntries(IReadOnlyCollection<(RecordType RecordType, StatusWorkflow Workflow)> entries)
+    {
+        var duplicate = entries.GroupBy(e => e.RecordType.Id).FirstOrDefault(g => g.Count() > 1);
+        if (duplicate is not null)
+        {
+            return Result.Failure($"The source sends {duplicate.First().RecordType.Name} to more than one workflow.");
+        }
+
+        foreach (var (recordType, workflow) in entries)
+        {
+            if (!string.Equals(recordType.OwnerType, OwnerType, StringComparison.OrdinalIgnoreCase))
+            {
+                return Result.Failure($"A {recordType.OwnerType} record type cannot be part of a {OwnerType} scheme.");
+            }
+
+            var assignable = GuardAssignable(workflow);
+            if (assignable.IsFailure)
+            {
+                return assignable;
+            }
+        }
+
+        return Result.Success();
+    }
+
+    private Result GuardEditable() =>
+        IsImplicit ? Result.Failure(ImplicitError)
+        : Ownership == WorkflowOwnership.Managed ? Result.Failure(ManagedError)
+        : Result.Success();
 
     private Result GuardAssignable(StatusWorkflow workflow)
     {

@@ -55,7 +55,7 @@ public sealed record SprintBacklogItemDto : IMapFrom<WorkItem>
         config.NewConfig<WorkItem, SprintBacklogItemDto>()
             .Map(dest => dest.Key, src => src.Key.ToString())
             .Map(dest => dest.Type, src => src.Type.Name)
-            .Map(dest => dest.Status, src => src.Status.Name)
+            .Map(dest => dest.Status, src => src.StatusName)
             .Map(dest => dest.StatusCategory, src => SimpleNavigationDto.FromEnum(src.StatusCategory))
             .Map(dest => dest.Sprint, src => src.Iteration != null && src.Iteration.Type == IterationType.Sprint ? src.Iteration : null)
             .Map(dest => dest.AssignedTo, src => src.AssignedTo == null ? null : EmployeeNavigationDto.From(src.AssignedTo))

@@ -69,10 +69,6 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
                 SELECT 'Forecast Epic', 1, 0, MAX([Id]), SYSUTCDATETIME(), SYSUTCDATETIME()
                 FROM [Work].[WorkTypeLevels] WHERE [Name] = 'Forecast Epics';
 
-            IF NOT EXISTS (SELECT 1 FROM [Work].[WorkStatuses] WHERE [Name] = 'Forecast Status')
-                INSERT INTO [Work].[WorkStatuses]
-                    ([Name], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
-                VALUES ('Forecast Status', 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME());
 
             INSERT INTO [Work].[WorkProcesses]
                 ([Id], [Name], [Ownership], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
@@ -159,14 +155,15 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
         await context.Database.ExecuteSqlInterpolatedAsync(
             $"""
             DECLARE @TypeId int = (SELECT TOP 1 [Id] FROM [Work].[WorkTypes] WHERE [Name] = {typeName});
-            DECLARE @StatusId int = (SELECT TOP 1 [Id] FROM [Work].[WorkStatuses] WHERE [Name] = 'Forecast Status');
+            DECLARE @StatusId uniqueidentifier = '00000000-0000-0000-0000-000000000000';
+            DECLARE @StatusName nvarchar(64) = 'Forecast Status';
 
             INSERT INTO [Work].[WorkItems]
-                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId],
+                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId], [StatusName],
                  [StatusCategory], [Created], [LastModified], [StackRank], [ActivatedTimestamp], [DoneTimestamp],
                  [TeamId], [ParentId], [ProjectId], [ParentProjectId], [StoryPoints], [IterationId],
                  [SystemCreated], [SystemLastModified])
-            VALUES ({id}, {key}, {"Item " + key}, {_workspaceId}, {number}, @TypeId, @StatusId,
+            VALUES ({id}, {key}, {"Item " + key}, {_workspaceId}, {number}, @TypeId, @StatusId, @StatusName,
                     {category}, {created}, {created}, {stackRank}, {activatedAt}, {doneAt},
                     {teamId}, {parentId}, {projectId}, {parentProjectId}, {storyPoints}, {iterationId},
                     SYSUTCDATETIME(), SYSUTCDATETIME());
@@ -196,6 +193,18 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
             cancellationToken);
     }
 
+    /// <summary>
+    /// Marks the seeded workspace as synced from an Azure DevOps system, so the dependency sync commands find it
+    /// by <paramref name="systemId"/> and its items by <paramref name="externalId"/> and their external ids.
+    /// </summary>
+    public async Task LinkWorkspaceToSystem(string systemId, Guid externalId, CancellationToken cancellationToken)
+    {
+        var workspaceExternalId = externalId.ToString();
+        await using var context = _fixture.CreateContext();
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE [Work].[Workspaces] SET [Connector] = 'AzureDevOps', [SystemId] = {systemId}, [ExternalId] = {workspaceExternalId} WHERE [Id] = {_workspaceId};", cancellationToken);
+    }
+
     /// <summary>Records that the seeded workspace's history has been read through to the end.</summary>
     public async Task MarkHistoryReadToEnd(CancellationToken cancellationToken)
     {
@@ -216,7 +225,7 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
         context.WorkItemDependencies.Add(WorkItemDependency.Create(
             infos.Single(i => i.WorkItemId == predecessorId),
             infos.Single(i => i.WorkItemId == successorId),
-            createdOn ?? Now, null, removed ? Now : null, null, null, Now));
+            createdOn ?? Now, null, removed ? Now : null, null, null));
         await context.SaveChangesAsync(cancellationToken);
     }
 

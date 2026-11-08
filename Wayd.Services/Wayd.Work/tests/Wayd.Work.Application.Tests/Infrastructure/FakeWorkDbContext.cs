@@ -95,6 +95,13 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     /// </summary>
     public int UnitOfWorkCommitCount { get; private set; }
 
+    public IDisposable WithCommandTimeout(TimeSpan timeout) => new NoTimeoutChange();
+
+    private sealed class NoTimeoutChange : IDisposable
+    {
+        public void Dispose() { }
+    }
+
     public Task<IUnitOfWork> BeginUnitOfWork(CancellationToken cancellationToken) =>
         Task.FromResult<IUnitOfWork>(new FakeUnitOfWork(this));
 

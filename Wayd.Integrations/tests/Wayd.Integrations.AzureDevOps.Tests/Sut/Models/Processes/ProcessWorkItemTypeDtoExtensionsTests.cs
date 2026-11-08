@@ -59,6 +59,76 @@ public class ProcessWorkItemTypeDtoExtensionsTests : CommonResponseOptions
 
 
 
+    [Fact]
+    public void ToAzdoWorkType_KeysTheTypeByReferenceName_AndEachStateById()
+    {
+        // Arrange
+        var json = GetToAzdoWorkTypeJson();
+        var workItemType = JsonSerializer.Deserialize<ProcessWorkItemTypeDto>(json, _options);
+
+        // Act
+        var workType = workItemType!.ToAzdoWorkType();
+
+        // Assert
+        // Both survive a rename in Azure DevOps, which the names do not.
+        workType.ExternalKey.Should().Be("TestAgileProcess.Epic");
+        workType.WorkflowStates.Take(3).Select(s => (s.ExternalKey, s.StatusName)).Should().Equal(
+            ("7b7e3e8c-e500-40b6-ad56-d59b8d64d757", "New"),
+            ("277237cd-0bc0-4ffb-bdc6-d358b154ba9e", "Active"),
+            ("f36cfea7-889a-448e-b5d1-fbc9b134ec82", "Resolved"));
+    }
+
+    [Fact]
+    public void ToAzdoWorkType_WithAHiddenInheritedState_TakesTheCopyThatHidesIt()
+    {
+        // Arrange
+        // As Azure DevOps lists a hidden inherited state: the system copy, then the inherited copy that hides
+        // it, under one id (see GetJson in ProcessWorkItemTypeDtoTests).
+        var id = Guid.Parse("f36cfea7-889a-448e-b5d1-fbc9b134ec82");
+        var workItemType = new ProcessWorkItemTypeDto
+        {
+            ReferenceName = "TestAgileProcess.Epic",
+            Name = "Epic",
+            States =
+            [
+                new() { Id = Guid.Parse("7b7e3e8c-e500-40b6-ad56-d59b8d64d757"), Name = "New", StateCategory = "Proposed", Order = 1 },
+                new() { Id = id, Name = "Resolved", StateCategory = "InProgress", Order = 3 },
+                new() { Id = id, Name = "resolved", StateCategory = "Resolved", Order = 6, Hidden = true },
+            ],
+        };
+
+        // Act
+        var workType = workItemType.ToAzdoWorkType();
+
+        // Assert
+        // One state, in its first place and under its first spelling, hidden as the last copy says.
+        workType.WorkflowStates.Select(s => (s.ExternalKey, s.StatusName, s.Order, s.IsActive)).Should().Equal(
+            ("7b7e3e8c-e500-40b6-ad56-d59b8d64d757", "New", 1, true),
+            ("f36cfea7-889a-448e-b5d1-fbc9b134ec82", "Resolved", 6, false));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ToAzdoWorkType_WithCopiesUnderDifferentIds_KeysThemByTheLowestId(bool lowestFirst)
+    {
+        // Arrange
+        var low = new ProcessWorkItemStateDto { Id = Guid.Parse("11111111-0000-0000-0000-000000000000"), Name = "Closed", StateCategory = "Completed", Order = 3 };
+        var high = new ProcessWorkItemStateDto { Id = Guid.Parse("99999999-0000-0000-0000-000000000000"), Name = "Closed", StateCategory = "Completed", Order = 4 };
+        var workItemType = new ProcessWorkItemTypeDto
+        {
+            ReferenceName = "Custom.Bug",
+            Name = "Bug",
+            States = lowestFirst ? [low, high] : [high, low],
+        };
+
+        // Act
+        var workType = workItemType.ToAzdoWorkType();
+
+        // Assert
+        workType.WorkflowStates.Should().ContainSingle().Which.ExternalKey.Should().Be("11111111-0000-0000-0000-000000000000");
+    }
+
     private static string GetToAzdoWorkTypeJson()
     {
         return """

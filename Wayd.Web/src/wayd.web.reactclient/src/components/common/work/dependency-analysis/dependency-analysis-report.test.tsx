@@ -7,6 +7,7 @@ import {
   TeamDependencyAnalysisDto,
 } from '@/src/services/wayd-api'
 import { useGetTeamDependencyAnalysisQuery } from '@/src/store/features/organizations/team-api'
+import { addCalendarDays, calendarDateInZone } from '@/src/utils/calendar-date'
 import {
   DependencyAnalysisReport,
   DependencyAnalysisReportView,
@@ -28,7 +29,9 @@ jest.mock('@/src/components/common/dependency-wheel', () => {
     useEffect(() => {
       mockWheelMounts()
     }, [])
-    return <div aria-label="wheel">{props.dependencies.length} on the wheel</div>
+    return (
+      <div aria-label="wheel">{props.dependencies.length} on the wheel</div>
+    )
   }
   return { DependencyWheelExplorer: MockWheel }
 })
@@ -66,6 +69,7 @@ const createAnalysis = (
     team: { ...team('root', 'Platform ART', 'ART'), type: 'Team of Teams' },
     from: '2026-07-01',
     to: '2026-09-28',
+    timeZone: 'America/New_York',
     summary: {
       dependencies: 7,
       created: 4,
@@ -87,7 +91,13 @@ const createAnalysis = (
       },
     ],
     periods: [
-      { start: '2026-07-01', end: '2026-07-14', created: 4, closed: 3, open: 5 },
+      {
+        start: '2026-07-01',
+        end: '2026-07-14',
+        created: 4,
+        closed: 3,
+        open: 5,
+      },
     ],
     dependencies: Array.from({ length: 7 }, (_, i) => ({ id: `d${i}` })),
     ...overrides,
@@ -146,6 +156,18 @@ describe('DependencyAnalysisReportView', () => {
     expectCard('Teams Outside', '2')
   })
 
+  it('names the time zone the days are counted in', () => {
+    // Act
+    renderView(createAnalysis())
+
+    // Assert
+    expect(
+      screen.getByText(
+        /whole days in the team of teams' time zone, America\/New_York at the end of the range/,
+      ),
+    ).toBeInTheDocument()
+  })
+
   it('draws a team of teams on the wheel', () => {
     // Act
     renderView(createAnalysis())
@@ -176,7 +198,10 @@ describe('DependencyAnalysisReportView', () => {
     // Act
     rerender(view(analysis))
     rerender(
-      view(analysis, true, undefined, [dayjs('2026-08-01'), dayjs('2026-09-28')]),
+      view(analysis, true, undefined, [
+        dayjs('2026-08-01'),
+        dayjs('2026-09-28'),
+      ]),
     )
 
     // Assert
@@ -248,7 +273,9 @@ describe('DependencyAnalysisReportView', () => {
 
     // Assert
     expect(
-      screen.getByText('No dependencies crossed team lines in this date range.'),
+      screen.getByText(
+        'No dependencies crossed team lines in this date range.',
+      ),
     ).toBeInTheDocument()
     expect(screen.queryByLabelText('wheel')).not.toBeInTheDocument()
   })
@@ -285,8 +312,9 @@ describe('DependencyAnalysisReportView', () => {
 })
 
 describe('DependencyAnalysisReport', () => {
-  it('asks for the last 90 days ending today, as calendar dates', () => {
+  it('asks for the last 90 days ending today in UTC without a zone, as the API counts it', () => {
     // Arrange
+    const today = calendarDateInZone(new Date(), 'UTC')
     const query = jest.mocked(useGetTeamDependencyAnalysisQuery)
     query.mockReturnValue({
       data: undefined,
@@ -302,8 +330,47 @@ describe('DependencyAnalysisReport', () => {
     expect(query).toHaveBeenCalledWith({
       teamType: 'team-of-teams',
       teamIdOrCode: 'ART',
-      from: dayjs().subtract(89, 'day').format('YYYY-MM-DD'),
-      to: dayjs().format('YYYY-MM-DD'),
+      from: addCalendarDays(today, -89),
+      to: today,
     })
   })
+
+  it.each([
+    ['Pacific/Kiritimati', '2026-06-26', '2026-09-23'],
+    ['Etc/GMT+12', '2026-06-24', '2026-09-21'],
+  ])(
+    'ends the default range on today in the team time zone %s',
+    (timeZone, from, to) => {
+      // Arrange
+      jest.useFakeTimers({ now: new Date('2026-09-22T11:00:00Z') })
+      const query = jest.mocked(useGetTeamDependencyAnalysisQuery)
+      query.mockReturnValue({
+        data: undefined,
+        isFetching: true,
+        error: undefined,
+        refetch: jest.fn(),
+      } as unknown as ReturnType<typeof useGetTeamDependencyAnalysisQuery>)
+
+      try {
+        // Act
+        render(
+          <DependencyAnalysisReport
+            teamType="team"
+            teamCode="PAY"
+            timeZone={timeZone}
+          />,
+        )
+
+        // Assert
+        expect(query).toHaveBeenLastCalledWith({
+          teamType: 'team',
+          teamIdOrCode: 'PAY',
+          from,
+          to,
+        })
+      } finally {
+        jest.useRealTimers()
+      }
+    },
+  )
 })

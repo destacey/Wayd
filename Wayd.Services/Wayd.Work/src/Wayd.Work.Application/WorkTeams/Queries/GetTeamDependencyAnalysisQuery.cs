@@ -12,7 +12,8 @@ namespace Wayd.Work.Application.WorkTeams.Queries;
 
 /// <summary>
 /// Where the dependencies of a team, or of every team beneath a team of teams, ran from <paramref name="From"/>
-/// to <paramref name="To"/> (inclusive, UTC dates). Null when the team does not exist.
+/// to <paramref name="To"/>, both inclusive and counted in the time zone of the team's, or the team of teams',
+/// operating model. Null when the team does not exist.
 /// </summary>
 public sealed record GetTeamDependencyAnalysisQuery(TeamIdOrCode TeamIdOrCode, LocalDate From, LocalDate To)
     : IQuery<Result<TeamDependencyAnalysisDto?>>, ILongRunningRequest;
@@ -71,8 +72,9 @@ public sealed class GetTeamDependencyAnalysisQueryHandler(IWorkDbContext workDbC
             .Select(t => t.Id)
             .ToHashSet();
 
-        var start = request.From.AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
-        var end = request.To.PlusDays(1).AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
+        var calendar = await TeamReportCalendar.Load(_dispatcher, team.Id, cancellationToken);
+        var start = calendar.StartOf(request.From);
+        var end = calendar.StartOf(request.To.PlusDays(1));
         var scope = teamIds.ToArray();
 
         // Leaves out what closed before the range began (see ClosedOn): a link made before it, closed by ends whose
@@ -94,7 +96,7 @@ public sealed class GetTeamDependencyAnalysisQueryHandler(IWorkDbContext workDbC
 
         var items = dtos.Select(d => new DependencyAnalysisItem(d, ClosedOn(d)));
 
-        return DependencyAnalysisCalculator.Calculate(team, request.From, request.To, teamIds, items);
+        return DependencyAnalysisCalculator.Calculate(team, request.From, request.To, calendar, teamIds, items);
     }
 
     /// <summary>

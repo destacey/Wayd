@@ -81070,7 +81070,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Grade a team's open backlog.
         /// </summary>
         /// <remarks>
-        /// Returns `checks` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Estimate, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an `outcome` (Assessed, Not Enough History, Not Applicable), a `grade` (Healthy, At Risk, Unhealthy; absent when not assessed), and a `value` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). `workItems` lists every open backlog work item in rank order with the `flags` that apply to it, and `thresholds` states the values it was graded with. Every threshold is optional and falls back to its default. Estimates (`totalEstimate`, `oversizedEstimate`, each work item's `estimate`) are in the team's current `sizingMethod` (StoryPoints, Effort or Size); a work item with no value in it is missing an estimate, and 0 is an estimate. For a team that sizes by Count, Missing Estimate and Oversized are Not Applicable.
+        /// Returns `checks` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Estimate, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an `outcome` (Assessed, Not Enough History, Not Applicable), a `grade` (Healthy, At Risk, Unhealthy; absent when not assessed), and a `value` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). `workItems` lists every open backlog work item in rank order with the `flags` that apply to it, and `thresholds` states the values it was graded with. Every threshold is optional and falls back to its default. Estimates (`totalEstimate`, `oversizedEstimate`, each work item's `estimate`) are in the team's current `sizingMethod` (StoryPoints, Effort or Size); a work item with no value in it is missing an estimate, and 0 is an estimate. For a team that sizes by Count, Missing Estimate and Oversized are Not Applicable. The history (`from` to `to`) ends yesterday, in whole days in the time zone of the team's operating model, returned as `timeZone`.
         /// </remarks>
         /// <param name="lookbackDays">Days of history to measure throughput, cycle time and net flow over (14-365, default 90).</param>
         /// <param name="staleDays">Days without a change before a work item is stale (default 90).</param>
@@ -81097,10 +81097,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where a team's completed work went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items the team completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.
+        /// Groups the Requirement-tier work items the team completed between `from` and `to` (yyyy-MM-dd, inclusive, max 366 days; whole days in the time zone of the team's operating model, returned as `timeZone`) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.
         /// </remarks>
-        /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
-        /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
+        /// <param name="from">The first day of completed work to include (yyyy-MM-dd, in the team's time zone).</param>
+        /// <param name="to">The last day of completed work to include (yyyy-MM-dd, in the team's time zone).</param>
         /// <param name="dimension">What to group work by (default Portfolio).</param>
         /// <param name="measure">How to weigh each work item (default Count).</param>
         /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
@@ -81114,10 +81114,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where a team's cross-team dependencies ran over a date range.
         /// </summary>
         /// <remarks>
-        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 731 days) where the team owns the predecessor (`source`) or the successor (`target`) and the other end belongs to another team or to none. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside), `pairs` (predecessor team → successor team, most dependencies first), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team.
+        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, max 731 days; whole days in the time zone of the team's operating model, returned as `timeZone`) where the team owns the predecessor (`source`) or the successor (`target`) and the other end belongs to another team or to none. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside), `pairs` (predecessor team → successor team, most dependencies first), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team.
         /// </remarks>
-        /// <param name="from">The first day of the range (yyyy-MM-dd, UTC).</param>
-        /// <param name="to">The last day of the range (yyyy-MM-dd, UTC).</param>
+        /// <param name="from">The first day of the range (yyyy-MM-dd, in the team's time zone).</param>
+        /// <param name="to">The last day of the range (yyyy-MM-dd, in the team's time zone).</param>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TeamDependencyAnalysisDto> GetDependencyAnalysisAsync(string idOrCode, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -82966,7 +82966,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Grade a team's open backlog.
         /// </summary>
         /// <remarks>
-        /// Returns `checks` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Estimate, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an `outcome` (Assessed, Not Enough History, Not Applicable), a `grade` (Healthy, At Risk, Unhealthy; absent when not assessed), and a `value` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). `workItems` lists every open backlog work item in rank order with the `flags` that apply to it, and `thresholds` states the values it was graded with. Every threshold is optional and falls back to its default. Estimates (`totalEstimate`, `oversizedEstimate`, each work item's `estimate`) are in the team's current `sizingMethod` (StoryPoints, Effort or Size); a work item with no value in it is missing an estimate, and 0 is an estimate. For a team that sizes by Count, Missing Estimate and Oversized are Not Applicable.
+        /// Returns `checks` — Runway, Net Flow and WIP Load measure the whole backlog; Stale, Old Proposed, Aging WIP, Missing Estimate, Oversized, No Parent, No Project, Unassigned Active, Carry-over, Closed Parent and Rank Inversion flag work items — each with an `outcome` (Assessed, Not Enough History, Not Applicable), a `grade` (Healthy, At Risk, Unhealthy; absent when not assessed), and a `value` (weeks, a ratio, active items per member, or the percent of in-scope work items flagged). `workItems` lists every open backlog work item in rank order with the `flags` that apply to it, and `thresholds` states the values it was graded with. Every threshold is optional and falls back to its default. Estimates (`totalEstimate`, `oversizedEstimate`, each work item's `estimate`) are in the team's current `sizingMethod` (StoryPoints, Effort or Size); a work item with no value in it is missing an estimate, and 0 is an estimate. For a team that sizes by Count, Missing Estimate and Oversized are Not Applicable. The history (`from` to `to`) ends yesterday, in whole days in the time zone of the team's operating model, returned as `timeZone`.
         /// </remarks>
         /// <param name="lookbackDays">Days of history to measure throughput, cycle time and net flow over (14-365, default 90).</param>
         /// <param name="staleDays">Days without a change before a work item is stale (default 90).</param>
@@ -83160,10 +83160,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where a team's completed work went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items the team completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.
+        /// Groups the Requirement-tier work items the team completed between `from` and `to` (yyyy-MM-dd, inclusive, max 366 days; whole days in the time zone of the team's operating model, returned as `timeZone`) by portfolio, program, project, strategic theme or work type. Measures: Count, or StoryPoints (only work done while the team sized in story points; unestimated items excluded or filled from the team average). Work with no project is its own group.
         /// </remarks>
-        /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
-        /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
+        /// <param name="from">The first day of completed work to include (yyyy-MM-dd, in the team's time zone).</param>
+        /// <param name="to">The last day of completed work to include (yyyy-MM-dd, in the team's time zone).</param>
         /// <param name="dimension">What to group work by (default Portfolio).</param>
         /// <param name="measure">How to weigh each work item (default Count).</param>
         /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
@@ -83304,10 +83304,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where a team's cross-team dependencies ran over a date range.
         /// </summary>
         /// <remarks>
-        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 731 days) where the team owns the predecessor (`source`) or the successor (`target`) and the other end belongs to another team or to none. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside), `pairs` (predecessor team → successor team, most dependencies first), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team.
+        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, max 731 days; whole days in the time zone of the team's operating model, returned as `timeZone`) where the team owns the predecessor (`source`) or the successor (`target`) and the other end belongs to another team or to none. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside), `pairs` (predecessor team → successor team, most dependencies first), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team.
         /// </remarks>
-        /// <param name="from">The first day of the range (yyyy-MM-dd, UTC).</param>
-        /// <param name="to">The last day of the range (yyyy-MM-dd, UTC).</param>
+        /// <param name="from">The first day of the range (yyyy-MM-dd, in the team's time zone).</param>
+        /// <param name="to">The last day of the range (yyyy-MM-dd, in the team's time zone).</param>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TeamDependencyAnalysisDto> GetDependencyAnalysisAsync(string idOrCode, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -86603,10 +86603,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where the completed work of a team of teams, and every team beneath it, went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (only teams sizing in story points), or TeamEffort (each team's split in its own sizing method, StoryPoints, Effort, Size or Count, as on the day the work was done, combined by share of completed items; recommended for teams of teams). Work with no project is its own group.
+        /// Groups the Requirement-tier work items completed between `from` and `to` (yyyy-MM-dd, inclusive, max 366 days; whole days in the time zone of the team of teams' own operating model, for every team beneath it, returned as `timeZone`) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (only teams sizing in story points), or TeamEffort (each team's split in its own sizing method, StoryPoints, Effort, Size or Count, as on the day the work was done, combined by share of completed items; recommended for teams of teams). Work with no project is its own group.
         /// </remarks>
-        /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
-        /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
+        /// <param name="from">The first day of completed work to include (yyyy-MM-dd, in the team's time zone).</param>
+        /// <param name="to">The last day of completed work to include (yyyy-MM-dd, in the team's time zone).</param>
         /// <param name="dimension">What to group work by (default Portfolio).</param>
         /// <param name="measure">How to weigh each work item (default Count).</param>
         /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
@@ -86620,10 +86620,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where the cross-team dependencies of a team of teams, and every team beneath it, ran over a date range.
         /// </summary>
         /// <remarks>
-        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 731 days) where a team beneath the team of teams at any point in the range, at any depth, owns the predecessor (`source`) or the successor (`target`), leaving out those within one team. The other end may belong to a team outside the team of teams. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside the team of teams), `pairs` (predecessor team → successor team, most dependencies first, each end flagged in or out of scope), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team of teams.
+        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, max 731 days; whole days in the time zone of the team of teams' own operating model, for every team beneath it, returned as `timeZone`) where a team beneath the team of teams at any point in the range, at any depth, owns the predecessor (`source`) or the successor (`target`), leaving out those within one team. The other end may belong to a team outside the team of teams. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside the team of teams), `pairs` (predecessor team → successor team, most dependencies first, each end flagged in or out of scope), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team of teams.
         /// </remarks>
-        /// <param name="from">The first day of the range (yyyy-MM-dd, UTC).</param>
-        /// <param name="to">The last day of the range (yyyy-MM-dd, UTC).</param>
+        /// <param name="from">The first day of the range (yyyy-MM-dd, in the team's time zone).</param>
+        /// <param name="to">The last day of the range (yyyy-MM-dd, in the team's time zone).</param>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<TeamDependencyAnalysisDto> GetDependencyAnalysisAsync(string idOrCode, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -87447,10 +87447,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where the completed work of a team of teams, and every team beneath it, went.
         /// </summary>
         /// <remarks>
-        /// Groups the Requirement-tier work items completed between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 366 days) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (only teams sizing in story points), or TeamEffort (each team's split in its own sizing method, StoryPoints, Effort, Size or Count, as on the day the work was done, combined by share of completed items; recommended for teams of teams). Work with no project is its own group.
+        /// Groups the Requirement-tier work items completed between `from` and `to` (yyyy-MM-dd, inclusive, max 366 days; whole days in the time zone of the team of teams' own operating model, for every team beneath it, returned as `timeZone`) by portfolio, program, project, strategic theme or work type. Each team's work rolls up to the parent it had on the day the work was done. Measures: Count, StoryPoints (only teams sizing in story points), or TeamEffort (each team's split in its own sizing method, StoryPoints, Effort, Size or Count, as on the day the work was done, combined by share of completed items; recommended for teams of teams). Work with no project is its own group.
         /// </remarks>
-        /// <param name="from">The first day of completed work to include (yyyy-MM-dd, UTC).</param>
-        /// <param name="to">The last day of completed work to include (yyyy-MM-dd, UTC).</param>
+        /// <param name="from">The first day of completed work to include (yyyy-MM-dd, in the team's time zone).</param>
+        /// <param name="to">The last day of completed work to include (yyyy-MM-dd, in the team's time zone).</param>
         /// <param name="dimension">What to group work by (default Portfolio).</param>
         /// <param name="measure">How to weigh each work item (default Count).</param>
         /// <param name="unestimated">StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude).</param>
@@ -87591,10 +87591,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Report where the cross-team dependencies of a team of teams, and every team beneath it, ran over a date range.
         /// </summary>
         /// <remarks>
-        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, UTC, max 731 days) where a team beneath the team of teams at any point in the range, at any depth, owns the predecessor (`source`) or the successor (`target`), leaving out those within one team. The other end may belong to a team outside the team of teams. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside the team of teams), `pairs` (predecessor team → successor team, most dependencies first, each end flagged in or out of scope), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team of teams.
+        /// Covers the work item dependencies, not removed, between `from` and `to` (yyyy-MM-dd, inclusive, max 731 days; whole days in the time zone of the team of teams' own operating model, for every team beneath it, returned as `timeZone`) where a team beneath the team of teams at any point in the range, at any depth, owns the predecessor (`source`) or the successor (`target`), leaving out those within one team. The other end may belong to a team outside the team of teams. One counts when it was created before the range ended and did not close before the range began; it closes when the predecessor is done, or when the predecessor is removed and the successor is done or removed too; a removed predecessor with an open successor stays open, since the successor needs work nobody will do. Closed dependencies report their health as `Closed`. Returns a `summary` (dependencies, created, closed, open at the end, teams involved, teams outside the team of teams), `pairs` (predecessor team → successor team, most dependencies first, each end flagged in or out of scope), `periods` (7 days counted from `from` for ranges up to 31 days, 14 days up to 184, otherwise calendar months cut to the range; each with created, closed and open at its end) and the `dependencies` with their current state and health. Teams are the items' current teams. Returns 404 for an unknown team of teams.
         /// </remarks>
-        /// <param name="from">The first day of the range (yyyy-MM-dd, UTC).</param>
-        /// <param name="to">The last day of the range (yyyy-MM-dd, UTC).</param>
+        /// <param name="from">The first day of the range (yyyy-MM-dd, in the team's time zone).</param>
+        /// <param name="to">The last day of the range (yyyy-MM-dd, in the team's time zone).</param>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<TeamDependencyAnalysisDto> GetDependencyAnalysisAsync(string idOrCode, string? from = null, string? to = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -141265,20 +141265,35 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public BacklogHealthThresholds Thresholds { get; set; } = new BacklogHealthThresholds();
 
         /// <summary>
-        /// Days of history, ending yesterday (UTC), that throughput, cycle time and net flow were measured over.
+        /// Days of history, ending yesterday in `timeZone`, that throughput, cycle time and net flow were
+        /// <br/>measured over.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lookbackDays")]
         public int LookbackDays { get; set; } = default!;
 
+        /// <summary>
+        /// The first day of the history.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("from")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset From { get; set; } = default!;
 
+        /// <summary>
+        /// The last day of the history, included: yesterday in `timeZone`.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("to")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset To { get; set; } = default!;
+
+        /// <summary>
+        /// The IANA id of the time zone the history's days are counted in: that of the team's operating model in
+        /// <br/>effect today.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string TimeZone { get; set; } = default!;
 
         /// <summary>
         /// The team's sizing method today, which every estimate in the report is in. A team that sizes by count has
@@ -142401,7 +142416,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     /// <summary>
     /// Where a team's dependencies, or those of every team beneath a team of teams, ran from `from` to `to`
-    /// <br/>(inclusive, UTC dates): which teams they ran between, how many, and how that changed over the range.
+    /// <br/>(inclusive, days in the team's time zone): which teams they ran between, how many, and how that changed over
+    /// <br/>the range.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class TeamDependencyAnalysisDto
@@ -142414,7 +142430,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public WorkTeamNavigationDto Team { get; set; } = default!;
 
         /// <summary>
-        /// The first day of the range (UTC).
+        /// The first day of the range.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("from")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -142422,12 +142438,20 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.DateTimeOffset From { get; set; } = default!;
 
         /// <summary>
-        /// The last day of the range (UTC), included.
+        /// The last day of the range, included.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("to")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset To { get; set; } = default!;
+
+        /// <summary>
+        /// The IANA id of the time zone the range and periods are counted in: that of the team's, or the team of
+        /// <br/>teams', operating model in effect on `to`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string TimeZone { get; set; } = default!;
 
         /// <summary>
         /// Totals for the range.
@@ -143364,15 +143388,29 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public WorkTeamNavigationDto Team { get; set; } = default!;
 
+        /// <summary>
+        /// The first day of the range.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("from")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset From { get; set; } = default!;
 
+        /// <summary>
+        /// The last day of the range, included.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("to")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset To { get; set; } = default!;
+
+        /// <summary>
+        /// The IANA id of the time zone the range and periods are counted in: that of the team's, or the team of
+        /// <br/>teams', operating model in effect on `to`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string TimeZone { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("summary")]
         [System.ComponentModel.DataAnnotations.Required]

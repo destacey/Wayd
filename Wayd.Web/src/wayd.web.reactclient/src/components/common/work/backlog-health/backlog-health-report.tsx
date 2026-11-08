@@ -12,7 +12,6 @@ import {
   Typography,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import dayjs from 'dayjs'
 import { FC, ReactNode, useState } from 'react'
 import {
   BacklogHealthCheckDto,
@@ -20,6 +19,7 @@ import {
   TeamBacklogHealthDto,
 } from '@/src/services/wayd-api'
 import { useGetTeamBacklogHealthQuery } from '@/src/store/features/organizations/team-api'
+import { formatCalendarDate } from '@/src/utils/calendar-date'
 import { isApiError } from '@/src/utils/problem-details'
 import { sizingMethodMeasure } from '@/src/utils/sizing-method'
 import { healthCheckTagColor } from '../../health-check/health-check-utils'
@@ -207,7 +207,7 @@ export const BacklogHealthReportView: FC<BacklogHealthReportViewProps> = ({
               type="secondary"
               style={{ display: 'block', marginBottom: 16 }}
             >
-              {`History ${dayjs(health.from).format('MMM D, YYYY')} – ${dayjs(health.to).format('MMM D, YYYY')}: ${health.itemsCompleted} completed, ${health.itemsCreated} created. Readiness checks look at the top ${health.readinessWindowWorkItems} work items.`}
+              {`History ${formatCalendarDate(health.from)} – ${formatCalendarDate(health.to)} (${health.timeZone}): ${health.itemsCompleted} completed, ${health.itemsCreated} created. Readiness checks look at the top ${health.readinessWindowWorkItems} work items.`}
               {health.agingWipDays != null &&
                 ` Aging beyond ${Number(health.agingWipDays.toFixed(1))} days.`}
               {health.oversizedEstimate != null &&

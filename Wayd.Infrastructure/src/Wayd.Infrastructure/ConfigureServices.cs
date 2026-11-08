@@ -32,6 +32,7 @@ using Wayd.Planning.Application.PokerSessions.Interfaces;
 using Wayd.Planning.Application.StoryMaps.Interfaces;
 using Wayd.ProductManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Domain;
+using Wayd.Work.Domain;
 namespace Wayd.Infrastructure;
 
 public static class ConfigureServices
@@ -90,6 +91,7 @@ public static class ConfigureServices
         ProductWorkflowOwners.Register();
         DemandManagementWorkflowOwners.Register();
         PpmWorkflowOwners.Register();
+        WorkWorkflowOwners.Register();
 
         // Registered by hand rather than by the marker scan: that scan binds one implementation per
         // interface, so migrators sharing IStatusRecordMigrator would collapse to whichever was
@@ -110,6 +112,9 @@ public static class ConfigureServices
         services.AddScoped<IStatusRecordCounter, DeploymentStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, IntakeRequestStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, ProjectDeliverableStatusRecordMigrator>();
+
+        // Owner types with record types move records by type and scope, for scheme changes.
+        services.AddScoped<IRecordTypeStatusMigrator, WorkItemStatusRecordMigrator>();
 
         services.AddFollowing();
         services.AddDiscussions();

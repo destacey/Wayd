@@ -173,10 +173,18 @@ public class WorkItemConfig : IEntityTypeConfiguration<WorkItem>
 
         builder.Property(w => w.Id).ValueGeneratedNever();
         builder.Property(w => w.Title).IsRequired().HasMaxLength(256);
+        // The engine's status, with no foreign key, as for every status-holding record: a managed workflow retires
+        // a status rather than deleting it, and Guid.Empty is a work item not yet given one.
+        builder.Property(w => w.StatusId).IsRequired();
+        builder.Property(w => w.StatusWorkflowId).IsRequired();
+        // Indexed for the scheme migrator, which selects the items on one workflow.
+        builder.HasIndex(w => w.StatusWorkflowId);
+        builder.Property(w => w.StatusName).IsRequired().HasMaxLength(64);
         builder.Property(w => w.StatusCategory).IsRequired()
             .HasConversion<EnumConverter<StatusCategory>>()
             .HasColumnType("varchar")
             .HasMaxLength(32);
+        builder.Property(w => w.StatusAliasValue).IsRequired();
         builder.Property(w => w.ExternalId);
         builder.Property(w => w.Priority);
         builder.Property(w => w.StackRank);
@@ -213,11 +221,6 @@ public class WorkItemConfig : IEntityTypeConfiguration<WorkItem>
         builder.HasOne(w => w.Type)
             .WithMany()
             .HasForeignKey(w => w.TypeId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(w => w.Status)
-            .WithMany()
-            .HasForeignKey(w => w.StatusId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(w => w.Parent)
@@ -395,6 +398,10 @@ public class WorkItemStateHistoryConfig : IEntityTypeConfiguration<WorkItemState
         builder.HasIndex(h => h.AssignedToExternalId)
             .WhereNotNull(nameof(WorkItemStateHistory.AssignedToExternalId));
 
+        // A status change re-stamps the category of the periods holding the status.
+        builder.HasIndex(h => h.StatusId)
+            .WhereNotNull(nameof(WorkItemStateHistory.StatusId));
+
         // Properties
         builder.Property(h => h.ValidFrom).IsRequired();
         builder.Property(h => h.ValidTo);
@@ -426,11 +433,6 @@ public class WorkItemStateHistoryConfig : IEntityTypeConfiguration<WorkItemState
             .WithMany()
             .HasForeignKey(h => h.IterationId)
             .OnDelete(DeleteBehavior.ClientSetNull);
-
-        builder.HasOne<WorkStatus>()
-            .WithMany()
-            .HasForeignKey(h => h.StatusId)
-            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne<WorkType>()
             .WithMany()
@@ -824,6 +826,7 @@ public class WorkspaceConfig : IEntityTypeConfiguration<Workspace>
         builder.Property(w => w.ExternalViewWorkItemUrlTemplate).HasMaxLength(256);
         builder.Property(w => w.IsActive);
         builder.Property(w => w.WorkItemHistoryWatermark).HasMaxLength(1024);
+        builder.Property(w => w.NeedsFullSync).IsRequired();
 
         // Value Objects
         builder.ComplexProperty(w => w.OwnershipInfo, options =>
@@ -973,6 +976,9 @@ public class WorkTypeConfig : IEntityTypeConfiguration<WorkType>
         builder.Property(w => w.Name).IsRequired().HasMaxLength(64);
         builder.Property(w => w.Description).HasMaxLength(1024);
         builder.Property(w => w.IsActive);
+        // No foreign key: the record type lives in the status workflow engine, which keeps it for as long as the
+        // work type's process is synced.
+        builder.Property(w => w.RecordTypeId);
 
         // Soft Delete
         builder.Property(w => w.Deleted);

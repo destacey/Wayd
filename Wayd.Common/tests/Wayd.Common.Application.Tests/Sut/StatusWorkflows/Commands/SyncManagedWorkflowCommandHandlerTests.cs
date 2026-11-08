@@ -21,10 +21,18 @@ public sealed class SyncManagedWorkflowCommandHandlerTests : StatusWorkflowHandl
     private static readonly SourceStatus Active = new("active", "Active", StatusCategory.Active);
     private static readonly SourceStatus Closed = new("closed", "Closed", StatusCategory.Done);
 
-    public SyncManagedWorkflowCommandHandlerTests() => WorkflowOwners.Register(Synced);
+    private static readonly WorkflowOwnerDescriptor Hidden = new(
+        "test.sync.hidden-item",
+        "Hidden Item",
+        new Dictionary<int, WorkflowAlias>(),
+        [],
+        featureFlag: GadgetFeature,
+        hasManagedWorkflows: true);
+
+    public SyncManagedWorkflowCommandHandlerTests() => WorkflowOwners.Register(Synced, Hidden);
 
     private SyncManagedWorkflowCommandHandler CreateSut() =>
-        new(DbContext, DateTimeProvider.Object, Logger<SyncManagedWorkflowCommandHandler>(), OwnerAvailability);
+        new(DbContext, DateTimeProvider.Object, Logger<SyncManagedWorkflowCommandHandler>());
 
     private static SyncManagedWorkflowCommand Command(params SourceStatus[] statuses) =>
         new(Synced.Key, "conn-1:agile:bug", "Agile: Bug", statuses);
@@ -121,6 +129,34 @@ public sealed class SyncManagedWorkflowCommandHandlerTests : StatusWorkflowHandl
         result.IsFailure.Should().BeTrue();
         workflow.Statuses.Should().OnlyContain(s => !s.IsRetired);
         workflow.DomainEvents.Should().BeEmpty();
+        DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldKeepTheWorkflow_WhileItsOwnerTypeIsHiddenFromAdministration()
+    {
+        // Act
+        var result = await CreateSut().Handle(
+            new SyncManagedWorkflowCommand(Hidden.Key, "conn-1:hidden", "Hidden", [New]), TestContext.Current.CancellationToken);
+
+        // Assert
+        // The flag is off, so administration cannot see the owner type, but its source still changes.
+        (await OwnerAvailability.IsAvailable(Hidden.Key, TestContext.Current.CancellationToken)).Should().BeFalse();
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        DbContext.StatusWorkflows.Should().ContainSingle(w => w.OwnerType == Hidden.Key);
+        DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_ForAnUnregisteredOwnerType()
+    {
+        // Act
+        var result = await CreateSut().Handle(
+            new SyncManagedWorkflowCommand("test.sync.unknown", "conn-1:unknown", "Unknown", [New]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("'test.sync.unknown' is not a registered workflow owner type.");
         DbContext.SaveChangesCallCount.Should().Be(0);
     }
 

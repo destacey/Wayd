@@ -1,4 +1,6 @@
-﻿using Wayd.Common.Domain.Enums.Work;
+﻿using NodaTime;
+using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Tests.Shared;
 using Wayd.Work.Domain.Interfaces;
@@ -398,7 +400,7 @@ public class WorkItemTests
         var now = _dateTimeProvider.Now;
 
         // Act
-        var workItem = WorkItem.CreateExternal(workspace, 1, "Title", workType, 1, StatusCategory.Proposed, null, null,
+        var workItem = WorkItem.CreateExternal(workspace, 1, "Title", workType, WorkItemStatuses.Create(), null, null,
             now, null, now, null, null, null, 0, storyPoints: 3, effort: 8, size: 5, null, null, null, null);
 
         // Assert
@@ -414,7 +416,7 @@ public class WorkItemTests
         var workItem = _workItemFaker.Generate();
 
         // Act
-        workItem.Update(workItem.Title, workItem.Type, workItem.Status.Id, workItem.StatusCategory, null, null,
+        workItem.Update(workItem.Title, workItem.Type, workItem.CurrentStatus(), null, null,
             _dateTimeProvider.Now, null, null, null, 0, storyPoints: null, effort: 13, size: 2, null, null, null, null);
 
         // Assert
@@ -424,6 +426,140 @@ public class WorkItemTests
     }
 
     #endregion Estimates
+
+    #region Status
+
+    [Fact]
+    public void CreateExternal_TakesTheStatusTheSourceReports()
+    {
+        // Arrange
+        var workspace = new WorkspaceFaker().AsExternal().Generate();
+        var workType = _workTypeFaker.AsStory().Generate();
+        var status = WorkItemStatuses.Create("Active", StatusCategory.Active);
+        var now = _dateTimeProvider.Now;
+
+        // Act
+        var workItem = WorkItem.CreateExternal(workspace, 1, "Title", workType, status, null, null,
+            now, null, now, null, null, null, 0, null, null, null, null, null, null, null);
+
+        // Assert
+        workItem.StatusId.Should().Be(status.StatusId);
+        workItem.StatusWorkflowId.Should().Be(status.WorkflowId);
+        workItem.StatusName.Should().Be("Active");
+        workItem.StatusCategory.Should().Be(StatusCategory.Active);
+        workItem.StatusOwnerType.Should().Be(WorkWorkflowOwners.WorkItem.Key);
+    }
+
+    [Fact]
+    public void Update_WithAStatusOfAnotherWorkflow_TakesItAndItsWorkflow()
+    {
+        // Arrange — the item's type changed at the source, and its new type follows another workflow
+        var workItem = _workItemFaker.WithDoneState().Generate();
+        var status = WorkItemStatuses.Create("Investigating", StatusCategory.Active);
+
+        // Act
+        workItem.Update(workItem.Title, workItem.Type, status, null, null, _dateTimeProvider.Now, null, null, null, 0,
+            null, null, null, null, workItem.ActivatedTimestamp, workItem.DoneTimestamp, null);
+
+        // Assert
+        workItem.StatusId.Should().Be(status.StatusId);
+        workItem.StatusWorkflowId.Should().Be(status.WorkflowId);
+        workItem.StatusName.Should().Be("Investigating");
+        workItem.StatusCategory.Should().Be(StatusCategory.Active);
+        workItem.DoneTimestamp.Should().BeNull("an item that is not finished has no done date");
+    }
+
+    [Fact]
+    public void ChangeExternalWorkspace_TakesTheStatusTheTypeFollowsInTheNewWorkspace()
+    {
+        // Arrange
+        var workItem = _workItemFaker.WithExternalId(42).Generate();
+        var workspace = new WorkspaceFaker().AsExternal().Generate();
+        var status = WorkItemStatuses.Create("Ready", StatusCategory.Proposed);
+
+        // Act
+        var result = workItem.ChangeExternalWorkspace(workspace, workItem.Type, status);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workItem.WorkspaceId.Should().Be(workspace.Id);
+        workItem.StatusId.Should().Be(status.StatusId);
+        workItem.StatusWorkflowId.Should().Be(status.WorkflowId);
+        workItem.StatusName.Should().Be("Ready");
+        workItem.StatusCategory.Should().Be(StatusCategory.Proposed);
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Proposed, false)]
+    [InlineData(StatusCategory.Active, false)]
+    [InlineData(StatusCategory.Done, true)]
+    [InlineData(StatusCategory.Removed, true)]
+    public void CountsAsFinished_OnlyDoneAndRemoved(StatusCategory category, bool expected)
+    {
+        // Act
+        var finished = WorkItem.CountsAsFinished(category);
+
+        // Assert
+        finished.Should().Be(expected);
+    }
+
+    #endregion Status
+
+    #region AddSuccessorLink
+
+    [Fact]
+    public void AddSuccessorLink_RecordsTheLinkWithBothEndsPlans()
+    {
+        // Arrange
+        var workItem = _workItemFaker.Generate();
+        var lastDay = new LocalDate(2024, 4, 12);
+        var source = new DependencyWorkItemInfo { WorkItemId = workItem.Id, StatusCategory = StatusCategory.Proposed, PlannedOn = lastDay };
+        var target = new DependencyWorkItemInfo { WorkItemId = Guid.NewGuid(), StatusCategory = StatusCategory.Proposed, PlannedOn = lastDay.PlusDays(14) };
+
+        // Act
+        var result = workItem.AddSuccessorLink(source, target, _dateTimeProvider.Now, null, null);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var link = workItem.OutboundDependencies.Should().ContainSingle().Subject;
+        link.TargetId.Should().Be(target.WorkItemId);
+        link.SourcePlannedOn.Should().Be(lastDay);
+        link.TargetPlannedOn.Should().Be(lastDay.PlusDays(14));
+        link.Health.Should().Be(DependencyPlanningHealth.Healthy);
+    }
+
+    [Fact]
+    public void AddSuccessorLink_WithAnotherWorkItemsSourceInfo_Fails()
+    {
+        // Arrange
+        var workItem = _workItemFaker.Generate();
+        var source = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed);
+        var target = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed);
+
+        // Act
+        var result = workItem.AddSuccessorLink(source, target, _dateTimeProvider.Now, null, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        workItem.OutboundDependencies.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddSuccessorLink_ToItself_Fails()
+    {
+        // Arrange
+        var workItem = _workItemFaker.Generate();
+        var info = DependencyWorkItemInfo.Create(workItem.Id, StatusCategory.Proposed);
+
+        // Act
+        var result = workItem.AddSuccessorLink(info, info, _dateTimeProvider.Now, null, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        workItem.OutboundDependencies.Should().BeEmpty();
+    }
+
+    #endregion AddSuccessorLink
 
     public sealed record TestParentInfo(Guid Id, int? ExternalId, WorkTypeTier Tier, int LevelOrder, Guid? ProjectId = null) : IWorkItemParentInfo;
 }

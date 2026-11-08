@@ -41,6 +41,12 @@ public sealed class WorkType : BaseSoftDeletableEntity<int>, IActivatable
 
     public WorkTypeLevel? Level { get; set; }
 
+    /// <summary>
+    /// The status workflow engine's record type for this work type, which decides the workflow its items follow
+    /// in each workspace; null until a sync first copies the type's process into the engine.
+    /// </summary>
+    public Guid? RecordTypeId { get; private set; }
+
     /// <summary>Indicates whether the work type is active or not.</summary>
     /// <value><c>true</c> if this instance is active; otherwise, <c>false</c>.</value>
     public bool IsActive { get; private set; } = true;
@@ -93,6 +99,22 @@ public sealed class WorkType : BaseSoftDeletableEntity<int>, IActivatable
         }
 
         return Result.Success();
+    }
+
+    /// <summary>Links the work type to the engine's record type kept for it.</summary>
+    /// <returns><c>true</c> when the link changed.</returns>
+    public bool LinkRecordType(Guid recordTypeId)
+    {
+        Guard.Against.Default(recordTypeId, nameof(recordTypeId));
+
+        if (RecordTypeId == recordTypeId)
+        {
+            return false;
+        }
+
+        RecordTypeId = recordTypeId;
+
+        return true;
     }
 
     /// <summary>Creates the a work type.</summary>

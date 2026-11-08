@@ -20,6 +20,43 @@
 }
 
 /*
+ * The bar that stands in for the rail on narrow screens. Pinned like the rail,
+ * so the way to another setting stays in reach on a long page. It is the
+ * sticky element itself, not the bar inside it: a sticky element only sticks
+ * within its parent, and this wrapper is no taller than the bar.
+ */
+.compactNav {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+/*
+ * Below antd's `lg` breakpoint the rail gives way to the bar. Not `md`, where
+ * the app header switches: the rail sits beside the app sider, so a tablet
+ * would lose almost half its width to two navigation columns.
+ *
+ * Swapped in CSS rather than with `Grid.useBreakpoint()`, which reports no
+ * breakpoints on the first render and would flash the wrong one on load.
+ */
+@media (max-width: 991.98px) {
+  .sider {
+    display: none !important;
+  }
+
+  /* A fixed height, so a record page below can subtract exactly that. */
+  .content {
+    --record-layout-offset: 41px;
+  }
+
+  .compactNav {
+    display: block;
+    height: var(--record-layout-offset);
+  }
+}
+
+/*
  * No padding here. Settings holds both list pages and record pages, and they
  * want opposite frames — so the column stays neutral and each page decides:
  * a list page applies `.page-gutters`, a record page runs edge-to-edge like

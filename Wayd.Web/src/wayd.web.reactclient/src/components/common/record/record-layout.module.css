@@ -9,8 +9,11 @@
 .shell {
   display: flex;
   flex-direction: column;
-  /* Fill the scrollable content area so the rail's border reaches the bottom. */
-  min-height: calc(100vh - 50px);
+  /* Fill the scrollable content area so the rail's border reaches the bottom.
+     An area that pins its own bar above the record (settings, on narrow
+     screens) sets --record-layout-offset to that bar's height, or the record
+     overfills the area by exactly that much. */
+  min-height: calc(100vh - 50px - var(--record-layout-offset, 0px));
 }
 
 /*

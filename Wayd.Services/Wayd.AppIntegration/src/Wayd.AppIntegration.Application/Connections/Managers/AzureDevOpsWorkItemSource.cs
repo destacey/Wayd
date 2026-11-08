@@ -152,12 +152,13 @@ public sealed class AzureDevOpsWorkItemSource(
         var workProcessResult = await ResolveWorkProcess(target, cancellationToken);
         if (workProcessResult.IsFailure)
             return workProcessResult;
-        var (workProcessExternalId, workProcessInternalId, justSetUp) = workProcessResult.Value;
+        var (workProcessExternalId, workProcessInternalId, readFromSource) = workProcessResult.Value;
 
-        // Sync each work process once per run, whichever connection reaches it first. One set up
-        // just now was read from Azure DevOps moments ago, so it is marked synced without a repeat.
+        // Sync each work process once per run, whichever connection reaches it first. One created
+        // just now was read from Azure DevOps moments ago, so it is marked synced without a repeat; one
+        // linked from another connection was not read, so it is synced like any other.
         var firstInRun = _workProcessSyncTracker.TryMarkSynced(syncId, workProcessExternalId);
-        if (firstInRun && !justSetUp)
+        if (firstInRun && !readFromSource)
         {
             var processResult = await SyncWorkProcess(ctx, syncId, workProcessExternalId, workProcessInternalId, cancellationToken);
             if (processResult.IsFailure)
@@ -169,6 +170,14 @@ public sealed class AzureDevOpsWorkItemSource(
         var assignResult = await _dispatcher.Send(new ChangeExternalWorkspaceWorkProcessCommand(target.InternalWorkspaceId, workProcessExternalId), cancellationToken);
         if (assignResult.IsFailure)
             return assignResult;
+
+        // Work items resolve their statuses through the workspace's scheme, so they cannot sync without it.
+        var workflowAssignmentResult = await _dispatcher.Send(new SyncExternalWorkspaceWorkflowAssignmentCommand(target.InternalWorkspaceId), cancellationToken);
+        if (workflowAssignmentResult.IsFailure)
+        {
+            _logger.LogError("Unable to assign workspace {WorkspaceName} its workflow scheme: {Error}", target.WorkspaceName, workflowAssignmentResult.Error);
+            return workflowAssignmentResult;
+        }
 
         // Workspace metadata refresh.
         var workspaceResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkspace",
@@ -548,7 +557,18 @@ public sealed class AzureDevOpsWorkItemSource(
         }
 
         var updateWorkProcessResult = await _dispatcher.Send(new UpdateExternalWorkProcessCommand(processResult.Value, processResult.Value.WorkTypes, workflowMappings), cancellationToken);
-        return updateWorkProcessResult.IsSuccess ? Result.Success() : updateWorkProcessResult;
+        if (updateWorkProcessResult.IsFailure)
+            return updateWorkProcessResult;
+
+        // Work items take their statuses from the engine's copy of the process, so without it none can sync.
+        var engineResult = await _dispatcher.Send(new SyncExternalWorkProcessWorkflowsCommand(processResult.Value), cancellationToken);
+        if (engineResult.IsFailure)
+        {
+            _logger.LogError("Unable to keep work process {WorkProcessName} in the status workflow engine: {Error}", processResult.Value.Name, engineResult.Error);
+            return engineResult;
+        }
+
+        return Result.Success();
     }
 
     /// <summary>
@@ -556,10 +576,10 @@ public sealed class AzureDevOpsWorkItemSource(
     /// set up yet, such as one a project moved to in Azure DevOps, is set up here.
     /// </summary>
     /// <returns>
-    /// The process's external and Wayd ids, and whether it was set up by this call, in which case
-    /// it was read from Azure DevOps moments ago.
+    /// The process's external and Wayd ids, and whether this call created it from Azure DevOps'
+    /// current process, in which case it was read moments ago.
     /// </returns>
-    private async Task<Result<(Guid ExternalId, Guid InternalId, bool JustSetUp)>> ResolveWorkProcess(WorkspaceSyncTarget target, CancellationToken cancellationToken)
+    private async Task<Result<(Guid ExternalId, Guid InternalId, bool ReadFromSource)>> ResolveWorkProcess(WorkspaceSyncTarget target, CancellationToken cancellationToken)
     {
         if (_planWorkProcesses is null)
             return Result.Failure<(Guid, Guid, bool)>("GetSyncPlan() must be invoked before PrepareWorkspaceForItemSync.");
@@ -584,8 +604,8 @@ public sealed class AzureDevOpsWorkItemSource(
         if (ensureResult.IsFailure)
             return Result.Failure<(Guid, Guid, bool)>($"Unable to set up the work process for project {target.WorkspaceName}. {ensureResult.Error}");
 
-        _resolvedWorkProcesses[wpId] = ensureResult.Value;
-        return (wpId, ensureResult.Value, true);
+        _resolvedWorkProcesses[wpId] = ensureResult.Value.InternalId;
+        return (wpId, ensureResult.Value.InternalId, ensureResult.Value.ReadFromSource);
     }
 
     /// <summary>

@@ -1,10 +1,20 @@
 ﻿using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Settings;
 using Wayd.Work.Application.Persistence;
+using Wayd.Work.Application.WorkItemDependencies;
 
 namespace Wayd.Work.Application.WorkItems.Commands;
 
-public sealed class SyncExternalWorkItemDependencyChangesCommandHandler(IWorkDbContext workDbContext, ILogger<SyncExternalWorkItemDependencyChangesCommandHandler> logger, IDateTimeProvider dateTimeProvider) : ICommandHandler<SyncExternalWorkItemDependencyChangesCommand>
+public sealed class SyncExternalWorkItemDependencyChangesCommandHandler(
+    IWorkDbContext workDbContext,
+    IDispatcher dispatcher,
+    ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings,
+    ILogger<SyncExternalWorkItemDependencyChangesCommandHandler> logger,
+    IDateTimeProvider dateTimeProvider)
+    : ICommandHandler<SyncExternalWorkItemDependencyChangesCommand>
 {
     private const string AppRequestName = nameof(SyncExternalWorkItemDependencyChangesCommand);
     private const int DefaultBatchSize = 500;
@@ -16,6 +26,9 @@ public sealed class SyncExternalWorkItemDependencyChangesCommandHandler(IWorkDbC
     };
 
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly ILogger<SyncExternalWorkItemDependencyChangesCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -242,13 +255,10 @@ public sealed class SyncExternalWorkItemDependencyChangesCommandHandler(IWorkDbC
         var sourceWorkItemLookup = await _workDbContext.WorkItems
             .Where(wi => sourceWorkItemIds.Contains(wi.Id))
             .Include(wi => wi.OutboundDependencies.Where(d => targetIds.Contains(d.TargetId)))
-            .Include(wi => wi.Iteration)
             .ToDictionaryAsync(wi => wi.Id, cancellationToken);
 
-        var targetWorkItemLookup = await _workDbContext.WorkItems
-            .Where(wi => targetIds.Contains(wi.Id))
-            .Select(DependencyWorkItemInfo.Projection)
-            .ToDictionaryAsync(t => t.WorkItemId, cancellationToken);
+        var infoLookup = await _workDbContext.LoadDependencyWorkItemInfos(
+            _dispatcher, _schedulingSettings, _generalSettings, [.. sourceWorkItemIds.Union(targetIds)], now, cancellationToken);
 
         foreach (var link in batch)
         {
@@ -258,11 +268,17 @@ public sealed class SyncExternalWorkItemDependencyChangesCommandHandler(IWorkDbC
             {
                 if (link.ChangedOperation.Equals("create", StringComparison.OrdinalIgnoreCase))
                 {
-                    // lookup target work item to ensure it exists
-                    // and to obtain the status category and planned date (PlannedOn is set to iteration end date if iteration type is Sprint)
-                    if (targetWorkItemLookup.TryGetValue(link.TargetId, out var target))
+                    // The source is read twice, tracked and as info; a delete between the reads leaves no info.
+                    if (!infoLookup.TryGetValue(link.SourceId, out var source))
                     {
-                        sourceWorkItem.AddSuccessorLink(target, link.ChangedDate, link.ChangedById, link.Comment, now);
+                        _logger.LogWarning(
+                            "Source work item {SourceId} not found in database while processing dependency link to {TargetId}",
+                            link.SourceId,
+                            link.TargetId);
+                    }
+                    else if (infoLookup.TryGetValue(link.TargetId, out var target))
+                    {
+                        sourceWorkItem.AddSuccessorLink(source, target, link.ChangedDate, link.ChangedById, link.Comment);
                     }
                     else
                     {

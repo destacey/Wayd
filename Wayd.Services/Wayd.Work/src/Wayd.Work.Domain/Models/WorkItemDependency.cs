@@ -10,7 +10,7 @@ public sealed class WorkItemDependency : WorkItemLink
 {
     private WorkItemDependency() : base() { }
 
-    private WorkItemDependency(Guid sourceId, StatusCategory sourceStatusCategory, LocalDate? sourcePlannedDate, Guid targetId, StatusCategory targetStatusCategory, LocalDate? targetPlannedDate, Instant createdOn, Guid? createdById, Instant? removedOn, Guid? removedById, string? comment, Instant now)
+    private WorkItemDependency(Guid sourceId, StatusCategory sourceStatusCategory, LocalDate? sourcePlannedDate, Guid targetId, StatusCategory targetStatusCategory, LocalDate? targetPlannedDate, Instant createdOn, Guid? createdById, Instant? removedOn, Guid? removedById, string? comment)
     : base(sourceId, targetId, WorkItemLinkType.Dependency, createdOn, createdById, removedOn, removedById, comment)
     {
         // assign inputs to properties first (important for state calculation)
@@ -21,32 +21,34 @@ public sealed class WorkItemDependency : WorkItemLink
         TargetPlannedOn = targetPlannedDate;
 
         // compute derived values
-        CalculateStateAndHealth(now);
+        CalculateStateAndHealth();
     }
 
     public StatusCategory SourceStatusCategory { get; set; }
 
+    /// <summary>The source's plan: the last planned day of its sprint, while that sprint has not ended.</summary>
     public LocalDate? SourcePlannedOn { get; set; }
 
     public StatusCategory TargetStatusCategory { get; set; }
 
+    /// <summary>The target's plan: the last planned day of its sprint, while that sprint has not ended.</summary>
     public LocalDate? TargetPlannedOn { get; set; }
 
     public DependencyState State { get; private set; }
 
     public DependencyPlanningHealth Health { get; private set; }
 
-    public Result UpdateSourceAndTargetInfo(DependencyWorkItemInfo sourceInfo, DependencyWorkItemInfo targetInfo, Instant now)
+    public Result UpdateSourceAndTargetInfo(DependencyWorkItemInfo sourceInfo, DependencyWorkItemInfo targetInfo)
     {
-        var sourceResult = UpdateSourceInfo(sourceInfo, now, false);
+        var sourceResult = UpdateSourceInfo(sourceInfo, false);
         if (sourceResult.IsFailure)
             return sourceResult;
 
-        var targetResult = UpdateTargetInfo(targetInfo, now, false);
+        var targetResult = UpdateTargetInfo(targetInfo, false);
         if (targetResult.IsFailure)
             return targetResult;
 
-        CalculateStateAndHealth(now);
+        CalculateStateAndHealth();
 
         return Result.Success();
     }
@@ -54,15 +56,13 @@ public sealed class WorkItemDependency : WorkItemLink
     /// <summary>
     /// Updates the source information for the current object based on the provided work item details.
     /// </summary>
-    /// <remarks>This method updates the source status category and planned date based on the provided 
-    /// <paramref name="sourceInfo"/>. It also recalculates derived values such as state and health  using the specified
-    /// <paramref name="now"/> timestamp.</remarks>
+    /// <remarks>This method updates the source status category and planned date based on the provided
+    /// <paramref name="sourceInfo"/>, and recalculates derived values such as state and health.</remarks>
     /// <param name="sourceInfo">The source work item information containing the updated details.</param>
-    /// <param name="now">The current timestamp used to recalculate derived values.</param>
     /// <param name="recalculate">Whether to recalculate state and health. Default is true.</param>
     /// <returns>A <see cref="Result"/> indicating the success or failure of the operation.  Returns a failure result if the
     /// <paramref name="sourceInfo"/> does not match the current source identifier.</returns>
-    public Result UpdateSourceInfo(DependencyWorkItemInfo sourceInfo, Instant now, bool recalculate = true)
+    public Result UpdateSourceInfo(DependencyWorkItemInfo sourceInfo, bool recalculate = true)
     {
         Guard.Against.Null(sourceInfo);
 
@@ -75,7 +75,7 @@ public sealed class WorkItemDependency : WorkItemLink
         // recompute derived values
         if (recalculate)
         {
-            CalculateStateAndHealth(now);
+            CalculateStateAndHealth();
         }
 
         return Result.Success();
@@ -86,11 +86,10 @@ public sealed class WorkItemDependency : WorkItemLink
     /// </summary>
     /// <param name="targetInfo">The updated information for the target, including its status category and planned date. Cannot be <see
     /// langword="null"/>.</param>
-    /// <param name="now">The current timestamp used for recalculating derived values.</param>
     /// <param name="recalculate">Whether to recalculate state and health. Default is true.</param>
     /// <returns>A <see cref="Result"/> indicating the outcome of the operation. Returns a failure result if the <paramref
     /// name="targetInfo"/> does not match the existing target identifier; otherwise, returns a success result.</returns>
-    public Result UpdateTargetInfo(DependencyWorkItemInfo targetInfo, Instant now, bool recalculate = true)
+    public Result UpdateTargetInfo(DependencyWorkItemInfo targetInfo, bool recalculate = true)
     {
         Guard.Against.Null(targetInfo);
 
@@ -103,28 +102,27 @@ public sealed class WorkItemDependency : WorkItemLink
         // recompute derived values
         if (recalculate)
         {
-            CalculateStateAndHealth(now);
+            CalculateStateAndHealth();
         }
 
         return Result.Success();
     }
 
     /// <summary>
-    /// Calculates both the state and health of the dependency based on current properties and the provided timestamp.
+    /// Calculates both the state and health of the dependency from its current properties.
     /// </summary>
-    /// <param name="now"></param>
-    public void CalculateStateAndHealth(Instant now)
+    public void CalculateStateAndHealth()
     {
         CalculateState();
-        CalculateHealth(now);
+        CalculateHealth();
     }
 
-    public static WorkItemDependency Create(DependencyWorkItemInfo sourceInfo, DependencyWorkItemInfo targetInfo, Instant createdOn, Guid? createdById, Instant? removedOn, Guid? removedById, string? comment, Instant now)
+    public static WorkItemDependency Create(DependencyWorkItemInfo sourceInfo, DependencyWorkItemInfo targetInfo, Instant createdOn, Guid? createdById, Instant? removedOn, Guid? removedById, string? comment)
     {
         Guard.Against.Null(sourceInfo);
         Guard.Against.Null(targetInfo);
 
-        return new WorkItemDependency(sourceInfo.WorkItemId, sourceInfo.StatusCategory, sourceInfo.PlannedOn, targetInfo.WorkItemId, targetInfo.StatusCategory, targetInfo.PlannedOn, createdOn, createdById, removedOn, removedById, comment, now);
+        return new WorkItemDependency(sourceInfo.WorkItemId, sourceInfo.StatusCategory, sourceInfo.PlannedOn, targetInfo.WorkItemId, targetInfo.StatusCategory, targetInfo.PlannedOn, createdOn, createdById, removedOn, removedById, comment);
     }
 
     /// <summary>
@@ -152,8 +150,7 @@ public sealed class WorkItemDependency : WorkItemLink
     /// <summary>
     /// Calculates the health of the dependency based on planned dates and current state.
     /// </summary>
-    /// <param name="now"></param>
-    private void CalculateHealth(Instant now)
+    private void CalculateHealth()
     {
         if (State == DependencyState.Done)
         {
@@ -180,10 +177,9 @@ public sealed class WorkItemDependency : WorkItemLink
             return;
         }
 
-        // A planned date before today (UTC) counts as unplanned. It is a sprint's last day, so that day still counts.
-        var today = now.InUtc().Date;
-        var predecessor = (SourcePlannedOn.HasValue && SourcePlannedOn.Value < today) ? null : SourcePlannedOn;
-        var successor = (TargetPlannedOn.HasValue && TargetPlannedOn.Value < today) ? null : TargetPlannedOn;
+        // An end whose sprint has ended carries no planned date (see DependencyWorkItemInfo.PlannedOn).
+        var predecessor = SourcePlannedOn;
+        var successor = TargetPlannedOn;
 
         // neither side planned -> at risk
         if (predecessor == null && successor == null)

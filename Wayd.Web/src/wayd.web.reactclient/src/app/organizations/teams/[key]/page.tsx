@@ -86,11 +86,9 @@ const WorkDistributionReport = dynamic(
 
 const DependencyAnalysisReport = dynamic(
   () =>
-    import('@/src/components/common/work/dependency-analysis').then(
-      (mod) => ({
-        default: mod.DependencyAnalysisReport,
-      }),
-    ),
+    import('@/src/components/common/work/dependency-analysis').then((mod) => ({
+      default: mod.DependencyAnalysisReport,
+    })),
   { ssr: false, loading: () => <Spin /> },
 )
 
@@ -410,10 +408,23 @@ const TeamDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       case TeamTabs.Velocity:
         return <TeamCadenceMetricsReport teamId={team!.id!} />
       case TeamTabs.WorkDistribution:
-        return <WorkDistributionReport teamType="team" teamCode={team!.code} />
+        return (
+          // A new zone changes the report's default range, which it reads once.
+          <WorkDistributionReport
+            key={team!.operatingModel?.timeZone}
+            teamType="team"
+            teamCode={team!.code}
+            timeZone={team!.operatingModel?.timeZone}
+          />
+        )
       case TeamTabs.DependencyAnalysis:
         return (
-          <DependencyAnalysisReport teamType="team" teamCode={team!.code} />
+          <DependencyAnalysisReport
+            key={team!.operatingModel?.timeZone}
+            teamType="team"
+            teamCode={team!.code}
+            timeZone={team!.operatingModel?.timeZone}
+          />
         )
       case TeamTabs.CapacityReport:
         return capacityEnabled ? (

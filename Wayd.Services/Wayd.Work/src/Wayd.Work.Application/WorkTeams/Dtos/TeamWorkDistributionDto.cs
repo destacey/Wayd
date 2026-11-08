@@ -14,8 +14,18 @@ namespace Wayd.Work.Application.WorkTeams.Dtos;
 public sealed record TeamWorkDistributionDto
 {
     public required WorkTeamNavigationDto Team { get; init; }
+    /// <summary>The first day of the range.</summary>
     public required LocalDate From { get; init; }
+
+    /// <summary>The last day of the range, included.</summary>
     public required LocalDate To { get; init; }
+
+    /// <summary>
+    /// The IANA id of the time zone the range and periods are counted in: that of the team's, or the team of
+    /// teams', operating model in effect on <c>to</c>.
+    /// </summary>
+    public required string TimeZone { get; init; }
+
     public required WorkDistributionSummaryDto Summary { get; init; }
     public List<WorkDistributionGroupDto> Groups { get; init; } = [];
 

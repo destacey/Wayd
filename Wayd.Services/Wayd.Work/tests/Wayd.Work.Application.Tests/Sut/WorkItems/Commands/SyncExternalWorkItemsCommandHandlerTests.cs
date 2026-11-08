@@ -14,7 +14,11 @@ using Moq;
 using NodaTime;
 using NodaTime.Testing;
 using Xunit;
+using Wayd.Common.Application.StatusWorkflows;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Work.Domain;
 
 namespace Wayd.Work.Application.Tests.Sut.WorkItems.Commands;
 
@@ -24,6 +28,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
 
     private readonly FakeWorkDbContext _fakeWorkDbContext;
     private readonly Mock<ILogger<SyncExternalWorkItemsCommandHandler>> _mockLogger;
+    private readonly Mock<IStatusResolver> _statusResolver = new();
     private readonly SyncExternalWorkItemsCommandHandler _handler;
     private readonly FakeClock _clock;
     private readonly TestingDateTimeProvider _dateTimeProvider;
@@ -38,7 +43,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<SyncExternalWorkItemsCommandHandler>>();
         _clock = new FakeClock(Instant.FromUtc(2024, 1, 15, 12, 0, 0));
         _dateTimeProvider = new TestingDateTimeProvider(_clock);
-        _handler = new SyncExternalWorkItemsCommandHandler(_fakeWorkDbContext, _dateTimeProvider, _mockLogger.Object);
+        _handler = new SyncExternalWorkItemsCommandHandler(_fakeWorkDbContext, _statusResolver.Object, _dateTimeProvider, _mockLogger.Object);
 
         _externalWorkItemFaker = new ExternalWorkItemFaker(_clock.GetCurrentInstant(), _clock.GetCurrentInstant());
         _workspaceFaker = new WorkspaceFaker();
@@ -199,7 +204,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         mockWorkDbContext.Setup(x => x.Workspaces)
             .Throws(new InvalidOperationException("Database error"));
 
-        var handlerWithMock = new SyncExternalWorkItemsCommandHandler(mockWorkDbContext.Object, _dateTimeProvider, _mockLogger.Object);
+        var handlerWithMock = new SyncExternalWorkItemsCommandHandler(mockWorkDbContext.Object, _statusResolver.Object, _dateTimeProvider, _mockLogger.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -244,7 +249,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         mockWorkDbContext.Setup(x => x.Workspaces)
             .Throws(new InvalidOperationException("Database error"));
 
-        var handlerWithMock = new SyncExternalWorkItemsCommandHandler(mockWorkDbContext.Object, _dateTimeProvider, _mockLogger.Object);
+        var handlerWithMock = new SyncExternalWorkItemsCommandHandler(mockWorkDbContext.Object, _statusResolver.Object, _dateTimeProvider, _mockLogger.Object);
 
         // Act
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -252,6 +257,29 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
 
         // Assert
         exception.Message.Should().Be("Database error");
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheWorkspaceHasNoWorkflow_FailsAndSavesNothing()
+    {
+        // Arrange
+        var workspaceId = Guid.NewGuid();
+        var workProcessId = Guid.NewGuid();
+        var workProcess = CreateWorkProcessWithSchemes("User Story", "New");
+        _statusResolver
+            .Setup(r => r.ForRecordType(It.IsAny<string>(), It.IsAny<WorkflowScopeChain>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CSharpFunctionalExtensions.Result.Failure<ResolvedWorkflow>("No workflow is assigned for Work Item."));
+        _fakeWorkDbContext.AddWorkspace(_workspaceFaker.AsExternal().WithId(workspaceId).WithWorkProcessId(workProcessId).Generate());
+        _fakeWorkDbContext.AddWorkProcess(_workProcessFaker.WithId(workProcessId).WithSchemes([.. workProcess.Schemes]).Generate());
+        var command = CreateCommand(workspaceId, [_externalWorkItemFaker.WithWorkType("User Story").WithWorkStatus("New").Generate()]);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("No workflow is assigned for Work Item.");
+        _fakeWorkDbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]
@@ -403,16 +431,19 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
     private WorkProcess CreateWorkProcessWithSchemes(string workTypeName, string workStatusName)
     {
         WorkType workType = new WorkTypeFaker().WithName(workTypeName).Generate();
-        WorkStatus workStatus = new WorkStatusFaker().WithName(workStatusName).Generate();
 
-        // Create workflow with properly linked workflow scheme
-        var workflow = new WorkflowFaker()
-            .WithWorkflowScheme(workStatus, StatusCategory.Proposed)
-            .Generate();
+        // The engine's copy of the type's workflow, which the handler resolves statuses from.
+        WorkWorkflowOwners.Register();
+        var recordTypeId = Guid.NewGuid();
+        workType.LinkRecordType(recordTypeId);
+        var engineWorkflow = StatusWorkflow.CreateManaged($"{workTypeName} workflow", WorkWorkflowOwners.WorkItem.Key, "key",
+            [new SourceStatus("state-1", workStatusName, StatusCategory.Proposed)], EventActor.System, _clock.GetCurrentInstant()).Value;
+        _statusResolver
+            .Setup(r => r.ForRecordType(WorkWorkflowOwners.WorkItem.Key, It.IsAny<WorkflowScopeChain>(), recordTypeId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ResolvedWorkflow(engineWorkflow, new WorkflowSource(null, IsRecordTypeEntry: true)));
 
         var workProcessScheme = new WorkProcessSchemeFaker()
             .WithWorkType(workType)
-            .WithWorkflow(workflow)
             .Generate();
 
         return _workProcessFaker

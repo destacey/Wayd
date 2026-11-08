@@ -9,6 +9,7 @@ import {
   parseCalendarDate,
   toCalendarDate,
   todayCalendarDate,
+  todayInZone,
 } from './calendar-date'
 
 describe('parseCalendarDate', () => {
@@ -73,6 +74,32 @@ describe('todayCalendarDate', () => {
 
     // Assert
     expect(result).toBe(toCalendarDate(now))
+  })
+})
+
+describe('todayInZone', () => {
+  afterEach(() => jest.useRealTimers())
+
+  it.each([
+    ['Pacific/Kiritimati', '2026-09-23'],
+    ['Etc/GMT+12', '2026-09-21'],
+  ])('is today in %s', (timeZone, expected) => {
+    // Arrange
+    jest.useFakeTimers({ now: new Date('2026-09-22T11:00:00Z') })
+
+    // Act
+    const result = todayInZone(timeZone)
+
+    // Assert
+    expect(result).toBe(expected)
+  })
+
+  it("is the viewer's today without a zone", () => {
+    // Act
+    const result = todayInZone(undefined)
+
+    // Assert
+    expect(result).toBe(todayCalendarDate())
   })
 })
 

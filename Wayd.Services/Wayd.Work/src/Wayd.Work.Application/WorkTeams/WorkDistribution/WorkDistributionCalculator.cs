@@ -17,10 +17,12 @@ public static class WorkDistributionCalculator
     public const string NoProjectGroupId = "no-project";
     public const string MissingLevelGroupId = "missing-level";
 
+    /// <param name="workItems">The items done in the range, each dated in <paramref name="calendar"/>.</param>
     public static TeamWorkDistributionDto Calculate(
         WorkTeamNavigationDto team,
         LocalDate from,
         LocalDate to,
+        TeamReportCalendar calendar,
         TeamStructure structure,
         IReadOnlyList<WorkDistributionItem> workItems,
         IReadOnlyDictionary<Guid, ProjectClassification> projects,
@@ -91,6 +93,7 @@ public static class WorkDistributionCalculator
             Team = team,
             From = from,
             To = to,
+            TimeZone = calendar.ZoneOn(to).Id,
             Summary = new WorkDistributionSummaryDto
             {
                 ItemsCompleted = placed.Count,

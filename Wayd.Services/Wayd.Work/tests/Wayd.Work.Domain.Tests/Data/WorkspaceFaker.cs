@@ -59,6 +59,12 @@ public static class WorkspaceFakerExtensions
         return faker;
     }
 
+    public static WorkspaceFaker WithNeedsFullSync(this WorkspaceFaker faker, bool needsFullSync)
+    {
+        faker.RuleFor(x => x.NeedsFullSync, needsFullSync);
+        return faker;
+    }
+
     public static WorkspaceFaker WithKey(this WorkspaceFaker faker, WorkspaceKey key)
     {
         faker.RuleFor(x => x.Key, key);

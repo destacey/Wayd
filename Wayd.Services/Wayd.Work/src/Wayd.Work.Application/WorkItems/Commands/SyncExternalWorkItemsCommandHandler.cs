@@ -4,7 +4,7 @@ using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Work;
-using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Domain.Interfaces;
@@ -14,9 +14,10 @@ namespace Wayd.Work.Application.WorkItems.Commands;
 
 // TODO: add validation
 
-public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<SyncExternalWorkItemsCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemsCommand>
+public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbContext, IStatusResolver statusResolver, IDateTimeProvider dateTimeProvider, ILogger<SyncExternalWorkItemsCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemsCommand>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<SyncExternalWorkItemsCommandHandler> _logger = logger;
 
@@ -48,11 +49,6 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                 .Include(p => p.Schemes)
                     .ThenInclude(s => s.WorkType)
                         .ThenInclude(t => t!.Level)
-                .Include(p => p.Schemes)
-                    .ThenInclude(s => s.Workflow)
-                        .ThenInclude(wf => wf!.Schemes)
-                            .ThenInclude(wfs => wfs.WorkStatus)
-                .AsSplitQuery()
                 .FirstOrDefaultAsync(wp => wp.Id == workspace.WorkProcessId, cancellationToken);
             if (workProcess is null)
             {
@@ -60,36 +56,31 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                 return Result.Failure($"Unable to sync external work items for workspace {workspace.Id} because the workspace does not have a work process.");
             }
 
-            var workTypes = new HashSet<WorkType>();
-            var workStatusMappings = new HashSet<WorkStatusMapping>();
+            var workTypes = workProcess.Schemes
+                .Where(s => s.WorkType is not null)
+                .Select(s => s.WorkType!)
+                .DistinctBy(t => t.Id)
+                .ToHashSet();
 
-            foreach (var scheme in workProcess.Schemes)
+            var workTypeByName = workTypes.ToDictionary(t => t.Name, t => t);
+
+            // A status is the one the workspace's scheme gives the item's type.
+            var statusesResult = await WorkTypeStatuses.Load(
+                _statusResolver, workspace.Id, workTypes.Select(t => (t.Id, t.RecordTypeId)), cancellationToken);
+            if (statusesResult.IsFailure)
             {
-                if (scheme.WorkType is null || scheme.Workflow is null || scheme.Workflow.Schemes.Count == 0 || !scheme.Workflow.Schemes.Any(s => s.WorkStatus != null))
-                {
-                    continue;
-                }
-
-                workTypes.Add(scheme.WorkType);
-                foreach (var workflowScheme in scheme.Workflow.Schemes)
-                {
-                    if (workflowScheme.WorkStatus is not null)
-                    {
-                        workStatusMappings.Add(new WorkStatusMapping(scheme.WorkTypeId, workflowScheme.WorkStatus, workflowScheme.WorkStatusCategory));
-                    }
-                }
+                _logger.LogError("Unable to sync external work items for workspace {WorkspaceId}: {Error}", workspace.Id, statusesResult.Error);
+                return Result.Failure(statusesResult.Error);
             }
 
-            // Build dictionaries for fast lookups
-            var workTypeByName = workTypes.ToDictionary(t => t.Name, t => t);
-            var workStatusMap = workStatusMappings.ToDictionary(m => (m.WorkTypeId, m.WorkStatus.Name), m => m);
+            var statuses = statusesResult.Value;
 
             // Resolve every person referenced by this batch to an employee, recording any identity
             // that cannot be resolved so an admin can map it. See ResolveExternalIdentities.
             var identityMap = await ResolveExternalIdentities(request, cancellationToken);
 
             // Handle workspace changes separately before main batch processing
-            await ProcessWorkspaceChanges(workspace, request.WorkItems, workTypeByName, workStatusMap, cancellationToken);
+            await ProcessWorkspaceChanges(workspace, request.WorkItems, workTypeByName, statuses, cancellationToken);
 
             // Load parents after workspace changes to ensure we have the current state
             var referencedParentIds = request.WorkItems
@@ -140,7 +131,8 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                         continue;
                     }
 
-                    if (!workStatusMap.TryGetValue((workType.Id, externalWorkItem.WorkStatus), out var workFlowSchemeData))
+                    var status = statuses.Find(workType.Id, externalWorkItem.WorkStatus);
+                    if (status is null)
                     {
                         if (_logger.IsEnabled(LogLevel.Debug))
                             _logger.LogDebug("Unknown work status {WorkStatus} for external work item {ExternalId} in workspace {WorkspaceId}.", externalWorkItem.WorkStatus, externalWorkItem.Id, workspace.Id);
@@ -195,8 +187,7 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                                 externalWorkItem.Id,
                                 externalWorkItem.Title,
                                 workType,
-                                workFlowSchemeData.WorkStatus.Id,
-                                workFlowSchemeData.WorkStatusCategory,
+                                status,
                                 parentWorkItemInfo,
                                 teamId,
                                 externalWorkItem.Created,
@@ -228,8 +219,7 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                             workItem.Update(
                                 externalWorkItem.Title,
                                 workType,
-                                workFlowSchemeData.WorkStatus.Id,
-                                workFlowSchemeData.WorkStatusCategory,
+                                status,
                                 parentWorkItemInfo,
                                 teamId,
                                 externalWorkItem.LastModified,
@@ -341,7 +331,7 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
         Workspace targetWorkspace,
         List<IExternalWorkItem> externalWorkItems,
         Dictionary<string, WorkType> workTypeByName,
-        Dictionary<(int WorkTypeId, string StatusName), WorkStatusMapping> workStatusMap,
+        WorkTypeStatuses statuses,
         CancellationToken cancellationToken)
     {
         // Find work items that may have changed workspaces
@@ -380,7 +370,8 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                 continue;
             }
 
-            if (!workStatusMap.TryGetValue((workType.Id, externalWorkItem.WorkStatus), out var workFlowSchemeData))
+            var status = statuses.Find(workType.Id, externalWorkItem.WorkStatus);
+            if (status is null)
             {
                 _logger.LogWarning("Unknown work status {WorkStatus} for workspace change of work item {ExternalId}.",
                     externalWorkItem.WorkStatus, externalWorkItem.Id);
@@ -389,7 +380,7 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
 
             try
             {
-                var result = workItem.ChangeExternalWorkspace(targetWorkspace, workType, workFlowSchemeData.WorkStatus.Id, workFlowSchemeData.WorkStatusCategory);
+                var result = workItem.ChangeExternalWorkspace(targetWorkspace, workType, status);
                 if (result.IsFailure)
                 {
                     _logger.LogError("Failed to change workspace for external work item {WorkItemId}: {Error}",
@@ -782,8 +773,6 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
         if (_logger.IsEnabled(LogLevel.Debug))
             _logger.LogDebug("Synced {UpdateCount} parent project ids for workspace {WorkspaceId}.", updateCount, workspace.Id);
     }
-
-    private sealed record WorkStatusMapping(int WorkTypeId, WorkStatus WorkStatus, StatusCategory WorkStatusCategory);
 
     private sealed record EmployeeIds(Guid? CreatedById, Guid? LastModifiedById, Guid? AssignedToId);
 

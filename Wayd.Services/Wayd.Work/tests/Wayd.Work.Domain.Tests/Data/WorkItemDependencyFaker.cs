@@ -10,7 +10,7 @@ namespace Wayd.Work.Domain.Tests.Data;
 
 public class WorkItemDependencyFaker : PrivateConstructorFaker<WorkItemDependency>
 {
-    public WorkItemDependencyFaker(Instant now)
+    public WorkItemDependencyFaker()
     {
         var workItemFaker = new WorkItemFaker();
         var sourceWorkItem = workItemFaker.WithProposedState().Generate();
@@ -28,9 +28,7 @@ public class WorkItemDependencyFaker : PrivateConstructorFaker<WorkItemDependenc
         RuleFor(x => x.CreatedById, f => f.Random.Guid());
         RuleFor(x => x.Comment, f => f.Lorem.Sentence());
 
-
-        // Call CalculateStateAndHealth() after generation
-        this.FinishWith("CalculateStateAndHealth", now);
+        this.FinishWith("CalculateStateAndHealth");
     }
 }
 

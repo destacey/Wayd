@@ -19,9 +19,9 @@ Renaming a status changes what people read; it does not change what Wayd does. T
 
 ### Record types
 
-Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Version, Release, Release Package, Deployment, Intake Request and Project Deliverable. The screens call it the **Owner Type** in the create form and **Owner** in the workflow list.
+Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Version, Release, Release Package, Deployment, Intake Request, Project Deliverable and Work Item. The screens call it the **Owner Type** in the create form and **Owner** in the workflow list.
 
-A record type whose module is switched off is absent here: while the **Demand Management** feature flag is off, no Intake Request workflow is listed, and none can be created, cloned or reassigned.
+A record type whose module is switched off is absent here: while the **Demand Management** feature flag is off, no Intake Request workflow is listed, and none can be created, cloned or reassigned. Work Item workflows are listed only while the **Work Item Status Workflows** feature flag is on; work items follow them either way.
 
 The record type also decides the vocabulary available to the workflow's statuses — a Release has a meaning for "Released" that a Product does not.
 
@@ -226,7 +226,17 @@ When the source drops a status, Wayd **retires** it rather than deleting it. A r
 
 A source's workflow does not have to meet the record type's requirements. When a managed workflow has no status in a required category, lacks a required alias, or has an alias in the wrong category, it keeps syncing, and each problem is reported as a warning until you fix the mapping.
 
-No record type is synced yet: work items will be the first.
+#### Work item workflows
+
+Work items are synced from Azure DevOps, so their workflows are managed. For each process, the sync keeps:
+
+- a **Work Item** workflow per work type, named after the process and the type, with a status for each of the type's states, hidden states retired;
+- a **workflow scheme** for the process, which gives each work type its workflow;
+- an assignment of that scheme to each workspace on the process.
+
+A work item takes the status its Azure DevOps state names in the workflow its type follows in its workspace, and its history does the same for each period. Two processes' "Active" are different statuses, so each can sit in a different category.
+
+When you change a status's category, every work item holding it and every period of their history moves to the new category, so reports and charts read the same as the workflow. An item whose status is no longer Done or Removed loses its done date; one whose status becomes Done gets its done date from Azure DevOps when it next changes there. A rename in Azure DevOps renames the status on its work items at the next sync. A period of history keeps the state name Azure DevOps recorded.
 
 ## Changing a published workflow
 

@@ -32,4 +32,10 @@ public interface IWorkDbContext : IWaydDbContext
 
     /// <summary>Opens a transaction over several saves; see <see cref="IUnitOfWork"/>.</summary>
     Task<IUnitOfWork> BeginUnitOfWork(CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Raises the command timeout for an operation that legitimately runs long, putting back the context's own
+    /// ceiling when disposed.
+    /// </summary>
+    IDisposable WithCommandTimeout(TimeSpan timeout);
 }

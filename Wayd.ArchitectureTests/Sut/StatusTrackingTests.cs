@@ -2,6 +2,7 @@ using FluentAssertions;
 using Wayd.ArchitectureTests.Helpers;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.ProductManagement.Domain.Models;
+using WorkItem = Wayd.Work.Domain.Models.WorkItem;
 
 namespace Wayd.ArchitectureTests.Sut;
 
@@ -20,7 +21,10 @@ public class StatusTrackingTests
     /// The aggregates whose status a source system decides, each with where its status history lives instead
     /// of <see cref="StatusTransition"/> rows.
     /// </summary>
-    private static readonly Dictionary<Type, string> SourceStatusRecords = new();
+    private static readonly Dictionary<Type, string> SourceStatusRecords = new()
+    {
+        [typeof(WorkItem)] = "WorkItemStateHistory, rebuilt from the source's revisions",
+    };
 
     [Fact]
     public void ManagedStatusRecords_AreExactlyTheListedOnes()

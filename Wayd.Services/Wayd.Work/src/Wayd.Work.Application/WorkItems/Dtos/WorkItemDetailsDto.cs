@@ -47,7 +47,7 @@ public sealed record WorkItemDetailsDto : IMapFrom<WorkItem>
     {
         config.NewConfig<WorkItem, WorkItemDetailsDto>()
             .Map(dest => dest.Key, src => src.Key.ToString())
-            .Map(dest => dest.Status, src => src.Status.Name)
+            .Map(dest => dest.Status, src => src.StatusName)
             .Map(dest => dest.StatusCategory, src => SimpleNavigationDto.FromEnum(src.StatusCategory))
             .Map(dest => dest.Team, src => src.Team)
             .Map(dest => dest.Sprint, src => src.Iteration != null && src.Iteration.Type == IterationType.Sprint ? src.Iteration : null)

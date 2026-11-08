@@ -114,7 +114,7 @@ public sealed class AzureDevOpsInitManager(ILogger<AzureDevOpsInitManager> logge
         }
     }
 
-    public async Task<Result<Guid>> EnsureWorkProcessIntegration(Guid connectionId, Guid workProcessExternalId, CancellationToken cancellationToken)
+    public async Task<Result<WorkProcessIntegration>> EnsureWorkProcessIntegration(Guid connectionId, Guid workProcessExternalId, CancellationToken cancellationToken)
     {
         try
         {
@@ -122,19 +122,19 @@ public sealed class AzureDevOpsInitManager(ILogger<AzureDevOpsInitManager> logge
             {
                 var connectionResult = await GetValidConnectionDetailsForWorkProcess(connectionId, workProcessExternalId, cancellationToken);
                 if (connectionResult.IsFailure)
-                    return connectionResult.ConvertFailure<Guid>();
+                    return connectionResult.ConvertFailure<WorkProcessIntegration>();
 
                 var connectionWorkProcess = connectionResult.Value.Configuration.WorkProcesses
                     .First(wp => wp.ExternalId == workProcessExternalId);
                 if (connectionWorkProcess.IntegrationState is not null)
                 {
                     if (connectionWorkProcess.IntegrationState.IsActive)
-                        return Result.Success(connectionWorkProcess.IntegrationState.InternalId);
+                        return Result.Success(new WorkProcessIntegration(connectionWorkProcess.IntegrationState.InternalId, ReadFromSource: false));
 
                     // A Wayd work process can only be deactivated once none of its workspaces are
                     // active, so this is an admin's deliberate choice; reactivating it is theirs too.
                     _logger.LogWarning("Work process {WorkProcessExternalId} on connection {ConnectionId} is deactivated in Wayd.", workProcessExternalId, connectionId);
-                    return Result.Failure<Guid>($"The work process {connectionWorkProcess.Name} is deactivated in Wayd. Activate it under Settings → Work Processes, then try again.");
+                    return Result.Failure<WorkProcessIntegration>($"The work process {connectionWorkProcess.Name} is deactivated in Wayd. Activate it under Settings → Work Processes, then try again.");
                 }
 
                 // Check if another connection has already created a WorkProcess for this ExternalId.
@@ -148,13 +148,13 @@ public sealed class AzureDevOpsInitManager(ILogger<AzureDevOpsInitManager> logge
                     if (existingRegistration is null)
                     {
                         _logger.LogError("Work process {WorkProcessExternalId} exists but no integration registration was found.", workProcessExternalId);
-                        return Result.Failure<Guid>($"Work process {workProcessExternalId} exists but no integration registration was found.");
+                        return Result.Failure<WorkProcessIntegration>($"Work process {workProcessExternalId} exists but no integration registration was found.");
                     }
 
                     if (!existingRegistration.IntegrationState.IsActive)
                     {
                         _logger.LogWarning("Work process {WorkProcessExternalId} for connection {ConnectionId} is deactivated in Wayd.", workProcessExternalId, connectionId);
-                        return Result.Failure<Guid>($"The work process {connectionWorkProcess.Name} is deactivated in Wayd. Activate it under Settings → Work Processes, then try again.");
+                        return Result.Failure<WorkProcessIntegration>($"The work process {connectionWorkProcess.Name} is deactivated in Wayd. Activate it under Settings → Work Processes, then try again.");
                     }
 
                     _logger.LogInformation("Reusing existing work process {WorkProcessInternalId} for Azure DevOps process {WorkProcessExternalId} on connection {ConnectionId}.", existingRegistration.IntegrationState.InternalId, workProcessExternalId, connectionId);
@@ -162,54 +162,62 @@ public sealed class AzureDevOpsInitManager(ILogger<AzureDevOpsInitManager> logge
                     var linkResult = await _dispatcher.Send(new UpdateAzureDevOpsWorkProcessIntegrationStateCommand(connectionId, existingRegistration), cancellationToken);
 
                     return linkResult.IsSuccess
-                        ? Result.Success(existingRegistration.IntegrationState.InternalId)
-                        : linkResult.ConvertFailure<Guid>();
+                        ? Result.Success(new WorkProcessIntegration(existingRegistration.IntegrationState.InternalId, ReadFromSource: false))
+                        : linkResult.ConvertFailure<WorkProcessIntegration>();
                 }
 
                 var azdoConnection = new AzureDevOpsConnectionContext(connectionResult.Value.Configuration.Organization, connectionResult.Value.Configuration.PersonalAccessToken);
 
                 var processResult = await ExternalCallMeasure.MeasureAsync(_logger, "EnsureWorkProcessIntegration_GetWorkProcess", () => _azureDevOpsService.GetWorkProcess(azdoConnection, workProcessExternalId, cancellationToken));
                 if (processResult.IsFailure)
-                    return processResult.ConvertFailure<Guid>();
+                    return processResult.ConvertFailure<WorkProcessIntegration>();
 
                 var workTypes = processResult.Value.WorkTypes.OfType<IExternalWorkType>().ToList();
                 if (workTypes.Count != 0)
                 {
                     var levels = await _dispatcher.Send(new GetWorkTypeLevelsQuery(), cancellationToken);
                     if (levels is null)
-                        return Result.Failure<Guid>("Unable to get work type levels.");
+                        return Result.Failure<WorkProcessIntegration>("Unable to get work type levels.");
 
                     int defaultLevelId = levels.Where(l => l.Tier.Id == (int)WorkTypeTier.Other).Select(l => l.Id).SingleOrDefault();
 
                     var syncWorkTypesResult = await _dispatcher.Send(new SyncExternalWorkTypesCommand(workTypes, defaultLevelId), cancellationToken);
                     if (syncWorkTypesResult.IsFailure)
-                        return syncWorkTypesResult.ConvertFailure<Guid>();
+                        return syncWorkTypesResult.ConvertFailure<WorkProcessIntegration>();
                 }
 
                 if (processResult.Value.WorkStatuses.Count != 0)
                 {
                     var syncWorkStatusesResult = await _dispatcher.Send(new SyncExternalWorkStatusesCommand(processResult.Value.WorkStatuses), cancellationToken);
                     if (syncWorkStatusesResult.IsFailure)
-                        return syncWorkStatusesResult.ConvertFailure<Guid>();
+                        return syncWorkStatusesResult.ConvertFailure<WorkProcessIntegration>();
                 }
 
                 // Creates the process and its workflows in one save. A concurrent setup of the same
                 // process fails here on the unique external id; the next attempt links to the winner.
                 var createProcessResult = await _dispatcher.Send(new CreateExternalWorkProcessCommand(processResult.Value, AutoGeneratedWorkflowDescription), cancellationToken);
                 if (createProcessResult.IsFailure)
-                    return createProcessResult.ConvertFailure<Guid>();
+                    return createProcessResult.ConvertFailure<WorkProcessIntegration>();
 
                 var updateIntegrationStateResult = await _dispatcher.Send(new UpdateAzureDevOpsWorkProcessIntegrationStateCommand(connectionId, new IntegrationRegistration<Guid, Guid>(workProcessExternalId, createProcessResult.Value)), cancellationToken);
+                if (updateIntegrationStateResult.IsFailure)
+                    return updateIntegrationStateResult.ConvertFailure<WorkProcessIntegration>();
 
-                return updateIntegrationStateResult.IsSuccess
-                    ? Result.Success(createProcessResult.Value.InternalId)
-                    : updateIntegrationStateResult.ConvertFailure<Guid>();
+                // Work items take their statuses from the engine's copy of the process, so without it none can sync.
+                var syncWorkflowsResult = await _dispatcher.Send(new SyncExternalWorkProcessWorkflowsCommand(processResult.Value), cancellationToken);
+                if (syncWorkflowsResult.IsFailure)
+                {
+                    _logger.LogError("Unable to keep work process {WorkProcessExternalId} in the status workflow engine: {Error}", workProcessExternalId, syncWorkflowsResult.Error);
+                    return Result.Failure<WorkProcessIntegration>(syncWorkflowsResult.Error);
+                }
+
+                return Result.Success(new WorkProcessIntegration(createProcessResult.Value.InternalId, ReadFromSource: true));
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "An error occurred while trying to set up work process {WorkProcessExternalId} from Azure DevOps for connection {ConnectionId}.", workProcessExternalId, connectionId);
-            return Result.Failure<Guid>($"An error occurred while trying to set up work process {workProcessExternalId} from Azure DevOps for connection {connectionId}.");
+            return Result.Failure<WorkProcessIntegration>($"An error occurred while trying to set up work process {workProcessExternalId} from Azure DevOps for connection {connectionId}.");
         }
     }
 
@@ -262,7 +270,7 @@ public sealed class AzureDevOpsInitManager(ILogger<AzureDevOpsInitManager> logge
                 // The Wayd workspace is created against its work process, so the process must exist first.
                 var workProcessResult = await EnsureWorkProcessIntegration(connectionId, workspace.WorkProcessId, cancellationToken);
                 if (workProcessResult.IsFailure)
-                    return workProcessResult;
+                    return workProcessResult.ConvertFailure<Guid>();
 
                 var azdoConnection = new AzureDevOpsConnectionContext(connectionResult.Value.Configuration.Organization, connectionResult.Value.Configuration.PersonalAccessToken);
 

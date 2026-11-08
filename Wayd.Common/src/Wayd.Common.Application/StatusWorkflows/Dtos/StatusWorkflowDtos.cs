@@ -117,7 +117,7 @@ public sealed record StatusWorkflowDetailsDto
 
     /// <summary>
     /// Whether administrators author this workflow, or a sync keeps it from its source. A managed
-    /// workflow's statuses follow the source; only their categories and aliases are edited here.
+    /// workflow's statuses, categories included, follow the source; only their descriptions are edited here.
     /// </summary>
     public required WorkflowOwnership Ownership { get; init; }
 

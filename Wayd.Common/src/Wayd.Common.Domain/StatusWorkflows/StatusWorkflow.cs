@@ -969,8 +969,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// <remarks>
     /// Published at once, because records synced from the source need it now. Its checks only warn
     /// (<see cref="WorkflowCheckRules"/>): a source workflow with no status in a required category still
-    /// syncs, and administration flags it. The statuses arrive with the source's suggested categories and no
-    /// aliases, which administrators add.
+    /// syncs, and administration flags it. The statuses arrive with the source's categories and no aliases.
     /// </remarks>
     public static Result<StatusWorkflow> CreateManaged(
         string name, string ownerType, string externalKey, IReadOnlyList<SourceStatus> statuses, EventActor actor, Instant timestamp)
@@ -1044,8 +1043,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// Only the source's facts are applied: an existing status takes the source's name and category, and keeps
     /// the description administrators gave it. A category change raises <see cref="WorkflowStatusReclassifiedEvent"/>,
     /// which carries the owner type, so the owning module re-stamps the denormalized category on its records. A
-    /// retired status keeps its place after the active ones and loses its alias, so the meaning can move to a
-    /// status records can still be given.
+    /// retired status keeps its place after the active ones and loses any alias it held.
     /// </para>
     /// </remarks>
     public Result SyncFromSource(string name, IReadOnlyList<SourceStatus> statuses, EventActor actor, Instant timestamp)

@@ -139201,7 +139201,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// Whether administrators author this workflow, or a sync keeps it from its source. A managed
-        /// <br/>workflow's statuses follow the source; only their categories and aliases are edited here.
+        /// <br/>workflow's statuses, categories included, follow the source; only their descriptions are edited here.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ownership")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

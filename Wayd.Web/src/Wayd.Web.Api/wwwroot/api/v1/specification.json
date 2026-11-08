@@ -80063,7 +80063,7 @@
                 "$ref": "#/components/schemas/WorkflowOwnership"
               }
             ],
-            "description": "Whether administrators author this workflow, or a sync keeps it from its source. A managed\nworkflow's statuses follow the source; only their categories and aliases are edited here."
+            "description": "Whether administrators author this workflow, or a sync keeps it from its source. A managed\nworkflow's statuses, categories included, follow the source; only their descriptions are edited here."
           },
           "externalKey": {
             "type": "string",

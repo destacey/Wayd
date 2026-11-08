@@ -12,15 +12,15 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// </param>
 /// <param name="Name">What the source calls the status now.</param>
 /// <param name="Category">
-/// The category the source suggests. Used only when the status first appears: from then on the category is
-/// the administrators' mapping, and the sync never overwrites it.
+/// The category the source gives the status. Applied on every sync, so a status the source moves to another
+/// category moves with it.
 /// </param>
 /// <param name="IsHidden">
 /// Whether the source keeps the status but no longer offers it, as Azure DevOps does with a hidden state. It
 /// is kept as a retired status, so records and history that hold it still resolve to it and its category.
 /// </param>
 /// <param name="Description">
-/// The description to start the status with. Used only when the status first appears, as the category is: from
-/// then on the description is the administrators', and the sync never overwrites it, a cleared one included.
+/// The description to start the status with. Used only when the status first appears: from then on the
+/// description is the administrators', and the sync never overwrites it, a cleared one included.
 /// </param>
 public sealed record SourceStatus(string ExternalKey, string Name, StatusCategory Category, bool IsHidden = false, string? Description = null);

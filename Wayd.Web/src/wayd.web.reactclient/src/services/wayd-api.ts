@@ -71047,7 +71047,7 @@ export interface StatusWorkflowDetailsDto {
     state: string;
     isSystem: boolean;
     /** Whether administrators author this workflow, or a sync keeps it from its source. A managed
-workflow's statuses follow the source; only their categories and aliases are edited here. */
+workflow's statuses, categories included, follow the source; only their descriptions are edited here. */
     ownership: WorkflowOwnership;
     /** The source's identifier for this workflow when it is managed; null when owned. */
     externalKey?: string | undefined;

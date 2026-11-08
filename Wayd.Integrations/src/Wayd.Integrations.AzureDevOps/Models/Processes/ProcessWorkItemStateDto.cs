@@ -15,14 +15,6 @@ internal sealed record ProcessWorkItemStateDto
 
 internal static class ProcessWorkItemStateDtoExtensions
 {
-    public static AzdoWorkStatus ToAzdoWorkStatus(this ProcessWorkItemStateDto workItemState)
-    {
-        return new AzdoWorkStatus
-        {
-            Name = workItemState.Name
-        };
-    }
-
     public static AzdoWorkflowState ToAzdoWorkflowState(this ProcessWorkItemStateDto workItemState)
     {
         return new AzdoWorkflowState

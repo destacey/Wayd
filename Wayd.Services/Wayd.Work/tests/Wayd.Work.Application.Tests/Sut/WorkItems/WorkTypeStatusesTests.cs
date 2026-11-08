@@ -95,6 +95,42 @@ public class WorkTypeStatusesTests
     }
 
     [Fact]
+    public async Task Find_MatchesANameTheSourceRenamedTheStatusFrom()
+    {
+        // Arrange — revisions written before the rename still report "Ready"
+        var recordTypeId = Guid.NewGuid();
+        var workflow = Workflow(new SourceStatus("1", "Ready", StatusCategory.Proposed), new SourceStatus("2", "Closed", StatusCategory.Done));
+        workflow.SyncFromSource("Bug workflow", [new SourceStatus("1", "Approved", StatusCategory.Proposed), new SourceStatus("2", "Closed", StatusCategory.Done)], EventActor.Sync(null), Now);
+        Resolves(recordTypeId, workflow);
+
+        // Act
+        var statuses = await WorkTypeStatuses.Load(_statusResolver.Object, WorkspaceId, [(7, recordTypeId)], TestContext.Current.CancellationToken);
+
+        // Assert
+        var approved = workflow.Statuses.Single(s => s.ExternalKey == "1");
+        statuses.Value.Find(7, "ready")!.StatusId.Should().Be(approved.Id);
+        statuses.Value.Find(7, "Approved")!.StatusId.Should().Be(approved.Id);
+    }
+
+    [Fact]
+    public async Task Find_PrefersAStatusCurrentlyNamedSo_OverOneFormerlyNamedSo()
+    {
+        // Arrange — "Ready" became "Approved", then the source renamed another state to "Ready"
+        var recordTypeId = Guid.NewGuid();
+        var workflow = Workflow(new SourceStatus("1", "Ready", StatusCategory.Proposed), new SourceStatus("2", "Queued", StatusCategory.Active));
+        workflow.SyncFromSource("Bug workflow", [new SourceStatus("1", "Approved", StatusCategory.Proposed), new SourceStatus("2", "Queued", StatusCategory.Active)], EventActor.Sync(null), Now);
+        workflow.SyncFromSource("Bug workflow", [new SourceStatus("1", "Approved", StatusCategory.Proposed), new SourceStatus("2", "Ready", StatusCategory.Active)], EventActor.Sync(null), Now);
+        Resolves(recordTypeId, workflow);
+
+        // Act
+        var statuses = await WorkTypeStatuses.Load(_statusResolver.Object, WorkspaceId, [(7, recordTypeId)], TestContext.Current.CancellationToken);
+
+        // Assert
+        statuses.Value.Find(7, "Ready")!.StatusId.Should().Be(workflow.Statuses.Single(s => s.ExternalKey == "2").Id);
+        statuses.Value.Find(7, "Queued")!.StatusId.Should().Be(workflow.Statuses.Single(s => s.ExternalKey == "2").Id);
+    }
+
+    [Fact]
     public async Task Load_ATypeWithoutAnEntryOfItsOwn_GetsNoStatuses()
     {
         // Arrange — the scheme's default belongs to another type

@@ -165,8 +165,12 @@ export interface WaydGridProps<T extends RowData> {
    * buttons that need `canCreateDraft` / `addDraftAtRoot`).
    */
   leftSlot?: React.ReactNode | ((context: GridColumnContext) => React.ReactNode)
-  /** Content rendered inside the help popover. */
+  /** Content rendered inside the help popover, in place of the generated
+   *  keyboard help. */
   helpContent?: React.ReactNode
+  /** Grid-specific notes listed after the generated keyboard help (what a
+   *  drag does, what the colors mean). Ignored when `helpContent` is set. */
+  helpNotes?: React.ReactNode
   /** Slot for actions rendered just before the export/help group (a divider
    *  separates it from export). For grid-specific toggles (e.g. a Gantt chart). */
   actionsSlot?: React.ReactNode
@@ -345,11 +349,13 @@ export interface WaydGridProps<T extends RowData> {
   /**
    * Creates a draft row once its tree column (its Name) commits, with every
    * value the user put on the draft. Resolve with the new row's id so focus
-   * can follow it.
+   * can follow it. A draft added below a row (Insert) also gets its 1-based
+   * `order` among its siblings; one added last gets none.
    */
   onCreate?: (
     parentId: string | null,
     values: Record<string, unknown>,
+    position?: { order: number },
   ) => Promise<string | void>
   /**
    * Server error keys whose names match no editor's `field`, mapped to the
@@ -376,6 +382,16 @@ export interface WaydGridProps<T extends RowData> {
   /** Called when the internal draft list changes. */
   onDraftsChange?: (drafts: DraftItem[]) => void
 
+  // -- Row actions from the keyboard (tree mode) --
+  /**
+   * What the row-action keys do beyond the grid's own. Insert or Ctrl+Enter
+   * adds a draft below the row when the grid creates drafts, and
+   * Alt+Shift+→/← indent and outdent through `moveValidator` and
+   * `onNodeMove`; these fill in the rest. The help panel lists each key the
+   * grid supports.
+   */
+  rowActions?: WaydGridRowActions<T>
+
   // -- Right chart pane (Gantt "chart mode"; enabled when provided) --
   /**
    * Attach a bar-chart pane to the right of the grid that shares the grid's row
@@ -384,6 +400,20 @@ export interface WaydGridProps<T extends RowData> {
    * completely unchanged when this is absent.
    */
   rightPane?: WaydGridRightPane<T>
+}
+
+/** The consumer's half of the row-action keys ({@link WaydGridProps.rowActions}). */
+export interface WaydGridRowActions<T extends RowData> {
+  /** Ctrl+Delete. Ask before deleting: the key is easy to press by accident.
+   *  Return false for a row that cannot be deleted, and the key is left to
+   *  the grid's other handlers. */
+  onDelete?: (row: T) => boolean | void
+  /** Ctrl+Shift+Enter: open the row's details. Return false for a row that
+   *  has none. */
+  onOpen?: (row: T) => boolean | void
+  /** Whether Insert may add a row under this parent (null: the root).
+   *  Every parent by default. */
+  canInsertUnder?: (parent: T | null) => boolean
 }
 
 /** Payload for {@link WaydGridProps.onRowReorder}. */
@@ -408,4 +438,18 @@ export interface WaydGridHandle {
   selectedRowId: string | null
   /** The displayed (post filter + sort) rows' data, in display order. */
   getDisplayedRows: () => unknown[]
+  /**
+   * Commits values set outside a cell — a dragged Gantt bar — as a cell edit
+   * would: the editors' and pairs' checks run, the cells show the values
+   * marked saving, the commit waits behind the row's other commits, and a
+   * failure lands on the cells. Values are keyed by column id, in the form
+   * each editor's `get` returns. Needs cell editing (`onCommit`).
+   */
+  commitCells: (rowId: string, values: Record<string, unknown>) => void
+  /**
+   * Moves focus to a cell once its row is in the data — after a refetch that
+   * removed the focused row, say — if the user is still in the grid and no
+   * editor is open. Needs cell editing (`onCommit`).
+   */
+  focusRow: (rowId: string, columnId: string) => void
 }

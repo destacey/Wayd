@@ -720,52 +720,6 @@ public class WorkProcessConfig : IEntityTypeConfiguration<WorkProcess>
         builder.Property(w => w.Deleted);
         builder.Property(w => w.DeletedBy);
         builder.Property(w => w.IsDeleted);
-
-        // Relationships
-        builder.HasMany(w => w.Schemes)
-            .WithOne(w => w.WorkProcess)
-            .HasForeignKey(w => w.WorkProcessId)
-            .OnDelete(DeleteBehavior.Cascade);
-    }
-}
-
-public class WorkProcessSchemeConfig : IEntityTypeConfiguration<WorkProcessScheme>
-{
-    public void Configure(EntityTypeBuilder<WorkProcessScheme> builder)
-    {
-        builder.ToTable("WorkProcessSchemes", SchemaNames.Work);
-
-        builder.HasKey(w => w.Id);
-
-        builder.HasIndex(w => new { w.Id, w.IsDeleted })
-            .WhereNotDeleted();
-
-        builder.HasIndex(w => new { w.WorkProcessId, w.IsDeleted })
-            .IncludeProperties(w => new { w.Id, w.WorkTypeId, w.WorkflowId, w.IsActive })
-            .WhereNotDeleted();
-
-        // Properties
-        builder.Property(w => w.Id).ValueGeneratedNever();
-        builder.Property(w => w.WorkProcessId);
-        builder.Property(w => w.WorkTypeId);
-        builder.Property(w => w.WorkflowId);
-        builder.Property(w => w.IsActive);
-
-        // Soft Delete
-        builder.Property(w => w.Deleted);
-        builder.Property(w => w.DeletedBy);
-        builder.Property(w => w.IsDeleted);
-
-        // Relationships
-        builder.HasOne(w => w.WorkType)
-            .WithMany()
-            .HasForeignKey(w => w.WorkTypeId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(w => w.Workflow)
-            .WithMany()
-            .HasForeignKey(w => w.WorkflowId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -867,32 +821,6 @@ public class WorkspaceConfig : IEntityTypeConfiguration<Workspace>
     }
 }
 
-public class WorkStatusConfig : IEntityTypeConfiguration<WorkStatus>
-{
-    public void Configure(EntityTypeBuilder<WorkStatus> builder)
-    {
-        builder.ToTable("WorkStatuses", SchemaNames.Work);
-
-        builder.HasKey(w => w.Id);
-
-        builder.HasIndex(w => new { w.Id, w.IsDeleted })
-            .WhereNotDeleted();
-        builder.HasIndex(w => w.Name).IsUnique();
-        builder.HasIndex(w => new { w.IsActive, w.IsDeleted })
-            .IncludeProperties(w => new { w.Id, w.Name })
-            .WhereNotDeleted();
-
-        // Properties
-        builder.Property(w => w.Name).IsRequired().HasMaxLength(64);
-        builder.Property(w => w.Description).HasMaxLength(1024);
-        builder.Property(w => w.IsActive);
-
-        // Soft Delete
-        builder.Property(w => w.Deleted);
-        builder.Property(w => w.DeletedBy);
-        builder.Property(w => w.IsDeleted);
-    }
-}
 public class WorkTeamConfig : IEntityTypeConfiguration<WorkTeam>
 {
     public void Configure(EntityTypeBuilder<WorkTeam> builder)
@@ -993,85 +921,16 @@ public class WorkTypeConfig : IEntityTypeConfiguration<WorkType>
     }
 }
 
-public class WorkflowConfig : IEntityTypeConfiguration<Workflow>
+public class LegacyWorkStatusDescriptionConfig : IEntityTypeConfiguration<LegacyWorkStatusDescription>
 {
-    public void Configure(EntityTypeBuilder<Workflow> builder)
+    public void Configure(EntityTypeBuilder<LegacyWorkStatusDescription> builder)
     {
-        builder.ToTable("Workflows", SchemaNames.Work);
+        builder.ToTable("LegacyWorkStatusDescriptions", SchemaNames.Work);
 
-        builder.HasKey(w => w.Id);
-        builder.HasAlternateKey(w => w.Key);
-
-
-        builder.HasIndex(w => new { w.Id, w.IsDeleted })
-            .WhereNotDeleted();
-        builder.HasIndex(w => new { w.Key, w.IsDeleted })
-            .WhereNotDeleted();
-        builder.HasIndex(w => new { w.IsActive, w.IsDeleted })
-            .IncludeProperties(w => new { w.Id, w.Key, w.Name })
-            .WhereNotDeleted();
+        builder.HasKey(d => d.Name);
 
         // Properties
-        builder.Property(w => w.Id).ValueGeneratedNever();
-        builder.Property(p => p.Key).ValueGeneratedOnAdd();
-        builder.Property(w => w.Name).IsRequired().HasMaxLength(128);
-        builder.Property(w => w.Description).HasMaxLength(1024);
-        builder.Property(w => w.Ownership).IsRequired()
-            .HasConversion<EnumConverter<Ownership>>()
-            .HasColumnType("varchar")
-            .HasMaxLength(32);
-        builder.Property(w => w.IsActive);
-
-        // Soft Delete
-        builder.Property(w => w.Deleted);
-        builder.Property(w => w.DeletedBy);
-        builder.Property(w => w.IsDeleted);
-
-        // Relationships
-        builder.HasMany(w => w.Schemes)
-            .WithOne(s => s.Workflow)
-            .HasForeignKey(w => w.WorkflowId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.Navigation(w => w.Schemes)
-            .AutoInclude();
-    }
-}
-
-public class WorkflowSchemeConfig : IEntityTypeConfiguration<WorkflowScheme>
-{
-    public void Configure(EntityTypeBuilder<WorkflowScheme> builder)
-    {
-        builder.ToTable("WorkflowSchemes", SchemaNames.Work);
-
-        builder.HasKey(w => w.Id);
-
-        builder.HasIndex(w => new { w.Id, w.IsDeleted })
-            .WhereNotDeleted();
-        builder.HasIndex(w => new { w.WorkflowId, w.IsDeleted })
-            .IncludeProperties(w => new { w.Id, w.WorkStatusId, w.WorkStatusCategory })
-            .WhereNotDeleted();
-
-        // Properties
-        builder.Property(w => w.Id).ValueGeneratedNever();
-        builder.Property(w => w.WorkStatusCategory).IsRequired()
-            .HasConversion<EnumConverter<StatusCategory>>()
-            .HasColumnType("varchar")
-            .HasMaxLength(32);
-        builder.Property(w => w.IsActive);
-
-        // Soft Delete
-        builder.Property(w => w.Deleted);
-        builder.Property(w => w.DeletedBy);
-        builder.Property(w => w.IsDeleted);
-
-        // Relationships
-        builder.HasOne(w => w.WorkStatus)
-            .WithMany()
-            .HasForeignKey(ws => ws.WorkStatusId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        builder.Navigation(w => w.WorkStatus)
-            .AutoInclude();
+        builder.Property(d => d.Name).HasMaxLength(64);
+        builder.Property(d => d.Description).IsRequired().HasMaxLength(512);
     }
 }

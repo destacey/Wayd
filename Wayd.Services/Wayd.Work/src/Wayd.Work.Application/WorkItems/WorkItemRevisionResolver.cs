@@ -1,5 +1,6 @@
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Work.Application.Persistence;
+using Wayd.Work.Application.WorkProcesses;
 
 namespace Wayd.Work.Application.WorkItems;
 
@@ -23,6 +24,7 @@ public sealed class WorkItemRevisionResolver
     private const int LookupBatchSize = 1000;
 
     private readonly IWorkDbContext _dbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext;
     private readonly IStatusResolver _statusResolver;
     private readonly Workspace _workspace;
     private readonly Guid _connectionId;
@@ -35,6 +37,7 @@ public sealed class WorkItemRevisionResolver
 
     private WorkItemRevisionResolver(
         IWorkDbContext dbContext,
+        IStatusWorkflowDbContext statusWorkflowDbContext,
         IStatusResolver statusResolver,
         Workspace workspace,
         Guid connectionId,
@@ -43,6 +46,7 @@ public sealed class WorkItemRevisionResolver
         Dictionary<string, Guid?> employeeIds)
     {
         _dbContext = dbContext;
+        _statusWorkflowDbContext = statusWorkflowDbContext;
         _statusResolver = statusResolver;
         _workspace = workspace;
         _connectionId = connectionId;
@@ -63,6 +67,7 @@ public sealed class WorkItemRevisionResolver
     /// </returns>
     public static async Task<Result<WorkItemRevisionResolver>> Load(
         IWorkDbContext dbContext,
+        IStatusWorkflowDbContext statusWorkflowDbContext,
         IStatusResolver statusResolver,
         Workspace workspace,
         Guid connectionId,
@@ -70,10 +75,10 @@ public sealed class WorkItemRevisionResolver
     {
         Guard.Against.Null(workspace, nameof(workspace));
 
-        var (own, error) = await WorkspaceStatuses.Load(dbContext, statusResolver, workspace.Id, cancellationToken);
+        var (own, error) = await WorkspaceStatuses.Load(dbContext, statusWorkflowDbContext, statusResolver, workspace.Id, cancellationToken);
 
         return error is null
-            ? new WorkItemRevisionResolver(dbContext, statusResolver, workspace, connectionId, new() { [workspace.Id] = own }, [], [])
+            ? new WorkItemRevisionResolver(dbContext, statusWorkflowDbContext, statusResolver, workspace, connectionId, new() { [workspace.Id] = own }, [], [])
             : Result.Failure<WorkItemRevisionResolver>(error);
     }
 
@@ -87,14 +92,14 @@ public sealed class WorkItemRevisionResolver
 
         foreach (var workspaceId in revisions.Select(r => r.WorkspaceId).Distinct().Where(id => !_workspaces.ContainsKey(id)))
         {
-            (_workspaces[workspaceId], _) = await WorkspaceStatuses.Load(_dbContext, _statusResolver, workspaceId, cancellationToken);
+            (_workspaces[workspaceId], _) = await WorkspaceStatuses.Load(_dbContext, _statusWorkflowDbContext, _statusResolver, workspaceId, cancellationToken);
         }
 
         var values = revisions.Select(r => r.Values).ToList();
         var iterationIds = await LoadIterationIds(_dbContext, _workspace.OwnershipInfo.SystemId, values, cancellationToken);
         var employeeIds = await LoadEmployeeIds(_dbContext, _connectionId, values, cancellationToken);
 
-        return new WorkItemRevisionResolver(_dbContext, _statusResolver, _workspace, _connectionId, _workspaces, iterationIds, employeeIds);
+        return new WorkItemRevisionResolver(_dbContext, _statusWorkflowDbContext, _statusResolver, _workspace, _connectionId, _workspaces, iterationIds, employeeIds);
     }
 
     /// <summary>The tracked state the revision's values resolve to.</summary>
@@ -145,16 +150,18 @@ public sealed class WorkItemRevisionResolver
         /// still are and its statuses match nothing, with the reason as the error.
         /// </summary>
         public static async Task<(WorkspaceStatuses Statuses, string? Error)> Load(
-            IWorkDbContext dbContext, IStatusResolver statusResolver, Guid workspaceId, CancellationToken cancellationToken)
+            IWorkDbContext dbContext, IStatusWorkflowDbContext statusWorkflowDbContext, IStatusResolver statusResolver, Guid workspaceId, CancellationToken cancellationToken)
         {
-            // Unfiltered, then filtered again below the workspace: one deleted since it read a revision still names
-            // the types its process has.
-            var workTypes = await dbContext.Workspaces
+            // Unfiltered: a workspace deleted since it read a revision still names the types its process has.
+            var processExternalId = await dbContext.Workspaces
                 .IgnoreQueryFilters()
                 .Where(w => w.Id == workspaceId)
-                .SelectMany(w => w.WorkProcess!.Schemes)
-                .Where(s => !s.IsDeleted && s.WorkType != null && !s.WorkType.IsDeleted)
-                .Select(s => new { s.WorkType!.Id, s.WorkType.Name, s.WorkType.RecordTypeId })
+                .Select(w => w.WorkProcess!.ExternalId)
+                .FirstOrDefaultAsync(cancellationToken);
+            var recordTypeIds = await statusWorkflowDbContext.SchemeRecordTypeIds(processExternalId, cancellationToken);
+            var workTypes = await dbContext.WorkTypes
+                .LinkedTo(recordTypeIds)
+                .Select(t => new { t.Id, t.Name, t.RecordTypeId })
                 .ToListAsync(cancellationToken);
 
             var workTypeIds = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);

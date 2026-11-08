@@ -1,18 +1,17 @@
 'use client'
 
 import { ProjectPlanNodeDto } from '@/src/services/wayd-api'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
+import { Descriptions, Typography } from 'antd'
 import dayjs from 'dayjs'
-import { findOwnChildrenSpan } from './project-parent-date-hint'
-import {
-  getChildrenContainmentError,
-  isShiftOnlyChange,
-} from '@/src/utils/date-containment'
+import { toCalendarDate } from '@/src/utils/calendar-date'
+import { toApiError } from '@/src/utils/problem-details'
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   type DraftItem,
   type FilterOption,
+  type GridColumnContext,
   type MoveValidator,
   type WaydGridHandle,
   defaultMoveValidator,
@@ -24,17 +23,24 @@ import DeleteProjectTaskForm from './delete-project-task-form'
 import EditProjectStageForm from './edit-project-stage-form'
 import EditProjectTaskForm from './edit-project-task-form'
 import ProjectPlanItemDrawer from './project-plan-item-drawer'
-import {
-  buildProjectStagePatchOperations,
-  buildProjectTaskPatchOperations,
-} from './project-task-patch'
 import { getProjectPlanTableColumns } from './project-plan-table.columns'
-import { ProjectPlanHelp } from './project-plan-table.keyboard-shortcuts'
+import {
+  DRAFT_TASK_DEFAULTS,
+  PLAN_FIELD_TO_COLUMN,
+  isMilestoneRow,
+  isStageRow,
+  planAssigneesEditor,
+  planPriorityEditor,
+  planStatusEditor,
+  planTypeEditor,
+  toCreateProjectTaskRequest,
+  asMilestoneDate,
+  toProjectPlanPatch,
+  withCompletionProgress,
+} from './project-plan-table.editors'
 import {
   useProjectPlanGantt,
-  applyOptimisticPlanDates,
   computeProjectPlanGanttDomain,
-  isMilestoneNode,
   pxPerMsFor,
 } from './project-plan-gantt'
 import {
@@ -55,23 +61,98 @@ import {
 } from '@/src/store/features/ppm/project-tasks-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { useGetProjectDeliverablesQuery } from '@/src/store/features/ppm/project-deliverables-api'
-import {
-  projectsApi,
-  usePatchProjectStageMutation,
-} from '@/src/store/features/ppm/projects-api'
-import { useAppDispatch } from '@/src/hooks'
-import { Form } from 'antd'
+import { usePatchProjectStageMutation } from '@/src/store/features/ppm/projects-api'
 
 interface ProjectPlanTableProps {
   projectId: string
   projectKey: string
   tasks: ProjectPlanNodeDto[]
   isLoading: boolean
+  /** The user may change the plan: the Update permission and delivery
+   *  leadership on the project. */
   canManageTasks: boolean
   refetch: () => Promise<any>
   enableDragAndDrop?: boolean
   /** The toolbar's left slot, where the plan's Group by choice sits. */
   leftSlot?: React.ReactNode
+}
+
+/** Option labels as set-filter choices. */
+const toFilterOptions = (options: { label?: unknown }[]): FilterOption[] =>
+  options
+    .map((option) => String(option?.label ?? ''))
+    .filter(Boolean)
+    .map((label) => ({ label, value: label }))
+
+const createDraftProjectTask = (
+  draft: DraftItem,
+  type: { typeId: number; typeName: string } = DRAFT_TASK_DEFAULTS,
+): ProjectPlanNodeDto => ({
+  id: draft.id,
+  nodeType: 'Task',
+  key: '',
+  wbs: '',
+  name: '',
+  type: { id: type.typeId, name: type.typeName },
+  status: {
+    id: DRAFT_TASK_DEFAULTS.statusId,
+    name: DRAFT_TASK_DEFAULTS.statusName,
+  },
+  priority: {
+    id: DRAFT_TASK_DEFAULTS.priorityId,
+    name: DRAFT_TASK_DEFAULTS.priorityName,
+  },
+  assignees: [],
+  progress: DRAFT_TASK_DEFAULTS.progress,
+  order: draft.order,
+  children: [],
+  deliverableIds: [],
+})
+
+/** A new task goes under a stage or a task, never at the root or under a
+ *  milestone. */
+const canHoldTasks = (parent: ProjectPlanNodeDto | null) =>
+  !!parent && !isMilestoneRow(parent)
+
+const projectTaskMoveValidator: MoveValidator<ProjectPlanNodeDto> = (
+  activeNode,
+  targetParentNode,
+  targetParentId,
+) => {
+  if (isStageRow(activeNode.node)) {
+    return { canMove: false, reason: 'Stages cannot be moved' }
+  }
+  const result = defaultMoveValidator(
+    activeNode,
+    targetParentNode,
+    targetParentId,
+  )
+  if (!result.canMove) return result
+  if (targetParentNode && isMilestoneRow(targetParentNode)) {
+    return { canMove: false, reason: 'Milestones cannot have child tasks' }
+  }
+  return { canMove: true }
+}
+
+const flattenPlan = (nodes: ProjectPlanNodeDto[]): ProjectPlanNodeDto[] =>
+  nodes.flatMap((node) => [node, ...flattenPlan(node.children ?? [])])
+
+/** The row that takes a removed row's place: its next sibling, else the one
+ *  before it, else its parent. */
+const rowAfterRemoving = (
+  nodes: ProjectPlanNodeDto[],
+  id: string,
+  parentId: string | null = null,
+): string | null => {
+  const index = nodes.findIndex((node) => node.id === id)
+  if (index >= 0) {
+    return nodes[index + 1]?.id ?? nodes[index - 1]?.id ?? parentId
+  }
+  for (const node of nodes) {
+    const found = rowAfterRemoving(node.children ?? [], id, node.id)
+    if (found) return found
+  }
+  return null
 }
 
 const ProjectPlanTable = ({
@@ -84,10 +165,10 @@ const ProjectPlanTable = ({
   enableDragAndDrop = true,
   leftSlot,
 }: ProjectPlanTableProps) => {
-  const [form] = Form.useForm()
-  const treeGridRef = useRef<WaydGridHandle>(null)
+  const gridRef = useRef<WaydGridHandle>(null)
+  // Tasks this grid created, by id, until the plan shows them.
+  const justCreatedRef = useRef(new Map<string, ProjectPlanNodeDto>())
   const messageApi = useMessage()
-  const dispatch = useAppDispatch()
 
   // Modal form state
   const [openCreateTaskForm, setOpenCreateTaskForm] = useState(false)
@@ -104,12 +185,6 @@ const ProjectPlanTable = ({
     null,
   )
 
-  // Field errors (owned here for Form.useWatch access)
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
-
-  // Keep a ref to drafts for use in handleUpdateTask
-  const draftsRef = useRef<DraftItem[]>([])
-
   const { data: taskStatusOptions = [] } = useGetTaskStatusOptionsQuery()
   const { data: taskStatusOptionsForMilestone = [] } =
     useGetTaskStatusOptionsQuery({ forMilestone: true })
@@ -119,387 +194,175 @@ const ProjectPlanTable = ({
   const { data: deliverables = [] } = useGetProjectDeliverablesQuery(projectId)
   const deliverableNames = new Map(deliverables.map((d) => [d.id, d.name]))
 
-  const milestoneTypeValue = useMemo(
-    () => taskTypeOptions.find((opt) => opt.label === 'Milestone')?.value,
-    [taskTypeOptions],
-  )
+  const milestoneTypeId = taskTypeOptions.find(
+    (option) => option.label === 'Milestone',
+  )?.value
+  const completedStatusId = taskStatusOptions.find(
+    (option) => option.label === 'Completed',
+  )?.value
 
   const [patchProjectTask] = usePatchProjectTaskMutation()
   const [patchProjectStage] = usePatchProjectStageMutation()
   const [updateProjectTaskPlacement] = useUpdateProjectTaskPlacementMutation()
   const [createProjectTask] = useCreateProjectTaskMutation()
 
-  // Track the selected row's type to dynamically show/hide milestone-specific fields
-  const selectedTypeId = Form.useWatch('typeId', form)
-  const isSelectedRowMilestone = selectedTypeId === milestoneTypeValue
+  const taskTypeFilterOptions = toFilterOptions(taskTypeOptions)
+  if (!taskTypeFilterOptions.some((o) => o.value === 'Stage')) {
+    taskTypeFilterOptions.unshift({ label: 'Stage', value: 'Stage' })
+  }
+  const taskStatusFilterOptions = toFilterOptions(taskStatusOptions)
+  const taskPriorityFilterOptions = toFilterOptions(taskPriorityOptions)
 
-  // Reset status to "Not Started" if user switches to Milestone while "In Progress" is selected
-  useEffect(() => {
-    if (isSelectedRowMilestone) {
-      const currentStatus = form.getFieldValue('statusId')
-      const inProgressValue = taskStatusOptions.find(
-        (opt) => opt.label === 'In Progress',
-      )?.value
-      if (inProgressValue !== undefined && currentStatus === inProgressValue) {
-        const notStartedValue = taskStatusOptions.find(
-          (opt) => opt.label === 'Not Started',
-        )?.value
-        if (notStartedValue !== undefined) {
-          form.setFieldValue('statusId', notStartedValue)
-        }
-      }
-    }
-  }, [isSelectedRowMilestone, form, taskStatusOptions])
+  const optionEditors = {
+    type: planTypeEditor(taskTypeOptions),
+    status: planStatusEditor(taskStatusOptions, taskStatusOptionsForMilestone),
+    priority: planPriorityEditor(taskPriorityOptions),
+    assignees: planAssigneesEditor(
+      employeeOptions.map((option) => ({
+        label: String(option.label ?? ''),
+        value: String(option.value),
+      })),
+    ),
+  }
 
-  const taskTypeFilterOptions = useMemo(() => {
-    const options = taskTypeOptions
-      .map((o: any) => {
-        const label = (o?.label ?? '') as string
-        return label ? { label, value: label } : null
-      })
-      .filter((x): x is FilterOption => x !== null)
+  const handleNodeMove = async (
+    nodeId: string,
+    parentId: string | null,
+    order: number,
+    overNodeId?: string,
+    overIndex?: number,
+  ) => {
+    let resolvedParentId = parentId
 
-    if (!options.some((o) => o.value === 'Stage')) {
-      options.unshift({ label: 'Stage', value: 'Stage' })
-    }
+    // When parentId is null (task dropped at root level), resolve to
+    // the nearest stage above the drop position in the flat tree.
+    if (resolvedParentId === null && overNodeId) {
+      const flat = flattenPlan(tasks)
+      const activeIdx = flat.findIndex((n) => n.id === nodeId)
+      const overIdx = overIndex ?? flat.findIndex((n) => n.id === overNodeId)
+      const isDraggingUp = activeIdx > overIdx
 
-    return options
-  }, [taskTypeOptions])
-
-  const taskStatusFilterOptions = useMemo(
-    () =>
-      taskStatusOptions
-        .map((o: any) => {
-          const label = (o?.label ?? '') as string
-          return label ? { label, value: label } : null
-        })
-        .filter((x): x is FilterOption => x !== null),
-    [taskStatusOptions],
-  )
-
-  const taskPriorityFilterOptions = useMemo(
-    () =>
-      taskPriorityOptions
-        .map((o: any) => {
-          const label = (o?.label ?? '') as string
-          return label ? { label, value: label } : null
-        })
-        .filter((x): x is FilterOption => x !== null),
-    [taskPriorityOptions],
-  )
-
-  const createDraftProjectTask = useCallback(
-    (draft: DraftItem): ProjectPlanNodeDto => ({
-      id: draft.id,
-      nodeType: 'Task',
-      key: '',
-      wbs: '',
-      name: '',
-      type: { id: 1, name: 'Task' },
-      status: { id: 1, name: 'Not Started' },
-      priority: { id: 2, name: 'Medium' },
-      assignees: [],
-      progress: 0,
-      order: draft.order,
-      children: [],
-      deliverableIds: [],
-    }),
-    [],
-  )
-
-  const isStageNode = useCallback(
-    (node: ProjectPlanNodeDto | null | undefined) => node?.nodeType === 'Stage',
-    [],
-  )
-
-  const projectTaskMoveValidator: MoveValidator<ProjectPlanNodeDto> =
-    useCallback(
-      (activeNode, targetParentNode, targetParentId) => {
-        // Stages cannot be moved
-        if (isStageNode(activeNode.node)) {
-          return { canMove: false, reason: 'Stages cannot be moved' }
-        }
-        const result = defaultMoveValidator(
-          activeNode,
-          targetParentNode,
-          targetParentId,
-        )
-        if (!result.canMove) return result
-        if (targetParentNode?.type?.name === 'Milestone') {
-          return {
-            canMove: false,
-            reason: 'Milestones cannot have child tasks',
-          }
-        }
-        return { canMove: true }
-      },
-      [isStageNode],
-    )
-
-  const handleNodeMove = useCallback(
-    async (
-      nodeId: string,
-      parentId: string | null,
-      order: number,
-      overNodeId?: string,
-      overIndex?: number,
-    ) => {
-      let resolvedParentId = parentId
-
-      // When parentId is null (task dropped at root level), resolve to
-      // the nearest stage above the drop position in the flat tree.
-      if (resolvedParentId === null && overNodeId) {
-        const flatten = (nodes: ProjectPlanNodeDto[]): ProjectPlanNodeDto[] => {
-          const result: ProjectPlanNodeDto[] = []
-          for (const node of nodes) {
-            result.push(node)
-            if (node.children?.length) {
-              result.push(...flatten(node.children))
-            }
-          }
-          return result
-        }
-        const flat = flatten(tasks)
-        const activeIdx = flat.findIndex((n) => n.id === nodeId)
-        const overIdx = overIndex ?? flat.findIndex((n) => n.id === overNodeId)
-        const isDraggingUp = activeIdx > overIdx
-
-        // Scan backwards from over index to find the nearest stage
-        let nearestStageId: string | null = null
-        for (let i = Math.min(overIdx, flat.length - 1); i >= 0; i--) {
-          if (flat[i].nodeType === 'Stage') {
-            nearestStageId = flat[i].id
-            break
-          }
-        }
-
-        if (nearestStageId) {
-          // If dragging up and the nearest stage is the task's current stage,
-          // use the stage above it instead (the user intends to leave this stage)
-          const activeNode = flat[activeIdx]
-          if (isDraggingUp && activeNode?.projectStageId === nearestStageId) {
-            const stages = flat.filter((n) => n.nodeType === 'Stage')
-            const stageIdx = stages.findIndex((p) => p.id === nearestStageId)
-            if (stageIdx > 0) {
-              resolvedParentId = stages[stageIdx - 1].id
-            } else {
-              resolvedParentId = nearestStageId
-            }
-          } else {
-            resolvedParentId = nearestStageId
-          }
+      // Scan backwards from over index to find the nearest stage
+      let nearestStageId: string | null = null
+      for (let i = Math.min(overIdx, flat.length - 1); i >= 0; i--) {
+        if (flat[i].nodeType === 'Stage') {
+          nearestStageId = flat[i].id
+          break
         }
       }
 
-      if (!resolvedParentId) {
-        messageApi.warning('Tasks must be placed within a stage')
-        return
-      }
-
-      try {
-        await updateProjectTaskPlacement({
-          projectIdOrKey: projectKey,
-          id: nodeId,
-          request: {
-            taskId: nodeId,
-            parentId: resolvedParentId,
-            order,
-          },
-        }).unwrap()
-        await refetch()
-      } catch (error: any) {
-        messageApi.error(
-          error?.data?.detail || 'Failed to move task. Please try again.',
-        )
-      }
-    },
-    [projectKey, tasks, updateProjectTaskPlacement, refetch, messageApi],
-  )
-
-  const handleTaskError = useCallback(
-    (error: any, taskId: string, fallbackMessage: string): false => {
-      const status = error?.status ?? error?.data?.status
-      const errors = error?.errors ?? error?.data?.errors
-      const detail = error?.detail ?? error?.data?.detail
-
-      if (status === 422 && errors) {
-        const errorMap: Record<string, string> = {}
-        const errorFields: string[] = []
-        Object.entries(errors).forEach(([key, messages]) => {
-          const fieldName = key.charAt(0).toLowerCase() + key.slice(1)
-          errorMap[fieldName] = Array.isArray(messages) ? messages[0] : messages
-          errorFields.push(fieldName)
-        })
-        setFieldErrors(errorMap)
-
-        setTimeout(() => {
-          let focused = false
-          for (const errorField of errorFields) {
-            const columnId =
-              errorField === 'plannedDate'
-                ? 'plannedStart'
-                : errorField.replace(/Id$/, '')
-            const cellElement = document.querySelector(
-              `[data-cell-id="${taskId}-${columnId}"]`,
-            )
-            if (cellElement) {
-              const input = cellElement.querySelector(
-                'input, .ant-select',
-              ) as HTMLElement
-              if (input) {
-                input.focus({ preventScroll: true })
-                focused = true
-                break
-              }
-            }
-          }
-          if (!focused) {
-            const cellElement = document.querySelector(
-              `[data-cell-id="${taskId}-name"]`,
-            )
-            if (cellElement) {
-              const input = cellElement.querySelector('input') as HTMLElement
-              input?.focus({ preventScroll: true })
-            }
-          }
-        }, 0)
-
-        messageApi.error('Correct the validation error(s) to continue.')
-      } else if (status === 400 && detail) {
-        const detailStr = String(detail)
-        const isDateError =
-          detailStr.toLowerCase().includes('date') ||
-          detailStr.toLowerCase().includes('child') ||
-          detailStr.toLowerCase().includes('range')
-        if (isDateError) {
-          const isStartSpecific =
-            detailStr.toLowerCase().includes('start') ||
-            detailStr.toLowerCase().includes('before')
-          const isEndSpecific =
-            detailStr.toLowerCase().includes('end') ||
-            detailStr.toLowerCase().includes('after')
-
-          if (isStartSpecific && !isEndSpecific) {
-            setFieldErrors({
-              plannedStart: detailStr,
-            })
-          } else if (isEndSpecific && !isStartSpecific) {
-            setFieldErrors({
-              plannedEnd: detailStr,
-            })
-          } else {
-            // General range/date error or clearing/null error applies to both
-            setFieldErrors({
-              plannedStart: detailStr,
-              plannedEnd: detailStr,
-            })
-          }
-          messageApi.error('Correct the validation error(s) to continue.')
+      if (nearestStageId) {
+        // If dragging up and the nearest stage is the task's current stage,
+        // use the stage above it instead (the user intends to leave this stage)
+        const activeNode = flat[activeIdx]
+        if (isDraggingUp && activeNode?.projectStageId === nearestStageId) {
+          const stages = flat.filter((n) => n.nodeType === 'Stage')
+          const stageIdx = stages.findIndex((p) => p.id === nearestStageId)
+          resolvedParentId =
+            stageIdx > 0 ? stages[stageIdx - 1].id : nearestStageId
         } else {
-          messageApi.error(detailStr)
-        }
-      } else {
-        messageApi.error(detail ?? fallbackMessage)
-      }
-      return false
-    },
-    [messageApi, setFieldErrors],
-  )
-
-  const handleUpdateTask = useCallback(
-    async (taskId: string, updates: Partial<any>): Promise<boolean> => {
-      if (!projectKey) return false
-
-      const isDraft = taskId.startsWith('draft-')
-
-      if (isDraft) {
-        try {
-          const draft = draftsRef.current.find((d) => d.id === taskId)
-          if (!draft) return false
-
-          const request: any = {
-            name: updates.name || '',
-            typeId: updates.typeId || 1,
-            statusId: updates.statusId || 1,
-            priorityId: updates.priorityId || 2,
-            assigneeIds: updates.assigneeIds || [],
-            progress: updates.progress,
-            parentId: draft.parentId,
-            plannedStart: updates.plannedStart,
-            plannedEnd: updates.plannedEnd,
-            plannedDate: updates.plannedDate,
-            estimatedEffortHours: updates.estimatedEffortHours,
-          }
-
-          const response = await createProjectTask({
-            projectIdOrKey: projectKey,
-            request,
-          })
-
-          if (response.error) throw response.error
-
-          messageApi.success(`Task created: ${response.data!.key}`)
-          await refetch()
-          return true
-        } catch (error: any) {
-          return handleTaskError(
-            error,
-            taskId,
-            'An error occurred while creating the project task. Please try again.',
-          )
-        }
-      } else {
-        const node = findNodeById(
-          tasks || [],
-          taskId,
-        ) as ProjectPlanNodeDto | null
-        if (!node) return false
-
-        try {
-          if (isStageNode(node)) {
-            const patchOperations = buildProjectStagePatchOperations(updates)
-            const response = await patchProjectStage({
-              projectId,
-              projectKey,
-              stageId: taskId,
-              patchOperations,
-            })
-            if (response.error) throw response.error
-          } else {
-            const patchOperations = buildProjectTaskPatchOperations(updates)
-            const response = await patchProjectTask({
-              projectIdOrKey: projectKey,
-              taskId,
-              patchOperations,
-              cacheKey: taskId,
-            })
-            if (response.error) throw response.error
-          }
-          await refetch()
-          return true
-        } catch (error: any) {
-          const entityName = isStageNode(node) ? 'stage' : 'task'
-          return handleTaskError(
-            error,
-            taskId,
-            `An error occurred while updating the project ${entityName}. Please try again.`,
-          )
+          resolvedParentId = nearestStageId
         }
       }
-    },
-    [
-      messageApi,
-      projectId,
-      projectKey,
-      refetch,
-      tasks,
-      patchProjectTask,
-      patchProjectStage,
-      createProjectTask,
-      handleTaskError,
-      isStageNode,
-    ],
-  )
+    }
+
+    // Failures reject, so the grid reports them (onMoveRejected) and a
+    // keyboard move knows the row stayed where it was.
+    if (!resolvedParentId) {
+      throw new Error('Tasks must be placed within a stage')
+    }
+
+    try {
+      await updateProjectTaskPlacement({
+        projectIdOrKey: projectKey,
+        id: nodeId,
+        request: {
+          taskId: nodeId,
+          parentId: resolvedParentId,
+          order,
+        },
+      }).unwrap()
+    } catch (error) {
+      throw new Error(
+        toApiError(error).detail ||
+          toApiError((error as { data?: unknown })?.data).detail ||
+          'Failed to move task. Please try again.',
+      )
+    }
+    await refetch()
+  }
+
+  /** Saves one edited cell (or a start/end pair) of a task or stage. */
+  const commitPlanItem = async (
+    rowId: string,
+    patch: Record<string, unknown>,
+  ) => {
+    // A task created moments ago may not be in the plan yet: values typed
+    // while it was created are sent before the refetch lands.
+    const node =
+      (findNodeById(tasks, rowId) as ProjectPlanNodeDto | null) ??
+      justCreatedRef.current.get(rowId)
+    if (!node) throw new Error('The item is no longer in the plan.')
+    const patchOperations = toProjectPlanPatch(
+      node,
+      withCompletionProgress(
+        node,
+        asMilestoneDate(node, patch),
+        completedStatusId,
+      ),
+    )
+    if (isStageRow(node)) {
+      await patchProjectStage({
+        projectId,
+        projectKey,
+        stageId: rowId,
+        patchOperations,
+      }).unwrap()
+    } else {
+      await patchProjectTask({
+        projectIdOrKey: projectKey,
+        taskId: rowId,
+        patchOperations,
+        cacheKey: rowId,
+      }).unwrap()
+    }
+  }
+
+  /**
+   * Creates a task from a draft once it has a name (and a milestone's date);
+   * returns its id. A task added below a row is created in that place.
+   */
+  const createPlanTask = async (
+    parentId: string | null,
+    values: Record<string, unknown>,
+    position?: { order: number },
+  ) => {
+    if (!parentId) throw new Error('Tasks must be placed within a stage.')
+    const request = {
+      ...toCreateProjectTaskRequest(
+        parentId,
+        values,
+        milestoneTypeId,
+        completedStatusId,
+      ),
+      ...(position ? { order: position.order } : {}),
+    }
+    const created = await createProjectTask({
+      projectIdOrKey: projectKey,
+      request,
+    }).unwrap()
+    justCreatedRef.current.set(
+      created.id,
+      createDraftProjectTask(
+        { id: created.id, order: 0 },
+        {
+          typeId: request.typeId,
+          typeName: request.typeId === milestoneTypeId ? 'Milestone' : 'Task',
+        },
+      ),
+    )
+    return created.id
+  }
 
   // ── Gantt chart pane ──────────────────────────────────────────────────────
   // Stages, tasks and milestones drawn on a shared time axis to the right of the
@@ -509,49 +372,30 @@ const ProjectPlanTable = ({
   const ganttVisibility = useGanttVisibility('project-plan')
   const showGantt = ganttVisibility.visible
 
-  // Commit a dragged bar's new dates through the SAME handler inline editing
-  // uses, so stage-vs-task routing, error handling and refetch stay single-sourced.
-  //
-  // Patch the plan-tree cache up front so the bar stays where it was dropped,
-  // before the refetch lands. Otherwise the dragged bar visibly snaps back to its
-  // original position and then to the new one once the refetch returns (the same
-  // reason updateRoadmapItemDates patches optimistically). Roll back on failure.
-  const commitBarDates = useCallback(
-    async (change: { id: string; start: number; end: number }) => {
-      const node = findNodeById(
-        tasks || [],
-        change.id,
-      ) as ProjectPlanNodeDto | null
-      if (!node) return
-      // A milestone carries one date; a stage/task carries a planned range.
-      const isMilestone = isMilestoneNode(node)
-      const start = dayjs(change.start).format('YYYY-MM-DD')
-      const end = dayjs(change.end).format('YYYY-MM-DD')
-      const updates = isMilestone
-        ? { plannedDate: start }
-        : { plannedStart: start, plannedEnd: end }
-
-      const patchResult = dispatch(
-        projectsApi.util.updateQueryData(
-          'getProjectPlanTree',
-          projectKey,
-          (draft) => {
-            applyOptimisticPlanDates(draft, change.id, isMilestone, start, end)
-          },
-        ),
-      )
-      const succeeded = await handleUpdateTask(change.id, updates)
-      if (!succeeded) patchResult.undo()
-    },
-    [tasks, handleUpdateTask, dispatch, projectKey],
-  )
+  // A dragged bar's dates go through the grid like a cell edit: the cells
+  // and the bar show them marked saving, the date rules check them first,
+  // they wait behind the row's other commits, and a failure lands on the
+  // Planned Start and End cells.
+  const commitBarDates = (change: {
+    id: string
+    start: number
+    end: number
+  }) => {
+    const node = findNodeById(tasks, change.id) as ProjectPlanNodeDto | null
+    if (!node) return
+    const start = toCalendarDate(dayjs(change.start))
+    const end = toCalendarDate(dayjs(change.end))
+    gridRef.current?.commitCells(
+      change.id,
+      isMilestoneRow(node)
+        ? { plannedStart: start }
+        : { plannedStart: start, plannedEnd: end },
+    )
+  }
 
   // Domain drives the drag clamp range; pxPerMs comes from the zoom level. Both
   // are computed the same way the chart's scale is (no duplication).
-  const { domainStart, domainEnd } = useMemo(
-    () => computeProjectPlanGanttDomain(tasks ?? []),
-    [tasks],
-  )
+  const { domainStart, domainEnd } = computeProjectPlanGanttDomain(tasks)
 
   // Zoom is floored so the chart always fills the pane — zooming out past the
   // fit would leave the axis short of the right edge. Needs the domain and the
@@ -572,20 +416,17 @@ const ProjectPlanTable = ({
   // Pointer offset from the bar's left edge at move-drag start, so the live date
   // label can follow the cursor rather than centering on the whole bar.
   const [grabOffset, setGrabOffset] = useState(0)
-  const onBarPointerDown = useCallback(
-    (
-      e: React.PointerEvent,
-      item: GanttDragItem,
-      mode: 'move' | 'resize-start' | 'resize-end',
-    ) => {
-      if (mode === 'move') setGrabOffset(e.nativeEvent.offsetX)
-      barDrag.start(e, item, mode)
-    },
-    [barDrag],
-  )
+  const onBarPointerDown = (
+    e: React.PointerEvent,
+    item: GanttDragItem,
+    mode: 'move' | 'resize-start' | 'resize-end',
+  ) => {
+    if (mode === 'move') setGrabOffset(e.nativeEvent.offsetX)
+    barDrag.start(e, item, mode)
+  }
 
   // Called unconditionally (rules of hooks); the pane is only wired when shown.
-  const gantt = useProjectPlanGantt(tasks ?? [], {
+  const gantt = useProjectPlanGantt(tasks, {
     pxPerDay: zoom.pxPerDay,
     editable: canManageTasks,
     activeDrag: barDrag.active,
@@ -593,450 +434,143 @@ const ProjectPlanTable = ({
     moveGrabOffset: barDrag.active?.mode === 'move' ? grabOffset : undefined,
   })
 
-  const handleEditTask = useCallback((task: any) => {
+  const handleEditTask = (task: ProjectPlanNodeDto) => {
     setSelectedTaskId(task.id)
     setOpenEditTaskForm(true)
-  }, [])
+  }
 
-  const handleEditStage = useCallback((stage: any) => {
+  const handleEditStage = (stage: ProjectPlanNodeDto) => {
     setSelectedStageId(stage.id)
     setOpenEditStageForm(true)
-  }, [])
+  }
 
-  const handleDeleteTask = useCallback((task: any) => {
+  const handleDeleteTask = (task: ProjectPlanNodeDto) => {
     setSelectedTaskId(task.id)
     setOpenDeleteTaskForm(true)
-  }, [])
+  }
 
-  const handleOpenPlanItemDrawer = useCallback((taskId: string) => {
+  const handleOpenPlanItemDrawer = (taskId: string) => {
     setSelectedPlanItemId(taskId)
     setOpenPlanItemDrawer(true)
-  }, [])
+  }
 
-  const onEditTaskFormClosed = useCallback(
-    (wasSaved: boolean) => {
-      setOpenEditTaskForm(false)
-      setSelectedTaskId(undefined)
-      if (wasSaved) refetch()
-    },
-    [refetch],
-  )
+  const onEditTaskFormClosed = (wasSaved: boolean) => {
+    setOpenEditTaskForm(false)
+    setSelectedTaskId(undefined)
+    if (wasSaved) refetch()
+  }
 
-  const onDeleteTaskFormClosed = useCallback(
-    (wasDeleted: boolean) => {
-      setOpenDeleteTaskForm(false)
-      setSelectedTaskId(undefined)
-      if (wasDeleted) refetch()
-    },
-    [refetch],
-  )
+  const onDeleteTaskFormClosed = (wasDeleted: boolean) => {
+    // The deleted row's cell held focus; it moves to the row taking its place.
+    const next = selectedTaskId ? rowAfterRemoving(tasks, selectedTaskId) : null
+    const deleting = selectedTaskId
+    setOpenDeleteTaskForm(false)
+    setSelectedTaskId(undefined)
+    // The form unmounts without handing focus back, so a cancel returns it.
+    if (!wasDeleted) {
+      if (deleting) gridRef.current?.focusRow(deleting, 'name')
+      return
+    }
+    void refetch().then(() => {
+      if (next) gridRef.current?.focusRow(next, 'name')
+    })
+  }
 
-  const onCreateTaskFormClosed = useCallback(
-    (wasSaved: boolean) => {
-      setOpenCreateTaskForm(false)
-      setCreateParentTaskId(undefined)
-      if (wasSaved) refetch()
-    },
-    [refetch],
-  )
+  const onCreateTaskFormClosed = (wasSaved: boolean) => {
+    setOpenCreateTaskForm(false)
+    setCreateParentTaskId(undefined)
+    if (wasSaved) refetch()
+  }
 
-  const getFormValues = useCallback(
-    (rowId: string, data: ProjectPlanNodeDto[]) => {
-      const task = findNodeById(data, rowId) as ProjectPlanNodeDto | null
-      const isDraft = rowId.startsWith('draft-')
-
-      if (isDraft || !task) {
-        return {
-          name: '',
-          typeId: 1,
-          statusId: 1,
-          priorityId: 2,
-          assigneeIds: [],
-          progress: 0,
-          plannedStart: null,
-          plannedEnd: null,
-          plannedDate: null,
-          estimatedEffortHours: null,
-        }
-      }
-
-      // Stage rows: limited fields
-      if (isStageNode(task)) {
-        return {
-          statusId: task.status?.id,
-          assigneeIds: task.assignees?.map((a) => a.id) ?? [],
-          plannedStart: task.start ? dayjs(task.start) : null,
-          plannedEnd: task.end ? dayjs(task.end) : null,
-          progress: task.progress,
-        }
-      }
-
-      return {
-        name: task.name,
-        typeId: task.type?.id,
-        statusId: task.status?.id,
-        priorityId: task.priority?.id,
-        assigneeIds: task.assignees?.map((a) => a.id) ?? [],
-        progress: task.progress,
-        plannedStart: task.start ? dayjs(task.start) : null,
-        plannedEnd: task.end ? dayjs(task.end) : null,
-        plannedDate: task.plannedDate ? dayjs(task.plannedDate) : null,
-        estimatedEffortHours: task.estimatedEffortHours,
-      }
-    },
-    [isStageNode],
-  )
-
-  const computeChanges = useCallback(
-    (
-      rowId: string,
-      formValues: Record<string, any>,
-      data: ProjectPlanNodeDto[],
-    ) => {
-      const isDraft = rowId.startsWith('draft-')
-      const values = formValues as any
-      const completedStatusValue = taskStatusOptions.find(
-        (opt) => opt.label === 'Completed',
-      )?.value
-      const isCompleted = values.statusId === completedStatusValue
-
-      if (isDraft) {
-        const updates: Record<string, any> = {
-          name: values.name || '',
-          typeId: values.typeId,
-          statusId: values.statusId,
-          priorityId: values.priorityId,
-          assigneeIds: values.assigneeIds ?? [],
-        }
-        if (isSelectedRowMilestone) {
-          updates.plannedStart = null
-          updates.plannedEnd = null
-          updates.plannedDate = values.plannedDate
-            ? values.plannedDate.format('YYYY-MM-DD')
-            : null
-          updates.progress = null
-          updates.estimatedEffortHours = null
-        } else {
-          updates.plannedStart = values.plannedStart
-            ? values.plannedStart.format('YYYY-MM-DD')
-            : null
-          updates.plannedEnd = values.plannedEnd
-            ? values.plannedEnd.format('YYYY-MM-DD')
-            : null
-          updates.plannedDate = null
-          updates.progress = isCompleted ? 100 : (values.progress ?? 0)
-          updates.estimatedEffortHours = values.estimatedEffortHours
-            ? Number(values.estimatedEffortHours)
-            : null
-        }
-        return updates
-      }
-
-      const task = findNodeById(data, rowId) as ProjectPlanNodeDto | null
-      if (!task) return null
-
-      const updates: Record<string, any> = {}
-      let hasChanges = false
-
-      if (values.name !== task.name) {
-        updates.name = values.name
-        hasChanges = true
-      }
-      if (values.statusId !== task.status?.id) {
-        updates.statusId = values.statusId
-        hasChanges = true
-      }
-      if (values.priorityId !== task.priority?.id) {
-        updates.priorityId = values.priorityId
-        hasChanges = true
-      }
-
-      const taskAssigneeIds = task.assignees?.map((a) => a.id) ?? []
-      const formAssigneeIds = values.assigneeIds ?? []
-      const assigneesChanged =
-        taskAssigneeIds.length !== formAssigneeIds.length ||
-        !taskAssigneeIds.every((id: string) => formAssigneeIds.includes(id))
-      if (assigneesChanged) {
-        updates.assigneeIds = formAssigneeIds
-        hasChanges = true
-      }
-
-      const taskPlannedStart = task.start
-        ? String(task.start).split('T')[0]
-        : null
-      const plannedStartFormatted = values.plannedStart
-        ? values.plannedStart.format('YYYY-MM-DD')
-        : null
-      if (plannedStartFormatted !== taskPlannedStart) {
-        updates.plannedStart = plannedStartFormatted
-        hasChanges = true
-      }
-
-      const taskPlannedEnd = task.end ? String(task.end).split('T')[0] : null
-      const plannedEndFormatted = values.plannedEnd
-        ? values.plannedEnd.format('YYYY-MM-DD')
-        : null
-      if (plannedEndFormatted !== taskPlannedEnd) {
-        updates.plannedEnd = plannedEndFormatted
-        hasChanges = true
-      }
-
-      const taskPlannedDate = task.plannedDate
-        ? String(task.plannedDate).split('T')[0]
-        : null
-      const plannedDateFormatted = values.plannedDate
-        ? values.plannedDate.format('YYYY-MM-DD')
-        : null
-      if (plannedDateFormatted !== taskPlannedDate) {
-        updates.plannedDate = plannedDateFormatted
-        hasChanges = true
-      }
-
-      const effectiveProgress = isCompleted ? 100 : values.progress
-      if (effectiveProgress !== task.progress) {
-        updates.progress = effectiveProgress
-        hasChanges = true
-      }
-
-      if (values.estimatedEffortHours !== task.estimatedEffortHours) {
-        updates.estimatedEffortHours = values.estimatedEffortHours
-          ? Number(values.estimatedEffortHours)
-          : null
-        hasChanges = true
-      }
-
-      return hasChanges ? updates : null
-    },
-    [isSelectedRowMilestone, taskStatusOptions],
-  )
-
-  const validateFields = useCallback(
-    (rowId: string, formValues: Record<string, any>) => {
-      const isDraft = rowId.startsWith('draft-')
-      const task = findNodeById(tasks, rowId) as ProjectPlanNodeDto | null
-      const isMilestone = isDraft
-        ? isSelectedRowMilestone
-        : task?.type?.name === 'Milestone'
-
-      if (isMilestone) return {}
-
-      const errors: Record<string, string> = {}
-      const hasPlannedStart = Boolean(formValues.plannedStart)
-      const hasPlannedEnd = Boolean(formValues.plannedEnd)
-
-      if (hasPlannedStart !== hasPlannedEnd) {
-        const message =
-          'Planned Start and Planned End must both have a value or both be empty.'
-        errors.plannedStart = message
-        errors.plannedEnd = message
-      }
-
-      if (hasPlannedStart && hasPlannedEnd) {
-        const plannedStart = dayjs(formValues.plannedStart)
-        const plannedEnd = dayjs(formValues.plannedEnd)
-        if (plannedEnd.isBefore(plannedStart, 'day')) {
-          errors.plannedEnd =
-            'Planned End cannot be earlier than Planned Start.'
-        }
-      }
-
-      // Check for date shrinking/clearing when children exist
-      if (!isDraft && task) {
-        const childrenSpan = findOwnChildrenSpan(tasks, rowId)
-        if (childrenSpan) {
-          if (!hasPlannedStart || !hasPlannedEnd) {
-            const message =
-              'Planned dates cannot be cleared when child items have dates.'
-            errors.plannedStart = message
-            errors.plannedEnd = message
-          } else {
-            const start = dayjs(formValues.plannedStart)
-            const end = dayjs(formValues.plannedEnd)
-            const originalStart = task.start ? dayjs(task.start) : null
-            const originalEnd = task.end ? dayjs(task.end) : null
-
-            const isShift = isShiftOnlyChange(
-              originalStart,
-              originalEnd,
-              start,
-              end,
-            )
-
-            if (!isShift) {
-              const containmentError = getChildrenContainmentError(
-                childrenSpan,
-                start,
-                end,
-              )
-              if (containmentError) {
-                if (containmentError.startsWith('Start')) {
-                  errors.plannedStart = containmentError
-                } else {
-                  errors.plannedEnd = containmentError
-                }
-              }
-            }
-          }
-        }
-      }
-
-      return errors
-    },
-    [isSelectedRowMilestone, tasks],
-  )
-
-  const selectedPlanItemStageName = useMemo(() => {
+  const selectedPlanItemStageName = (() => {
     if (!selectedPlanItemId) return undefined
-
     const selectedNode = findNodeById(
       tasks,
       selectedPlanItemId,
     ) as ProjectPlanNodeDto | null
-    if (!selectedNode) return undefined
-
-    const stageId = selectedNode.projectStageId
+    const stageId = selectedNode?.projectStageId
     if (!stageId) return undefined
+    return (findNodeById(tasks, stageId) as ProjectPlanNodeDto | null)?.name
+  })()
 
-    const stageNode = findNodeById(tasks, stageId) as ProjectPlanNodeDto | null
-    return stageNode?.name
-  }, [selectedPlanItemId, tasks])
+  const columns = (ctx: GridColumnContext) =>
+    getProjectPlanTableColumns({
+      canManageTasks,
+      handleEditTask,
+      handleDeleteTask,
+      handleEditStage,
+      openPlanItemDrawer: handleOpenPlanItemDrawer,
+      isDragEnabled: ctx.isDragEnabled,
+      enableDragAndDrop,
+      addDraftTaskAsChild: ctx.addDraftAsChild,
+      canCreateTasks: ctx.canCreateDraft,
+      taskTypeFilterOptions,
+      taskStatusFilterOptions,
+      taskPriorityFilterOptions,
+      optionEditors,
+      deliverableNames,
+    })
 
   return (
     <>
-      <Form form={form} component={false}>
-        <WaydGrid<ProjectPlanNodeDto>
-          ref={treeGridRef}
-          data={tasks}
-          getSubRows={(row) => row.children as ProjectPlanNodeDto[]}
-          isLoading={isLoading}
-          columns={(ctx) =>
-            getProjectPlanTableColumns({
-              canManageTasks,
-              selectedRowId: ctx.selectedRowId,
-              handleEditTask,
-              handleDeleteTask,
-              handleUpdateTask,
-              getFieldError: ctx.getFieldError,
-              handleKeyDown: ctx.handleKeyDown,
-              createSelectInputKeyDown: ctx.createSelectInputKeyDown,
-              taskStatusOptions,
-              taskStatusOptionsForMilestone,
-              taskPriorityOptions,
-              taskTypeOptions,
-              employeeOptions,
-              isDragEnabled: ctx.isDragEnabled,
-              enableDragAndDrop,
-              addDraftTaskAsChild: ctx.addDraftAsChild,
-              canCreateTasks: ctx.canCreateDraft,
-              isSelectedRowMilestone,
-              taskTypeFilterOptions,
-              taskStatusFilterOptions,
-              taskPriorityFilterOptions,
-              isStageNode,
-              handleEditStage,
-              openPlanItemDrawer: handleOpenPlanItemDrawer,
-              deliverableNames,
-            })
-          }
-          actionsSlot={
-            <GanttToolbarActions
-              visible={showGantt}
-              onToggle={ganttVisibility.toggle}
-              zoom={zoom}
-            />
-          }
-          rightPane={
-            showGantt
-              ? {
-                  header: gantt.header,
-                  defaultWidth: gantt.defaultWidth,
-                  renderRow: gantt.renderRow,
-                  renderBackground: gantt.renderBackground,
-                  // Ctrl/Cmd+wheel zooms the chart (matches the timeline).
-                  onWheel: zoom.onWheel,
-                }
-              : undefined
-          }
-          onRefresh={refetch}
-          enableDragAndDrop={enableDragAndDrop}
-          onNodeMove={handleNodeMove}
-          onMoveRejected={(reason) =>
-            messageApi.warning(reason || 'Cannot move task to this location')
-          }
-          moveValidator={projectTaskMoveValidator}
-          editingConfig={{
-            canEdit: canManageTasks,
-            form,
-            editableColumnIds: (rowId) => {
-              if (!rowId) {
-                // Default columns used before any row is selected
-                return [
-                  'status',
-                  'plannedStart',
-                  'plannedEnd',
-                  'assignees',
-                  'name',
-                  'priority',
-                  'progress',
-                  'estimatedEffortHours',
-                ]
+      <WaydGrid<ProjectPlanNodeDto>
+        ref={gridRef}
+        data={tasks}
+        getSubRows={(row) => row.children as ProjectPlanNodeDto[]}
+        isLoading={isLoading}
+        columns={columns}
+        actionsSlot={
+          <GanttToolbarActions
+            visible={showGantt}
+            onToggle={ganttVisibility.toggle}
+            zoom={zoom}
+          />
+        }
+        rightPane={
+          showGantt
+            ? {
+                header: gantt.header,
+                defaultWidth: gantt.defaultWidth,
+                renderRow: gantt.renderRow,
+                renderBackground: gantt.renderBackground,
+                // Ctrl/Cmd+wheel zooms the chart (matches the timeline).
+                onWheel: zoom.onWheel,
               }
-              // Stage rows: limited editable fields
-              const node = findNodeById(
-                tasks,
-                rowId,
-              ) as ProjectPlanNodeDto | null
-              if (node && isStageNode(node)) {
-                return [
-                  'status',
-                  'plannedStart',
-                  'plannedEnd',
-                  'assignees',
-                  'progress',
-                ]
+            : undefined
+        }
+        onRefresh={refetch}
+        enableDragAndDrop={enableDragAndDrop}
+        onNodeMove={canManageTasks ? handleNodeMove : undefined}
+        onMoveRejected={(reason) =>
+          messageApi.warning(reason || 'Cannot move task to this location')
+        }
+        moveValidator={projectTaskMoveValidator}
+        onCommit={canManageTasks ? commitPlanItem : undefined}
+        onCreate={canManageTasks ? createPlanTask : undefined}
+        fieldToColumn={PLAN_FIELD_TO_COLUMN}
+        createDraftNode={canManageTasks ? createDraftProjectTask : undefined}
+        rowActions={{
+          ...(canManageTasks
+            ? {
+                canInsertUnder: canHoldTasks,
+                onDelete: (row: ProjectPlanNodeDto) => {
+                  if (isStageRow(row)) return false
+                  handleDeleteTask(row)
+                },
               }
-              const base = [
-                'name',
-                'status',
-                'priority',
-                'plannedStart',
-                'plannedEnd',
-                'assignees',
-                'progress',
-                'estimatedEffortHours',
-              ]
-              return rowId.startsWith('draft-')
-                ? ['name', 'type', ...base.slice(1)]
-                : base
-            },
-            onSave: handleUpdateTask,
-            getFormValues,
-            computeChanges,
-            validateFields,
-            cellIdColumnMatchOrder: [
-              'estimatedEffortHours',
-              'plannedStart',
-              'plannedEnd',
-              'assignees',
-              'priority',
-              'status',
-              'progress',
-              'type',
-              'name',
-            ],
-          }}
-          fieldErrors={fieldErrors}
-          onFieldErrorsChange={setFieldErrors}
-          createDraftNode={createDraftProjectTask}
-          onDraftsChange={(drafts) => {
-            draftsRef.current = drafts
-          }}
-          csvFileName="project-tasks"
-          leftSlot={leftSlot ?? (() => null)}
-          helpContent={<ProjectPlanHelp />}
-          emptyMessage="No plan found"
-        />
-      </Form>
+            : {}),
+          onOpen: (row) => {
+            if (isStageRow(row)) return false
+            handleOpenPlanItemDrawer(row.id)
+          },
+        }}
+        csvFileName="project-tasks"
+        leftSlot={leftSlot ?? (() => null)}
+        helpNotes={
+          canManageTasks && enableDragAndDrop ? <DragAndDropHelp /> : undefined
+        }
+        emptyMessage="No plan found"
+      />
 
       {openCreateTaskForm && (
         <CreateProjectTaskForm
@@ -1108,6 +642,29 @@ const ProjectPlanTable = ({
         }}
       />
     </>
+  )
+}
+
+/** The plan's drag-and-drop gestures, listed after the keys. */
+function DragAndDropHelp() {
+  return (
+    <Descriptions
+      size="small"
+      column={1}
+      styles={{ header: { marginBottom: 4 } }}
+      title="Drag and Drop"
+      items={[
+        ['Drag handle', 'Drag the grip icon to move a task'],
+        ['Drag up or down', 'Move the task up or down the plan'],
+        ['Drag right', 'Nest the task under the item above it'],
+        ['Drag left', 'Move the task up a level'],
+        ['Drag a bar', 'Move or resize its dates in the chart'],
+      ].map(([label, text]) => ({
+        key: label,
+        label,
+        children: <Typography.Text>{text}</Typography.Text>,
+      }))}
+    />
   )
 }
 

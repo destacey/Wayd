@@ -8,7 +8,7 @@ namespace Wayd.Work.Application.WorkItems.EventHandlers;
 
 /// <summary>
 /// Brings work items and their history in step with a status of their workflow that changed: renamed by its
-/// source, or reclassified or given another alias by an administrator.
+/// source, reclassified by its source, or given another alias.
 /// </summary>
 /// <remarks>
 /// A work item stores a copy of its status's name, category and alias (<see cref="ManagedStatusEntity"/>), and a

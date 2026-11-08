@@ -36,7 +36,6 @@ internal static class ProcessDtoExtensions
             WorkspaceIds = process.Projects?.Select(p => p.Id).ToList() ?? [],
             WorkTypeLevels = behaviors.ToIExternalWorkTypeLevels(),
             WorkTypes = workTypes.ToIExternalWorkTypes(),
-            WorkStatuses = workTypes.ToIExternalWorkStatuses()
         };
     }
 

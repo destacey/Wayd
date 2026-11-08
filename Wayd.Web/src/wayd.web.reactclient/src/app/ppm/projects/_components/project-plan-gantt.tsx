@@ -65,37 +65,6 @@ const projectPlanAccessors: GanttAccessors<ProjectPlanNodeDto> = {
 }
 
 /**
- * Write dragged dates into a cached plan tree in place, so a dropped bar holds
- * its position until the refetch lands (without this the bar visibly snaps back
- * to where it started, then jumps to the new dates). Mirrors applyOptimisticDates
- * in the roadmap API. Returns whether the node was found.
- */
-export function applyOptimisticPlanDates(
-  nodes: ProjectPlanNodeDto[] | undefined,
-  id: string,
-  isMilestone: boolean,
-  start: CalendarDate,
-  end: CalendarDate,
-): boolean {
-  if (!nodes) return false
-  for (const node of nodes) {
-    if (node.id === id) {
-      if (isMilestone) {
-        node.plannedDate = start
-      } else {
-        node.start = start
-        node.end = end
-      }
-      return true
-    }
-    if (applyOptimisticPlanDates(node.children, id, isMilestone, start, end)) {
-      return true
-    }
-  }
-  return false
-}
-
-/**
  * The chart's time domain (epoch ms): every dated stage/task/milestone, plus the
  * project's own window when supplied, padded so nothing sits flush to the edge.
  * Exported so the drag hook is built from the same domain the chart uses.

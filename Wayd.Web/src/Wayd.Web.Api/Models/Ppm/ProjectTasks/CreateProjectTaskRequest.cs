@@ -71,6 +71,15 @@ public sealed record CreateProjectTaskRequest
     /// </summary>
     public List<Guid>? DeliverableIds { get; set; }
 
+    /// <summary>
+    /// The task's 1-based position among its parent's children (optional). Omit it to place the task last; a
+    /// position past the end also places it last.
+    /// </summary>
+    public int? Order { get; set; }
+
+    /// <summary>
+    /// The create command for this request in the given project.
+    /// </summary>
     public CreateProjectTaskCommand ToCreateProjectTaskCommand(Guid projectId)
     {
         var plannedDateRange = PlannedStart is null || PlannedEnd is null
@@ -90,7 +99,8 @@ public sealed record CreateProjectTaskRequest
             PlannedDate,
             EstimatedEffortHours,
             AssigneeIds,
-            DeliverableIds
+            DeliverableIds,
+            Order
         );
     }
 }
@@ -168,5 +178,9 @@ public sealed class CreateProjectTaskRequestValidator : CustomValidator<CreatePr
 
         RuleFor(x => x.EstimatedEffortHours)
             .GreaterThan(0);
+
+        RuleFor(x => x.Order)
+            .GreaterThan(0)
+            .When(x => x.Order.HasValue);
     }
 }

@@ -53,4 +53,35 @@ public class AzureDevOpsWorkProcessSyncTrackerTests
         // Assert
         afterBeingForgotten.Should().BeTrue();
     }
+
+    [Fact]
+    public void Forget_LetsTheRunSyncTheProcessAgain()
+    {
+        // Arrange
+        var syncId = Guid.CreateVersion7();
+        var processId = Guid.CreateVersion7();
+        var otherProcessId = Guid.CreateVersion7();
+        _sut.TryMarkSynced(syncId, processId);
+        _sut.TryMarkSynced(syncId, otherProcessId);
+
+        // Act
+        _sut.Forget(syncId, processId);
+
+        // Assert
+        _sut.TryMarkSynced(syncId, processId).Should().BeTrue();
+        _sut.TryMarkSynced(syncId, otherProcessId).Should().BeFalse("only the forgotten process is taken back");
+    }
+
+    [Fact]
+    public void Forget_IgnoresARunItHasNotSeen()
+    {
+        // Arrange
+        var processId = Guid.CreateVersion7();
+
+        // Act
+        var forget = () => _sut.Forget(Guid.CreateVersion7(), processId);
+
+        // Assert
+        forget.Should().NotThrow();
+    }
 }

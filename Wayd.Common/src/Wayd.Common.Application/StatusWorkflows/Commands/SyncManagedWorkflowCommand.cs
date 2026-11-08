@@ -32,6 +32,7 @@ public sealed class SyncManagedWorkflowCommandValidator : AbstractValidator<Sync
             status.RuleFor(s => s.ExternalKey).NotEmpty().MaximumLength(256);
             status.RuleFor(s => s.Name).NotEmpty().MaximumLength(64);
             status.RuleFor(s => s.Category).IsInEnum();
+            status.RuleFor(s => s.Description).MaximumLength(512);
         });
     }
 }
@@ -98,6 +99,11 @@ public sealed class SyncManagedWorkflowCommandHandler(
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return Result.Success(workflow.Id);
+        }
+        catch (DbUpdateException ex) when (ManagedSyncCollision.IsCollision(ex))
+        {
+            _logger.LogWarning(ex, "{CommandName}: the save failed at the database for {@Request}.", AppRequestName, request);
+            return Result.Failure<Guid>(ManagedSyncCollision.Message("workflow", request.ExternalKey));
         }
         catch (Exception ex)
         {

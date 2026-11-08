@@ -506,7 +506,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         return (
           <ProjectPlan
             project={projectData}
-            canManageTasks={canUpdateProject}
+            canManageTasks={canManageProject}
           />
         )
       case ProjectSections.WorkItems:

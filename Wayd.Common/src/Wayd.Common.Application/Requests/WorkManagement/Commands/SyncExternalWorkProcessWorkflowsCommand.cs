@@ -4,9 +4,9 @@ using Wayd.Common.Application.Validators;
 namespace Wayd.Common.Application.Requests.WorkManagement.Commands;
 
 /// <summary>
-/// Mirrors an external work process in the status workflow engine: a managed record type per work type, a
-/// managed workflow per work type, a managed scheme for the process, and an assignment of that scheme to
-/// every workspace on the process.
+/// Mirrors an external work process: each work type Wayd does not have yet, then in the status workflow engine a
+/// managed record type and workflow per work type, a managed scheme for the process, and an assignment of that
+/// scheme to every workspace on the process.
 /// </summary>
 /// <remarks>
 /// Runs after the process itself is synced, so its workspaces are already linked to it. Idempotent: each
@@ -21,5 +21,9 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandValidator : CustomVal
         RuleFor(c => c.WorkProcess).NotNull();
         RuleFor(c => c.WorkProcess.Id).NotEmpty().When(c => c.WorkProcess is not null);
         RuleFor(c => c.WorkProcess.WorkTypes).NotNull().When(c => c.WorkProcess is not null);
+        RuleForEach(c => c.WorkProcess.WorkTypes)
+            .NotNull()
+            .SetValidator(new IExternalWorkTypeWorkflowValidator())
+            .When(c => c.WorkProcess?.WorkTypes is not null);
     }
 }

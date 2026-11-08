@@ -83,6 +83,13 @@ const childItemRange = (child: any): [Dayjs, Dayjs] | null => {
   return null
 }
 
+/** The collective span of a plan node's direct children, or null when none
+ *  has dates. A milestone counts as its single date. */
+export const planChildrenSpan = (
+  children: readonly any[] | undefined,
+): ChildrenSpan | null =>
+  childrenSpan(children ?? [], childItemRange, (child: any) => child.name)
+
 /**
  * Finds the collective span of direct child items of a given parent node.
  */
@@ -96,11 +103,7 @@ export const findOwnChildrenSpan = (
   while (stack.length > 0) {
     const node = stack.pop()!
     if (node.id.toLowerCase() === itemId.toLowerCase()) {
-      return childrenSpan(
-        node.children ?? [],
-        childItemRange,
-        (child: any) => child.name,
-      )
+      return planChildrenSpan(node.children)
     }
     const children = node.children
     if (children?.length) {

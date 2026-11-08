@@ -71,15 +71,4 @@ internal static class ProcessWorkItemTypeDtoExtensions
             .Select(w => w.ToAzdoWorkType())
             .ToList<IExternalWorkTypeWorkflow>();
     }
-
-    public static IList<IExternalWorkStatus> ToIExternalWorkStatuses(this List<ProcessWorkItemTypeDto> workItemTypes)
-    {
-        return workItemTypes
-            .Where(w => !_ignoredWorkItemTypes.Contains(w.ReferenceName)
-                && (w.Inherits is null || !_ignoredWorkItemTypes.Contains(w.Inherits)))
-            .SelectMany(w => w.States)
-            .DistinctBy(s => s.Name)
-            .Select(s => s.ToAzdoWorkStatus())
-            .ToList<IExternalWorkStatus>();
-    }
 }

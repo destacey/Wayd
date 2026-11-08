@@ -17,6 +17,7 @@ namespace Wayd.Work.Application.WorkItems.Commands;
 /// </remarks>
 public sealed class RebuildWorkItemHistoryCommandHandler(
     IWorkDbContext workDbContext,
+    IStatusWorkflowDbContext statusWorkflowDbContext,
     IStatusResolver statusResolver,
     ILogger<RebuildWorkItemHistoryCommandHandler> logger)
     : ICommandHandler<RebuildWorkItemHistoryCommand, int>
@@ -25,6 +26,7 @@ public sealed class RebuildWorkItemHistoryCommandHandler(
     private const int BatchSize = 500;
 
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly ILogger<RebuildWorkItemHistoryCommandHandler> _logger = logger;
 
@@ -37,7 +39,7 @@ public sealed class RebuildWorkItemHistoryCommandHandler(
             return Result.Failure<int>($"Unable to rebuild the work item history of workspace {request.WorkspaceId} because the workspace does not exist.");
 
         // The workspace's statuses are loaded once; each batch loads only the iterations and people it names.
-        var loaded = await WorkItemRevisionResolver.Load(_workDbContext, _statusResolver, workspace, request.ConnectionId, cancellationToken);
+        var loaded = await WorkItemRevisionResolver.Load(_workDbContext, _statusWorkflowDbContext, _statusResolver, workspace, request.ConnectionId, cancellationToken);
         if (loaded.IsFailure)
             return Result.Failure<int>(loaded.Error);
 

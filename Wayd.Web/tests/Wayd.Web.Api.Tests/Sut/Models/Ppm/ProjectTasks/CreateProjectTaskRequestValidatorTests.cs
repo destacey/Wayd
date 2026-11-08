@@ -1,3 +1,4 @@
+using FluentAssertions;
 using FluentValidation.TestHelper;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.Web.Api.Models.Ppm.ProjectTasks;
@@ -41,5 +42,44 @@ public sealed class CreateProjectTaskRequestValidatorTests
 
         // Assert
         result.ShouldHaveValidationErrorFor(r => r.EstimatedEffortHours);
+    }
+
+    [Fact]
+    public void NoOrder_Passes()
+    {
+        // Arrange
+        var request = Request(estimatedEffortHours: null);
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(r => r.Order);
+    }
+
+    [Fact]
+    public void Order_Zero_Fails()
+    {
+        // Arrange
+        var request = Request(estimatedEffortHours: null) with { Order = 0 };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(r => r.Order);
+    }
+
+    [Fact]
+    public void ToCreateProjectTaskCommand_CarriesTheOrder()
+    {
+        // Arrange
+        var request = Request(estimatedEffortHours: null) with { Order = 2 };
+
+        // Act
+        var command = request.ToCreateProjectTaskCommand(Guid.NewGuid());
+
+        // Assert
+        command.Order.Should().Be(2);
     }
 }

@@ -1,6 +1,8 @@
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Application.StatusWorkflows.Commands;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Domain;
@@ -8,8 +10,8 @@ using Wayd.Work.Domain;
 namespace Wayd.Work.Application.WorkProcesses.Commands;
 
 /// <summary>
-/// Keeps a work process's record types, workflows and scheme in the engine, and assigns the scheme to every
-/// workspace on the process.
+/// Keeps a work process's work types in Work, and its record types, workflows and scheme in the engine, and
+/// assigns the scheme to every workspace on the process.
 /// </summary>
 /// <remarks>
 /// Each piece is saved by its own engine command, so a failure part-way leaves what was already synced in
@@ -21,11 +23,21 @@ namespace Wayd.Work.Application.WorkProcesses.Commands;
 /// stays out of the scheme until a state is offered. A type the process no longer lists keeps its scheme
 /// entry for the same reason.
 /// </para>
+/// <para>
+/// Work types are organization-wide and found by name: a type new to Wayd is created at the default level, and
+/// an existing one keeps the level and description it has.
+/// </para>
+/// <para>
+/// A status the sync creates starts with the description Work's shared status of the same name had
+/// (<see cref="LegacyWorkStatusDescription"/>), saved with the status so a failed run cannot lose it. Only a
+/// new one: once a status exists its description is the administrators', and one they cleared stays cleared.
+/// </para>
 /// </remarks>
 public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
     IWorkDbContext workDbContext,
     IStatusWorkflowDbContext statusWorkflowDbContext,
     IDispatcher dispatcher,
+    IDateTimeProvider dateTimeProvider,
     ILogger<SyncExternalWorkProcessWorkflowsCommandHandler> logger)
     : ICommandHandler<SyncExternalWorkProcessWorkflowsCommand>
 {
@@ -34,6 +46,7 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<SyncExternalWorkProcessWorkflowsCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(SyncExternalWorkProcessWorkflowsCommand request, CancellationToken cancellationToken)
@@ -51,13 +64,18 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
             return Result.Failure($"Work process with external ID {process.Id} not found.");
         }
 
+        var workTypesResult = await AddNewWorkTypes(process, cancellationToken);
+        if (workTypesResult.IsFailure)
+            return workTypesResult;
+
         var workTypeNames = await WorkTypeNames(cancellationToken);
+        var legacyDescriptions = await LegacyDescriptions(cancellationToken);
         var workflowKeys = await ExistingWorkflowKeys(ownerType, process.Id, cancellationToken);
 
         var entries = new List<SyncedType>();
         foreach (var workType in process.WorkTypes.OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase))
         {
-            var statuses = SourceStatuses(workType);
+            var statuses = SourceStatuses(workType, legacyDescriptions);
             var workflowKey = ManagedWorkflowKeys.Workflow(process.Id, workType.ExternalKey);
             if (statuses.Count == 0 || (statuses.All(s => s.IsHidden) && !workflowKeys.Contains(workflowKey)))
             {
@@ -126,6 +144,63 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
     }
 
     /// <summary>
+    /// Creates the process's work types that Wayd does not have yet, at the level of the "Other" tier, where an
+    /// administrator moves them.
+    /// </summary>
+    private async Task<Result> AddNewWorkTypes(IExternalWorkProcessConfiguration process, CancellationToken cancellationToken)
+    {
+        // Deleted types included: a type's name is unique whether or not it is deleted, so one is never created again.
+        var existing = (await _workDbContext.WorkTypes.IgnoreQueryFilters().Select(t => t.Name).ToListAsync(cancellationToken))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var newTypes = process.WorkTypes
+            .Where(t => !string.IsNullOrWhiteSpace(t.Name) && !existing.Contains(t.Name.Trim()))
+            .DistinctBy(t => t.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (newTypes.Count == 0)
+            return Result.Success();
+
+        var defaultLevelId = await _workDbContext.WorkTypeHierarchies
+            .SelectMany(h => h.Levels)
+            .Where(l => l.Tier == WorkTypeTier.Other)
+            .OrderBy(l => l.Order)
+            .Select(l => (int?)l.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (defaultLevelId is null)
+            return Result.Failure("Unable to find the work type level for new work types.");
+
+        var now = _dateTimeProvider.Now;
+        _workDbContext.WorkTypes.AddRange(newTypes.Select(t => WorkType.Create(t.Name, t.Description, defaultLevelId.Value, now)));
+        try
+        {
+            await _workDbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ManagedSyncCollision.IsCollision(ex))
+        {
+            _logger.LogWarning(ex, "{AppRequestName}: another sync saved the new work types of process {WorkProcessName} first.", AppRequestName, process.Name);
+            return Result.Failure($"Unable to save the new work types of {process.Name}, most likely because another sync of the same process saved them at the same time. The next sync picks them up.");
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "{AppRequestName}: the new work types of process {WorkProcessName} could not be saved.", AppRequestName, process.Name);
+            return Result.Failure($"Unable to save the new work types of {process.Name}.");
+        }
+
+        _logger.LogInformation("{AppRequestName}: created {WorkTypeCount} work types for process {WorkProcessName}.", AppRequestName, newTypes.Count, process.Name);
+
+        return Result.Success();
+    }
+
+    /// <summary>The descriptions of Work's former shared statuses, by name in any casing.</summary>
+    private async Task<Dictionary<string, string>> LegacyDescriptions(CancellationToken cancellationToken)
+    {
+        var rows = await _workDbContext.LegacyWorkStatusDescriptions
+            .Select(d => new { d.Name, d.Description })
+            .ToListAsync(cancellationToken);
+        return rows.DistinctBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(d => d.Name, d => d.Description, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Points Work's work type at the record type kept for it, which decides the workflow its items follow.
     /// </summary>
     private async Task LinkRecordType(string workTypeName, Guid recordTypeId, CancellationToken cancellationToken)
@@ -155,12 +230,15 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
 
     /// <summary>
     /// The type's states in the source's order, hidden ones included: a hidden state is kept as a retired
-    /// status, because records and history still hold it.
+    /// status, because records and history still hold it. Each carries the shared description of its name, which
+    /// the engine uses only if it creates the status.
     /// </summary>
-    private static List<SourceStatus> SourceStatuses(IExternalWorkTypeWorkflow workType) =>
+    private static List<SourceStatus> SourceStatuses(IExternalWorkTypeWorkflow workType, Dictionary<string, string> legacyDescriptions) =>
         [.. workType.WorkflowStates
             .OrderBy(s => s.Order)
-            .Select(s => new SourceStatus(ManagedWorkflowKeys.Status(s.ExternalKey), s.StatusName.Trim(), s.Category, IsHidden: !s.IsActive))];
+            .Select(s => new SourceStatus(
+                ManagedWorkflowKeys.Status(s.ExternalKey), s.StatusName.Trim(), s.Category, IsHidden: !s.IsActive,
+                Description: legacyDescriptions.GetValueOrDefault(s.StatusName.Trim())))];
 
     /// <summary>Not logged here: the caller logs the failure once, with what it decides to do about it.</summary>
     private static Result Failed(string what, string name, string error) =>

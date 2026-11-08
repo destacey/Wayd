@@ -40,12 +40,6 @@ public sealed class GetWorkProcessSchemesQueryHandlerTests(SqlServerDbContextFix
                 INSERT INTO [Work].[WorkProcesses]
                     ([Id], [Name], [Ownership], [ExternalId], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
                 VALUES ({processId}, 'Schemes Process', 'Managed', {externalId}, 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME());
-
-                INSERT INTO [Work].[WorkProcessSchemes]
-                    ([Id], [WorkProcessId], [WorkTypeId], [WorkflowId], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
-                SELECT {Guid.CreateVersion7()}, {processId}, t.[Id], NULL, 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME()
-                FROM [Work].[WorkTypes] t
-                WHERE t.[Name] = {WorkItemHistorySeeder.WorkTypeName};
                 """,
                 ct);
 

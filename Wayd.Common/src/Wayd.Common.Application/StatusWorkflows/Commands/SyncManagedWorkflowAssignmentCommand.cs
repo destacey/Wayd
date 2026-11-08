@@ -102,6 +102,11 @@ public sealed class SyncManagedWorkflowAssignmentCommandHandler(
 
             return Result.Success(assignment.Id);
         }
+        catch (DbUpdateException ex) when (ManagedSyncCollision.IsCollision(ex))
+        {
+            _logger.LogWarning(ex, "{CommandName}: the save failed at the database for {@Request}.", AppRequestName, request);
+            return Result.Failure<Guid>(ManagedSyncCollision.Message("workflow assignment", $"{request.SchemeExternalKey} for scope {request.ScopeId}"));
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception handling {CommandName} command for request {@Request}.", AppRequestName, request);

@@ -14,7 +14,6 @@ namespace Wayd.Work.Domain.Models;
 /// <seealso cref="Wayd.Common.Domain.Interfaces.IActivatable" />
 public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable<WorkProcessActivationArgs>, IHasIdAndKey
 {
-    private readonly List<WorkProcessScheme> _schemes = [];
     private readonly List<Workspace> _workspaces = [];
 
     private WorkProcess() { }
@@ -69,12 +68,10 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable<WorkProc
 
     /// <summary>
     /// Indicates whether the work process is active or not.  Only active work processes can be assigned
-    /// to workspaces.  The default is false and the user should activate it after the schemes are complete.
+    /// to workspaces.  The default is false.
     /// </summary>
     /// <value><c>true</c> if this instance is active; otherwise, <c>false</c>.</value>
     public bool IsActive { get; private set; } = false;
-
-    public IReadOnlyCollection<WorkProcessScheme> Schemes => _schemes.AsReadOnly();
 
     public IReadOnlyCollection<Workspace> Workspaces => _workspaces.AsReadOnly();
 
@@ -126,96 +123,10 @@ public sealed class WorkProcess : BaseSoftDeletableEntity, IActivatable<WorkProc
             if (Workspaces.Any(w => w.IsActive))
                 return Result.Failure("Unable to deactive with active workspaces.");
 
-            foreach (WorkProcessScheme scheme in Schemes)
-            {
-                if (!scheme.IsActive) continue;
-
-                var deactivateSchemeResult = scheme.Deactivate(args.Timestamp);
-                if (deactivateSchemeResult.IsFailure)
-                    return Result.Failure(deactivateSchemeResult.Error);
-            }
-
             IsActive = false;
 
             TryAddIntegrationStateChangedEvent(args.Actor, args.Timestamp);
         }
-
-        return Result.Success();
-    }
-
-    /// <summary>
-    /// The process for adding a work type to the work process.
-    /// </summary>
-    /// <param name="workTypeId"></param>
-    /// <param name="workflowId"></param>
-    /// <param name="isActive"></param>
-    /// <param name="timestamp"></param>
-    /// <returns></returns>
-    public Result AddWorkType(int workTypeId, Guid workflowId, bool isActive, Instant timestamp)
-    {
-        if (_schemes.Any(s => s.WorkTypeId == workTypeId))
-            return Result.Failure("The work type is already associated to this work process.");
-
-        WorkProcessScheme scheme = WorkProcessScheme.CreateExternal(Id, workTypeId, workflowId, isActive);
-
-        _schemes.Add(scheme);
-
-        return Result.Success();
-    }
-
-    /// <summary>
-    /// The process for disabling a work type within the work process. This will prevent new work items from being created with the work type.
-    /// </summary>
-    /// <param name="workTypeId"></param>
-    /// <param name="timestamp"></param>
-    /// <returns></returns>
-    public Result DeactivateWorkType(int workTypeId, Instant timestamp)
-    {
-        var scheme = _schemes.FirstOrDefault(s => s.WorkTypeId == workTypeId);
-        if (scheme is null)
-            return Result.Failure("The work type is not associated to this work process.");
-
-        if (!scheme.IsActive)
-            return Result.Failure("The work type is already disabled for this work process.");
-
-        var deactivateResult = scheme.Deactivate(timestamp);
-        if (deactivateResult.IsFailure)
-            return Result.Failure(deactivateResult.Error);
-
-        return Result.Success();
-    }
-
-    /// <summary>
-    /// The process for enabling a work type within the work process.
-    /// </summary>
-    /// <param name="workTypeId"></param>
-    /// <param name="timestamp"></param>
-    /// <returns></returns>
-    public Result ActivateWorkType(int workTypeId, Instant timestamp)
-    {
-        var scheme = _schemes.FirstOrDefault(s => s.WorkTypeId == workTypeId);
-        if (scheme is null)
-            return Result.Failure("The work type is not associated to this work process.");
-
-        if (scheme.IsActive)
-            return Result.Failure("The work type is already enabled for this work process.");
-
-        var activateResult = scheme.Activate(timestamp);
-        if (activateResult.IsFailure)
-            return Result.Failure(activateResult.Error);
-
-        return Result.Success();
-    }
-
-    public Result ChangeWorkTypeWorkflow(int workTypeId, Guid workflowId, Instant timestamp)
-    {
-        var scheme = _schemes.FirstOrDefault(s => s.WorkTypeId == workTypeId);
-        if (scheme is null)
-            return Result.Failure("The work type is not associated to this work process.");
-
-        var addWorkflowResult = scheme.ChangeWorkflow(workflowId);
-        if (addWorkflowResult.IsFailure)
-            return Result.Failure(addWorkflowResult.Error);
 
         return Result.Success();
     }

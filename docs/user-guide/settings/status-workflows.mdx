@@ -21,7 +21,7 @@ Renaming a status changes what people read; it does not change what Wayd does. T
 
 Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Version, Release, Release Package, Deployment, Intake Request, Project Deliverable and Work Item. The screens call it the **Owner Type** in the create form and **Owner** in the workflow list.
 
-A record type whose module is switched off is absent here: while the **Demand Management** feature flag is off, no Intake Request workflow is listed, and none can be created, cloned or reassigned. Work Item workflows are listed only while the **Work Item Status Workflows** feature flag is on; work items follow them either way.
+A record type whose module is switched off is absent here: while the **Demand Management** feature flag is off, no Intake Request workflow is listed, and none can be created, cloned or reassigned.
 
 The record type also decides the vocabulary available to the workflow's statuses — a Release has a meaning for "Released" that a Product does not.
 
@@ -220,11 +220,11 @@ The workflows Wayd seeds are marked **System**. They cannot be edited, published
 
 A workflow can be **managed**: kept by a sync from the system its records come from, rather than authored here. Its statuses are that system's — they appear, change name, change order and disappear when the source changes them — so it is published as soon as the sync creates it.
 
-What you change on a managed workflow is what Wayd adds to the source's statuses: each status's **category** and **alias**. Those can change while it is published. You cannot add, remove, rename or reorder its statuses, change its name, restrict its transitions, or archive it; the source decides those. A move the source allows between statuses is not imported, and records on a managed workflow are never held to one. To diverge from a managed workflow, clone it: the copy is a draft of your own, which nothing syncs.
+Each status's **category** comes from the source too, and each sync applies it, so a status the source moves to another category moves here as well. Wayd adds each status's **description**, which a source does not supply. In these settings only the description can be changed; a status's name, category and meaning are shown read-only. You cannot add, remove, rename or reorder its statuses, change its name, restrict its transitions, or archive it; the source decides those. A move the source allows between statuses is not imported, and records on a managed workflow are never held to one. To diverge from a managed workflow, clone it: the copy is a draft of your own, which nothing syncs.
 
-When the source drops a status, Wayd **retires** it rather than deleting it. A retired status is listed after the others. No record can be given it, but records that already hold it, and their history, still show it. If the source brings it back, it returns to use. A retired status gives up its alias, so you can move that meaning to a status records can still be given.
+When the source drops a status, Wayd **retires** it rather than deleting it. A retired status is listed after the others. No record can be given it, but records that already hold it, and their history, still show it. If the source brings it back, it returns to use. A retired status gives up its alias.
 
-A source's workflow does not have to meet the record type's requirements. When a managed workflow has no status in a required category, lacks a required alias, or has an alias in the wrong category, it keeps syncing, and each problem is reported as a warning until you fix the mapping.
+A source's workflow does not have to meet the record type's requirements. When a managed workflow has no status in a required category, it keeps syncing, and the gap is reported as a warning until the source's workflow is changed to fill it. A managed workflow's statuses carry no meanings.
 
 #### Work item workflows
 
@@ -236,7 +236,9 @@ Work items are synced from Azure DevOps, so their workflows are managed. For eac
 
 A work item takes the status its Azure DevOps state names in the workflow its type follows in its workspace, and its history does the same for each period. Two processes' "Active" are different statuses, so each can sit in a different category.
 
-When you change a status's category, every work item holding it and every period of their history moves to the new category, so reports and charts read the same as the workflow. An item whose status is no longer Done or Removed loses its done date; one whose status becomes Done gets its done date from Azure DevOps when it next changes there. A rename in Azure DevOps renames the status on its work items at the next sync. A period of history keeps the state name Azure DevOps recorded.
+When a state's category changes in Azure DevOps, the next sync moves the status, every work item holding it and every period of their history to the new category, so reports and charts read the same as the workflow. An item whose status is no longer Done or Removed loses its done date; one whose status becomes Done gets its done date from Azure DevOps when it next changes there. A rename in Azure DevOps renames the status on its work items at the next sync. A period of history keeps the state name Azure DevOps recorded, and still holds the status: the status remembers the names it had, so history read under an earlier name resolves to it. A work type Azure DevOps adds to the process gets its workflow and its place in the scheme at the next sync.
+
+A status's description is something Wayd adds; Azure DevOps has none. Before work items moved onto status workflows, statuses with the same name shared one description, and a status the sync creates takes the shared description of its name. After that the description is yours: the sync never changes it again, so one you rewrite or clear stays as you left it.
 
 ## Changing a published workflow
 
@@ -303,6 +305,22 @@ Moving back is another reassignment. The records will carry both moves in their 
 3. Enter a **Name**, choose a **Category**, and optionally a **Meaning** (the alias) and **Description**
 
 Aliases already held by another status are not offered.
+
+### Renaming or describing a published workflow's status
+
+1. Open the workflow
+2. Choose **Edit** on the status
+3. Change the **Name** or the **Description**, then **Save**
+
+The category and meaning are shown read-only: records hold them, so changing them means [cloning the workflow](#changing-a-published-workflow). **Move Up** and **Move Down** on the status reorder it. Both need the Update permission on status workflows.
+
+### Describing a managed workflow's status
+
+1. Open the workflow
+2. Choose **Edit** on the status
+3. Write, change or clear the **Description**, then **Save**
+
+The name, category and meaning are shown read-only: the dialog changes only the description. The change is recorded in the workflow's Activity log, and the sync never changes it back. Describing a status needs the Update permission on status workflows.
 
 ### Fixing a workflow that will not publish
 

@@ -3,6 +3,7 @@ using Wayd.Common.Application.StatusWorkflows.Commands;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.Common.Application.Tests.Sut.StatusWorkflows.Commands;
 
@@ -137,5 +138,22 @@ public sealed class SyncManagedWorkflowSchemeCommandHandlerTests : StatusWorkflo
         result.IsFailure.Should().BeTrue();
         scheme.WorkflowFor(bug.Id).Should().Be(bugFlow.Id);
         DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldExplainACollision_WhenTheSaveFailsAtTheDatabase()
+    {
+        // Arrange — another sync of the source created the same scheme first
+        var bugFlow = SeedWorkflow("agile:bug");
+        var bug = SeedType("Bug");
+        DbContext.FailNextSaveWith = SaveFailures.UniqueKey();
+
+        // Act
+        var result = await CreateSut().Handle(Command(bugFlow.Id, new ManagedSchemeEntry(bug.Id, bugFlow.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Unable to save the managed workflow scheme 'azure-devops:agile', most likely because another sync of the same source saved it at the same time. The next sync picks it up.");
+        DbContext.SaveChangesCallCount.Should().Be(1, "the one save was the one that failed");
     }
 }

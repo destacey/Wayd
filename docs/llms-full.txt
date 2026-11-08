@@ -314,9 +314,9 @@ Monte Carlo forecasts behind the `delivery-forecasting` feature flag. Read-only;
 
 Configuration linking work types to workflows. Properties:
 - Name, Description, Ownership, IsActive
-- Contains WorkProcessSchemes: WorkType ↔ Workflow mappings
+- Kept as a managed Workflow Scheme (below), which lists its work types and gives each its workflow
 
-Synced from the external system (an Azure DevOps process) with its work types and workflows; in Wayd a process is only activated or deactivated. Rules: each type once, only active processes assignable to workspaces, cannot be deactivated while an active workspace uses it.
+Synced from the external system (an Azure DevOps process) with its work types and workflows; in Wayd a process is only activated or deactivated. A work type the source adds is created at the Other level and given its workflow on the next sync; a type with no state has no workflow and is not one of the process's types. Rules: each type once, only active processes assignable to workspaces, cannot be deactivated while an active workspace uses it.
 
 ### Work Types
 
@@ -334,7 +334,7 @@ Default system levels: Epics (Portfolio L1), Features (Portfolio L2), Stories (R
 
 ### Workflows
 
-The statuses a work type's items move through in a work process: a managed Status Workflow (below) per work type, synced from the Azure DevOps work item type's states, with a managed Workflow Scheme per process giving each type its workflow and an assignment of that scheme to each workspace on the process. Each state's category is mapped to a work status category; an administrator can reclassify it afterwards. A status belongs to one workflow: two workflows' "Active" are different statuses and can sit in different categories, and what workflows share is the category. A state renamed at the source renames its status; one hidden or removed is retired, and the items and history holding it keep it. No minimum count, category coverage or ordering rule exists. `WorkProcesses_GetSchemes` returns each work type's workflow with its statuses (UUID ids). Work's older Workflow and WorkflowScheme records are still written by the sync but decide nothing.
+The statuses a work type's items move through in a work process: a managed Status Workflow (below) per work type, synced from the Azure DevOps work item type's states, with a managed Workflow Scheme per process giving each type its workflow and an assignment of that scheme to each workspace on the process. Each state's category is mapped to a work status category, and each sync applies the source's category again, so it is never changed in Wayd. An administrator can change a status's description. A status belongs to one workflow: two workflows' "Active" are different statuses and can sit in different categories, and what workflows share is the category. A state renamed at the source renames its status, which remembers its former names so history recorded under them still resolves; one hidden or removed is retired, and the items and history holding it keep it. No minimum count, category coverage or ordering rule exists. `WorkProcesses_GetSchemes` returns each work type in the process's scheme with its workflow and statuses (UUID ids).
 
 ### Work Status Categories
 
@@ -561,13 +561,13 @@ Cross-cutting. Any module whose records carry a status registers an owner type a
 
 Properties: Name, Description, OwnerType, State (Draft/Published/Archived), IsSystem, Key, Statuses (ordered).
 
-Rules: Statuses are added, removed or reclassified only in Draft — records carry a denormalized category and alias, so moving one on a live workflow leaves every record disagreeing with the status it points at. A managed (synced) workflow is the exception: it is published at creation, only the sync adds, renames, reorders and retires its statuses, and an administrator may change a non-retired status's category and alias while it is published, which re-stamps the records holding it. Renaming, re-describing and reordering statuses are allowed until the workflow is archived. System workflows cannot be modified, published by a user, or archived. Publish requires every alias the owner type declares required. Archive requires the workflow to be unassigned. Clone copies the statuses into a new Draft and is the only route by which a published or seeded workflow is changed.
+Rules: Statuses are added, removed or reclassified only in Draft — records carry a denormalized category and alias, so moving one on a live workflow leaves every record disagreeing with the status it points at. A managed (synced) workflow is the exception: it is published at creation, only the sync adds, renames, reorders and retires its statuses, and each sync applies the source's category to its statuses, which re-stamps the records holding a status that moved; an administrator may change only a status's description. On an owned workflow, renaming, re-describing and reordering statuses are allowed until it is archived. System workflows cannot be modified, published by a user, or archived. Publish requires every alias the owner type declares required. Archive requires the workflow to be unassigned. Clone copies the statuses into a new Draft and is the only route by which a published or seeded workflow is changed.
 
 ### Workflow Statuses
 
 Properties: Name, Description, Category (Proposed/Active/Done/Removed), Alias (int, 0 = none), Order.
 
-Rules: Names and aliases are unique within a workflow. The category is the rollup; the alias is the well-known meaning platform logic reads instead of the name. ReclassifyStatus changes both, Draft only, or on a managed workflow until it is archived, for a status that is not retired.
+Rules: Names and aliases are unique within a workflow. The category is the rollup; the alias is the well-known meaning platform logic reads instead of the name. ReclassifyStatus changes both, on a draft owned workflow only; a managed workflow's categories come from its sync.
 
 ### Workflow Transitions
 

@@ -8,21 +8,12 @@ import {
   MoreOutlined,
   PlusOutlined,
 } from '@ant-design/icons'
-import {
-  Button,
-  DatePicker,
-  Dropdown,
-  Flex,
-  Form,
-  Input,
-  Select,
-  Tag,
-} from 'antd'
-import { BaseOptionType } from 'antd/es/select'
-import dayjs from 'dayjs'
+import { Button, Dropdown, Flex, Tag } from 'antd'
+import { formatCalendarDate } from '@/src/utils/calendar-date'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import styles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
 import {
+  type CellEditor,
   type FilterOption,
   type WaydGridColumnMeta,
   TagListCell,
@@ -33,6 +24,15 @@ import {
   getPlanScheduleLabel,
   isPlanItemOverdue,
 } from './project-plan-schedule'
+import {
+  isMilestoneRow,
+  isStageRow,
+  planEffortEditor,
+  planEndEditor,
+  planNameEditor,
+  planProgressEditor,
+  planStartEditor,
+} from './project-plan-table.editors'
 
 const overdueDateStyle: React.CSSProperties = {
   color: 'var(--ant-color-error)',
@@ -44,7 +44,23 @@ const scheduleTagColors: Record<string, string> = {
   Upcoming: 'default',
 }
 
-const { Item: FormItem } = Form
+const statusTagColors: Record<string, string> = {
+  'Not Started': 'default',
+  'In Progress': 'processing',
+  Completed: 'success',
+  Canceled: 'error',
+}
+
+const DATE_FORMAT = 'MMM D, YYYY'
+const formatDate = (value: string | undefined | null) =>
+  formatCalendarDate(value, DATE_FORMAT)
+
+const NAME_TEXT_STYLE = {
+  flex: 1,
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+} as const
 
 // Drag handle component that uses the context from the sortable row
 function DragHandleCell({ isDragEnabled }: { isDragEnabled: boolean }) {
@@ -66,43 +82,39 @@ function DragHandleCell({ isDragEnabled }: { isDragEnabled: boolean }) {
         touchAction: 'none',
       }}
     >
-      <HolderOutlined style={{ fontSize: 14, color: '#8c8c8c' }} />
+      <HolderOutlined
+        style={{ fontSize: 14, color: 'var(--ant-color-text-tertiary)' }}
+      />
     </div>
   )
 }
 
+/** The editors whose choices come from lists the page loads. */
+export interface ProjectPlanOptionEditors {
+  type: CellEditor<ProjectPlanNodeDto>
+  status: CellEditor<ProjectPlanNodeDto>
+  priority: CellEditor<ProjectPlanNodeDto>
+  assignees: CellEditor<ProjectPlanNodeDto>
+}
+
 interface ProjectPlanTableColumnsParams {
+  /** The user may change the plan: row menus, drag handles, add buttons. */
   canManageTasks: boolean
-  selectedRowId: string | null
   handleEditTask: (task: ProjectPlanNodeDto) => void
   handleDeleteTask: (task: ProjectPlanNodeDto) => void
-  handleUpdateTask?: (taskId: string, updates: Record<string, any>) => unknown
-  getFieldError: (fieldName: string) => string | undefined
-  handleKeyDown: (
-    e: React.KeyboardEvent,
-    rowId: string,
-    columnId: string,
-  ) => Promise<void>
-  createSelectInputKeyDown: (
-    rowId: string,
-    columnId: string,
-  ) => React.KeyboardEventHandler<HTMLInputElement | HTMLTextAreaElement>
-  taskStatusOptions: any[]
-  taskStatusOptionsForMilestone: any[]
-  taskPriorityOptions: any[]
-  taskTypeOptions: any[]
-  employeeOptions: BaseOptionType[]
+  handleEditStage?: (stage: ProjectPlanNodeDto) => void
+  openPlanItemDrawer?: (taskId: string) => void
   isDragEnabled?: boolean
   enableDragAndDrop?: boolean
   addDraftTaskAsChild?: (parentId: string) => void
+  /** No other new row is waiting to be created. */
   canCreateTasks?: boolean
-  isSelectedRowMilestone?: boolean
   taskTypeFilterOptions?: FilterOption[]
   taskStatusFilterOptions?: FilterOption[]
   taskPriorityFilterOptions?: FilterOption[]
-  isStageNode?: (node: ProjectPlanNodeDto | null | undefined) => boolean
-  handleEditStage?: (stage: ProjectPlanNodeDto) => void
-  openPlanItemDrawer?: (taskId: string) => void
+  /** Editors built from the page's option lists; without them those
+   *  columns are read-only. */
+  optionEditors?: ProjectPlanOptionEditors
   /** The project's deliverable names by id, for the Deliverables column. */
   deliverableNames?: ReadonlyMap<string, string>
 }
@@ -116,31 +128,24 @@ const deliverableNamesOf = (
     .map((id) => deliverableNames.get(id))
     .filter((name): name is string => !!name)
 
+/**
+ * The project plan's columns. Cells render read-only; a column with an
+ * editor is edited in place by the grid when the grid has `onCommit`.
+ */
 export const getProjectPlanTableColumns = ({
   canManageTasks,
-  selectedRowId,
   handleEditTask,
   handleDeleteTask,
-  handleUpdateTask,
-  getFieldError,
-  handleKeyDown,
-  createSelectInputKeyDown,
-  taskStatusOptions,
-  taskStatusOptionsForMilestone,
-  taskPriorityOptions,
-  taskTypeOptions,
-  employeeOptions,
+  handleEditStage,
+  openPlanItemDrawer,
   isDragEnabled = false,
   enableDragAndDrop = false,
   addDraftTaskAsChild,
   canCreateTasks = true,
-  isSelectedRowMilestone = false,
   taskTypeFilterOptions = [],
   taskStatusFilterOptions = [],
   taskPriorityFilterOptions = [],
-  isStageNode = () => false,
-  handleEditStage,
-  openPlanItemDrawer,
+  optionEditors,
   deliverableNames = new Map(),
 }: ProjectPlanTableColumnsParams): ColumnDef<ProjectPlanNodeDto>[] => {
   return [
@@ -157,12 +162,12 @@ export const getProjectPlanTableColumns = ({
             meta: { enableExport: false } satisfies WaydGridColumnMeta,
             cell: ({ row }: { row: any }) => {
               const isDraft = row.original.id.startsWith('draft-')
-              const isStage = isStageNode(row.original)
+              const isStage = isStageRow(row.original)
 
               if (isStage) {
                 // Stage rows: no drag handle, show edit and add task options
                 const stageMenuItems = []
-                if (handleEditStage && canManageTasks) {
+                if (handleEditStage) {
                   stageMenuItems.push({
                     key: 'edit-stage',
                     label: 'Edit',
@@ -209,7 +214,9 @@ export const getProjectPlanTableColumns = ({
                             label: 'Edit',
                             onClick: () => handleEditTask(row.original),
                           },
-                          ...(canCreateTasks && addDraftTaskAsChild
+                          ...(canCreateTasks &&
+                          addDraftTaskAsChild &&
+                          !isMilestoneRow(row.original)
                             ? [
                                 {
                                   key: 'add-child',
@@ -291,20 +298,19 @@ export const getProjectPlanTableColumns = ({
       size: 300,
       enableColumnFilter: true,
       sortFn: 'alphanumeric',
-      meta: { treeColumn: true } satisfies WaydGridColumnMeta,
+      meta: {
+        treeColumn: true,
+        editor: planNameEditor,
+      } satisfies WaydGridColumnMeta,
       cell: ({ row }: { row: any }) => {
         const depth = row.depth
         const task = row.original as ProjectPlanNodeDto
-        const isSelected = selectedRowId === task.id
-        const cellId = `${task.id}-name`
         const isDraft = task.id.startsWith('draft-')
-        const isMilestone = task.type?.name === 'Milestone'
-        const isStage = isStageNode(task)
+        const isStage = isStageRow(task)
 
         return (
           <Flex
             className={styles.nameCell}
-            data-cell-id={cellId}
             align="center"
             justify="space-between"
             gap={4}
@@ -325,7 +331,10 @@ export const getProjectPlanTableColumns = ({
                       <CaretRightOutlined />
                     )
                   }
-                  onClick={row.getToggleExpandedHandler()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    row.getToggleExpandedHandler()()
+                  }}
                   tabIndex={-1}
                   aria-expanded={row.getIsExpanded()}
                   aria-label="Show children"
@@ -336,43 +345,15 @@ export const getProjectPlanTableColumns = ({
               )}
               {isStage ? (
                 <span className={styles.stageName}>{task.name}</span>
-              ) : isSelected && handleUpdateTask ? (
-                <FormItem
-                  name="name"
-                  style={{ margin: 0, flex: 1, minWidth: 0 }}
-                  rules={[
-                    { required: true, message: 'Name is required' },
-                    { max: 256, message: 'Name cannot exceed 256 characters' },
-                  ]}
-                  validateStatus={getFieldError('name') ? 'error' : ''}
-                >
-                  <Input
-                    size="small"
-                    onPressEnter={(e) => {
-                      e.currentTarget.blur()
-                    }}
-                    onKeyDown={(e) => handleKeyDown(e, task.id, 'name')}
-                    style={{ flex: 1, minWidth: 0 }}
-                    status={getFieldError('name') ? 'error' : ''}
-                  />
-                </FormItem>
               ) : (
-                <span
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
+                <span style={NAME_TEXT_STYLE}>
                   {task.name || (isDraft ? '(New Task)' : '')}
                 </span>
               )}
             </Flex>
-            {!isSelected &&
-              canManageTasks &&
+            {canManageTasks &&
               !isDraft &&
-              !isMilestone &&
+              !isMilestoneRow(task) &&
               addDraftTaskAsChild && (
                 <Button
                   type="text"
@@ -403,51 +384,10 @@ export const getProjectPlanTableColumns = ({
       meta: {
         filterType: 'select',
         filterOptions: taskTypeFilterOptions,
+        editor: optionEditors?.type,
       } satisfies WaydGridColumnMeta,
       cell: ({ row }: { row: any }) => {
         const task = row.original as ProjectPlanNodeDto
-        const isSelected = selectedRowId === task.id
-        const isDraft = task.id.startsWith('draft-')
-        const cellId = `${task.id}-type`
-
-        if (isSelected && isDraft && handleUpdateTask) {
-          return (
-            <FormItem
-              name="typeId"
-              style={{ margin: 0 }}
-              validateStatus={getFieldError('typeId') ? 'error' : ''}
-            >
-              <Select
-                size="small"
-                options={taskTypeOptions}
-                style={{ width: '100%' }}
-                onKeyDown={(e) => handleKeyDown(e, task.id, 'type')}
-                onInputKeyDown={createSelectInputKeyDown(task.id, 'type')}
-                status={getFieldError('typeId') ? 'error' : ''}
-                onOpenChange={(open) => {
-                  // When the dropdown closes after a selection, the Select
-                  // loses focus — especially when changing Task↔Milestone
-                  // which triggers a full column rebuild. Re-focus the
-                  // Select's search input after React re-renders.
-                  if (!open) {
-                    setTimeout(() => {
-                      const cell = document.querySelector(
-                        `[data-cell-id="${cellId}"]`,
-                      )
-                      if (cell) {
-                        const input = cell.querySelector(
-                          'input.ant-select-input',
-                        ) as HTMLElement
-                        input?.focus({ preventScroll: true })
-                      }
-                    }, 10)
-                  }
-                }}
-              />
-            </FormItem>
-          )
-        }
-
         return task.type?.name ?? task.nodeType ?? ''
       },
     },
@@ -462,50 +402,14 @@ export const getProjectPlanTableColumns = ({
       meta: {
         filterType: 'select',
         filterOptions: taskStatusFilterOptions,
+        editor: optionEditors?.status,
       } satisfies WaydGridColumnMeta,
       cell: (info) => {
-        const task = info.row.original as ProjectPlanNodeDto
         const status = (info.getValue() as string) ?? ''
-        const isSelected = selectedRowId === task.id
-        const isDraft = task.id.startsWith('draft-')
-        const colorMap: Record<string, string> = {
-          'Not Started': 'default',
-          'In Progress': 'processing',
-          Completed: 'success',
-          Canceled: 'error',
-        }
-
-        if (!isSelected || !handleUpdateTask) {
-          return (
-            <Tag color={colorMap[status] || 'default'}>{status || '-'}</Tag>
-          )
-        }
-
-        const isMilestone = isSelected
-          ? isDraft
-            ? isSelectedRowMilestone
-            : task.type?.name === 'Milestone'
-          : task.type?.name === 'Milestone'
-        const availableStatusOptions = isMilestone
-          ? taskStatusOptionsForMilestone
-          : taskStatusOptions
-
-        const error = getFieldError('statusId')
         return (
-          <FormItem
-            name="statusId"
-            style={{ margin: 0 }}
-            rules={[{ required: true, message: 'Status is required' }]}
-            validateStatus={error ? 'error' : ''}
-          >
-            <Select
-              size="small"
-              options={availableStatusOptions}
-              onKeyDown={(e) => handleKeyDown(e, task.id, 'status')}
-              onInputKeyDown={createSelectInputKeyDown(task.id, 'status')}
-              status={error ? 'error' : ''}
-            />
-          </FormItem>
+          <Tag color={statusTagColors[status] || 'default'}>
+            {status || '-'}
+          </Tag>
         )
       },
     },
@@ -520,36 +424,15 @@ export const getProjectPlanTableColumns = ({
       meta: {
         filterType: 'select',
         filterOptions: taskPriorityFilterOptions,
+        editor: optionEditors?.priority,
       } satisfies WaydGridColumnMeta,
       cell: (info) => {
         const task = info.row.original as ProjectPlanNodeDto
         const priority = (info.getValue() as string) ?? ''
-        const isSelected = selectedRowId === task.id
-
-        if (!isSelected || !handleUpdateTask || task.nodeType === 'Stage') {
-          if (!priority) return task.nodeType === 'Stage' ? null : '-'
-          // Plain text: Status and Schedule already carry tags, and a third
-          // colored column on every row is more color than the grid can spend.
-          return priority
-        }
-
-        const error = getFieldError('priorityId')
-        return (
-          <FormItem
-            name="priorityId"
-            style={{ margin: 0 }}
-            rules={[{ required: true, message: 'Priority is required' }]}
-            validateStatus={error ? 'error' : ''}
-          >
-            <Select
-              size="small"
-              options={taskPriorityOptions}
-              onKeyDown={(e) => handleKeyDown(e, task.id, 'priority')}
-              onInputKeyDown={createSelectInputKeyDown(task.id, 'priority')}
-              status={error ? 'error' : ''}
-            />
-          </FormItem>
-        )
+        if (!priority) return isStageRow(task) ? null : '-'
+        // Plain text: Status and Schedule already carry tags, and a third
+        // colored column on every row is more color than the grid can spend.
+        return priority
       },
     },
     {
@@ -569,8 +452,7 @@ export const getProjectPlanTableColumns = ({
         ],
       } satisfies WaydGridColumnMeta,
       cell: (info) => {
-        // Derived from the dates, so it stays read-only even on the selected
-        // row — there is nothing here to edit.
+        // Derived from the dates, so there is nothing here to edit.
         const label = info.getValue() as string
         if (!label) return null
 
@@ -579,147 +461,55 @@ export const getProjectPlanTableColumns = ({
     },
     {
       id: 'plannedStart',
-      accessorFn: (row) => {
-        const isMilestone = row.type?.name === 'Milestone'
-        const dateValue = isMilestone ? row.plannedDate : row.start
-        return dateValue ? dayjs(dateValue).format('MMM D, YYYY') : ''
-      },
+      accessorFn: (row) =>
+        formatDate(isMilestoneRow(row) ? row.plannedDate : row.start),
       header: 'Planned Start',
       size: 130,
       enableGlobalFilter: true,
       enableColumnFilter: true,
       meta: {
         filterType: 'date',
-        exportFormatter: (_value, row) => {
-          const isMilestone = row.type?.name === 'Milestone'
-          const date = isMilestone ? row.plannedDate : row.start
-          return date ? dayjs(date).format('MMM D, YYYY') : ''
-        },
+        editor: planStartEditor,
+        exportFormatter: (_value, row) =>
+          formatDate(isMilestoneRow(row) ? row.plannedDate : row.start),
       } satisfies WaydGridColumnMeta,
-      sortFn: dateSortBy((row: any) => {
-        const isMilestone = row.original.type?.name === 'Milestone'
-        return isMilestone ? row.original.plannedDate : row.original.start
-      }),
+      sortFn: dateSortBy((row: any) =>
+        isMilestoneRow(row.original)
+          ? row.original.plannedDate
+          : row.original.start,
+      ),
       cell: (info) => {
         const task = info.row.original as ProjectPlanNodeDto
         const value = (info.getValue() as string) ?? ''
-        const isSelected = selectedRowId === task.id
-        const isDraft = task.id.startsWith('draft-')
-        const cellId = `${task.id}-plannedStart`
-        const isMilestone = isSelected
-          ? isDraft
-            ? isSelectedRowMilestone
-            : task.type?.name === 'Milestone'
-          : task.type?.name === 'Milestone'
-
-        if (!isSelected || !handleUpdateTask) {
-          // A milestone's due date lives here, so it carries the overdue
-          // treatment that the Planned End column gives every other item.
-          return isMilestone && isPlanItemOverdue(task) ? (
-            <span style={overdueDateStyle}>{value}</span>
-          ) : (
-            value
-          )
-        }
-
-        const fieldName = isMilestone ? 'plannedDate' : 'plannedStart'
-        const error = getFieldError(fieldName)
-
-        return (
-          <FormItem
-            name={fieldName}
-            style={{ margin: 0 }}
-            validateStatus={error ? 'error' : ''}
-          >
-            <DatePicker
-              size="small"
-              format="MMM D, YYYY"
-              onKeyDown={(e) => handleKeyDown(e, task.id, 'plannedStart')}
-              onOpenChange={(open) => {
-                if (!open) {
-                  setTimeout(() => {
-                    const cell = document.querySelector(
-                      `[data-cell-id="${cellId}"]`,
-                    )
-                    if (cell) {
-                      const input = cell.querySelector('input') as
-                        | HTMLInputElement
-                        | undefined
-                      input?.focus({ preventScroll: true })
-                    }
-                  }, 0)
-                }
-              }}
-              status={error ? 'error' : ''}
-            />
-          </FormItem>
+        // A milestone's due date lives here, so it carries the overdue
+        // treatment that the Planned End column gives every other item.
+        return isMilestoneRow(task) && isPlanItemOverdue(task) ? (
+          <span style={overdueDateStyle}>{value}</span>
+        ) : (
+          value
         )
       },
     },
     {
       id: 'plannedEnd',
-      accessorFn: (row) =>
-        row.end ? dayjs(row.end).format('MMM D, YYYY') : '',
+      accessorFn: (row) => formatDate(row.end),
       header: 'Planned End',
       size: 130,
       enableGlobalFilter: true,
       enableColumnFilter: true,
       meta: {
         filterType: 'date',
-        exportFormatter: (value) =>
-          value ? dayjs(value as string).format('MMM D, YYYY') : '',
+        editor: planEndEditor,
+        exportFormatter: (_value, row) => formatDate(row.end),
       } satisfies WaydGridColumnMeta,
       sortFn: dateSortBy((row: any) => row.original.end),
       cell: (info) => {
         const task = info.row.original as ProjectPlanNodeDto
         const value = (info.getValue() as string) ?? ''
-        const isSelected = selectedRowId === task.id
-        const isDraft = task.id.startsWith('draft-')
-        const cellId = `${task.id}-plannedEnd`
-        const isMilestone = isSelected
-          ? isDraft
-            ? isSelectedRowMilestone
-            : task.type?.name === 'Milestone'
-          : task.type?.name === 'Milestone'
-
-        if (!isSelected || !handleUpdateTask || isMilestone) {
-          return isPlanItemOverdue(task) ? (
-            <span style={overdueDateStyle}>{value}</span>
-          ) : (
-            value
-          )
-        }
-
-        const error = getFieldError('plannedEnd')
-
-        return (
-          <FormItem
-            name="plannedEnd"
-            style={{ margin: 0 }}
-            validateStatus={error ? 'error' : ''}
-          >
-            <DatePicker
-              size="small"
-              format="MMM D, YYYY"
-              onKeyDown={(e) => handleKeyDown(e, task.id, 'plannedEnd')}
-              onOpenChange={(open) => {
-                if (!open) {
-                  setTimeout(() => {
-                    const cell = document.querySelector(
-                      `[data-cell-id="${cellId}"]`,
-                    )
-                    if (cell) {
-                      const input = cell.querySelector('input') as
-                        | HTMLInputElement
-                        | undefined
-                      input?.focus({ preventScroll: true })
-                    }
-                  }, 0)
-                }
-              }}
-              status={error ? 'error' : ''}
-            />
-          </FormItem>
+        return isPlanItemOverdue(task) ? (
+          <span style={overdueDateStyle}>{value}</span>
+        ) : (
+          value
         )
       },
     },
@@ -731,43 +521,11 @@ export const getProjectPlanTableColumns = ({
       enableGlobalFilter: true,
       enableColumnFilter: true,
       sortFn: 'text',
+      meta: { editor: optionEditors?.assignees } satisfies WaydGridColumnMeta,
       cell: (info) => {
-        const task = info.row.original as ProjectPlanNodeDto
-        const assignees = task.assignees ?? []
-        const isSelected = selectedRowId === task.id
-
-        if (!isSelected || !handleUpdateTask) {
-          if (assignees.length === 0) return ''
-          return <TagListCell values={assignees.map((a) => a.name)} />
-        }
-
-        const error = getFieldError('assigneeIds')
-        return (
-          <FormItem
-            name="assigneeIds"
-            style={{ margin: 0 }}
-            validateStatus={error ? 'error' : ''}
-          >
-            <Select
-              size="small"
-              mode="multiple"
-              placeholder="Select assignees"
-              showSearch={{
-                optionFilterProp: 'label',
-                filterOption: (input, option) =>
-                  (option?.label?.toString().toLowerCase() ?? '').includes(
-                    input.toLowerCase(),
-                  ),
-              }}
-              options={employeeOptions}
-              onKeyDown={(e) => handleKeyDown(e, task.id, 'assignees')}
-              onInputKeyDown={createSelectInputKeyDown(task.id, 'assignees')}
-              status={error ? 'error' : ''}
-              maxTagCount={1}
-              maxTagPlaceholder={(omitted) => `+${omitted.length}`}
-            />
-          </FormItem>
-        )
+        const assignees = info.row.original.assignees ?? []
+        if (assignees.length === 0) return ''
+        return <TagListCell values={assignees.map((a) => a.name)} />
       },
     },
     {
@@ -794,40 +552,11 @@ export const getProjectPlanTableColumns = ({
       meta: {
         filterType: 'numericRange',
         filterPlaceholder: 'e.g. >=10 or 2-6',
+        editor: planProgressEditor,
       } satisfies WaydGridColumnMeta,
       cell: (info) => {
         const task = info.row.original as ProjectPlanNodeDto
-        const value = task.progress
-        const isSelected = selectedRowId === task.id
-        const isDraft = task.id.startsWith('draft-')
-        const isMilestone = isSelected
-          ? isDraft
-            ? isSelectedRowMilestone
-            : task.type?.name === 'Milestone'
-          : task.type?.name === 'Milestone'
-
-        if (!isSelected || !handleUpdateTask || isMilestone) {
-          return value !== undefined ? `${value} %` : ''
-        }
-
-        const error = getFieldError('progress')
-        return (
-          <FormItem
-            name="progress"
-            style={{ margin: 0 }}
-            validateStatus={error ? 'error' : ''}
-          >
-            <Input
-              size="small"
-              type="number"
-              min={0}
-              max={100}
-              suffix="%"
-              onKeyDown={(e) => handleKeyDown(e, task.id, 'progress')}
-              status={error ? 'error' : ''}
-            />
-          </FormItem>
-        )
+        return task.progress !== undefined ? `${task.progress} %` : ''
       },
       sortFn: 'basic',
       sortUndefined: -1,
@@ -842,48 +571,9 @@ export const getProjectPlanTableColumns = ({
       meta: {
         filterType: 'numericRange',
         filterPlaceholder: 'e.g. >=10 or 2-6',
+        editor: planEffortEditor,
       } satisfies WaydGridColumnMeta,
-      cell: (info) => {
-        const task = info.row.original as ProjectPlanNodeDto
-        const value = task.estimatedEffortHours
-        const isSelected = selectedRowId === task.id
-        const isDraft = task.id.startsWith('draft-')
-        const isMilestone = isSelected
-          ? isDraft
-            ? isSelectedRowMilestone
-            : task.type?.name === 'Milestone'
-          : task.type?.name === 'Milestone'
-
-        if (
-          !isSelected ||
-          !handleUpdateTask ||
-          isMilestone ||
-          task.nodeType === 'Stage'
-        ) {
-          return value
-        }
-
-        const error = getFieldError('estimatedEffortHours')
-        return (
-          <FormItem
-            name="estimatedEffortHours"
-            style={{ margin: 0 }}
-            validateStatus={error ? 'error' : ''}
-          >
-            <Input
-              size="small"
-              type="number"
-              min={0}
-              step={0.25}
-              suffix="h"
-              onKeyDown={(e) =>
-                handleKeyDown(e, task.id, 'estimatedEffortHours')
-              }
-              status={error ? 'error' : ''}
-            />
-          </FormItem>
-        )
-      },
+      cell: (info) => info.row.original.estimatedEffortHours,
       sortFn: 'basic',
       sortUndefined: -1,
     },

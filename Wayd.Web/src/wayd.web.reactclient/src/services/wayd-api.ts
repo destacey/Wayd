@@ -60738,6 +60738,78 @@ export class StatusWorkflowsClient {
     }
 
     /**
+     * Change a status's description.
+     * @return No Content
+     */
+    describeStatus(id: string, statusId: string, request: DescribeWorkflowStatusRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/status-workflows/{id}/statuses/{statusId}/description";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (statusId === undefined || statusId === null)
+            throw new globalThis.Error("The parameter 'statusId' must be defined.");
+        url_ = url_.replace("{statusId}", encodeURIComponent("" + statusId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDescribeStatus(_response);
+        });
+    }
+
+    protected processDescribeStatus(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Change the category and well-known meaning of a status.
      * @return No Content
      */
@@ -64074,6 +64146,9 @@ If it matches a task, the new task becomes a child of that task and inherits the
     estimatedEffortHours?: number | undefined;
     /** The deliverables of the same project the task serves, by id (optional). */
     deliverableIds?: string[] | undefined;
+    /** The task's 1-based position among its parent's children (optional). Omit it to place the task last; a
+position past the end also places it last. */
+    order?: number | undefined;
 }
 
 /** A request to define a record type for an owner type that has them. */
@@ -64735,6 +64810,12 @@ export interface DeploymentFrequencyDto {
     /** Deployments per day, or `null` when the window has no duration. Derived — a caller
 combining windows should sum `count` and `windowDays` instead. */
     perDay?: number | undefined;
+}
+
+/** A request to change only a status's description, leaving its name as it is. */
+export interface DescribeWorkflowStatusRequest {
+    /** What the status means, shown when picking it. Empty or omitted clears it. */
+    description?: string | undefined;
 }
 
 export interface DescriptiveNavigationDtoOfGuidAndInteger {
@@ -71123,7 +71204,7 @@ export interface StatusWorkflowDetailsDto {
     state: string;
     isSystem: boolean;
     /** Whether administrators author this workflow, or a sync keeps it from its source. A managed
-workflow's statuses follow the source; only their categories and aliases are edited here. */
+workflow's statuses, categories included, follow the source; only their descriptions are edited here. */
     ownership: WorkflowOwnership;
     /** The source's identifier for this workflow when it is managed; null when owned. */
     externalKey?: string | undefined;
@@ -71157,9 +71238,15 @@ status. Publishing is refused until each is moved or loses its alias. */
     misfiledAliases: string[];
     /** Whether the statuses may be restructured — Draft, and not platform-seeded. */
     canEdit: boolean;
-    /** Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one
-until it is archived. Retired statuses never. */
+    /** Whether a status's category and alias may be changed: on a draft owned workflow only. A managed
+workflow's categories come from its source. */
     canReclassify: boolean;
+    /** Whether statuses may be renamed, re-described and reordered: on an owned workflow that is not a system or
+archived one, published included, since these change what people read rather than what records hold. */
+    canRenameAndReorder: boolean;
+    /** Whether a status's description may be changed: on any workflow but a system or archived one, a managed
+one included, since a source supplies no descriptions. */
+    canDescribe: boolean;
     /** What a check found wrong that does not stop this workflow being used, one sentence each. Only a
 managed workflow has any: it syncs regardless, and administration flags it until they are fixed. */
     warnings: string[];
@@ -74217,15 +74304,13 @@ export interface WorkProcessListDto {
 
 /** One work type in a work process, and the status workflow its work items follow. */
 export interface WorkProcessSchemeDto {
-    /** The scheme's id within the work process. */
+    /** The id of the work type's entry in the process's scheme. */
     id: string;
     /** The work type, with its level. */
     workType: WorkTypeDto;
-    /** The status workflow the work type follows in this process, with its statuses; null when the process has
-no workflow for the type, such as a type whose source offers no state. */
+    /** The status workflow the work type follows in this process, with its statuses; null only when the workflow
+its scheme entry names cannot be read. */
     workflow?: WorkProcessSchemeWorkflowDto | undefined;
-    /** Whether the work type is active in this process. */
-    isActive: boolean;
 }
 
 /** One status of a work process's workflow. */

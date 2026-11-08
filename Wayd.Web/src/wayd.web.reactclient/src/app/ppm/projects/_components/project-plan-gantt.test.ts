@@ -5,7 +5,6 @@ jest.unmock('dayjs')
 import type { ProjectPlanNodeDto } from '@/src/services/wayd-api'
 import { parseCalendarDate } from '@/src/utils'
 import {
-  applyOptimisticPlanDates,
   computeProjectPlanGanttDomain,
   isMilestoneNode,
   isStageNode,
@@ -142,101 +141,5 @@ describe('computeProjectPlanGanttDomain', () => {
     // Assert
     expect(domain.domainStart).toBe(at('2026-01-01') - PAD)
     expect(domain.domainEnd).toBe(at('2026-12-31') + PAD)
-  })
-})
-
-describe('applyOptimisticPlanDates', () => {
-  it('writes a dragged range onto the matching task', () => {
-    // Arrange
-    const tree = [node({ id: 't1', start: undefined, end: undefined })]
-    // Act
-    const found = applyOptimisticPlanDates(
-      tree,
-      't1',
-      false,
-      '2026-03-01',
-      '2026-03-10',
-    )
-    // Assert — stored as YYYY-MM-DD to match the post-refetch shape.
-    expect(found).toBe(true)
-    expect(tree[0].start).toBe('2026-03-01')
-    expect(tree[0].end).toBe('2026-03-10')
-  })
-
-  it('writes only plannedDate for a milestone', () => {
-    // Arrange
-    const tree = [node({ id: 'ms1', type: { id: 2, name: 'Milestone' } })]
-    // Act
-    const found = applyOptimisticPlanDates(
-      tree,
-      'ms1',
-      true,
-      '2026-06-15',
-      '2026-06-15',
-    )
-    // Assert — a milestone has no range to write.
-    expect(found).toBe(true)
-    expect(tree[0].plannedDate).toBe('2026-06-15')
-    expect(tree[0].start).toBeUndefined()
-    expect(tree[0].end).toBeUndefined()
-  })
-
-  it('finds a task nested under a stage', () => {
-    // Arrange — the dragged bar is a child, not a root node.
-    const tree = [
-      node({
-        id: 'stage-1',
-        nodeType: 'Stage',
-        children: [node({ id: 'deep' })],
-      }),
-    ]
-    // Act
-    const found = applyOptimisticPlanDates(
-      tree,
-      'deep',
-      false,
-      '2026-04-01',
-      '2026-04-05',
-    )
-    // Assert
-    expect(found).toBe(true)
-    expect(tree[0].children[0].start).toBe('2026-04-01')
-  })
-
-  it('reports when the id is not in the tree', () => {
-    // Arrange
-    const tree = [node({ id: 't1' })]
-    // Act
-    const found = applyOptimisticPlanDates(
-      tree,
-      'missing',
-      false,
-      '2026-04-01',
-      '2026-04-05',
-    )
-    // Assert — the caller must not assume a patch was applied.
-    expect(found).toBe(false)
-  })
-
-  it('leaves other nodes untouched', () => {
-    // Arrange
-    const tree = [node({ id: 't1' }), node({ id: 't2', start: '2026-01-01' })]
-    // Act
-    applyOptimisticPlanDates(tree, 't1', false, '2026-04-01', '2026-04-05')
-    // Assert — only the dragged bar moves.
-    expect(tree[1].start).toBe('2026-01-01')
-  })
-
-  it('tolerates an undefined tree', () => {
-    // Arrange / Act / Assert — the cache may be empty when a drag commits.
-    expect(
-      applyOptimisticPlanDates(
-        undefined,
-        't1',
-        false,
-        '2026-04-01',
-        '2026-04-05',
-      ),
-    ).toBe(false)
   })
 })

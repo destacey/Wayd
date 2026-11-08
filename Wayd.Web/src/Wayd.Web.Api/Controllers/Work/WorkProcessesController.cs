@@ -123,7 +123,7 @@ public class WorkProcessesController(ILogger<WorkProcessesController> logger, ID
     [HttpGet("{id}/schemes")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.WorkProcesses)]
     [EndpointSummary("Get work process schemes.")]
-    [EndpointDescription("`id` is the work process's UUID only. Returns one scheme per work type in the process: the `workType` (with its level), whether it is active in this process, and the status `workflow` its work items follow, with that workflow's statuses inline (each with its UUID `id`, name, category, order, and whether it is retired). `workflow` is null when the process has no workflow for the type. A status belongs to one workflow; what workflows share is the category. Returns 404 when no work process has the id.")]
+    [EndpointDescription("`id` is the work process's UUID only. Returns one scheme per work type in the process's workflow scheme: its `id` (the type's entry in the scheme), the `workType` (with its level), and the status `workflow` its work items follow, with that workflow's statuses inline (each with its UUID `id`, name, category, order, and whether it is retired). A work type whose source offers no state has no workflow and is not listed. A status belongs to one workflow; what workflows share is the category. Returns 404 when no work process has the id.")]
     [McpTool("WorkProcesses_GetSchemes", "Get work process schemes")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

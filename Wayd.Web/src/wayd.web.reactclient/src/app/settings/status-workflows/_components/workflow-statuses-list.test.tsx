@@ -78,6 +78,8 @@ const workflow = (
   canArchive: false,
   ownership: WorkflowOwnership.Owned,
   canReclassify: false,
+  canRenameAndReorder: true,
+  canDescribe: true,
   warnings: [],
   ...overrides,
 })
@@ -100,7 +102,14 @@ describe('WorkflowStatusesList', () => {
     // Arrange — a published or system workflow is frozen, so offering row
     // actions that would all fail is worse than offering none.
     render(
-      <WorkflowStatusesList statusWorkflow={workflow({ canEdit: false })} />,
+      <WorkflowStatusesList
+        canUpdate
+        statusWorkflow={workflow({
+          canEdit: false,
+          canRenameAndReorder: false,
+          canDescribe: false,
+        })}
+      />,
     )
 
     // Assert
@@ -112,15 +121,133 @@ describe('WorkflowStatusesList', () => {
 
   it('shows the actions column when the workflow can be edited', () => {
     // Arrange / Act
-    render(<WorkflowStatusesList statusWorkflow={workflow()} />)
+    render(<WorkflowStatusesList canUpdate statusWorkflow={workflow()} />)
 
     // Assert
     expect(screen.getAllByLabelText('Status actions')).toHaveLength(3)
   })
 
+  it('offers only Edit on a managed workflow, whose statuses keep their order and existence from the sync', async () => {
+    // Arrange
+    render(
+      <WorkflowStatusesList
+        canUpdate
+        statusWorkflow={workflow({
+          canEdit: false,
+          canRenameAndReorder: false,
+          canDescribe: true,
+          state: 'Published',
+          ownership: WorkflowOwnership.Managed,
+        })}
+      />,
+    )
+
+    // Act
+    const items = await openRowMenu('In Flight')
+
+    // Assert
+    expect(items).toEqual(['Edit'])
+    expect(
+      screen.queryByRole('button', { name: 'Add Status' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('hides the actions column on a managed workflow from a user without the Update permission', () => {
+    // Arrange / Act
+    render(
+      <WorkflowStatusesList
+        canUpdate={false}
+        statusWorkflow={workflow({
+          canEdit: false,
+          canRenameAndReorder: false,
+          canDescribe: true,
+          state: 'Published',
+          ownership: WorkflowOwnership.Managed,
+        })}
+      />,
+    )
+
+    // Assert
+    expect(screen.queryByLabelText('Status actions')).not.toBeInTheDocument()
+  })
+
+  it('hides the actions column on a draft from a user without the Update permission', () => {
+    // Arrange / Act
+    render(
+      <WorkflowStatusesList canUpdate={false} statusWorkflow={workflow()} />,
+    )
+
+    // Assert
+    expect(screen.queryByLabelText('Status actions')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Add Status' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('offers Edit and moving, but not Delete, on a published owned workflow', async () => {
+    // Arrange
+    render(
+      <WorkflowStatusesList
+        canUpdate
+        statusWorkflow={workflow({
+          canEdit: false,
+          canRenameAndReorder: true,
+          canDescribe: true,
+          state: 'Published',
+        })}
+      />,
+    )
+
+    // Act
+    const items = await openRowMenu('In Flight')
+
+    // Assert
+    expect(items).toEqual(['Edit', 'Move Up', 'Move Down'])
+    expect(
+      screen.queryByRole('button', { name: 'Add Status' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('hides the actions column on a published owned workflow from a user without the Update permission', () => {
+    // Arrange / Act
+    render(
+      <WorkflowStatusesList
+        canUpdate={false}
+        statusWorkflow={workflow({
+          canEdit: false,
+          canRenameAndReorder: true,
+          canDescribe: true,
+          state: 'Published',
+        })}
+      />,
+    )
+
+    // Assert
+    expect(screen.queryByLabelText('Status actions')).not.toBeInTheDocument()
+  })
+
+  it('hides the actions column on an archived managed workflow', () => {
+    // Arrange / Act
+    render(
+      <WorkflowStatusesList
+        canUpdate
+        statusWorkflow={workflow({
+          canEdit: false,
+          canRenameAndReorder: false,
+          canDescribe: false,
+          state: 'Archived',
+          ownership: WorkflowOwnership.Managed,
+        })}
+      />,
+    )
+
+    // Assert
+    expect(screen.queryByLabelText('Status actions')).not.toBeInTheDocument()
+  })
+
   it('omits Move Up on the first status', async () => {
     // Arrange
-    render(<WorkflowStatusesList statusWorkflow={workflow()} />)
+    render(<WorkflowStatusesList canUpdate statusWorkflow={workflow()} />)
 
     // Act
     const items = await openRowMenu('New')
@@ -132,7 +259,7 @@ describe('WorkflowStatusesList', () => {
 
   it('omits Move Down on the last status', async () => {
     // Arrange
-    render(<WorkflowStatusesList statusWorkflow={workflow()} />)
+    render(<WorkflowStatusesList canUpdate statusWorkflow={workflow()} />)
 
     // Act
     const items = await openRowMenu('Shipped')
@@ -144,7 +271,7 @@ describe('WorkflowStatusesList', () => {
 
   it('offers both directions on a middle status', async () => {
     // Arrange
-    render(<WorkflowStatusesList statusWorkflow={workflow()} />)
+    render(<WorkflowStatusesList canUpdate statusWorkflow={workflow()} />)
 
     // Act
     const items = await openRowMenu('In Flight')

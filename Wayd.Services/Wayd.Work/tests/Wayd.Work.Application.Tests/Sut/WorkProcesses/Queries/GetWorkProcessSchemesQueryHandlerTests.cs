@@ -63,11 +63,10 @@ public sealed class GetWorkProcessSchemesQueryHandlerTests : IDisposable
         return workType;
     }
 
-    private WorkProcess AddProcess(Guid? externalId, params WorkType[] workTypes)
+    private WorkProcess AddProcess(Guid? externalId)
     {
-        var schemes = workTypes.Select(t => new WorkProcessSchemeFaker().WithWorkType(t).Generate()).ToList();
         var faker = externalId is Guid id ? new WorkProcessFaker().AsExternal(id) : new WorkProcessFaker().WithExternalId(null);
-        var process = faker.WithSchemes(schemes).Generate();
+        var process = faker.Generate();
         _dbContext.AddWorkProcess(process);
         return process;
     }
@@ -112,10 +111,10 @@ public sealed class GetWorkProcessSchemesQueryHandlerTests : IDisposable
             new SourceStatus("closed", "Closed", StatusCategory.Done));
         var storyWorkflow = Workflow("Agile - User Story", new SourceStatus("active", "Active", StatusCategory.Active));
         bugWorkflow.SetPrivate(w => w.Key, 11);
-        AddEngineScheme(externalId, (bugType, bugWorkflow), (storyType, storyWorkflow));
+        AddEngineScheme(externalId, (storyType, storyWorkflow), (bugType, bugWorkflow));
         var bug = AddWorkType("Bug", bugType);
-        var story = AddWorkType("User Story", storyType);
-        var process = AddProcess(externalId, story, bug);
+        AddWorkType("User Story", storyType);
+        var process = AddProcess(externalId);
 
         // Act
         var result = await _handler.Handle(new GetWorkProcessSchemesQuery(process.Id), TestContext.Current.CancellationToken);
@@ -124,6 +123,7 @@ public sealed class GetWorkProcessSchemesQueryHandlerTests : IDisposable
         result.Should().NotBeNull();
         var schemes = result!;
         schemes.Select(s => (s.WorkType.Name, s.Workflow?.Name)).Should().Equal(("Bug", "Agile - Bug"), ("User Story", "Agile - User Story"));
+        schemes[0].Id.Should().Be(_engineSchemes.Single().Entries.Single(e => e.RecordTypeId == bugType.Id).Id);
 
         var workflow = schemes[0].Workflow!;
         (workflow.Id, workflow.Key).Should().Be((bugWorkflow.Id, 11));
@@ -136,22 +136,42 @@ public sealed class GetWorkProcessSchemesQueryHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task Handle_GivesNoWorkflow_ToATypeWithoutAnEntryOfItsOwn()
+    public async Task Handle_GivesNoWorkflow_WhenTheWorkflowItsEntryNamesCannotBeRead()
     {
-        // Arrange — the scheme's default belongs to the Bug type
+        // Arrange — the entry's workflow is not among those the engine returns
         var externalId = Guid.NewGuid();
         var bugType = RecordType("Bug");
         AddEngineScheme(externalId, (bugType, Workflow("Agile - Bug", new SourceStatus("new", "New", StatusCategory.Proposed))));
-        var bug = AddWorkType("Bug", bugType);
-        var task = AddWorkType("Task", RecordType("Task"));
-        var unlinked = AddWorkType("Epic", recordType: null);
-        var process = AddProcess(externalId, bug, task, unlinked);
+        _engineWorkflows.Clear();
+        AddWorkType("Bug", bugType);
+        var process = AddProcess(externalId);
 
         // Act
         var result = await _handler.Handle(new GetWorkProcessSchemesQuery(process.Id), TestContext.Current.CancellationToken);
 
         // Assert
-        result!.Select(s => (s.WorkType.Name, s.Workflow?.Name)).Should().Equal(("Bug", "Agile - Bug"), ("Epic", null), ("Task", null));
+        var scheme = result!.Should().ContainSingle().Subject;
+        scheme.WorkType.Name.Should().Be("Bug");
+        scheme.Workflow.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ListsOnlyTheTypesWithAnEntryInTheProcesssScheme()
+    {
+        // Arrange — the scheme's default belongs to the Bug type, which Task does not borrow
+        var externalId = Guid.NewGuid();
+        var bugType = RecordType("Bug");
+        AddEngineScheme(externalId, (bugType, Workflow("Agile - Bug", new SourceStatus("new", "New", StatusCategory.Proposed))));
+        AddWorkType("Bug", bugType);
+        AddWorkType("Task", RecordType("Task"));
+        AddWorkType("Epic", recordType: null);
+        var process = AddProcess(externalId);
+
+        // Act
+        var result = await _handler.Handle(new GetWorkProcessSchemesQuery(process.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Select(s => (s.WorkType.Name, s.Workflow?.Name)).Should().Equal(("Bug", "Agile - Bug"));
     }
 
     [Fact]
@@ -160,43 +180,29 @@ public sealed class GetWorkProcessSchemesQueryHandlerTests : IDisposable
         // Arrange
         var bugType = RecordType("Bug");
         AddEngineScheme(Guid.NewGuid(), (bugType, Workflow("Scrum - Bug", new SourceStatus("new", "New", StatusCategory.Proposed))));
-        var process = AddProcess(Guid.NewGuid(), AddWorkType("Bug", bugType));
+        AddWorkType("Bug", bugType);
+        var process = AddProcess(Guid.NewGuid());
 
         // Act
         var result = await _handler.Handle(new GetWorkProcessSchemesQuery(process.Id), TestContext.Current.CancellationToken);
 
         // Assert
-        result!.Should().ContainSingle().Which.Workflow.Should().BeNull();
+        result.Should().NotBeNull().And.BeEmpty();
     }
 
     [Fact]
-    public async Task Handle_GivesNoWorkflows_ToAProcessWithNoExternalId()
+    public async Task Handle_ListsNothing_ForAProcessWithNoExternalId()
     {
         // Arrange
         var bugType = RecordType("Bug");
-        var process = AddProcess(externalId: null, AddWorkType("Bug", bugType));
+        AddEngineScheme(Guid.NewGuid(), (bugType, Workflow("Agile - Bug", new SourceStatus("new", "New", StatusCategory.Proposed))));
+        AddWorkType("Bug", bugType);
+        var process = AddProcess(externalId: null);
 
         // Act
         var result = await _handler.Handle(new GetWorkProcessSchemesQuery(process.Id), TestContext.Current.CancellationToken);
 
         // Assert
-        result!.Should().ContainSingle().Which.Workflow.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task Handle_ReportsWhetherEachWorkTypeIsActiveInTheProcess()
-    {
-        // Arrange
-        var bug = AddWorkType("Bug", recordType: null);
-        var process = new WorkProcessFaker().AsExternal(Guid.NewGuid())
-            .WithSchemes([new WorkProcessSchemeFaker().WithWorkType(bug).WithIsActive(false).Generate()])
-            .Generate();
-        _dbContext.AddWorkProcess(process);
-
-        // Act
-        var result = await _handler.Handle(new GetWorkProcessSchemesQuery(process.Id), TestContext.Current.CancellationToken);
-
-        // Assert
-        result!.Should().ContainSingle().Which.IsActive.Should().BeFalse();
+        result.Should().NotBeNull().And.BeEmpty();
     }
 }

@@ -49,6 +49,8 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
                 MisfiledAliases = [],
                 CanEdit = false,
                 CanReclassify = false,
+                CanDescribe = false,
+                CanRenameAndReorder = false,
                 Warnings = [],
                 CanPublish = false,
                 CanArchive = false,

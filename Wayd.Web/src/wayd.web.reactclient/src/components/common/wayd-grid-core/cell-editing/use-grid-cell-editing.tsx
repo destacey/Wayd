@@ -35,6 +35,15 @@ export interface OpenCell {
   columnId: string
 }
 
+/** A cell to focus once its row is in the row model. */
+export interface PendingFocus extends OpenCell {
+  /**
+   * The parent the row must be under first (`null`: the root), for a row
+   * that moved: until the data shows the move, the row is still where it was.
+   */
+  parentKey?: string | null
+}
+
 /** One open editor, from the moment it opens until it commits or reverts. */
 interface EditSession extends OpenCell {
   /** TanStack's id for the row, which the body's DOM is keyed by. */
@@ -95,9 +104,13 @@ export interface GridCellEditingOptions<T extends RowData> {
   onCreate?: (
     parentId: string | null,
     values: Record<string, unknown>,
+    position?: { order: number },
   ) => Promise<string | void>
   fieldToColumn?: Record<string, string>
   draftParentId: (draftKey: string) => string | null
+  /** A draft's 1-based place among its siblings when it sits below one of
+   *  them, for `onCreate`; undefined when it goes last. */
+  draftOrder?: (draftKey: string) => number | undefined
   /** Drops a draft row — discarded by the user, or replaced by the row
    *  `onCreate` made. */
   removeDraft: (draftKey: string, created: boolean) => void
@@ -105,6 +118,10 @@ export interface GridCellEditingOptions<T extends RowData> {
   notify?: (message: string) => void
   bodyViewportRef: RefObject<HTMLElement | null>
 }
+
+/** Appended to an announcement repeated word for word, so the live region's
+ *  text changes and the screen reader reads it again. */
+const NO_BREAK_SPACE = String.fromCharCode(0xa0)
 
 const INTERACTIVE_CONTENT =
   'a, button, input, select, textarea, [role="button"], [data-row-actions], [data-row-activate="ignore"]'
@@ -148,6 +165,7 @@ export function useGridCellEditing<T extends RowData>({
   onCreate,
   fieldToColumn,
   draftParentId,
+  draftOrder,
   removeDraft,
   notify,
   bodyViewportRef,
@@ -157,8 +175,14 @@ export function useGridCellEditing<T extends RowData>({
   const [entries, setEntries] = useState<CellEntries>({})
   const [session, setSession] = useState<EditSession | null>(null)
   const [pendingOpen, setPendingOpen] = useState<OpenCell | null>(null)
-  const [pendingFocus, setPendingFocus] = useState<OpenCell | null>(null)
+  const [pendingFocus, setPendingFocus] = useState<PendingFocus | null>(null)
   const [announcement, setAnnouncement] = useState('')
+  /** Reads a message out through the grid's polite live region. The same
+   *  message twice in a row is still read: the region's text changes. */
+  const announce = (message: string) =>
+    setAnnouncement((prev) =>
+      prev === message ? `${message}${NO_BREAK_SPACE}` : message,
+    )
   const idPrefix = useId()
   const messageId = (rowKey: string, columnId: string) =>
     cellMessageId(idPrefix, rowKey, columnId)
@@ -174,6 +198,12 @@ export function useGridCellEditing<T extends RowData>({
   // Rows `onCreate` made that the data does not show yet; their entries must
   // outlive the data changes before the refetch brings them in.
   const awaitedRowsRef = useRef(new Set<string>())
+  // A created draft stays on screen, showing what was typed, until the data
+  // shows the row it became (draft key → new id and the data version then);
+  // dropping it at once leaves a gap until the refetch lands.
+  const [swaps, setSwaps] = useState<
+    ReadonlyMap<string, { newId: string; version: number }>
+  >(() => new Map())
   const dataVersionRef = useRef(0)
   const clickStartRef = useRef<HTMLElement | null>(null)
   const tableRef = useRef<Table<T> | null>(null)
@@ -185,6 +215,7 @@ export function useGridCellEditing<T extends RowData>({
     onCreate,
     fieldToColumn,
     draftParentId,
+    draftOrder,
     removeDraft,
     notify,
     rowKeyOf,
@@ -196,6 +227,7 @@ export function useGridCellEditing<T extends RowData>({
       onCreate,
       fieldToColumn,
       draftParentId,
+      draftOrder,
       removeDraft,
       notify,
       rowKeyOf,
@@ -339,7 +371,7 @@ export function useGridCellEditing<T extends RowData>({
     const editor = editorFor(row, columnId)
     if (!editor) return false
     const key = rowKeyOf(row.original)
-    if (!key) return false
+    if (!key || swaps.has(key)) return false
     return editor.editable?.(row.original, { isDraft: isDraftKey(key) }) ?? true
   }
 
@@ -638,8 +670,16 @@ export function useGridCellEditing<T extends RowData>({
     send(rowKey, changed)
   }
 
-  /** Queues one patch for a row behind any commit already running for it. */
-  const send = (rowKey: string, cells: CommitCell[]) => {
+  /**
+   * Queues one patch for a row behind any commit already running for it.
+   * With `revertOnFailure`, a failed commit drops its values rather than
+   * holding them on their cells.
+   */
+  const send = (
+    rowKey: string,
+    cells: CommitCell[],
+    { revertOnFailure = false }: { revertOnFailure?: boolean } = {},
+  ) => {
     const commit = latestRef.current.onCommit
     if (!commit || cells.length === 0) return
     const seqs = cells.map(() => nextSeq())
@@ -667,7 +707,10 @@ export function useGridCellEditing<T extends RowData>({
       .then(() => latestRef.current.onCommit!(rowKey, patch))
       .then(
         () => settle(cells, seqs),
-        (error: unknown) => fail(rowKey, cells, seqs, error),
+        (error: unknown) =>
+          revertOnFailure
+            ? revert(rowKey, cells, seqs, error)
+            : fail(rowKey, cells, seqs, error),
       )
     queuesRef.current.set(rowKey, run)
     void run.then(() => {
@@ -763,8 +806,53 @@ export function useGridCellEditing<T extends RowData>({
     })
     if (messages.length > 0) {
       afterFailure(rowKey, cells[0].columnId, messages[0])
-      setAnnouncement(`Not saved. ${messages.join(' ')}`)
+      announce(`Not saved. ${messages.join(' ')}`)
     }
+  }
+
+  /**
+   * Drops a failed commit's values, so the row shows the server's again, and
+   * says why in a toast: no cell keeps the value to carry the message.
+   */
+  const revert = (
+    rowKey: string,
+    cells: CommitCell[],
+    seqs: number[],
+    error: unknown,
+  ) => {
+    const targets = errorTargets()
+    for (const cell of cells) {
+      targets.byField.set(cell.field.toLowerCase(), {
+        columnId: cell.columnId,
+        label: labelOf(cell.columnId),
+      })
+    }
+    const mapped = mapServerErrors(error, targets)
+    const messages = [
+      ...Object.values(mapped.byColumn),
+      ...mapped.unmatched,
+    ].filter(Boolean)
+    writeEntries((prev) => {
+      let next: CellEntries = prev
+      cells.forEach((cell, i) => {
+        if (prev[cell.key]?.seq !== seqs[i]) return
+        if (next === prev) next = { ...prev }
+        delete (next as Record<string, CellEntry>)[cell.key]
+      })
+      return next
+    })
+    reportRevert(messages)
+  }
+
+  /** Tells the user values set outside a cell were not saved: in a toast,
+   *  which is itself read out, else through the live region. */
+  const reportRevert = (messages: string[]) => {
+    const message = `Not saved. ${
+      messages.join(' ') || 'The change could not be saved.'
+    }`
+    const notify = latestRef.current.notify
+    if (notify) notify(message)
+    else announce(message)
   }
 
   /** Takes the user to a failed cell, or says so when it is not on screen. */
@@ -814,6 +902,25 @@ export function useGridCellEditing<T extends RowData>({
     latestRef.current.removeDraft(draftKey, created)
   }
 
+  // A created draft leaves once the data has the row it became, or two data
+  // changes passed without it (a failed refetch). Runs after
+  // onServerDataChange, which counts the data versions.
+  const releaseCreatedDrafts = useEffectEvent(() => {
+    const version = dataVersionRef.current
+    const rows = latestRef.current.data
+    for (const [draftKey, swap] of swaps) {
+      const arrived = !!findRowByKey(rows, swap.newId, rowKeyOf)
+      if (!arrived && swap.version > version - 2) continue
+      setSwaps((prev) => {
+        const next = new Map(prev)
+        next.delete(draftKey)
+        return next
+      })
+      discardDraftRow(draftKey, true)
+    }
+  })
+  useEffect(() => releaseCreatedDrafts(), [serverData])
+
   /** The draft as shown, with the values held on its cells. */
   const shownDraft = (draftKey: string) =>
     findRowByKey(
@@ -834,6 +941,11 @@ export function useGridCellEditing<T extends RowData>({
     return entry?.hasValue ? entry.value : editor.get(draft)
   }
 
+  const requiredOn = (editor: CellEditor, draft: T) =>
+    typeof editor.requiredToCreate === 'function'
+      ? editor.requiredToCreate(draft)
+      : !!editor.requiredToCreate
+
   const requiredMessage = (label: string) =>
     `${label}: Required to create the item.`
 
@@ -852,7 +964,7 @@ export function useGridCellEditing<T extends RowData>({
         const editor = editorOf(column)
         if (!editor) return false
         const isName = column.id === nameColumn
-        if (!isName && (!editor.requiredToCreate || !column.getIsVisible())) {
+        if (!isName && (!requiredOn(editor, draft) || !column.getIsVisible())) {
           return false
         }
         if (editor.editable && !editor.editable(draft, { isDraft: true })) {
@@ -913,7 +1025,7 @@ export function useGridCellEditing<T extends RowData>({
       }
       return next
     })
-    if (added.length > 0) setAnnouncement(`Not created yet. ${added.join(' ')}`)
+    if (added.length > 0) announce(`Not created yet. ${added.join(' ')}`)
     return missing
   }
 
@@ -982,7 +1094,7 @@ export function useGridCellEditing<T extends RowData>({
     }
     if (Object.keys(errors).length === 0) return false
     markErrors(draftKey, draft, errors)
-    setAnnouncement(`Not created. ${Object.values(errors).join(' ')}`)
+    announce(`Not created. ${Object.values(errors).join(' ')}`)
     return true
   }
 
@@ -993,15 +1105,26 @@ export function useGridCellEditing<T extends RowData>({
     const held = Object.entries(entriesRef.current).filter(
       ([, entry]) => entry.rowKey === draftKey && entry.hasValue,
     )
-    // Only a value that still fails its own check blocks the create; a mark
-    // the server left after an earlier failed create is retried.
-    const draft = rawRow(draftKey)
-    const invalid = held.some(([, entry]) => {
-      if (entry.phase !== 'error') return false
-      const editor = editorOf(columnById(entry.columnId))
-      return !!draft && !!editor?.validate?.(entry.value as never, draft)
-    })
-    if (invalid) return
+    // Every held value is checked again, as the draft is shown with its
+    // staged values: a value valid when entered can fail once another cell
+    // changes (a status a milestone cannot have, once Type is Milestone). A
+    // mark the server left after an earlier failed create is retried.
+    const draft = shownDraft(draftKey) ?? rawRow(draftKey)
+    const failing: Record<string, string> = {}
+    for (const [, entry] of held) {
+      const column = columnById(entry.columnId)
+      const error =
+        draft && editorOf(column)?.validate?.(entry.value as never, draft)
+      if (error) {
+        failing[entry.columnId] =
+          `${columnLabel(column, entry.columnId)}: ${error}`
+      }
+    }
+    if (draft && Object.keys(failing).length > 0) {
+      markErrors(draftKey, draft, failing)
+      announce(`Not created. ${Object.values(failing).join(' ')}`)
+      return
+    }
     if (draft && draftFailsPairCheck(draftKey, draft)) return
     creatingRef.current.add(draftKey)
     const sent = held.map(([key, entry]) => ({ key, seq: nextSeq(), entry }))
@@ -1016,7 +1139,13 @@ export function useGridCellEditing<T extends RowData>({
       sent.map(({ entry }) => [entry.field, entry.value]),
     )
     const sentKeys = new Set(sent.map(({ key }) => key))
-    void create(latestRef.current.draftParentId(draftKey), values).then(
+    const parentId = latestRef.current.draftParentId(draftKey)
+    const order = latestRef.current.draftOrder?.(draftKey)
+    const created =
+      order === undefined
+        ? create(parentId, values)
+        : create(parentId, values, { order })
+    void created.then(
       (newId) => {
         // An editor still open on the draft closes into a held value, so
         // what the user is typing follows the new row too. The draft counts
@@ -1041,7 +1170,12 @@ export function useGridCellEditing<T extends RowData>({
             !sentKeys.has(key) &&
             (entry.phase === 'unsaved' || entry.phase === 'error'),
         )
-        discardDraftRow(draftKey, true)
+        if (newId && !rawRow(newId)) {
+          const version = dataVersionRef.current
+          setSwaps((prev) => new Map(prev).set(draftKey, { newId, version }))
+        } else {
+          discardDraftRow(draftKey, true)
+        }
         if (!newId) {
           if (later.length > 0) {
             latestRef.current.notify?.(
@@ -1094,16 +1228,18 @@ export function useGridCellEditing<T extends RowData>({
 
   const draftCounterRef = useRef(0)
   /**
-   * Adds a draft row under `parentId` (or at the root) and opens its first
-   * cell once the row renders. One draft at a time.
+   * Adds a draft row under `parentId` (or at the root) — directly below the
+   * sibling `afterId`, else last — and opens its first cell once the row
+   * renders. One draft at a time.
    */
-  const addDraft = (parentId?: string): string | null => {
+  const addDraft = (parentId?: string, afterId?: string): string | null => {
     if (!canCreateDraft) return null
     draftCounterRef.current += 1
     const draft: DraftItem = {
       id: `${draftPrefix}${Date.now()}-${draftCounterRef.current}`,
       parentId,
       order: 0,
+      ...(afterId ? { afterId } : {}),
     }
     insertDraft(draft)
     if (parentId) {
@@ -1115,6 +1251,131 @@ export function useGridCellEditing<T extends RowData>({
     const columnId = draftColumnId()
     if (columnId) setPendingOpen({ rowKey: draft.id, columnId })
     return draft.id
+  }
+
+  // ─── Commits from outside a cell ────────────────────────────────────────
+  /** The values a pair would be checked with: the given ones, else what the
+   *  cell holds, else the row's own. */
+  const groupValuesFor = (
+    rowKey: string,
+    raw: T,
+    group: EditorGroup,
+    given: Map<string, unknown>,
+  ) => {
+    const members = leafColumns()
+      .map((column) => ({ column, editor: editorOf(column) }))
+      .filter(
+        (
+          member,
+        ): member is { column: Column<T, unknown>; editor: CellEditor } =>
+          member.editor?.group?.id === group.id,
+      )
+    const values: Record<string, unknown> = {}
+    for (const { column, editor } of members) {
+      if (!editor.role) continue
+      const entry =
+        entriesRef.current[cellKey(rowKey, editorField(editor, raw))]
+      values[editor.role] = given.has(column.id)
+        ? given.get(column.id)
+        : entry?.hasValue
+          ? entry.value
+          : editor.get(raw)
+    }
+    return { members, values }
+  }
+
+  /**
+   * Commits values set somewhere other than a cell (a dragged Gantt bar) as
+   * if the user had entered them: each editor's and pair's check runs first,
+   * the cells show the values marked saving, and the commit waits for any
+   * other commit for the row. Values are keyed by column id, in model form;
+   * columns the row cannot edit are ignored. Unlike a cell's, a value that
+   * fails its check or the save is dropped, so the row (and its bar) goes
+   * back to what it was, and the reason is toasted.
+   */
+  const commitCells = (rowKey: string, values: Record<string, unknown>) => {
+    if (!enabled || isDraftKey(rowKey)) return
+    const raw = rawRow(rowKey)
+    if (!raw) return
+    const cells: Array<
+      CommitCell & { editor: CellEditor; label: string; changed: boolean }
+    > = []
+    for (const [columnId, value] of Object.entries(values)) {
+      const column = columnById(columnId)
+      const editor = editorOf(column)
+      if (!column || !editor) continue
+      if (editor.editable && !editor.editable(raw, { isDraft: false })) continue
+      const field = editorField(editor, raw)
+      const key = cellKey(rowKey, field)
+      // Against a value still in flight, as a cell's commit is: dragging a
+      // bar back before the first drag saves must send the way back.
+      const existing = entriesRef.current[key]
+      const inFlight =
+        existing?.hasValue &&
+        (existing.phase === 'saving' || existing.phase === 'settled')
+      const baseline = inFlight ? existing.value : editor.get(raw)
+      cells.push({
+        key,
+        field,
+        columnId,
+        value,
+        apply: editor.apply,
+        editor,
+        label: columnLabel(column, columnId),
+        changed: !editorEquals(editor, value, baseline),
+      })
+    }
+    if (cells.length === 0) return
+
+    const errors: Record<string, string> = {}
+    const groups = new Map<object, EditorGroup>()
+    for (const cell of cells) {
+      const error = cell.editor.validate?.(cell.value as never, raw)
+      if (error) errors[cell.columnId] = `${cell.label}: ${error}`
+      if (cell.editor.group) groups.set(cell.editor.group.id, cell.editor.group)
+    }
+    const given = new Map(cells.map((cell) => [cell.columnId, cell.value]))
+    for (const group of groups.values()) {
+      const { members, values: groupValues } = groupValuesFor(
+        rowKey,
+        raw,
+        group,
+        given,
+      )
+      const result = group.validate?.(groupValues, raw) ?? {}
+      for (const [role, message] of Object.entries(result)) {
+        const member = members.find((m) => m.editor.role === role)
+        if (member && message && !errors[member.column.id]) {
+          errors[member.column.id] =
+            `${columnLabel(member.column, member.column.id)}: ${message}`
+        }
+      }
+    }
+
+    if (Object.keys(errors).length > 0) {
+      // Nothing is held: the row keeps the server's values, and the
+      // reason is told, as for a failed save.
+      reportRevert(Object.values(errors))
+      return
+    }
+
+    // A value back at the row's own drops what the cell was holding unsent.
+    writeEntries((prev) => {
+      let next: CellEntries = prev
+      for (const cell of cells) {
+        const entry = prev[cell.key]
+        if (cell.changed || !entry) continue
+        if (entry.phase !== 'unsaved' && entry.phase !== 'error') continue
+        if (next === prev) next = { ...prev }
+        delete (next as Record<string, CellEntry>)[cell.key]
+      }
+      return next
+    })
+    send(
+      rowKey,
+      cells.filter((cell) => cell.changed),
+      { revertOnFailure: true },
+    )
   }
 
   // ─── Keys ───────────────────────────────────────────────────────────────
@@ -1385,12 +1646,22 @@ export function useGridCellEditing<T extends RowData>({
 
   return {
     enabled,
-    /** The rows with held values applied, for the table. */
-    data: enabled ? applyEntries(data, entries, rowKeyOf, isTree) : data,
+    /** The rows with held values applied, for the table; a created draft
+     *  leaves as soon as the row it became is in, never shown beside it. */
+    data: enabled
+      ? applyEntries(
+          withoutArrivedDrafts(data, swaps, rowKeyOf),
+          entries,
+          rowKeyOf,
+          isTree,
+        )
+      : data,
     /** The cell whose editor is open. */
     open: session
       ? { rowKey: session.rowKey, columnId: session.columnId }
       : null,
+    /** What the open editor's hints are, for the hint strip. */
+    openHintMode: session ? (session.editor.hintMode ?? 'text') : null,
     editorElement,
     marksByRow,
     /** Prefix of the ids describing marked cells (see `cellMessageId`). */
@@ -1402,6 +1673,21 @@ export function useGridCellEditing<T extends RowData>({
     openCell,
     canCreateDraft,
     addDraft,
+    commitCells,
+    /** Moves focus to a cell once its row is in the row model — under
+     *  `parentKey`, when given — if the user is still in the grid and no
+     *  editor is open. */
+    requestFocus: (
+      rowKey: string,
+      columnId: string,
+      parentKey?: string | null,
+    ) =>
+      setPendingFocus(
+        parentKey === undefined
+          ? { rowKey, columnId }
+          : { rowKey, columnId, parentKey },
+      ),
+    announce,
     onKeyDownCapture,
     onPointerDownCapture,
     onClick: (e: React.MouseEvent<HTMLElement>, rows: Row<T>[]) =>
@@ -1422,6 +1708,31 @@ export function useGridCellEditing<T extends RowData>({
 export type GridCellEditingController<T extends RowData> = ReturnType<
   typeof useGridCellEditing<T>
 >
+
+/** The rows without each created draft whose new row is already in them. */
+function withoutArrivedDrafts<T>(
+  data: T[],
+  swaps: ReadonlyMap<string, { newId: string }>,
+  rowKeyOf: (row: T) => string | undefined,
+): T[] {
+  if (swaps.size === 0) return data
+  const gone = new Set(
+    [...swaps]
+      .filter(([, swap]) => findRowByKey(data, swap.newId, rowKeyOf))
+      .map(([draftKey]) => draftKey),
+  )
+  if (gone.size === 0) return data
+  const walk = (rows: T[]): T[] =>
+    rows
+      .filter((row) => !gone.has(rowKeyOf(row) ?? ''))
+      .map((row) => {
+        const children = (row as { children?: T[] }).children
+        return Array.isArray(children) && children.length > 0
+          ? ({ ...row, children: walk(children) } as T)
+          : row
+      })
+  return walk(data)
+}
 
 /** Small controls one pixel under the body row's height, so opening an
  *  editor never makes its row taller. Text inputs size themselves from their

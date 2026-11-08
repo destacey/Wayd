@@ -118,7 +118,6 @@ public static class ApplicationResource
     public const string WorkItems = nameof(WorkItems);
     public const string WorkProcesses = nameof(WorkProcesses);
     public const string WorkStatusCategories = nameof(WorkStatusCategories);
-    public const string WorkStatuses = nameof(WorkStatuses);
     public const string WorkTypes = nameof(WorkTypes);
 
     public const string Links = nameof(Links);
@@ -427,11 +426,6 @@ public static class ApplicationPermissions
         new("Delete WorkTypes", ApplicationAction.Delete, ApplicationResource.WorkProcesses, WorkManagementCategory),
 
         new("View WorkStatusCategories", ApplicationAction.View, ApplicationResource.WorkStatusCategories, WorkManagementCategory),
-
-        new("View WorkStatuses", ApplicationAction.View, ApplicationResource.WorkStatuses, WorkManagementCategory),
-        new("Create WorkStatuses", ApplicationAction.Create, ApplicationResource.WorkStatuses, WorkManagementCategory),
-        new("Update WorkStatuses", ApplicationAction.Update, ApplicationResource.WorkStatuses, WorkManagementCategory),
-        new("Delete WorkStatuses", ApplicationAction.Delete, ApplicationResource.WorkStatuses, WorkManagementCategory),
 
         new("View WorkTypes", ApplicationAction.View, ApplicationResource.WorkTypes, WorkManagementCategory),
         new("Create WorkTypes", ApplicationAction.Create, ApplicationResource.WorkTypes, WorkManagementCategory),

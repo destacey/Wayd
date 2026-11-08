@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { WorkProcessSchemeDto } from '@/src/services/wayd-api'
 import WorkProcessSchemes from './work-process-schemes'
 
@@ -15,7 +15,12 @@ const scheme = (
   ({
     id: 'b7e2d100-0000-0000-0000-000000000001',
     workType: { id: 1, name: 'Story', description: 'A unit of user value' },
-    workflow: { id: 4, name: 'Agile Workflow' },
+    workflow: {
+      id: 'c3d4e5f6-0000-0000-0000-000000000004',
+      key: 4,
+      name: 'Agile Workflow',
+      statuses: [],
+    },
     isActive: true,
     ...overrides,
   }) as WorkProcessSchemeDto
@@ -44,7 +49,12 @@ describe('WorkProcessSchemes', () => {
         scheme({
           id: 'b7e2d100-0000-0000-0000-000000000002',
           workType: { id: 2, name: 'Bug', description: 'A defect' } as any,
-          workflow: { id: 5, name: 'Bug Workflow' } as any,
+          workflow: {
+            id: 'c3d4e5f6-0000-0000-0000-000000000005',
+            key: 5,
+            name: 'Bug Workflow',
+            statuses: [],
+          },
         }),
       ],
       isLoading: false,
@@ -58,6 +68,30 @@ describe('WorkProcessSchemes', () => {
     expect(screen.getByText('Agile Workflow')).toBeInTheDocument()
     expect(screen.getByText('Bug')).toBeInTheDocument()
     expect(screen.getByText('Bug Workflow')).toBeInTheDocument()
+  })
+
+  it('renders a work type the process has no workflow for', () => {
+    // Arrange
+    mockSchemesQuery.mockReturnValue({
+      data: [
+        scheme(),
+        scheme({
+          id: 'b7e2d100-0000-0000-0000-000000000003',
+          workType: { id: 3, name: 'Epic' } as any,
+          workflow: undefined,
+        }),
+      ],
+      isLoading: false,
+    })
+
+    // Act
+    render(<WorkProcessSchemes workProcessId={PROCESS_ID} />)
+
+    // Assert
+    const epicRow = screen.getByText('Epic').closest('tr')
+    expect(epicRow).not.toBeNull()
+    expect(within(epicRow!).queryByText(/Workflow/)).toBeNull()
+    expect(screen.getByText('Agile Workflow')).toBeInTheDocument()
   })
 
   it('says the process has no work types when there are none', () => {

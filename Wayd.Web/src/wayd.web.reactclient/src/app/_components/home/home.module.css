@@ -1,0 +1,123 @@
+.greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 16px;
+}
+
+/* Nested under .greeting to outrank antd's heading margin; the gap spaces it. */
+.greeting .greetingTitle {
+  margin: 0;
+}
+
+/* Up to four tiles share the row evenly, wrapping two by two on a phone; each
+   card fills its wrapper's stretched height so the row stays level. */
+.attentionStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* The sizing of METRIC_CARD_FLEX: the ceiling stops a lone tile stretching
+   across the row as a full-width card holding a single digit. */
+.attentionTile {
+  flex: 1 1 0;
+  min-width: 150px;
+  max-width: 320px;
+}
+
+/* One column below md, side widgets after main. minmax(0, …) keeps a wide
+   child (a grid, a long name) from widening its column past the page. */
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Between md and lg the main column takes the full width and the side
+   widgets sit two abreast beneath it, rather than one narrow stack. */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .side {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+@media (min-width: 992px) {
+  .columns {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+/* Lands the page below the header when a tile scrolls to its widget. */
+.widget {
+  scroll-margin-top: 16px;
+}
+
+.widgetEmpty {
+  display: block;
+}
+
+.projectSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 24px;
+}
+
+.projectCount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+/* Nested to outrank antd Text's own font size. */
+.projectSummary .projectCountNumber {
+  font-size: var(--ant-font-size-heading-3);
+  line-height: 1;
+}
+
+.projectRoles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.flushCard > :global(.ant-card-body) {
+  padding: 0;
+}
+
+/* The card's own border closes the list; the last row's would double it. */
+.flushRows > :last-child > * {
+  border-bottom: 0;
+}
+
+/* Rows line up with the card's title; doubled to outrank antd's list item padding. */
+.listItem.listItem {
+  padding-inline: 0;
+}
+
+.listItemBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.listItemMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  font-size: var(--ant-font-size-sm);
+}

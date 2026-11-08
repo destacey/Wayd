@@ -19,3 +19,15 @@
     grid-template-columns: repeat(4, 1fr);
   }
 }
+
+/* Embedded: a section of the card around it, so the header and body drop the
+   padding that would otherwise inset the sprint inside its parent's. Direct
+   children only: the metric cards inside keep their own padding. */
+.embedded > :global(.ant-card-head) {
+  padding: 0;
+  min-height: 0;
+}
+
+.embedded > :global(.ant-card-body) {
+  padding: 8px 0 0;
+}

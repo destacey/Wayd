@@ -1,6 +1,6 @@
 'use client'
 
-import { PageTitle } from '@/src/components/common'
+import { PageTitle, ViewAllLink } from '@/src/components/common'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
@@ -8,9 +8,7 @@ import {
   useGetDeliveryOverviewQuery,
   useGetRecentDeliveryEventsQuery,
 } from '@/src/store/features/product-management/delivery-overview-api'
-import { Card, Col, Empty, Row, Select, Skeleton, Space, Typography } from 'antd'
-import { RightOutlined } from '@ant-design/icons'
-import Link from 'next/link'
+import { Card, Col, Empty, Row, Select, Skeleton, Space } from 'antd'
 import dayjs from 'dayjs'
 import { FC, useEffect, useState } from 'react'
 import { ProductTreeSelect } from '../_components'
@@ -20,8 +18,6 @@ import {
   VersionActivity,
   VersionActivityLegend,
 } from './_components'
-
-const { Text } = Typography
 
 /** Windows short enough that the heatmap stays one cell per day at a readable size. */
 const windowOptions = [
@@ -149,11 +145,7 @@ const DeliveryPage: FC = () => {
                 style={{ minHeight: 300 }}
                 styles={{ header: { borderBottom: 'none' } }}
                 extra={
-                  <Link href="/product-management/versions">
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      View all <RightOutlined style={{ fontSize: 10 }} />
-                    </Text>
-                  </Link>
+                  <ViewAllLink href="/product-management/versions" />
                 }
               >
                 <RecentDeliveryActivity events={recent ?? []} />

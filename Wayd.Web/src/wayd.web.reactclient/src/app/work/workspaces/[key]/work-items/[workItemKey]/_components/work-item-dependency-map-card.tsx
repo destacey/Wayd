@@ -16,8 +16,8 @@ import {
   WorkItemDetailsDto,
 } from '@/src/services/wayd-api'
 import { toFileName } from '@/src/utils'
+import ViewAllLink from '@/src/components/common/view-all-link'
 import {
-  Button,
   Card,
   Flex,
   Segmented,
@@ -194,16 +194,7 @@ const WorkItemDependencyMapCard = ({
       size="small"
       title="Dependency Map"
       extra={
-        onViewAll && (
-          <Button
-            type="link"
-            size="small"
-            onClick={onViewAll}
-            styles={{ root: { padding: 0 } }}
-          >
-            View all
-          </Button>
-        )
+        onViewAll && <ViewAllLink onClick={onViewAll} />
       }
     >
       <DependencyMap

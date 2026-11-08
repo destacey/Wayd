@@ -8,6 +8,35 @@ interface UseFeatureFlagResult {
   isLoading: boolean
 }
 
+interface UseFeatureFlagsResult {
+  /** Whether the named flag is on; false for an unknown flag or while the flags load. */
+  isEnabled: (featureName: string) => boolean
+  isLoading: boolean
+}
+
+/**
+ * Reads every client feature flag at once, for code that checks flags it only
+ * knows at runtime — such as a registry where each entry names its own — and so
+ * cannot call `useFeatureFlag` once per flag.
+ */
+export function useFeatureFlags(): UseFeatureFlagsResult {
+  const pathname = usePathname()
+  const isLoggingOut = pathname === '/logout'
+
+  const { data: features, isLoading } = useGetClientFeatureFlagsQuery(
+    undefined,
+    {
+      pollingInterval: 10 * 60_000, // Refresh every 10 minutes
+      skip: isLoggingOut,
+    },
+  )
+
+  const isEnabled = (featureName: string) =>
+    features?.some((f) => f.name === featureName && f.isEnabled) ?? false
+
+  return { isEnabled, isLoading }
+}
+
 /**
  * Hook to check if a feature flag is enabled.
  *
@@ -21,19 +50,7 @@ interface UseFeatureFlagResult {
  * return <LegacyDashboard />
  */
 export function useFeatureFlag(featureName: string): UseFeatureFlagResult {
-  const pathname = usePathname()
-  const isLoggingOut = pathname === '/logout'
+  const { isEnabled, isLoading } = useFeatureFlags()
 
-  const { data: features, isLoading } = useGetClientFeatureFlagsQuery(
-    undefined,
-    {
-      pollingInterval: 10 * 60_000, // Refresh every 10 minutes
-      skip: isLoggingOut,
-    },
-  )
-
-  const isEnabled =
-    features?.some((f) => f.name === featureName && f.isEnabled) ?? false
-
-  return { isEnabled, isLoading }
+  return { isEnabled: isEnabled(featureName), isLoading }
 }

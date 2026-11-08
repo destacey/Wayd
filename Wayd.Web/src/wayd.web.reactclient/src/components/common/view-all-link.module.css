@@ -1,0 +1,31 @@
+/* The link and the button variant must look identical, so the button sheds
+   every browser default and takes the link's colour and font. */
+.viewAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--ant-font-size);
+  line-height: inherit;
+  color: var(--ant-color-link);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.viewAll:hover {
+  color: var(--ant-color-link-hover);
+}
+
+.viewAll:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.chevron {
+  font-size: 10px;
+}

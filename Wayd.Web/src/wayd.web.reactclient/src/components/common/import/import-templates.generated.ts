@@ -73,7 +73,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              'When the outcome was recorded, with its offset. Blank for the moment it is imported.',
+              'When the outcome was recorded, with its offset: not before the request was submitted, and not in the future. Blank for the moment it is imported.',
           },
         ],
       },

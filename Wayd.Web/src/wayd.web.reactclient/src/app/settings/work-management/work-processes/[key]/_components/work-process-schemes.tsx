@@ -34,17 +34,9 @@ const WorkProcessSchemes = ({ workProcessId }: WorkProcessSchemesProps) => {
     },
     {
       id: 'workflow',
-      // Null when the process has no workflow for the type.
       accessorFn: (scheme) => scheme.workflow?.name ?? '',
       header: 'Workflow',
       size: 200,
-    },
-    {
-      id: 'isActive',
-      accessorKey: 'isActive',
-      header: 'Active',
-      size: 100,
-      meta: { columnType: 'yesNo' },
     },
   ]
 

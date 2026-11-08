@@ -247,7 +247,6 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     #region IWork
 
     public DbSet<WorkTypeHierarchy> WorkTypeHierarchies => Set<WorkTypeHierarchy>();
-    public DbSet<Workflow> Workflows => Set<Workflow>();
     public DbSet<WorkItemReference> WorkItemReferences => Set<WorkItemReference>();
     public DbSet<WorkItem> WorkItems => Set<WorkItem>();
     public DbSet<WorkItemDependency> WorkItemDependencies => Set<WorkItemDependency>();
@@ -256,10 +255,10 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<WorkItemSourceRevision> WorkItemSourceRevisions => Set<WorkItemSourceRevision>();
     public DbSet<WorkItemRevisionFill> WorkItemRevisionFills => Set<WorkItemRevisionFill>();
     public DbSet<Iteration> Iterations => Set<Iteration>();
+    public DbSet<LegacyWorkStatusDescription> LegacyWorkStatusDescriptions => Set<LegacyWorkStatusDescription>();
     public DbSet<WorkProcess> WorkProcesses => Set<WorkProcess>();
     public DbSet<WorkProject> WorkProjects => Set<WorkProject>();
     public DbSet<Workspace> Workspaces => Set<Workspace>();
-    public DbSet<WorkStatus> WorkStatuses => Set<WorkStatus>();
     public DbSet<WorkTeam> WorkTeams => Set<WorkTeam>();
     public DbSet<WorkType> WorkTypes => Set<WorkType>();
 

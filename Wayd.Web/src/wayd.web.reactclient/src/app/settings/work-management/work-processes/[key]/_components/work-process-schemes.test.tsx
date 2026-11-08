@@ -21,7 +21,6 @@ const scheme = (
       name: 'Agile Workflow',
       statuses: [],
     },
-    isActive: true,
     ...overrides,
   }) as WorkProcessSchemeDto
 
@@ -70,7 +69,7 @@ describe('WorkProcessSchemes', () => {
     expect(screen.getByText('Bug Workflow')).toBeInTheDocument()
   })
 
-  it('renders a work type the process has no workflow for', () => {
+  it('renders a work type whose workflow cannot be read', () => {
     // Arrange
     mockSchemesQuery.mockReturnValue({
       data: [

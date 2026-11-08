@@ -6,5 +6,4 @@ public sealed record AzdoWorkProcessConfiguration : AzdoWorkProcess, IExternalWo
 {
     public IList<IExternalWorkTypeLevel> WorkTypeLevels { get; set; } = [];
     public IList<IExternalWorkTypeWorkflow> WorkTypes { get; set; } = [];
-    public IList<IExternalWorkStatus> WorkStatuses { get; set; } = [];
 }

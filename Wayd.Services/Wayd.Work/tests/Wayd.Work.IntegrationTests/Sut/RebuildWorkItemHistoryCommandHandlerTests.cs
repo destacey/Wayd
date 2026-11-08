@@ -127,6 +127,35 @@ public sealed class RebuildWorkItemHistoryCommandHandlerTests(SqlServerDbContext
     }
 
     [Fact]
+    public async Task Handle_AnItemThatMovedFromADeletedWorkspace_StillResolvesThePeriodsItRead()
+    {
+        // Arrange — the workspace the item left has since been deleted; its process still names its types
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var currentWorkspaceId = await WorkItemHistorySeeder.SeedWorkspace(_fixture, SystemId, "REB", ct);
+        var formerWorkspaceId = await WorkItemHistorySeeder.SeedWorkspace(_fixture, SystemId, "REBOLD", ct);
+        var workItemId = await WorkItemHistorySeeder.SeedWorkItem(_fixture, currentWorkspaceId, ExternalWorkItemId, ct);
+        var former = await WorkItemHistorySeeder.SeedWorkflow(_fixture, formerWorkspaceId, [formerWorkspaceId],
+            [new SourceStatus("old-1", "Design", StatusCategory.Proposed)], ct);
+        var current = await WorkItemHistorySeeder.SeedWorkflow(_fixture, currentWorkspaceId, [currentWorkspaceId], Statuses, ct);
+        await SyncHistory(formerWorkspaceId, [new ExternalRevision(ExternalWorkItemId, 1, Start, WorkItemHistorySeeder.WorkTypeName, "Design")], ct);
+        await SyncHistory(currentWorkspaceId, [new ExternalRevision(ExternalWorkItemId, 2, Start.Plus(Duration.FromDays(1)), WorkItemHistorySeeder.WorkTypeName, "Active")], ct);
+        await using (var context = _fixture.CreateContext())
+        {
+            await context.Database.ExecuteSqlInterpolatedAsync($"UPDATE [Work].[Workspaces] SET [IsDeleted] = 1 WHERE [Id] = {formerWorkspaceId};", ct);
+        }
+
+        // Act
+        await Rebuild(currentWorkspaceId, ct);
+
+        // Assert
+        var periods = await PeriodsOf(workItemId, ct);
+        periods.Select(p => (p.Revision, p.WorkspaceId, p.StatusId, p.StatusCategory, p.WorkTypeId.HasValue)).Should().Equal(
+            (1, formerWorkspaceId, former.Status("Design").Id, StatusCategory.Proposed, true),
+            (2, currentWorkspaceId, current.Status("Active").Id, StatusCategory.Active, true));
+    }
+
+    [Fact]
     public async Task Handle_LeavesItemsOfOtherWorkspacesAlone()
     {
         // Arrange
@@ -182,7 +211,7 @@ public sealed class RebuildWorkItemHistoryCommandHandlerTests(SqlServerDbContext
     private async Task<Result<int>> Rebuild(Guid workspaceId, CancellationToken ct)
     {
         await using var accessor = new WaydDbContextAccessor(_fixture);
-        var handler = new RebuildWorkItemHistoryCommandHandler(accessor.Context, new StatusResolver(accessor.Context), NullLogger<RebuildWorkItemHistoryCommandHandler>.Instance);
+        var handler = new RebuildWorkItemHistoryCommandHandler(accessor.Context, accessor.Context, new StatusResolver(accessor.Context), NullLogger<RebuildWorkItemHistoryCommandHandler>.Instance);
         return await handler.Handle(new RebuildWorkItemHistoryCommand(ConnectionId, workspaceId), ct);
     }
 
@@ -191,7 +220,7 @@ public sealed class RebuildWorkItemHistoryCommandHandlerTests(SqlServerDbContext
         await using var accessor = new WaydDbContextAccessor(_fixture);
         var dateTimeProvider = new Mock<IDateTimeProvider>();
         dateTimeProvider.SetupGet(p => p.Now).Returns(Start);
-        var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, new StatusResolver(accessor.Context), dateTimeProvider.Object, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
+        var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, accessor.Context, new StatusResolver(accessor.Context), dateTimeProvider.Object, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
 
         var result = await handler.Handle(new SyncExternalWorkItemHistoryCommand(ConnectionId, workspaceId, revisions, "token-1"), ct);
 

@@ -3,6 +3,7 @@ using Wayd.Common.Application.StatusWorkflows.Commands;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Tests.Shared.Infrastructure;
 
 namespace Wayd.Common.Application.Tests.Sut.StatusWorkflows.Commands;
 
@@ -78,5 +79,22 @@ public sealed class SyncManagedWorkflowAssignmentCommandHandlerTests : StatusWor
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be("Workflow scheme not found.");
         DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldExplainACollision_WhenTheSaveFailsAtTheDatabase()
+    {
+        // Arrange — another sync of the source assigned the scope first
+        SeedManagedScheme("azure-devops:agile");
+        var scopeId = Guid.NewGuid();
+        DbContext.FailNextSaveWith = SaveFailures.UniqueKey();
+
+        // Act
+        var result = await CreateSut().Handle(new(Synced.Key, scopeId, "azure-devops:agile"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"Unable to save the managed workflow assignment 'azure-devops:agile for scope {scopeId}', most likely because another sync of the same source saved it at the same time. The next sync picks it up.");
+        DbContext.SaveChangesCallCount.Should().Be(1, "the one save was the one that failed");
     }
 }

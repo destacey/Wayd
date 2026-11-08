@@ -19,6 +19,9 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Domain;
+using Wayd.Common.Application.Persistence;
+using Wayd.Tests.Shared.Infrastructure;
+using Wayd.Work.Application.WorkProcesses;
 
 namespace Wayd.Work.Application.Tests.Sut.WorkItems.Commands;
 
@@ -29,6 +32,8 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
     private readonly FakeWorkDbContext _fakeWorkDbContext;
     private readonly Mock<ILogger<SyncExternalWorkItemsCommandHandler>> _mockLogger;
     private readonly Mock<IStatusResolver> _statusResolver = new();
+    private readonly Mock<IStatusWorkflowDbContext> _statusWorkflowDbContext = new();
+    private readonly List<StatusWorkflowScheme> _engineSchemes = [];
     private readonly SyncExternalWorkItemsCommandHandler _handler;
     private readonly FakeClock _clock;
     private readonly TestingDateTimeProvider _dateTimeProvider;
@@ -43,7 +48,8 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         _mockLogger = new Mock<ILogger<SyncExternalWorkItemsCommandHandler>>();
         _clock = new FakeClock(Instant.FromUtc(2024, 1, 15, 12, 0, 0));
         _dateTimeProvider = new TestingDateTimeProvider(_clock);
-        _handler = new SyncExternalWorkItemsCommandHandler(_fakeWorkDbContext, _statusResolver.Object, _dateTimeProvider, _mockLogger.Object);
+        _statusWorkflowDbContext.Setup(c => c.StatusWorkflowSchemes).Returns(() => _engineSchemes.AsDbSet());
+        _handler = new SyncExternalWorkItemsCommandHandler(_fakeWorkDbContext, _statusWorkflowDbContext.Object, _statusResolver.Object, _dateTimeProvider, _mockLogger.Object);
 
         _externalWorkItemFaker = new ExternalWorkItemFaker(_clock.GetCurrentInstant(), _clock.GetCurrentInstant());
         _workspaceFaker = new WorkspaceFaker();
@@ -139,7 +145,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         // Set up the work process with the correct ID
         var updatedWorkProcess = _workProcessFaker
             .WithId(workProcessId)
-            .WithSchemes([.. workProcess.Schemes])
+            .AsExternal(workProcess.ExternalId)
             .Generate();
 
         _fakeWorkDbContext.AddWorkspace(workspace);
@@ -177,7 +183,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         // Set up the work process with the correct ID
         var updatedWorkProcess = _workProcessFaker
             .WithId(workProcessId)
-            .WithSchemes([.. workProcess.Schemes])
+            .AsExternal(workProcess.ExternalId)
             .Generate();
 
         _fakeWorkDbContext.AddWorkspace(workspace);
@@ -204,7 +210,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         mockWorkDbContext.Setup(x => x.Workspaces)
             .Throws(new InvalidOperationException("Database error"));
 
-        var handlerWithMock = new SyncExternalWorkItemsCommandHandler(mockWorkDbContext.Object, _statusResolver.Object, _dateTimeProvider, _mockLogger.Object);
+        var handlerWithMock = new SyncExternalWorkItemsCommandHandler(mockWorkDbContext.Object, _statusWorkflowDbContext.Object, _statusResolver.Object, _dateTimeProvider, _mockLogger.Object);
 
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -249,7 +255,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         mockWorkDbContext.Setup(x => x.Workspaces)
             .Throws(new InvalidOperationException("Database error"));
 
-        var handlerWithMock = new SyncExternalWorkItemsCommandHandler(mockWorkDbContext.Object, _statusResolver.Object, _dateTimeProvider, _mockLogger.Object);
+        var handlerWithMock = new SyncExternalWorkItemsCommandHandler(mockWorkDbContext.Object, _statusWorkflowDbContext.Object, _statusResolver.Object, _dateTimeProvider, _mockLogger.Object);
 
         // Act
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
@@ -270,7 +276,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
             .Setup(r => r.ForRecordType(It.IsAny<string>(), It.IsAny<WorkflowScopeChain>(), It.IsAny<Guid?>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(CSharpFunctionalExtensions.Result.Failure<ResolvedWorkflow>("No workflow is assigned for Work Item."));
         _fakeWorkDbContext.AddWorkspace(_workspaceFaker.AsExternal().WithId(workspaceId).WithWorkProcessId(workProcessId).Generate());
-        _fakeWorkDbContext.AddWorkProcess(_workProcessFaker.WithId(workProcessId).WithSchemes([.. workProcess.Schemes]).Generate());
+        _fakeWorkDbContext.AddWorkProcess(_workProcessFaker.WithId(workProcessId).AsExternal(workProcess.ExternalId).Generate());
         var command = CreateCommand(workspaceId, [_externalWorkItemFaker.WithWorkType("User Story").WithWorkStatus("New").Generate()]);
 
         // Act
@@ -305,7 +311,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
 
         var updatedWorkProcess = _workProcessFaker
             .WithId(workProcessId)
-            .WithSchemes([.. workProcess.Schemes])
+            .AsExternal(workProcess.ExternalId)
             .Generate();
 
         _fakeWorkDbContext.AddWorkspace(workspace);
@@ -338,7 +344,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
 
         var existingWorkItem = new WorkItemFaker()
             .WithWorkspace(workspace)
-            .WithType(workProcess.Schemes.Single().WorkType!)
+            .WithType(workProcess.WorkType)
             .WithExternalId(101)
             .Generate();
 
@@ -353,7 +359,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
 
         var updatedWorkProcess = _workProcessFaker
             .WithId(workProcessId)
-            .WithSchemes([.. workProcess.Schemes])
+            .AsExternal(workProcess.ExternalId)
             .Generate();
 
         _fakeWorkDbContext.AddWorkspace(workspace);
@@ -370,6 +376,62 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
         existingWorkItem.StoryPoints.Should().BeNull();
         existingWorkItem.Effort.Should().Be(8);
         existingWorkItem.Size.Should().Be(5);
+    }
+
+    [Fact]
+    public async Task Handle_TakesTheProcesssWorkTypes_FromItsSchemeInTheEngine()
+    {
+        // Arrange — Work has a "Bug" type, linked to a record type with no entry in this process's scheme
+        var workspaceId = Guid.NewGuid();
+        var workProcessId = Guid.NewGuid();
+        var workProcess = CreateWorkProcessWithSchemes("User Story", "New");
+        var bug = new WorkTypeFaker().WithName("Bug").Generate();
+        bug.LinkRecordType(Guid.NewGuid());
+        _fakeWorkDbContext.AddWorkType(bug);
+
+        var workspace = _workspaceFaker.AsExternal().WithId(workspaceId).WithWorkProcessId(workProcessId).Generate();
+        var story = new WorkItemFaker().WithWorkspace(workspace).WithType(workProcess.WorkType).WithExternalId(101).Generate();
+        var defect = new WorkItemFaker().WithWorkspace(workspace).WithType(bug).WithExternalId(102).Generate();
+        _fakeWorkDbContext.AddWorkspace(workspace);
+        _fakeWorkDbContext.AddWorkProcess(_workProcessFaker.WithId(workProcessId).AsExternal(workProcess.ExternalId).Generate());
+        _fakeWorkDbContext.AddWorkItems([story, defect]);
+
+        var command = CreateCommand(workspaceId,
+        [
+            _externalWorkItemFaker.WithId(101).WithWorkType("User Story").WithWorkStatus("New").WithEffort(8).Generate(),
+            _externalWorkItemFaker.WithId(102).WithWorkType("Bug").WithWorkStatus("New").WithEffort(8).Generate(),
+        ]);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        story.Effort.Should().Be(8);
+        defect.Effort.Should().BeNull("a type outside the process's scheme is an unknown work type, and its items are skipped");
+    }
+
+    [Fact]
+    public async Task Handle_MatchesTheWorkType_WhateverTheSourcesCasing()
+    {
+        // Arrange — Work keeps "User Story"; another process spells it "user story", as its items then report
+        var workspaceId = Guid.NewGuid();
+        var workProcessId = Guid.NewGuid();
+        var workProcess = CreateWorkProcessWithSchemes("User Story", "New");
+        var workspace = _workspaceFaker.AsExternal().WithId(workspaceId).WithWorkProcessId(workProcessId).Generate();
+        var story = new WorkItemFaker().WithWorkspace(workspace).WithType(workProcess.WorkType).WithExternalId(101).Generate();
+        _fakeWorkDbContext.AddWorkspace(workspace);
+        _fakeWorkDbContext.AddWorkProcess(_workProcessFaker.WithId(workProcessId).AsExternal(workProcess.ExternalId).Generate());
+        _fakeWorkDbContext.AddWorkItems([story]);
+
+        var command = CreateCommand(workspaceId, [_externalWorkItemFaker.WithId(101).WithWorkType("user story").WithWorkStatus("New").WithEffort(8).Generate()]);
+
+        // Act
+        var result = await _handler.Handle(command, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        story.Effort.Should().Be(8);
     }
 
     [Fact]
@@ -394,7 +456,7 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
 
         var updatedWorkProcess = _workProcessFaker
             .WithId(workProcessId)
-            .WithSchemes([.. workProcess.Schemes])
+            .AsExternal(workProcess.ExternalId)
             .Generate();
 
         _fakeWorkDbContext.AddWorkspace(workspace);
@@ -428,28 +490,36 @@ public class SyncExternalWorkItemsCommandHandlerTests : IDisposable
             iterationMappings ?? []);
     }
 
-    private WorkProcess CreateWorkProcessWithSchemes(string workTypeName, string workStatusName)
+    /// <summary>
+    /// A work type in Work and in the engine: its record type has an entry, with a one-status workflow, in the
+    /// managed scheme of a process with a new external id, which the test gives its work process.
+    /// </summary>
+    private SeededProcess CreateWorkProcessWithSchemes(string workTypeName, string workStatusName)
     {
+        WorkWorkflowOwners.Register();
+        var now = _clock.GetCurrentInstant();
+        var ownerType = WorkWorkflowOwners.WorkItem.Key;
+        var externalId = Guid.NewGuid();
+
+        var recordType = RecordType.CreateManaged(ownerType, workTypeName, workTypeName, EventActor.System, now).Value;
         WorkType workType = new WorkTypeFaker().WithName(workTypeName).Generate();
+        workType.LinkRecordType(recordType.Id);
+        _fakeWorkDbContext.AddWorkType(workType);
 
         // The engine's copy of the type's workflow, which the handler resolves statuses from.
-        WorkWorkflowOwners.Register();
-        var recordTypeId = Guid.NewGuid();
-        workType.LinkRecordType(recordTypeId);
-        var engineWorkflow = StatusWorkflow.CreateManaged($"{workTypeName} workflow", WorkWorkflowOwners.WorkItem.Key, "key",
-            [new SourceStatus("state-1", workStatusName, StatusCategory.Proposed)], EventActor.System, _clock.GetCurrentInstant()).Value;
+        var engineWorkflow = StatusWorkflow.CreateManaged($"{workTypeName} workflow", ownerType, "key",
+            [new SourceStatus("state-1", workStatusName, StatusCategory.Proposed)], EventActor.System, now).Value;
+        _engineSchemes.Add(StatusWorkflowScheme.CreateManaged(ownerType, "Process", ManagedWorkflowKeys.Scheme(externalId),
+            engineWorkflow, EventActor.System, now, [(recordType, engineWorkflow)]).Value);
         _statusResolver
-            .Setup(r => r.ForRecordType(WorkWorkflowOwners.WorkItem.Key, It.IsAny<WorkflowScopeChain>(), recordTypeId, It.IsAny<CancellationToken>()))
+            .Setup(r => r.ForRecordType(ownerType, It.IsAny<WorkflowScopeChain>(), recordType.Id, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ResolvedWorkflow(engineWorkflow, new WorkflowSource(null, IsRecordTypeEntry: true)));
 
-        var workProcessScheme = new WorkProcessSchemeFaker()
-            .WithWorkType(workType)
-            .Generate();
-
-        return _workProcessFaker
-            .WithSchemes([workProcessScheme])
-            .Generate();
+        return new SeededProcess(externalId, workType);
     }
+
+    /// <summary>The external id to give the work process, and its one work type.</summary>
+    private sealed record SeededProcess(Guid ExternalId, WorkType WorkType);
 
     #endregion
 }

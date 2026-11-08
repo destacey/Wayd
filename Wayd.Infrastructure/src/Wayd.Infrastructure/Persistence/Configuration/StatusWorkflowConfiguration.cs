@@ -181,6 +181,10 @@ public class WorkflowStatusConfiguration : IEntityTypeConfiguration<WorkflowStat
         builder.Property(s => s.IsSystem).IsRequired();
         builder.Property(s => s.ExternalKey).HasMaxLength(256);
         builder.Property(s => s.IsRetired).IsRequired();
+        builder.PrimitiveCollection(s => s.FormerNames)
+            .HasField("_formerNames")
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
+            .IsRequired();
     }
 }
 

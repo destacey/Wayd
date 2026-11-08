@@ -548,6 +548,41 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// Rewrites a status's description. Allowed on a managed workflow too, unlike <see cref="RenameStatus"/>:
+    /// a source owns a status's name, but the description is something Wayd adds.
+    /// </summary>
+    public Result DescribeStatus(Guid statusId, string? description, EventActor actor, Instant timestamp)
+    {
+        if (IsSystem)
+        {
+            return Result.Failure("System workflows cannot be modified. Clone this workflow to change it.");
+        }
+
+        if (State == StatusWorkflowState.Archived)
+        {
+            return Result.Failure(ArchivedError);
+        }
+
+        var status = _statuses.SingleOrDefault(s => s.Id == statusId);
+        if (status is null)
+        {
+            return Result.Failure("Status not found.");
+        }
+
+        var fromDescription = status.Description;
+        status.Describe(description);
+
+        var toDescription = status.Description;
+        if (fromDescription != toDescription)
+        {
+            AddKeyedDomainEvent(() => new WorkflowStatusDescriptionChangedEvent(
+                Id, Key, statusId, fromDescription, toDescription, actor, timestamp));
+        }
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Changes a status's category and its well-known meaning.
     /// </summary>
     /// <remarks>
@@ -1127,7 +1162,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     private void ApplySourceName(WorkflowStatus status, string name, EventActor actor, Instant timestamp)
     {
         var before = new WorkflowStatusDetails(status.Name, status.Description);
-        status.Rename(name, status.Description);
+        status.RenameFromSource(name);
         var after = new WorkflowStatusDetails(status.Name, status.Description);
 
         if (before != after)

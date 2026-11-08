@@ -16,6 +16,8 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// </remarks>
 public sealed class WorkflowStatus : BaseAuditableEntity
 {
+    private readonly List<string> _formerNames = [];
+
     private WorkflowStatus() { }
 
     internal WorkflowStatus(
@@ -107,6 +109,13 @@ public sealed class WorkflowStatus : BaseAuditableEntity
     public bool IsRetired { get; private set; }
 
     /// <summary>
+    /// The names the source called this status before renaming it, oldest first. A source that reports
+    /// history by name, as Azure DevOps revisions do, still names the status this way in revisions written
+    /// before the rename, so they resolve to it.
+    /// </summary>
+    public IReadOnlyList<string> FormerNames => _formerNames.AsReadOnly();
+
+    /// <summary>
     /// Renames a status and reworks its description. Always safe: records hold the id, not the name.
     /// </summary>
     internal void Rename(string name, string? description)
@@ -114,6 +123,28 @@ public sealed class WorkflowStatus : BaseAuditableEntity
         Name = name;
         Description = description;
     }
+
+    /// <summary>
+    /// Takes the name the source now gives this status, remembering the one it replaces in
+    /// <see cref="FormerNames"/>. A name the status takes back stops being a former one.
+    /// </summary>
+    internal void RenameFromSource(string name)
+    {
+        var previous = Name;
+        Name = name;
+
+        if (string.Equals(previous, Name, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        _formerNames.RemoveAll(n => string.Equals(n, Name, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(n, previous, StringComparison.OrdinalIgnoreCase));
+        _formerNames.Add(previous);
+    }
+
+    /// <summary>Rewrites the status's description, which Wayd adds whether or not a source keeps the workflow.</summary>
+    internal void Describe(string? description) => Description = description;
 
     /// <summary>
     /// Changes which bucket this status belongs to. Destructive when records already hold it — their

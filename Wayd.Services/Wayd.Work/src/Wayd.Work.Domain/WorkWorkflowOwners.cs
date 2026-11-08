@@ -1,4 +1,3 @@
-using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
@@ -30,11 +29,6 @@ public static class WorkWorkflowOwners
     /// Restricted transitions are supported for owned workflows. A managed one always allows any move, since
     /// the source has already made it.
     /// </para>
-    /// <para>
-    /// Hidden from administration behind <see cref="FeatureFlags.WorkItemStatusWorkflows"/>, which an administrator
-    /// turns on to see and reclassify each work type's statuses. Work items follow these workflows, and the sync
-    /// writes them, whatever the flag.
-    /// </para>
     /// </remarks>
     public static readonly WorkflowOwnerDescriptor WorkItem = new(
         "work.item",
@@ -43,7 +37,6 @@ public static class WorkWorkflowOwners
         [],
         [StatusCategory.Proposed, StatusCategory.Active, StatusCategory.Done],
         supportsRestrictedTransitions: true,
-        featureFlag: FeatureFlags.Names.WorkItemStatusWorkflows,
         hasRecordTypes: true,
         hasManagedWorkflows: true);
 

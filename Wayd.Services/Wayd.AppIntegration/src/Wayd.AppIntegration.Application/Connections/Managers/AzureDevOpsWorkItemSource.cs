@@ -10,7 +10,6 @@ using Wayd.Common.Application.Enums;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
-using Wayd.Common.Application.Requests.WorkManagement.Dtos;
 using Wayd.Common.Application.Requests.WorkManagement.Queries;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Integrations.Abstractions;
@@ -48,8 +47,12 @@ public sealed class AzureDevOpsWorkItemSource(
     private List<AzureDevOpsWorkProcessDto>? _planWorkProcesses;
     // Every project set up in Wayd, paused or not, captured in GetSyncPlan(); cleared on Bind().
     private List<SetUpProject>? _setUpProjects;
-    // Work process external id → Wayd id, once resolved in this bind; cleared on Bind().
-    private readonly Dictionary<Guid, Guid> _resolvedWorkProcesses = [];
+    // Work process external ids resolved to a Wayd process in this bind; cleared on Bind().
+    private readonly HashSet<Guid> _resolvedWorkProcesses = [];
+    // The active Wayd processes of every project set up in Wayd, captured in GetSyncPlan(), and whether
+    // the first workspace prepared in this bind has kept them in the engine; cleared on Bind().
+    private List<Guid> _setUpProcessIds = [];
+    private bool _setUpProcessesSynced;
     private readonly Dictionary<Guid, string[]> _workTypeNames = [];
 
     public Connector Connector => Connector.AzureDevOps;
@@ -68,6 +71,8 @@ public sealed class AzureDevOpsWorkItemSource(
         _planWorkProcesses = null;
         _setUpProjects = null;
         _resolvedWorkProcesses.Clear();
+        _setUpProcessIds = [];
+        _setUpProcessesSynced = false;
         _workTypeNames.Clear();
         return Result.Success();
     }
@@ -106,6 +111,11 @@ public sealed class AzureDevOpsWorkItemSource(
         _setUpProjects = [.. connection.Configuration.Workspaces
             .Where(w => w.IntegrationState is not null)
             .Select(w => new SetUpProject(w.Name, w.IntegrationState!.InternalId))];
+        _setUpProcessIds = [.. connection.Configuration.Workspaces
+            .Where(w => w.IntegrationState is not null)
+            .Select(w => w.WorkProcessId)
+            .Where(id => connection.Configuration.WorkProcesses.Any(wp => wp.ExternalId == id && wp.IntegrationState is { IsActive: true }))
+            .Distinct()];
 
         var workspaceTeamsLookup = connection.TeamConfiguration?.WorkspaceTeams is not null
             ? connection.TeamConfiguration.WorkspaceTeams.GroupBy(t => t.WorkspaceId).ToDictionary(g => g.Key, g => g.ToArray())
@@ -152,7 +162,7 @@ public sealed class AzureDevOpsWorkItemSource(
         var workProcessResult = await ResolveWorkProcess(target, cancellationToken);
         if (workProcessResult.IsFailure)
             return workProcessResult;
-        var (workProcessExternalId, workProcessInternalId, readFromSource) = workProcessResult.Value;
+        var (workProcessExternalId, readFromSource) = workProcessResult.Value;
 
         // Sync each work process once per run, whichever connection reaches it first. One created
         // just now was read from Azure DevOps moments ago, so it is marked synced without a repeat; one
@@ -160,9 +170,18 @@ public sealed class AzureDevOpsWorkItemSource(
         var firstInRun = _workProcessSyncTracker.TryMarkSynced(syncId, workProcessExternalId);
         if (firstInRun && !readFromSource)
         {
-            var processResult = await SyncWorkProcess(ctx, syncId, workProcessExternalId, workProcessInternalId, cancellationToken);
+            var processResult = await SyncWorkProcess(ctx, syncId, workProcessExternalId, cancellationToken);
             if (processResult.IsFailure)
+            {
+                _workProcessSyncTracker.Forget(syncId, workProcessExternalId);
                 return processResult;
+            }
+        }
+
+        if (!_setUpProcessesSynced)
+        {
+            _setUpProcessesSynced = true;
+            await SyncOtherSetUpProcesses(ctx, syncId, workProcessExternalId, cancellationToken);
         }
 
         // The organization refresh moves a workspace to its project's new process only when that
@@ -483,80 +502,42 @@ public sealed class AzureDevOpsWorkItemSource(
         return _descriptor;
     }
 
-    private async Task<Result> SyncWorkProcess(SyncContext ctx, Guid syncId, Guid workProcessExternalId, Guid workProcessInternalId, CancellationToken cancellationToken)
+    /// <summary>
+    /// Keeps in the engine the processes of the connection's other set-up projects, before any of their items
+    /// sync. A workspace's history rebuild resolves revisions its items made in another workspace against that
+    /// workspace's process, which on a first sync after an upgrade the engine would otherwise not hold until the
+    /// other workspace's turn, and the periods would lose their type and status.
+    /// </summary>
+    /// <remarks>
+    /// Each process still syncs once per run. A failure is logged and forgotten, not charged to this workspace:
+    /// the process's own workspace syncs it again and fails there.
+    /// </remarks>
+    private async Task SyncOtherSetUpProcesses(SyncContext ctx, Guid syncId, Guid preparedProcessExternalId, CancellationToken cancellationToken)
+    {
+        foreach (var processExternalId in _setUpProcessIds.Where(id => id != preparedProcessExternalId))
+        {
+            if (!_workProcessSyncTracker.TryMarkSynced(syncId, processExternalId))
+                continue;
+
+            var result = await SyncWorkProcess(ctx, syncId, processExternalId, cancellationToken);
+            if (result.IsFailure)
+            {
+                _workProcessSyncTracker.Forget(syncId, processExternalId);
+                _logger.LogWarning("Unable to keep work process {WorkProcessExternalId} in the status workflow engine ahead of its projects: {Error}", processExternalId, result.Error);
+            }
+        }
+    }
+
+    private async Task<Result> SyncWorkProcess(SyncContext ctx, Guid syncId, Guid workProcessExternalId, CancellationToken cancellationToken)
     {
         Guard.Against.Default(workProcessExternalId, nameof(workProcessExternalId));
-        Guard.Against.Default(workProcessInternalId, nameof(workProcessInternalId));
 
         var processResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkProcess",
             () => _azureDevOpsService.GetWorkProcess(ctx.Connection, workProcessExternalId, cancellationToken), syncId);
         if (processResult.IsFailure)
             return processResult.ConvertFailure();
 
-        var workTypes = processResult.Value.WorkTypes.OfType<Wayd.Common.Application.Interfaces.ExternalWork.IExternalWorkType>().ToList();
-        if (workTypes.Count != 0)
-        {
-            var levels = await _dispatcher.Send(new GetWorkTypeLevelsQuery(), cancellationToken);
-            if (levels is null)
-                return Result.Failure("Unable to get work type levels.");
-
-            int defaultLevelId = -1;
-            foreach (var l in levels)
-            {
-                if (l.Tier.Id == (int)Wayd.Common.Domain.Enums.Work.WorkTypeTier.Other)
-                {
-                    defaultLevelId = l.Id;
-                    break;
-                }
-            }
-
-            if (defaultLevelId == -1)
-                return Result.Failure("Unable to get work type levels.");
-
-            var syncWorkTypesResult = await _dispatcher.Send(new SyncExternalWorkTypesCommand(workTypes, defaultLevelId), cancellationToken);
-            if (syncWorkTypesResult.IsFailure)
-                return syncWorkTypesResult;
-        }
-
-        if (processResult.Value.WorkStatuses.Count != 0)
-        {
-            var syncWorkStatusesResult = await _dispatcher.Send(new SyncExternalWorkStatusesCommand(processResult.Value.WorkStatuses), cancellationToken);
-            if (syncWorkStatusesResult.IsFailure)
-                return syncWorkStatusesResult;
-        }
-
-        var workProcessWorkflows = await _dispatcher.Send(new GetExternalWorkProcessWorkflowsQuery(workProcessInternalId), cancellationToken);
-        if (workProcessWorkflows is null)
-            return Result.Failure($"Work process {workProcessInternalId} not found.");
-
-        var workflowsByWorkTypeName = workProcessWorkflows.ToDictionary(w => w.WorkTypeName);
-
-        var workflowMappings = new List<CreateWorkProcessSchemeDto>(processResult.Value.WorkTypes.Count);
-        foreach (var workType in processResult.Value.WorkTypes)
-        {
-            workflowsByWorkTypeName.TryGetValue(workType.Name, out var existing);
-            if (existing?.WorkflowId is not Guid workflowId)
-            {
-                var createWorkflowResult = await _dispatcher.Send(new CreateExternalWorkflowCommand(
-                    $"{processResult.Value.Name} - {workType.Name}",
-                    AzureDevOpsInitManager.AutoGeneratedWorkflowDescription,
-                    workType), cancellationToken);
-                if (createWorkflowResult.IsFailure)
-                    return createWorkflowResult.ConvertFailure();
-
-                workflowMappings.Add(CreateWorkProcessSchemeDto.Create(workType.Name, workType.IsActive, createWorkflowResult.Value));
-            }
-            else
-            {
-                var syncWorkflowResult = await _dispatcher.Send(new UpdateExternalWorkflowCommand(workflowId, existing.WorkflowName!, existing.WorkflowDescription, workType), cancellationToken);
-                if (syncWorkflowResult.IsFailure)
-                    return syncWorkflowResult;
-
-                workflowMappings.Add(CreateWorkProcessSchemeDto.Create(workType.Name, workType.IsActive, workflowId));
-            }
-        }
-
-        var updateWorkProcessResult = await _dispatcher.Send(new UpdateExternalWorkProcessCommand(processResult.Value, processResult.Value.WorkTypes, workflowMappings), cancellationToken);
+        var updateWorkProcessResult = await _dispatcher.Send(new UpdateExternalWorkProcessCommand(processResult.Value), cancellationToken);
         if (updateWorkProcessResult.IsFailure)
             return updateWorkProcessResult;
 
@@ -572,40 +553,40 @@ public sealed class AzureDevOpsWorkItemSource(
     }
 
     /// <summary>
-    /// The target project's work process, external and Wayd ids. A process this connection has not
-    /// set up yet, such as one a project moved to in Azure DevOps, is set up here.
+    /// The target project's work process, by its external id. A process this connection has not set up
+    /// yet, such as one a project moved to in Azure DevOps, is set up here.
     /// </summary>
     /// <returns>
-    /// The process's external and Wayd ids, and whether this call created it from Azure DevOps'
-    /// current process, in which case it was read moments ago.
+    /// The process's external id, and whether this call created it from Azure DevOps' current process,
+    /// in which case it was read moments ago.
     /// </returns>
-    private async Task<Result<(Guid ExternalId, Guid InternalId, bool ReadFromSource)>> ResolveWorkProcess(WorkspaceSyncTarget target, CancellationToken cancellationToken)
+    private async Task<Result<(Guid ExternalId, bool ReadFromSource)>> ResolveWorkProcess(WorkspaceSyncTarget target, CancellationToken cancellationToken)
     {
         if (_planWorkProcesses is null)
-            return Result.Failure<(Guid, Guid, bool)>("GetSyncPlan() must be invoked before PrepareWorkspaceForItemSync.");
+            return Result.Failure<(Guid, bool)>("GetSyncPlan() must be invoked before PrepareWorkspaceForItemSync.");
 
         if (!target.Filters.TryGet(WorkProcessExternalIdFilterKey, out var raw) || !Guid.TryParse(raw, out var wpId))
-            return Result.Failure<(Guid, Guid, bool)>($"WorkspaceSyncTarget for {target.WorkspaceName} is missing AzDO work-process metadata.");
+            return Result.Failure<(Guid, bool)>($"WorkspaceSyncTarget for {target.WorkspaceName} is missing AzDO work-process metadata.");
 
         if (wpId == Guid.Empty)
-            return Result.Failure<(Guid, Guid, bool)>($"Azure DevOps reports no work process for project {target.WorkspaceName}.");
+            return Result.Failure<(Guid, bool)>($"Azure DevOps reports no work process for project {target.WorkspaceName}.");
 
-        if (_resolvedWorkProcesses.TryGetValue(wpId, out var resolvedInternalId))
-            return (wpId, resolvedInternalId, false);
+        if (_resolvedWorkProcesses.Contains(wpId))
+            return (wpId, false);
 
         var workProcess = _planWorkProcesses.FirstOrDefault(wp => wp.ExternalId == wpId);
         if (workProcess?.IntegrationState is { IsActive: true })
         {
-            _resolvedWorkProcesses[wpId] = workProcess.IntegrationState.InternalId;
-            return (wpId, workProcess.IntegrationState.InternalId, false);
+            _resolvedWorkProcesses.Add(wpId);
+            return (wpId, false);
         }
 
         var ensureResult = await _initManager.EnsureWorkProcessIntegration(RequireDescriptor().ConnectionId, wpId, cancellationToken);
         if (ensureResult.IsFailure)
-            return Result.Failure<(Guid, Guid, bool)>($"Unable to set up the work process for project {target.WorkspaceName}. {ensureResult.Error}");
+            return Result.Failure<(Guid, bool)>($"Unable to set up the work process for project {target.WorkspaceName}. {ensureResult.Error}");
 
-        _resolvedWorkProcesses[wpId] = ensureResult.Value.InternalId;
-        return (wpId, ensureResult.Value.InternalId, ensureResult.Value.ReadFromSource);
+        _resolvedWorkProcesses.Add(wpId);
+        return (wpId, ensureResult.Value.ReadFromSource);
     }
 
     /// <summary>

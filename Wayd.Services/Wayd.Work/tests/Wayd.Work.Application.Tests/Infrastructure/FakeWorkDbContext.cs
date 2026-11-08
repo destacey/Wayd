@@ -24,8 +24,7 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     private readonly List<WorkProcess> _workProcesses = [];
     private readonly List<WorkItem> _workItems = [];
     private readonly List<WorkType> _workTypes = [];
-    private readonly List<WorkStatus> _workStatuses = [];
-    private readonly List<Workflow> _workflows = [];
+    private readonly List<LegacyWorkStatusDescription> _legacyWorkStatusDescriptions = [];
     private readonly List<WorkTypeHierarchy> _workTypeHierarchies = [];
     private readonly List<WorkTeam> _workTeams = [];
     private readonly List<WorkProject> _workProjects = [];
@@ -51,8 +50,7 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     public DbSet<WorkProcess> WorkProcesses => _workProcesses.AsDbSet();
     public DbSet<WorkItem> WorkItems => _workItems.AsDbSet();
     public DbSet<WorkType> WorkTypes => _workTypes.AsDbSet();
-    public DbSet<WorkStatus> WorkStatuses => _workStatuses.AsDbSet();
-    public DbSet<Workflow> Workflows => _workflows.AsDbSet();
+    public DbSet<LegacyWorkStatusDescription> LegacyWorkStatusDescriptions => _legacyWorkStatusDescriptions.AsDbSet();
     public DbSet<WorkTypeHierarchy> WorkTypeHierarchies => _workTypeHierarchies.AsDbSet();
     public DbSet<WorkTeam> WorkTeams => _workTeams.AsDbSet();
     public DbSet<WorkProject> WorkProjects => _workProjects.AsDbSet();
@@ -122,13 +120,25 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     /// </summary>
     public int SaveChangesCallCount { get; private set; }
 
+    /// <summary>
+    /// An exception the next save throws instead of saving, as a real context does on a unique-index collision.
+    /// Cleared once thrown.
+    /// </summary>
+    public Exception? FailNextSaveWith { get; set; }
+
     public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         SaveChangesCallCount++;
 
+        if (FailNextSaveWith is { } failure)
+        {
+            FailNextSaveWith = null;
+            throw failure;
+        }
+
         // Return the total number of entities as a simple success indicator
         var count = _workspaces.Count + _workProcesses.Count + _workItems.Count +
-                    _workTypes.Count + _workStatuses.Count + _workflows.Count +
+                    _workTypes.Count + _legacyWorkStatusDescriptions.Count +
                     _workTypeHierarchies.Count + _workTeams.Count + _workProjects.Count +
                     _iterations.Count + _employees.Count + _externalEmployeeBlacklistItems.Count + _externalIdentityMappings.Count +
                     _personalAccessTokens.Count;
@@ -166,13 +176,8 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
     public void AddWorkType(WorkType workType) => _workTypes.Add(workType);
     public void AddWorkTypes(IEnumerable<WorkType> workTypes) => _workTypes.AddRange(workTypes);
 
-    // WorkStatus
-    public void AddWorkStatus(WorkStatus workStatus) => _workStatuses.Add(workStatus);
-    public void AddWorkStatuses(IEnumerable<WorkStatus> workStatuses) => _workStatuses.AddRange(workStatuses);
-
-    // Workflow
-    public void AddWorkflow(Workflow workflow) => _workflows.Add(workflow);
-    public void AddWorkflows(IEnumerable<Workflow> workflows) => _workflows.AddRange(workflows);
+    // LegacyWorkStatusDescription
+    public void AddLegacyWorkStatusDescription(LegacyWorkStatusDescription description) => _legacyWorkStatusDescriptions.Add(description);
 
     // WorkTypeHierarchy
     public void AddWorkTypeHierarchy(WorkTypeHierarchy hierarchy) => _workTypeHierarchies.Add(hierarchy);
@@ -211,8 +216,7 @@ public class FakeWorkDbContext : IWorkDbContext, IDisposable
         _workProcesses.Clear();
         _workItems.Clear();
         _workTypes.Clear();
-        _workStatuses.Clear();
-        _workflows.Clear();
+        _legacyWorkStatusDescriptions.Clear();
         _workTypeHierarchies.Clear();
         _workTeams.Clear();
         _workProjects.Clear();

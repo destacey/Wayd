@@ -8549,7 +8549,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get work process schemes.
         /// </summary>
         /// <remarks>
-        /// `id` is the work process's UUID only. Returns one scheme per work type in the process: the `workType` (with its level), whether it is active in this process, and the status `workflow` its work items follow, with that workflow's statuses inline (each with its UUID `id`, name, category, order, and whether it is retired). `workflow` is null when the process has no workflow for the type. A status belongs to one workflow; what workflows share is the category. Returns 404 when no work process has the id.
+        /// `id` is the work process's UUID only. Returns one scheme per work type in the process's workflow scheme: its `id` (the type's entry in the scheme), the `workType` (with its level), and the status `workflow` its work items follow, with that workflow's statuses inline (each with its UUID `id`, name, category, order, and whether it is retired). A work type whose source offers no state has no workflow and is not listed. A status belongs to one workflow; what workflows share is the category. Returns 404 when no work process has the id.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -9100,7 +9100,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get work process schemes.
         /// </summary>
         /// <remarks>
-        /// `id` is the work process's UUID only. Returns one scheme per work type in the process: the `workType` (with its level), whether it is active in this process, and the status `workflow` its work items follow, with that workflow's statuses inline (each with its UUID `id`, name, category, order, and whether it is retired). `workflow` is null when the process has no workflow for the type. A status belongs to one workflow; what workflows share is the category. Returns 404 when no work process has the id.
+        /// `id` is the work process's UUID only. Returns one scheme per work type in the process's workflow scheme: its `id` (the type's entry in the scheme), the `workType` (with its level), and the status `workflow` its work items follow, with that workflow's statuses inline (each with its UUID `id`, name, category, order, and whether it is retired). A work type whose source offers no state has no workflow and is not listed. A status belongs to one workflow; what workflows share is the category. Returns 404 when no work process has the id.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -148265,7 +148265,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// The scheme's id within the work process.
+        /// The id of the work type's entry in the process's scheme.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
@@ -148279,17 +148279,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public WorkTypeDto WorkType { get; set; } = new WorkTypeDto();
 
         /// <summary>
-        /// The status workflow the work type follows in this process, with its statuses; null when the process has
-        /// <br/>no workflow for the type, such as a type whose source offers no state.
+        /// The status workflow the work type follows in this process, with its statuses; null only when the workflow
+        /// <br/>its scheme entry names cannot be read.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("workflow")]
         public WorkProcessSchemeWorkflowDto? Workflow { get; set; } = default!;
-
-        /// <summary>
-        /// Whether the work type is active in this process.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("isActive")]
-        public bool IsActive { get; set; } = default!;
 
     }
 

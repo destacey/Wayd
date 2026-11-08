@@ -541,6 +541,50 @@
   outline-offset: -2px;
 }
 
+/* The grid's footer: a plain line under the frame, kept in reserve so
+   nothing moves when it fills. */
+.footer {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 16px;
+  height: 24px;
+  padding: 0 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.footerHints {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* The key hints for what the user is doing, in the footer. */
+.keyHints {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.keyHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.keyHint :global(kbd) {
+  font-size: 11px;
+}
+
+/* A grid that edits by cell shows its selected cell however it was chosen,
+   as a spreadsheet does: a click selects the cell the keys then act on. */
+.editsByCell .td:focus {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: -2px;
+}
+
 /* A cell's edit state (cell editing). Each state has its own shape, not
    just its own colour: unsaved is an underline, saving a left bar, a
    failure a left bar on a tinted cell. The state and any error are also

@@ -71,6 +71,16 @@ const DeleteProjectTaskForm = ({
       onOk={handleOk}
       okText="Delete"
       okType="danger"
+      // Opened from a row key (Ctrl+Delete), so Enter confirms from the
+      // keyboard. A focused button (Cancel) keeps its own Enter.
+      wrapProps={{
+        onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
+          if (e.key !== 'Enter' || isSaving) return
+          if ((e.target as HTMLElement).closest('button')) return
+          e.preventDefault()
+          void handleOk()
+        },
+      }}
       confirmLoading={isSaving}
       onCancel={handleCancel}
       keyboard={false}

@@ -2,7 +2,7 @@
 
 import { Descriptions, Flex, Typography } from 'antd'
 import type { ReactNode } from 'react'
-import { gridKeymapFor } from './grid-keymap'
+import { gridKeymapFor, type GridRowActionSupport } from './grid-keymap'
 
 const { Title, Text } = Typography
 
@@ -21,6 +21,8 @@ export interface WaydGridKeyboardHelpProps {
   editing?: boolean
   /** Include the tree keys. */
   tree?: boolean
+  /** The row actions the grid supports; their keys are listed. */
+  rows?: GridRowActionSupport
   /** Grid-specific sections after the keys (what the colors mean, say). */
   children?: ReactNode
 }
@@ -32,6 +34,7 @@ export interface WaydGridKeyboardHelpProps {
 export function WaydGridKeyboardHelp({
   editing = false,
   tree = false,
+  rows,
   children,
 }: WaydGridKeyboardHelpProps) {
   return (
@@ -44,7 +47,7 @@ export function WaydGridKeyboardHelp({
     >
       <Flex vertical gap="large" style={{ width: '100%' }}>
         <Title level={4}>Keyboard Shortcuts</Title>
-        {gridKeymapFor({ editing, tree }).map((section) => (
+        {gridKeymapFor({ editing, tree, rows }).map((section) => (
           <Descriptions
             key={section.title}
             size="small"

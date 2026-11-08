@@ -1,5 +1,6 @@
 'use client'
 
+import { createPortal } from 'react-dom'
 import {
   forwardRef,
   type Ref,
@@ -70,6 +71,8 @@ import {
 } from '../wayd-grid-core/cell-editing/use-grid-cell-editing'
 import { WaydGridKeyboardHelp } from '../wayd-grid-core/cell-editing/grid-keyboard-help'
 import { CellEditMessages } from '../wayd-grid-core/cell-editing/cell-edit-messages'
+import { GridKeyHints } from '../wayd-grid-core/cell-editing/grid-key-hints'
+import type { GridRowActionSupport } from '../wayd-grid-core/cell-editing/grid-keymap'
 // From the file, not the barrel: page tests mock the barrel with only
 // `useMessage`, and every page that renders a grid would break.
 import { useOptionalMessage } from '@/src/components/contexts/messaging/messaging-context'
@@ -100,9 +103,17 @@ import { useGridDndSensors } from '../wayd-grid-core/dnd/grid-dnd'
 import {
   INDENTATION_WIDTH,
   calculateOrderInParent,
+  defaultMoveValidator,
   getProjection,
   type TreeNode,
 } from '../wayd-grid-core/dnd/tree-projection'
+import {
+  indentMove,
+  orderAfter,
+  outdentMove,
+  rowActionFor,
+  type RowActionKey,
+} from '../wayd-grid-core/row-actions'
 import {
   mergeDraftsIntoTree,
   type DraftItem,
@@ -397,6 +408,19 @@ interface GridBodyProps<T extends RowData> {
   getRowActivateLabel?: (row: T) => string
   /** Cell editing, when the grid has `onCommit`. */
   cellEditing?: GridCellEditingController<T>
+  /**
+   * Runs a row-action key on a row. False: the grid does not do it here, so
+   * the key goes on to navigation. A promise: a move, resolving to the row's
+   * new parent, or false when it did not move.
+   */
+  runRowAction?: (
+    action: RowActionKey,
+    row: Row<T>,
+  ) => boolean | Promise<false | { parentId: string | null }>
+  /** The row actions the grid supports, for the key hints. */
+  rowActionSupport?: GridRowActionSupport
+  /** Where in the grid's footer the key hints render. */
+  footerHintsHost?: HTMLElement | null
 }
 
 /**
@@ -444,6 +468,9 @@ function GridBody<T extends RowData>({
   activatedRowId,
   getRowActivateLabel,
   cellEditing,
+  runRowAction,
+  rowActionSupport,
+  footerHintsHost,
 }: GridBodyProps<T>) {
   // Owns virtualizer + TanStack row JSX — same staleness hazard as the grid.
 
@@ -476,6 +503,41 @@ function GridBody<T extends RowData>({
       ? navigation.activeRowIndex
       : -1
 
+  /** Row-action keys on a focused cell come before navigation's; keys in a
+   *  control (an open editor's Ctrl+Delete) stay the control's. */
+  const onBodyKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    const target = e.target as HTMLElement
+    const action =
+      runRowAction &&
+      e.currentTarget.contains(target) &&
+      !e.defaultPrevented &&
+      target.hasAttribute('data-grid-cell')
+        ? rowActionFor(e)
+        : null
+    const rowId = target.closest('tr')?.getAttribute('data-grid-row')
+    const row = action ? rows.find((r) => r.id === rowId) : undefined
+    if (action && row && !row.getIsGrouped()) {
+      const result = runRowAction!(action, row)
+      // A row-action key never falls through to navigation, whose Enter and
+      // arrows ignore modifiers (Ctrl+Enter would edit the cell).
+      e.preventDefault()
+      if (result !== false) {
+        const columnId = target.getAttribute('data-column-id')
+        const rowKey = cellEditing?.rowKeyOf(row.original)
+        if (result instanceof Promise && cellEditing && rowKey && columnId) {
+          // The moved row renders elsewhere once the data shows the move;
+          // focus goes with it.
+          void result.then((moved) => {
+            if (moved)
+              cellEditing.requestFocus(rowKey, columnId, moved.parentId)
+          })
+        }
+      }
+      return
+    }
+    navigation.onKeyDown(e)
+  }
+
   // A cell asked to open (a new draft) or to take focus (the row a draft
   // became) once its row is in the row model.
   useLayoutEffect(() => {
@@ -490,7 +552,16 @@ function GridBody<T extends RowData>({
       cellEditing.openCell(pendingRow, pending.columnId)
     }
     const focusTarget = cellEditing.pendingFocus
-    const focusRow = focusTarget ? findRow(focusTarget.rowKey) : undefined
+    const candidate = focusTarget ? findRow(focusTarget.rowKey) : undefined
+    const candidateParent = candidate?.getParentRow()
+    const focusRow =
+      candidate &&
+      (focusTarget?.parentKey === undefined ||
+        (candidateParent
+          ? cellEditing.rowKeyOf(candidateParent.original)
+          : null) === focusTarget.parentKey)
+        ? candidate
+        : undefined
     if (focusTarget && focusRow) {
       cellEditing.clearPendingFocus()
       const active = document.activeElement
@@ -611,7 +682,11 @@ function GridBody<T extends RowData>({
   // element's scrollTop rather than sharing a different scroller.
   const tableWrapperEl = (
     <div
-      className={styles.tableWrapper}
+      className={
+        cellEditing
+          ? `${styles.tableWrapper} ${styles.editsByCell}`
+          : styles.tableWrapper
+      }
       ref={bodyViewportRef}
       onScroll={onBodyScroll}
       // Measurement hook for jsdom tests: layoutless environments report a
@@ -641,7 +716,7 @@ function GridBody<T extends RowData>({
                 })
             : undefined
         }
-        onKeyDown={navigation.onKeyDown}
+        onKeyDown={onBodyKeyDown}
         onFocus={navigation.onFocus}
         onBlur={navigation.onBlur}
         onContextMenu={navigation.onContextMenu}
@@ -891,12 +966,36 @@ function GridBody<T extends RowData>({
     </div>
   ) : null
 
+  // The keys for what the user is doing, while a cell is selected or edited.
+  const activeRow =
+    navigation.activeRowIndex >= 0 ? rows[navigation.activeRowIndex] : undefined
+  // Rendered from here, where the selection is known, into the footer.
+  const keyHintsEl =
+    cellEditing &&
+    footerHintsHost &&
+    !showStatusOverlay &&
+    (navigation.hasFocusWithin || cellEditing.open)
+      ? createPortal(
+          <GridKeyHints
+            mode={cellEditing.openHintMode ?? 'cell'}
+            cellEditable={
+              !!activeRow &&
+              !!navigation.activeColumnId &&
+              cellEditing.isCellEditable(activeRow, navigation.activeColumnId)
+            }
+            rows={rowActionSupport ?? {}}
+          />,
+          footerHintsHost,
+        )
+      : null
+
   // ─── Default layout: the table wrapper IS the single scroller ────────────
   if (!rightPane) {
     return (
       <div className={styles.bodyArea}>
         {tableWrapperEl}
         {statusOverlayEl}
+        {keyHintsEl}
       </div>
     )
   }
@@ -967,6 +1066,7 @@ function GridBody<T extends RowData>({
         {barTrack}
       </div>
       {statusOverlayEl}
+      {keyHintsEl}
     </div>
   )
 }
@@ -1111,6 +1211,7 @@ function WaydGridInner<T extends RowData>(
     onRefresh,
     leftSlot,
     helpContent,
+    helpNotes,
     actionsSlot,
     rightSlot,
     emptyMessage = 'No records found',
@@ -1150,6 +1251,7 @@ function WaydGridInner<T extends RowData>(
     createDraftNode,
     onDraftCancelled,
     onDraftsChange,
+    rowActions,
     rightPane,
     'aria-label': ariaLabel,
   } = props
@@ -1521,6 +1623,12 @@ function WaydGridInner<T extends RowData>(
     fieldToColumn,
     draftParentId: (key) =>
       draftTasks.find((draft) => draft.id === key)?.parentId ?? null,
+    draftOrder: (key) => {
+      const afterId = draftTasks.find((draft) => draft.id === key)?.afterId
+      return afterId
+        ? orderAfter(data as unknown as TreeNode[], afterId)
+        : undefined
+    },
     removeDraft: (key, created) => {
       updateDraftTasks((prev) => {
         const next = prev.filter((draft) => draft.id !== key)
@@ -1907,7 +2015,159 @@ function WaydGridInner<T extends RowData>(
         .getRowModel()
         .rows.filter((row: Row<T>) => !row.getIsGrouped())
         .map((row: Row<T>) => row.original),
+    commitCells: cellEditing.commitCells,
+    focusRow: (rowId: string, columnId: string) =>
+      cellEditing.requestFocus(rowId, columnId),
   }))
+
+  // ─── Row-action keys ─────────────────────────────────────
+  const isDraftKey = (key: string) => key.startsWith(draftPrefix)
+  // Opt-in through rowActions: a grid that takes these keys must place a new
+  // row where Insert puts it (onCreate's order) and reject a failed move.
+  const canInsertRows =
+    !!rowActions &&
+    isTree &&
+    cellEditingEnabled &&
+    !!createDraftNode &&
+    !!onCreate
+  // Needs cell editing for its live region and for focus to follow the row.
+  const canMoveRows =
+    !!rowActions &&
+    isTree &&
+    cellEditingEnabled &&
+    enableDragAndDrop &&
+    !!onNodeMove &&
+    !isLoading
+  const rowActionSupport = {
+    insert: canInsertRows,
+    move: canMoveRows,
+    delete: !!rowActions?.onDelete,
+    open: !!rowActions?.onOpen,
+  }
+  const hasRowActions = Object.values(rowActionSupport).some(Boolean)
+
+  const [footerHintsHost, setFooterHintsHost] = useState<HTMLDivElement | null>(
+    null,
+  )
+
+  // A second move sent before the first lands would be worked out from the
+  // tree as it was, and land somewhere the user did not ask for.
+  const movingRef = useRef(false)
+
+  const runRowAction = (
+    action: RowActionKey,
+    row: Row<T>,
+  ): boolean | Promise<false | { parentId: string | null }> => {
+    const key = cellEditing.rowKeyOf(row.original)
+    if (!key || isDraftKey(key)) return false
+    // A key the grid takes but cannot act on says why, so a keyboard user
+    // can tell a refusal from a key that did nothing.
+    const refuse = (message: string) => {
+      cellEditing.announce(message)
+      return true
+    }
+    switch (action) {
+      case 'insert': {
+        if (!canInsertRows) return false
+        // The new row's place is taken from the data order, which a sort
+        // or filter no longer shows.
+        if (hasActiveFilters) {
+          return refuse('Clear the search, filters and sorting to add a row.')
+        }
+        const parent = row.getParentRow()?.original ?? null
+        if (rowActions?.canInsertUnder && !rowActions.canInsertUnder(parent)) {
+          return refuse('A row cannot be added here.')
+        }
+        const parentKey = parent ? cellEditing.rowKeyOf(parent) : undefined
+        if (!cellEditing.addDraft(parentKey, key)) {
+          return refuse('Finish the new row first.')
+        }
+        return true
+      }
+      case 'indent':
+      case 'outdent': {
+        if (!canMoveRows) return false
+        // Refused under a filter or sort, as dragging is: a move works in data
+        // order and could nest the row under one the user cannot see.
+        if (hasActiveFilters) {
+          return refuse('Clear the search, filters and sorting to move a row.')
+        }
+        const nodes = flattenedNodes
+        const move = (action === 'indent' ? indentMove : outdentMove)(
+          nodes,
+          key,
+          isDraftKey,
+        )
+        const active = nodes.find((entry) => entry.node.id === key)
+        if (!move || !active) {
+          return refuse(
+            action === 'indent'
+              ? 'There is no row above at this level to indent under.'
+              : 'The row is already at the top level.',
+          )
+        }
+        const verdict = (moveValidator ?? defaultMoveValidator)(
+          active,
+          move.parent,
+          move.parentId,
+        )
+        if (!verdict.canMove) {
+          const reason = verdict.reason || 'Cannot move item to this location'
+          // A consumer's onMoveRejected shows it already, as an alert.
+          if (onMoveRejected) {
+            onMoveRejected(reason)
+            return true
+          }
+          return refuse(reason)
+        }
+        if (movingRef.current) {
+          return refuse('Wait for the last move to finish.')
+        }
+        movingRef.current = true
+        const moving = onNodeMove!(key, move.parentId, move.order)
+        void moving.then(
+          () => (movingRef.current = false),
+          () => (movingRef.current = false),
+        )
+        return moving.then(
+          () => {
+            // A row indented under a collapsed one would vanish, and focus
+            // could not follow it.
+            const parent = table
+              .getRowModel()
+              .rows.find(
+                (r: Row<T>) =>
+                  cellEditing.rowKeyOf(r.original) === move.parentId,
+              )
+            if (parent && !parent.getIsExpanded()) parent.toggleExpanded(true)
+            cellEditing.announce(
+              action === 'indent' ? 'Indented.' : 'Outdented.',
+            )
+            return { parentId: move.parentId }
+          },
+          (error: unknown) => {
+            const reason =
+              error instanceof Error ? error.message : 'Failed to move item'
+            if (onMoveRejected) onMoveRejected(reason)
+            else cellEditing.announce(reason)
+            return false
+          },
+        )
+      }
+      case 'delete':
+        if (!rowActions?.onDelete) return false
+        return (
+          rowActions.onDelete(row.original) !== false ||
+          refuse('This row cannot be deleted.')
+        )
+      case 'open':
+        if (!rowActions?.onOpen) return false
+        return (
+          rowActions.onOpen(row.original) !== false ||
+          refuse('This row has no details to open.')
+        )
+    }
+  }
 
   // ─── Header column-reorder DnD ───────────────────────────
   // Section-aware move shared by header-grip drag and the Choose Columns modal.
@@ -2726,6 +2986,9 @@ function WaydGridInner<T extends RowData>(
         activatedRowId={activatedRowId}
         getRowActivateLabel={getRowActivateLabel}
         cellEditing={cellEditingEnabled ? cellEditing : undefined}
+        runRowAction={hasRowActions ? runRowAction : undefined}
+        rowActionSupport={rowActionSupport}
+        footerHintsHost={footerHintsHost}
       />
     </div>
   )
@@ -2754,8 +3017,14 @@ function WaydGridInner<T extends RowData>(
           leftSlot={resolvedLeftSlot}
           helpContent={
             helpContent ??
-            (cellEditingEnabled ? (
-              <WaydGridKeyboardHelp editing tree={isTree} />
+            (cellEditingEnabled || hasRowActions ? (
+              <WaydGridKeyboardHelp
+                editing={cellEditingEnabled}
+                tree={isTree}
+                rows={rowActionSupport}
+              >
+                {helpNotes}
+              </WaydGridKeyboardHelp>
             ) : undefined)
           }
           actionsSlot={actionsSlot}
@@ -2784,6 +3053,13 @@ function WaydGridInner<T extends RowData>(
         </DndContext>
       ) : (
         tableContent
+      )}
+      {/* The grid's footer: a line kept under the frame, so nothing moves
+          when it fills. The key hints show here while a cell is selected. */}
+      {cellEditingEnabled && (
+        <div className={styles.footer} data-grid-footer="">
+          <div ref={setFooterHintsHost} className={styles.footerHints} />
+        </div>
       )}
 
       <ColumnChooserModal

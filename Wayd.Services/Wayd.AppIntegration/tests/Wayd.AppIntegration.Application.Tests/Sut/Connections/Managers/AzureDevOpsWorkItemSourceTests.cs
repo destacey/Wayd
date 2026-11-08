@@ -18,9 +18,11 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Application.Requests.WorkManagement.Dtos;
 using Wayd.Common.Application.Requests.WorkManagement.Interfaces;
 using Wayd.Common.Application.Requests.WorkManagement.Queries;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Integrations.Abstractions;
 
 namespace Wayd.AppIntegration.Application.Tests.Sut.Connections.Managers;
@@ -121,8 +123,8 @@ public class AzureDevOpsWorkItemSourceTests
             .ReturnsAsync(Result.Success(workProcessConfig.Object));
 
         _mocker.GetMock<IDispatcher>()
-            .Setup(s => s.Send(It.IsAny<GetWorkProcessSchemesQuery>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<IWorkProcessSchemeDto>().AsReadOnly() as IReadOnlyList<IWorkProcessSchemeDto>);
+            .Setup(s => s.Send(It.IsAny<GetExternalWorkProcessWorkflowsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExternalWorkProcessWorkflowDto>().AsReadOnly() as IReadOnlyList<ExternalWorkProcessWorkflowDto>);
 
         _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<UpdateExternalWorkProcessCommand>(), It.IsAny<CancellationToken>()))
@@ -424,6 +426,71 @@ public class AzureDevOpsWorkItemSourceTests
         // GetWorkspace is per-workspace.
         _mocker.GetMock<IAzureDevOpsService>()
             .Verify(s => s.GetWorkspace(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task PrepareWorkspaceForItemSync_UpdatesAWorkTypesExistingWorkflow_AndCreatesOneForATypeWithout()
+    {
+        // Arrange — Bug already has a Work workflow, Story has none yet
+        var descriptor = BuildDescriptor();
+        _sut.Bind(descriptor);
+        var processId = Guid.CreateVersion7();
+        var processInternalId = Guid.CreateVersion7();
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(BuildConnectionDetails(descriptor.ConnectionId, [Process(externalId: processId, internalId: processInternalId)], [Workspace(processId, name: "ProjectA")]));
+        StubWorkProcessSync();
+
+        var bug = WorkTypeWorkflow("Bug");
+        var story = WorkTypeWorkflow("Story");
+        var process = new Mock<IExternalWorkProcessConfiguration>();
+        process.Setup(p => p.Name).Returns("Agile");
+        process.Setup(p => p.WorkTypes).Returns([bug, story]);
+        process.Setup(p => p.WorkStatuses).Returns([]);
+        _mocker.GetMock<IAzureDevOpsService>()
+            .Setup(s => s.GetWorkProcess(It.IsAny<AzureDevOpsConnectionContext>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(process.Object));
+
+        var otherLevel = new Mock<IWorkTypeLevelDto>();
+        otherLevel.Setup(l => l.Id).Returns(5);
+        otherLevel.Setup(l => l.Tier).Returns(new SimpleNavigationDto { Id = (int)WorkTypeTier.Other, Name = "Other" });
+        var dispatcher = _mocker.GetMock<IDispatcher>();
+        dispatcher.Setup(s => s.Send(It.IsAny<GetWorkTypeLevelsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<IWorkTypeLevelDto> { otherLevel.Object });
+        dispatcher.Setup(s => s.Send(It.IsAny<SyncExternalWorkTypesCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+
+        var bugWorkflowId = Guid.NewGuid();
+        var storyWorkflowId = Guid.NewGuid();
+        dispatcher.Setup(s => s.Send(It.Is<GetExternalWorkProcessWorkflowsQuery>(q => q.WorkProcessId == processInternalId), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ExternalWorkProcessWorkflowDto> { new("Bug", bugWorkflowId, "Agile - Bug", "Kept by the sync") });
+        dispatcher.Setup(s => s.Send(It.IsAny<UpdateExternalWorkflowCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
+        dispatcher.Setup(s => s.Send(It.IsAny<CreateExternalWorkflowCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(storyWorkflowId));
+
+        var target = (await _sut.GetSyncPlan(TestContext.Current.CancellationToken)).Value.Single();
+
+        // Act
+        var result = await _sut.PrepareWorkspaceForItemSync(target, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        dispatcher.Verify(s => s.Send(It.Is<UpdateExternalWorkflowCommand>(c =>
+            c.WorkflowId == bugWorkflowId && c.Name == "Agile - Bug" && c.Description == "Kept by the sync" && c.ExternalWorkTypeWorkflow == bug), It.IsAny<CancellationToken>()), Times.Once);
+        dispatcher.Verify(s => s.Send(It.Is<CreateExternalWorkflowCommand>(c => c.ExternalWorkTypeWorkflow == story), It.IsAny<CancellationToken>()), Times.Once);
+        dispatcher.Verify(s => s.Send(It.Is<CreateExternalWorkflowCommand>(c => c.ExternalWorkTypeWorkflow == bug), It.IsAny<CancellationToken>()), Times.Never);
+        dispatcher.Verify(s => s.Send(It.Is<UpdateExternalWorkProcessCommand>(c =>
+            c.WorkflowMappings.Select(m => m.WorkTypeName + ":" + m.WorkflowId).SequenceEqual(new[] { $"Bug:{bugWorkflowId}", $"Story:{storyWorkflowId}" })), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    private static IExternalWorkTypeWorkflow WorkTypeWorkflow(string name)
+    {
+        var workType = new Mock<IExternalWorkTypeWorkflow>();
+        workType.Setup(t => t.Name).Returns(name);
+        workType.Setup(t => t.IsActive).Returns(true);
+        workType.Setup(t => t.WorkflowStates).Returns([]);
+        return workType.Object;
     }
 
     [Fact]

@@ -2277,6 +2277,40 @@ public sealed class StatusWorkflowTests
     }
 
     [Fact]
+    public void SyncFromSource_ShouldKeepEachStatusesDescription_ThroughARenameARetirementAndAReinstatement()
+    {
+        // Arrange — the description is Wayd's, which no source carries
+        var workflow = ManagedWorkflow();
+        foreach (var status in workflow.Statuses)
+            status.SetPrivate(s => s.Description, $"About {status.ExternalKey}");
+
+        // Act
+        var renamedAndRetired = workflow.SyncFromSource("Agile: Bug", [SourceNew, new("active", "In Progress", StatusCategory.Active)], EventActor.Sync(null), At);
+        var reinstated = workflow.SyncFromSource("Agile: Bug", [SourceNew, new("active", "In Progress", StatusCategory.Active), SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        renamedAndRetired.IsSuccess.Should().BeTrue();
+        reinstated.IsSuccess.Should().BeTrue();
+        workflow.Statuses.Select(s => (s.ExternalKey, s.Description)).Should().BeEquivalentTo(
+            [("new", "About new"), ("active", "About active"), ("closed", "About closed")]);
+        workflow.DomainEvents.OfType<WorkflowStatusRenamedEvent>().Should().ContainSingle()
+            .Which.Description.Should().Be("About active", "the rename event reports the description the status kept");
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldGiveANewStatusNoDescription()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+
+        // Act
+        workflow.SyncFromSource("Agile: Bug", [SourceNew, SourceActive, SourceClosed, new("resolved", "Resolved", StatusCategory.Done)], EventActor.Sync(null), At);
+
+        // Assert
+        StatusKeyed(workflow, "resolved").Description.Should().BeNull();
+    }
+
+    [Fact]
     public void SyncFromSource_ShouldRaiseNothing_WhenTheSourceIsUnchanged()
     {
         // Arrange

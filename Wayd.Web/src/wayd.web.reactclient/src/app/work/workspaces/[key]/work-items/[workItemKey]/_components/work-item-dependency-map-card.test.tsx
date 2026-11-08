@@ -196,7 +196,7 @@ describe('WorkItemDependencyMapCard', () => {
       'At Risk',
       'Unhealthy',
       'Unknown',
-      'Done',
+      'Closed',
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument()
     }
@@ -212,10 +212,10 @@ describe('WorkItemDependencyMapCard', () => {
     // Assert
     expect(await screen.findByTestId('map-edges')).toHaveTextContent(/^open$/)
     // A key to a line the map does not draw would only mislead.
-    expect(screen.queryByText('Done')).not.toBeInTheDocument()
+    expect(screen.queryByText('Closed')).not.toBeInTheDocument()
   })
 
-  it('draws done links once asked, and remembers the choice for the session', async () => {
+  it('draws closed links once asked, and remembers the choice for the session', async () => {
     // Arrange
     const user = userEvent.setup()
     renderCard([
@@ -229,10 +229,10 @@ describe('WorkItemDependencyMapCard', () => {
     // Assert
     expect(screen.getByTestId('map-edges')).toHaveTextContent('done,open')
     expect(session[WORK_ITEM_DEPENDENCY_FILTER_KEY]).toBe('all')
-    expect(screen.getByText('Done')).toBeInTheDocument()
+    expect(screen.getByText('Closed')).toBeInTheDocument()
   })
 
-  it('keeps the map, and its filter, when every link is done', async () => {
+  it('keeps the map, and its filter, when every link is closed', async () => {
     // Act
     renderCard([dependency('done', auth, 'Predecessor', 'Done')])
 

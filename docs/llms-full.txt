@@ -257,7 +257,7 @@ Containers for work items. Properties:
 - Work Process (defines available types/workflows), Ownership (Owned/Managed)
 - IsActive (inactive prevents adding/removing items; a workspace is created and activated only with an active work process)
 
-Managed workspaces: Synced from external systems, have external URL templates (the View Work Item URL, set in Wayd). Workspaces, work items, work processes and workflows come only from sync (`CreateExternal`); the API has no endpoint creating one. Work types and work statuses are synced too, though the API can also create them.
+Managed workspaces: Synced from external systems, have external URL templates (the View Work Item URL, set in Wayd). Workspaces, work items, work processes and workflows come only from sync (`CreateExternal`); the API has no endpoint creating one. Work types are synced too, though the API can also create them.
 
 ### Work Items
 
@@ -334,14 +334,7 @@ Default system levels: Epics (Portfolio L1), Features (Portfolio L2), Stories (R
 
 ### Workflows
 
-Status progression definitions. Properties: Name, Description, Ownership, IsActive.
-Contains WorkflowSchemes: WorkStatus + WorkStatusCategory + Order.
-
-Created only by sync (`Workflow.CreateExternal`): each Azure DevOps work item type's states become a workflow, each state's category mapped to a work status category. Rule: each status appears once per workflow. A status's category is set per workflow (on the WorkflowScheme), so one status can sit in different categories in different workflows. No minimum count, category coverage or ordering rule exists. Does not decide a work item's status: the sync keeps a managed Status Workflow per work type beside it, and items resolve through that. Not to be confused with a Status Workflow (below), the engine behind Product Management statuses.
-
-### Work Statuses
-
-Individual status values (e.g., "New", "In Progress", "Done"). Name is immutable; no category of its own. Reusable across workflows.
+The statuses a work type's items move through in a work process: a managed Status Workflow (below) per work type, synced from the Azure DevOps work item type's states, with a managed Workflow Scheme per process giving each type its workflow and an assignment of that scheme to each workspace on the process. Each state's category is mapped to a work status category; an administrator can reclassify it afterwards. A status belongs to one workflow: two workflows' "Active" are different statuses and can sit in different categories, and what workflows share is the category. A state renamed at the source renames its status; one hidden or removed is retired, and the items and history holding it keep it. No minimum count, category coverage or ordering rule exists. `WorkProcesses_GetSchemes` returns each work type's workflow with its statuses (UUID ids). Work's older Workflow and WorkflowScheme records are still written by the sync but decide nothing.
 
 ### Work Status Categories
 
@@ -568,13 +561,13 @@ Cross-cutting. Any module whose records carry a status registers an owner type a
 
 Properties: Name, Description, OwnerType, State (Draft/Published/Archived), IsSystem, Key, Statuses (ordered).
 
-Rules: Statuses are added, removed or reclassified only in Draft — records carry a denormalized category and alias, so moving one on a live workflow leaves every record disagreeing with the status it points at. Renaming, re-describing and reordering statuses are allowed until the workflow is archived. System workflows cannot be modified, published by a user, or archived. Publish requires every alias the owner type declares required. Archive requires the workflow to be unassigned. Clone copies the statuses into a new Draft and is the only route by which a published or seeded workflow is changed.
+Rules: Statuses are added, removed or reclassified only in Draft — records carry a denormalized category and alias, so moving one on a live workflow leaves every record disagreeing with the status it points at. A managed (synced) workflow is the exception: it is published at creation, only the sync adds, renames, reorders and retires its statuses, and an administrator may change a non-retired status's category and alias while it is published, which re-stamps the records holding it. Renaming, re-describing and reordering statuses are allowed until the workflow is archived. System workflows cannot be modified, published by a user, or archived. Publish requires every alias the owner type declares required. Archive requires the workflow to be unassigned. Clone copies the statuses into a new Draft and is the only route by which a published or seeded workflow is changed.
 
 ### Workflow Statuses
 
 Properties: Name, Description, Category (Proposed/Active/Done/Removed), Alias (int, 0 = none), Order.
 
-Rules: Names and aliases are unique within a workflow. The category is the rollup; the alias is the well-known meaning platform logic reads instead of the name. ReclassifyStatus changes both, Draft only.
+Rules: Names and aliases are unique within a workflow. The category is the rollup; the alias is the well-known meaning platform logic reads instead of the name. ReclassifyStatus changes both, Draft only, or on a managed workflow until it is archived, for a status that is not retired.
 
 ### Workflow Transitions
 
@@ -590,7 +583,7 @@ Rules: ReassignTo requires a scheme of the same owner type whose default workflo
 
 ### Record Types and Workflow Schemes
 
-A Record Type (Story, Bug) is a variant of an owner type's records, org-wide, owned or managed (`ExternalKey`), deactivated rather than deleted; only an owner type whose descriptor declares `HasRecordTypes` has them. A Workflow Scheme (`StatusWorkflowScheme`) is a shared map from record type to workflow with a default, owned or managed. Changing an entry or the default needs a complete remap and moves only that type's records, in every scope on the scheme; a scope that needs to differ is reassigned to a clone, never given an override; an assigned scheme cannot be deleted. Each workflow has one implicit default-only scheme, never shown and never edited. A record changing type lands in the status with the same alias, else the first of the same category, else the caller chooses. Administration: `api/record-types` (create, rename, activate, deactivate), `api/workflow-schemes` (create, edit, clone, delete, `PUT {id}/entries/{recordTypeId}`, `PUT {id}/default`) and `POST api/workflow-assignments/{id}/assign-scheme`. A change that would move records of an assigned scheme needs the owner type's `IRecordTypeStatusMigrator`, which selects records by scope and record type; without one it is refused rather than applied to the scheme alone. None is registered until work items adopt the engine (#1237).
+A Record Type (Story, Bug) is a variant of an owner type's records, org-wide, owned or managed (`ExternalKey`), deactivated rather than deleted; only an owner type whose descriptor declares `HasRecordTypes` has them. A Workflow Scheme (`StatusWorkflowScheme`) is a shared map from record type to workflow with a default, owned or managed. Changing an entry or the default needs a complete remap and moves only that type's records, in every scope on the scheme; a scope that needs to differ is reassigned to a clone, never given an override; an assigned scheme cannot be deleted. Each workflow has one implicit default-only scheme, never shown and never edited. A record changing type lands in the status with the same alias, else the first of the same category, else the caller chooses. Administration: `api/record-types` (create, rename, activate, deactivate), `api/workflow-schemes` (create, edit, clone, delete, `PUT {id}/entries/{recordTypeId}`, `PUT {id}/default`) and `POST api/workflow-assignments/{id}/assign-scheme`. A change that would move records of an assigned scheme needs the owner type's `IRecordTypeStatusMigrator`, which selects records by scope and record type; without one it is refused rather than applied to the scheme alone. Work items register one (`WorkItemStatusRecordMigrator`).
 
 ### Status Remap
 
@@ -823,7 +816,7 @@ One-way sync (Azure DevOps → Wayd; synced records are Managed):
 - Azure DevOps Process → Wayd Work Process (initialized per process)
 - Azure DevOps Project → Wayd Workspace (initialized per project, once its process is)
 - Azure DevOps Work Item → Wayd Work Item
-- Azure DevOps Work Item Type → Wayd Work Type (new types land in the Other tier); its states → Work Statuses and a Workflow
+- Azure DevOps Work Item Type → Wayd Work Type (new types land in the Other tier) and a record type; its states → the statuses of a managed Status Workflow
 - Azure DevOps Team → Wayd Team, through the workspace's Team Mappings; a work item's team is the team that owns its iteration
 - Azure DevOps Iteration → Wayd Sprint: type Sprint when it has no child iterations and both dates, otherwise type Iteration. Mapping a sprint to a PI iteration is done in Wayd
 - Azure DevOps revisions → Work Item History

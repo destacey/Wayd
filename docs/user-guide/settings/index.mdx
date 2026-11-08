@@ -19,7 +19,7 @@ The Administration area provides tools for configuring Wayd, managing users, con
 | **Product Management** | Product Tags (with the `product-management` flag); Incident Severity Sets (with `product-management` and `incident-management`) |
 | **Demand Management** | Channels, Request Tags (with the `demand-management` flag) |
 | **PPM** | Expenditure Categories, Project Lifecycles, Scoring Models |
-| **Work Management** | Work Types, Work Statuses, Work Processes |
+| **Work Management** | Work Types, Work Processes |
 | **System** | General, Scheduling, Sprint Metrics, Feature Flags, Status Workflows, Connections, Imports, Background Jobs, Messaging |
 
 The menu shows only the pages your permissions open, and hides a group with none; the filter box above it narrows the list. On a phone or tablet the side menu is replaced by a bar at the top of the page naming where you are, such as **Access › Users**; select it to open the menu. Opening **Settings** takes you to the first page you can use.
@@ -330,16 +330,7 @@ Managing roles:
 
 **Work Types** define the categories of work items available in the system (e.g., Epic, Feature, User Story, Task, Bug). See [Work Management](../work-management/index.mdx) for details on how work types are used.
 
-### Work Statuses
-
-**Work Statuses** represent the states within a workflow (e.g., New, Active, Resolved, Closed). Each workflow places each of its statuses in a **Work Status Category**, which normalizes statuses across workflows, so the same status can sit in different categories in different workflows:
-
-| Category | Purpose |
-|----------|---------|
-| **Proposed** | Work has been proposed but not started |
-| **Active** | Work is currently being performed |
-| **Done** | Work has been completed |
-| **Removed** | Work has been removed without completion |
+A work type's statuses belong to the [workflow](../work-management/work-configuration.mdx#workflows) it follows in its work process, listed under [Status Workflows](./status-workflows.mdx#work-item-workflows) while the **Work Item Status Workflows** feature flag is on.
 
 ### Work Processes
 
@@ -441,7 +432,7 @@ System scales cannot be renamed or deleted. A custom scale that is not the organ
 
 ## Status Workflows
 
-**Status Workflows** define the statuses each kind of record moves through — products, releases, release packages, deployments, intake requests and project deliverables. A status carries a **category** for rollups and an optional **alias** giving it a well-known meaning, so Wayd's own logic keeps working whatever your organization calls each stage. Published workflows are immutable: change one by cloning it, editing the draft, publishing, and reassigning the record type — which brings every existing record across through a reviewed mapping. See [Status Workflows](./status-workflows.mdx) for the full guide. Configured in **Settings → System → Status Workflows**.
+**Status Workflows** define the statuses each kind of record moves through — products, releases, release packages, deployments, intake requests, project deliverables and work items. A status carries a **category** for rollups and an optional **alias** giving it a well-known meaning, so Wayd's own logic keeps working whatever your organization calls each stage. Published workflows are immutable: change one by cloning it, editing the draft, publishing, and reassigning the record type — which brings every existing record across through a reviewed mapping. Work item workflows are the exception: they are synced from Azure DevOps, and a status's category and alias are changed in place. See [Status Workflows](./status-workflows.mdx) for the full guide. Configured in **Settings → System → Status Workflows**.
 
 ## Imports
 

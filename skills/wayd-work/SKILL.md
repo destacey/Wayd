@@ -1,6 +1,6 @@
 ---
 name: wayd-work
-description: Read before calling the Wayd MCP tools named Workspaces_*, Sprints_*, WorkProcesses_*, WorkStatuses_*, WorkStatusCategories_*, WorkTypes_*, WorkTypeLevels_* or WorkTypeTiers_*. Guides agents working with Wayd work management via the Wayd MCP server — workspaces and the work items synced into them, team sprints and their lifecycle, and the work processes, work types, levels, tiers and statuses that classify work. Use when finding or searching work items, reading a work item's children, dependencies, progress or project, setting a portfolio work item's project, forecasting when a work item will be done, listing a team's sprints, reading a sprint's backlog, scope, burn-up and burn-down, metrics or capacity, starting, completing or reopening a sprint, correcting its actual dates, team days off or type, or looking up and configuring work types, work type levels, work statuses and work processes.
+description: Read before calling the Wayd MCP tools named Workspaces_*, Sprints_*, WorkProcesses_*, WorkStatusCategories_*, WorkTypes_*, WorkTypeLevels_* or WorkTypeTiers_*. Guides agents working with Wayd work management via the Wayd MCP server — workspaces and the work items synced into them, team sprints and their lifecycle, and the work processes, work types, levels, tiers, workflows and status categories that classify work. Use when finding or searching work items, reading a work item's children, dependencies, progress or project, setting a portfolio work item's project, forecasting when a work item will be done, listing a team's sprints, reading a sprint's backlog, scope, burn-up and burn-down, metrics or capacity, starting, completing or reopening a sprint, correcting its actual dates, team days off or type, or looking up and configuring work types, work type levels and work processes, and the statuses each work type's workflow holds.
 ---
 
 # Wayd Work (Workspaces / Work Items / Sprints / Work Configuration)
@@ -21,7 +21,7 @@ Most of this area is a copy of the systems teams already track work in (Azure De
 | --- | --- |
 | Workspaces (one per Azure DevOps project) and their work items: title, type, status, parent, team, sprint, assignee, estimates and dependency links | A Portfolio-tier work item's project (`Workspaces_UpdateWorkItemProject`) and a workspace's link back to the source (`Workspaces_SetExternalUrlTemplates`) |
 | Sprints: name, planned start and end, and team | When the team actually started and completed a sprint, its team days off and its sprint type |
-| Work processes, the work types and workflows in them, and work statuses | A work type's level and description, the work type levels and their order, status descriptions, and whether a work process is active |
+| Work processes, the work types in them, and each type's workflow and its statuses | A work type's level and description, the work type levels and their order, whether a work process is active, and each status's category and meaning (in Status Workflows settings, not through these tools) |
 
 ## Identifiers
 
@@ -34,7 +34,7 @@ Each tool takes a specific identifier; its parameter description says which. The
 | Sprint | UUID `id`, or integer `key` | Read tools' `idOrKey` takes either. `Sprints_Start`, `Sprints_Complete`, `Sprints_Reopen`, `Sprints_SetTeamDaysOff`, `Sprints_SetSprintType` and `Sprints_CorrectActualDates` take the UUID. `Sprints_GetPlanningIntervals` takes the integer `key` only. |
 | Team | UUID `id` | `Sprints_GetSprints` filters by `teamId`. Resolve a team name with `Teams_GetTeams` (see the `wayd-teams` skill). |
 | Work process | UUID `id`, or integer `key` | `WorkProcesses_Activate`, `WorkProcesses_Deactivate` and `WorkProcesses_GetSchemes` take the UUID only. |
-| Work type, work type level, work status | integer `id` | Names are unique; resolve them with the list tools. |
+| Work type, work type level | integer `id` | Names are unique; resolve them with the list tools. |
 
 ## Finding work
 
@@ -127,8 +127,8 @@ Read `Sprints_GetSprint` first. It says whether the caller may act (`canManageSp
 
 Work configuration classifies work items so they compare across teams and tools. Most of it syncs with the work process; Wayd adds the hierarchy.
 
-- **Work process** — the set of work types a workspace's items can have and the workflow each follows. Synced; `WorkProcesses_GetSchemes` lists each work type with its workflow. Only an active work process can be assigned to a workspace, and `WorkProcesses_Deactivate` is refused while an active workspace uses it.
-- **Work status** — a state such as New or In Progress, reusable across workflows. A status has no category of its own: each workflow places it in a **work status category**, the fixed set Proposed, Active, Done and Removed (`WorkStatusCategories_GetWorkStatusCategories`). Metrics, scope and forecasts read the category, never the status name.
+- **Work process** — the set of work types a workspace's items can have and the workflow each follows. Synced; `WorkProcesses_GetSchemes` lists each work type with its `workflow` and that workflow's statuses (null when the process has no workflow for the type). Only an active work process can be assigned to a workspace, and `WorkProcesses_Deactivate` is refused while an active workspace uses it.
+- **Workflow status** — a state such as New or In Progress, in one work type's workflow. A status belongs to its workflow alone; what workflows share is its **work status category**, the fixed set Proposed, Active, Done and Removed (`WorkStatusCategories_GetWorkStatusCategories`). Statuses sync with the workflow: a state renamed at the source is renamed, and one it hides or removes is retired (`isRetired`), still held by the items and history that had it. No tool changes a status: its category and meaning are changed in Wayd under **Settings > System > Status Workflows**, listed there while the Work Item Status Workflows feature flag is on, so point the user there; changing them needs the Update permission on status workflows. Metrics, scope and forecasts read the category, never the status name.
 - **Work type** — a kind of work item (Epic, User Story, Bug). Its **level** sets its **tier** (`WorkTypeTiers_GetWorkTypeTiers`): Portfolio (containers; the only tier that has children, takes projects and has several levels), Requirement (a team's backlog and sprint work), Task (work owned by a parent item) and Other (left out of backlog and sprint views). Work types synced from Azure DevOps start in the Other tier until someone gives them a level.
 - **Work type level** — orders work types within a tier, 1 at the top: a Portfolio-tier parent must sit at a higher level than a Portfolio-tier child (Epics above Features).
 
@@ -138,11 +138,10 @@ Work configuration classifies work items so they compare across teams and tools.
 | Add a Portfolio level (a Theme above Epics, say) | `WorkTypeLevels_Create`, then `WorkTypeLevels_Reorder` | Only the Portfolio tier takes new levels; a new one goes to the bottom. |
 | Rename a level, or change its description | `WorkTypeLevels_Update` | Any tier. Names are unique. |
 | Reorder Portfolio levels | `WorkTypeLevels_Reorder` | `levels` maps level id to position: `{ "12": 1, "14": 2 }`. Positions must stay unique. |
-| Change a status's description | `WorkStatuses_Update` | Its name cannot change. |
 | Turn a work process on or off | `WorkProcesses_Activate`, `WorkProcesses_Deactivate` | |
 
-- **Updates are whole-record overwrites.** `WorkTypes_Update`, `WorkTypeLevels_Update` and `WorkStatuses_Update` rewrite the record from the body: an omitted `description` is cleared. Read the record first and pass back what should stay, with the same `id` in the path and the body.
-- **Creating work types and statuses is rarely needed.** Syncing a work process creates the ones it brings, reusing an existing record of the same name. Create one by hand only when the user asks, and remember names can never change afterwards.
+- **Updates are whole-record overwrites.** `WorkTypes_Update` and `WorkTypeLevels_Update` rewrite the record from the body: an omitted `description` is cleared. Read the record first and pass back what should stay, with the same `id` in the path and the body.
+- **Creating work types is rarely needed.** Syncing a work process creates the ones it brings, reusing an existing record of the same name. Create one by hand only when the user asks, and remember names can never change afterwards.
 
 ## Feature-gated tools
 

@@ -540,7 +540,7 @@ public class AzureDevOpsWorkItemSourceTests
     }
 
     [Fact]
-    public async Task PrepareWorkspaceForItemSync_WhenTheEngineRefusesTheProcessWorkflows_StillPreparesTheWorkspace()
+    public async Task PrepareWorkspaceForItemSync_WhenTheEngineRefusesTheProcessWorkflows_FailsTheWorkspace()
     {
         // Arrange
         var descriptor = BuildDescriptor();
@@ -555,20 +555,49 @@ public class AzureDevOpsWorkItemSourceTests
         _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<SyncExternalWorkProcessWorkflowsCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure("Unable to sync the record type for Bug: A record type named 'Bug' already exists."));
+
+        var plan = await _sut.GetSyncPlan(TestContext.Current.CancellationToken);
+
+        // Act
+        var result = await _sut.PrepareWorkspaceForItemSync(plan.Value.Single(), Guid.CreateVersion7(), TestContext.Current.CancellationToken);
+
+        // Assert
+        // Work items take their statuses from the engine's copy, so none could sync without it.
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("A record type named 'Bug' already exists.");
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<SyncExternalWorkspaceWorkflowAssignmentCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<UpdateExternalWorkspaceCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task PrepareWorkspaceForItemSync_WhenTheWorkspaceCannotBeAssignedItsScheme_FailsTheWorkspace()
+    {
+        // Arrange
+        var descriptor = BuildDescriptor();
+        _sut.Bind(descriptor);
+
+        var processId = Guid.CreateVersion7();
+        var details = BuildConnectionDetails(descriptor.ConnectionId, processes: [Process(externalId: processId)], workspaces: [Workspace(processId)]);
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetAzureDevOpsConnectionQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(details);
+        StubWorkProcessSync();
         _mocker.GetMock<IDispatcher>()
             .Setup(s => s.Send(It.IsAny<SyncExternalWorkspaceWorkflowAssignmentCommand>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Failure("Only a published workflow can be assigned."));
 
-        var plan = await _sut.GetSyncPlan(CancellationToken.None);
+        var plan = await _sut.GetSyncPlan(TestContext.Current.CancellationToken);
 
         // Act
-        var result = await _sut.PrepareWorkspaceForItemSync(plan.Value.Single(), Guid.CreateVersion7(), CancellationToken.None);
+        var result = await _sut.PrepareWorkspaceForItemSync(plan.Value.Single(), Guid.CreateVersion7(), TestContext.Current.CancellationToken);
 
         // Assert
-        // Work items do not read the engine yet, so its copy failing must not stop their sync.
-        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only a published workflow can be assigned.");
         _mocker.GetMock<IDispatcher>()
-            .Verify(s => s.Send(It.IsAny<UpdateExternalWorkspaceCommand>(), It.IsAny<CancellationToken>()), Times.Once);
+            .Verify(s => s.Send(It.IsAny<UpdateExternalWorkspaceCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

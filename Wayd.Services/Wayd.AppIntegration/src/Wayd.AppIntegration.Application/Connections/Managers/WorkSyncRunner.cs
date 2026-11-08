@@ -278,6 +278,21 @@ public sealed class WorkSyncRunner(
             return WorkspaceSyncDetail.FromFailure(target, iterationsResult.Error);
         }
 
+        // A workspace whose stored statuses must be resolved anew runs in full whatever was asked, until a full
+        // sync of it completes.
+        var needsFullSync = await _dispatcher.Send(new GetWorkspaceNeedsFullSyncQuery(target.InternalWorkspaceId), cancellationToken);
+        if (needsFullSync.IsFailure)
+        {
+            _logger.LogError("Unable to read the sync state of workspace {WorkspaceId}: {Error}", target.InternalWorkspaceId, needsFullSync.Error);
+            return WorkspaceSyncDetail.FromFailure(target, needsFullSync.Error);
+        }
+
+        if (needsFullSync.Value && syncType != SyncType.Full)
+        {
+            _logger.LogInformation("Workspace {WorkspaceId} needs a full sync, so it syncs in full.", target.InternalWorkspaceId);
+            syncType = SyncType.Full;
+        }
+
         var itemsResult = await source.SyncWorkItems(target, syncType, syncId, cancellationToken);
         if (itemsResult.IsFailure)
         {
@@ -290,6 +305,13 @@ public sealed class WorkSyncRunner(
         // is degraded rather than failed.
         var items = itemsResult.Value;
         var history = await SyncWorkItemHistory(source, target, connectionId, syncType, cancellationToken);
+        // Only the catch-up a workspace was marked for: a later full sync replays onto history already resolved,
+        // and rebuilding it would resolve periods anew under state names the source has since renamed.
+        if (history.Error is null && needsFullSync.Value)
+        {
+            history = await RebuildWorkItemHistory(target, connectionId, history, cancellationToken);
+        }
+
         if (history.Error is not null)
         {
             _logger.LogError("Work item history sync failed for workspace {WorkspaceId}: {Error}", target.InternalWorkspaceId, history.Error);
@@ -301,7 +323,31 @@ public sealed class WorkSyncRunner(
             };
         }
 
+        if (needsFullSync.Value && history.Error is null && !items.HadPartialFailure)
+        {
+            var completed = await _dispatcher.Send(new CompleteWorkspaceFullSyncCommand(target.InternalWorkspaceId), cancellationToken);
+            if (completed.IsFailure)
+            {
+                _logger.LogError("Unable to record the full sync of workspace {WorkspaceId}: {Error}", target.InternalWorkspaceId, completed.Error);
+            }
+        }
+
         return WorkspaceSyncDetail.FromSuccess(target, items, history.RevisionsProcessed, history.PeriodsWritten);
+    }
+
+    /// <summary>
+    /// Rebuilds the workspace's history from the revisions stored, after its catch-up full sync read them:
+    /// replaying skips a revision already stored, so without this a period keeps whatever its revision resolved
+    /// to when it was first written.
+    /// </summary>
+    /// <returns>The history outcome with the rebuild's period count, or with its error.</returns>
+    private async Task<HistorySyncOutcome> RebuildWorkItemHistory(WorkspaceSyncTarget target, Guid connectionId, HistorySyncOutcome history, CancellationToken cancellationToken)
+    {
+        var rebuilt = await _dispatcher.Send(new RebuildWorkItemHistoryCommand(connectionId, target.InternalWorkspaceId), cancellationToken);
+
+        return rebuilt.IsSuccess
+            ? history with { PeriodsWritten = rebuilt.Value }
+            : history with { Error = $"rebuild: {rebuilt.Error}" };
     }
 
     /// <summary>

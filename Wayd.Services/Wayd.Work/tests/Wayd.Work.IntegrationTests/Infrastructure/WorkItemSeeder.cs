@@ -56,10 +56,6 @@ public static class WorkItemSeeder
                 SELECT 'Seed Type', 1, 0, MAX([Id]), SYSUTCDATETIME(), SYSUTCDATETIME()
                 FROM [Work].[WorkTypeLevels] WHERE [Name] = 'Seed Level';
 
-            IF NOT EXISTS (SELECT 1 FROM [Work].[WorkStatuses] WHERE [Name] = 'Seed Status')
-                INSERT INTO [Work].[WorkStatuses]
-                    ([Name], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
-                VALUES ('Seed Status', 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME());
             """,
             [], cancellationToken);
 
@@ -96,14 +92,15 @@ public static class WorkItemSeeder
         context.Database.ExecuteSqlRawAsync(
             """
             DECLARE @TypeId int = (SELECT TOP 1 [Id] FROM [Work].[WorkTypes] WHERE [Name] = 'Seed Type');
-            DECLARE @StatusId int = (SELECT TOP 1 [Id] FROM [Work].[WorkStatuses] WHERE [Name] = 'Seed Status');
+            DECLARE @StatusId uniqueidentifier = '00000000-0000-0000-0000-000000000000';
+            DECLARE @StatusName nvarchar(64) = 'Seed Status';
 
             INSERT INTO [Work].[WorkItems]
-                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId],
+                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId], [StatusName],
                  [StatusCategory], [Created], [LastModified], [StackRank],
                  [AssignedToId], [CreatedById], [LastModifiedById],
                  [SystemCreated], [SystemLastModified])
-            VALUES ({0}, {1}, 'Seeded item', {2}, {3}, @TypeId, @StatusId, 'Proposed',
+            VALUES ({0}, {1}, 'Seeded item', {2}, {3}, @TypeId, @StatusId, @StatusName, 'Proposed',
                     SYSUTCDATETIME(), SYSUTCDATETIME(), 1, NULL, NULL, NULL,
                     SYSUTCDATETIME(), SYSUTCDATETIME());
 

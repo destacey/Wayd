@@ -281,6 +281,42 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandlerTests : IDispo
             NodaTime.Instant.FromUtc(2026, 11, 7, 9, 0)).Value);
 
     [Fact]
+    public async Task Handle_ShouldLinkTheWorkTypeToItsRecordType()
+    {
+        // Arrange
+        var process = ExternalProcess("Agile", WorkType("Bug", ("New", StatusCategory.Proposed, 1, true)));
+        SeedProcess(process);
+        var workType = new WorkTypeFaker().WithName("Bug").Generate();
+        _dbContext.AddWorkType(workType);
+
+        // Act
+        var result = await _handler.Handle(new SyncExternalWorkProcessWorkflowsCommand(process), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        workType.RecordTypeId.Should().Be(_recordTypeIds["Bug"]);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotSave_WhenTheWorkTypeIsAlreadyLinked()
+    {
+        // Arrange
+        var process = ExternalProcess("Agile", WorkType("Bug", ("New", StatusCategory.Proposed, 1, true)));
+        SeedProcess(process);
+        var workType = new WorkTypeFaker().WithName("Bug").Generate();
+        workType.LinkRecordType(Id(_recordTypeIds, "Bug"));
+        _dbContext.AddWorkType(workType);
+
+        // Act
+        var result = await _handler.Handle(new SyncExternalWorkProcessWorkflowsCommand(process), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        _dbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Handle_ShouldNameTheRecordTypeAsWorkDoes_WhateverTheSourcesCasing()
     {
         // Arrange

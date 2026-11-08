@@ -4,11 +4,20 @@ using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Work.Domain.Interfaces;
 using NodaTime;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Models;
 
-public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalWorkTeam
+/// <summary>
+/// A unit of work synced from a source system, holding the status its source reports.
+/// </summary>
+/// <remarks>
+/// Its status comes from the status workflow its type follows in its workspace (<see cref="WorkWorkflowOwners.WorkItem"/>):
+/// the sync resolves the state the source reports to that workflow's status and applies it unchecked, since the
+/// source has already made the move. Its history is <see cref="WorkItemStateHistory"/>, not status transitions.
+/// </remarks>
+public sealed class WorkItem : ManagedStatusEntity, IHasWorkspace, IHasOptionalWorkTeam
 {
     private readonly List<WorkItem> _children = [];
     private readonly List<WorkItemHierarchy> _outboundHierarchyHistory = []; // source links
@@ -20,15 +29,14 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
 
     private WorkItem() { }
 
-    private WorkItem(WorkItemKey key, string title, Guid workspaceId, int? externalId, WorkType workType, int statusId, StatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags)
+    private WorkItem(WorkItemKey key, string title, Guid workspaceId, int? externalId, WorkType workType, StatusRef status, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags)
     {
         Key = key;
         Title = title;
         WorkspaceId = workspaceId;
         ExternalId = externalId;
         TypeId = workType.Id;
-        StatusId = statusId;
-        StatusCategory = statusCategory;
+        ApplySourceStatus(status);
         TeamId = teamId;
         Created = created;
         CreatedById = createdById;
@@ -87,11 +95,8 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
 
     public WorkType Type { get; private set; } = null!;
 
-    public int StatusId { get; private set; }
-
-    public WorkStatus Status { get; private set; } = null!;
-
-    public StatusCategory StatusCategory { get; private set; }
+    /// <inheritdoc/>
+    public override string StatusOwnerType => WorkWorkflowOwners.WorkItem.Key;
 
     public Guid? ParentId { get; private set; }
 
@@ -187,8 +192,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
     /// </summary>
     /// <param name="title"></param>
     /// <param name="workType"></param>
-    /// <param name="statusId"></param>
-    /// <param name="statusCategory"></param>
+    /// <param name="status">The status the source reports, resolved in the workflow the item's type follows.</param>
     /// <param name="parentInfo"></param>
     /// <param name="teamId"></param>
     /// <param name="lastModified"></param>
@@ -204,20 +208,21 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
     /// <param name="doneTimestamp"></param>
     /// <param name="extendedProps"></param>
     /// <exception cref="InvalidOperationException"></exception>
-    public void Update(string title, WorkType workType, int statusId, StatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags = null)
+    public void Update(string title, WorkType workType, StatusRef status, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags = null)
     {
         if (extendedProps != null && Id != extendedProps.Id)
         {
             throw new InvalidOperationException("The extended properties must match the work item.");
         }
 
+        Guard.Against.Null(status, nameof(status));
+
         SetActivatedTimestamp(activatedTimestamp, Created, doneTimestamp);
-        SetDoneTimestamp(doneTimestamp, Created, statusCategory);
+        SetDoneTimestamp(doneTimestamp, Created, status.Category);
 
         Title = title;
         TypeId = workType.Id;
-        StatusId = statusId;
-        StatusCategory = statusCategory;
+        ApplySourceStatus(status);
         TeamId = teamId;
         LastModified = lastModified;
         LastModifiedById = lastModifiedById;
@@ -361,14 +366,14 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
     /// <summary>
     /// Changes the workspace of the work item.
     /// </summary>
-    /// <param name="workspaceId"></param>
-    /// <param name="workType"></param>
-    /// <param name="statusId"></param>
-    /// <param name="statusCategory"></param>
-    public Result ChangeExternalWorkspace(Workspace workspace, WorkType workType, int statusId, StatusCategory statusCategory)
+    /// <param name="workspace">The workspace the item moved to.</param>
+    /// <param name="workType">The item's type.</param>
+    /// <param name="status">The status the source reports, resolved in the workflow the type follows in <paramref name="workspace"/>.</param>
+    public Result ChangeExternalWorkspace(Workspace workspace, WorkType workType, StatusRef status)
     {
         Guard.Against.Null(workspace, nameof(workspace));
         Guard.Against.Null(workType, nameof(workType));
+        Guard.Against.Null(status, nameof(status));
 
         if (workspace.OwnershipInfo.Ownership is not Ownership.Managed)
         {
@@ -385,16 +390,23 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
         Key = key;
         WorkspaceId = workspace.Id;
         TypeId = workType.Id;
-        StatusId = statusId;
-        StatusCategory = statusCategory;
+        ApplySourceStatus(status);
 
         return Result.Success();
     }
 
-    public static WorkItem CreateExternal(Workspace workspace, int externalId, string title, WorkType workType, int statusId, StatusCategory statusCategory, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags = null)
+    /// <summary>
+    /// Whether a status of <paramref name="category"/> counts as finished, so that an item holding it keeps the done
+    /// date its source reports. An item in any other category has none.
+    /// </summary>
+    public static bool CountsAsFinished(StatusCategory category) =>
+        category is StatusCategory.Done or StatusCategory.Removed;
+
+    public static WorkItem CreateExternal(Workspace workspace, int externalId, string title, WorkType workType, StatusRef status, IWorkItemParentInfo? parentInfo, Guid? teamId, Instant created, Guid? createdById, Instant lastModified, Guid? lastModifiedById, Guid? assignedToId, int? priority, double stackRank, double? storyPoints, double? effort, double? size, Guid? iterationId, Instant? activatedTimestamp, Instant? doneTimestamp, WorkItemExtended? extendedProps, List<WorkItemTag>? tags = null)
     {
         Guard.Against.Null(workspace, nameof(workspace));
         Guard.Against.Null(workType, nameof(workType));
+        Guard.Against.Null(status, nameof(status));
 
         if (workspace.OwnershipInfo.Ownership is not Ownership.Managed)
         {
@@ -402,7 +414,7 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
         }
 
         var key = new WorkItemKey(workspace.Key, externalId);
-        return new WorkItem(key, title, workspace.Id, externalId, workType, statusId, statusCategory, parentInfo, teamId, created, createdById, lastModified, lastModifiedById, assignedToId, priority, stackRank, storyPoints, effort, size, iterationId, activatedTimestamp, doneTimestamp, extendedProps, tags);
+        return new WorkItem(key, title, workspace.Id, externalId, workType, status, parentInfo, teamId, created, createdById, lastModified, lastModifiedById, assignedToId, priority, stackRank, storyPoints, effort, size, iterationId, activatedTimestamp, doneTimestamp, extendedProps, tags);
 
         //var result = workspace.AddWorkItem(workItem);  // this is handled in the handler for performance reasons
     }
@@ -448,6 +460,6 @@ public sealed class WorkItem : BaseAuditableEntity, IHasWorkspace, IHasOptionalW
             throw new InvalidOperationException("The completed timestamp cannot be before the created timestamp.");
         }
 
-        DoneTimestamp = doneTimestamp.HasValue && (statusCategory is StatusCategory.Done or StatusCategory.Removed) ? doneTimestamp : null;
+        DoneTimestamp = doneTimestamp.HasValue && CountsAsFinished(statusCategory) ? doneTimestamp : null;
     }
 }

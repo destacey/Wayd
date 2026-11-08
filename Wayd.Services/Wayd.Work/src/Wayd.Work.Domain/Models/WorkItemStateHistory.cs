@@ -64,13 +64,19 @@ public sealed class WorkItemStateHistory : BaseEntity<long>
     /// <summary>The source's stable id for the iteration.</summary>
     public int? ExternalIterationId { get; private init; }
 
-    /// <summary>The Wayd status; null when the source's status has no match.</summary>
-    public int? StatusId { get; private init; }
+    /// <summary>
+    /// The status in the workflow the period's work type followed, retired ones included; null when the source's
+    /// status has no match there.
+    /// </summary>
+    public Guid? StatusId { get; private init; }
 
     /// <summary>The status name as the source recorded it.</summary>
     public string StatusName { get; private init; } = null!;
 
-    /// <summary>The status's category when the period was written; null when the status had no match.</summary>
+    /// <summary>
+    /// The category of <see cref="StatusId"/>; null when the status had no match. Kept in step with the workflow:
+    /// reclassifying the status re-stamps every period holding it, so history reports agree with the workflow.
+    /// </summary>
     public StatusCategory? StatusCategory { get; private init; }
 
     /// <summary>The Wayd work type; null when the source's type has no match in the workspace's process.</summary>

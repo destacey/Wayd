@@ -97,9 +97,6 @@ public sealed class GetEmployeeWorkItemsQueryTests
             .AsExternal()
             .WithKey(new WorkspaceKey("TEST"))
             .Generate();
-        var status = new WorkStatusFaker()
-            .WithName(statusCategory.ToString())
-            .Generate();
         var created = Instant.FromUtc(2025, 12, 1, 0, 0);
         Instant? activated = statusCategory is StatusCategory.Proposed
             ? null
@@ -110,7 +107,7 @@ public sealed class GetEmployeeWorkItemsQueryTests
         var faker = new WorkItemFaker(workspace.Id)
             .WithExternalId(externalId)
             .WithKey(new WorkItemKey(workspace.Key, externalId))
-            .WithType(workType).WithStatus(status).WithStatusCategory(statusCategory).WithAssignedToId(employeeId).WithCreated(created).WithActivatedTimestamp(activated).WithDoneTimestamp(done);
+            .WithType(workType).WithStatusName(statusCategory.ToString()).WithStatusCategory(statusCategory).WithAssignedToId(employeeId).WithCreated(created).WithActivatedTimestamp(activated).WithDoneTimestamp(done);
 
         if (stackRank is { } rank)
             faker = faker.WithStackRank(rank);

@@ -1,7 +1,7 @@
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Domain.Enums;
-using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkItems.Commands;
@@ -17,19 +17,20 @@ namespace Wayd.Work.Application.WorkItems.Commands;
 /// project's revisions are read separately, rebuilds the item's periods from its log, since a
 /// period cannot say where inside it a late revision belongs.
 /// <para>
-/// Each value is resolved the way the work item sync resolves it, and the source's value is kept
-/// beside the result. Revisions of an item Wayd does not hold in any workspace of the source system
-/// are skipped: history is deleted with its work item, and the work item sync runs first, so a
-/// missing item is one that was deleted. A revision already stored is skipped, so a full sync
-/// replays from the start and fills gaps without changing what is stored.
+/// Each value is resolved by <see cref="WorkItemRevisionResolver"/>, and the source's value is
+/// kept beside the result. Revisions of an item Wayd does not hold in any workspace of the source
+/// system are skipped: history is deleted with its work item, and the work item sync runs first,
+/// so a missing item is one that was deleted. A revision already stored is skipped, so a full
+/// sync replays from the start and fills gaps without changing what is stored.
 /// </para>
 /// </remarks>
-public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext workDbContext, IDateTimeProvider dateTimeProvider, ILogger<SyncExternalWorkItemHistoryCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemHistoryCommand, int>
+public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext workDbContext, IStatusResolver statusResolver, IDateTimeProvider dateTimeProvider, ILogger<SyncExternalWorkItemHistoryCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemHistoryCommand, int>
 {
     // Keeps IN lists inside SQL Server's parameter limit.
     private const int LookupBatchSize = 1000;
 
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<SyncExternalWorkItemHistoryCommandHandler> _logger = logger;
 
@@ -83,18 +84,19 @@ public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext wor
                 var rebuildRevisions = await LoadSourceRevisions(rebuildIds, cancellationToken);
                 rebuildRevisions.AddRange(newRevisions.Where(r => rebuildIds.Contains(r.WorkItemId)));
 
-                var allValues = appended.Concat(rebuildRevisions).Select(r => r.Values).ToList();
-                var statuses = await LoadStatusResolver(workspace.WorkProcessId, cancellationToken);
-                var iterationIds = await LoadIterationIds(workspace.OwnershipInfo.SystemId, allValues, cancellationToken);
-                var employeeIds = await LoadEmployeeIds(request.ConnectionId, allValues, cancellationToken);
-                var resolve = (WorkItemSourceValues values) => Resolve(values, statuses, iterationIds, employeeIds);
+                var loaded = await WorkItemRevisionResolver.Load(_workDbContext, _statusResolver, workspace, request.ConnectionId, cancellationToken);
+                if (loaded.IsFailure)
+                    return Result.Failure<int>(loaded.Error);
+
+                var resolver = await loaded.Value.For([.. appended.Concat(rebuildRevisions)], cancellationToken);
+                var resolve = resolver.Resolve;
 
                 var newPeriods = new List<WorkItemStateHistory>();
 
                 var timelines = await LoadTimelines(workspace.Id, appended.Select(r => r.WorkItemId).Distinct(), lastStored, cancellationToken);
                 foreach (var revision in appended.OrderBy(r => r.WorkItemId).ThenBy(r => r.Revision))
                 {
-                    var period = timelines[revision.WorkItemId].Apply(revision.Revision, revision.Changed, resolve(revision.Values), revision.WorkspaceId);
+                    var period = timelines[revision.WorkItemId].Apply(revision.Revision, revision.Changed, resolve(revision), revision.WorkspaceId);
                     if (period is not null)
                         newPeriods.Add(period);
                 }
@@ -107,7 +109,7 @@ public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext wor
                         var timeline = new WorkItemStateTimeline(item.Key, workspace.Id, null, 0);
                         foreach (var revision in item.OrderBy(r => r.Revision))
                         {
-                            var period = timeline.Apply(revision.Revision, revision.Changed, resolve(revision.Values), revision.WorkspaceId);
+                            var period = timeline.Apply(revision.Revision, revision.Changed, resolve(revision), revision.WorkspaceId);
                             if (period is not null)
                                 newPeriods.Add(period);
                         }
@@ -163,39 +165,6 @@ public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext wor
                 revision.StoryPoints,
                 revision.Effort,
                 revision.Size));
-
-    private static WorkItemTrackedState Resolve(
-        WorkItemSourceValues values,
-        StatusResolver statuses,
-        Dictionary<string, Guid> iterationIds,
-        Dictionary<string, Guid?> employeeIds)
-    {
-        var (workTypeId, statusId, statusCategory) = statuses.Resolve(values.WorkTypeName, values.StatusName);
-
-        Guid? iterationId = values.ExternalIterationId is int externalIterationId
-            && iterationIds.TryGetValue(externalIterationId.ToString(), out var id)
-                ? id
-                : null;
-
-        Guid? assignedToId = values.AssignedToExternalId is not null && employeeIds.TryGetValue(values.AssignedToExternalId, out var employeeId)
-            ? employeeId
-            : null;
-
-        return new WorkItemTrackedState(
-            iterationId,
-            values.ExternalIterationId,
-            statusId,
-            values.StatusName,
-            statusCategory,
-            workTypeId,
-            values.WorkTypeName,
-            values.TeamKey,
-            assignedToId,
-            values.AssignedToExternalId,
-            values.StoryPoints,
-            values.Effort,
-            values.Size);
-    }
 
     /// <summary>
     /// Records the highest revision each filled item now holds, so the gap query passes over it
@@ -333,59 +302,6 @@ public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext wor
         return ids;
     }
 
-    private async Task<Dictionary<string, Guid>> LoadIterationIds(string? systemId, List<WorkItemSourceValues> values, CancellationToken cancellationToken)
-    {
-        var ids = new Dictionary<string, Guid>();
-        if (systemId is null)
-            return ids;
-
-        var externalIds = values
-            .Where(v => v.ExternalIterationId.HasValue)
-            .Select(v => v.ExternalIterationId!.Value.ToString())
-            .Distinct();
-
-        foreach (var batch in externalIds.Chunk(LookupBatchSize))
-        {
-            var rows = await _workDbContext.Iterations
-                .Where(i => i.OwnershipInfo.SystemId == systemId && batch.Contains(i.OwnershipInfo.ExternalId!))
-                .Select(i => new { ExternalId = i.OwnershipInfo.ExternalId!, i.Id })
-                .ToListAsync(cancellationToken);
-
-            foreach (var row in rows)
-                ids[row.ExternalId] = row.Id;
-        }
-
-        return ids;
-    }
-
-    /// <summary>
-    /// The employee each referenced identity is mapped to. Read only: a revision reports a person as
-    /// they were then, so refreshing a mapping's details from it would overwrite current ones.
-    /// </summary>
-    private async Task<Dictionary<string, Guid?>> LoadEmployeeIds(Guid connectionId, List<WorkItemSourceValues> values, CancellationToken cancellationToken)
-    {
-        var ids = new Dictionary<string, Guid?>(StringComparer.Ordinal);
-
-        var externalIds = values
-            .Select(v => v.AssignedToExternalId)
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Select(id => id!)
-            .Distinct(StringComparer.Ordinal);
-
-        foreach (var batch in externalIds.Chunk(LookupBatchSize))
-        {
-            var rows = await _workDbContext.ExternalIdentityMappings
-                .Where(m => m.ConnectionId == connectionId && batch.Contains(m.ExternalId))
-                .Select(m => new { m.ExternalId, m.EmployeeId })
-                .ToListAsync(cancellationToken);
-
-            foreach (var row in rows)
-                ids[row.ExternalId] = row.EmployeeId;
-        }
-
-        return ids;
-    }
-
     /// <param name="lastStored">
     /// Each item's highest stored revision. Read from the log rather than the periods: a revision
     /// that changed nothing tracked opened no period but was still applied.
@@ -412,69 +328,5 @@ public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext wor
         }
 
         return timelines;
-    }
-
-    private async Task<StatusResolver> LoadStatusResolver(Guid workProcessId, CancellationToken cancellationToken)
-    {
-        var schemes = await _workDbContext.WorkProcesses
-            .Where(p => p.Id == workProcessId)
-            .SelectMany(p => p.Schemes)
-            .Where(s => s.WorkType != null && s.Workflow != null)
-            .Select(s => new
-            {
-                WorkTypeId = s.WorkType!.Id,
-                WorkTypeName = s.WorkType.Name,
-                Statuses = s.Workflow!.Schemes
-                    .Where(ws => ws.WorkStatus != null)
-                    .Select(ws => new { StatusId = ws.WorkStatus!.Id, StatusName = ws.WorkStatus.Name, ws.WorkStatusCategory })
-                    .ToList()
-            })
-            .ToListAsync(cancellationToken);
-
-        // Statuses are shared across workflows, so a status a type's workflow no longer holds still
-        // resolves to its id by name; only its category is lost.
-        var statusIdsByName = await _workDbContext.WorkStatuses
-            .Select(s => new { s.Id, s.Name })
-            .ToDictionaryAsync(s => s.Name, s => s.Id, StringComparer.OrdinalIgnoreCase, cancellationToken);
-
-        var workTypeIds = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var workflowStatuses = new Dictionary<(int, string), (int Id, StatusCategory Category)>(WorkflowStatusKeyComparer.Instance);
-        foreach (var scheme in schemes)
-        {
-            workTypeIds.TryAdd(scheme.WorkTypeName, scheme.WorkTypeId);
-            foreach (var status in scheme.Statuses)
-                workflowStatuses.TryAdd((scheme.WorkTypeId, status.StatusName), (status.StatusId, status.WorkStatusCategory));
-        }
-
-        return new StatusResolver(workTypeIds, workflowStatuses, statusIdsByName);
-    }
-
-    /// <summary>Resolves a revision's work type and status names against the workspace's process.</summary>
-    private sealed class StatusResolver(
-        Dictionary<string, int> workTypeIds,
-        Dictionary<(int, string), (int Id, StatusCategory Category)> workflowStatuses,
-        Dictionary<string, int> statusIdsByName)
-    {
-        public (int? WorkTypeId, int? StatusId, StatusCategory? StatusCategory) Resolve(string workType, string status)
-        {
-            int? workTypeId = workTypeIds.TryGetValue(workType, out var typeId) ? typeId : null;
-
-            if (workTypeId.HasValue && workflowStatuses.TryGetValue((workTypeId.Value, status), out var mapped))
-                return (workTypeId, mapped.Id, mapped.Category);
-
-            int? statusId = statusIdsByName.TryGetValue(status, out var id) ? id : null;
-            return (workTypeId, statusId, null);
-        }
-    }
-
-    private sealed class WorkflowStatusKeyComparer : IEqualityComparer<(int WorkTypeId, string StatusName)>
-    {
-        public static readonly WorkflowStatusKeyComparer Instance = new();
-
-        public bool Equals((int WorkTypeId, string StatusName) x, (int WorkTypeId, string StatusName) y) =>
-            x.WorkTypeId == y.WorkTypeId && string.Equals(x.StatusName, y.StatusName, StringComparison.OrdinalIgnoreCase);
-
-        public int GetHashCode((int WorkTypeId, string StatusName) obj) =>
-            HashCode.Combine(obj.WorkTypeId, StringComparer.OrdinalIgnoreCase.GetHashCode(obj.StatusName));
     }
 }

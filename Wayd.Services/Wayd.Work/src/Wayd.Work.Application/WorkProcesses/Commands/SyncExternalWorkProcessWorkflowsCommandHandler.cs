@@ -74,6 +74,8 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
             if (recordTypeResult.IsFailure)
                 return Failed("record type", workType.Name, recordTypeResult.Error);
 
+            await LinkRecordType(recordTypeName, recordTypeResult.Value, cancellationToken);
+
             var workflowResult = await _dispatcher.Send(new SyncManagedWorkflowCommand(
                 ownerType, workflowKey, $"{process.Name.Trim()} - {workType.Name.Trim()}", statuses), cancellationToken);
             if (workflowResult.IsFailure)
@@ -121,6 +123,16 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
             AppRequestName, entries.Count, workspaceIds.Count, process.Name);
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Points Work's work type at the record type kept for it, which decides the workflow its items follow.
+    /// </summary>
+    private async Task LinkRecordType(string workTypeName, Guid recordTypeId, CancellationToken cancellationToken)
+    {
+        var workType = await _workDbContext.WorkTypes.FirstOrDefaultAsync(t => t.Name == workTypeName, cancellationToken);
+        if (workType?.LinkRecordType(recordTypeId) == true)
+            await _workDbContext.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>Work's work type names, by any casing of them.</summary>

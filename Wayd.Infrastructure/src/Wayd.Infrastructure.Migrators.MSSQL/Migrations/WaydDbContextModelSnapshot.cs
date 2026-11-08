@@ -8183,13 +8183,24 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<double>("StackRank")
                         .HasColumnType("float");
 
+                    b.Property<int>("StatusAliasValue")
+                        .HasColumnType("int");
+
                     b.Property<string>("StatusCategory")
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("varchar");
 
-                    b.Property<int>("StatusId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("StatusId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("StatusName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<Guid>("StatusWorkflowId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<double?>("StoryPoints")
                         .HasColumnType("float");
@@ -8260,7 +8271,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("StatusCategory"), new[] { "Id", "Key", "Title", "WorkspaceId", "AssignedToId", "TypeId", "StatusId", "ActivatedTimestamp", "DoneTimestamp", "ProjectId", "ParentProjectId" });
 
-                    b.HasIndex("StatusId");
+                    b.HasIndex("StatusWorkflowId");
 
                     b.HasIndex("TeamId");
 
@@ -8545,8 +8556,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("varchar");
 
-                    b.Property<int?>("StatusId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("StatusId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("StatusName")
                         .IsRequired()
@@ -8587,7 +8598,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.HasIndex("AssignedToId");
 
-                    b.HasIndex("StatusId");
+                    b.HasIndex("StatusId")
+                        .HasFilter("[StatusId] IS NOT NULL");
 
                     b.HasIndex("WorkTypeId");
 
@@ -8930,6 +8942,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("nvarchar(64)");
 
+                    b.Property<Guid?>("RecordTypeId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");
 
@@ -9226,6 +9241,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("nvarchar(128)");
+
+                    b.Property<bool>("NeedsFullSync")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");
@@ -11947,12 +11965,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .WithMany()
                         .HasForeignKey("ProjectId");
 
-                    b.HasOne("Wayd.Work.Domain.Models.WorkStatus", "Status")
-                        .WithMany()
-                        .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("Wayd.Work.Domain.Models.WorkTeam", "Team")
                         .WithMany()
                         .HasForeignKey("TeamId");
@@ -12004,8 +12016,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("ParentProject");
 
                     b.Navigation("Project");
-
-                    b.Navigation("Status");
 
                     b.Navigation("Tags");
 
@@ -12084,11 +12094,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasOne("Wayd.Work.Domain.Models.Iteration", null)
                         .WithMany()
                         .HasForeignKey("IterationId");
-
-                    b.HasOne("Wayd.Work.Domain.Models.WorkStatus", null)
-                        .WithMany()
-                        .HasForeignKey("StatusId")
-                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Wayd.Work.Domain.Models.WorkItem", null)
                         .WithMany()

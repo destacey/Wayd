@@ -25,7 +25,7 @@ public sealed record WorkItemDetailsNavigationDto : IMapFrom<WorkItem>
         config.NewConfig<WorkItem, WorkItemDetailsNavigationDto>()
             .Map(dest => dest.WorkspaceKey, src => src.Workspace.Key)
             .Map(dest => dest.Type, src => src.Type.Name)
-            .Map(dest => dest.Status, src => src.Status.Name)
+            .Map(dest => dest.Status, src => src.StatusName)
             .Map(dest => dest.StatusCategory, src => SimpleNavigationDto.FromEnum(src.StatusCategory))
             .Map(dest => dest.Sprint, src => src.Iteration != null && src.Iteration.Type == IterationType.Sprint ? src.Iteration : null)
             .Map(dest => dest.ExternalViewWorkItemUrl, src => src.Workspace.ExternalViewWorkItemUrlTemplate == null ? null : $"{src.Workspace.ExternalViewWorkItemUrlTemplate}{src.ExternalId}");

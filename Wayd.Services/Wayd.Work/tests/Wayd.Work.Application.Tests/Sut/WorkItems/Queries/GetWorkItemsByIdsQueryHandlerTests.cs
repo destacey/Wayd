@@ -39,7 +39,7 @@ public sealed class GetWorkItemsByIdsQueryHandlerTests : IDisposable
         found.Key.Should().Be("TEST-1");
         found.Title.Should().Be("Export screen");
         found.WorkspaceKey.Should().Be("TEST");
-        found.Status.Should().Be(first.Status.Name);
+        found.Status.Should().Be(first.StatusName);
         found.StatusCategory.Id.Should().Be((int)first.StatusCategory);
     }
 

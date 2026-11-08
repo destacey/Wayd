@@ -20,7 +20,6 @@ public sealed class GetTeamBacklogQueryHandlerTests : IDisposable
     private readonly Guid _teamId = Guid.NewGuid();
     private readonly Workspace _workspace = new WorkspaceFaker().AsExternal().WithKey(new WorkspaceKey("TEST")).Generate();
     private readonly WorkType _storyType = new WorkTypeFaker().AsStory().Generate();
-    private readonly WorkStatus _status = new WorkStatusFaker().WithName("Active").Generate();
 
     public GetTeamBacklogQueryHandlerTests()
     {
@@ -55,7 +54,7 @@ public sealed class GetTeamBacklogQueryHandlerTests : IDisposable
             .WithExternalId(number)
             .WithKey(new WorkItemKey(_workspace.Key, number))
             .WithType(_storyType)
-            .WithStatus(_status)
+            .WithStatusName("Active")
             .WithStatusCategory(StatusCategory.Active)
             .WithTeamId(_teamId)
             .WithStackRank(stackRank)

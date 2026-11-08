@@ -69,10 +69,6 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
                 SELECT 'Forecast Epic', 1, 0, MAX([Id]), SYSUTCDATETIME(), SYSUTCDATETIME()
                 FROM [Work].[WorkTypeLevels] WHERE [Name] = 'Forecast Epics';
 
-            IF NOT EXISTS (SELECT 1 FROM [Work].[WorkStatuses] WHERE [Name] = 'Forecast Status')
-                INSERT INTO [Work].[WorkStatuses]
-                    ([Name], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
-                VALUES ('Forecast Status', 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME());
 
             INSERT INTO [Work].[WorkProcesses]
                 ([Id], [Name], [Ownership], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
@@ -159,14 +155,15 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
         await context.Database.ExecuteSqlInterpolatedAsync(
             $"""
             DECLARE @TypeId int = (SELECT TOP 1 [Id] FROM [Work].[WorkTypes] WHERE [Name] = {typeName});
-            DECLARE @StatusId int = (SELECT TOP 1 [Id] FROM [Work].[WorkStatuses] WHERE [Name] = 'Forecast Status');
+            DECLARE @StatusId uniqueidentifier = '00000000-0000-0000-0000-000000000000';
+            DECLARE @StatusName nvarchar(64) = 'Forecast Status';
 
             INSERT INTO [Work].[WorkItems]
-                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId],
+                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId], [StatusName],
                  [StatusCategory], [Created], [LastModified], [StackRank], [ActivatedTimestamp], [DoneTimestamp],
                  [TeamId], [ParentId], [ProjectId], [ParentProjectId], [StoryPoints], [IterationId],
                  [SystemCreated], [SystemLastModified])
-            VALUES ({id}, {key}, {"Item " + key}, {_workspaceId}, {number}, @TypeId, @StatusId,
+            VALUES ({id}, {key}, {"Item " + key}, {_workspaceId}, {number}, @TypeId, @StatusId, @StatusName,
                     {category}, {created}, {created}, {stackRank}, {activatedAt}, {doneAt},
                     {teamId}, {parentId}, {projectId}, {parentProjectId}, {storyPoints}, {iterationId},
                     SYSUTCDATETIME(), SYSUTCDATETIME());

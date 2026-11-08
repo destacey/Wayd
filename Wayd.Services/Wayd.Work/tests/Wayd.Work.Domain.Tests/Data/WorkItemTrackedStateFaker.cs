@@ -11,7 +11,7 @@ public sealed class WorkItemTrackedStateFaker : Faker<WorkItemTrackedState>
         CustomInstantiator(f => new WorkItemTrackedState(
             IterationId: f.Random.Guid(),
             ExternalIterationId: f.Random.Int(1, 10_000),
-            StatusId: f.Random.Int(1, 100),
+            StatusId: f.Random.Guid(),
             StatusName: f.PickRandom("New", "Active", "Resolved", "Closed"),
             StatusCategory: f.PickRandom<StatusCategory>(),
             WorkTypeId: f.Random.Int(1, 100),

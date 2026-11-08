@@ -43,10 +43,13 @@ jest.mock('@/src/hooks', () => {
   }
 })
 
+const mockRename = jest.fn()
 const mockReclassify = jest.fn()
+const mockDescribe = jest.fn()
 jest.mock('@/src/store/features/common/status-workflows-api', () => ({
-  useRenameWorkflowStatusMutation: () => [jest.fn()],
+  useRenameWorkflowStatusMutation: () => [mockRename],
   useReclassifyWorkflowStatusMutation: () => [mockReclassify],
+  useDescribeWorkflowStatusMutation: () => [mockDescribe],
 }))
 
 const ALIASES: WorkflowAliasDto[] = [
@@ -96,6 +99,8 @@ const LABELS: StatusCategoryLabelDto[] = [
 const renderForm = async (
   status: WorkflowStatusDto,
   categoryLabels?: StatusCategoryLabelDto[],
+  descriptionOnly?: boolean,
+  onFormComplete: () => void = jest.fn(),
 ) =>
   await act(async () =>
     render(
@@ -105,7 +110,8 @@ const renderForm = async (
         statuses={[status]}
         aliases={ALIASES}
         categoryLabels={categoryLabels}
-        onFormComplete={jest.fn()}
+        descriptionOnly={descriptionOnly}
+        onFormComplete={onFormComplete}
         onFormCancel={jest.fn()}
       />,
     ),
@@ -132,7 +138,9 @@ const meaningShown = () =>
 
 describe('EditWorkflowStatusForm', () => {
   beforeEach(() => {
+    mockRename.mockReset()
     mockReclassify.mockReset()
+    mockDescribe.mockReset()
   })
 
   it('opens showing the meaning the status holds', async () => {
@@ -231,5 +239,116 @@ describe('EditWorkflowStatusForm', () => {
         request: { category: StatusCategory.Active, alias: 0 },
       }),
     )
+  })
+
+  describe('description only', () => {
+    const save = () =>
+      act(() => userEvent.click(screen.getByRole('button', { name: 'Save' })))
+
+    it('shows the name, category and meaning read-only', async () => {
+      // Arrange / Act
+      await renderForm(statusIn(StatusCategory.Done, 2), undefined, true)
+
+      // Assert
+      expect(screen.getByLabelText('Name')).toBeDisabled()
+      expect(screen.getByLabelText('Category')).toBeDisabled()
+      expect(screen.getByLabelText('Meaning')).toBeDisabled()
+      expect(screen.getByLabelText('Description')).toBeEnabled()
+      expect(screen.getByLabelText('Description')).toHaveAccessibleDescription(
+        'This workflow is kept by a sync. Only the description can be changed here.',
+      )
+    })
+
+    it('sends only the description', async () => {
+      // Arrange
+      mockDescribe.mockResolvedValue({})
+      await renderForm(statusIn(StatusCategory.Done, 2), undefined, true)
+
+      // Act
+      await act(() =>
+        userEvent.type(screen.getByLabelText('Description'), 'Out the door.'),
+      )
+      await save()
+
+      // Assert
+      expect(mockDescribe).toHaveBeenCalledWith({
+        workflowId: 'w-1',
+        statusId: 's-1',
+        request: { description: 'Out the door.' },
+      })
+      expect(mockRename).not.toHaveBeenCalled()
+      expect(mockReclassify).not.toHaveBeenCalled()
+    })
+
+    it('clears a description', async () => {
+      // Arrange
+      mockDescribe.mockResolvedValue({})
+      await renderForm(
+        { ...statusIn(StatusCategory.Done, 2), description: 'Out the door.' },
+        undefined,
+        true,
+      )
+
+      // Act
+      await act(() => userEvent.clear(screen.getByLabelText('Description')))
+      await save()
+
+      // Assert
+      expect(mockDescribe).toHaveBeenCalledWith(
+        expect.objectContaining({ request: { description: '' } }),
+      )
+    })
+
+    it('sends nothing when the description is unchanged, and still closes', async () => {
+      // Arrange
+      const onFormComplete = jest.fn()
+      await renderForm(
+        statusIn(StatusCategory.Done, 2),
+        undefined,
+        true,
+        onFormComplete,
+      )
+
+      // Act
+      await save()
+
+      // Assert
+      expect(mockDescribe).not.toHaveBeenCalled()
+      expect(onFormComplete).toHaveBeenCalled()
+    })
+
+    it('keeps the dialog open when the description is refused', async () => {
+      // Arrange
+      const onFormComplete = jest.fn()
+      mockDescribe.mockResolvedValue({
+        error: { status: 400, detail: 'This workflow is archived.' },
+      })
+      await renderForm(
+        statusIn(StatusCategory.Done, 2),
+        undefined,
+        true,
+        onFormComplete,
+      )
+
+      // Act
+      await act(() =>
+        userEvent.type(screen.getByLabelText('Description'), 'Out the door.'),
+      )
+      await save()
+
+      // Assert
+      expect(mockDescribe).toHaveBeenCalled()
+      expect(onFormComplete).not.toHaveBeenCalled()
+    })
+
+    it('does not warn about a misfiled meaning it cannot change', async () => {
+      // Arrange / Act — Released belongs under Done
+      await renderForm(statusIn(StatusCategory.Active, 2), undefined, true)
+
+      // Assert
+      expect(
+        screen.queryByText(/belongs under another category/),
+      ).not.toBeInTheDocument()
+    })
   })
 })

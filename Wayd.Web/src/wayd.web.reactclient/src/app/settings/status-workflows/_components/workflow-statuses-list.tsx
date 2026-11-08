@@ -7,6 +7,7 @@ import {
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
   StatusWorkflowDetailsDto,
+  WorkflowOwnership,
   WorkflowStatusDto,
 } from '@/src/services/wayd-api'
 import {
@@ -24,12 +25,16 @@ import { isApiError, type ApiError } from '@/src/utils'
 
 export interface WorkflowStatusesListProps {
   statusWorkflow: StatusWorkflowDetailsDto
+  /** Whether the user holds the Update permission on status workflows. */
+  canUpdate: boolean
   loadData?: () => void
 }
 
 interface RowMenuProps {
   status: WorkflowStatusDto
   sortedStatuses: WorkflowStatusDto[]
+  /** Only the description can change, so editing is the only action. */
+  descriptionOnly: boolean
   onEditClicked: (status: WorkflowStatusDto) => void
   onDeleteClicked: (status: WorkflowStatusDto) => void
   onMoveClicked: (status: WorkflowStatusDto, direction: 'up' | 'down') => void
@@ -49,6 +54,8 @@ const getRowMenuItems = (props: RowMenuProps): ItemType[] => {
       onClick: () => props.onEditClicked(props.status),
     },
   ]
+
+  if (props.descriptionOnly) return items
 
   if (!isFirst) {
     items.push({
@@ -81,6 +88,7 @@ const getRowMenuItems = (props: RowMenuProps): ItemType[] => {
 
 const WorkflowStatusesList = ({
   statusWorkflow,
+  canUpdate,
   loadData,
 }: WorkflowStatusesListProps) => {
   const messageApi = useMessage()
@@ -100,7 +108,15 @@ const WorkflowStatusesList = ({
   const ownerType = ownerTypes?.find((o) => o.key === statusWorkflow.owner?.key)
   const aliases = ownerType?.aliases ?? []
 
-  const canEdit = statusWorkflow.canEdit
+  // The permission claim and the record's own verdict must both allow it.
+  const canEdit = canUpdate && statusWorkflow.canEdit
+  // A managed workflow's statuses take their names, order and existence from
+  // its source; in settings only their descriptions are edited.
+  const descriptionOnly =
+    canUpdate &&
+    !statusWorkflow.canEdit &&
+    statusWorkflow.ownership === WorkflowOwnership.Managed &&
+    statusWorkflow.canDescribe
 
   const sortedStatuses = useMemo(
     () =>
@@ -179,12 +195,13 @@ const WorkflowStatusesList = ({
 
     return [
       createActionsColumn<WorkflowStatusDto>({
-        unavailable: !canEdit,
+        unavailable: !canEdit && !descriptionOnly,
         ariaLabel: 'Status actions',
         getItems: (status) =>
           getRowMenuItems({
             status,
             sortedStatuses,
+            descriptionOnly,
             onEditClicked: handleEdit,
             onDeleteClicked: handleDelete,
             onMoveClicked: handleMove,
@@ -221,6 +238,7 @@ const WorkflowStatusesList = ({
     ]
   }, [
     canEdit,
+    descriptionOnly,
     sortedStatuses,
     modal,
     removeStatus,
@@ -232,7 +250,11 @@ const WorkflowStatusesList = ({
   const actions = (
     <Space>
       {canEdit && (
-        <Button type="primary" size="small" onClick={() => setOpenAddForm(true)}>
+        <Button
+          type="primary"
+          size="small"
+          onClick={() => setOpenAddForm(true)}
+        >
           Add Status
         </Button>
       )}
@@ -269,6 +291,7 @@ const WorkflowStatusesList = ({
           statuses={sortedStatuses}
           aliases={aliases}
           categoryLabels={ownerType?.categoryLabels}
+          descriptionOnly={descriptionOnly}
           onFormComplete={() => setEditingStatus(null)}
           onFormCancel={() => setEditingStatus(null)}
         />

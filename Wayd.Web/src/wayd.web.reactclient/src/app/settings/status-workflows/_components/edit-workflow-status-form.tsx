@@ -8,11 +8,12 @@ import {
   WorkflowStatusDto,
 } from '@/src/services/wayd-api'
 import {
+  useDescribeWorkflowStatusMutation,
   useReclassifyWorkflowStatusMutation,
   useRenameWorkflowStatusMutation,
 } from '@/src/store/features/common/status-workflows-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Input, Modal, Select } from 'antd'
+import { Form, Input, Modal, Select, Typography } from 'antd'
 import { useEffect } from 'react'
 import { useModalForm } from '@/src/hooks'
 import {
@@ -27,6 +28,7 @@ import {
 
 const { Item } = Form
 const { TextArea } = Input
+const { Text } = Typography
 
 export interface EditWorkflowStatusFormProps {
   workflowId: string
@@ -35,6 +37,11 @@ export interface EditWorkflowStatusFormProps {
   aliases: WorkflowAliasDto[]
   /** What the workflow's owner type calls each category. */
   categoryLabels?: StatusCategoryLabelDto[]
+  /**
+   * Only the description can change, as on a managed workflow, whose names
+   * come from its source; the other fields are shown read-only.
+   */
+  descriptionOnly?: boolean
   onFormComplete: () => void
   onFormCancel: () => void
 }
@@ -47,8 +54,9 @@ interface EditWorkflowStatusFormValues {
 }
 
 /**
- * One dialog over two endpoints: renaming and reclassifying are separate on the
- * API, so only the halves that changed are sent.
+ * One dialog over the status endpoints: renaming and reclassifying are separate
+ * on the API, so only the halves that changed are sent. A description-only edit
+ * goes through its own endpoint, the one a managed workflow accepts.
  */
 const EditWorkflowStatusForm = ({
   workflowId,
@@ -56,6 +64,7 @@ const EditWorkflowStatusForm = ({
   statuses,
   aliases,
   categoryLabels,
+  descriptionOnly = false,
   onFormComplete,
   onFormCancel,
 }: EditWorkflowStatusFormProps) => {
@@ -63,11 +72,28 @@ const EditWorkflowStatusForm = ({
 
   const [renameWorkflowStatus] = useRenameWorkflowStatusMutation()
   const [reclassifyWorkflowStatus] = useReclassifyWorkflowStatusMutation()
+  const [describeWorkflowStatus] = useDescribeWorkflowStatusMutation()
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditWorkflowStatusFormValues>({
       onSubmit: async (values: EditWorkflowStatusFormValues, form) => {
         try {
+          if (descriptionOnly) {
+            if ((values.description ?? '') !== (status.description ?? '')) {
+              const response = await describeWorkflowStatus({
+                workflowId,
+                statusId: status.id,
+                request: { description: values.description },
+              })
+              if (response.error) {
+                throw response.error
+              }
+            }
+
+            messageApi.success('Status updated successfully.')
+            return true
+          }
+
           const alias = values.alias ?? NO_ALIAS
 
           const renamed =
@@ -140,7 +166,9 @@ const EditWorkflowStatusForm = ({
     status.id,
     categoryLabels,
   )
-  const isMisfiled = !aliasFitsCategory(aliases, alias, category)
+  // Not flagged when the meaning cannot be changed here.
+  const isMisfiled =
+    !descriptionOnly && !aliasFitsCategory(aliases, alias, category)
   const isUnknown =
     isMisfiled && !(aliases ?? []).some((a) => a.value === alias)
 
@@ -195,15 +223,20 @@ const EditWorkflowStatusForm = ({
         onValuesChange={handleValuesChange}
         name="edit-workflow-status-form"
       >
+        {descriptionOnly && (
+          <Item>
+            <Text type="secondary" id="edit-workflow-status-description-only">
+              This workflow is kept by a sync. Only the description can be
+              changed here.
+            </Text>
+          </Item>
+        )}
         <Item
           label="Name"
           name="name"
-          rules={[
-            { required: true, message: 'Name is required' },
-            { max: 128 },
-          ]}
+          rules={[{ required: true, message: 'Name is required' }, { max: 64 }]}
         >
-          <Input showCount maxLength={128} />
+          <Input showCount maxLength={64} disabled={descriptionOnly} />
         </Item>
         <Item
           label="Category"
@@ -214,6 +247,7 @@ const EditWorkflowStatusForm = ({
           <Select
             placeholder="Select a category"
             options={statusCategoryOptions(categoryLabels)}
+            disabled={descriptionOnly}
           />
         </Item>
         <Item
@@ -229,13 +263,18 @@ const EditWorkflowStatusForm = ({
               : undefined
           }
         >
-          <Select options={aliasOptions} />
+          <Select options={aliasOptions} disabled={descriptionOnly} />
         </Item>
-        <Item name="description" label="Description" rules={[{ max: 1024 }]}>
+        <Item name="description" label="Description" rules={[{ max: 512 }]}>
           <TextArea
             autoSize={{ minRows: 3, maxRows: 6 }}
             showCount
-            maxLength={1024}
+            maxLength={512}
+            aria-describedby={
+              descriptionOnly
+                ? 'edit-workflow-status-description-only'
+                : undefined
+            }
           />
         </Item>
       </Form>

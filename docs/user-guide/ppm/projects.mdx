@@ -140,7 +140,7 @@ Warning alerts appear on Overview when requirements are missing:
 - **Drag-and-drop** reordering (for users with update permission)
 - **Columns**: WBS, Key, Name, Type, Status, Priority, Schedule, Planned Start, Planned End, Assignees, Deliverables, Progress, and Est Effort (hrs). For a milestone, Planned Start and Planned End both show its planned date. Deliverables lists the [deliverables a task serves](#linking-plan-tasks); it is set in the task's form, not inline
 - **By Stage / By Deliverable**: the toolbar switches between the work breakdown and the plan grouped by the deliverables it serves — a read-only list under one heading per deliverable, in their order, each heading with its task count and progress, and the work serving no deliverable last
-- **Inline editing** of Name, Type (Task/Milestone), Status, Priority, Planned Start, Planned End, Assignees, Progress, and Est Effort (hrs) on the selected row
+- **Editing in place**, one cell at a time — see [Editing the Plan](#editing-the-plan)
 - **Schedule** — derived from the dates and read-only: **Overdue** when the planned end has passed, **Due This Week** when it falls between today and Saturday, **Upcoming** when it falls in the following week. Completed and Canceled items carry no label
 - **Row actions**: Edit task, Delete task, Add child task; on a stage row, Edit (the stage's description, status, assignees, planned date range, and progress) and Add Task
 - **Task details drawer**: Click a task **Key** to open a side drawer with task/milestone details
@@ -148,22 +148,36 @@ Warning alerts appear on Overview when requirements are missing:
 - **Drawer links**: Parent Task and Assignees are clickable links
 - **Description rendering**: Task Description supports Markdown
 - **Filtering** by task type, status, and priority (Type filter includes **Stage**)
-- **Keyboard shortcuts** for efficient navigation
+- **Keyboard shortcuts** for every cell and row action; the toolbar's help button lists them, and while a cell is selected the line under the grid shows the keys for what you are doing
+
+#### Editing the Plan
+
+People who can manage the project — the **Update Projects** permission and [delivery leadership](../settings/permissions.mdx#delivery-leadership-in-ppm) on it — edit the plan like a spreadsheet: one cell at a time, saved as soon as you leave it. There is no Save button and no confirmation message.
+
+- **Open a cell** with Enter, F2, a double-click, or a click on the cell that is already selected. Typing a character in Name, Progress or Est Effort starts over with that character.
+- **Save** with Enter (and move down), Tab (and move to the next cell), or by clicking anywhere else, the Gantt chart included. Escape closes an open list or calendar, then undoes the edit. Assignees takes several people; it saves when you leave the cell.
+- **What each row edits.** A task edits Name, Status, Priority, Planned Start, Planned End, Assignees, Progress and Est Effort. A milestone's single date is in the Planned Start column, and it has no End, Progress or Effort; its Status offers only Not Started and Completed. A stage edits Status, Planned Start, Planned End, Assignees and Progress. **Type** is chosen only for a new task.
+- **Planned Start and End are saved together.** Tab from Start to End holds Start until you leave the pair, then both are checked: both dates or neither, End not before Start, and a stage or parent task can't be shortened behind one of its children or cleared while they have dates. Moving both dates by the same number of days is a shift, which moves the children along (see [Task Hierarchy](#task-hierarchy)).
+- **A cell that is waiting or failed is marked.** An underline means not yet saved, a bar on the left means saving, and a tinted cell with a bar means it failed. Select a failed cell to see why. Its value stays until you fix it (Enter) or discard it (Escape).
+- **Completing.** Setting a task or stage to Completed also sets its Progress to 100%.
+- **New tasks.** **Add Task** on a stage, **Add Child Task** on a task (or the **+** beside its name), or **Insert** on any task row adds a row with its Name open. The task is created once it has a Name — a milestone also needs its date, and until then the cell is marked and Enter on the Name opens it. A new task starts as a Task, Not Started, Medium priority and 0% done unless you change those cells first. A task added with Insert is created directly below the row. Escape on an empty new row removes it.
 
 The Plan grid works without a mouse. Tab into it, then:
 - **Arrow keys**: Move between cells; **Home / End** go to the ends of the row, and **Ctrl+Home / Ctrl+End** to the first or last cell of the plan
 - **Page Up / Page Down**: Move a screen of rows
 - **Right / Left Arrow** on a Name: Expand or collapse a stage or task; **Left Arrow** on a child moves to its parent
-- **Enter** or **F2**: Start editing the row from that cell, or move to the cell's link (such as a task Key) — press **Enter** again to open it, **Esc** to go back to the cell
+- **Enter** or **F2**: Edit the cell, or move to the cell's link (such as a task Key) — press **Enter** again to open it, **Esc** to go back to the cell
 - **Shift+F10**: Open the row's actions menu
 - **Tab**: Leave the grid
 - **Enter** or **Space** on a column heading: Sort by that column
 
-While editing a row:
-- **Enter** or **Down Arrow**: Save and move to next row
-- **Up Arrow**: Save and move to previous row
-- **Tab / Shift+Tab**: Move between editable fields
-- **Esc**: Cancel current edit or drag operation
+On a task or milestone row (**⌘** in place of **Ctrl** on a Mac):
+- **Insert** or **Ctrl+Enter**: Add a task directly below it, in the same stage or parent task. Use Ctrl+Enter where the keyboard has no Insert key or a screen reader uses Insert as its own key
+- **Alt+Shift+Right**: Indent the task under the one above it at the same level; **Alt+Shift+Left**: outdent it to just after its parent — the same keys as Microsoft Project. A task can't leave its stage or go under a milestone
+- **Ctrl+Delete**: Delete the task, after you confirm
+- **Ctrl+Shift+Enter**: Open the task's details drawer (anyone who can see the plan)
+
+Adding and moving rows by keyboard is off while the plan is searched, filtered or sorted, since the new place comes from the plan's own order. A key that can't act says why to screen readers.
 
 **Work Items** — Grid of [work items](../work-management/work-items.mdx#work-items) from Work Management that are associated with this project. See [Adding and Removing Work Items](#adding-and-removing-work-items).
 
@@ -512,7 +526,7 @@ Showing or hiding the chart is remembered on your device and applies to **every 
 | Drag a diamond | Change a milestone's planned date |
 | Esc during drag | Cancel without saving |
 
-Dragging saves the new dates immediately and follows the same rules as editing dates in the grid — including [date rollup](#task-hierarchy), so moving a task past the edge of its stage expands the stage to contain it.
+Dragging saves the new dates immediately, as if you had typed them into Planned Start and End: the same rules apply — including [date rollup](#task-hierarchy), so moving a task past the edge of its stage expands the stage to contain it — and a drag that breaks one, such as shortening a stage behind its tasks, or that the server refuses, snaps back to where it was, with a message saying why. A cell you were editing is saved when the drag starts, as any click elsewhere saves it.
 
 ### Task Dependencies
 

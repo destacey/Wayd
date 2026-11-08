@@ -109,5 +109,46 @@ describe('draft-utils', () => {
       expect(result[0].children).toHaveLength(2)
       expect(result[0]).not.toBe(parent)
     })
+
+    it('places a draft directly below the sibling it follows', () => {
+      // Arrange
+      const tree = [
+        createNode('1', 'A', [
+          createNode('1-1', 'A.1'),
+          createNode('1-2', 'A.2'),
+        ]),
+      ]
+      const drafts: DraftItem[] = [
+        { id: 'draft-1', parentId: '1', order: 0, afterId: '1-1' },
+      ]
+
+      // Act
+      const result = mergeDraftsIntoTree(tree, drafts, createDraftNode)
+
+      // Assert
+      expect(result[0].children.map((child) => child.id)).toStrictEqual([
+        '1-1',
+        'draft-1',
+        '1-2',
+      ])
+    })
+
+    it('places a draft last when the sibling it follows is not there', () => {
+      // Arrange
+      const tree = [createNode('1', 'A'), createNode('2', 'B')]
+      const drafts: DraftItem[] = [
+        { id: 'draft-1', parentId: undefined, order: 0, afterId: 'gone' },
+      ]
+
+      // Act
+      const result = mergeDraftsIntoTree(tree, drafts, createDraftNode)
+
+      // Assert
+      expect(result.map((node) => node.id)).toStrictEqual([
+        '1',
+        '2',
+        'draft-1',
+      ])
+    })
   })
 })

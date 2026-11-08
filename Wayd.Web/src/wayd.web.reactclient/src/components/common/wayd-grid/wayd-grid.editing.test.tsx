@@ -5,6 +5,7 @@ import { Button } from 'antd'
 import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import type { ColumnDef } from '../wayd-grid-core'
 import WaydGrid from './wayd-grid'
+import { MessageProvider } from '@/src/components/contexts/messaging/messaging-context'
 import type { WaydGridHandle, WaydGridColumnMeta } from './types'
 import type { DraftItem } from '../wayd-grid-core/draft-utils'
 import {
@@ -1232,6 +1233,99 @@ describe('WaydGrid cell editing', () => {
       expect(onCommit).not.toHaveBeenCalled()
     })
 
+    describe('until the new row is in the data', () => {
+      const created = item('new-1', 'New thing', { start: null, end: null })
+
+      /** Creates a draft named "New thing"; onCreate resolves with new-1. */
+      const createOne = async () => {
+        const utils = render(
+          <DraftHarness onCreate={jest.fn(() => Promise.resolve('new-1'))} />,
+        )
+        addDraft()
+        typeInEditor('New thing')
+        press('Enter')
+        await flush()
+        return utils
+      }
+
+      const named = (name: string) =>
+        bodyCells('name').filter((cell) => cell.textContent?.trim() === name)
+
+      it('keeps the draft on screen with what was typed', async () => {
+        // Arrange / Act
+        await createOne()
+
+        // Assert
+        expect(named('New thing')).toHaveLength(1)
+        expect(bodyCells('name')).toHaveLength(ITEMS.length + 1)
+      })
+
+      it('does not edit the waiting draft', async () => {
+        // Arrange
+        await createOne()
+        focus(named('New thing')[0])
+
+        // Act
+        press('Enter')
+
+        // Assert
+        expect(openEditor()).toBeNull()
+      })
+
+      it('shows the new row in its place, never both', async () => {
+        // Arrange — every set of rows the grid displays is recorded
+        const shown: Item[][] = []
+        const onDisplayedRowsChange = (rows: Item[]) => shown.push(rows)
+        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        const { rerender } = render(
+          <DraftHarness
+            onCreate={onCreate}
+            onDisplayedRowsChange={onDisplayedRowsChange}
+          />,
+        )
+        addDraft()
+        typeInEditor('New thing')
+        press('Enter')
+        await flush()
+
+        // Act
+        rerender(
+          <DraftHarness
+            data={[...ITEMS, created]}
+            onCreate={onCreate}
+            onDisplayedRowsChange={onDisplayedRowsChange}
+          />,
+        )
+        await flush()
+
+        // Assert
+        const most = Math.max(
+          ...shown.map(
+            (rows) => rows.filter((row) => row.name === 'New thing').length,
+          ),
+        )
+        expect(most).toBe(1)
+        expect(named('New thing')).toHaveLength(1)
+        expect(bodyCells('name')).toHaveLength(ITEMS.length + 1)
+      })
+
+      it('lets the draft go after two data changes without its row', async () => {
+        // Arrange
+        const { rerender } = await createOne()
+        const onCreate = jest.fn()
+
+        // Act — two refetches that do not bring the row
+        rerender(<DraftHarness data={[...ITEMS]} onCreate={onCreate} />)
+        await flush()
+        rerender(<DraftHarness data={[...ITEMS]} onCreate={onCreate} />)
+        await flush()
+
+        // Assert
+        expect(named('New thing')).toHaveLength(0)
+        expect(bodyCells('name')).toHaveLength(ITEMS.length)
+      })
+    })
+
     it('retries a failed create when any of its cells is changed', async () => {
       // Arrange
       const onCreate = jest
@@ -1599,6 +1693,667 @@ describe('WaydGrid cell editing', () => {
 
       // Assert
       expect(openEditor()!.parentElement!.tagName).toBe('TD')
+    })
+  })
+
+  describe('committing from outside a cell (commitCells)', () => {
+    it('sends the changed values as one patch, marked saving', async () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      const saved = deferred()
+      const onCommit = jest.fn(() => saved.promise)
+      renderEditable({ ref, onCommit })
+
+      // Act
+      act(() =>
+        ref.current!.commitCells('1', {
+          start: '2026-03-05',
+          end: '2026-04-04',
+        }),
+      )
+      await flush()
+
+      // Assert
+      expect(onCommit.mock.calls).toStrictEqual([
+        ['1', { start: '2026-03-05', end: '2026-04-04' }],
+      ])
+      expect(cellAt(0, 'start')).toHaveAttribute('data-edit-state', 'saving')
+      expect(cellAt(0, 'start')).toHaveTextContent('2026-03-05')
+      await act(async () => saved.resolve())
+    })
+
+    it('leaves out a value the row already has', async () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      const { onCommit } = renderEditable({ ref })
+
+      // Act
+      act(() =>
+        ref.current!.commitCells('1', {
+          start: '2026-03-01',
+          end: '2026-04-04',
+        }),
+      )
+      await flush()
+
+      // Assert
+      expect(onCommit.mock.calls).toStrictEqual([['1', { end: '2026-04-04' }]])
+    })
+
+    it('runs the pair’s check first, and keeps the row’s own values when it fails', async () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      const { onCommit } = renderEditable({ ref })
+
+      // Act
+      act(() =>
+        ref.current!.commitCells('1', {
+          start: '2026-03-10',
+          end: '2026-03-05',
+        }),
+      )
+      await flush()
+
+      // Assert
+      expect(onCommit).not.toHaveBeenCalled()
+      expect(cellAt(0, 'end')).not.toHaveAttribute('data-edit-state')
+      expect(cellAt(0, 'end')).toHaveTextContent('2026-03-31')
+      expect(
+        screen.getAllByRole('status').map((r) => r.textContent?.trim()),
+      ).toContain('Not saved. End: End cannot be before Start.')
+    })
+    it('waits for a commit already running for the row', async () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      const first = deferred()
+      const onCommit = jest
+        .fn()
+        .mockImplementationOnce(() => first.promise)
+        .mockImplementation(() => Promise.resolve())
+      renderEditable({ ref, onCommit })
+      editName(0, 'Alpha 2')
+      press('Enter')
+
+      // Act
+      act(() => ref.current!.commitCells('1', { end: '2026-04-04' }))
+      await flush()
+      const callsBeforeFirstSettles = onCommit.mock.calls.length
+      await act(async () => first.resolve())
+
+      // Assert
+      expect(callsBeforeFirstSettles).toBe(1)
+      expect(onCommit.mock.calls).toStrictEqual([
+        ['1', { name: 'Alpha 2' }],
+        ['1', { end: '2026-04-04' }],
+      ])
+    })
+
+    it('sends the way back when values return to the row’s while still saving', async () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      const first = deferred()
+      const onCommit = jest
+        .fn()
+        .mockImplementationOnce(() => first.promise)
+        .mockImplementation(() => Promise.resolve())
+      renderEditable({ ref, onCommit })
+      act(() => ref.current!.commitCells('1', { end: '2026-04-04' }))
+      await flush()
+
+      // Act — back to the row's own End before the first save lands
+      act(() => ref.current!.commitCells('1', { end: '2026-03-31' }))
+      await act(async () => first.resolve())
+
+      // Assert
+      expect(onCommit.mock.calls).toStrictEqual([
+        ['1', { end: '2026-04-04' }],
+        ['1', { end: '2026-03-31' }],
+      ])
+    })
+
+    it('drops a value that failed in its cell when the row’s own comes back', async () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      const onCommit = jest
+        .fn()
+        .mockImplementationOnce(() =>
+          Promise.reject({ status: 500, detail: 'Boom.' }),
+        )
+        .mockImplementation(() => Promise.resolve())
+      renderEditable({ ref, onCommit })
+      const end = cellAt(0, 'end')
+      focus(end)
+      press('Enter')
+      fireEvent.input(document.activeElement!, {
+        target: { value: '2026-04-04' },
+      })
+      press('Enter')
+      await flush()
+
+      // Act
+      act(() => ref.current!.commitCells('1', { end: '2026-03-31' }))
+      await flush()
+
+      // Assert
+      expect(onCommit).toHaveBeenCalledTimes(1)
+      expect(cellAt(0, 'end')).not.toHaveAttribute('data-edit-state')
+      expect(cellAt(0, 'end')).toHaveTextContent('2026-03-31')
+    })
+    it('checks the pair with the value held on its other cell', async () => {
+      // Arrange — End failed at Mar 5 in its cell, earlier than the Start below
+      const ref = createRef<WaydGridHandle>()
+      const onCommit = jest
+        .fn()
+        .mockImplementationOnce(() =>
+          Promise.reject({ status: 500, detail: 'Boom.' }),
+        )
+        .mockImplementation(() => Promise.resolve())
+      renderEditable({ ref, onCommit })
+      const end = cellAt(0, 'end')
+      focus(end)
+      press('Enter')
+      fireEvent.input(document.activeElement!, {
+        target: { value: '2026-03-05' },
+      })
+      press('Enter')
+      await flush()
+
+      // Act
+      act(() => ref.current!.commitCells('1', { start: '2026-03-10' }))
+      await flush()
+
+      // Assert
+      expect(onCommit).toHaveBeenCalledTimes(1)
+      expect(cellAt(0, 'start')).toHaveTextContent('2026-03-01')
+      expect(
+        screen.getAllByRole('status').map((r) => r.textContent?.trim()),
+      ).toContain('Not saved. End: End cannot be before Start.')
+    })
+    it('does nothing on a draft row', async () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      const onCommit = jest.fn(() => Promise.resolve())
+      render(
+        <WaydGrid<Item>
+          ref={ref}
+          data={ITEMS}
+          columns={editableColumns}
+          includeIdColumn={false}
+          getSubRows={(row) => row.children}
+          createDraftNode={(draft) =>
+            item(draft.id, '', { start: null, end: null })
+          }
+          leftSlot={(ctx) => (
+            <Button onClick={() => ctx.addDraftAtRoot()}>New item</Button>
+          )}
+          onCommit={onCommit}
+          onCreate={jest.fn()}
+        />,
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'New item' }))
+      const draftId = ref
+        .current!.getDisplayedRows()
+        .map((row) => (row as Item).id)
+        .find((id) => id.startsWith('draft-'))!
+
+      // Act
+      act(() => ref.current!.commitCells(draftId, { note: 'x' }))
+      await flush()
+
+      // Assert
+      expect(onCommit).not.toHaveBeenCalled()
+      expect(cellAt(bodyCells('note').length - 1, 'note')).not.toHaveAttribute(
+        'data-edit-state',
+      )
+    })
+
+    it('keeps a saved value shown when the same value comes again', async () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      const { onCommit } = renderEditable({ ref })
+      act(() => ref.current!.commitCells('1', { end: '2026-04-04' }))
+      await flush()
+
+      // Act
+      act(() => ref.current!.commitCells('1', { end: '2026-04-04' }))
+      await flush()
+
+      // Assert
+      expect(onCommit).toHaveBeenCalledTimes(1)
+      expect(cellAt(0, 'end')).toHaveTextContent('2026-04-04')
+    })
+
+    it('replaces a value that failed in its cell', async () => {
+      // Arrange — End typed into its cell fails to save
+      const ref = createRef<WaydGridHandle>()
+      const onCommit = jest
+        .fn()
+        .mockImplementationOnce(() =>
+          Promise.reject({ status: 500, detail: 'Boom.' }),
+        )
+        .mockImplementation(() => Promise.resolve())
+      renderEditable({ ref, onCommit })
+      const end = cellAt(0, 'end')
+      focus(end)
+      press('Enter')
+      fireEvent.input(document.activeElement!, {
+        target: { value: '2026-04-04' },
+      })
+      press('Enter')
+      await flush()
+      const failed = cellAt(0, 'end').getAttribute('data-edit-state')
+
+      // Act
+      act(() => ref.current!.commitCells('1', { end: '2026-04-10' }))
+      await flush()
+
+      // Assert
+      expect(failed).toBe('error')
+      expect(onCommit.mock.calls[1]).toStrictEqual(['1', { end: '2026-04-10' }])
+      expect(cellAt(0, 'end')).not.toHaveAttribute('data-edit-state', 'error')
+      expect(cellAt(0, 'end')).toHaveTextContent('2026-04-10')
+    })
+    it('goes back to the row’s own values when the save fails, and says why', async () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      render(
+        <MessageProvider>
+          <WaydGrid<Item>
+            ref={ref}
+            data={ITEMS}
+            columns={editableColumns}
+            includeIdColumn={false}
+            onCommit={jest.fn(() =>
+              Promise.reject({ status: 422, errors: { End: ['Too late.'] } }),
+            )}
+          />
+        </MessageProvider>,
+      )
+
+      // Act
+      act(() => ref.current!.commitCells('1', { end: '2026-04-04' }))
+      await flush()
+
+      // Assert
+      expect(cellAt(0, 'end')).toHaveTextContent('2026-03-31')
+      expect(cellAt(0, 'end')).not.toHaveAttribute('data-edit-state')
+      // Once, in the toast: it is read out, so the live region stays quiet
+      expect(
+        await screen.findAllByText('Not saved. End: Too late.'),
+      ).toHaveLength(1)
+      expect(
+        screen.getAllByRole('status').map((r) => r.textContent?.trim()),
+      ).not.toContain('Not saved. End: Too late.')
+    })
+    it('leaves an editor open on another row alone', async () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      renderEditable({ ref })
+      editName(1, 'Beta typed')
+
+      // Act
+      act(() => ref.current!.commitCells('1', { end: '2026-04-04' }))
+      await flush()
+
+      // Assert
+      expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue(
+        'Beta typed',
+      )
+      expect(cellAt(1, 'name')).toContainElement(openEditor())
+    })
+
+    it('ignores a column the row cannot edit', async () => {
+      // Arrange
+      const ref = createRef<WaydGridHandle>()
+      const lockedEnd = { ...endEditor, editable: () => false }
+      const { onCommit } = renderEditable({
+        ref,
+        columns: editableColumns.map((column) =>
+          column.id === 'end'
+            ? { ...column, meta: { editor: lockedEnd } }
+            : column,
+        ),
+      })
+
+      // Act
+      act(() =>
+        ref.current!.commitCells('1', {
+          start: '2026-03-02',
+          end: '2026-04-04',
+        }),
+      )
+      await flush()
+
+      // Assert
+      expect(onCommit.mock.calls).toStrictEqual([
+        ['1', { start: '2026-03-02' }],
+      ])
+    })
+  })
+
+  describe('a cell required to create only on some drafts', () => {
+    const DraftHarness = (props: GridProps) => (
+      <WaydGrid<Item>
+        data={ITEMS}
+        includeIdColumn={false}
+        getSubRows={(row) => row.children}
+        createDraftNode={(draft) =>
+          item(draft.id, '', { start: null, end: null })
+        }
+        leftSlot={(ctx) => (
+          <Button onClick={() => ctx.addDraftAtRoot()}>New item</Button>
+        )}
+        onCommit={jest.fn(() => Promise.resolve())}
+        columns={editableColumns.map((column) =>
+          column.id === 'start'
+            ? {
+                ...column,
+                meta: {
+                  editor: {
+                    ...startEditor,
+                    requiredToCreate: (row: Item) => row.note === 'dated',
+                  },
+                },
+              }
+            : column,
+        )}
+        {...props}
+      />
+    )
+
+    const addDraft = () => {
+      fireEvent.click(screen.getByRole('button', { name: 'New item' }))
+      return bodyCells('name').length - 1
+    }
+
+    it('creates on the Name alone where the row does not need it', async () => {
+      // Arrange
+      const onCreate = jest.fn(() => Promise.resolve('new-1'))
+      render(<DraftHarness onCreate={onCreate} />)
+      addDraft()
+      typeInEditor('Plan')
+
+      // Act
+      press('Enter')
+      await flush()
+
+      // Assert
+      expect(onCreate.mock.calls).toStrictEqual([[null, { name: 'Plan' }]])
+    })
+
+    it('checks its pair against the draft’s staged values', async () => {
+      // Arrange — a draft whose Note says "single" needs no End
+      const [singleStart, singleEnd] = pairedEditors<
+        Item,
+        string | null,
+        string | null
+      >({
+        start: textEditor<Item>({
+          field: 'start',
+          get: (row) => row.start ?? '',
+          apply: (row, start) => ({ ...row, start }),
+        }) as never,
+        end: textEditor<Item>({
+          field: 'end',
+          get: (row) => row.end ?? '',
+          apply: (row, end) => ({ ...row, end }),
+        }) as never,
+        validate: ({ start, end }, row) =>
+          row.note !== 'single' && start && !end
+            ? { end: 'End is needed.' }
+            : undefined,
+      })
+      const onCreate = jest.fn(() => Promise.resolve('new-1'))
+      render(
+        <DraftHarness
+          onCreate={onCreate}
+          columns={editableColumns.map((column) =>
+            column.id === 'start'
+              ? { ...column, meta: { editor: singleStart } }
+              : column.id === 'end'
+                ? { ...column, meta: { editor: singleEnd } }
+                : column,
+          )}
+        />,
+      )
+      const draftRow = addDraft()
+      press('Tab') // on to Note, leaving the Name empty
+      typeInEditor('single')
+      press('Enter')
+      focus(cellAt(draftRow, 'start'))
+      press('Enter')
+      typeInEditor('2026-03-01')
+      press('Enter')
+      focus(cellAt(draftRow, 'name'))
+      press('Enter')
+      typeInEditor('Plan')
+
+      // Act
+      press('Enter')
+      await flush()
+
+      // Assert
+      expect(onCreate.mock.calls).toStrictEqual([
+        [null, { note: 'single', start: '2026-03-01', name: 'Plan' }],
+      ])
+    })
+
+    it('checks every staged value again before creating', async () => {
+      // Arrange — a Note valid while the draft is unnamed fails once it is "Plan"
+      const strictNote = textEditor<Item>({
+        field: 'note',
+        get: (row) => row.note,
+        apply: (row, note) => ({ ...row, note }),
+        validate: (note, row) =>
+          row.name === 'Plan' && note === 'x' ? 'Not on a plan.' : undefined,
+      })
+      const onCreate = jest.fn(() => Promise.resolve('new-1'))
+      render(
+        <DraftHarness
+          onCreate={onCreate}
+          columns={editableColumns.map((column) =>
+            column.id === 'note'
+              ? { ...column, meta: { editor: strictNote } }
+              : column,
+          )}
+        />,
+      )
+      const draftRow = addDraft()
+      press('Tab') // on to Note, leaving the Name empty
+      typeInEditor('x')
+      press('Enter')
+      focus(cellAt(draftRow, 'name'))
+      press('Enter')
+      typeInEditor('Plan')
+
+      // Act
+      press('Enter')
+      await flush()
+
+      // Assert
+      expect(onCreate).not.toHaveBeenCalled()
+      expect(cellAt(draftRow, 'note')).toHaveAccessibleDescription(
+        'Note: Not on a plan.',
+      )
+    })
+
+    it('waits for it where the row’s staged values need it', async () => {
+      // Arrange
+      const onCreate = jest.fn(() => Promise.resolve('new-1'))
+      render(<DraftHarness onCreate={onCreate} />)
+      const draftRow = addDraft()
+      press('Tab') // on to Note, leaving the Name empty
+      typeInEditor('dated')
+      press('Enter')
+      focus(cellAt(draftRow, 'name'))
+      press('Enter')
+      typeInEditor('Plan')
+
+      // Act
+      press('Enter')
+      await flush()
+
+      // Assert
+      expect(onCreate).not.toHaveBeenCalled()
+      expect(cellAt(draftRow, 'start')).toHaveAccessibleDescription(
+        'Start: Required to create the item.',
+      )
+    })
+  })
+
+  describe('the selected cell', () => {
+    const viewport = () =>
+      document.querySelector<HTMLElement>('[data-grid-body-viewport]')!
+
+    it('is outlined however it was chosen in a grid that edits', () => {
+      // Arrange / Act
+      renderEditable()
+
+      // Assert
+      expect(viewport().className).toContain('editsByCell')
+    })
+
+    it('keeps the keyboard-only outline in a grid that does not edit', () => {
+      // Arrange / Act
+      render(
+        <WaydGrid<Item>
+          data={ITEMS}
+          columns={editableColumns}
+          includeIdColumn={false}
+        />,
+      )
+
+      // Assert
+      expect(viewport().className).not.toContain('editsByCell')
+    })
+  })
+
+  describe('key hints', () => {
+    const hints = () =>
+      document.querySelector<HTMLElement>('[data-grid-key-hints]')
+
+    it('are not shown until a cell is selected', () => {
+      // Arrange / Act
+      renderEditable()
+
+      // Assert
+      expect(hints()).toBeNull()
+    })
+
+    it('show the cell keys once a cell is selected', () => {
+      // Arrange
+      renderEditable()
+
+      // Act
+      focus(cellAt(0, 'name'))
+
+      // Assert
+      expect(hints()).toHaveTextContent('Enter')
+      expect(hints()).toHaveTextContent('edit')
+      expect(hints()).toHaveTextContent('leave grid')
+    })
+
+    it('leave out editing on a cell that does not edit', () => {
+      // Arrange
+      renderEditable()
+
+      // Act
+      focus(cellAt(0, 'code'))
+
+      // Assert
+      expect(hints()).not.toHaveTextContent('edit')
+      expect(hints()).toHaveTextContent('move')
+    })
+
+    it('switch to the editor’s keys while a cell is open', () => {
+      // Arrange
+      renderEditable()
+      focus(cellAt(0, 'name'))
+
+      // Act
+      press('Enter')
+
+      // Assert
+      expect(hints()).toHaveTextContent('save & down')
+      expect(hints()).toHaveTextContent('undo')
+    })
+
+    it('show a list’s keys in a select editor', () => {
+      // Arrange
+      renderEditable()
+      focus(cellAt(0, 'owner'))
+
+      // Act
+      press('Enter')
+
+      // Assert
+      expect(hints()).toHaveTextContent('pick')
+      expect(hints()).toHaveTextContent('close list')
+    })
+
+    it('go when focus leaves the grid', () => {
+      // Arrange — the window keeps focus, so the grid reads it as leaving
+      jest.spyOn(document, 'hasFocus').mockReturnValue(true)
+      renderEditable()
+      focus(cellAt(0, 'name'))
+
+      // Act
+      act(() => (document.activeElement as HTMLElement).blur())
+
+      // Assert
+      expect(hints()).toBeNull()
+    })
+
+    it('keep their footer line before a cell is selected, so nothing moves', () => {
+      // Arrange / Act
+      renderEditable()
+
+      // Assert
+      expect(document.querySelector('[data-grid-footer]')).toBeInTheDocument()
+      expect(hints()).toBeNull()
+    })
+
+    it('sit in the footer, under the grid’s frame', () => {
+      // Arrange
+      renderEditable()
+
+      // Act
+      focus(cellAt(0, 'name'))
+
+      // Assert
+      expect(document.querySelector('[data-grid-footer]')).toContainElement(
+        hints(),
+      )
+      expect(hints()!.closest('[role="grid"]')).toBeNull()
+    })
+
+    it('are hidden from assistive technology', () => {
+      // Arrange
+      renderEditable()
+
+      // Act
+      focus(cellAt(0, 'name'))
+
+      // Assert
+      expect(hints()).toHaveAttribute('aria-hidden', 'true')
+    })
+
+    it('are not shown in a grid that does not edit', () => {
+      // Arrange
+      render(
+        <WaydGrid<Item>
+          data={ITEMS}
+          columns={editableColumns}
+          includeIdColumn={false}
+        />,
+      )
+
+      // Act
+      focus(cellAt(0, 'name'))
+
+      // Assert
+      expect(hints()).toBeNull()
+      expect(document.querySelector('[data-grid-footer]')).toBeNull()
     })
   })
 

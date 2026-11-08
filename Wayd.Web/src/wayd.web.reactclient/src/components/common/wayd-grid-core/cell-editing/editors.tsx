@@ -38,6 +38,7 @@ export function textEditor<T>(
 ): CellEditor<T, string, string> {
   return {
     ...options,
+    hintMode: 'text',
     format: (value) => value ?? '',
     parse: (value) => value,
     fromInput: (text) => text,
@@ -65,6 +66,7 @@ export function numberEditor<T>(
 ): CellEditor<T, number | null, number | null> {
   return {
     ...options,
+    hintMode: 'text',
     fromInput: (text) => (/^\d$/.test(text) ? Number(text) : null),
     render: (props) => (
       <InputNumber<number>
@@ -90,20 +92,26 @@ export interface SelectEditorOption<V> {
   value: V
 }
 
+/** An option's value: an element of the list a multiple choice holds. */
+type OptionValue<V> = V extends readonly (infer E)[] ? E : V
+
 /**
  * A choice from a list. The list opens with the editor; picking a single
- * value commits it. With `multiple`, the editor stays open until the user
- * leaves the cell.
+ * value commits it. With `multiple`, the value is a list of the options'
+ * values and the editor stays open until the user leaves the cell.
  */
 export function selectEditor<T, V>(
   options: EditorBase<T, V> & {
-    options: SelectEditorOption<V>[] | ((row: T) => SelectEditorOption<V>[])
+    options:
+      | SelectEditorOption<OptionValue<V>>[]
+      | ((row: T) => SelectEditorOption<OptionValue<V>>[])
     multiple?: boolean
   },
 ): CellEditor<T, V, V> {
   const { options: choices, multiple, ...base } = options
   return {
     ...base,
+    hintMode: multiple ? 'multiselect' : 'select',
     render: (props) => (
       <SelectCellEditor
         {...props}
@@ -141,6 +149,8 @@ function SelectCellEditor<V>(
       value={value as never}
       options={list as never}
       mode={multiple ? 'multiple' : undefined}
+      // One line of tags, the rest counted, so the row never grows.
+      maxTagCount={multiple ? 'responsive' : undefined}
       open={open}
       showSearch={{ optionFilterProp: 'label' }}
       status={status}
@@ -171,6 +181,7 @@ export function dateEditor<T>(
 ): CellEditor<T, CalendarDate | null, Dayjs | null> {
   return {
     ...options,
+    hintMode: 'date',
     format: (value) => (value ? parseCalendarDate(value) : null),
     parse: (value) => (value ? toCalendarDate(value) : null),
     render: (props) => <DateCellEditor {...props} />,

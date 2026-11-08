@@ -78,13 +78,17 @@ export interface CellEditor<T = any, V = any, E = any> {
   editable?: (row: T, context: { isDraft: boolean }) => boolean
   /**
    * A draft is not created until this cell holds a value too, as well as its
-   * Name. Only cells editable on the draft count.
+   * Name. Only cells editable on the draft count. A function decides per
+   * draft, from the values staged on it (a milestone needs its date).
    */
-  requiredToCreate?: boolean
+  requiredToCreate?: boolean | ((row: T) => boolean)
   /** Whether two model values are the same. `Object.is`, or element-wise for
    *  arrays, by default. */
   equals?: (a: V, b: V) => boolean
   render: (props: CellEditorProps<E>) => ReactNode
+  /** Which keys the hint strip shows while this editor is open. Set by the
+   *  built-in factories; a custom editor reads as `text`. */
+  hintMode?: 'text' | 'select' | 'multiselect' | 'date'
   /** Set by {@link pairedEditors}: the linked fields this one commits with. */
   group?: EditorGroup
   /** This editor's role within its group (`start`, `end`). */

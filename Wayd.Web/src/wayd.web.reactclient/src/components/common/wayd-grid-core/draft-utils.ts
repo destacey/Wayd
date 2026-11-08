@@ -7,6 +7,8 @@ export interface DraftItem {
   id: string
   parentId?: string
   order: number
+  /** The sibling the draft sits directly below; without one, it goes last. */
+  afterId?: string
 }
 
 /**
@@ -47,14 +49,18 @@ export function mergeDraftsIntoTree<T extends TreeNode>(
     })
 
     const draftsForLevel = drafts.filter((d) => d.parentId === parentId)
-    if (draftsForLevel.length > 0) {
-      return [
-        ...processedItems,
-        ...draftsForLevel.map((draft) => createDraftNode(draft)),
-      ]
-    }
+    if (draftsForLevel.length === 0) return processedItems
 
-    return processedItems
+    const result = [...processedItems]
+    for (const draft of draftsForLevel) {
+      const after = draft.afterId
+        ? result.findIndex((item) => item.id === draft.afterId)
+        : -1
+      const node = createDraftNode(draft)
+      if (after >= 0) result.splice(after + 1, 0, node)
+      else result.push(node)
+    }
+    return result
   }
 
   return insertDraftsAtLevel(items, undefined)

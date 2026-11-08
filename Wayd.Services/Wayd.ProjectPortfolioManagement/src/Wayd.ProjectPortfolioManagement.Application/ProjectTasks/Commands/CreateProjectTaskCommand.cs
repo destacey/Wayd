@@ -16,7 +16,8 @@ public sealed record CreateProjectTaskCommand(
     LocalDate? PlannedDate,
     decimal? EstimatedEffortHours,
     List<Guid>? AssigneeIds,
-    List<Guid>? DeliverableIds = null
+    List<Guid>? DeliverableIds = null,
+    int? Order = null
 ) : ICommand<ProjectTaskIdAndKey>;
 
 public sealed class CreateProjectTaskCommandValidator : AbstractValidator<CreateProjectTaskCommand>
@@ -84,6 +85,10 @@ public sealed class CreateProjectTaskCommandValidator : AbstractValidator<Create
         RuleFor(x => x.DeliverableIds)
             .Must(ids => ids == null || ids.All(id => id != Guid.Empty))
             .WithMessage("DeliverableIds cannot contain empty GUIDs.");
+
+        RuleFor(x => x.Order)
+            .GreaterThan(0)
+            .When(x => x.Order.HasValue);
     }
 }
 
@@ -153,6 +158,14 @@ public sealed class CreateProjectTaskCommandHandler(
             }
 
             var task = createResult.Value;
+
+            // Created last among its siblings, then moved into place in the same save, so no reader sees it last.
+            if (request.Order.HasValue)
+            {
+                var placeResult = project.ChangeTaskPlacement(task.Id, request.ParentId, request.Order);
+                if (placeResult.IsFailure)
+                    return Result.Failure<ProjectTaskIdAndKey>(placeResult.Error);
+            }
 
             if (deliverableIds.Count > 0)
             {

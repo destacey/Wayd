@@ -23,7 +23,7 @@ const VISUALLY_HIDDEN = {
 export interface CellEditMessagesProps {
   marksByRow: ReadonlyMap<string, Readonly<Record<string, CellMark>>>
   idPrefix: string
-  /** The latest failure, read out as it happens. */
+  /** The latest message for assistive technology: a failure, a refused row key, a row moved, read out as it happens. */
   announcement: string
 }
 

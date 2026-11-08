@@ -2176,6 +2176,19 @@ public sealed class StatusWorkflowTests
         workflow.Statuses.Single(s => s.ExternalKey == externalKey);
 
     [Fact]
+    public void CreateManaged_ShouldStartEachStatus_WithTheDescriptionItIsGiven()
+    {
+        // Act
+        var workflow = StatusWorkflow.CreateManaged(
+            "Agile: Bug", Synced.Key, "conn-1:agile:bug",
+            [SourceNew with { Description = "Not started yet." }, SourceActive, SourceClosed], EventActor.Sync(null), At).Value;
+
+        // Assert
+        workflow.Statuses.Select(s => (s.ExternalKey, s.Description)).Should().Equal(
+            ("new", "Not started yet."), ("active", null), ("closed", null));
+    }
+
+    [Fact]
     public void CreateManaged_ShouldPublishTheSourcesStatusesInItsOrder()
     {
         // Act
@@ -2308,6 +2321,46 @@ public sealed class StatusWorkflowTests
 
         // Assert
         StatusKeyed(workflow, "resolved").Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldStartANewStatus_WithTheDescriptionItIsGiven()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+
+        // Act
+        workflow.SyncFromSource("Agile: Bug",
+            [SourceNew, SourceActive, SourceClosed, new("resolved", "Resolved", StatusCategory.Done, Description: "  Fixed, awaiting checks.  ")],
+            EventActor.Sync(null), At);
+
+        // Assert
+        StatusKeyed(workflow, "resolved").Description.Should().Be("Fixed, awaiting checks.");
+        workflow.DomainEvents.OfType<WorkflowStatusAddedEvent>().Should().ContainSingle()
+            .Which.Description.Should().Be("Fixed, awaiting checks.", "the Activity log records it with the status");
+        workflow.DomainEvents.OfType<WorkflowStatusDescriptionChangedEvent>().Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("Ours.")]
+    public void SyncFromSource_ShouldIgnoreTheDescriptionItIsGiven_ForAStatusAlreadyThere(string? description)
+    {
+        // Arrange — described, then rewritten or cleared; a cleared description stays cleared
+        var workflow = ManagedWorkflow();
+        var active = StatusKeyed(workflow, "active");
+        workflow.DescribeStatus(active.Id, "From the sync.", EventActor.Sync(null), At);
+        workflow.DescribeStatus(active.Id, description, EventActor.User("admin"), At);
+        workflow.ClearDomainEvents();
+
+        // Act
+        var result = workflow.SyncFromSource("Agile: Bug",
+            [SourceNew, SourceActive with { Description = "Being worked on." }, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        active.Description.Should().Be(description);
+        workflow.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]

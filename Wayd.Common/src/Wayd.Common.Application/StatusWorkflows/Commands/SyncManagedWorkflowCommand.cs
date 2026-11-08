@@ -32,6 +32,7 @@ public sealed class SyncManagedWorkflowCommandValidator : AbstractValidator<Sync
             status.RuleFor(s => s.ExternalKey).NotEmpty().MaximumLength(256);
             status.RuleFor(s => s.Name).NotEmpty().MaximumLength(64);
             status.RuleFor(s => s.Category).IsInEnum();
+            status.RuleFor(s => s.Description).MaximumLength(512);
         });
     }
 }

@@ -1010,7 +1010,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         foreach (var source in statuses.Where(s => !s.IsHidden).Concat(statuses.Where(s => s.IsHidden)))
         {
             workflow._statuses.Add(new WorkflowStatus(
-                workflow.Id, source.Name.Trim(), description: null, source.Category, NoAlias, position++, externalKey: source.ExternalKey.Trim()));
+                workflow.Id, source.Name.Trim(), source.Description, source.Category, NoAlias, position++, externalKey: source.ExternalKey.Trim()));
         }
 
         var publishable = workflow.GuardPublishable();
@@ -1042,8 +1042,8 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// The only way a managed workflow's structure changes. It never refuses for what the source holds: a
     /// source with no status in a required category still syncs, and <see cref="CheckIssues"/> reports it.
     /// <para>
-    /// Only the source's facts are applied. An existing status keeps the category and alias administrators
-    /// gave it, whatever category the source now suggests. A retired status keeps its place after the active
+    /// Only the source's facts are applied. An existing status keeps the category, alias and description
+    /// administrators gave it, whatever the source now suggests. A retired status keeps its place after the active
     /// ones and loses its alias, so the meaning can move to a status records can still be given.
     /// </para>
     /// </remarks>
@@ -1101,7 +1101,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             }
             else
             {
-                status = new WorkflowStatus(Id, source.Name.Trim(), description: null, source.Category, NoAlias, order: 0, externalKey: source.ExternalKey.Trim());
+                status = new WorkflowStatus(Id, source.Name.Trim(), source.Description, source.Category, NoAlias, order: 0, externalKey: source.ExternalKey.Trim());
                 _statuses.Add(status);
                 added.Add(status);
             }

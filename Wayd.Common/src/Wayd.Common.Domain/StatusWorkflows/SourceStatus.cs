@@ -19,4 +19,8 @@ namespace Wayd.Common.Domain.StatusWorkflows;
 /// Whether the source keeps the status but no longer offers it, as Azure DevOps does with a hidden state. It
 /// is kept as a retired status, so records and history that hold it still resolve to it and its category.
 /// </param>
-public sealed record SourceStatus(string ExternalKey, string Name, StatusCategory Category, bool IsHidden = false);
+/// <param name="Description">
+/// The description to start the status with. Used only when the status first appears, as the category is: from
+/// then on the description is the administrators', and the sync never overwrites it, a cleared one included.
+/// </param>
+public sealed record SourceStatus(string ExternalKey, string Name, StatusCategory Category, bool IsHidden = false, string? Description = null);

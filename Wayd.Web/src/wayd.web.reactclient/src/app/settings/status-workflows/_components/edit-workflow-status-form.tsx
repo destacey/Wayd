@@ -288,7 +288,7 @@ const EditWorkflowStatusForm = ({
             autoSize={{ minRows: 3, maxRows: 6 }}
             showCount
             maxLength={512}
-            aria-describedby={scope === 'description' ? scopeHintId : undefined}
+            aria-describedby={scope !== 'all' ? scopeHintId : undefined}
           />
         </Item>
       </Form>

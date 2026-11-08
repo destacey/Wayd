@@ -388,6 +388,53 @@ describe('EditWorkflowStatusForm', () => {
       )
     })
 
+    it('sends a description change through rename', async () => {
+      // Arrange
+      mockRename.mockResolvedValue({})
+      const onFormComplete = jest.fn()
+      await renderForm(
+        statusIn(StatusCategory.Done, 2),
+        undefined,
+        'nameAndDescription',
+        onFormComplete,
+      )
+
+      // Act
+      await act(() =>
+        userEvent.type(screen.getByLabelText('Description'), 'Out the door.'),
+      )
+      await save()
+
+      // Assert
+      expect(mockRename).toHaveBeenCalledWith(
+        expect.objectContaining({
+          request: expect.objectContaining({ description: 'Out the door.' }),
+        }),
+      )
+      expect(mockDescribe).not.toHaveBeenCalled()
+      expect(onFormComplete).toHaveBeenCalled()
+    })
+
+    it('sends nothing when nothing changed, and still closes', async () => {
+      // Arrange
+      const onFormComplete = jest.fn()
+      await renderForm(
+        statusIn(StatusCategory.Done, 2),
+        undefined,
+        'nameAndDescription',
+        onFormComplete,
+      )
+
+      // Act
+      await save()
+
+      // Assert
+      expect(mockRename).not.toHaveBeenCalled()
+      expect(mockReclassify).not.toHaveBeenCalled()
+      expect(mockDescribe).not.toHaveBeenCalled()
+      expect(onFormComplete).toHaveBeenCalled()
+    })
+
     it('renames without reclassifying', async () => {
       // Arrange
       mockRename.mockResolvedValue({})

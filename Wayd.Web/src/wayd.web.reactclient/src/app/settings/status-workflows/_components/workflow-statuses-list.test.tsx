@@ -208,6 +208,24 @@ describe('WorkflowStatusesList', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('hides the actions column on a published owned workflow from a user without the Update permission', () => {
+    // Arrange / Act
+    render(
+      <WorkflowStatusesList
+        canUpdate={false}
+        statusWorkflow={workflow({
+          canEdit: false,
+          canRenameAndReorder: true,
+          canDescribe: true,
+          state: 'Published',
+        })}
+      />,
+    )
+
+    // Assert
+    expect(screen.queryByLabelText('Status actions')).not.toBeInTheDocument()
+  })
+
   it('hides the actions column on an archived managed workflow', () => {
     // Arrange / Act
     render(

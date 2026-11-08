@@ -164,7 +164,7 @@ const buildSettingsMenuItems = (
     ),
   ]),
 
-  // Work types, statuses and processes carry no View permission of their own,
+  // Work types and processes carry no View permission of their own,
   // so they are plain items — the group is reachable by anyone who can open
   // settings at all.
   menuItem('Work Management', 'work-management', undefined, undefined, [
@@ -172,11 +172,6 @@ const buildSettingsMenuItems = (
       'Work Types',
       'work-management.work-types',
       '/settings/work-management/work-types',
-    ),
-    menuItem(
-      'Work Statuses',
-      'work-management.work-statuses',
-      '/settings/work-management/work-statuses',
     ),
     menuItem(
       'Work Processes',

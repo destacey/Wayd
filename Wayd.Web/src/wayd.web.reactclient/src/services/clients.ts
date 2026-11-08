@@ -21,7 +21,6 @@ import {
   HolidayCalendarsClient,
   TeamsOfTeamsClient,
   UsersClient,
-  WorkStatusesClient,
   WorkTypesClient,
   WorkProcessesClient,
   WorkspacesClient,
@@ -551,8 +550,6 @@ export const getStrategicThemesClient = () =>
 export const getWorkProcessesClient = () =>
   new WorkProcessesClient('', axiosClient)
 export const getWorkspacesClient = () => new WorkspacesClient('', axiosClient)
-export const getWorkStatusesClient = () =>
-  new WorkStatusesClient('', axiosClient)
 export const getWorkTypeLevelsClient = () =>
   new WorkTypeLevelsClient('', axiosClient)
 export const getWorkTypesClient = () => new WorkTypesClient('', axiosClient)

@@ -52,9 +52,9 @@ const nextConfig = {
       },
     ]
   },
-  // Sprint URLs from before the pages moved under /work, still in bookmarks and shared links.
   async redirects() {
     return [
+      // Sprint URLs from before the pages moved under /work, still in bookmarks and shared links.
       {
         source: '/planning/sprints',
         destination: '/work/sprints',
@@ -70,6 +70,12 @@ const nextConfig = {
         source: '/docs/user-guide/work-management/allocation-report',
         destination:
           '/docs/user-guide/work-management/work-distribution-report',
+        permanent: true,
+      },
+      // Bookmarks to the removed Work Statuses page.
+      {
+        source: '/settings/work-management/work-statuses',
+        destination: '/settings/work-management/work-processes',
         permanent: true,
       },
     ]

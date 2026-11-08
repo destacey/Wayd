@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Domain.Enums.Work;
+﻿using NodaTime;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Tests.Shared;
@@ -503,6 +504,62 @@ public class WorkItemTests
     }
 
     #endregion Status
+
+    #region AddSuccessorLink
+
+    [Fact]
+    public void AddSuccessorLink_RecordsTheLinkWithBothEndsPlans()
+    {
+        // Arrange
+        var workItem = _workItemFaker.Generate();
+        var lastDay = new LocalDate(2024, 4, 12);
+        var source = new DependencyWorkItemInfo { WorkItemId = workItem.Id, StatusCategory = StatusCategory.Proposed, PlannedOn = lastDay };
+        var target = new DependencyWorkItemInfo { WorkItemId = Guid.NewGuid(), StatusCategory = StatusCategory.Proposed, PlannedOn = lastDay.PlusDays(14) };
+
+        // Act
+        var result = workItem.AddSuccessorLink(source, target, _dateTimeProvider.Now, null, null);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var link = workItem.OutboundDependencies.Should().ContainSingle().Subject;
+        link.TargetId.Should().Be(target.WorkItemId);
+        link.SourcePlannedOn.Should().Be(lastDay);
+        link.TargetPlannedOn.Should().Be(lastDay.PlusDays(14));
+        link.Health.Should().Be(DependencyPlanningHealth.Healthy);
+    }
+
+    [Fact]
+    public void AddSuccessorLink_WithAnotherWorkItemsSourceInfo_Fails()
+    {
+        // Arrange
+        var workItem = _workItemFaker.Generate();
+        var source = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed);
+        var target = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed);
+
+        // Act
+        var result = workItem.AddSuccessorLink(source, target, _dateTimeProvider.Now, null, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        workItem.OutboundDependencies.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddSuccessorLink_ToItself_Fails()
+    {
+        // Arrange
+        var workItem = _workItemFaker.Generate();
+        var info = DependencyWorkItemInfo.Create(workItem.Id, StatusCategory.Proposed);
+
+        // Act
+        var result = workItem.AddSuccessorLink(info, info, _dateTimeProvider.Now, null, null);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        workItem.OutboundDependencies.Should().BeEmpty();
+    }
+
+    #endregion AddSuccessorLink
 
     public sealed record TestParentInfo(Guid Id, int? ExternalId, WorkTypeTier Tier, int LevelOrder, Guid? ProjectId = null) : IWorkItemParentInfo;
 }

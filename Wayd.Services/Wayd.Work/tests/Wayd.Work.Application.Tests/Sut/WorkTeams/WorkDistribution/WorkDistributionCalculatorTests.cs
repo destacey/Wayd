@@ -3,6 +3,7 @@ using NodaTime;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Work.Application.WorkTeams;
 using Wayd.Work.Application.WorkTeams.Dtos;
 using Wayd.Work.Application.WorkTeams.WorkDistribution;
 using Xunit;
@@ -69,7 +70,7 @@ public sealed class WorkDistributionCalculatorTests
         new(Guid.NewGuid(), team.Id, type, doneOn ?? Early, project?.ProjectId, points, effort, null);
 
     private TeamWorkDistributionDto Calculate(IReadOnlyList<WorkDistributionItem> items, WorkDistributionOptions? options = null, TeamStructure? structure = null) =>
-        WorkDistributionCalculator.Calculate(RootNavigation, From, To, structure ?? Structure(), items, _projects, options ?? ItemsByPortfolio);
+        WorkDistributionCalculator.Calculate(RootNavigation, From, To, TeamReportCalendar.Utc, structure ?? Structure(), items, _projects, options ?? ItemsByPortfolio);
 
     [Fact]
     public void Calculate_ByPortfolio_PutsNoProjectLastWithSharesOfTheTotal()

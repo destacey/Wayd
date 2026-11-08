@@ -1,11 +1,16 @@
 ﻿using System.Diagnostics;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Application.SystemSettings;
+using Wayd.Common.Domain.Settings;
 using Wayd.Work.Application.Persistence;
 
 namespace Wayd.Work.Application.WorkItemDependencies.Commands;
 
 public sealed class ProcessDependenciesCommandHandler(
     IWorkDbContext workDbContext,
+    IDispatcher dispatcher,
+    ISettings<SchedulingSettings> schedulingSettings,
+    ISettings<GeneralSettings> generalSettings,
     ILogger<ProcessDependenciesCommandHandler> logger,
     IDateTimeProvider dateTimeProvider)
     : ICommandHandler<ProcessDependenciesCommand>
@@ -13,6 +18,9 @@ public sealed class ProcessDependenciesCommandHandler(
     private const string AppRequestName = nameof(ProcessDependenciesCommand);
 
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly ISettings<SchedulingSettings> _schedulingSettings = schedulingSettings;
+    private readonly ISettings<GeneralSettings> _generalSettings = generalSettings;
     private readonly ILogger<ProcessDependenciesCommandHandler> _logger = logger;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
@@ -38,11 +46,8 @@ public sealed class ProcessDependenciesCommandHandler(
             .Distinct()
             .ToArray();
 
-        // Get all unique work items and project to DependencyWorkItemInfo using Contains for better performance
-        var workItemInfoDictionary = await _workDbContext.WorkItems
-            .Where(wi => workItemIds.Contains(wi.Id))
-            .Select(DependencyWorkItemInfo.Projection)
-            .ToDictionaryAsync(x => x.WorkItemId, cancellationToken);
+        var workItemInfoDictionary = await _workDbContext.LoadDependencyWorkItemInfos(
+            _dispatcher, _schedulingSettings, _generalSettings, workItemIds, now, cancellationToken);
 
         if (workItemInfoDictionary.Count == 0)
         {
@@ -62,7 +67,7 @@ public sealed class ProcessDependenciesCommandHandler(
             if (workItemInfoDictionary.TryGetValue(dependency.SourceId, out var sourceInfo) &&
                 workItemInfoDictionary.TryGetValue(dependency.TargetId, out var targetInfo))
             {
-                dependency.UpdateSourceAndTargetInfo(sourceInfo, targetInfo, now);
+                dependency.UpdateSourceAndTargetInfo(sourceInfo, targetInfo);
 
                 // Check if EF detected any changes
                 var entry = _workDbContext.Entry(dependency);

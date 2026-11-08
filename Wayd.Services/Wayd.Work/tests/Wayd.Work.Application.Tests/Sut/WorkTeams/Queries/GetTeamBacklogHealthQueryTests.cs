@@ -245,11 +245,36 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
         var health = result.Value!;
         health.MinimumItemsCompleted.Should().Be(BacklogHealthAssessor.MinimumItemsCompleted);
         health.LookbackDays.Should().Be(90);
+        health.TimeZone.Should().Be("UTC");
         health.To.Should().Be(new LocalDate(2026, 9, 21));
         health.From.Should().Be(new LocalDate(2026, 6, 24));
         health.ItemsCompleted.Should().Be(12);
         health.ItemsCreated.Should().Be(1);
         health.AgingWipDays.Should().BeApproximately(3, 0.0001);
+    }
+
+    [Fact]
+    public async Task Handle_CountsTheHistoryInTheTeamsTimeZone()
+    {
+        // Arrange
+        _dispatcher
+            .Setup(d => d.Send(It.Is<GetTeamTimeZoneHistoryQuery>(q => q.TeamId == _team), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new TeamTimeZonePeriod(new LocalDate(2026, 1, 1), null, "Pacific/Kiritimati")]);
+
+        // 23:00 on the 22nd in Kiritimati (UTC+14), yesterday there although today in UTC.
+        AddItem(_team, StatusCategory.Done, done: Instant.FromUtc(2026, 9, 22, 9, 0));
+        // 19:00 on June 24th there, the day before the window opens there, although inside the UTC window.
+        AddItem(_team, StatusCategory.Done, done: Instant.FromUtc(2026, 6, 24, 5, 0));
+
+        // Act
+        var result = await Handler().Handle(Query(_team), TestContext.Current.CancellationToken);
+
+        // Assert
+        var health = result.Value!;
+        health.TimeZone.Should().Be("Pacific/Kiritimati");
+        health.To.Should().Be(new LocalDate(2026, 9, 22));
+        health.From.Should().Be(new LocalDate(2026, 6, 25));
+        health.ItemsCompleted.Should().Be(1);
     }
 
     [Fact]
@@ -295,7 +320,7 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
         // Arrange
         var successor = AddItem(_team, stackRank: 1);
         var predecessor = AddItem(_team, stackRank: 2);
-        _context.AddWorkItemDependency(new WorkItemDependencyFaker(_now).WithSource(predecessor).WithTarget(successor).Generate());
+        _context.AddWorkItemDependency(new WorkItemDependencyFaker().WithSource(predecessor).WithTarget(successor).Generate());
 
         // Act
         var result = await Handler().Handle(Query(_team), TestContext.Current.CancellationToken);

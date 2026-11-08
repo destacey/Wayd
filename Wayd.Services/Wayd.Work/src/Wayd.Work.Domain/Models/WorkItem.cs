@@ -287,14 +287,23 @@ public sealed class WorkItem : ManagedStatusEntity, IHasWorkspace, IHasOptionalW
         return Result.Success();
     }
 
-    public Result AddSuccessorLink(DependencyWorkItemInfo targetInfo, Instant createdOn, Guid? createdById, string? comment, Instant now)
+    /// <summary>
+    /// Records that the target work item depends on this one, or refreshes the link already recorded at
+    /// <paramref name="createdOn"/>.
+    /// </summary>
+    /// <param name="sourceInfo">This work item's own dependency info, which carries its sprint's plan as read in
+    /// the sprint team's time zone.</param>
+    public Result AddSuccessorLink(DependencyWorkItemInfo sourceInfo, DependencyWorkItemInfo targetInfo, Instant createdOn, Guid? createdById, string? comment)
     {
+        if (sourceInfo.WorkItemId != Id)
+        {
+            return Result.Failure($"Source WorkItemId {sourceInfo.WorkItemId} does not match this work item {Id}.");
+        }
+
         if (Id == targetInfo.WorkItemId)
         {
             return Result.Failure("A work item cannot be linked to itself.");
         }
-
-        var sourceInfo = DependencyWorkItemInfo.Create(this, now);
 
         var existingLink = _outboundDependencyHistory.FirstOrDefault(x => x.TargetId == targetInfo.WorkItemId
             && x.CreatedOn == createdOn);
@@ -302,11 +311,11 @@ public sealed class WorkItem : ManagedStatusEntity, IHasWorkspace, IHasOptionalW
         {
             // TODO: move update successor link to it's own method
             existingLink.Update(createdById, existingLink.RemovedById, comment);
-            existingLink.UpdateSourceAndTargetInfo(sourceInfo, targetInfo, now);
+            existingLink.UpdateSourceAndTargetInfo(sourceInfo, targetInfo);
         }
         else
         {
-            var newLink = WorkItemDependency.Create(sourceInfo, targetInfo, createdOn, createdById, null, null, comment, now);
+            var newLink = WorkItemDependency.Create(sourceInfo, targetInfo, createdOn, createdById, null, null, comment);
             _outboundDependencyHistory.Add(newLink);
         }
 

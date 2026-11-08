@@ -4,7 +4,8 @@ namespace Wayd.Work.Application.WorkTeams.Dtos;
 
 /// <summary>
 /// Where a team's dependencies, or those of every team beneath a team of teams, ran from <c>from</c> to <c>to</c>
-/// (inclusive, UTC dates): which teams they ran between, how many, and how that changed over the range.
+/// (inclusive, days in the team's time zone): which teams they ran between, how many, and how that changed over
+/// the range.
 /// </summary>
 /// <remarks>
 /// Covers dependencies, not removed, that cross team lines, where a team in scope owns the predecessor or the
@@ -17,11 +18,17 @@ public sealed record TeamDependencyAnalysisDto
     /// <summary>The team or team of teams the report is for.</summary>
     public required WorkTeamNavigationDto Team { get; init; }
 
-    /// <summary>The first day of the range (UTC).</summary>
+    /// <summary>The first day of the range.</summary>
     public required LocalDate From { get; init; }
 
-    /// <summary>The last day of the range (UTC), included.</summary>
+    /// <summary>The last day of the range, included.</summary>
     public required LocalDate To { get; init; }
+
+    /// <summary>
+    /// The IANA id of the time zone the range and periods are counted in: that of the team's, or the team of
+    /// teams', operating model in effect on <c>to</c>.
+    /// </summary>
+    public required string TimeZone { get; init; }
 
     /// <summary>Totals for the range.</summary>
     public required DependencyAnalysisSummaryDto Summary { get; init; }

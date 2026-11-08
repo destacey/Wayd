@@ -20,9 +20,11 @@ public static class DependencyAnalysisCalculator
 {
     /// <summary>
     /// Counts the dependencies open at some point from <paramref name="from"/> to <paramref name="to"/>
-    /// (inclusive, UTC dates): in total, per predecessor team → successor team pair, and per calendar period.
+    /// (inclusive, days of <paramref name="calendar"/>): in total, per predecessor team → successor team pair, and
+    /// per calendar period.
     /// </summary>
     /// <param name="team">The team or team of teams the report is for.</param>
+    /// <param name="calendar">The days of <paramref name="team"/>, which the range and its periods are counted in.</param>
     /// <param name="scopeTeamIds">The teams the report covers; a pair's team outside them is a partner.</param>
     /// <param name="items">
     /// The dependencies to count. Any created after the range or closed before it are ignored, so a caller may
@@ -32,11 +34,12 @@ public static class DependencyAnalysisCalculator
         WorkTeamNavigationDto team,
         LocalDate from,
         LocalDate to,
+        TeamReportCalendar calendar,
         IReadOnlySet<Guid> scopeTeamIds,
         IEnumerable<DependencyAnalysisItem> items)
     {
-        var rangeStart = StartOf(from);
-        var rangeEnd = StartOf(to.PlusDays(1));
+        var rangeStart = calendar.StartOf(from);
+        var rangeEnd = calendar.StartOf(to.PlusDays(1));
 
         var counted = items
             // A link added after its predecessor was done closes as it opens, so it still counts once.
@@ -89,8 +92,8 @@ public static class DependencyAnalysisCalculator
         var periods = ReportPeriods.Between(from, to)
             .Select(period =>
             {
-                var start = StartOf(period.Start);
-                var end = StartOf(period.End.PlusDays(1));
+                var start = calendar.StartOf(period.Start);
+                var end = calendar.StartOf(period.End.PlusDays(1));
                 return new DependencyAnalysisPeriodDto
                 {
                     Start = period.Start,
@@ -107,6 +110,7 @@ public static class DependencyAnalysisCalculator
             Team = team,
             From = from,
             To = to,
+            TimeZone = calendar.ZoneOn(to).Id,
             Summary = summary,
             Pairs = pairs,
             Periods = periods,
@@ -122,9 +126,6 @@ public static class DependencyAnalysisCalculator
     /// </summary>
     private static DependencyDto WithClosedHealth(DependencyAnalysisItem item) =>
         item.ClosedOn is null ? item.Dependency : item.Dependency with { Health = ClosedHealth };
-
-    /// <summary>The first instant of the UTC day.</summary>
-    private static Instant StartOf(LocalDate date) => date.AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
 
     /// <summary>Open at some point from <paramref name="start"/> up to, but not including, <paramref name="end"/>.</summary>
     private static bool IsOpenDuring(DependencyAnalysisItem item, Instant start, Instant end) =>

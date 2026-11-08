@@ -85,7 +85,7 @@ public sealed class ForecastScenario : IDisposable
     }
 
     public void AddDependency(WorkItem predecessor, WorkItem successor) =>
-        Context.AddWorkItemDependency(new WorkItemDependencyFaker(Now).WithSource(predecessor).WithTarget(successor).Generate());
+        Context.AddWorkItemDependency(new WorkItemDependencyFaker().WithSource(predecessor).WithTarget(successor).Generate());
 
     public void AddReference(WorkItem workItem, Guid objectId) =>
         Context.AddWorkItemReference(WorkItemReference.Create(workItem.Id, objectId, SystemContext.PlanningPlanningIntervalObjective));

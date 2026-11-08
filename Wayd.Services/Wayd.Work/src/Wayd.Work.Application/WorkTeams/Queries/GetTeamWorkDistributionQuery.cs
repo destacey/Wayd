@@ -12,7 +12,8 @@ namespace Wayd.Work.Application.WorkTeams.Queries;
 
 /// <summary>
 /// Where the Requirement-tier work a team, or a team of teams and everything beneath it, completed from
-/// <paramref name="From"/> to <paramref name="To"/> (inclusive, UTC dates) went.
+/// <paramref name="From"/> to <paramref name="To"/> went, both inclusive and counted in the time zone of the
+/// team's, or the team of teams', operating model.
 /// </summary>
 public sealed record GetTeamWorkDistributionQuery(
     TeamIdOrCode TeamIdOrCode,
@@ -67,8 +68,9 @@ public sealed class GetTeamWorkDistributionQueryHandler(IWorkDbContext workDbCon
             return Result.Success<TeamWorkDistributionDto?>(null);
 
         var teamIds = structure.Teams.Select(t => t.Id).ToList();
-        var start = request.From.AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
-        var end = request.To.PlusDays(1).AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
+        var calendar = await TeamReportCalendar.Load(_dispatcher, team.Id, cancellationToken);
+        var start = calendar.StartOf(request.From);
+        var end = calendar.StartOf(request.To.PlusDays(1));
 
         // Removed items also carry a DoneTimestamp, so the status category is what excludes them. Only the
         // Requirement tier counts, so a feature is never counted on top of the stories beneath it.
@@ -91,7 +93,7 @@ public sealed class GetTeamWorkDistributionQueryHandler(IWorkDbContext workDbCon
             .ToListAsync(cancellationToken);
 
         var workItems = completions
-            .Select(c => new WorkDistributionItem(c.Id, c.TeamId, c.TypeName, c.DoneTimestamp.InUtc().Date, c.ProjectId, c.StoryPoints, c.Effort, c.Size))
+            .Select(c => new WorkDistributionItem(c.Id, c.TeamId, c.TypeName, calendar.DateOf(c.DoneTimestamp), c.ProjectId, c.StoryPoints, c.Effort, c.Size))
             .ToList();
 
         var projectIds = workItems.Where(w => w.ProjectId.HasValue).Select(w => w.ProjectId!.Value).Distinct().ToList();
@@ -100,6 +102,6 @@ public sealed class GetTeamWorkDistributionQueryHandler(IWorkDbContext workDbCon
             : (await _dispatcher.Send(new GetProjectClassificationsQuery(projectIds), cancellationToken))
                 .ToDictionary(p => p.ProjectId);
 
-        return WorkDistributionCalculator.Calculate(team, request.From, request.To, structure, workItems, projects, request.Options);
+        return WorkDistributionCalculator.Calculate(team, request.From, request.To, calendar, structure, workItems, projects, request.Options);
     }
 }

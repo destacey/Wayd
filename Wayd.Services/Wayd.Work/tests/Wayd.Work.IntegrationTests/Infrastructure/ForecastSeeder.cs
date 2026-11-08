@@ -193,6 +193,18 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
             cancellationToken);
     }
 
+    /// <summary>
+    /// Marks the seeded workspace as synced from an Azure DevOps system, so the dependency sync commands find it
+    /// by <paramref name="systemId"/> and its items by <paramref name="externalId"/> and their external ids.
+    /// </summary>
+    public async Task LinkWorkspaceToSystem(string systemId, Guid externalId, CancellationToken cancellationToken)
+    {
+        var workspaceExternalId = externalId.ToString();
+        await using var context = _fixture.CreateContext();
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE [Work].[Workspaces] SET [Connector] = 'AzureDevOps', [SystemId] = {systemId}, [ExternalId] = {workspaceExternalId} WHERE [Id] = {_workspaceId};", cancellationToken);
+    }
+
     /// <summary>Records that the seeded workspace's history has been read through to the end.</summary>
     public async Task MarkHistoryReadToEnd(CancellationToken cancellationToken)
     {
@@ -213,7 +225,7 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
         context.WorkItemDependencies.Add(WorkItemDependency.Create(
             infos.Single(i => i.WorkItemId == predecessorId),
             infos.Single(i => i.WorkItemId == successorId),
-            createdOn ?? Now, null, removed ? Now : null, null, null, Now));
+            createdOn ?? Now, null, removed ? Now : null, null, null));
         await context.SaveChangesAsync(cancellationToken);
     }
 

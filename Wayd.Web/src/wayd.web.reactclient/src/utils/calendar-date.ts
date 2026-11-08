@@ -58,6 +58,13 @@ export function todayCalendarDate(): CalendarDate {
   return toCalendarDate(new Date())
 }
 
+/** Today in `timeZone`, an IANA id such as a team's; the viewer's today when absent. */
+export function todayInZone(timeZone: string | undefined): CalendarDate {
+  return timeZone
+    ? calendarDateInZone(new Date(), timeZone)
+    : todayCalendarDate()
+}
+
 /**
  * Orders calendar dates. ISO dates sort as plain strings, so this needs no
  * parsing and no locale collation; missing values sort first.

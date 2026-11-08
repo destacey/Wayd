@@ -4,7 +4,11 @@ import { DependencyWheelExplorer } from '@/src/components/common/dependency-whee
 import { DependencyPartnersExplorer } from '@/src/components/common/work/dependency-partners'
 import { TeamDependencyAnalysisDto } from '@/src/services/wayd-api'
 import { useGetTeamDependencyAnalysisQuery } from '@/src/store/features/organizations/team-api'
-import { toCalendarDate } from '@/src/utils/calendar-date'
+import {
+  parseCalendarDate,
+  toCalendarDate,
+  todayInZone,
+} from '@/src/utils/calendar-date'
 import { isApiError } from '@/src/utils/problem-details'
 import { InfoCircleOutlined } from '@ant-design/icons'
 import type { TimeRangePickerProps } from 'antd'
@@ -18,7 +22,7 @@ import {
   Tabs,
   Typography,
 } from 'antd'
-import dayjs, { Dayjs } from 'dayjs'
+import { Dayjs } from 'dayjs'
 import { FC, useState } from 'react'
 import { METRIC_CARD_FLEX, MetricCard } from '../../metrics'
 import WaydEmpty from '../../wayd-empty'
@@ -34,24 +38,37 @@ type DependencyAnalysisView = 'where' | 'pairs' | 'time'
 /** Two years with room for a leap day, both ends inclusive; the API rejects longer ranges. */
 const MAX_RANGE_DAYS = 731
 
-const today = () => dayjs().startOf('day')
+/** Today in the team's time zone, as a picker value; in UTC without one, as the API counts it. */
+const todayFor = (timeZone: string | undefined) =>
+  parseCalendarDate(todayInZone(timeZone ?? 'UTC'))
 
-const RANGE_PRESETS: TimeRangePickerProps['presets'] = [
-  { label: 'Last 30 days', value: () => [today().subtract(29, 'day'), today()] },
-  { label: 'Last 90 days', value: () => [today().subtract(89, 'day'), today()] },
-  {
-    label: 'Last 6 months',
-    value: () => [today().subtract(6, 'month').add(1, 'day'), today()],
-  },
-  {
-    label: 'Last 12 months',
-    value: () => [today().subtract(12, 'month').add(1, 'day'), today()],
-  },
-  {
-    label: 'Last 2 years',
-    value: () => [today().subtract(2, 'year').add(1, 'day'), today()],
-  },
-]
+const rangePresets = (
+  timeZone: string | undefined,
+): TimeRangePickerProps['presets'] => {
+  const today = () => todayFor(timeZone)
+  return [
+    {
+      label: 'Last 30 days',
+      value: () => [today().subtract(29, 'day'), today()],
+    },
+    {
+      label: 'Last 90 days',
+      value: () => [today().subtract(89, 'day'), today()],
+    },
+    {
+      label: 'Last 6 months',
+      value: () => [today().subtract(6, 'month').add(1, 'day'), today()],
+    },
+    {
+      label: 'Last 12 months',
+      value: () => [today().subtract(12, 'month').add(1, 'day'), today()],
+    },
+    {
+      label: 'Last 2 years',
+      value: () => [today().subtract(2, 'year').add(1, 'day'), today()],
+    },
+  ]
+}
 
 /** The API's validation messages, when the request was rejected as invalid. */
 const validationMessages = (error: unknown): string[] =>
@@ -66,6 +83,8 @@ export interface DependencyAnalysisReportViewProps {
   onRangeChange: (range: [Dayjs, Dayjs]) => void
   /** A team of teams covers every team beneath it and draws a wheel; a team draws its partners. */
   isTeamOfTeams: boolean
+  /** The team's time zone, which decides what today is; UTC when absent. */
+  timeZone?: string
 }
 
 export const DependencyAnalysisReportView: FC<
@@ -78,6 +97,7 @@ export const DependencyAnalysisReportView: FC<
   range,
   onRangeChange,
   isTeamOfTeams,
+  timeZone,
 }) => {
   const [view, setView] = useState<DependencyAnalysisView>('where')
   const summary = analysis?.summary
@@ -87,11 +107,7 @@ export const DependencyAnalysisReportView: FC<
     : 'team-dependency-analysis'
   const emptyMessage = 'No dependencies crossed team lines in this date range.'
 
-  const card = (
-    title: string,
-    value: number | undefined,
-    tooltip?: string,
-  ) => (
+  const card = (title: string, value: number | undefined, tooltip?: string) => (
     <MetricCard
       key={title}
       title={title}
@@ -169,10 +185,10 @@ export const DependencyAnalysisReportView: FC<
           aria-label="Date range"
           allowClear={false}
           value={range}
-          presets={RANGE_PRESETS}
+          presets={rangePresets(timeZone)}
           // Once one end is picked, the other can be at most two years away, as the API allows.
           disabledDate={(date, { from }) =>
-            date.isAfter(dayjs(), 'day') ||
+            date.isAfter(todayFor(timeZone), 'day') ||
             (!!from && Math.abs(date.diff(from, 'day')) + 1 > MAX_RANGE_DAYS)
           }
           onChange={(value) =>
@@ -245,8 +261,8 @@ export const DependencyAnalysisReportView: FC<
           />
           <Spin spinning={isLoading && !!analysis}>{content}</Spin>
           <Text type="secondary" style={{ fontSize: 12 }}>
-            The date range and periods run midnight to midnight UTC, so
-            something done late in your evening may count on the next day.
+            {analysis &&
+              `The date range and periods are whole days in the ${isTeamOfTeams ? "team of teams'" : "team's"} time zone, ${analysis.timeZone} at the end of the range. `}
             Teams are the items&apos; current teams. State and health are as
             they are today. Removed links are left out.
           </Text>
@@ -259,18 +275,23 @@ export const DependencyAnalysisReportView: FC<
 export interface DependencyAnalysisReportProps {
   teamType: 'team' | 'team-of-teams'
   teamCode: string
+  /** The time zone of the team's, or the team of teams', current operating model. */
+  timeZone?: string
 }
 
-const defaultRange = (): [Dayjs, Dayjs] => [
-  today().subtract(89, 'day'),
-  today(),
+const defaultRange = (timeZone: string | undefined): [Dayjs, Dayjs] => [
+  todayFor(timeZone).subtract(89, 'day'),
+  todayFor(timeZone),
 ]
 
 export const DependencyAnalysisReport: FC<DependencyAnalysisReportProps> = ({
   teamType,
   teamCode,
+  timeZone,
 }) => {
-  const [range, setRange] = useState<[Dayjs, Dayjs]>(defaultRange)
+  const [range, setRange] = useState<[Dayjs, Dayjs]>(() =>
+    defaultRange(timeZone),
+  )
 
   const { data, isFetching, error, refetch } =
     useGetTeamDependencyAnalysisQuery({
@@ -289,6 +310,7 @@ export const DependencyAnalysisReport: FC<DependencyAnalysisReportProps> = ({
       range={range}
       onRangeChange={setRange}
       isTeamOfTeams={teamType === 'team-of-teams'}
+      timeZone={timeZone}
     />
   )
 }

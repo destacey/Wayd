@@ -113,6 +113,27 @@ public sealed class GetTeamWorkDistributionQueryTests : IDisposable
 
         // Assert
         result.Value!.Summary.ItemsCompleted.Should().Be(2);
+        result.Value.TimeZone.Should().Be("UTC");
+    }
+
+    [Fact]
+    public async Task Handle_CountsTheRangeInTheTeamsTimeZone()
+    {
+        // Arrange
+        _dispatcher
+            .Setup(d => d.Send(It.Is<GetTeamTimeZoneHistoryQuery>(q => q.TeamId == _team.Id), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([new TeamTimeZonePeriod(new LocalDate(2026, 1, 1), null, "America/New_York")]);
+        AddItem(done: Instant.FromUtc(2026, 10, 1, 3, 0));
+        AddItem(done: Instant.FromUtc(2026, 7, 1, 3, 0));
+
+        // Act
+        var result = await Handler().Handle(Query(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var distribution = result.Value!;
+        distribution.TimeZone.Should().Be("America/New_York");
+        distribution.Summary.ItemsCompleted.Should().Be(1);
+        distribution.Periods[^1].Items.Should().Be(1);
     }
 
     [Fact]

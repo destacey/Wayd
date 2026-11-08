@@ -58964,6 +58964,12 @@
             },
             "description": "The deliverables of the same project the task serves, by id (optional).",
             "nullable": true
+          },
+          "order": {
+            "type": "integer",
+            "description": "The task's 1-based position among its parent's children (optional). Omit it to place the task last; a\nposition past the end also places it last.",
+            "format": "int32",
+            "nullable": true
           }
         },
         "additionalProperties": false

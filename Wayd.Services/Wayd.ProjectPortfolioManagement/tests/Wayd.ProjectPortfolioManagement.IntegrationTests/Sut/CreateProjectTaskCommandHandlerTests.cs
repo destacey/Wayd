@@ -28,9 +28,65 @@ public sealed class CreateProjectTaskCommandHandlerTests
         return await context.ProjectStages.Where(s => s.ProjectId == projectId).Select(s => s.Id).SingleAsync(ct);
     }
 
-    private static CreateProjectTaskCommand Command(Guid projectId, Guid stageId, List<Guid> deliverableIds) =>
+    private static CreateProjectTaskCommand Command(Guid projectId, Guid stageId, List<Guid> deliverableIds,
+        int? order = null) =>
         new(projectId, "Release notes", null, ProjectTaskType.Task, Domain.Enums.TaskStatus.NotStarted,
-            TaskPriority.Medium, new Progress(0m), stageId, null, null, null, null, deliverableIds);
+            TaskPriority.Medium, new Progress(0m), stageId, null, null, null, null, deliverableIds, order);
+
+    [Fact]
+    public async Task Handle_WithAnOrder_CreatesTheTaskAtThatPlace()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var plan = await ProposedProjectWithLinkedPlan.Seed(_fixture, ct);
+        var stageId = await StageId(plan.ProjectId, ct);
+
+        // Act
+        CSharpFunctionalExtensions.Result<Application.ProjectTasks.Models.ProjectTaskIdAndKey> result;
+        await using (var context = _fixture.CreateContext())
+        {
+            result = await new CreateProjectTaskCommandHandler(context, NullLogger<CreateProjectTaskCommandHandler>.Instance)
+                .Handle(Command(plan.ProjectId, stageId, [], order: 2), ct);
+        }
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        await using var verify = _fixture.CreateContext();
+        var orders = await verify.ProjectTasks
+            .Where(t => t.ProjectId == plan.ProjectId && t.ParentId == null)
+            .OrderBy(t => t.Order)
+            .Select(t => new { t.Id, t.Order })
+            .ToListAsync(ct);
+        orders.Select(t => t.Order).Should().Equal(1, 2, 3, 4);
+        orders[1].Id.Should().Be(result.Value.Id);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutAnOrder_CreatesTheTaskLast()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var plan = await ProposedProjectWithLinkedPlan.Seed(_fixture, ct);
+        var stageId = await StageId(plan.ProjectId, ct);
+
+        // Act
+        CSharpFunctionalExtensions.Result<Application.ProjectTasks.Models.ProjectTaskIdAndKey> result;
+        await using (var context = _fixture.CreateContext())
+        {
+            result = await new CreateProjectTaskCommandHandler(context, NullLogger<CreateProjectTaskCommandHandler>.Instance)
+                .Handle(Command(plan.ProjectId, stageId, []), ct);
+        }
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        await using var verify = _fixture.CreateContext();
+        var last = await verify.ProjectTasks
+            .Where(t => t.ProjectId == plan.ProjectId && t.ParentId == null)
+            .OrderByDescending(t => t.Order)
+            .Select(t => t.Id)
+            .FirstAsync(ct);
+        last.Should().Be(result.Value.Id);
+    }
 
     [Fact]
     public async Task Handle_WithDeliverableIds_CreatesTheTaskLinkedToThem()

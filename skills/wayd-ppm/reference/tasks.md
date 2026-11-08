@@ -10,7 +10,8 @@ A project needs an assigned lifecycle before it can hold tasks.
 4. Set the type-specific fields:
    - **Task**: `progress` is required (use `0` for new work); dates go in `plannedStart` and `plannedEnd`.
    - **Milestone**: `plannedDate` is required; omit `progress`, `plannedStart`, and `plannedEnd`.
-5. Call `Tasks_CreateProjectTask`.
+5. To put it somewhere other than last among the parent's children, set `order` — its 1-based position.
+6. Call `Tasks_CreateProjectTask`.
 
 ## Updating a task
 

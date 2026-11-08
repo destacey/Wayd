@@ -119151,6 +119151,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("deliverableIds")]
         public System.Collections.Generic.ICollection<System.Guid>? DeliverableIds { get; set; } = default!;
 
+        /// <summary>
+        /// The task's 1-based position among its parent's children (optional). Omit it to place the task last; a
+        /// <br/>position past the end also places it last.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("order")]
+        public int? Order { get; set; } = default!;
+
     }
 
     /// <summary>

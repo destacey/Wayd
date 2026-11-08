@@ -64228,6 +64228,9 @@ If it matches a task, the new task becomes a child of that task and inherits the
     estimatedEffortHours?: number | undefined;
     /** The deliverables of the same project the task serves, by id (optional). */
     deliverableIds?: string[] | undefined;
+    /** The task's 1-based position among its parent's children (optional). Omit it to place the task last; a
+position past the end also places it last. */
+    order?: number | undefined;
 }
 
 /** A request to define a record type for an owner type that has them. */

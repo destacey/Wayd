@@ -148,25 +148,31 @@ public sealed class WorkItemDependency : WorkItemLink
     }
 
     /// <summary>
-    /// Calculates the health of the dependency based on planned dates and current state.
+    /// Calculates the health of the dependency based on planned dates and current state. A dependency that has
+    /// played out is Closed: its predecessor is done, or removed with a successor that is done or removed too.
+    /// A removed predecessor with an open successor stays Unhealthy, because the successor needs work nobody
+    /// will do.
     /// </summary>
     private void CalculateHealth()
     {
-        if (State == DependencyState.Done)
-        {
-            Health = DependencyPlanningHealth.Healthy;
-            return;
-        }
-
+        // No view shows a deleted link, so its ends' statuses are not read.
         if (State == DependencyState.Deleted)
         {
             Health = DependencyPlanningHealth.Unknown;
             return;
         }
 
+        if (State == DependencyState.Done)
+        {
+            Health = DependencyPlanningHealth.Closed;
+            return;
+        }
+
         if (State == DependencyState.Removed)
         {
-            Health = DependencyPlanningHealth.Unhealthy;
+            Health = TargetStatusCategory is StatusCategory.Done or StatusCategory.Removed
+                ? DependencyPlanningHealth.Closed
+                : DependencyPlanningHealth.Unhealthy;
             return;
         }
 

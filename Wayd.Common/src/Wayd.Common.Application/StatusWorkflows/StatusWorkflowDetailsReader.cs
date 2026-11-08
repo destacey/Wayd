@@ -49,7 +49,8 @@ public sealed class StatusWorkflowDetailsReader(IStatusWorkflowDbContext dbConte
         // Mirrors of the aggregate's own guards, so the editor can disable what would be refused rather
         // than let a user find out by trying. The aggregate stays the authority; these only inform.
         var canEdit = !workflow.IsSystem && !workflow.IsManaged && workflow.State == StatusWorkflowState.Draft;
-        var canReclassify = canEdit || (workflow.IsManaged && workflow.State != StatusWorkflowState.Archived);
+        var canReclassify = canEdit;
+        var canRenameAndReorder = !workflow.IsSystem && !workflow.IsManaged && workflow.State != StatusWorkflowState.Archived;
         var canDescribe = !workflow.IsSystem && workflow.State != StatusWorkflowState.Archived;
         var transitionIssues = workflow.TransitionIssues();
         var missingCategories = workflow.MissingRequiredCategories();
@@ -73,6 +74,7 @@ public sealed class StatusWorkflowDetailsReader(IStatusWorkflowDbContext dbConte
             MisfiledAliases = misfiledAliases,
             CanEdit = canEdit,
             CanReclassify = canReclassify,
+            CanRenameAndReorder = canRenameAndReorder,
             CanDescribe = canDescribe,
             Warnings = [.. workflow.CheckIssues().Where(i => i.Severity == WorkflowCheckSeverity.Warned).Select(i => i.Message)],
             CanPublish = canEdit && missing.Count == 0 && missingCategories.Count == 0 && misfiledAliases.Count == 0

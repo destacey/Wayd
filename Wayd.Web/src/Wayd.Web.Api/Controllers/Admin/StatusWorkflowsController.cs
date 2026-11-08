@@ -191,6 +191,7 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
     [HttpPut("{id}/statuses/{statusId}/classification")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
     [EndpointSummary("Change the category and well-known meaning of a status.")]
+    [EndpointDescription("Draft owned workflows only. Refused on a managed workflow, whose categories come from its source with each sync.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

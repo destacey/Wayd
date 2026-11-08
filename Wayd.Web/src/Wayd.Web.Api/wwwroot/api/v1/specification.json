@@ -53038,6 +53038,7 @@
           "StatusWorkflows"
         ],
         "summary": "Change the category and well-known meaning of a status.",
+        "description": "Draft owned workflows only. Refused on a managed workflow, whose categories come from its source with each sync.",
         "operationId": "StatusWorkflows_ReclassifyStatus",
         "parameters": [
           {
@@ -80024,6 +80025,7 @@
           "misfiledAliases",
           "canEdit",
           "canReclassify",
+          "canRenameAndReorder",
           "canDescribe",
           "warnings",
           "canPublish",
@@ -80145,7 +80147,11 @@
           },
           "canReclassify": {
             "type": "boolean",
-            "description": "Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one\nuntil it is archived. Retired statuses never."
+            "description": "Whether a status's category and alias may be changed: on a draft owned workflow only. A managed\nworkflow's categories come from its source."
+          },
+          "canRenameAndReorder": {
+            "type": "boolean",
+            "description": "Whether statuses may be renamed, re-described and reordered: on an owned workflow that is not a system or\narchived one, published included, since these change what people read rather than what records hold."
           },
           "canDescribe": {
             "type": "boolean",

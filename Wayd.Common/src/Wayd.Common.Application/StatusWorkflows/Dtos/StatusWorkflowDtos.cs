@@ -199,10 +199,16 @@ public sealed record StatusWorkflowDetailsDto
     public required bool CanEdit { get; init; }
 
     /// <summary>
-    /// Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one
-    /// until it is archived. Retired statuses never.
+    /// Whether a status's category and alias may be changed: on a draft owned workflow only. A managed
+    /// workflow's categories come from its source.
     /// </summary>
     public required bool CanReclassify { get; init; }
+
+    /// <summary>
+    /// Whether statuses may be renamed, re-described and reordered: on an owned workflow that is not a system or
+    /// archived one, published included, since these change what people read rather than what records hold.
+    /// </summary>
+    public required bool CanRenameAndReorder { get; init; }
 
     /// <summary>
     /// Whether a status's description may be changed: on any workflow but a system or archived one, a managed

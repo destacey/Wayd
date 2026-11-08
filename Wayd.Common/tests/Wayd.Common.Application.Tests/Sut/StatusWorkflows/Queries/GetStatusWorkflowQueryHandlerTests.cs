@@ -50,6 +50,7 @@ public sealed class GetStatusWorkflowQueryHandlerTests : StatusWorkflowHandlerTe
                 CanEdit = false,
                 CanReclassify = false,
                 CanDescribe = false,
+                CanRenameAndReorder = false,
                 Warnings = [],
                 CanPublish = false,
                 CanArchive = false,

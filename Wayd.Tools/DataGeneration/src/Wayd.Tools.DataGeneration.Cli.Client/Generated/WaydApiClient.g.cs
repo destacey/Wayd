@@ -109792,6 +109792,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Change the category and well-known meaning of a status.
         /// </summary>
+        /// <remarks>
+        /// Draft owned workflows only. Refused on a managed workflow, whose categories come from its source with each sync.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ReclassifyStatusAsync(System.Guid id, System.Guid statusId, ReclassifyWorkflowStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -111118,6 +111121,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Change the category and well-known meaning of a status.
         /// </summary>
+        /// <remarks>
+        /// Draft owned workflows only. Refused on a managed workflow, whose categories come from its source with each sync.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ReclassifyStatusAsync(System.Guid id, System.Guid statusId, ReclassifyWorkflowStatusRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -139297,11 +139303,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool CanEdit { get; set; } = default!;
 
         /// <summary>
-        /// Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one
-        /// <br/>until it is archived. Retired statuses never.
+        /// Whether a status's category and alias may be changed: on a draft owned workflow only. A managed
+        /// <br/>workflow's categories come from its source.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canReclassify")]
         public bool CanReclassify { get; set; } = default!;
+
+        /// <summary>
+        /// Whether statuses may be renamed, re-described and reordered: on an owned workflow that is not a system or
+        /// <br/>archived one, published included, since these change what people read rather than what records hold.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("canRenameAndReorder")]
+        public bool CanRenameAndReorder { get; set; } = default!;
 
         /// <summary>
         /// Whether a status's description may be changed: on any workflow but a system or archived one, a managed

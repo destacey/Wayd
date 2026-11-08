@@ -21,7 +21,7 @@ Renaming a status changes what people read; it does not change what Wayd does. T
 
 Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Version, Release, Release Package, Deployment, Intake Request, Project Deliverable and Work Item. The screens call it the **Owner Type** in the create form and **Owner** in the workflow list.
 
-A record type whose module is switched off is absent here: while the **Demand Management** feature flag is off, no Intake Request workflow is listed, and none can be created, cloned or reassigned. Work Item workflows are listed only while the **Work Item Status Workflows** feature flag is on; work items follow them either way.
+A record type whose module is switched off is absent here: while the **Demand Management** feature flag is off, no Intake Request workflow is listed, and none can be created, cloned or reassigned.
 
 The record type also decides the vocabulary available to the workflow's statuses — a Release has a meaning for "Released" that a Product does not.
 
@@ -236,7 +236,9 @@ Work items are synced from Azure DevOps, so their workflows are managed. For eac
 
 A work item takes the status its Azure DevOps state names in the workflow its type follows in its workspace, and its history does the same for each period. Two processes' "Active" are different statuses, so each can sit in a different category.
 
-When you change a status's category, every work item holding it and every period of their history moves to the new category, so reports and charts read the same as the workflow. An item whose status is no longer Done or Removed loses its done date; one whose status becomes Done gets its done date from Azure DevOps when it next changes there. A rename in Azure DevOps renames the status on its work items at the next sync. A period of history keeps the state name Azure DevOps recorded.
+When you change a status's category, every work item holding it and every period of their history moves to the new category, so reports and charts read the same as the workflow. An item whose status is no longer Done or Removed loses its done date; one whose status becomes Done gets its done date from Azure DevOps when it next changes there. A rename in Azure DevOps renames the status on its work items at the next sync. A period of history keeps the state name Azure DevOps recorded, and still holds the status: the status remembers the names it had, so history read under an earlier name resolves to it. A work type Azure DevOps adds to the process gets its workflow and its place in the scheme at the next sync.
+
+A status's description is something Wayd adds; Azure DevOps has none. Before work items moved onto status workflows, statuses with the same name shared one description. A status with no description of its own takes that shared description when the sync creates it or next reads it.
 
 ## Changing a published workflow
 

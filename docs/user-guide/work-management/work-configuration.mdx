@@ -14,9 +14,8 @@ Work configuration defines the rules for how [work items](./work-items.mdx#work-
 ```mermaid
 erDiagram
     Workspace ||--|| WorkProcess : uses
-    WorkProcess ||--o{ WorkProcessScheme : defines
-    WorkProcessScheme ||--|| WorkType : "maps type"
     WorkProcess ||--|| StatusWorkflowScheme : "kept as"
+    StatusWorkflowScheme ||--o{ WorkType : "lists"
     StatusWorkflowScheme ||--o{ StatusWorkflow : "gives each work type"
     StatusWorkflow ||--o{ WorkflowStatus : contains
     WorkflowStatus ||--|| StatusCategory : "is in"
@@ -31,11 +30,11 @@ erDiagram
 
 A **Work Process** defines the configuration of [work types](#work-types) and their [workflows](#workflows) used within a [workspace](./work-items.mdx#workspaces). Think of it as a template that determines what kinds of work can be created and how that work flows through stages.
 
-A work process contains a **Work Process Scheme** that links:
+A work process is kept as a [workflow scheme](../settings/status-workflows.mdx#work-item-workflows) that links:
 - **[Work Types](#work-types)** — What categories of work are available
 - **[Workflows](#workflows)** — Which statuses each work type's items move through
 
-Work processes come from a [connection](../settings/index.mdx#connections) to an external system — an Azure DevOps process — together with their work types and workflows. Wayd has no screen for creating one or changing which work types and workflows it holds.
+Work processes come from a [connection](../settings/index.mdx#connections) to an external system — an Azure DevOps process — together with their work types and workflows. Wayd has no screen for creating one or changing which work types and workflows it holds. A work type the external system adds to the process gets its workflow at the next sync, and is created in Wayd, in the **Other** [tier](#work-type-tiers), if Wayd does not have a work type of that name yet.
 
 **Business rules:**
 - A work type can only appear once within a work process
@@ -43,7 +42,7 @@ Work processes come from a [connection](../settings/index.mdx#connections) to an
 - Only active work processes can be assigned to workspaces: a workspace is created and activated only with an active work process
 - A work process cannot be deactivated while an active workspace uses it
 
-A work process detail page shows its Key, Ownership, Active state and Description, a **Work Types and Workflows** section listing each Work Type with its Description, Workflow and Active state, and an **Activity** section holding its recorded history, which for a work process is its integration state changing as an external system syncs it. See [Activity Log](../activity-log.mdx). Those with permission to update work processes can **Activate** or **Deactivate** it from the page's actions.
+A work process detail page shows its Key, Ownership, Active state and Description, a **Work Types and Workflows** section listing each Work Type with its Description and Workflow, and an **Activity** section holding its recorded history, which for a work process is its integration state changing as an external system syncs it. See [Activity Log](../activity-log.mdx). Those with permission to update work processes can **Activate** or **Deactivate** it from the page's actions.
 
 ## Work Types
 
@@ -84,11 +83,11 @@ Custom Portfolio-tier levels can be added to support deeper hierarchies (e.g., a
 
 A **Workflow** is the set of statuses a work type's items can be in, and their order, as the external system defines them. Each work type in a [work process](#work-processes) follows one workflow, kept in the [status workflow engine](../settings/status-workflows.mdx#work-item-workflows).
 
-Workflows come from the external system with their work process: each Azure DevOps work item type's states become the statuses of a workflow named after the process and the type, and each state's Azure DevOps category is mapped to a [work status category](#work-status-categories). A work item and its history take their status and category from the workflow their type follows in their workspace. Wayd has no screen for adding, renaming or removing a workflow's statuses. While the **Work Item Status Workflows** [feature flag](../settings/index.mdx#feature-management) is on, [Status Workflows](../settings/status-workflows.mdx#work-item-workflows) lists each workflow with its statuses, and an administrator can change a status's category and meaning (alias) there.
+Workflows come from the external system with their work process: each Azure DevOps work item type's states become the statuses of a workflow named after the process and the type, and each state's Azure DevOps category is mapped to a [work status category](#work-status-categories). A work item and its history take their status and category from the workflow their type follows in their workspace. Wayd has no screen for adding, renaming or removing a workflow's statuses. [Status Workflows](../settings/status-workflows.mdx#work-item-workflows) lists each workflow with its statuses, and an administrator can change a status's category and meaning (alias) there. A work type with no state in the external system has no workflow, and is not listed in its work process.
 
 **Business rules:**
 - A status belongs to one workflow. Two workflows' "Active" are different statuses, and can sit in different categories; what workflows share is the [category](#work-status-categories)
-- A state renamed in the external system renames its status at the next sync, and its work items show the new name
+- A state renamed in the external system renames its status at the next sync, and its work items show the new name. History recorded under the old name keeps the status and its category
 - A state the external system hides or removes is retired: no item is given it again unless the external system brings it back, but the items and history that hold it keep it
 
 **Example workflow:**
@@ -128,5 +127,5 @@ Work types, work processes and their workflows are synced from the external syst
 ### Configuring Work Processes
 
 1. Navigate to [Settings > Work Management > Work Processes](../settings/index.mdx#work-processes) to see each work process's Key, Name, Ownership and Active state
-2. Open a work process to see its [work types](#work-types) and the [workflow](#workflows) each one follows; while the **Work Item Status Workflows** feature flag is on, the workflow's statuses are on its page in [Status Workflows](../settings/status-workflows.mdx#work-item-workflows)
+2. Open a work process to see its [work types](#work-types) and the [workflow](#workflows) each one follows; the workflow's statuses are on its page in [Status Workflows](../settings/status-workflows.mdx#work-item-workflows)
 3. **Activate** or **Deactivate** the work process. Only an active work process can be assigned to [workspaces](./work-items.mdx#workspaces), and one in use by an active workspace cannot be deactivated

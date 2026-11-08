@@ -64809,6 +64809,10 @@ export interface DependencyAnalysisSummaryDto {
     closed: number;
     /** Of those, the ones still open when the range ended. */
     openAtEnd: number;
+    /** Of those, the ones whose predecessor is Removed today, whatever the successor. The link never constrained
+anything, or no longer can, so it is data to clean up; it still counts everywhere else until someone
+deletes it. */
+    predecessorRemoved: number;
     /** Teams owning either end of a counted dependency, in scope or not. Items with no team add none. */
     teamsInvolved: number;
     /** Of int DependencyAnalysisSummaryDto.TeamsInvolved, the teams outside the scope: for a team, every other team. */
@@ -72196,8 +72200,10 @@ teams', operating model in effect on `to`. */
     pairs: DependencyAnalysisPairDto[];
     /** The range split into calendar periods, oldest first. */
     periods: DependencyAnalysisPeriodDto[];
-    /** Every dependency counted in the range, oldest first, with its current state and health. A closed one's
-health is Closed: planning health applies only while a dependency is open. */
+    /** Every dependency counted in the range, oldest first, with its current state and stored health. A closed
+one's health reads Closed once it has been recalculated, which each sync does: planning health applies only
+while a dependency is open. One whose predecessor is
+Removed carries that in its source's status category. */
     dependencies: DependencyDto[];
 }
 

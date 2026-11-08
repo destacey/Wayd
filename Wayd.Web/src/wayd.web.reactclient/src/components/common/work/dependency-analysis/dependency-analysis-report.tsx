@@ -2,7 +2,10 @@
 
 import { DependencyWheelExplorer } from '@/src/components/common/dependency-wheel'
 import { DependencyPartnersExplorer } from '@/src/components/common/work/dependency-partners'
-import { TeamDependencyAnalysisDto } from '@/src/services/wayd-api'
+import {
+  DependencyDto,
+  TeamDependencyAnalysisDto,
+} from '@/src/services/wayd-api'
 import { useGetTeamDependencyAnalysisQuery } from '@/src/store/features/organizations/team-api'
 import {
   parseCalendarDate,
@@ -15,6 +18,7 @@ import type { TimeRangePickerProps } from 'antd'
 import {
   Alert,
   Button,
+  Checkbox,
   DatePicker,
   Flex,
   Space,
@@ -24,6 +28,7 @@ import {
 } from 'antd'
 import { Dayjs } from 'dayjs'
 import { FC, useState } from 'react'
+import { StatusCategoryId } from '../../../types'
 import { METRIC_CARD_FLEX, MetricCard } from '../../metrics'
 import WaydEmpty from '../../wayd-empty'
 import WaydTooltip from '../../wayd-tooltip'
@@ -70,6 +75,13 @@ const rangePresets = (
   ]
 }
 
+/**
+ * A dependency whose predecessor was removed never constrained anything, or no longer can: data to clean up
+ * by deleting the link.
+ */
+const hasRemovedPredecessor = (dependency: DependencyDto) =>
+  dependency.source.statusCategory.id === StatusCategoryId.Removed
+
 /** The API's validation messages, when the request was rejected as invalid. */
 const validationMessages = (error: unknown): string[] =>
   isApiError(error) && error.errors ? Object.values(error.errors).flat() : []
@@ -100,8 +112,14 @@ export const DependencyAnalysisReportView: FC<
   timeZone,
 }) => {
   const [view, setView] = useState<DependencyAnalysisView>('where')
+  const [onlyRemoved, setOnlyRemoved] = useState(false)
   const summary = analysis?.summary
-  const rangeKey = `${toCalendarDate(range[0])}:${toCalendarDate(range[1])}`
+  // The checkbox is hidden when there are none, so the filter must not apply then either.
+  const filterRemoved = onlyRemoved && !!summary?.predecessorRemoved
+  const shown = filterRemoved
+    ? (analysis?.dependencies.filter(hasRemovedPredecessor) ?? [])
+    : (analysis?.dependencies ?? [])
+  const explorerKey = `${toCalendarDate(range[0])}:${toCalendarDate(range[1])}:${filterRemoved}`
   const gridKey = isTeamOfTeams
     ? 'team-of-teams-dependency-analysis'
     : 'team-dependency-analysis'
@@ -135,12 +153,12 @@ export const DependencyAnalysisReportView: FC<
       case 'time':
         return <DependencyAnalysisOverTime periods={analysis.periods} />
       default:
-        // A new range is a new set of dependencies, so a pick on the old one does not carry over. The
-        // outer Spin covers a refetch, so the explorers never swap their content for a skeleton.
+        // A new range or filter is a new set of dependencies, so a pick on the old one does not carry over.
+        // The outer Spin covers a refetch, so the explorers never swap their content for a skeleton.
         return isTeamOfTeams ? (
           <DependencyWheelExplorer
-            key={rangeKey}
-            dependencies={analysis.dependencies}
+            key={explorerKey}
+            dependencies={shown}
             isLoading={false}
             refetch={refetch}
             gridKey={gridKey}
@@ -149,9 +167,9 @@ export const DependencyAnalysisReportView: FC<
           />
         ) : (
           <DependencyPartnersExplorer
-            key={rangeKey}
+            key={explorerKey}
             teamId={analysis.team.id}
-            dependencies={analysis.dependencies}
+            dependencies={shown}
             isLoading={false}
             refetch={refetch}
             gridKey={gridKey}
@@ -191,9 +209,12 @@ export const DependencyAnalysisReportView: FC<
             date.isAfter(todayFor(timeZone), 'day') ||
             (!!from && Math.abs(date.diff(from, 'day')) + 1 > MAX_RANGE_DAYS)
           }
-          onChange={(value) =>
-            value?.[0] && value[1] && onRangeChange([value[0], value[1]])
-          }
+          onChange={(value) => {
+            if (!value?.[0] || !value[1]) return
+            // A new range is a new set to clean up, so the filter starts off again.
+            setOnlyRemoved(false)
+            onRangeChange([value[0], value[1]])
+          }}
         />
       </Space>
 
@@ -237,6 +258,11 @@ export const DependencyAnalysisReportView: FC<
               'Still open on the last day of the range.',
             )}
             {card(
+              'Predecessor Removed',
+              summary?.predecessorRemoved,
+              'Dependencies whose predecessor was removed: the link never held anything up, or no longer can. They still count everywhere else until the link is deleted.',
+            )}
+            {card(
               'Teams Involved',
               summary?.teamsInvolved,
               'Teams owning either end of a dependency.',
@@ -259,6 +285,14 @@ export const DependencyAnalysisReportView: FC<
               { key: 'time', label: 'Over Time' },
             ]}
           />
+          {view === 'where' && !!summary?.predecessorRemoved && (
+            <Checkbox
+              checked={onlyRemoved}
+              onChange={(e) => setOnlyRemoved(e.target.checked)}
+            >
+              Only dependencies whose predecessor was removed
+            </Checkbox>
+          )}
           <Spin spinning={isLoading && !!analysis}>{content}</Spin>
           <Text type="secondary" style={{ fontSize: 12 }}>
             {analysis &&

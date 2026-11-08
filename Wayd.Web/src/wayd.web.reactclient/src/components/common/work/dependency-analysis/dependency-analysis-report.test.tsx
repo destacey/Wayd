@@ -75,6 +75,7 @@ const createAnalysis = (
       created: 4,
       closed: 3,
       openAtEnd: 5,
+      predecessorRemoved: 2,
       teamsInvolved: 6,
       teamsOutside: 2,
     },
@@ -99,7 +100,14 @@ const createAnalysis = (
         open: 5,
       },
     ],
-    dependencies: Array.from({ length: 7 }, (_, i) => ({ id: `d${i}` })),
+    // The first two have a removed predecessor, as predecessorRemoved says.
+    dependencies: Array.from({ length: 7 }, (_, i) => ({
+      id: `d${i}`,
+      source: {
+        statusCategory:
+          i < 2 ? { id: 3, name: 'Removed' } : { id: 1, name: 'Active' },
+      },
+    })),
     ...overrides,
   }) as TeamDependencyAnalysisDto
 
@@ -152,6 +160,7 @@ describe('DependencyAnalysisReportView', () => {
     expectCard('Created', '4')
     expectCard('Closed', '3')
     expectCard('Open at End', '5')
+    expectCard('Predecessor Removed', '2')
     expectCard('Teams Involved', '6')
     expectCard('Teams Outside', '2')
   })
@@ -175,6 +184,89 @@ describe('DependencyAnalysisReportView', () => {
     // Assert
     expect(screen.getByLabelText('wheel')).toHaveTextContent('7 on the wheel')
     expect(screen.queryByLabelText('partners')).not.toBeInTheDocument()
+  })
+
+  it('narrows the wheel to dependencies whose predecessor was removed once asked', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    renderView(createAnalysis())
+
+    // Act
+    await user.click(
+      screen.getByLabelText('Only dependencies whose predecessor was removed'),
+    )
+
+    // Assert
+    expect(screen.getByLabelText('wheel')).toHaveTextContent('2 on the wheel')
+  })
+
+  it("narrows a team's partners the same way", async () => {
+    // Arrange
+    const user = userEvent.setup()
+    renderView(createAnalysis(), false)
+
+    // Act
+    await user.click(
+      screen.getByLabelText('Only dependencies whose predecessor was removed'),
+    )
+
+    // Assert
+    expect(screen.getByLabelText('partners')).toHaveTextContent(
+      '2 with partners of root',
+    )
+  })
+
+  it('shows every dependency again once the filter is unticked', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    renderView(createAnalysis())
+    const filter = screen.getByLabelText(
+      'Only dependencies whose predecessor was removed',
+    )
+    await user.click(filter)
+
+    // Act
+    await user.click(filter)
+
+    // Assert
+    expect(screen.getByLabelText('wheel')).toHaveTextContent('7 on the wheel')
+  })
+
+  it('shows every dependency for a range with none whose predecessor was removed, even with the filter ticked', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const { rerender } = render(view(createAnalysis()))
+    await user.click(
+      screen.getByLabelText('Only dependencies whose predecessor was removed'),
+    )
+
+    // Act
+    rerender(
+      view(
+        createAnalysis({
+          summary: { ...createAnalysis().summary, predecessorRemoved: 0 },
+        }),
+      ),
+    )
+
+    // Assert
+    expect(screen.getByLabelText('wheel')).toHaveTextContent('7 on the wheel')
+  })
+
+  it('offers no removed-predecessor filter when there are none', () => {
+    // Act
+    renderView(
+      createAnalysis({
+        summary: { ...createAnalysis().summary, predecessorRemoved: 0 },
+      }),
+    )
+
+    // Assert
+    expect(
+      screen.queryByLabelText(
+        'Only dependencies whose predecessor was removed',
+      ),
+    ).not.toBeInTheDocument()
   })
 
   it("draws a team's partners and calls the outside teams partner teams", () => {
@@ -263,6 +355,7 @@ describe('DependencyAnalysisReportView', () => {
           created: 0,
           closed: 0,
           openAtEnd: 0,
+          predecessorRemoved: 0,
           teamsInvolved: 0,
           teamsOutside: 0,
         },

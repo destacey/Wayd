@@ -60735,6 +60735,7 @@
           "created",
           "closed",
           "openAtEnd",
+          "predecessorRemoved",
           "teamsInvolved",
           "teamsOutside"
         ],
@@ -60758,6 +60759,11 @@
           "openAtEnd": {
             "type": "integer",
             "description": "Of those, the ones still open when the range ended.",
+            "format": "int32"
+          },
+          "predecessorRemoved": {
+            "type": "integer",
+            "description": "Of those, the ones whose predecessor is Removed today, whatever the successor. The link never constrained\nanything, or no longer can, so it is data to clean up; it still counts everywhere else until someone\ndeletes it.",
             "format": "int32"
           },
           "teamsInvolved": {
@@ -83083,7 +83089,7 @@
             "items": {
               "$ref": "#/components/schemas/DependencyDto"
             },
-            "description": "Every dependency counted in the range, oldest first, with its current state and health. A closed one's\nhealth is Closed: planning health applies only while a dependency is open."
+            "description": "Every dependency counted in the range, oldest first, with its current state and stored health. A closed\none's health reads Closed once it has been recalculated, which each sync does: planning health applies only\nwhile a dependency is open. One whose predecessor is\nRemoved carries that in its source's status category."
           }
         },
         "additionalProperties": false,

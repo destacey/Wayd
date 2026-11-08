@@ -120867,6 +120867,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public int OpenAtEnd { get; set; } = default!;
 
         /// <summary>
+        /// Of those, the ones whose predecessor is Removed today, whatever the successor. The link never constrained
+        /// <br/>anything, or no longer can, so it is data to clean up; it still counts everywhere else until someone
+        /// <br/>deletes it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("predecessorRemoved")]
+        public int PredecessorRemoved { get; set; } = default!;
+
+        /// <summary>
         /// Teams owning either end of a counted dependency, in scope or not. Items with no team add none.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamsInvolved")]
@@ -142476,7 +142484,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// Every dependency counted in the range, oldest first, with its current state and health. A closed one's
-        /// <br/>health is Closed: planning health applies only while a dependency is open.
+        /// <br/>health is Closed: planning health applies only while a dependency is open. One whose predecessor is
+        /// <br/>Removed carries that in its source's status category.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("dependencies")]
         [System.ComponentModel.DataAnnotations.Required]

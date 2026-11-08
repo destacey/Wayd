@@ -40,8 +40,10 @@ public sealed record TeamDependencyAnalysisDto
     public List<DependencyAnalysisPeriodDto> Periods { get; init; } = [];
 
     /// <summary>
-    /// Every dependency counted in the range, oldest first, with its current state and health. A closed one's
-    /// health is Closed: planning health applies only while a dependency is open.
+    /// Every dependency counted in the range, oldest first, with its current state and stored health. A closed
+    /// one's health reads Closed once it has been recalculated, which each sync does: planning health applies only
+    /// while a dependency is open. One whose predecessor is
+    /// Removed carries that in its source's status category.
     /// </summary>
     public List<DependencyDto> Dependencies { get; init; } = [];
 }
@@ -60,6 +62,13 @@ public sealed record DependencyAnalysisSummaryDto
 
     /// <summary>Of those, the ones still open when the range ended.</summary>
     public int OpenAtEnd { get; init; }
+
+    /// <summary>
+    /// Of those, the ones whose predecessor is Removed today, whatever the successor. The link never constrained
+    /// anything, or no longer can, so it is data to clean up; it still counts everywhere else until someone
+    /// deletes it.
+    /// </summary>
+    public int PredecessorRemoved { get; init; }
 
     /// <summary>Teams owning either end of a counted dependency, in scope or not. Items with no team add none.</summary>
     public int TeamsInvolved { get; init; }

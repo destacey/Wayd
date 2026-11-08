@@ -2176,6 +2176,19 @@ public sealed class StatusWorkflowTests
         workflow.Statuses.Single(s => s.ExternalKey == externalKey);
 
     [Fact]
+    public void CreateManaged_ShouldStartEachStatus_WithTheDescriptionItIsGiven()
+    {
+        // Act
+        var workflow = StatusWorkflow.CreateManaged(
+            "Agile: Bug", Synced.Key, "conn-1:agile:bug",
+            [SourceNew with { Description = "Not started yet." }, SourceActive, SourceClosed], EventActor.Sync(null), At).Value;
+
+        // Assert
+        workflow.Statuses.Select(s => (s.ExternalKey, s.Description)).Should().Equal(
+            ("new", "Not started yet."), ("active", null), ("closed", null));
+    }
+
+    [Fact]
     public void CreateManaged_ShouldPublishTheSourcesStatusesInItsOrder()
     {
         // Act
@@ -2267,7 +2280,7 @@ public sealed class StatusWorkflowTests
         workflow.Statuses.Select(s => (s.ExternalKey, s.Name, s.Order)).Should().Equal(
             ("new", "New", 1), ("resolved", "Resolved", 2), ("active", "In Progress", 3), ("closed", "Closed", 4));
         StatusKeyed(workflow, "active").Id.Should().Be(activeId, "a rename at the source renames the status rather than adding another");
-        StatusKeyed(workflow, "active").Category.Should().Be(StatusCategory.Active, "the category is the administrators' mapping once a status exists");
+        StatusKeyed(workflow, "active").Category.Should().Be(StatusCategory.Done, "the source decides a status's category");
 
         var added = workflow.DomainEvents.OfType<WorkflowStatusAddedEvent>().Should().ContainSingle().Subject;
         (added.ExternalKey, added.Order, added.Key).Should().Be(("resolved", 2, 9));
@@ -2311,6 +2324,46 @@ public sealed class StatusWorkflowTests
     }
 
     [Fact]
+    public void SyncFromSource_ShouldStartANewStatus_WithTheDescriptionItIsGiven()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+
+        // Act
+        workflow.SyncFromSource("Agile: Bug",
+            [SourceNew, SourceActive, SourceClosed, new("resolved", "Resolved", StatusCategory.Done, Description: "  Fixed, awaiting checks.  ")],
+            EventActor.Sync(null), At);
+
+        // Assert
+        StatusKeyed(workflow, "resolved").Description.Should().Be("Fixed, awaiting checks.");
+        workflow.DomainEvents.OfType<WorkflowStatusAddedEvent>().Should().ContainSingle()
+            .Which.Description.Should().Be("Fixed, awaiting checks.", "the Activity log records it with the status");
+        workflow.DomainEvents.OfType<WorkflowStatusDescriptionChangedEvent>().Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("Ours.")]
+    public void SyncFromSource_ShouldIgnoreTheDescriptionItIsGiven_ForAStatusAlreadyThere(string? description)
+    {
+        // Arrange — described, then rewritten or cleared; a cleared description stays cleared
+        var workflow = ManagedWorkflow();
+        var active = StatusKeyed(workflow, "active");
+        workflow.DescribeStatus(active.Id, "From the sync.", EventActor.Sync(null), At);
+        workflow.DescribeStatus(active.Id, description, EventActor.User("admin"), At);
+        workflow.ClearDomainEvents();
+
+        // Act
+        var result = workflow.SyncFromSource("Agile: Bug",
+            [SourceNew, SourceActive with { Description = "Being worked on." }, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        active.Description.Should().Be(description);
+        workflow.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
     public void SyncFromSource_ShouldRaiseNothing_WhenTheSourceIsUnchanged()
     {
         // Arrange
@@ -2344,8 +2397,7 @@ public sealed class StatusWorkflowTests
         // Arrange
         var workflow = ManagedWorkflow();
         var active = StatusKeyed(workflow, "active");
-        workflow.ReclassifyStatus(active.Id, StatusCategory.Active, NotableAlias, EventActor.System, At);
-        workflow.ClearDomainEvents();
+        active.SetPrivate(s => s.Alias, NotableAlias);
 
         // Act
         var result = workflow.SyncFromSource("Agile: Bug", [SourceNew, SourceClosed], EventActor.Sync(null), At);
@@ -2427,23 +2479,25 @@ public sealed class StatusWorkflowTests
     }
 
     [Fact]
-    public void SyncFromSource_ShouldRetireAStatusTheSourceHides_AndKeepItsMapping()
+    public void SyncFromSource_ShouldRetireAStatusTheSourceHides_AndStillTakeItsNameAndCategory()
     {
         // Arrange
         var workflow = ManagedWorkflow();
         var active = StatusKeyed(workflow, "active");
-        workflow.ReclassifyStatus(active.Id, StatusCategory.Done, StatusWorkflow.NoAlias, EventActor.System, At);
-        workflow.ClearDomainEvents();
 
         // Act
         var result = workflow.SyncFromSource(
-            "Agile: Bug", [SourceNew, SourceActive with { Name = "In Progress", IsHidden = true }, SourceClosed], EventActor.Sync(null), At);
+            "Agile: Bug",
+            [SourceNew, SourceActive with { Name = "In Progress", Category = StatusCategory.Done, IsHidden = true }, SourceClosed],
+            EventActor.Sync(null), At);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         active.IsRetired.Should().BeTrue();
         active.Name.Should().Be("In Progress", "a hidden status still takes the source's name");
-        active.Category.Should().Be(StatusCategory.Done, "the administrators' mapping is kept");
+        active.Category.Should().Be(StatusCategory.Done, "items still holding it roll up under the source's category");
+        workflow.DomainEvents.OfType<WorkflowStatusReclassifiedEvent>().Should().ContainSingle()
+            .Which.StatusId.Should().Be(active.Id, "the items holding a retired status are re-stamped too");
         workflow.Statuses.Last().Should().Be(active);
         workflow.DomainEvents.OfType<WorkflowStatusRetiredEvent>().Should().ContainSingle().Which.StatusId.Should().Be(active.Id);
     }
@@ -2785,6 +2839,7 @@ public sealed class StatusWorkflowTests
         { "AddStatus", w => w.AddStatus("Blocked", null, StatusCategory.Active, StatusWorkflow.NoAlias, EventActor.System, At) },
         { "RemoveStatus", w => w.RemoveStatus(w.Statuses.First().Id, EventActor.System, At) },
         { "RenameStatus", w => w.RenameStatus(w.Statuses.First().Id, "Renamed", null, EventActor.System, At) },
+        { "ReclassifyStatus", w => w.ReclassifyStatus(w.Statuses.First().Id, StatusCategory.Done, StatusWorkflow.NoAlias, EventActor.System, At) },
         { "ReorderStatuses", w => w.ReorderStatuses([.. w.Statuses.Reverse().Select(s => s.Id)], EventActor.System, At) },
         { "SetTransitionMode", w => w.SetTransitionMode(TransitionMode.Restricted, EventActor.System, At) },
         { "SetTransitions", w => w.SetTransitions([], EventActor.System, At) },
@@ -2798,53 +2853,97 @@ public sealed class StatusWorkflowTests
     {
         // Arrange
         var workflow = ManagedWorkflow();
-        var before = workflow.Statuses.Select(s => (s.Id, s.Name, s.Order)).ToList();
+        var before = workflow.Statuses.Select(s => (s.Id, s.Name, s.Category, s.Order)).ToList();
 
         // Act
         var result = act(workflow);
 
         // Assert
         result.IsFailure.Should().BeTrue($"{edit} would change what the source decides");
-        workflow.Statuses.Select(s => (s.Id, s.Name, s.Order)).Should().Equal(before);
+        workflow.Statuses.Select(s => (s.Id, s.Name, s.Category, s.Order)).Should().Equal(before);
         workflow.Name.Should().Be("Agile: Bug");
         workflow.State.Should().Be(StatusWorkflowState.Published);
         workflow.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]
-    public void ReclassifyStatus_ShouldChangeTheCategoryMapping_OfAPublishedManagedWorkflow()
-    {
-        // Arrange
-        var workflow = ManagedWorkflow(SourceNew, new("active", "Active", StatusCategory.Proposed), SourceClosed);
-        var active = StatusKeyed(workflow, "active");
-
-        // Act
-        var result = workflow.ReclassifyStatus(active.Id, StatusCategory.Active, NotableAlias, EventActor.System, At);
-
-        // Assert
-        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
-        (active.Category, active.Alias).Should().Be((StatusCategory.Active, NotableAlias));
-        workflow.DomainEvents.OfType<WorkflowStatusReclassifiedEvent>().Should().ContainSingle()
-            .Which.OwnerType.Should().Be(Synced.Key, "the owning module re-stamps its records from it");
-        workflow.CheckIssues().Should().BeEmpty();
-    }
-
-    [Fact]
-    public void ReclassifyStatus_ShouldBeRefused_ForARetiredStatus()
+    public void SyncFromSource_ShouldApplyTheSourcesCategory_ToAStatusAlreadyThere()
     {
         // Arrange
         var workflow = ManagedWorkflow();
         var active = StatusKeyed(workflow, "active");
-        workflow.SyncFromSource("Agile: Bug", [SourceNew, SourceClosed], EventActor.Sync(null), At);
-        workflow.ClearDomainEvents();
 
         // Act
-        var result = workflow.ReclassifyStatus(active.Id, StatusCategory.Done, StatusWorkflow.NoAlias, EventActor.System, At);
+        var result = workflow.SyncFromSource(
+            "Agile: Bug", [SourceNew, SourceActive with { Category = StatusCategory.Removed }, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        active.Category.Should().Be(StatusCategory.Removed);
+        var reclassified = workflow.DomainEvents.OfType<WorkflowStatusReclassifiedEvent>().Should().ContainSingle().Subject;
+        (reclassified.StatusId, reclassified.FromCategory, reclassified.ToCategory, reclassified.OwnerType)
+            .Should().Be((active.Id, StatusCategory.Active, StatusCategory.Removed, Synced.Key), "the owning module re-stamps its records from it");
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldDropAnAlias_ThatDoesNotBelongToTheStatusesNewCategory()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+        var active = StatusKeyed(workflow, "active");
+        active.SetPrivate(s => s.Alias, NotableAlias);
+
+        // Act
+        workflow.SyncFromSource(
+            "Agile: Bug", [SourceNew, SourceActive with { Category = StatusCategory.Done }, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        active.Alias.Should().Be(StatusWorkflow.NoAlias, "Notable belongs to Active");
+        workflow.DomainEvents.OfType<WorkflowStatusAliasChangedEvent>().Should().ContainSingle()
+            .Which.Should().Match<WorkflowStatusAliasChangedEvent>(e => e.FromAlias == NotableAlias && e.ToAlias == StatusWorkflow.NoAlias);
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldNameTheReclassifiedStatus_ByTheNameTheSameSyncGaveIt()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+
+        // Act
+        workflow.SyncFromSource(
+            "Agile: Bug", [SourceNew, SourceActive with { Name = "Doing", Category = StatusCategory.Done }, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        workflow.DomainEvents.OfType<WorkflowStatusRenamedEvent>().Should().ContainSingle();
+        workflow.DomainEvents.OfType<WorkflowStatusReclassifiedEvent>().Should().ContainSingle()
+            .Which.StatusName.Should().Be("Doing");
+    }
+
+    [Fact]
+    public void ReclassifyStatus_ShouldSayAManagedWorkflowsCategoriesComeFromItsSource()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+
+        // Act
+        var result = workflow.ReclassifyStatus(StatusKeyed(workflow, "active").Id, StatusCategory.Done, StatusWorkflow.NoAlias, EventActor.System, At);
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        active.Category.Should().Be(StatusCategory.Active);
-        workflow.DomainEvents.Should().BeEmpty();
+        result.Error.Should().Contain("managed workflow");
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldRaiseNoReclassification_WhenTheSourcesCategoryIsUnchanged()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+
+        // Act
+        workflow.SyncFromSource("Agile: Bug", [SourceNew, SourceActive, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        workflow.DomainEvents.OfType<WorkflowStatusReclassifiedEvent>().Should().BeEmpty();
     }
 
     [Fact]

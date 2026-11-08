@@ -3,7 +3,6 @@ using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Application.StatusWorkflows.Commands;
 using Wayd.Common.Domain.Enums.Work;
-using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Domain;
@@ -29,8 +28,9 @@ namespace Wayd.Work.Application.WorkProcesses.Commands;
 /// an existing one keeps the level and description it has.
 /// </para>
 /// <para>
-/// A status with no description takes the one Work's shared status of the same name had
-/// (<see cref="LegacyWorkStatusDescription"/>), through the workflow so the change is recorded.
+/// A status the sync creates starts with the description Work's shared status of the same name had
+/// (<see cref="LegacyWorkStatusDescription"/>), saved with the status so a failed run cannot lose it. Only a
+/// new one: once a status exists its description is the administrators', and one they cleared stays cleared.
 /// </para>
 /// </remarks>
 public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
@@ -75,7 +75,7 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
         var entries = new List<SyncedType>();
         foreach (var workType in process.WorkTypes.OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase))
         {
-            var statuses = SourceStatuses(workType);
+            var statuses = SourceStatuses(workType, legacyDescriptions);
             var workflowKey = ManagedWorkflowKeys.Workflow(process.Id, workType.ExternalKey);
             if (statuses.Count == 0 || (statuses.All(s => s.IsHidden) && !workflowKeys.Contains(workflowKey)))
             {
@@ -98,10 +98,6 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
                 ownerType, workflowKey, $"{process.Name.Trim()} - {workType.Name.Trim()}", statuses), cancellationToken);
             if (workflowResult.IsFailure)
                 return Failed("workflow", workType.Name, workflowResult.Error);
-
-            var describeResult = await DescribeStatuses(workflowResult.Value, legacyDescriptions, cancellationToken);
-            if (describeResult.IsFailure)
-                return Failed("status descriptions", workType.Name, describeResult.Error);
 
             entries.Add(new SyncedType(
                 new ManagedSchemeEntry(recordTypeResult.Value, workflowResult.Value),
@@ -205,46 +201,6 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
     }
 
     /// <summary>
-    /// Gives each status of the workflow that has no description the one Work's shared status of the same name
-    /// had. Nothing is loaded when there are no such descriptions, which is the case on every install that never
-    /// described a shared status.
-    /// </summary>
-    private async Task<Result> DescribeStatuses(Guid workflowId, Dictionary<string, string> descriptions, CancellationToken cancellationToken)
-    {
-        if (descriptions.Count == 0)
-            return Result.Success();
-
-        var workflow = await _statusWorkflowDbContext.StatusWorkflows
-            .Include(w => w.Statuses)
-            .FirstOrDefaultAsync(w => w.Id == workflowId, cancellationToken);
-        if (workflow is null)
-            return Result.Failure($"Workflow {workflowId} not found.");
-
-        var actor = EventActor.Sync(null);
-        var now = _dateTimeProvider.Now;
-        var described = 0;
-        foreach (var status in workflow.Statuses.Where(s => s.Description is null))
-        {
-            if (!descriptions.TryGetValue(status.Name, out var description))
-                continue;
-
-            var result = workflow.DescribeStatus(status.Id, description, actor, now);
-            if (result.IsFailure)
-            {
-                workflow.ClearDomainEvents();
-                return result;
-            }
-
-            described++;
-        }
-
-        if (described > 0)
-            await _statusWorkflowDbContext.SaveChangesAsync(cancellationToken);
-
-        return Result.Success();
-    }
-
-    /// <summary>
     /// Points Work's work type at the record type kept for it, which decides the workflow its items follow.
     /// </summary>
     private async Task LinkRecordType(string workTypeName, Guid recordTypeId, CancellationToken cancellationToken)
@@ -274,12 +230,15 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
 
     /// <summary>
     /// The type's states in the source's order, hidden ones included: a hidden state is kept as a retired
-    /// status, because records and history still hold it.
+    /// status, because records and history still hold it. Each carries the shared description of its name, which
+    /// the engine uses only if it creates the status.
     /// </summary>
-    private static List<SourceStatus> SourceStatuses(IExternalWorkTypeWorkflow workType) =>
+    private static List<SourceStatus> SourceStatuses(IExternalWorkTypeWorkflow workType, Dictionary<string, string> legacyDescriptions) =>
         [.. workType.WorkflowStates
             .OrderBy(s => s.Order)
-            .Select(s => new SourceStatus(ManagedWorkflowKeys.Status(s.ExternalKey), s.StatusName.Trim(), s.Category, IsHidden: !s.IsActive))];
+            .Select(s => new SourceStatus(
+                ManagedWorkflowKeys.Status(s.ExternalKey), s.StatusName.Trim(), s.Category, IsHidden: !s.IsActive,
+                Description: legacyDescriptions.GetValueOrDefault(s.StatusName.Trim())))];
 
     /// <summary>Not logged here: the caller logs the failure once, with what it decides to do about it.</summary>
     private static Result Failed(string what, string name, string error) =>

@@ -117,7 +117,7 @@ public sealed record StatusWorkflowDetailsDto
 
     /// <summary>
     /// Whether administrators author this workflow, or a sync keeps it from its source. A managed
-    /// workflow's statuses follow the source; only their categories and aliases are edited here.
+    /// workflow's statuses, categories included, follow the source; only their descriptions are edited here.
     /// </summary>
     public required WorkflowOwnership Ownership { get; init; }
 
@@ -199,10 +199,22 @@ public sealed record StatusWorkflowDetailsDto
     public required bool CanEdit { get; init; }
 
     /// <summary>
-    /// Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one
-    /// until it is archived. Retired statuses never.
+    /// Whether a status's category and alias may be changed: on a draft owned workflow only. A managed
+    /// workflow's categories come from its source.
     /// </summary>
     public required bool CanReclassify { get; init; }
+
+    /// <summary>
+    /// Whether statuses may be renamed, re-described and reordered: on an owned workflow that is not a system or
+    /// archived one, published included, since these change what people read rather than what records hold.
+    /// </summary>
+    public required bool CanRenameAndReorder { get; init; }
+
+    /// <summary>
+    /// Whether a status's description may be changed: on any workflow but a system or archived one, a managed
+    /// one included, since a source supplies no descriptions.
+    /// </summary>
+    public required bool CanDescribe { get; init; }
 
     /// <summary>
     /// What a check found wrong that does not stop this workflow being used, one sentence each. Only a

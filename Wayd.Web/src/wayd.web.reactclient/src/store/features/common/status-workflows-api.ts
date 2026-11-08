@@ -2,6 +2,7 @@ import {
   AddWorkflowStatusRequest,
   CloneStatusWorkflowRequest,
   CreateStatusWorkflowRequest,
+  DescribeWorkflowStatusRequest,
   ReassignWorkflowRequest,
   ReclassifyWorkflowStatusRequest,
   RenameWorkflowStatusRequest,
@@ -196,6 +197,33 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
       queryFn: async ({ workflowId, statusId, request }) => {
         try {
           const data = await getStatusWorkflowsClient().renameStatus(
+            workflowId,
+            statusId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (result, error, { workflowId }) => [
+        { type: QueryTags.StatusWorkflow },
+        { type: QueryTags.ActivityLog, id: workflowId },
+      ],
+    }),
+
+    describeWorkflowStatus: builder.mutation<
+      void,
+      {
+        workflowId: string
+        statusId: string
+        request: DescribeWorkflowStatusRequest
+      }
+    >({
+      queryFn: async ({ workflowId, statusId, request }) => {
+        try {
+          const data = await getStatusWorkflowsClient().describeStatus(
             workflowId,
             statusId,
             request,
@@ -428,6 +456,7 @@ export const {
   useArchiveStatusWorkflowMutation,
   useAddWorkflowStatusMutation,
   useRenameWorkflowStatusMutation,
+  useDescribeWorkflowStatusMutation,
   useReclassifyWorkflowStatusMutation,
   useRemoveWorkflowStatusMutation,
   useReorderWorkflowStatusesMutation,

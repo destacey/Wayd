@@ -369,6 +369,11 @@ public sealed class WorkflowOwnerDescriptor
     /// is published from the start, so both reach records that already hold the status, and retiring a
     /// status clears its alias.
     /// </para>
+    /// <para>
+    /// A managed workflow's statuses carry no aliases: a source supplies none, and administrators cannot set
+    /// one on a managed workflow. An owner type that turns this on should require none, or its managed
+    /// workflows warn of the missing alias for good.
+    /// </para>
     /// </remarks>
     public bool HasManagedWorkflows { get; }
 

@@ -142757,11 +142757,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public WorkTeamNavigationDto Team { get; set; } = default!;
 
+        /// <summary>
+        /// The first day of the range.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("from")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset From { get; set; } = default!;
 
+        /// <summary>
+        /// The last day of the range, included.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("to")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]

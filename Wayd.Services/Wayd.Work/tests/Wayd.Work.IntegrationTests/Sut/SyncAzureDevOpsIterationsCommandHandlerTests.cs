@@ -171,10 +171,6 @@ public sealed class SyncAzureDevOpsIterationsCommandHandlerTests(SqlServerDbCont
                 SELECT 'Sync Story', 1, 0, MAX([Id]), SYSUTCDATETIME(), SYSUTCDATETIME()
                 FROM [Work].[WorkTypeLevels] WHERE [Name] = 'Sync Level';
 
-            IF NOT EXISTS (SELECT 1 FROM [Work].[WorkStatuses] WHERE [Name] = 'Sync Status')
-                INSERT INTO [Work].[WorkStatuses]
-                    ([Name], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
-                VALUES ('Sync Status', 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME());
 
             INSERT INTO [Work].[WorkProcesses]
                 ([Id], [Name], [Ownership], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
@@ -198,13 +194,14 @@ public sealed class SyncAzureDevOpsIterationsCommandHandlerTests(SqlServerDbCont
         await context.Database.ExecuteSqlInterpolatedAsync(
             $"""
             DECLARE @TypeId int = (SELECT TOP 1 [Id] FROM [Work].[WorkTypes] WHERE [Name] = 'Sync Story');
-            DECLARE @StatusId int = (SELECT TOP 1 [Id] FROM [Work].[WorkStatuses] WHERE [Name] = 'Sync Status');
+            DECLARE @StatusId uniqueidentifier = '00000000-0000-0000-0000-000000000000';
+            DECLARE @StatusName nvarchar(64) = 'Sync Status';
 
             INSERT INTO [Work].[WorkItems]
-                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId],
+                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId], [StatusName],
                  [StatusCategory], [Created], [LastModified], [StackRank], [IterationId],
                  [SystemCreated], [SystemLastModified])
-            VALUES ({id}, 'SYNC-1', 'Sync item', {workspaceId}, 1, @TypeId, @StatusId,
+            VALUES ({id}, 'SYNC-1', 'Sync item', {workspaceId}, 1, @TypeId, @StatusId, @StatusName,
                     'Active', SYSUTCDATETIME(), SYSUTCDATETIME(), 1, {iterationId},
                     SYSUTCDATETIME(), SYSUTCDATETIME());
             """,

@@ -203,11 +203,13 @@ public sealed class AzureDevOpsInitManager(ILogger<AzureDevOpsInitManager> logge
                 if (updateIntegrationStateResult.IsFailure)
                     return updateIntegrationStateResult.ConvertFailure<WorkProcessIntegration>();
 
-                // Work items do not resolve through the engine yet, so its copy failing must not fail the setup:
-                // the process is created, and the next sync of it retries the copy.
+                // Work items take their statuses from the engine's copy of the process, so without it none can sync.
                 var syncWorkflowsResult = await _dispatcher.Send(new SyncExternalWorkProcessWorkflowsCommand(processResult.Value), cancellationToken);
                 if (syncWorkflowsResult.IsFailure)
-                    _logger.LogWarning("Unable to keep work process {WorkProcessExternalId} in the status workflow engine: {Error}", workProcessExternalId, syncWorkflowsResult.Error);
+                {
+                    _logger.LogError("Unable to keep work process {WorkProcessExternalId} in the status workflow engine: {Error}", workProcessExternalId, syncWorkflowsResult.Error);
+                    return Result.Failure<WorkProcessIntegration>(syncWorkflowsResult.Error);
+                }
 
                 return Result.Success(new WorkProcessIntegration(createProcessResult.Value.InternalId, ReadFromSource: true));
             }

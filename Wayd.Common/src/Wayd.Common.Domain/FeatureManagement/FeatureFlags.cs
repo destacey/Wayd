@@ -28,9 +28,10 @@ public static class FeatureFlags
     public static readonly FeatureFlagDefinition DemandManagement = new(Names.DemandManagement, "Demand Management", "The Demand Management module: intake requests and the desks that review them.", FeatureFlagModule.DemandManagement, IsModuleSwitch: true);
     /// <summary>
     /// Work items' synced workflows, record types and schemes in Status Workflows settings. The sync keeps
-    /// them whether the flag is on or off; it only decides whether administration shows them.
+    /// them, and work items follow them, whether the flag is on or off; it only decides whether administration
+    /// shows them.
     /// </summary>
-    public static readonly FeatureFlagDefinition WorkItemStatusWorkflows = new(Names.WorkItemStatusWorkflows, "Work Item Status Workflows", "Shows the workflows, record types and schemes synced for work items in Status Workflows settings. Work items do not follow them yet.", FeatureFlagModule.Platform);
+    public static readonly FeatureFlagDefinition WorkItemStatusWorkflows = new(Names.WorkItemStatusWorkflows, "Work Item Status Workflows", "Shows the workflows, record types and schemes synced for work items in Status Workflows settings. Work items follow them whether or not it is on.", FeatureFlagModule.Platform);
 
     private static readonly Lazy<IReadOnlyList<FeatureFlagDefinition>> _all = new(() => typeof(FeatureFlags)
         .GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)

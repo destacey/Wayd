@@ -161,7 +161,21 @@ public class WorkSyncRunnerTests
         dispatcher
             .Setup(s => s.Send(It.IsAny<GetWorkItemsMissingRevisionsQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success<IReadOnlyList<int>>([]));
+        dispatcher
+            .Setup(s => s.Send(It.IsAny<GetWorkspaceNeedsFullSyncQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(false));
+        dispatcher
+            .Setup(s => s.Send(It.IsAny<RebuildWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(0));
+        dispatcher
+            .Setup(s => s.Send(It.IsAny<CompleteWorkspaceFullSyncCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success());
     }
+
+    private void StubNeedsFullSync() =>
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<GetWorkspaceNeedsFullSyncQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(true));
 
     private static Result<WorkItemHistoryBatch> HistoryBatch(int revisionCount, string? nextWatermark, bool isLastBatch) =>
         Result.Success(new WorkItemHistoryBatch(
@@ -614,6 +628,110 @@ public class WorkSyncRunnerTests
         watermarks.Should().Equal([null]);
         _mocker.GetMock<IDispatcher>()
             .Verify(s => s.Send(It.IsAny<GetWorkItemHistoryWatermarkQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Run_DifferentialOfAWorkspaceThatNeedsAFullSync_SyncsItInFullAndClearsTheNeed()
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+        StubNeedsFullSync();
+        var watermarks = new List<string?>();
+        _source.Setup(s => s.GetWorkItemHistory(It.IsAny<WorkspaceSyncTarget>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Callback((WorkspaceSyncTarget _, string? watermark, CancellationToken _) => watermarks.Add(watermark))
+            .ReturnsAsync(HistoryBatch(1, "w1", isLastBatch: true));
+
+        // Act
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, TestContext.Current.CancellationToken);
+
+        // Assert
+        _source.Verify(s => s.SyncWorkItems(It.IsAny<WorkspaceSyncTarget>(), SyncType.Full, It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
+        _source.Verify(s => s.SyncWorkItems(It.IsAny<WorkspaceSyncTarget>(), SyncType.Differential, It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+        watermarks.Should().Equal([null]);
+        var dispatcher = _mocker.GetMock<IDispatcher>();
+        dispatcher.Verify(s => s.Send(It.IsAny<RebuildWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()), Times.Once);
+        dispatcher.Verify(s => s.Send(It.IsAny<CompleteWorkspaceFullSyncCommand>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(SyncType.Full)]
+    [InlineData(SyncType.Differential)]
+    public async Task Run_AWorkspaceThatNeedsNoCatchUp_DoesNotRebuildHistory(SyncType syncType)
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+
+        // Act
+        await _sut.Run(syncType, SyncTriggerSource.Manual, TestContext.Current.CancellationToken);
+
+        // Assert
+        // Its history is already resolved; rebuilding would resolve periods anew under state names since renamed.
+        var dispatcher = _mocker.GetMock<IDispatcher>();
+        dispatcher.Verify(s => s.Send(It.IsAny<RebuildWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+        dispatcher.Verify(s => s.Send(It.IsAny<CompleteWorkspaceFullSyncCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Run_CatchUp_RecordsThePeriodsTheRebuildWrote()
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+        StubNeedsFullSync();
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<RebuildWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(7));
+
+        // Act
+        await _sut.Run(SyncType.Full, SyncTriggerSource.Manual, TestContext.Current.CancellationToken);
+
+        // Assert
+        _db.SyncRuns.Single().DetailsJson.Should().Contain("\"workItemHistoryPeriodsWritten\":7");
+    }
+
+    [Fact]
+    public async Task Run_RebuildFails_RecordsTheErrorAndKeepsTheNeedForAFullSync()
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+        StubNeedsFullSync();
+        _mocker.GetMock<IDispatcher>()
+            .Setup(s => s.Send(It.IsAny<RebuildWorkItemHistoryCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Failure<int>("No workflow assigned"));
+
+        // Act
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, TestContext.Current.CancellationToken);
+
+        // Assert
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<CompleteWorkspaceFullSyncCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+        _db.SyncRuns.Single().DetailsJson.Should().Contain("Work item history: rebuild: No workflow assigned");
+    }
+
+    [Fact]
+    public async Task Run_FlaggedWorkspaceWhoseItemsPartlyFail_KeepsTheNeedForAFullSync()
+    {
+        // Arrange
+        var connection = SeedActiveAzdoConnection();
+        SetupConnectionsQuery(connection);
+        StubHappyPathSource();
+        StubNeedsFullSync();
+        _source.Setup(s => s.SyncWorkItems(It.IsAny<WorkspaceSyncTarget>(), It.IsAny<SyncType>(), It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Result.Success(new WorkspaceItemsSyncResult(5, 0, 0, 0, HadPartialFailure: true, PartialFailureMessage: "work-items: timeout")));
+
+        // Act
+        await _sut.Run(SyncType.Differential, SyncTriggerSource.Scheduled, TestContext.Current.CancellationToken);
+
+        // Assert
+        _mocker.GetMock<IDispatcher>()
+            .Verify(s => s.Send(It.IsAny<CompleteWorkspaceFullSyncCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

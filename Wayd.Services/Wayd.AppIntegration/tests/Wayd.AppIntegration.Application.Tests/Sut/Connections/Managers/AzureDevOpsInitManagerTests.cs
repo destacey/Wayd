@@ -600,7 +600,7 @@ public class AzureDevOpsInitManagerTests
     }
 
     [Fact]
-    public async Task EnsureWorkProcessIntegration_WhenTheEngineRefusesTheProcess_StillSetsItUp()
+    public async Task EnsureWorkProcessIntegration_WhenTheEngineRefusesTheProcess_Fails()
     {
         // Arrange
         var connectionId = Guid.CreateVersion7();
@@ -631,12 +631,12 @@ public class AzureDevOpsInitManagerTests
             .ReturnsAsync(Result.Failure("Unable to sync the workflow for Bug: The source lists New twice."));
 
         // Act
-        var result = await _sut.EnsureWorkProcessIntegration(connectionId, wpExternalId, CancellationToken.None);
+        var result = await _sut.EnsureWorkProcessIntegration(connectionId, wpExternalId, TestContext.Current.CancellationToken);
 
         // Assert
-        // The process is created either way; the next sync of it retries the engine copy.
-        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
-        result.Value.Should().Be(new WorkProcessIntegration(wpInternalId, ReadFromSource: true));
+        // Work items take their statuses from the engine's copy, so none of the process's could sync.
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Unable to sync the workflow for Bug: The source lists New twice.");
     }
 
     #endregion

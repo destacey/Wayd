@@ -23,7 +23,7 @@ namespace Wayd.Work.Domain.Models;
 public sealed record WorkItemTrackedState(
     Guid? IterationId,
     int? ExternalIterationId,
-    int? StatusId,
+    Guid? StatusId,
     string StatusName,
     StatusCategory? StatusCategory,
     int? WorkTypeId,

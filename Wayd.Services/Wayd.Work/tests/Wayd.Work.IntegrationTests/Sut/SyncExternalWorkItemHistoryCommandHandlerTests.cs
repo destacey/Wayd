@@ -1,9 +1,13 @@
+using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Application.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Work.Application.WorkItems.Commands;
 using Wayd.Work.Domain.Models;
@@ -276,6 +280,8 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
         var ct = TestContext.Current.CancellationToken;
         await _fixture.ResetWorkData(ct);
         var (workspaceId, _) = await Seed(ct);
+        var workflow = await WorkItemHistorySeeder.SeedWorkflow(_fixture, workspaceId, [workspaceId],
+            [new SourceStatus("state-1", "History Status", StatusCategory.Active)], ct);
         var revisions = new List<IExternalWorkItemRevision>
         {
             new ExternalRevision(ExternalWorkItemId, 1, Start, "History Story", "History Status")
@@ -292,8 +298,8 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
         // Assert
         await using var verify = new WaydDbContextAccessor(_fixture);
         var period = await verify.Context.WorkItemStateHistory.AsNoTracking().SingleAsync(ct);
-        var statusId = await verify.Context.WorkStatuses.Where(s => s.Name == "History Status").Select(s => s.Id).SingleAsync(ct);
-        period.StatusId.Should().Be(statusId);
+        period.StatusId.Should().Be(workflow.Status("History Status").Id);
+        period.StatusCategory.Should().Be(StatusCategory.Active);
         period.StatusName.Should().Be("History Status");
         period.IterationId.Should().BeNull("iteration 77 is outside the synced set");
         period.ExternalIterationId.Should().Be(77);
@@ -367,6 +373,103 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
         periods.Should().OnlyContain(p => p.WorkspaceId == formerWorkspaceId);
     }
 
+    [Fact]
+    public async Task Handle_AStatusTheWorkflowRetired_ResolvesWithItsCategory()
+    {
+        // Arrange — the source hid "Resolved", so the managed workflow keeps it as a retired status
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (workspaceId, _) = await Seed(ct);
+        var workflow = await WorkItemHistorySeeder.SeedWorkflow(_fixture, workspaceId, [workspaceId],
+        [
+            new SourceStatus("state-1", "Active", StatusCategory.Active),
+            new SourceStatus("state-2", "Resolved", StatusCategory.Done, IsHidden: true),
+        ], ct);
+
+        // Act
+        await Sync(workspaceId, [new ExternalRevision(ExternalWorkItemId, 1, Start, "History Story", "resolved")], "token-1", ct);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var period = await verify.Context.WorkItemStateHistory.AsNoTracking().SingleAsync(ct);
+        workflow.Status("Resolved").IsRetired.Should().BeTrue();
+        period.StatusId.Should().Be(workflow.Status("Resolved").Id);
+        period.StatusCategory.Should().Be(StatusCategory.Done);
+        period.StatusName.Should().Be("resolved", "the period keeps the name its source recorded");
+    }
+
+    [Fact]
+    public async Task Handle_AStatusOnlyAnotherWorkflowHas_StaysUnmatched()
+    {
+        // Arrange — Work's shared statuses hold "History Status", but the type's workflow does not
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (workspaceId, _) = await Seed(ct);
+        await WorkItemHistorySeeder.SeedWorkflow(_fixture, workspaceId, [workspaceId],
+            [new SourceStatus("state-1", "Active", StatusCategory.Active)], ct);
+
+        // Act
+        await Sync(workspaceId, [new ExternalRevision(ExternalWorkItemId, 1, Start, "History Story", "History Status")], "token-1", ct);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var period = await verify.Context.WorkItemStateHistory.AsNoTracking().SingleAsync(ct);
+        period.StatusId.Should().BeNull();
+        period.StatusCategory.Should().BeNull();
+        period.StatusName.Should().Be("History Status");
+    }
+
+    [Fact]
+    public async Task Handle_RevisionsReadByAWorkspaceOnAnotherProcess_ResolveInThatWorkspace()
+    {
+        // Arrange — the item now lives in a workspace whose process has no "Design"
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (currentWorkspaceId, workItemId) = await Seed(ct);
+        var formerWorkspaceId = await WorkItemHistorySeeder.SeedWorkspace(_fixture, SystemId, "HISTOLD", ct);
+        var former = await WorkItemHistorySeeder.SeedWorkflow(_fixture, formerWorkspaceId, [formerWorkspaceId],
+            [new SourceStatus("old-1", "Design", StatusCategory.Proposed)], ct);
+        await WorkItemHistorySeeder.SeedWorkflow(_fixture, currentWorkspaceId, [currentWorkspaceId],
+            [new SourceStatus("state-1", "Active", StatusCategory.Active)], ct);
+
+        // Act
+        await Sync(formerWorkspaceId, [new ExternalRevision(ExternalWorkItemId, 1, Start, "History Story", "Design")], "token-1", ct);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var period = await verify.Context.WorkItemStateHistory.AsNoTracking().SingleAsync(h => h.WorkItemId == workItemId, ct);
+        period.WorkspaceId.Should().Be(formerWorkspaceId);
+        period.StatusId.Should().Be(former.Status("Design").Id);
+        period.StatusCategory.Should().Be(StatusCategory.Proposed);
+    }
+
+    [Fact]
+    public async Task Handle_WhenTheWorkspaceHasNoWorkflow_FailsAndStoresNothing()
+    {
+        // Arrange — the work type is linked to its record type, but the workspace is assigned no scheme
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (workspaceId, _) = await Seed(ct);
+        await WorkItemHistorySeeder.SeedWorkflow(_fixture, workspaceId, [], [new SourceStatus("state-1", "New", StatusCategory.Proposed)], ct);
+
+        // Act
+        Result<int> result;
+        await using (var accessor = new WaydDbContextAccessor(_fixture))
+        {
+            var dateTimeProvider = new Mock<IDateTimeProvider>();
+            dateTimeProvider.SetupGet(p => p.Now).Returns(SyncedAt);
+            var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, new StatusResolver(accessor.Context), dateTimeProvider.Object, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
+            result = await handler.Handle(new SyncExternalWorkItemHistoryCommand(ConnectionId, workspaceId, Revisions(), "token-1"), ct);
+        }
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        (await verify.Context.WorkItemSourceRevisions.AnyAsync(ct)).Should().BeFalse();
+        (await verify.Context.WorkItemStateHistory.AnyAsync(ct)).Should().BeFalse();
+        (await WatermarkOf(verify.Context, workspaceId, ct)).Should().BeNull();
+    }
+
     /// <summary>
     /// New, Active, a title edit that changes no tracked field, then Closed.
     /// </summary>
@@ -384,7 +487,7 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
         await using var accessor = new WaydDbContextAccessor(_fixture);
         var dateTimeProvider = new Mock<IDateTimeProvider>();
         dateTimeProvider.SetupGet(p => p.Now).Returns(now ?? SyncedAt);
-        var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, dateTimeProvider.Object, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
+        var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, new StatusResolver(accessor.Context), dateTimeProvider.Object, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
 
         var result = await handler.Handle(new SyncExternalWorkItemHistoryCommand(ConnectionId, workspaceId, revisions, watermark, isLastBatch, filledWorkItemIds), ct);
 

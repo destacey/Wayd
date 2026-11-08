@@ -4,8 +4,10 @@ using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Models;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.Work.Application.WorkItems.Commands;
@@ -27,6 +29,7 @@ public sealed class SyncExternalWorkItemsCommandHandlerTests(SqlServerDbContextF
     private const string WorkTypeName = WorkItemHistorySeeder.WorkTypeName;
     private const string NewStatusName = "Move New";
     private const string ActiveStatusName = "Move Active";
+    private const string ResolvedStatusName = "Move Resolved";
     private const int ExternalWorkItemId = 701;
     private static readonly Guid ConnectionId = Guid.NewGuid();
     private static readonly Instant Created = Instant.FromUtc(2026, 3, 2, 9, 0);
@@ -40,7 +43,7 @@ public sealed class SyncExternalWorkItemsCommandHandlerTests(SqlServerDbContextF
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         await _fixture.ResetWorkData(ct);
-        var (fromWorkspaceId, toWorkspaceId) = await SeedTwoWorkspaces(ct);
+        var (fromWorkspaceId, toWorkspaceId, _, toWorkflow) = await SeedTwoWorkspacesWithWorkflow(ct);
         await Sync(fromWorkspaceId, Item(NewStatusName, Created), ct);
         var workItemId = await IdOf(ExternalWorkItemId, ct);
         await SyncHistory(fromWorkspaceId, ct);
@@ -59,6 +62,9 @@ public sealed class SyncExternalWorkItemsCommandHandlerTests(SqlServerDbContextF
         item.Key.ToString().Should().Be($"MOVETO-{ExternalWorkItemId}");
         item.Title.Should().Be("Moved title");
         item.StatusCategory.Should().Be(StatusCategory.Active);
+        item.StatusName.Should().Be(ActiveStatusName);
+        item.StatusWorkflowId.Should().Be(toWorkflow.Id, "the type follows the new workspace's workflow");
+        item.StatusId.Should().Be(toWorkflow.Status(ActiveStatusName).Id);
         item.LastModified.Should().Be(MovedAt);
 
         var history = await verify.Context.WorkItemStateHistory.AsNoTracking()
@@ -90,12 +96,67 @@ public sealed class SyncExternalWorkItemsCommandHandlerTests(SqlServerDbContextF
         other.WorkspaceId.Should().Be(fromWorkspaceId);
     }
 
+    [Fact]
+    public async Task Handle_ANewItem_TakesTheStatusOfItsTypesWorkflowInTheWorkspace()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (fromWorkspaceId, _, workflow, _) = await SeedTwoWorkspacesWithWorkflow(ct);
+
+        // Act
+        await Sync(fromWorkspaceId, Item(ActiveStatusName.ToUpperInvariant(), Created), ct);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var item = await verify.Context.WorkItems.AsNoTracking().SingleAsync(w => w.ExternalId == ExternalWorkItemId, ct);
+        var status = workflow.Status(ActiveStatusName);
+        item.StatusId.Should().Be(status.Id);
+        item.StatusWorkflowId.Should().Be(workflow.Id);
+        item.StatusName.Should().Be(ActiveStatusName, "the item stores the workflow's name, not the source's spelling");
+        item.StatusCategory.Should().Be(StatusCategory.Active);
+    }
+
+    [Fact]
+    public async Task Handle_AStatusTheWorkflowRetired_StillApplies()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (fromWorkspaceId, _, workflow, _) = await SeedTwoWorkspacesWithWorkflow(ct);
+
+        // Act
+        await Sync(fromWorkspaceId, Item(ResolvedStatusName, Created), ct);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var item = await verify.Context.WorkItems.AsNoTracking().SingleAsync(w => w.ExternalId == ExternalWorkItemId, ct);
+        item.StatusId.Should().Be(workflow.Status(ResolvedStatusName).Id);
+        item.StatusCategory.Should().Be(StatusCategory.Done);
+    }
+
+    [Fact]
+    public async Task Handle_AStatusTheWorkflowDoesNotHave_SkipsTheItem()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetWorkData(ct);
+        var (fromWorkspaceId, _) = await SeedTwoWorkspaces(ct);
+
+        // Act
+        await Sync(fromWorkspaceId, Item("Not A Status", Created), ct);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        (await verify.Context.WorkItems.AnyAsync(w => w.ExternalId == ExternalWorkItemId, ct)).Should().BeFalse();
+    }
+
     private async Task Sync(Guid workspaceId, IExternalWorkItem workItem, CancellationToken ct)
     {
         await using var accessor = new WaydDbContextAccessor(_fixture);
         var dateTimeProvider = new Mock<IDateTimeProvider>();
         dateTimeProvider.SetupGet(p => p.Now).Returns(MovedAt);
-        var handler = new SyncExternalWorkItemsCommandHandler(accessor.Context, dateTimeProvider.Object, NullLogger<SyncExternalWorkItemsCommandHandler>.Instance);
+        var handler = new SyncExternalWorkItemsCommandHandler(accessor.Context, new StatusResolver(accessor.Context), dateTimeProvider.Object, NullLogger<SyncExternalWorkItemsCommandHandler>.Instance);
 
         var result = await handler.Handle(new SyncExternalWorkItemsCommand(ConnectionId, Connector.AzureDevOps, workspaceId, [workItem], [], []), ct);
 
@@ -107,7 +168,7 @@ public sealed class SyncExternalWorkItemsCommandHandlerTests(SqlServerDbContextF
         await using var accessor = new WaydDbContextAccessor(_fixture);
         var dateTimeProvider = new Mock<IDateTimeProvider>();
         dateTimeProvider.SetupGet(p => p.Now).Returns(MovedAt);
-        var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, dateTimeProvider.Object, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
+        var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, new StatusResolver(accessor.Context), dateTimeProvider.Object, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
 
         var revisions = new List<IExternalWorkItemRevision> { new ExternalRevision(ExternalWorkItemId, 1, Created, WorkTypeName, NewStatusName) };
         var result = await handler.Handle(new SyncExternalWorkItemHistoryCommand(ConnectionId, workspaceId, revisions, "token-1", false, null), ct);
@@ -122,10 +183,18 @@ public sealed class SyncExternalWorkItemsCommandHandlerTests(SqlServerDbContextF
     }
 
     /// <summary>
-    /// Two managed workspaces in one source system sharing a process whose one work type maps
-    /// <see cref="NewStatusName"/> to Proposed and <see cref="ActiveStatusName"/> to Active.
+    /// Two managed workspaces in one source system sharing a process whose one work type follows an engine
+    /// workflow with <see cref="NewStatusName"/> (Proposed), <see cref="ActiveStatusName"/> (Active) and the
+    /// retired <see cref="ResolvedStatusName"/> (Done), a workflow of its own in each.
     /// </summary>
     private async Task<(Guid From, Guid To)> SeedTwoWorkspaces(CancellationToken ct)
+    {
+        var (from, to, _, _) = await SeedTwoWorkspacesWithWorkflow(ct);
+        return (from, to);
+    }
+
+    /// <inheritdoc cref="SeedTwoWorkspaces"/>
+    private async Task<(Guid From, Guid To, StatusWorkflow FromWorkflow, StatusWorkflow ToWorkflow)> SeedTwoWorkspacesWithWorkflow(CancellationToken ct)
     {
         // A work type level is created only through SQL: its domain factory is internal.
         await WorkItemHistorySeeder.EnsureWorkType(_fixture, ct);
@@ -154,7 +223,16 @@ public sealed class SyncExternalWorkItemsCommandHandlerTests(SqlServerDbContextF
         context.Workspaces.AddRange(from, to);
         await context.SaveChangesAsync(ct);
 
-        return (from.Id, to.Id);
+        SourceStatus[] statuses =
+        [
+            new("move-new", NewStatusName, StatusCategory.Proposed),
+            new("move-active", ActiveStatusName, StatusCategory.Active),
+            new("move-resolved", ResolvedStatusName, StatusCategory.Done, IsHidden: true),
+        ];
+        var fromWorkflow = await WorkItemWorkflowSeeder.Seed(_fixture, WorkTypeName, [from.Id], statuses, ct);
+        var toWorkflow = await WorkItemWorkflowSeeder.Seed(_fixture, WorkTypeName, [to.Id], statuses, ct);
+
+        return (from.Id, to.Id, fromWorkflow, toWorkflow);
 
         async Task<WorkStatus> StatusNamed(string name)
         {

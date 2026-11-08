@@ -106,6 +106,13 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
     public Instant? WorkItemHistoryBackfilledOn { get; private set; }
 
     /// <summary>
+    /// Whether the workspace's next sync must be a full one, whatever kind was asked for: every work item read
+    /// again and its history rebuilt from the stored revisions. Set when stored statuses must be resolved anew,
+    /// and cleared by the sync that does it.
+    /// </summary>
+    public bool NeedsFullSync { get; private set; }
+
+    /// <summary>
     /// A collection of work items in the workspace.
     /// </summary>
     public IReadOnlyCollection<WorkItem> WorkItems => _workItems.AsReadOnly();
@@ -185,6 +192,12 @@ public sealed class Workspace : BaseSoftDeletableEntity, IActivatable<WorkspaceA
     public void WorkItemHistoryReadToEnd(Instant now)
     {
         WorkItemHistoryBackfilledOn ??= now;
+    }
+
+    /// <summary>Records that a full sync read the workspace's items and rebuilt its history.</summary>
+    public void FullSyncCompleted()
+    {
+        NeedsFullSync = false;
     }
 
     public Result SetSystemId(string systemId)

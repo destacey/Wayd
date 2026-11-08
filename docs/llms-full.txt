@@ -263,7 +263,7 @@ Managed workspaces: Synced from external systems, have external URL templates (t
 
 Fundamental unit of work. Properties:
 - Key: {WorkspaceKey}-{Number} (e.g., PLAT-1234), the number being the item's id in the external system (its Azure DevOps work item id). Title, kept in step with the source on every sync. Tags.
-- Type (WorkType), Status (WorkStatus), StatusCategory (Proposed/Active/Done/Removed)
+- Type (WorkType), Status (a WorkflowStatus of the managed status workflow its type follows in its workspace; its name and category are copied onto the item and re-applied when the status is renamed or reclassified), StatusCategory (Proposed/Active/Done/Removed)
 - Priority, StackRank, Assignee, Team, Parent
 - Estimates, kept separately: StoryPoints (sprint-level relative estimate), Effort (level of effort; Scrum's sprint estimate, and Agile features/epics), Size (CMMI). Each syncs from its own AzDO field; an item can carry several.
 - Sprint/Iteration, Project (Portfolio tier only), ParentProject (inherited from parent)
@@ -337,7 +337,7 @@ Default system levels: Epics (Portfolio L1), Features (Portfolio L2), Stories (R
 Status progression definitions. Properties: Name, Description, Ownership, IsActive.
 Contains WorkflowSchemes: WorkStatus + WorkStatusCategory + Order.
 
-Created only by sync (`Workflow.CreateExternal`): each Azure DevOps work item type's states become a workflow, each state's category mapped to a work status category. Rule: each status appears once per workflow. A status's category is set per workflow (on the WorkflowScheme), so one status can sit in different categories in different workflows. No minimum count, category coverage or ordering rule exists. Not to be confused with a Status Workflow (below), the engine behind Product Management statuses.
+Created only by sync (`Workflow.CreateExternal`): each Azure DevOps work item type's states become a workflow, each state's category mapped to a work status category. Rule: each status appears once per workflow. A status's category is set per workflow (on the WorkflowScheme), so one status can sit in different categories in different workflows. No minimum count, category coverage or ordering rule exists. Does not decide a work item's status: the sync keeps a managed Status Workflow per work type beside it, and items resolve through that. Not to be confused with a Status Workflow (below), the engine behind Product Management statuses.
 
 ### Work Statuses
 
@@ -355,7 +355,7 @@ Enables cross-workflow metrics (cycle time, throughput, completion rates).
 
 ### Work Item History
 
-Effective-dated state imported from the source's revisions: one period per stretch of time during which the tracked fields (iteration, status, work type, team, assignee, Story Points, Effort, Size) didn't change. "What was true at time T" is a range filter (`ValidFrom <= T AND (ValidTo IS NULL OR ValidTo > T)`). Source values (status and type names, the source's iteration id) are kept beside the resolved ones. History is deleted with its work item. Every revision read is also kept as a source revision, and periods are built from them: a revision that arrives out of order (an item that moved between projects) rebuilds the item's periods, and revisions an item is missing are fetched from the item itself. A full sync replays the source's revisions onto it without deleting anything; revisions already stored are skipped.
+Effective-dated state imported from the source's revisions: one period per stretch of time during which the tracked fields (iteration, status, work type, team, assignee, Story Points, Effort, Size) didn't change. "What was true at time T" is a range filter (`ValidFrom <= T AND (ValidTo IS NULL OR ValidTo > T)`). Source values (status and type names, the source's iteration id) are kept beside the resolved ones. History is deleted with its work item. Every revision read is also kept as a source revision, and periods are built from them: a revision that arrives out of order (an item that moved between projects) rebuilds the item's periods, and revisions an item is missing are fetched from the item itself. A full sync replays the source's revisions onto it without deleting anything; revisions already stored are skipped. A workspace marked `NeedsFullSync` also rebuilds its periods from the stored revisions once, so each period's status is resolved through the engine. A period's status is a status of the managed workflow its work type followed in the workspace that read the revision, retired ones included; an unmatched one keeps the source's name with no status and no category. Reclassifying a status re-stamps the category of the periods holding it.
 
 ---
 

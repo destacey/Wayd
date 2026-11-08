@@ -4,6 +4,7 @@ using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Models.Planning.Iterations;
 using Wayd.Common.Domain.Models;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Work.Domain.Models;
 
 namespace Wayd.Work.IntegrationTests.Infrastructure;
@@ -38,10 +39,6 @@ public static class WorkItemHistorySeeder
                 SELECT {WorkTypeName}, 1, 0, MAX([Id]), SYSUTCDATETIME(), SYSUTCDATETIME()
                 FROM [Work].[WorkTypeLevels] WHERE [Name] = 'History Level';
 
-            IF NOT EXISTS (SELECT 1 FROM [Work].[WorkStatuses] WHERE [Name] = {StatusName})
-                INSERT INTO [Work].[WorkStatuses]
-                    ([Name], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
-                VALUES ({StatusName}, 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME());
             """,
             ct);
     }
@@ -92,6 +89,29 @@ public static class WorkItemHistorySeeder
         return workspaceId;
     }
 
+    /// <summary>
+    /// Gives the workspace's process the "History Story" type and the type an engine workflow with
+    /// <paramref name="statuses"/>, assigned to <paramref name="workspaceIds"/>.
+    /// </summary>
+    public static async Task<StatusWorkflow> SeedWorkflow(SqlServerDbContextFixture fixture, Guid workspaceId, IReadOnlyCollection<Guid> workspaceIds, IReadOnlyList<SourceStatus> statuses, CancellationToken ct)
+    {
+        await using (var context = fixture.CreateContext())
+        {
+            await context.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                INSERT INTO [Work].[WorkProcessSchemes]
+                    ([Id], [WorkProcessId], [WorkTypeId], [WorkflowId], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
+                SELECT {Guid.CreateVersion7()}, w.[WorkProcessId], t.[Id], NULL, 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME()
+                FROM [Work].[Workspaces] w
+                CROSS JOIN [Work].[WorkTypes] t
+                WHERE w.[Id] = {workspaceId} AND t.[Name] = {WorkTypeName};
+                """,
+                ct);
+        }
+
+        return await WorkItemWorkflowSeeder.Seed(fixture, WorkTypeName, workspaceIds, statuses, ct);
+    }
+
     /// <summary>A work item in <paramref name="workspaceId"/> with the source id <paramref name="externalId"/>.</summary>
     public static async Task<Guid> SeedWorkItem(SqlServerDbContextFixture fixture, Guid workspaceId, int externalId, CancellationToken ct)
     {
@@ -101,18 +121,50 @@ public static class WorkItemHistorySeeder
         await context.Database.ExecuteSqlInterpolatedAsync(
             $"""
             DECLARE @TypeId int = (SELECT TOP 1 [Id] FROM [Work].[WorkTypes] WHERE [Name] = {WorkTypeName});
-            DECLARE @StatusId int = (SELECT TOP 1 [Id] FROM [Work].[WorkStatuses] WHERE [Name] = {StatusName});
+            DECLARE @StatusId uniqueidentifier = '00000000-0000-0000-0000-000000000000';
+            DECLARE @StatusName nvarchar(64) = {StatusName};
 
             INSERT INTO [Work].[WorkItems]
-                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId],
+                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId], [StatusId], [StatusName],
                  [StatusCategory], [Created], [LastModified], [StackRank],
                  [SystemCreated], [SystemLastModified])
-            VALUES ({workItemId}, {"HIST-" + externalId}, 'History item', {workspaceId}, {externalId}, @TypeId, @StatusId,
+            VALUES ({workItemId}, {"HIST-" + externalId}, 'History item', {workspaceId}, {externalId}, @TypeId, @StatusId, @StatusName,
                     'Done', SYSUTCDATETIME(), SYSUTCDATETIME(), 1, SYSUTCDATETIME(), SYSUTCDATETIME());
             """,
             ct);
 
         return workItemId;
+    }
+
+    /// <summary>
+    /// A "History Story" item in <paramref name="workspaceId"/> holding <paramref name="status"/> of the engine,
+    /// activated at <paramref name="activated"/> and, when given, done at <paramref name="done"/>.
+    /// </summary>
+    public static async Task<Guid> SeedWorkItem(SqlServerDbContextFixture fixture, Guid workspaceId, int externalId, WorkflowStatus status, Instant activated, Instant? done, CancellationToken ct)
+    {
+        var id = Guid.CreateVersion7();
+        var category = status.Category.ToString();
+        var activatedOn = activated.ToDateTimeUtc();
+        var doneOn = done?.ToDateTimeUtc();
+
+        await using var context = fixture.CreateContext();
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+            DECLARE @TypeId int = (SELECT TOP 1 [Id] FROM [Work].[WorkTypes] WHERE [Name] = {WorkTypeName});
+
+            INSERT INTO [Work].[WorkItems]
+                ([Id], [Key], [Title], [WorkspaceId], [ExternalId], [TypeId],
+                 [StatusId], [StatusWorkflowId], [StatusName], [StatusCategory], [StatusAliasValue],
+                 [Created], [LastModified], [ActivatedTimestamp], [DoneTimestamp], [StackRank],
+                 [SystemCreated], [SystemLastModified])
+            VALUES ({id}, {"ENG-" + externalId}, 'Engine item', {workspaceId}, {externalId}, @TypeId,
+                    {status.Id}, {status.WorkflowId}, {status.Name}, {category}, 0,
+                    {activatedOn}, {activatedOn}, {activatedOn}, {doneOn}, 1,
+                    SYSUTCDATETIME(), SYSUTCDATETIME());
+            """,
+            ct);
+
+        return id;
     }
 
     /// <summary>A Wayd-owned sprint with no team, planned from <paramref name="start"/> to <paramref name="end"/>.</summary>
@@ -137,9 +189,14 @@ public static class WorkItemHistorySeeder
             $"UPDATE [Work].[Workspaces] SET [WorkItemHistoryBackfilledOn] = SYSUTCDATETIME() WHERE [Id] = {workspaceId};", ct);
     }
 
-    /// <summary>One history period of a "History Story" item, with the status category as its status name.</summary>
-    public static async Task SeedPeriod(SqlServerDbContextFixture fixture, Guid workItemId, Guid workspaceId, int revision, Instant from, Instant? to, Guid? iterationId, string statusCategory, CancellationToken ct, double? storyPoints = null)
+    /// <summary>
+    /// One history period of a "History Story" item, holding <paramref name="status"/> of the engine when given,
+    /// else no status, with the status category as its status name.
+    /// </summary>
+    public static async Task SeedPeriod(SqlServerDbContextFixture fixture, Guid workItemId, Guid workspaceId, int revision, Instant from, Instant? to, Guid? iterationId, string statusCategory, CancellationToken ct, double? storyPoints = null, WorkflowStatus? status = null)
     {
+        var statusId = status?.Id;
+        var statusName = status?.Name ?? statusCategory;
         var validFrom = from.ToDateTimeUtc();
         var validTo = to?.ToDateTimeUtc();
 
@@ -148,9 +205,9 @@ public static class WorkItemHistorySeeder
             $"""
             INSERT INTO [Work].[WorkItemStateHistory]
                 ([WorkItemId], [WorkspaceId], [Revision], [ValidFrom], [ValidTo], [IterationId],
-                 [StatusName], [StatusCategory], [WorkTypeId], [WorkTypeName], [StoryPoints])
+                 [StatusId], [StatusName], [StatusCategory], [WorkTypeId], [WorkTypeName], [StoryPoints])
             SELECT {workItemId}, {workspaceId}, {revision}, {validFrom}, {validTo}, {iterationId},
-                   {statusCategory}, {statusCategory}, [Id], [Name], {storyPoints}
+                   {statusId}, {statusName}, {statusCategory}, [Id], [Name], {storyPoints}
             FROM [Work].[WorkTypes] WHERE [Name] = {WorkTypeName};
             """,
             ct);

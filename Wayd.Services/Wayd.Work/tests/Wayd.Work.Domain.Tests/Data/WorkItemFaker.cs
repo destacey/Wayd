@@ -4,6 +4,7 @@ using NodaTime.Extensions;
 using Wayd.Tests.Shared.Data;
 using Wayd.Work.Domain.Models;
 using Wayd.TestData.Core;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 
 namespace Wayd.Work.Domain.Tests.Data;
@@ -13,7 +14,6 @@ public class WorkItemFaker : PrivateConstructorFaker<WorkItem>
     public WorkItemFaker(Guid? workspaceId = null)
     {
         var workType = new WorkTypeFaker().Generate();
-        var workStatus = new WorkStatusFaker().Generate();
 
         var workspaceIdValue = workspaceId ?? FakerHub.Random.Guid();
         var category = FakerHub.Random.Enum<StatusCategory>();
@@ -52,9 +52,11 @@ public class WorkItemFaker : PrivateConstructorFaker<WorkItem>
         RuleFor(x => x.Title, f => f.Random.String2(10));
         RuleFor(x => x.TypeId, workType.Id);
         RuleFor(x => x.Type, workType);
-        RuleFor(x => x.StatusId, workStatus.Id);
-        RuleFor(x => x.Status, workStatus);
+        RuleFor(x => x.StatusId, f => f.Random.Guid());
+        RuleFor(x => x.StatusWorkflowId, f => f.Random.Guid());
+        RuleFor(x => x.StatusName, f => f.Random.Word());
         RuleFor(x => x.StatusCategory, category);
+        RuleFor(x => x.StatusAliasValue, 0);
 
         RuleFor(x => x.ParentId, f => null);
         RuleFor(x => x.Parent, f => null);
@@ -120,10 +122,18 @@ public static class WorkItemFakerExtensions
         return faker;
     }
 
-    public static WorkItemFaker WithStatus(this WorkItemFaker faker, WorkStatus status)
+    /// <summary>A work item migrated from Work's own statuses that no sync has given an engine status yet.</summary>
+    public static WorkItemFaker WithNoEngineStatus(this WorkItemFaker faker)
     {
-        faker.RuleFor(x => x.StatusId, status.Id);
-        faker.RuleFor(x => x.Status, status);
+        faker.RuleFor(x => x.StatusId, Guid.Empty);
+        faker.RuleFor(x => x.StatusWorkflowId, Guid.Empty);
+
+        return faker;
+    }
+
+    public static WorkItemFaker WithStatusName(this WorkItemFaker faker, string statusName)
+    {
+        faker.RuleFor(x => x.StatusName, statusName);
 
         return faker;
     }
@@ -259,11 +269,9 @@ public static class WorkItemFakerExtensions
     /// </summary>
     public static WorkItemFaker WithProposedState(this WorkItemFaker faker)
     {
-        var workStatus = new WorkStatusFaker().WithName("To Do").Generate();
-
         faker.RuleFor(x => x.StatusCategory, StatusCategory.Proposed);
-        faker.RuleFor(x => x.StatusId, workStatus.Id);
-        faker.RuleFor(x => x.Status, workStatus);
+        faker.RuleFor(x => x.StatusId, f => f.Random.Guid());
+        faker.RuleFor(x => x.StatusName, "To Do");
         faker.RuleFor(x => x.ActivatedTimestamp, (Instant?)null);
         faker.RuleFor(x => x.DoneTimestamp, (Instant?)null);
 
@@ -277,13 +285,12 @@ public static class WorkItemFakerExtensions
     /// <returns></returns>
     public static WorkItemFaker WithActiveState(this WorkItemFaker faker)
     {
-        var workStatus = new WorkStatusFaker().WithName("In Progress").Generate();
         var created = faker.Generate().Created;
         var activated = created.Plus(Duration.FromDays(1));
 
         faker.RuleFor(x => x.StatusCategory, StatusCategory.Active);
-        faker.RuleFor(x => x.StatusId, workStatus.Id);
-        faker.RuleFor(x => x.Status, workStatus);
+        faker.RuleFor(x => x.StatusId, f => f.Random.Guid());
+        faker.RuleFor(x => x.StatusName, "In Progress");
         faker.RuleFor(x => x.ActivatedTimestamp, activated);
         faker.RuleFor(x => x.DoneTimestamp, (Instant?)null);
 
@@ -297,14 +304,13 @@ public static class WorkItemFakerExtensions
     /// <returns></returns>
     public static WorkItemFaker WithDoneState(this WorkItemFaker faker)
     {
-        var workStatus = new WorkStatusFaker().WithName("Done").Generate();
         var created = faker.Generate().Created;
         var activated = created.Plus(Duration.FromDays(1));
         var done = activated.Plus(Duration.FromDays(3));
 
         faker.RuleFor(x => x.StatusCategory, StatusCategory.Done);
-        faker.RuleFor(x => x.StatusId, workStatus.Id);
-        faker.RuleFor(x => x.Status, workStatus);
+        faker.RuleFor(x => x.StatusId, f => f.Random.Guid());
+        faker.RuleFor(x => x.StatusName, "Done");
         faker.RuleFor(x => x.ActivatedTimestamp, activated);
         faker.RuleFor(x => x.DoneTimestamp, done);
 

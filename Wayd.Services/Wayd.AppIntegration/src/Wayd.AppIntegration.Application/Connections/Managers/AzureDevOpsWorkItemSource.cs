@@ -171,10 +171,13 @@ public sealed class AzureDevOpsWorkItemSource(
         if (assignResult.IsFailure)
             return assignResult;
 
-        // Work items do not resolve through the engine yet, so a failed assignment must not stop their sync.
+        // Work items resolve their statuses through the workspace's scheme, so they cannot sync without it.
         var workflowAssignmentResult = await _dispatcher.Send(new SyncExternalWorkspaceWorkflowAssignmentCommand(target.InternalWorkspaceId), cancellationToken);
         if (workflowAssignmentResult.IsFailure)
-            _logger.LogWarning("Unable to assign workspace {WorkspaceName} its workflow scheme: {Error}", target.WorkspaceName, workflowAssignmentResult.Error);
+        {
+            _logger.LogError("Unable to assign workspace {WorkspaceName} its workflow scheme: {Error}", target.WorkspaceName, workflowAssignmentResult.Error);
+            return workflowAssignmentResult;
+        }
 
         // Workspace metadata refresh.
         var workspaceResult = await ExternalCallMeasure.MeasureAsync(_logger, "Azdo_Sync_GetWorkspace",
@@ -557,10 +560,13 @@ public sealed class AzureDevOpsWorkItemSource(
         if (updateWorkProcessResult.IsFailure)
             return updateWorkProcessResult;
 
-        // Work items do not resolve through the engine yet, so its copy failing must not stop their sync.
+        // Work items take their statuses from the engine's copy of the process, so without it none can sync.
         var engineResult = await _dispatcher.Send(new SyncExternalWorkProcessWorkflowsCommand(processResult.Value), cancellationToken);
         if (engineResult.IsFailure)
-            _logger.LogWarning("Unable to keep work process {WorkProcessName} in the status workflow engine: {Error}", processResult.Value.Name, engineResult.Error);
+        {
+            _logger.LogError("Unable to keep work process {WorkProcessName} in the status workflow engine: {Error}", processResult.Value.Name, engineResult.Error);
+            return engineResult;
+        }
 
         return Result.Success();
     }

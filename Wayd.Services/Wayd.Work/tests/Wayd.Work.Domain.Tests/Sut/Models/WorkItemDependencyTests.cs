@@ -1,5 +1,4 @@
 ﻿using NodaTime;
-using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Tests.Shared;
@@ -10,18 +9,19 @@ namespace Wayd.Work.Domain.Tests.Sut.Models;
 
 public class WorkItemDependencyTests
 {
+    private static readonly DateTimeZone Chicago = DateTimeZoneProviders.Tzdb["America/Chicago"];
+    private static readonly DateTimeZone Tokyo = DateTimeZoneProviders.Tzdb["Asia/Tokyo"];
+
     private readonly TestingDateTimeProvider _dateTimeProvider;
     private readonly WorkItemDependencyFaker _dependencyFaker;
     private readonly WorkItemFaker _workItemFaker;
-    private readonly IterationFaker _iterationFaker;
 
     public WorkItemDependencyTests()
     {
         _dateTimeProvider = new(new DateTime(2025, 04, 01, 11, 0, 0));
 
-        _dependencyFaker = new WorkItemDependencyFaker(_dateTimeProvider.Now);
+        _dependencyFaker = new WorkItemDependencyFaker();
         _workItemFaker = new WorkItemFaker();
-        _iterationFaker = new IterationFaker();
     }
 
     [Theory]
@@ -39,7 +39,7 @@ public class WorkItemDependencyTests
 
 
         // Act
-        var dep = WorkItemDependency.Create(DependencyWorkItemInfo.Create(source), DependencyWorkItemInfo.Create(target), now, null, null, null, null, now);
+        var dep = WorkItemDependency.Create(DependencyWorkItemInfo.Create(source.Id, source.StatusCategory), DependencyWorkItemInfo.Create(target.Id, target.StatusCategory), now, null, null, null, null);
 
         // Assert
         Assert.Equal(expectedState, dep.State);
@@ -57,7 +57,7 @@ public class WorkItemDependencyTests
         var removedOn = now.Plus(Duration.FromDays(1));
 
         // Act
-        var dep = WorkItemDependency.Create(DependencyWorkItemInfo.Create(source), DependencyWorkItemInfo.Create(target), now, null, removedOn, Guid.NewGuid(), null, now);
+        var dep = WorkItemDependency.Create(DependencyWorkItemInfo.Create(source.Id, source.StatusCategory), DependencyWorkItemInfo.Create(target.Id, target.StatusCategory), now, null, removedOn, Guid.NewGuid(), null);
 
         // Assert
         Assert.Equal(DependencyState.Deleted, dep.State);
@@ -113,12 +113,6 @@ public class WorkItemDependencyTests
         yield return new object[] { StatusCategory.Active, StatusCategory.Done, null!, null!, DependencyPlanningHealth.Unhealthy };
         yield return new object[] { StatusCategory.Active, StatusCategory.Removed, null!, null!, DependencyPlanningHealth.Unhealthy };
 
-        // both planned in the past -> treated as unplanned -> AtRisk
-        yield return new object[] { StatusCategory.Proposed, StatusCategory.Proposed, -2, -1, DependencyPlanningHealth.AtRisk };
-
-        // planned for today -> the planned day has not passed, so both count as planned -> Healthy
-        yield return new object[] { StatusCategory.Proposed, StatusCategory.Proposed, 0, 0, DependencyPlanningHealth.Healthy };
-
         // predecessor before successor -> Healthy
         yield return new object[] { StatusCategory.Proposed, StatusCategory.Proposed, 1, 2, DependencyPlanningHealth.Healthy };
 
@@ -153,7 +147,7 @@ public class WorkItemDependencyTests
             StatusCategory = StatusCategory.Proposed,
             PlannedOn = sourcePlannedOn
         };
-        dep.UpdateSourceInfo(sourceInfo, now);
+        dep.UpdateSourceInfo(sourceInfo);
 
         // Assert: now healthy (source planned, target unplanned)
         Assert.Equal(DependencyPlanningHealth.Healthy, dep.Health);
@@ -183,7 +177,7 @@ public class WorkItemDependencyTests
             StatusCategory = StatusCategory.Proposed,
             PlannedOn = newTargetPlannedOn
         };
-        dep.UpdateTargetInfo(targetInfo, now);
+        dep.UpdateTargetInfo(targetInfo);
 
         // Assert: now healthy
         Assert.Equal(DependencyPlanningHealth.Healthy, dep.Health);
@@ -220,7 +214,7 @@ public class WorkItemDependencyTests
             StatusCategory = StatusCategory.Proposed,
             PlannedOn = targetPlannedOn
         };
-        dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo, now);
+        dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo);
 
         // Assert: both dates updated and health is Healthy
         Assert.Equal(DependencyPlanningHealth.Healthy, dep.Health);
@@ -258,7 +252,7 @@ public class WorkItemDependencyTests
             StatusCategory = StatusCategory.Proposed,
             PlannedOn = newTargetPlannedOn
         };
-        dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo, now);
+        dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo);
 
         // Assert: health is now Unhealthy
         Assert.Equal(DependencyPlanningHealth.Unhealthy, dep.Health);
@@ -294,7 +288,7 @@ public class WorkItemDependencyTests
             StatusCategory = StatusCategory.Proposed,
             PlannedOn = null
         };
-        dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo, now);
+        dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo);
 
         // Assert: health is AtRisk when both are unplanned
         Assert.Equal(DependencyPlanningHealth.AtRisk, dep.Health);
@@ -323,7 +317,7 @@ public class WorkItemDependencyTests
             StatusCategory = StatusCategory.Proposed,
             PlannedOn = sourcePlannedOn
         };
-        dep.UpdateSourceInfo(sourceInfo, now);
+        dep.UpdateSourceInfo(sourceInfo);
 
         // Assert: predecessor planned and successor unplanned -> Healthy
         Assert.Equal(DependencyPlanningHealth.Healthy, dep.Health);
@@ -355,7 +349,7 @@ public class WorkItemDependencyTests
             StatusCategory = StatusCategory.Active,
             PlannedOn = today.PlusDays(10)
         };
-        var result = dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo, now);
+        var result = dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo);
 
         // Assert
         Assert.True(result.IsFailure);
@@ -386,7 +380,7 @@ public class WorkItemDependencyTests
             StatusCategory = StatusCategory.Active,
             PlannedOn = today.PlusDays(10)
         };
-        var result = dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo, now);
+        var result = dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo);
 
         // Assert
         Assert.True(result.IsFailure);
@@ -418,7 +412,7 @@ public class WorkItemDependencyTests
             StatusCategory = StatusCategory.Active,
             PlannedOn = null
         };
-        dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo, now);
+        dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo);
 
         // Assert: state should be Done and health should be Healthy
         Assert.Equal(DependencyState.Done, dep.State);
@@ -448,14 +442,14 @@ public class WorkItemDependencyTests
             StatusCategory = StatusCategory.Proposed,
             PlannedOn = newSourcePlannedOn
         };
-        dep.UpdateSourceInfo(sourceInfo, now, recalculate: false);
+        dep.UpdateSourceInfo(sourceInfo, recalculate: false);
 
         // Assert: source is updated but health is NOT recalculated yet (still Unhealthy)
         Assert.Equal(newSourcePlannedOn, dep.SourcePlannedOn);
         Assert.Equal(DependencyPlanningHealth.Unhealthy, dep.Health);
 
         // Act: now manually recalculate
-        dep.CalculateStateAndHealth(now);
+        dep.CalculateStateAndHealth();
 
         // Assert: health is now Healthy
         Assert.Equal(DependencyPlanningHealth.Healthy, dep.Health);
@@ -484,78 +478,37 @@ public class WorkItemDependencyTests
             StatusCategory = StatusCategory.Proposed,
             PlannedOn = newTargetPlannedOn
         };
-        dep.UpdateTargetInfo(targetInfo, now, recalculate: false);
+        dep.UpdateTargetInfo(targetInfo, recalculate: false);
 
         // Assert: target is updated but health is NOT recalculated yet (still Unhealthy)
         Assert.Equal(newTargetPlannedOn, dep.TargetPlannedOn);
         Assert.Equal(DependencyPlanningHealth.Unhealthy, dep.Health);
 
         // Act: now manually recalculate
-        dep.CalculateStateAndHealth(now);
+        dep.CalculateStateAndHealth();
 
         // Assert: health is now Healthy
         Assert.Equal(DependencyPlanningHealth.Healthy, dep.Health);
     }
 
     [Fact]
-    public void Create_WithIterationEndDate_UsesAsPlannedOn()
+    public void Create_WhenOneEndsSprintHasEndedInItsTeamsZone_CountsThatEndAsUnplanned()
     {
-        // Arrange
-        var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
+        // Arrange — 01:00 UTC on Sep 28 is still the evening of Sep 27 in Chicago and already Sep 28 in Tokyo,
+        // so a sprint whose last planned day is Sep 27 is still on in Chicago and has ended in Tokyo
+        var now = Instant.FromUtc(2026, 9, 28, 1, 0);
+        var lastDay = new LocalDate(2026, 9, 27);
 
-        var sourceIteration = _iterationFaker.WithEndDate(today.PlusDays(5)).Generate();
-        var targetIteration = _iterationFaker.WithEndDate(today.PlusDays(10)).Generate();
-
-        var source = _workItemFaker.WithStatusCategory(StatusCategory.Active).WithIterationId(sourceIteration.Id).Generate();
-        source.Iteration = sourceIteration;
-        var target = _workItemFaker.WithStatusCategory(StatusCategory.Active).WithIterationId(targetIteration.Id).Generate();
-        target.Iteration = targetIteration;
+        var source = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, lastDay, Chicago, now);
+        var target = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, lastDay, Tokyo, now);
 
         // Act
-        var dep = WorkItemDependency.Create(DependencyWorkItemInfo.Create(source, now), DependencyWorkItemInfo.Create(target, now), now, null, null, null, null, now);
+        var dep = WorkItemDependency.Create(source, target, now, null, null, null, null);
 
-        // Assert: should use iteration end dates as planned dates
-        Assert.Equal(sourceIteration.DateRange.End, dep.SourcePlannedOn);
-        Assert.Equal(targetIteration.DateRange.End, dep.TargetPlannedOn);
-    }
-
-    [Fact]
-    public void Create_PastIteration_IsFilteredOut()
-    {
-        // Arrange
-        var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
-
-        var pastIteration = _iterationFaker.WithEndDate(today.PlusDays(-5)).Generate();
-        var source = _workItemFaker.WithStatusCategory(StatusCategory.Active).WithIterationId(pastIteration.Id).Generate();
-        source.Iteration = pastIteration;
-        var target = _workItemFaker.WithStatusCategory(StatusCategory.Active).Generate();
-
-        // Act
-        var dep = WorkItemDependency.Create(DependencyWorkItemInfo.Create(source, now), DependencyWorkItemInfo.Create(target, now), now, null, null, null, null, now);
-
-        // Assert: past iteration should be filtered out (treated as unplanned)
-        Assert.Null(dep.SourcePlannedOn);
-    }
-
-    [Fact]
-    public void Create_NonSprintIteration_IsFilteredOut()
-    {
-        // Arrange
-        var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
-
-        var iteration = _iterationFaker.WithEndDate(today.PlusDays(5), IterationType.Iteration).Generate();
-        var source = _workItemFaker.WithStatusCategory(StatusCategory.Active).WithIterationId(iteration.Id).Generate();
-        source.Iteration = iteration;
-        var target = _workItemFaker.WithStatusCategory(StatusCategory.Active).Generate();
-
-        // Act
-        var dep = WorkItemDependency.Create(DependencyWorkItemInfo.Create(source, now), DependencyWorkItemInfo.Create(target, now), now, null, null, null, null, now);
-
-        // Assert: non-sprint iteration should be filtered out
-        Assert.Null(dep.SourcePlannedOn);
+        // Assert — predecessor planned and successor unplanned -> Healthy
+        Assert.Equal(lastDay, dep.SourcePlannedOn);
+        Assert.Null(dep.TargetPlannedOn);
+        Assert.Equal(DependencyPlanningHealth.Healthy, dep.Health);
     }
 
     [Fact]

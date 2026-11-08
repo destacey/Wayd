@@ -1,165 +1,99 @@
 ﻿using NodaTime;
-using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
-using Wayd.Tests.Shared;
 using Wayd.Work.Domain.Models;
-using Wayd.Work.Domain.Tests.Data;
 
 namespace Wayd.Work.Domain.Tests.Sut.Models;
 
 public class DependencyWorkItemInfoTests
 {
-    private readonly TestingDateTimeProvider _dateTimeProvider;
-    private readonly WorkItemFaker _workItemFaker;
-    private readonly IterationFaker _iterationFaker;
+    private static readonly DateTimeZone Chicago = DateTimeZoneProviders.Tzdb["America/Chicago"];
+    private static readonly DateTimeZone Tokyo = DateTimeZoneProviders.Tzdb["Asia/Tokyo"];
+    private static readonly LocalDate LastDay = new(2026, 9, 27);
 
-    public DependencyWorkItemInfoTests()
-    {
-        _dateTimeProvider = new(new DateTime(2025, 04, 01, 11, 0, 0));
-        _workItemFaker = new WorkItemFaker();
-        _iterationFaker = new IterationFaker();
-    }
+    private static Instant InZone(DateTimeZone zone, LocalDate date, int hour) =>
+        date.At(new LocalTime(hour, 0)).InZoneLeniently(zone).ToInstant();
 
     [Fact]
-    public void Create_WithNoIteration_ReturnsInfoWithNullPlannedOn()
+    public void Create_WithNoSprint_HasNoPlan()
     {
         // Arrange
-        var workItem = _workItemFaker.WithStatusCategory(StatusCategory.Active).Generate();
+        var workItemId = Guid.NewGuid();
 
         // Act
-        var info = DependencyWorkItemInfo.Create(workItem);
+        var info = DependencyWorkItemInfo.Create(workItemId, StatusCategory.Active);
 
         // Assert
-        Assert.NotNull(info);
-        Assert.Equal(workItem.Id, info.WorkItemId);
-        Assert.Equal(workItem.StatusCategory, info.StatusCategory);
+        Assert.Equal(workItemId, info.WorkItemId);
+        Assert.Equal(StatusCategory.Active, info.StatusCategory);
         Assert.Null(info.PlannedOn);
     }
 
     [Fact]
-    public void Create_WithSprintIteration_ReturnsInfoWithIterationEndDate()
+    public void Create_WithFutureSprint_PlansOnItsLastDay()
     {
         // Arrange
-        var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
-        var iteration = _iterationFaker.WithEndDate(today.PlusDays(5), IterationType.Sprint).Generate();
-
-        var workItem = _workItemFaker.WithStatusCategory(StatusCategory.Active).WithIterationId(iteration.Id).Generate();
-        workItem.Iteration = iteration;
+        var now = InZone(Chicago, LastDay.PlusDays(-5), 12);
 
         // Act
-        var info = DependencyWorkItemInfo.Create(workItem, now);
+        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, LastDay, Chicago, now);
 
         // Assert
-        Assert.NotNull(info);
-        Assert.Equal(workItem.Id, info.WorkItemId);
-        Assert.Equal(workItem.StatusCategory, info.StatusCategory);
-        Assert.Equal(iteration.DateRange.End, info.PlannedOn);
+        Assert.Equal(LastDay, info.PlannedOn);
     }
 
     [Fact]
-    public void Create_WithNonSprintIteration_ReturnsInfoWithNullPlannedOn()
+    public void Create_DuringTheSprintsLastDayInItsZone_PlansOnThatDay()
     {
-        // Arrange
-        var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
-        var iteration = _iterationFaker.WithEndDate(today.PlusDays(5), IterationType.Iteration).Generate();
-
-        var workItem = _workItemFaker.WithStatusCategory(StatusCategory.Active).WithIterationId(iteration.Id).Generate();
-        workItem.Iteration = iteration;
+        // Arrange — 23:00 in Chicago on the last day is already the next day in UTC
+        var now = InZone(Chicago, LastDay, 23);
 
         // Act
-        var info = DependencyWorkItemInfo.Create(workItem, now);
+        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, LastDay, Chicago, now);
 
         // Assert
-        Assert.NotNull(info);
-        Assert.Equal(workItem.Id, info.WorkItemId);
-        Assert.Equal(workItem.StatusCategory, info.StatusCategory);
+        Assert.Equal(LastDay, info.PlannedOn);
+    }
+
+    [Fact]
+    public void Create_AtTheEndOfTheSprintsLastDayInItsZone_HasNoPlan()
+    {
+        // Arrange — midnight after the last day in Chicago
+        var now = InZone(Chicago, LastDay.PlusDays(1), 0);
+
+        // Act
+        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, LastDay, Chicago, now);
+
+        // Assert
         Assert.Null(info.PlannedOn);
     }
 
     [Fact]
-    public void Create_WithPastSprint_ReturnsInfoWithNullPlannedOn()
+    public void Create_AfterTheLastDayInTheSprintsZone_HasNoPlanEvenWhileItIsStillThatDayInUtc()
     {
-        // Arrange
-        var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
-        var iteration = _iterationFaker.WithEndDate(today.PlusDays(-5), IterationType.Sprint).Generate();
-
-        var workItem = _workItemFaker.WithStatusCategory(StatusCategory.Active).WithIterationId(iteration.Id).Generate();
-        workItem.Iteration = iteration;
+        // Arrange — 05:00 on the day after in Tokyo is 20:00 UTC on the last day
+        var now = InZone(Tokyo, LastDay.PlusDays(1), 5);
 
         // Act
-        var info = DependencyWorkItemInfo.Create(workItem, now);
+        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, LastDay, Tokyo, now);
 
         // Assert
-        Assert.NotNull(info);
-        Assert.Equal(workItem.Id, info.WorkItemId);
-        Assert.Equal(workItem.StatusCategory, info.StatusCategory);
         Assert.Null(info.PlannedOn);
     }
 
-    [Fact]
-    public void Create_WithSprintEndingToday_ReturnsInfoWithIterationEndDate()
+    [Theory]
+    [InlineData(5, 30, true)]
+    [InlineData(6, 0, false)]
+    public void Create_WhenTheLastDayEndsDaylightSaving_EndsAtMidnightStandardTime(int utcHour, int utcMinute, bool stillPlanned)
     {
-        // Arrange
-        var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
-        var iteration = _iterationFaker.WithEndDate(today, IterationType.Sprint).Generate();
-
-        var workItem = _workItemFaker.WithStatusCategory(StatusCategory.Active).WithIterationId(iteration.Id).Generate();
-        workItem.Iteration = iteration;
+        // Arrange — Chicago leaves daylight saving on Nov 1 2026, so that day ends at 06:00 UTC, not 05:00
+        var lastDay = new LocalDate(2026, 11, 1);
+        var now = Instant.FromUtc(2026, 11, 2, utcHour, utcMinute);
 
         // Act
-        var info = DependencyWorkItemInfo.Create(workItem, now);
+        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), StatusCategory.Proposed, lastDay, Chicago, now);
 
         // Assert
-        Assert.NotNull(info);
-        Assert.Equal(workItem.Id, info.WorkItemId);
-        Assert.Equal(workItem.StatusCategory, info.StatusCategory);
-        Assert.Equal(iteration.DateRange.End, info.PlannedOn);
-    }
-
-    [Fact]
-    public void Create_WithFutureSprint_ReturnsInfoWithIterationEndDate()
-    {
-        // Arrange
-        var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
-        var iteration = _iterationFaker.WithEndDate(today.PlusDays(1), IterationType.Sprint).Generate();
-
-        var workItem = _workItemFaker.WithStatusCategory(StatusCategory.Active).WithIterationId(iteration.Id).Generate();
-        workItem.Iteration = iteration;
-
-        // Act
-        var info = DependencyWorkItemInfo.Create(workItem, now);
-
-        // Assert
-        Assert.NotNull(info);
-        Assert.Equal(workItem.Id, info.WorkItemId);
-        Assert.Equal(workItem.StatusCategory, info.StatusCategory);
-        Assert.Equal(iteration.DateRange.End, info.PlannedOn);
-    }
-
-    [Fact]
-    public void Create_WithoutNowParameter_IncludesPastSprintDate()
-    {
-        // Arrange
-        var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
-        var iteration = _iterationFaker.WithEndDate(today.PlusDays(-5), IterationType.Sprint).Generate();
-
-        var workItem = _workItemFaker.WithStatusCategory(StatusCategory.Active).WithIterationId(iteration.Id).Generate();
-        workItem.Iteration = iteration;
-
-        // Act - calling without 'now' parameter should not filter by date
-        var info = DependencyWorkItemInfo.Create(workItem);
-
-        // Assert
-        Assert.NotNull(info);
-        Assert.Equal(workItem.Id, info.WorkItemId);
-        Assert.Equal(workItem.StatusCategory, info.StatusCategory);
-        Assert.Equal(iteration.DateRange.End, info.PlannedOn);
+        Assert.Equal(stillPlanned ? lastDay : (LocalDate?)null, info.PlannedOn);
     }
 
     [Theory]
@@ -170,66 +104,12 @@ public class DependencyWorkItemInfoTests
     public void Create_PreservesStatusCategory(StatusCategory statusCategory)
     {
         // Arrange
-        var workItem = _workItemFaker.WithStatusCategory(statusCategory).Generate();
+        var now = InZone(Chicago, LastDay, 12);
 
         // Act
-        var info = DependencyWorkItemInfo.Create(workItem);
+        var info = DependencyWorkItemInfo.Create(Guid.NewGuid(), statusCategory, LastDay, Chicago, now);
 
         // Assert
         Assert.Equal(statusCategory, info.StatusCategory);
-    }
-
-    [Fact]
-    public void Create_WithActiveSprint_ReturnsInfoWithIterationEndDate()
-    {
-        // Arrange
-        var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
-        var iteration = _iterationFaker.WithEndDate(today.PlusDays(7), IterationType.Sprint).Generate();
-
-        var workItem = _workItemFaker.WithStatusCategory(StatusCategory.Active).WithIterationId(iteration.Id).Generate();
-        workItem.Iteration = iteration;
-
-        // Act
-        var info = DependencyWorkItemInfo.Create(workItem, now);
-
-        // Assert
-        Assert.NotNull(info);
-        Assert.Equal(iteration.DateRange.End, info.PlannedOn);
-    }
-
-    [Fact]
-    public void Create_WithMultipleConditionsNotMet_ReturnsNullPlannedOn()
-    {
-        // Arrange - Create a past, non-sprint iteration (both filters should exclude it)
-        var now = _dateTimeProvider.Now;
-        var today = _dateTimeProvider.Today;
-        var iteration = _iterationFaker.WithEndDate(today.PlusDays(-5), IterationType.Iteration).Generate();
-
-        var workItem = _workItemFaker.WithStatusCategory(StatusCategory.Active).WithIterationId(iteration.Id).Generate();
-        workItem.Iteration = iteration;
-
-        // Act
-        var info = DependencyWorkItemInfo.Create(workItem, now);
-
-        // Assert
-        Assert.NotNull(info);
-        Assert.Null(info.PlannedOn);
-    }
-
-    [Fact]
-    public void Create_IsRecordType_AllowsWithSyntax()
-    {
-        // Arrange
-        var workItem = _workItemFaker.WithStatusCategory(StatusCategory.Active).Generate();
-        var originalInfo = DependencyWorkItemInfo.Create(workItem);
-
-        // Act - Records support 'with' syntax for non-destructive mutation
-        var modifiedInfo = originalInfo with { PlannedOn = _dateTimeProvider.Today };
-
-        // Assert
-        Assert.NotEqual(originalInfo.PlannedOn, modifiedInfo.PlannedOn);
-        Assert.Equal(originalInfo.WorkItemId, modifiedInfo.WorkItemId);
-        Assert.Equal(originalInfo.StatusCategory, modifiedInfo.StatusCategory);
     }
 }

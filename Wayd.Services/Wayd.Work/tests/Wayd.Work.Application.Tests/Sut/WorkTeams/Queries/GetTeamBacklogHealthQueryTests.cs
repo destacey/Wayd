@@ -320,7 +320,7 @@ public sealed class GetTeamBacklogHealthQueryTests : IDisposable
         // Arrange
         var successor = AddItem(_team, stackRank: 1);
         var predecessor = AddItem(_team, stackRank: 2);
-        _context.AddWorkItemDependency(new WorkItemDependencyFaker(_now).WithSource(predecessor).WithTarget(successor).Generate());
+        _context.AddWorkItemDependency(new WorkItemDependencyFaker().WithSource(predecessor).WithTarget(successor).Generate());
 
         // Act
         var result = await Handler().Handle(Query(_team), TestContext.Current.CancellationToken);

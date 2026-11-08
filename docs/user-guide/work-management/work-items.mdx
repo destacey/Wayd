@@ -157,12 +157,13 @@ Each dependency tracks:
 
 | Health | Condition |
 |--------|-----------|
-| **Healthy** | Predecessor is Done; or predecessor is planned and successor is unplanned; or predecessor is planned on or before the successor's planned date |
+| **Healthy** | Predecessor is planned and successor is unplanned; or predecessor is planned on or before the successor's planned date |
 | **At Risk** | Neither item is planned |
-| **Unhealthy** | Predecessor is Removed; or successor is already Active, Done or Removed while the predecessor is not done; or successor is planned and predecessor is not; or predecessor is planned after the successor |
+| **Unhealthy** | Predecessor is Removed while the successor is still open; or successor is already Active, Done or Removed while the predecessor is not done; or successor is planned and predecessor is not; or predecessor is planned after the successor |
+| **Closed** | Predecessor is Done; or predecessor is Removed and the successor is Done or Removed too |
 | **Unknown** | The link was deleted |
 
-The [Dependency Analysis Report](./dependency-analysis-report.mdx) shows a closed dependency as **Closed** instead, because planning no longer applies: the predecessor is Done, or it is Removed and the successor is Done or Removed too. A removed predecessor whose successor is still open stays **Unhealthy** there, because the successor needs work nobody will do.
+A **Closed** dependency has played out, so there is nothing left to plan. A removed predecessor whose successor is still open stays **Unhealthy**, because the successor needs work nobody will do. A removed predecessor is worth cleaning up either way: the link never held anything up, or no longer can, so delete it in the source system. The [Dependency Analysis Report](./dependency-analysis-report.mdx) counts these as **Predecessor Removed**.
 
 - **Scope** — Whether the dependency is within a team (Intra-Team) or across teams (Cross-Team)
 

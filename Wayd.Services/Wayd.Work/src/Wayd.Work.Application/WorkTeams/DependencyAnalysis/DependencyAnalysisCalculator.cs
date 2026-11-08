@@ -1,5 +1,4 @@
-using Wayd.Common.Application.Dtos;
-using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.WorkItemDependencies.Dtos;
 using Wayd.Work.Application.WorkTeams.Dtos;
 
@@ -61,6 +60,7 @@ public static class DependencyAnalysisCalculator
             Created = counted.Count(i => IsCreatedDuring(i, rangeStart, rangeEnd)),
             Closed = counted.Count(i => IsClosedDuring(i, rangeStart, rangeEnd)),
             OpenAtEnd = counted.Count(i => IsOpenAt(i, rangeEnd)),
+            PredecessorRemoved = counted.Count(i => i.Dependency.Source.StatusCategory.Id == (int)StatusCategory.Removed),
             TeamsInvolved = teams.Count,
             TeamsOutside = teams.Count(id => !scopeTeamIds.Contains(id)),
         };
@@ -114,18 +114,9 @@ public static class DependencyAnalysisCalculator
             Summary = summary,
             Pairs = pairs,
             Periods = periods,
-            Dependencies = [.. counted.Select(WithClosedHealth)],
+            Dependencies = [.. counted.Select(i => i.Dependency)],
         };
     }
-
-    private static readonly SimpleNavigationDto ClosedHealth = SimpleNavigationDto.FromEnum(DependencyPlanningHealth.Closed);
-
-    /// <summary>
-    /// The dependency, with a closed one's planning health read as Closed rather than the Healthy or Unhealthy
-    /// stored for a done or removed predecessor, which would colour finished work as if it were still planned.
-    /// </summary>
-    private static DependencyDto WithClosedHealth(DependencyAnalysisItem item) =>
-        item.ClosedOn is null ? item.Dependency : item.Dependency with { Health = ClosedHealth };
 
     /// <summary>Open at some point from <paramref name="start"/> up to, but not including, <paramref name="end"/>.</summary>
     private static bool IsOpenDuring(DependencyAnalysisItem item, Instant start, Instant end) =>

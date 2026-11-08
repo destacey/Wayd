@@ -2,6 +2,7 @@ using FluentAssertions;
 using NodaTime;
 using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.Requests.Organization;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Work.Application.WorkItemDependencies.Dtos;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkTeams;
@@ -37,7 +38,7 @@ public sealed class DependencyAnalysisCalculatorTests
         Type = type,
     };
 
-    private static WorkItemDetailsNavigationDto Item(WorkTeamNavigationDto? team) => new()
+    private static WorkItemDetailsNavigationDto Item(WorkTeamNavigationDto? team, StatusCategory statusCategory = StatusCategory.Proposed) => new()
     {
         Id = Guid.NewGuid(),
         Key = $"WI-{_nextKey++}",
@@ -45,7 +46,7 @@ public sealed class DependencyAnalysisCalculatorTests
         WorkspaceKey = "WI",
         Type = "Story",
         Status = "New",
-        StatusCategory = SimpleNavigationDto.Create(1, "Proposed"),
+        StatusCategory = SimpleNavigationDto.FromEnum(statusCategory),
         Team = team,
     };
 
@@ -53,11 +54,12 @@ public sealed class DependencyAnalysisCalculatorTests
         WorkTeamNavigationDto? predecessor,
         WorkTeamNavigationDto? successor,
         Instant createdOn,
-        Instant? closedOn = null) => new(
+        Instant? closedOn = null,
+        StatusCategory predecessorStatus = StatusCategory.Proposed) => new(
         new DependencyDto
         {
             Id = Guid.NewGuid(),
-            Source = Item(predecessor),
+            Source = Item(predecessor, predecessorStatus),
             Target = Item(successor),
             LinkType = SimpleNavigationDto.Create(2, "Dependency"),
             State = SimpleNavigationDto.Create(1, "To Do"),
@@ -227,18 +229,33 @@ public sealed class DependencyAnalysisCalculatorTests
     }
 
     [Fact]
-    public void Calculate_ClosedDependency_ReadsAsClosedRatherThanItsStoredHealth()
+    public void Calculate_CountsRemovedPredecessorsWithoutLeavingThemOutOfAnyOtherCount()
     {
         // Arrange
         var open = Dependency(Payments, Mobile, On(7, 1));
+        var removedWithOpenSuccessor = Dependency(Payments, Mobile, On(7, 2), predecessorStatus: StatusCategory.Removed);
+        var removedAndClosed = Dependency(Payments, Data, On(7, 3), On(8, 1), StatusCategory.Removed);
+
+        // Act
+        var result = Calculate(open, removedWithOpenSuccessor, removedAndClosed);
+
+        // Assert
+        result.Summary.PredecessorRemoved.Should().Be(2);
+        result.Summary.Dependencies.Should().Be(3);
+        result.Pairs.Sum(p => p.Dependencies).Should().Be(3);
+        result.Dependencies.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public void Calculate_PassesEachDependencysStoredHealthThrough()
+    {
+        // Arrange — a closed dependency whose row has not been recalculated since its predecessor was done.
         var closed = Dependency(Payments, Data, On(7, 2), On(8, 1));
 
         // Act
-        var result = Calculate(open, closed);
+        var result = Calculate(closed);
 
         // Assert
-        result.Dependencies.Select(d => (d.Id, d.Health.Name)).Should().Equal(
-            (open.Dependency.Id, "Healthy"),
-            (closed.Dependency.Id, "Closed"));
+        result.Dependencies.Single().Health.Name.Should().Be("Healthy");
     }
 }

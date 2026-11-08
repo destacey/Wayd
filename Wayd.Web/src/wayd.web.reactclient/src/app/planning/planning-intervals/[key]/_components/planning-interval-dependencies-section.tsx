@@ -8,10 +8,10 @@ import { useState } from 'react'
 
 export type DependencyStateFilter = 'open' | 'all'
 
-// DependencyState ids: To Do and In Progress are open; Done is not.
+// DependencyState ids: To Do and In Progress are open; Done and Removed are not.
 const OPEN_STATE_IDS = [1, 2]
 
-/** Whether a dependency passes the open/all filter: open means its predecessor is not done. */
+/** Whether a dependency passes the open/all filter: open means its predecessor is To Do or In Progress. */
 export const matchesStateFilter = (
   dependency: DependencyDto,
   filter: DependencyStateFilter,

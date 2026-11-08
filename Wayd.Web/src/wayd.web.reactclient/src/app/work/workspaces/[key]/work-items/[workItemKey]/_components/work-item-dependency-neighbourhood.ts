@@ -13,19 +13,16 @@ import {
 } from '@/src/services/wayd-api'
 import { teamUrl } from '@/src/utils/team-url'
 
-/** Which links the map draws: all of them, or only those whose predecessor is not done yet. */
+/** Which links the map draws: all of them, or only those not yet closed. */
 export type WorkItemDependencyFilter = 'all' | 'open'
 
-/**
- * What an edge is drawn as. A done link has stopped blocking anything, so its planning health no longer
- * says anything worth a colour; every other link is drawn as its health.
- */
+/** What an edge is drawn as: its planning health, which is Closed once the link has played out. */
 export const WORK_ITEM_DEPENDENCY_VARIANTS = [
   'Healthy',
   'At Risk',
   'Unhealthy',
   'Unknown',
-  'Done',
+  'Closed',
 ] as const
 
 export type WorkItemDependencyVariant =
@@ -92,7 +89,8 @@ const teamRecord = (team: WorkTeamNavigationDto): DependencyMapRecord => ({
 export const variantOf = (
   dependency: ScopedDependencyDto,
 ): WorkItemDependencyVariant => {
-  if (dependency.state?.name === DONE_STATE) return 'Done'
+  // A done predecessor closes the link even on a row whose stored health predates the Closed rule.
+  if (dependency.state?.name === DONE_STATE) return 'Closed'
 
   const health = dependency.health?.name
   return WORK_ITEM_DEPENDENCY_VARIANTS.includes(
@@ -101,6 +99,9 @@ export const variantOf = (
     ? (health as WorkItemDependencyVariant)
     : 'Unknown'
 }
+
+const isClosed = (dependency: ScopedDependencyDto) =>
+  variantOf(dependency) === 'Closed'
 
 /**
  * One item's scoped dependencies as the map's links, with the arrow running from predecessor to
@@ -119,7 +120,7 @@ export const toWorkItemLinks = (
   const right: DependencyMapLink[] = []
 
   const ordered = [...dependencies]
-    .filter((d) => filter === 'all' || d.state?.name !== DONE_STATE)
+    .filter((d) => filter === 'all' || !isClosed(d))
     .sort((a, b) =>
       a.dependency.key.localeCompare(b.dependency.key, undefined, {
         numeric: true,

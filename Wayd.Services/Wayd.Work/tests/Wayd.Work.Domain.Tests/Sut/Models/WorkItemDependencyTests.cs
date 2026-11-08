@@ -63,6 +63,24 @@ public class WorkItemDependencyTests
         Assert.Equal(DependencyState.Deleted, dep.State);
     }
 
+    [Fact]
+    public void Create_WithRemovedOnAndDonePredecessor_HealthIsUnknown()
+    {
+        // Arrange
+        var now = _dateTimeProvider.Now;
+
+        var source = _workItemFaker.WithStatusCategory(StatusCategory.Done).Generate();
+        var target = _workItemFaker.WithStatusCategory(StatusCategory.Done).Generate();
+        var removedOn = now.Plus(Duration.FromDays(1));
+
+        // Act
+        var dep = WorkItemDependency.Create(DependencyWorkItemInfo.Create(source.Id, source.StatusCategory), DependencyWorkItemInfo.Create(target.Id, target.StatusCategory), now, null, removedOn, Guid.NewGuid(), null);
+
+        // Assert
+        Assert.Equal(DependencyState.Deleted, dep.State);
+        Assert.Equal(DependencyPlanningHealth.Unknown, dep.Health);
+    }
+
     [Theory]
     [MemberData(nameof(HealthTestCases))]
     public void Create_Health_VariousCases(StatusCategory sourceStatusCategory, StatusCategory targetStatusCategory, int? sourceOffsetDays, int? targetOffsetDays, DependencyPlanningHealth expected)
@@ -90,17 +108,17 @@ public class WorkItemDependencyTests
 
     public static IEnumerable<object[]> HealthTestCases()
     {
-        // state Done should always be Healthy (ignores planned dates)
-        yield return new object[] { StatusCategory.Done, StatusCategory.Proposed, -10, -5, DependencyPlanningHealth.Healthy };
-        yield return new object[] { StatusCategory.Done, StatusCategory.Active, -10, -5, DependencyPlanningHealth.Healthy };
-        yield return new object[] { StatusCategory.Done, StatusCategory.Done, -10, -5, DependencyPlanningHealth.Healthy };
-        yield return new object[] { StatusCategory.Done, StatusCategory.Removed, -10, -5, DependencyPlanningHealth.Healthy };
+        // a done predecessor is Closed whatever the successor (ignores planned dates)
+        yield return new object[] { StatusCategory.Done, StatusCategory.Proposed, -10, -5, DependencyPlanningHealth.Closed };
+        yield return new object[] { StatusCategory.Done, StatusCategory.Active, -10, -5, DependencyPlanningHealth.Closed };
+        yield return new object[] { StatusCategory.Done, StatusCategory.Done, -10, -5, DependencyPlanningHealth.Closed };
+        yield return new object[] { StatusCategory.Done, StatusCategory.Removed, -10, -5, DependencyPlanningHealth.Closed };
 
-        // state Removed should always be Unhealthy (ignores planned dates)
+        // a removed predecessor is Unhealthy while the successor is open, Closed once it is done or removed
         yield return new object[] { StatusCategory.Removed, StatusCategory.Proposed, -10, -5, DependencyPlanningHealth.Unhealthy };
         yield return new object[] { StatusCategory.Removed, StatusCategory.Active, -10, -5, DependencyPlanningHealth.Unhealthy };
-        yield return new object[] { StatusCategory.Removed, StatusCategory.Done, -10, -5, DependencyPlanningHealth.Unhealthy };
-        yield return new object[] { StatusCategory.Removed, StatusCategory.Removed, -10, -5, DependencyPlanningHealth.Unhealthy };
+        yield return new object[] { StatusCategory.Removed, StatusCategory.Done, -10, -5, DependencyPlanningHealth.Closed };
+        yield return new object[] { StatusCategory.Removed, StatusCategory.Removed, -10, -5, DependencyPlanningHealth.Closed };
 
         // both proposed and unplanned, -> AtRisk
         yield return new object[] { StatusCategory.Proposed, StatusCategory.Proposed, null!, null!, DependencyPlanningHealth.AtRisk };
@@ -414,9 +432,9 @@ public class WorkItemDependencyTests
         };
         dep.UpdateSourceAndTargetInfo(sourceInfo, targetInfo);
 
-        // Assert: state should be Done and health should be Healthy
+        // Assert: state should be Done and health should be Closed
         Assert.Equal(DependencyState.Done, dep.State);
-        Assert.Equal(DependencyPlanningHealth.Healthy, dep.Health);
+        Assert.Equal(DependencyPlanningHealth.Closed, dep.Health);
     }
 
     [Fact]

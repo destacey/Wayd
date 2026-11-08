@@ -108,6 +108,7 @@ public sealed class GetTeamDependencyAnalysisQueryHandlerTests(SqlServerDbContex
             Created = 3,
             Closed = 3,
             OpenAtEnd = 2,
+            PredecessorRemoved = 2,
             TeamsInvolved = 3,
             TeamsOutside = 1,
         });

@@ -60,7 +60,7 @@ const VARIANT_DESCRIPTIONS: Record<WorkItemDependencyVariant, string> = {
   'At Risk': getHealthDescription(DependencyHealth.AtRisk),
   Unhealthy: getHealthDescription(DependencyHealth.Unhealthy),
   Unknown: getHealthDescription(DependencyHealth.Unknown),
-  Done: 'The predecessor is done, so the link no longer holds anything up.',
+  Closed: getHealthDescription(DependencyHealth.Closed),
 }
 
 export interface WorkItemDependencyMapCardProps {
@@ -129,7 +129,7 @@ const WorkItemDependencyMapCard = ({
     })
 
   // Whether the card shows is decided on every link, not the filtered ones: a work item whose links are
-  // all done would otherwise lose the map, and with it the control that would turn the filter back off.
+  // all closed would otherwise lose the map, and with it the control that would turn the filter back off.
   // The same two types toWorkItemLinks draws.
   const hasDependencies =
     dependencies?.some(
@@ -172,17 +172,17 @@ const WorkItemDependencyMapCard = ({
   }
 
   // Health in the colours its tags use everywhere else, so a red line and a red Unhealthy tag mean the
-  // same thing. Done is dashed and faint: it is history, not a risk, and must not compete with them.
+  // same thing. Closed is dashed and faint: it is history, not a risk, and must not compete with them.
   const edgeStyles: Record<WorkItemDependencyVariant, DependencyEdgeStyle> = {
     Healthy: { stroke: token.colorSuccess, width: 2 },
     'At Risk': { stroke: token.colorWarning, width: 2 },
     Unhealthy: { stroke: token.colorError, width: 2 },
     Unknown: { stroke: token.colorTextSecondary, width: 1.5 },
-    Done: { stroke: token.colorTextQuaternary, width: 1.5, dashed: true },
+    Closed: { stroke: token.colorTextQuaternary, width: 1.5, dashed: true },
   }
 
   const legend = WORK_ITEM_DEPENDENCY_VARIANTS.filter(
-    (variant) => filter === 'all' || variant !== 'Done',
+    (variant) => filter === 'all' || variant !== 'Closed',
   ).map((variant) => ({
     label: variant,
     style: edgeStyles[variant],
@@ -238,7 +238,7 @@ const WorkItemDependencyMapCard = ({
           Arrows run from predecessor to successor: what this item waits on is
           on the left, what waits on it on the right. Boxes are teams.
           {filter === 'open' &&
-            ' Showing open dependencies only: those whose predecessor is not done.'}
+            ' Showing open dependencies only: those not yet closed.'}
           {neighbourhood.edges.length > 0 &&
             ' Use + on a work item to follow the chain further out.'}
         </Text>

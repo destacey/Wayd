@@ -198,13 +198,17 @@ describe('buildWorkItemDependencyNeighbourhood', () => {
     expect(graph.nodes.some((n) => n.type === 'recordGroup')).toBe(false)
   })
 
-  it('leaves out done links when only open ones are asked for', () => {
+  it('leaves out closed links when only open ones are asked for', () => {
     // Arrange
     const dependencies = [
       dependency('d1', auth, 'Predecessor', {
         state: { id: 3, name: 'Done' },
       }),
       dependency('d2', refund, 'Successor'),
+      dependency('d3', refund, 'Successor', {
+        state: { id: 4, name: 'Removed' },
+        health: { id: 5, name: 'Closed' },
+      }),
     ]
 
     // Act
@@ -216,6 +220,26 @@ describe('buildWorkItemDependencyNeighbourhood', () => {
 
     // Assert
     expect(graph.edges.map((e) => e.id)).toEqual(['d2'])
+  })
+
+  it('keeps a removed predecessor whose successor is still open when only open links are asked for', () => {
+    // Arrange — the successor needs work nobody will do, so the link is still open, and Unhealthy.
+    const dependencies = [
+      dependency('d1', auth, 'Predecessor', {
+        state: { id: 4, name: 'Removed' },
+        health: { id: 3, name: 'Unhealthy' },
+      }),
+    ]
+
+    // Act
+    const graph = buildWorkItemDependencyNeighbourhood({
+      workItem: subject,
+      dependencies,
+      filter: 'open',
+    })
+
+    // Assert
+    expect(graph.edges.map((e) => e.id)).toEqual(['d1'])
   })
 
   it('says a count is of open links while the filter is on', () => {
@@ -311,7 +335,7 @@ describe('variantOf', () => {
     expect(variant).toBe('At Risk')
   })
 
-  it('draws a link as done once the predecessor is, whatever its health', () => {
+  it('draws a link as closed once the predecessor is done, whatever its health', () => {
     // Arrange
     const link = dependency('d1', auth, 'Predecessor', {
       state: { id: 3, name: 'Done' },
@@ -322,7 +346,21 @@ describe('variantOf', () => {
     const variant = variantOf(link)
 
     // Assert
-    expect(variant).toBe('Done')
+    expect(variant).toBe('Closed')
+  })
+
+  it('draws a removed predecessor as closed once its health is', () => {
+    // Arrange
+    const link = dependency('d1', auth, 'Predecessor', {
+      state: { id: 4, name: 'Removed' },
+      health: { id: 5, name: 'Closed' },
+    })
+
+    // Act
+    const variant = variantOf(link)
+
+    // Assert
+    expect(variant).toBe('Closed')
   })
 
   it('falls back to unknown for a health the map has no style for', () => {

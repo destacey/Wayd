@@ -31,6 +31,7 @@ Dates are whole days in the time zone of the team's [operating model](../organiz
 | **Created** | Of those, the ones created in the range |
 | **Closed** | Of those, the ones that closed in the range |
 | **Open at End** | Of those, the ones still open on the last day |
+| **Predecessor Removed** | Of those, the ones whose predecessor is Removed today, whatever the successor |
 | **Teams Involved** | Teams owning either item of a dependency, in the report or not; items with no team add none |
 | **Teams Outside** / **Partner Teams** | Of those, the teams outside the team of teams; on a team, every other team |
 
@@ -41,6 +42,8 @@ Dates are whole days in the time zone of the team's [operating model](../organiz
 On a team of teams, a [dependency wheel](../planning/planning-intervals.mdx#dependencies) shows where the dependencies ran: each arc is a team, and each ribbon runs from the team doing the work (the predecessors' team) to the team waiting on it, pointing at the team waiting. On a team, a chart lists each other team the team shares dependencies with, split into those the team waits on and those waiting on it, as in the team's [Dependencies](../organizations/index.mdx#dependencies) section.
 
 Below the chart is the list of every dependency counted in the range. Click a team or ribbon to filter the list. Each dependency shows its **state and health as they are today**, not as they were during the range. A closed dependency's health is **Closed**: planning health compares when the two items are planned, which no longer matters once the dependency has closed. The charts show closed dependencies in grey, so the health colours describe only the open ones.
+
+A dependency whose predecessor was removed never held anything up, or no longer can, so it is data to clean up: delete the link in the source system. Until then it counts like any other dependency, in the tiles, the chart and the team pairs. When there are any in the range, tick **Only dependencies whose predecessor was removed** to narrow the chart and the list to them.
 
 ### Team Pairs
 

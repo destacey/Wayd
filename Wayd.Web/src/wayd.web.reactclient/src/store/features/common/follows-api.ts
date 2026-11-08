@@ -37,6 +37,8 @@ export interface GetMyFollowsRequest {
   search?: string
   sort: FollowSort
   direction: SortDirection
+  /** How many records each page holds; a glance such as the home widget asks for only what it shows. */
+  pageSize?: number
 }
 
 /** How many followed records each page of the list loads. */
@@ -93,7 +95,7 @@ export const followsApi = apiSlice.injectEndpoints({
             queryArg.search,
             queryArg.sort,
             pageParam,
-            FollowsPageSize,
+            queryArg.pageSize ?? FollowsPageSize,
             queryArg.direction,
           )
           return { data }

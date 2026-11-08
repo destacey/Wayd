@@ -662,6 +662,25 @@ export const projectsApi = apiSlice.injectEndpoints({
       providesTags: () => [{ type: QueryTags.Project, id: 'MY_TASK_METRICS' }],
     }),
 
+    getMyProjectsTaskMetrics: builder.query<
+      ProjectsTaskMetricsDto,
+      { status?: ProjectStatus[]; role?: ProjectMemberRole[] } | void
+    >({
+      queryFn: async (request = undefined) => {
+        try {
+          const data = await getProjectsClient().getMyProjectsTaskMetrics(
+            request?.status,
+            request?.role,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: () => [{ type: QueryTags.Project, id: 'MY_TASK_METRICS' }],
+    }),
+
     getProjectTeam: builder.query<ProjectTeamMemberDto[], string>({
       queryFn: async (idOrKey) => {
         try {
@@ -743,6 +762,7 @@ export const {
   useGetProjectsPlanSummariesQuery,
   useGetMyProjectsSummaryQuery,
   useGetProjectsTaskMetricsQuery,
+  useGetMyProjectsTaskMetricsQuery,
   useGetProjectTeamQuery,
   useGetProjectStatusHistoryQuery,
   useGetProjectActivitiesQuery,

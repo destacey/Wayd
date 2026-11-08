@@ -123217,7 +123217,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// A column of the home page.
+    /// A column of the home page. Saved layouts store the member name, and every user load reads it, so a
+    /// <br/>member is never renamed or removed.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public enum HomeLayoutColumn

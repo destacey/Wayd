@@ -128,6 +128,45 @@ describe('ProjectDeliverablesSummary', () => {
     expect(screen.getAllByRole('progressbar')).toHaveLength(2)
   })
 
+  it('lists the most recently accepted deliverables once none is open', () => {
+    // Arrange
+    const accepted = (name: string, acceptedOn: string) => ({
+      ...deliverable(name, StatusCategory.Done),
+      acceptedOn: new Date(acceptedOn),
+    })
+    mockQuery.mockReturnValue({
+      data: [
+        accepted('Pilot release', '2026-09-01T12:00:00Z'),
+        accepted('Data migration', '2026-10-15T12:00:00Z'),
+        accepted('Production release', '2026-11-02T12:00:00Z'),
+        accepted('Runbook', '2026-10-20T12:00:00Z'),
+        deliverable('Training', StatusCategory.Removed),
+      ],
+    })
+
+    // Act
+    render(<ProjectDeliverablesSummary projectId="p-1" projectKey="CPM" />)
+
+    // Assert
+    expect(
+      screen.getByLabelText('4 of 4 deliverables accepted'),
+    ).toBeInTheDocument()
+    const names = [
+      'Production release',
+      'Runbook',
+      'Data migration',
+      'Pilot release',
+      'Training',
+    ].filter((n) => screen.queryByText(n))
+    expect(names).toEqual(['Production release', 'Runbook', 'Data migration'])
+    const latest = screen.getByText('Production release')
+    const third = screen.getByText('Data migration')
+    expect(
+      latest.compareDocumentPosition(third) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(screen.getByText('Nov 2, 2026')).toBeInTheDocument()
+  })
+
   it('renders nothing when every deliverable was descoped', () => {
     // Arrange
     mockQuery.mockReturnValue({

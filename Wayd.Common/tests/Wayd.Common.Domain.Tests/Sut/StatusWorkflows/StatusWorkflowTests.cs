@@ -2496,6 +2496,8 @@ public sealed class StatusWorkflowTests
         active.IsRetired.Should().BeTrue();
         active.Name.Should().Be("In Progress", "a hidden status still takes the source's name");
         active.Category.Should().Be(StatusCategory.Done, "items still holding it roll up under the source's category");
+        workflow.DomainEvents.OfType<WorkflowStatusReclassifiedEvent>().Should().ContainSingle()
+            .Which.StatusId.Should().Be(active.Id, "the items holding a retired status are re-stamped too");
         workflow.Statuses.Last().Should().Be(active);
         workflow.DomainEvents.OfType<WorkflowStatusRetiredEvent>().Should().ContainSingle().Which.StatusId.Should().Be(active.Id);
     }
@@ -2899,6 +2901,36 @@ public sealed class StatusWorkflowTests
         active.Alias.Should().Be(StatusWorkflow.NoAlias, "Notable belongs to Active");
         workflow.DomainEvents.OfType<WorkflowStatusAliasChangedEvent>().Should().ContainSingle()
             .Which.Should().Match<WorkflowStatusAliasChangedEvent>(e => e.FromAlias == NotableAlias && e.ToAlias == StatusWorkflow.NoAlias);
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldNameTheReclassifiedStatus_ByTheNameTheSameSyncGaveIt()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+
+        // Act
+        workflow.SyncFromSource(
+            "Agile: Bug", [SourceNew, SourceActive with { Name = "Doing", Category = StatusCategory.Done }, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        workflow.DomainEvents.OfType<WorkflowStatusRenamedEvent>().Should().ContainSingle();
+        workflow.DomainEvents.OfType<WorkflowStatusReclassifiedEvent>().Should().ContainSingle()
+            .Which.StatusName.Should().Be("Doing");
+    }
+
+    [Fact]
+    public void ReclassifyStatus_ShouldSayAManagedWorkflowsCategoriesComeFromItsSource()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+
+        // Act
+        var result = workflow.ReclassifyStatus(StatusKeyed(workflow, "active").Id, StatusCategory.Done, StatusWorkflow.NoAlias, EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("managed workflow");
     }
 
     [Fact]

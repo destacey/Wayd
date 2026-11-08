@@ -22,7 +22,10 @@ erDiagram
     WorkflowScheme ||--|| StatusCategory : "places status in"
     Workspace ||--o{ WorkItem : contains
     WorkItem ||--|| WorkType : "is type"
-    WorkItem ||--|| WorkStatus : "has status"
+    WorkItem ||--|| WorkflowStatus : "has status"
+    StatusWorkflow ||--o{ WorkflowStatus : contains
+    Workspace ||--|| StatusWorkflowScheme : "assigned"
+    StatusWorkflowScheme ||--o{ StatusWorkflow : "gives each work type"
     WorkItem ||--o| WorkItem : "parent of"
 ```
 
@@ -81,7 +84,7 @@ Custom Portfolio-tier levels can be added to support deeper hierarchies (e.g., a
 
 ## Workflows
 
-A **Workflow** defines the set of [statuses](#work-statuses) and their ordering that a [work item](./work-items.mdx#work-items) goes through from creation to completion. Each work type in a [work process](#work-processes) is assigned a workflow.
+A **Workflow** is Work's record of the [statuses](#work-statuses) a work type's items can be in, and their order, as the external system defines them. Each work type in a [work process](#work-processes) is assigned a workflow.
 
 A workflow contains a **Workflow Scheme** that defines:
 - **[Work Statuses](#work-statuses)** — The available states
@@ -89,6 +92,10 @@ A workflow contains a **Workflow Scheme** that defines:
 - **Order** — The sequence of statuses
 
 Workflows come from the external system with their work process: each Azure DevOps work item type's states become a workflow named after the process and the type, and each state's Azure DevOps category is mapped to a [work status category](#work-status-categories). Wayd has no screen for creating or editing a workflow.
+
+:::note[A work item's status comes from the status workflow engine]
+The same sync keeps a copy of each process in the [status workflow engine](../settings/status-workflows.mdx#work-item-workflows), and that copy is what a work item and its history take their status and category from: the workflow its type follows in its workspace. The workflows and statuses on this page are Work's own record of the process; they do not decide an item's status.
+:::
 
 **Business rules:**
 - Each work status can only appear once in a workflow
@@ -115,7 +122,7 @@ A **Work Status** represents a specific state within a [workflow](#workflows) (e
 
 ## Work Status Categories
 
-**Work Status Categories** normalize statuses across different [workflows](#workflows) for consistent reporting and metrics. They are a fixed set:
+**Work Status Categories** normalize statuses across different workflows for consistent reporting and metrics; reports read the category of each item's status in its [status workflow](../settings/status-workflows.mdx#categories). They are a fixed set:
 
 | Category | Order | Purpose |
 |----------|-------|---------|

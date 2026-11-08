@@ -603,7 +603,7 @@ Tick the jobs — or the header checkbox for every job shown — and use **Reque
 
 **Run a Job** offers every job type for an immediate run, grouped as Integration Jobs, Data Replication Jobs and Maintenance Jobs; hover a job type for what it does. The job types are:
 
-- **Work Full Sync** and **Work Differential Sync** — Synchronize work data from every active work-management connection (Azure DevOps). Differential fetches only items changed since the last sync. A failed run is retried up to three times.
+- **Work Full Sync** and **Work Differential Sync** — Synchronize work data from every active work-management connection (Azure DevOps). Differential fetches only items changed since the last sync. A failed run is retried up to three times. After the upgrade that moved work item statuses onto [status workflows](./status-workflows.mdx#work-item-workflows), each workspace's next run of either kind syncs it in full and rebuilds its history, so that run takes longer than usual.
 - **People Full Sync** and **People Differential Sync** — Synchronize people from the active people connection (Entra or Workday). A connector that cannot fetch only changes, such as Entra, runs a differential sync as a full one. A failed run is not retried: fix the cause and run it again. The run fails when more than one people connection is active.
 - **Projects Sync, Teams Sync, Iterations Sync, Strategic Themes Sync, and Estimation Scales Sync** — Replicate their respective records across domains.
 - **Portfolio Rank Rebalance** — Maintenance job that re-spaces dense project ranks within portfolios after repeated drag-to-rank operations.

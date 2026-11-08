@@ -159,14 +159,22 @@ public sealed class ManagedStatusEntityTests
     }
 
     [Fact]
-    public void ApplySourceStatus_ShouldTakeTheNewCategory_WhenAnAdministratorReclassifiedTheHeldStatus()
+    public void ApplySourceStatus_ShouldTakeTheNewCategory_WhenTheSourceReclassifiedTheHeldStatus()
     {
         // Arrange
         var workflow = SourceWorkflow("conn-1:agile:bug");
         var record = new ItemRecord();
         record.Apply(Target(workflow, "Active"));
         var active = workflow.Statuses.Single(s => s.ExternalKey == "active");
-        Require(workflow.ReclassifyStatus(active.Id, StatusCategory.Done, StatusWorkflow.NoAlias, EventActor.System, Now));
+        Require(workflow.SyncFromSource(
+            workflow.Name,
+            [
+                new SourceStatus("new", "New", StatusCategory.Proposed),
+                new SourceStatus("active", "Active", StatusCategory.Done),
+                new SourceStatus("closed", "Closed", StatusCategory.Done),
+            ],
+            EventActor.Sync(null),
+            Now));
 
         // Act
         var changed = record.Apply(Target(workflow, "Active"));

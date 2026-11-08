@@ -35,7 +35,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     private const string NotArchivableError = "Only published workflows can be archived.";
     private const string AlreadyPublishedError = "The workflow is already published.";
     private const string ArchivedError = "An archived workflow cannot be modified.";
-    private const string ManagedError = "A managed workflow takes its statuses from its source. Only their categories and aliases can be changed here.";
+    private const string ManagedError = "A managed workflow takes its statuses from its source. Only their descriptions can be changed here.";
 
     private readonly List<WorkflowStatus> _statuses = [];
     private readonly List<WorkflowTransition> _transitions = [];
@@ -596,9 +596,8 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// re-added, losing its description and its position.
     /// </para>
     /// <para>
-    /// A managed workflow is the exception: its category mapping and aliases are what Wayd adds to its
-    /// source's statuses, so they change while it is published. The <see cref="WorkflowStatusReclassifiedEvent"/>
-    /// carries the owner type, so the owning module re-stamps the denormalized category on its records.
+    /// Refused on a managed workflow: its source decides each status's category, and the sync applies it
+    /// (<see cref="SyncFromSource"/>).
     /// </para>
     /// </remarks>
     public Result ReclassifyStatus(Guid statusId, StatusCategory category, int alias, EventActor actor, Instant timestamp)
@@ -608,20 +607,20 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("System workflows cannot be modified. Clone this workflow to change it.");
         }
 
-        if (IsManaged ? State == StatusWorkflowState.Archived : State != StatusWorkflowState.Draft)
+        if (IsManaged)
         {
-            return Result.Failure(IsManaged ? ArchivedError : NotDraftError);
+            return Result.Failure(ManagedError);
+        }
+
+        if (State != StatusWorkflowState.Draft)
+        {
+            return Result.Failure(NotDraftError);
         }
 
         var status = _statuses.SingleOrDefault(s => s.Id == statusId);
         if (status is null)
         {
             return Result.Failure("Status not found.");
-        }
-
-        if (status.IsRetired)
-        {
-            return Result.Failure($"'{status.Name}' is retired, so no record can be given it.");
         }
 
         if (alias != NoAlias && _statuses.Any(s => s.Id != statusId && s.Alias == alias))
@@ -1042,9 +1041,11 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
     /// The only way a managed workflow's structure changes. It never refuses for what the source holds: a
     /// source with no status in a required category still syncs, and <see cref="CheckIssues"/> reports it.
     /// <para>
-    /// Only the source's facts are applied. An existing status keeps the category, alias and description
-    /// administrators gave it, whatever the source now suggests. A retired status keeps its place after the active
-    /// ones and loses its alias, so the meaning can move to a status records can still be given.
+    /// Only the source's facts are applied: an existing status takes the source's name and category, and keeps
+    /// the description administrators gave it. A category change raises <see cref="WorkflowStatusReclassifiedEvent"/>,
+    /// which carries the owner type, so the owning module re-stamps the denormalized category on its records. A
+    /// retired status keeps its place after the active ones and loses its alias, so the meaning can move to a
+    /// status records can still be given.
     /// </para>
     /// </remarks>
     public Result SyncFromSource(string name, IReadOnlyList<SourceStatus> statuses, EventActor actor, Instant timestamp)
@@ -1098,6 +1099,7 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
                 }
 
                 ApplySourceName(status, source.Name, actor, timestamp);
+                ApplySourceCategory(status, source.Category, actor, timestamp);
             }
             else
             {
@@ -1155,6 +1157,31 @@ public sealed class StatusWorkflow : BaseAuditableEntity, IHasIdAndKey
         if (fromAlias != NoAlias)
         {
             status.SetAlias(NoAlias);
+            AddKeyedDomainEvent(() => new WorkflowStatusAliasChangedEvent(Id, Key, statusId, fromAlias, NoAlias, actor, timestamp));
+        }
+    }
+
+    /// <summary>
+    /// Moves an existing status to the category its source now gives it, dropping an alias that belongs to
+    /// another category.
+    /// </summary>
+    private void ApplySourceCategory(WorkflowStatus status, StatusCategory category, EventActor actor, Instant timestamp)
+    {
+        var fromCategory = status.Category;
+        if (fromCategory == category)
+        {
+            return;
+        }
+
+        status.Reclassify(category);
+        AddDomainEvent(new WorkflowStatusReclassifiedEvent(
+            Id, status.Id, status.Name, OwnerType, fromCategory, category, actor, timestamp));
+
+        var fromAlias = status.Alias;
+        if (fromAlias != NoAlias && DescribeMisfit(fromAlias, category) is not null)
+        {
+            status.SetAlias(NoAlias);
+            var statusId = status.Id;
             AddKeyedDomainEvent(() => new WorkflowStatusAliasChangedEvent(Id, Key, statusId, fromAlias, NoAlias, actor, timestamp));
         }
     }

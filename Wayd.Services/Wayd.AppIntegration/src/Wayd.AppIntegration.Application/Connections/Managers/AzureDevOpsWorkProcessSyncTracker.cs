@@ -40,4 +40,17 @@ public sealed class AzureDevOpsWorkProcessSyncTracker
             return processes.Add(workProcessExternalId);
         }
     }
+
+    /// <summary>
+    /// Takes back <see cref="TryMarkSynced"/> for a process whose sync failed, so the next workspace on it
+    /// in the run syncs it again rather than syncing its items against a process the engine does not hold.
+    /// </summary>
+    public void Forget(Guid syncId, Guid workProcessExternalId)
+    {
+        lock (_lock)
+        {
+            if (_runs.TryGetValue(syncId, out var processes))
+                processes.Remove(workProcessExternalId);
+        }
+    }
 }

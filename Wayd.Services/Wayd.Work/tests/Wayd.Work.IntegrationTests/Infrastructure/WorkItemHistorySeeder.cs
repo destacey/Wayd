@@ -90,27 +90,11 @@ public static class WorkItemHistorySeeder
     }
 
     /// <summary>
-    /// Gives the workspace's process the "History Story" type and the type an engine workflow with
-    /// <paramref name="statuses"/>, assigned to <paramref name="workspaceIds"/>.
+    /// Gives the workspace's process the "History Story" type, through the process's own scheme, and the type an
+    /// engine workflow with <paramref name="statuses"/>, assigned to <paramref name="workspaceIds"/>.
     /// </summary>
-    public static async Task<StatusWorkflow> SeedWorkflow(SqlServerDbContextFixture fixture, Guid workspaceId, IReadOnlyCollection<Guid> workspaceIds, IReadOnlyList<SourceStatus> statuses, CancellationToken ct)
-    {
-        await using (var context = fixture.CreateContext())
-        {
-            await context.Database.ExecuteSqlInterpolatedAsync(
-                $"""
-                INSERT INTO [Work].[WorkProcessSchemes]
-                    ([Id], [WorkProcessId], [WorkTypeId], [WorkflowId], [IsActive], [IsDeleted], [SystemCreated], [SystemLastModified])
-                SELECT {Guid.CreateVersion7()}, w.[WorkProcessId], t.[Id], NULL, 1, 0, SYSUTCDATETIME(), SYSUTCDATETIME()
-                FROM [Work].[Workspaces] w
-                CROSS JOIN [Work].[WorkTypes] t
-                WHERE w.[Id] = {workspaceId} AND t.[Name] = {WorkTypeName};
-                """,
-                ct);
-        }
-
-        return await WorkItemWorkflowSeeder.Seed(fixture, WorkTypeName, workspaceIds, statuses, ct);
-    }
+    public static Task<StatusWorkflow> SeedWorkflow(SqlServerDbContextFixture fixture, Guid workspaceId, IReadOnlyCollection<Guid> workspaceIds, IReadOnlyList<SourceStatus> statuses, CancellationToken ct) =>
+        WorkItemWorkflowSeeder.Seed(fixture, WorkTypeName, workspaceIds, statuses, ct, processOf: workspaceId);
 
     /// <summary>A work item in <paramref name="workspaceId"/> with the source id <paramref name="externalId"/>.</summary>
     public static async Task<Guid> SeedWorkItem(SqlServerDbContextFixture fixture, Guid workspaceId, int externalId, CancellationToken ct)

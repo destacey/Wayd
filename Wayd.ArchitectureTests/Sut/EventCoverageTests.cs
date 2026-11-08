@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Mono.Cecil;
 using Wayd.AppIntegration.Domain.Models;
 using Wayd.AppIntegration.Domain.Models.AzureOpenAI;
@@ -178,10 +179,6 @@ public partial class EventCoverageTests
         ["ProjectStage.UpdateProgress(Progress)"] = "#950.",
         ["WorkProcess.CreateExternal(String, String, Guid, Instant)"] = "#955.",
         ["WorkProcess.Update(String, String, Instant)"] = "#955.",
-        ["WorkProcess.AddWorkType(Int32, Guid, Boolean, Instant)"] = "#955.",
-        ["WorkProcess.ActivateWorkType(Int32, Instant)"] = "#955.",
-        ["WorkProcess.DeactivateWorkType(Int32, Instant)"] = "#955.",
-        ["WorkProcess.ChangeWorkTypeWorkflow(Int32, Guid, Instant)"] = "#955.",
         ["AzureDevOpsBoardsConnection.SetSystemId(String)"] = "#956.",
         ["AzureDevOpsBoardsConnection.SyncWorkspaces(IEnumerable<AzureDevOpsBoardsWorkspace>, Instant)"] = "#956.",
         ["AzureDevOpsBoardsConnection.SyncProcesses(IEnumerable<AzureDevOpsBoardsWorkProcess>, Instant)"] = "#956.",
@@ -237,6 +234,8 @@ public partial class EventCoverageTests
         [typeof(ExternalEmployeeBlacklistItem)] =
             "External ids a removed employee must not be re-imported from; written as part of that removal.",
         [typeof(WorkflowAliasName)] = "Lookup data rebuilt from code at startup.",
+        [typeof(LegacyWorkStatusDescription)] =
+            "Descriptions kept from Work's removed shared statuses, written once by a migration and only read since.",
 
         // A person's own preferences, not history of any record.
         [typeof(Follow)] = "One person's choice to hear about a record; it changes nothing about the record.",
@@ -256,8 +255,6 @@ public partial class EventCoverageTests
         [typeof(ProjectLifecycle)] = "#952.",
         [typeof(TeamMemberRole)] = "#952.",
         [typeof(WorkItemReference)] = "#952.",
-        [typeof(Workflow)] = "#955.",
-        [typeof(WorkStatus)] = "#955.",
         [typeof(WorkType)] = "#955.",
         [typeof(WorkTypeHierarchy)] = "#955.",
         [typeof(Workspace)] = "#955.",
@@ -312,6 +309,12 @@ public partial class EventCoverageTests
             "Retypes CutDate and ReleasedDate to the CutAt and ReleasedAt instants, carrying each value across; no fact about a version changed: #929.",
         ["20261101221206_Version-Estimation-Scales.cs"] =
             "Moves each scale's values onto version 1, and Down moves the current version's back, before the scale raised any event; no fact about a scale changed: #1254.",
+        ["20260926172623_Add-TeamOperatingModel-TimeZone-And-Grace.cs"] =
+            "Gives a team that predates operating models, and that their backfill missed, its first model; shipped without an activity log entry for it: #914.",
+        ["20260927023231_Add-TeamOfTeamsOperatingModels.cs"] =
+            "Gives each existing team of teams its first operating model, and records each in the activity log itself: #915.",
+        ["20261108141829_Retire-WorkStatus-Admin.cs"] =
+            "Copies each shared work status's description onto the managed statuses made from it, which already held it in Work; no status changed meaning: #1237.",
     };
 
     /// <summary>
@@ -540,23 +543,46 @@ public partial class EventCoverageTests
         _ => type.Name,
     };
 
-    /// <summary>The table each evented aggregate is stored in, as <c>schema.table</c> and bare name.</summary>
+    /// <summary>
+    /// The tables that hold an evented aggregate's history, as <c>schema.table</c> and bare name: each evented
+    /// aggregate's own, and each of its children's, whether listed in <see cref="ChildEntities"/> or reached
+    /// only through the aggregate's navigations, such as a workflow's statuses.
+    /// </summary>
     private static Dictionary<string, string> EventedTables()
     {
         var tables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var historyTypes = HistoryTypes().ToList();
+        var pending = new Queue<IEntityType>(WaydModel.Model.GetEntityTypes().Where(e => historyTypes.Any(t => t.IsAssignableFrom(e.ClrType))));
+        var seen = new HashSet<IEntityType>();
 
-        foreach (var entityType in WaydModel.Model.GetEntityTypes())
+        while (pending.TryDequeue(out var entityType))
         {
-            if (!EventedAggregates.Any(a => a.IsAssignableFrom(entityType.ClrType)) || entityType.GetTableName() is not { } table)
+            if (!seen.Add(entityType))
                 continue;
 
-            var qualified = $"{entityType.GetSchema()}.{table}";
-            tables[qualified] = qualified;
-            tables[table] = qualified;
+            if (entityType.GetTableName() is { } table)
+            {
+                var qualified = $"{entityType.GetSchema()}.{table}";
+                tables[qualified] = qualified;
+                tables[table] = qualified;
+            }
+
+            // A dependent the aggregate owns through a navigation is part of it, unless it is an aggregate of
+            // its own that merely points back.
+            foreach (var navigation in entityType.GetNavigations().Where(n => !n.IsOnDependent))
+            {
+                var target = navigation.TargetEntityType;
+                if (!IsAggregate(target.ClrType))
+                    pending.Enqueue(target);
+            }
         }
 
         return tables;
     }
+
+    /// <summary>Whether the type is an aggregate in its own right, evented or not.</summary>
+    private static bool IsAggregate(Type type) =>
+        EventedAggregates.Any(a => a.IsAssignableFrom(type)) || UneventedAggregates.Keys.Any(a => a.IsAssignableFrom(type));
 
     /// <summary>
     /// Shipped source, and the migrations added after this guard. The ones before it have run everywhere and

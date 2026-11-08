@@ -458,7 +458,7 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
         {
             var dateTimeProvider = new Mock<IDateTimeProvider>();
             dateTimeProvider.SetupGet(p => p.Now).Returns(SyncedAt);
-            var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, new StatusResolver(accessor.Context), dateTimeProvider.Object, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
+            var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, accessor.Context, new StatusResolver(accessor.Context), dateTimeProvider.Object, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
             result = await handler.Handle(new SyncExternalWorkItemHistoryCommand(ConnectionId, workspaceId, Revisions(), "token-1"), ct);
         }
 
@@ -487,7 +487,7 @@ public sealed class SyncExternalWorkItemHistoryCommandHandlerTests(SqlServerDbCo
         await using var accessor = new WaydDbContextAccessor(_fixture);
         var dateTimeProvider = new Mock<IDateTimeProvider>();
         dateTimeProvider.SetupGet(p => p.Now).Returns(now ?? SyncedAt);
-        var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, new StatusResolver(accessor.Context), dateTimeProvider.Object, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
+        var handler = new SyncExternalWorkItemHistoryCommandHandler(accessor.Context, accessor.Context, new StatusResolver(accessor.Context), dateTimeProvider.Object, NullLogger<SyncExternalWorkItemHistoryCommandHandler>.Instance);
 
         var result = await handler.Handle(new SyncExternalWorkItemHistoryCommand(ConnectionId, workspaceId, revisions, watermark, isLastBatch, filledWorkItemIds), ct);
 

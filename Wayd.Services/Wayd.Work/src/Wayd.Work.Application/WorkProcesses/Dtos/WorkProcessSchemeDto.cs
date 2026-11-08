@@ -6,20 +6,17 @@ namespace Wayd.Work.Application.WorkProcesses.Dtos;
 /// <summary>One work type in a work process, and the status workflow its work items follow.</summary>
 public sealed record WorkProcessSchemeDto
 {
-    /// <summary>The scheme's id within the work process.</summary>
+    /// <summary>The id of the work type's entry in the process's scheme.</summary>
     public Guid Id { get; init; }
 
     /// <summary>The work type, with its level.</summary>
     public required WorkTypeDto WorkType { get; init; }
 
     /// <summary>
-    /// The status workflow the work type follows in this process, with its statuses; null when the process has
-    /// no workflow for the type, such as a type whose source offers no state.
+    /// The status workflow the work type follows in this process, with its statuses; null only when the workflow
+    /// its scheme entry names cannot be read.
     /// </summary>
     public WorkProcessSchemeWorkflowDto? Workflow { get; init; }
-
-    /// <summary>Whether the work type is active in this process.</summary>
-    public bool IsActive { get; init; }
 }
 
 /// <summary>A status workflow as a work process's scheme reports it.</summary>

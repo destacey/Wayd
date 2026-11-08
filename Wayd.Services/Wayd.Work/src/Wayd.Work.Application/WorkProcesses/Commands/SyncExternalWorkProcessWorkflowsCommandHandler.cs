@@ -1,6 +1,9 @@
 using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
+using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Application.StatusWorkflows.Commands;
+using Wayd.Common.Domain.Enums.Work;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Domain;
@@ -8,8 +11,8 @@ using Wayd.Work.Domain;
 namespace Wayd.Work.Application.WorkProcesses.Commands;
 
 /// <summary>
-/// Keeps a work process's record types, workflows and scheme in the engine, and assigns the scheme to every
-/// workspace on the process.
+/// Keeps a work process's work types in Work, and its record types, workflows and scheme in the engine, and
+/// assigns the scheme to every workspace on the process.
 /// </summary>
 /// <remarks>
 /// Each piece is saved by its own engine command, so a failure part-way leaves what was already synced in
@@ -21,11 +24,20 @@ namespace Wayd.Work.Application.WorkProcesses.Commands;
 /// stays out of the scheme until a state is offered. A type the process no longer lists keeps its scheme
 /// entry for the same reason.
 /// </para>
+/// <para>
+/// Work types are organization-wide and found by name: a type new to Wayd is created at the default level, and
+/// an existing one keeps the level and description it has.
+/// </para>
+/// <para>
+/// A status with no description takes the one Work's shared status of the same name had
+/// (<see cref="LegacyWorkStatusDescription"/>), through the workflow so the change is recorded.
+/// </para>
 /// </remarks>
 public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
     IWorkDbContext workDbContext,
     IStatusWorkflowDbContext statusWorkflowDbContext,
     IDispatcher dispatcher,
+    IDateTimeProvider dateTimeProvider,
     ILogger<SyncExternalWorkProcessWorkflowsCommandHandler> logger)
     : ICommandHandler<SyncExternalWorkProcessWorkflowsCommand>
 {
@@ -34,6 +46,7 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
     private readonly IWorkDbContext _workDbContext = workDbContext;
     private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<SyncExternalWorkProcessWorkflowsCommandHandler> _logger = logger;
 
     public async Task<Result> Handle(SyncExternalWorkProcessWorkflowsCommand request, CancellationToken cancellationToken)
@@ -51,7 +64,12 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
             return Result.Failure($"Work process with external ID {process.Id} not found.");
         }
 
+        var workTypesResult = await AddNewWorkTypes(process, cancellationToken);
+        if (workTypesResult.IsFailure)
+            return workTypesResult;
+
         var workTypeNames = await WorkTypeNames(cancellationToken);
+        var legacyDescriptions = await LegacyDescriptions(cancellationToken);
         var workflowKeys = await ExistingWorkflowKeys(ownerType, process.Id, cancellationToken);
 
         var entries = new List<SyncedType>();
@@ -80,6 +98,10 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
                 ownerType, workflowKey, $"{process.Name.Trim()} - {workType.Name.Trim()}", statuses), cancellationToken);
             if (workflowResult.IsFailure)
                 return Failed("workflow", workType.Name, workflowResult.Error);
+
+            var describeResult = await DescribeStatuses(workflowResult.Value, legacyDescriptions, cancellationToken);
+            if (describeResult.IsFailure)
+                return Failed("status descriptions", workType.Name, describeResult.Error);
 
             entries.Add(new SyncedType(
                 new ManagedSchemeEntry(recordTypeResult.Value, workflowResult.Value),
@@ -121,6 +143,103 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandler(
 
         _logger.LogInformation("{AppRequestName}: synced {WorkTypeCount} workflows and {WorkspaceCount} workspace assignments for process {WorkProcessName}.",
             AppRequestName, entries.Count, workspaceIds.Count, process.Name);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Creates the process's work types that Wayd does not have yet, at the level of the "Other" tier, where an
+    /// administrator moves them.
+    /// </summary>
+    private async Task<Result> AddNewWorkTypes(IExternalWorkProcessConfiguration process, CancellationToken cancellationToken)
+    {
+        // Deleted types included: a type's name is unique whether or not it is deleted, so one is never created again.
+        var existing = (await _workDbContext.WorkTypes.IgnoreQueryFilters().Select(t => t.Name).ToListAsync(cancellationToken))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var newTypes = process.WorkTypes
+            .Where(t => !string.IsNullOrWhiteSpace(t.Name) && !existing.Contains(t.Name.Trim()))
+            .DistinctBy(t => t.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (newTypes.Count == 0)
+            return Result.Success();
+
+        var defaultLevelId = await _workDbContext.WorkTypeHierarchies
+            .SelectMany(h => h.Levels)
+            .Where(l => l.Tier == WorkTypeTier.Other)
+            .OrderBy(l => l.Order)
+            .Select(l => (int?)l.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (defaultLevelId is null)
+            return Result.Failure("Unable to find the work type level for new work types.");
+
+        var now = _dateTimeProvider.Now;
+        _workDbContext.WorkTypes.AddRange(newTypes.Select(t => WorkType.Create(t.Name, t.Description, defaultLevelId.Value, now)));
+        try
+        {
+            await _workDbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ManagedSyncCollision.IsCollision(ex))
+        {
+            _logger.LogWarning(ex, "{AppRequestName}: another sync saved the new work types of process {WorkProcessName} first.", AppRequestName, process.Name);
+            return Result.Failure($"Unable to save the new work types of {process.Name}, most likely because another sync of the same process saved them at the same time. The next sync picks them up.");
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "{AppRequestName}: the new work types of process {WorkProcessName} could not be saved.", AppRequestName, process.Name);
+            return Result.Failure($"Unable to save the new work types of {process.Name}.");
+        }
+
+        _logger.LogInformation("{AppRequestName}: created {WorkTypeCount} work types for process {WorkProcessName}.", AppRequestName, newTypes.Count, process.Name);
+
+        return Result.Success();
+    }
+
+    /// <summary>The descriptions of Work's former shared statuses, by name in any casing.</summary>
+    private async Task<Dictionary<string, string>> LegacyDescriptions(CancellationToken cancellationToken)
+    {
+        var rows = await _workDbContext.LegacyWorkStatusDescriptions
+            .Select(d => new { d.Name, d.Description })
+            .ToListAsync(cancellationToken);
+        return rows.DistinctBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(d => d.Name, d => d.Description, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Gives each status of the workflow that has no description the one Work's shared status of the same name
+    /// had. Nothing is loaded when there are no such descriptions, which is the case on every install that never
+    /// described a shared status.
+    /// </summary>
+    private async Task<Result> DescribeStatuses(Guid workflowId, Dictionary<string, string> descriptions, CancellationToken cancellationToken)
+    {
+        if (descriptions.Count == 0)
+            return Result.Success();
+
+        var workflow = await _statusWorkflowDbContext.StatusWorkflows
+            .Include(w => w.Statuses)
+            .FirstOrDefaultAsync(w => w.Id == workflowId, cancellationToken);
+        if (workflow is null)
+            return Result.Failure($"Workflow {workflowId} not found.");
+
+        var actor = EventActor.Sync(null);
+        var now = _dateTimeProvider.Now;
+        var described = 0;
+        foreach (var status in workflow.Statuses.Where(s => s.Description is null))
+        {
+            if (!descriptions.TryGetValue(status.Name, out var description))
+                continue;
+
+            var result = workflow.DescribeStatus(status.Id, description, actor, now);
+            if (result.IsFailure)
+            {
+                workflow.ClearDomainEvents();
+                return result;
+            }
+
+            described++;
+        }
+
+        if (described > 0)
+            await _statusWorkflowDbContext.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
     }

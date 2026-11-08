@@ -1,16 +1,14 @@
-﻿using Wayd.Common.Application.Interfaces.ExternalWork;
-using Wayd.Common.Application.Requests.WorkManagement.Interfaces;
+using Wayd.Common.Application.Interfaces.ExternalWork;
 using Wayd.Common.Application.Validators;
 
 namespace Wayd.Common.Application.Requests.WorkManagement.Commands;
 
 /// <summary>
-/// Updates an external work process configuration.
+/// Brings a Wayd work process's name and description into line with its external process. Its work types and
+/// workflows are kept in the status workflow engine by <see cref="SyncExternalWorkProcessWorkflowsCommand"/>.
 /// </summary>
-/// <param name="ExternalWorkProcess"></param>
-/// <param name="ExternalWorkTypes">Includes data for work types associated to the work process.</param>
-/// <param name="WorkflowMappings">Includes data to map work types to their workflows.</param>
-public sealed record UpdateExternalWorkProcessCommand(IExternalWorkProcessConfiguration ExternalWorkProcess, IEnumerable<IExternalWorkType> ExternalWorkTypes, IEnumerable<ICreateWorkProcessScheme> WorkflowMappings) : ICommand, ILongRunningRequest;
+/// <param name="ExternalWorkProcess">The external process.</param>
+public sealed record UpdateExternalWorkProcessCommand(IExternalWorkProcess ExternalWorkProcess) : ICommand;
 
 public sealed class UpdateExternalWorkProcessCommandValidator : CustomValidator<UpdateExternalWorkProcessCommand>
 {
@@ -18,13 +16,6 @@ public sealed class UpdateExternalWorkProcessCommandValidator : CustomValidator<
     {
         RuleFor(c => c.ExternalWorkProcess)
             .NotNull()
-            .SetValidator(new IExternalWorkProcessConfigurationValidator());
-
-        RuleForEach(c => c.ExternalWorkTypes)
-            .NotNull()
-            .NotEmpty()
-            .SetValidator(new IExternalWorkTypeValidator());
-
-        // TODO: Add validation for WorkProcessSchemes
+            .SetValidator(new IExternalWorkProcessValidator());
     }
 }

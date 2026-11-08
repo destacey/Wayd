@@ -2046,6 +2046,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
+                    b.PrimitiveCollection<string>("FormerNames")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsRetired")
                         .HasColumnType("bit");
 
@@ -8170,6 +8174,22 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("Iterations", "Work");
                 });
 
+            modelBuilder.Entity("Wayd.Work.Domain.Models.LegacyWorkStatusDescription", b =>
+                {
+                    b.Property<string>("Name")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.HasKey("Name");
+
+                    b.ToTable("LegacyWorkStatusDescriptions", "Work");
+                });
+
             modelBuilder.Entity("Wayd.Work.Domain.Models.WorkItem", b =>
                 {
                     b.Property<Guid>("Id")
@@ -8752,64 +8772,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("WorkProcesses", "Work");
                 });
 
-            modelBuilder.Entity("Wayd.Work.Domain.Models.WorkProcessScheme", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("Deleted")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("SystemCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemCreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("SystemLastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemLastModifiedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<Guid>("WorkProcessId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("WorkTypeId")
-                        .HasColumnType("int");
-
-                    b.Property<Guid?>("WorkflowId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WorkTypeId");
-
-                    b.HasIndex("WorkflowId");
-
-                    b.HasIndex("Id", "IsDeleted")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.HasIndex("WorkProcessId", "IsDeleted")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("WorkProcessId", "IsDeleted"), new[] { "Id", "WorkTypeId", "WorkflowId", "IsActive" });
-
-                    b.ToTable("WorkProcessSchemes", "Work");
-                });
-
             modelBuilder.Entity("Wayd.Work.Domain.Models.WorkProject", b =>
                 {
                     b.Property<Guid>("Id")
@@ -8843,66 +8805,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("WorkProjects", "Work");
-                });
-
-            modelBuilder.Entity("Wayd.Work.Domain.Models.WorkStatus", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime?>("Deleted")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<DateTime>("SystemCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemCreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("SystemLastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemLastModifiedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.HasIndex("Id", "IsDeleted")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.HasIndex("IsActive", "IsDeleted")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("IsActive", "IsDeleted"), new[] { "Id", "Name" });
-
-                    b.ToTable("WorkStatuses", "Work");
                 });
 
             modelBuilder.Entity("Wayd.Work.Domain.Models.WorkTeam", b =>
@@ -9129,137 +9031,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("Id", "Tier"), new[] { "Order" });
 
                     b.ToTable("WorkTypeLevels", "Work");
-                });
-
-            modelBuilder.Entity("Wayd.Work.Domain.Models.Workflow", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("Deleted")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1024)
-                        .HasColumnType("nvarchar(1024)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("Key")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)");
-
-                    b.Property<string>("Ownership")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar");
-
-                    b.Property<DateTime>("SystemCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemCreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("SystemLastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemLastModifiedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasAlternateKey("Key");
-
-                    b.HasIndex("Id", "IsDeleted")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.HasIndex("IsActive", "IsDeleted")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("IsActive", "IsDeleted"), new[] { "Id", "Key", "Name" });
-
-                    b.HasIndex("Key", "IsDeleted")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.ToTable("Workflows", "Work");
-                });
-
-            modelBuilder.Entity("Wayd.Work.Domain.Models.WorkflowScheme", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("Deleted")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeletedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("SystemCreated")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemCreatedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("SystemLastModified")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SystemLastModifiedBy")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("WorkStatusCategory")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("varchar");
-
-                    b.Property<int>("WorkStatusId")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("WorkflowId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("WorkStatusId");
-
-                    b.HasIndex("Id", "IsDeleted")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    b.HasIndex("WorkflowId", "IsDeleted")
-                        .HasFilter("[IsDeleted] = 0");
-
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("WorkflowId", "IsDeleted"), new[] { "Id", "WorkStatusId", "WorkStatusCategory" });
-
-                    b.ToTable("WorkflowSchemes", "Work");
                 });
 
             modelBuilder.Entity("Wayd.Work.Domain.Models.Workspace", b =>
@@ -12187,32 +11958,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Wayd.Work.Domain.Models.WorkProcessScheme", b =>
-                {
-                    b.HasOne("Wayd.Work.Domain.Models.WorkProcess", "WorkProcess")
-                        .WithMany("Schemes")
-                        .HasForeignKey("WorkProcessId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Wayd.Work.Domain.Models.WorkType", "WorkType")
-                        .WithMany()
-                        .HasForeignKey("WorkTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Wayd.Work.Domain.Models.Workflow", "Workflow")
-                        .WithMany()
-                        .HasForeignKey("WorkflowId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("WorkProcess");
-
-                    b.Navigation("WorkType");
-
-                    b.Navigation("Workflow");
-                });
-
             modelBuilder.Entity("Wayd.Work.Domain.Models.WorkType", b =>
                 {
                     b.HasOne("Wayd.Work.Domain.Models.WorkTypeLevel", "Level")
@@ -12230,25 +11975,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .WithMany("Levels")
                         .HasForeignKey("WorkTypeHierarchyId")
                         .OnDelete(DeleteBehavior.Cascade);
-                });
-
-            modelBuilder.Entity("Wayd.Work.Domain.Models.WorkflowScheme", b =>
-                {
-                    b.HasOne("Wayd.Work.Domain.Models.WorkStatus", "WorkStatus")
-                        .WithMany()
-                        .HasForeignKey("WorkStatusId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Wayd.Work.Domain.Models.Workflow", "Workflow")
-                        .WithMany("Schemes")
-                        .HasForeignKey("WorkflowId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("WorkStatus");
-
-                    b.Navigation("Workflow");
                 });
 
             modelBuilder.Entity("Wayd.Work.Domain.Models.Workspace", b =>
@@ -12710,19 +12436,12 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.Work.Domain.Models.WorkProcess", b =>
                 {
-                    b.Navigation("Schemes");
-
                     b.Navigation("Workspaces");
                 });
 
             modelBuilder.Entity("Wayd.Work.Domain.Models.WorkTypeHierarchy", b =>
                 {
                     b.Navigation("Levels");
-                });
-
-            modelBuilder.Entity("Wayd.Work.Domain.Models.Workflow", b =>
-                {
-                    b.Navigation("Schemes");
                 });
 
             modelBuilder.Entity("Wayd.Work.Domain.Models.Workspace", b =>

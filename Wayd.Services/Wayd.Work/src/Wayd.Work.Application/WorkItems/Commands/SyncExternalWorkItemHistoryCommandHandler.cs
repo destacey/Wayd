@@ -24,12 +24,13 @@ namespace Wayd.Work.Application.WorkItems.Commands;
 /// sync replays from the start and fills gaps without changing what is stored.
 /// </para>
 /// </remarks>
-public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext workDbContext, IStatusResolver statusResolver, IDateTimeProvider dateTimeProvider, ILogger<SyncExternalWorkItemHistoryCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemHistoryCommand, int>
+public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext workDbContext, IStatusWorkflowDbContext statusWorkflowDbContext, IStatusResolver statusResolver, IDateTimeProvider dateTimeProvider, ILogger<SyncExternalWorkItemHistoryCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemHistoryCommand, int>
 {
     // Keeps IN lists inside SQL Server's parameter limit.
     private const int LookupBatchSize = 1000;
 
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<SyncExternalWorkItemHistoryCommandHandler> _logger = logger;
@@ -84,7 +85,7 @@ public sealed class SyncExternalWorkItemHistoryCommandHandler(IWorkDbContext wor
                 var rebuildRevisions = await LoadSourceRevisions(rebuildIds, cancellationToken);
                 rebuildRevisions.AddRange(newRevisions.Where(r => rebuildIds.Contains(r.WorkItemId)));
 
-                var loaded = await WorkItemRevisionResolver.Load(_workDbContext, _statusResolver, workspace, request.ConnectionId, cancellationToken);
+                var loaded = await WorkItemRevisionResolver.Load(_workDbContext, _statusWorkflowDbContext, _statusResolver, workspace, request.ConnectionId, cancellationToken);
                 if (loaded.IsFailure)
                     return Result.Failure<int>(loaded.Error);
 

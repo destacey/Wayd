@@ -74048,15 +74048,13 @@ export interface WorkProcessListDto {
 
 /** One work type in a work process, and the status workflow its work items follow. */
 export interface WorkProcessSchemeDto {
-    /** The scheme's id within the work process. */
+    /** The id of the work type's entry in the process's scheme. */
     id: string;
     /** The work type, with its level. */
     workType: WorkTypeDto;
-    /** The status workflow the work type follows in this process, with its statuses; null when the process has
-no workflow for the type, such as a type whose source offers no state. */
+    /** The status workflow the work type follows in this process, with its statuses; null only when the workflow
+its scheme entry names cannot be read. */
     workflow?: WorkProcessSchemeWorkflowDto | undefined;
-    /** Whether the work type is active in this process. */
-    isActive: boolean;
 }
 
 /** One status of a work process's workflow. */

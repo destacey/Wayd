@@ -2593,6 +2593,192 @@ public sealed class StatusWorkflowTests
         workflow.DomainEvents.Should().BeEmpty();
     }
 
+    [Fact]
+    public void SyncFromSource_ShouldRememberTheNamesASourceRenamedAStatusFrom_OldestFirst()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+
+        // Act
+        workflow.SyncFromSource("Agile: Bug", [SourceNew, new("active", "Doing", StatusCategory.Active), SourceClosed], EventActor.Sync(null), At);
+        workflow.SyncFromSource("Agile: Bug", [SourceNew, new("active", "In Progress", StatusCategory.Active), SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        StatusKeyed(workflow, "active").FormerNames.Should().Equal("Active", "Doing");
+        StatusKeyed(workflow, "new").FormerNames.Should().BeEmpty("a status the source did not rename has no former name");
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldForgetAFormerName_TheStatusTakesBack()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+        workflow.SyncFromSource("Agile: Bug", [SourceNew, new("active", "Doing", StatusCategory.Active), SourceClosed], EventActor.Sync(null), At);
+
+        // Act
+        workflow.SyncFromSource("Agile: Bug", [SourceNew, SourceActive, SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        StatusKeyed(workflow, "active").Name.Should().Be("Active");
+        StatusKeyed(workflow, "active").FormerNames.Should().Equal("Doing");
+    }
+
+    [Fact]
+    public void SyncFromSource_ShouldNotRememberAName_WhenOnlyItsCaseChanges()
+    {
+        // Arrange — sources report states by name without regard to case, so the old casing still matches
+        var workflow = ManagedWorkflow();
+
+        // Act
+        workflow.SyncFromSource("Agile: Bug", [SourceNew, new("active", "ACTIVE", StatusCategory.Active), SourceClosed], EventActor.Sync(null), At);
+
+        // Assert
+        StatusKeyed(workflow, "active").Name.Should().Be("ACTIVE");
+        StatusKeyed(workflow, "active").FormerNames.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void DescribeStatus_ShouldRewriteTheDescription_OfAManagedWorkflowsStatus()
+    {
+        // Arrange — the source owns the name; the description is Wayd's
+        var workflow = ManagedWorkflow();
+        var active = StatusKeyed(workflow, "active");
+
+        // Act
+        var result = workflow.DescribeStatus(active.Id, "  Being worked on.  ", EventActor.Sync(null), At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        active.Description.Should().Be("Being worked on.");
+        active.Name.Should().Be("Active");
+        var changed = workflow.DomainEvents.OfType<WorkflowStatusDescriptionChangedEvent>().Should().ContainSingle().Subject;
+        (changed.Id, changed.StatusId, changed.FromDescription, changed.ToDescription).Should().Be((workflow.Id, active.Id, null, "Being worked on."));
+        workflow.DomainEvents.Should().ContainSingle("nothing else about the workflow changed");
+    }
+
+    [Fact]
+    public void DescribeStatus_ShouldReportThePreviousDescription()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+        var active = StatusKeyed(workflow, "active");
+        workflow.DescribeStatus(active.Id, "Before", EventActor.Sync(null), At);
+        workflow.ClearDomainEvents();
+
+        // Act
+        var result = workflow.DescribeStatus(active.Id, null, EventActor.Sync(null), At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        active.Description.Should().BeNull();
+        var changed = workflow.DomainEvents.OfType<WorkflowStatusDescriptionChangedEvent>().Should().ContainSingle().Subject;
+        (changed.FromDescription, changed.ToDescription).Should().Be(("Before", null));
+    }
+
+    [Theory]
+    [InlineData("Same")]
+    [InlineData(" Same ")]
+    public void DescribeStatus_ShouldRaiseNothing_WhenTheDescriptionIsUnchanged(string description)
+    {
+        // Arrange — compared after trimming
+        var workflow = ManagedWorkflow();
+        var active = StatusKeyed(workflow, "active");
+        workflow.DescribeStatus(active.Id, "Same", EventActor.Sync(null), At);
+        workflow.ClearDomainEvents();
+
+        // Act
+        var result = workflow.DescribeStatus(active.Id, description, EventActor.Sync(null), At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        workflow.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void DescribeStatus_ShouldDescribeARetiredStatus()
+    {
+        // Arrange — records still hold it, so administrators still read it
+        var workflow = ManagedWorkflow();
+        workflow.SyncFromSource("Agile: Bug", [SourceNew, SourceClosed], EventActor.Sync(null), At);
+        var active = StatusKeyed(workflow, "active");
+
+        // Act
+        var result = workflow.DescribeStatus(active.Id, "No longer offered.", EventActor.Sync(null), At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        active.Description.Should().Be("No longer offered.");
+    }
+
+    [Fact]
+    public void DescribeStatus_ShouldFail_ForAnUnknownStatus()
+    {
+        // Arrange
+        var workflow = ManagedWorkflow();
+
+        // Act
+        var result = workflow.DescribeStatus(Guid.NewGuid(), "Anything", EventActor.Sync(null), At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Status not found.");
+        workflow.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void DescribeStatus_ShouldFail_ForAnArchivedWorkflow()
+    {
+        // Arrange
+        var workflow = InState(WidgetWorkflow(), StatusWorkflowState.Archived);
+        workflow.ClearDomainEvents();
+        var status = workflow.Statuses.First();
+
+        // Act
+        var result = workflow.DescribeStatus(status.Id, "Anything", EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("An archived workflow cannot be modified.");
+        status.Description.Should().NotBe("Anything");
+        workflow.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void DescribeStatus_ShouldRewriteTheDescription_OfAPublishedOwnedWorkflowsStatus()
+    {
+        // Arrange — allowed whoever keeps the workflow; records hold the status id, not its description
+        var workflow = Saved(InState(WidgetWorkflow(), StatusWorkflowState.Published));
+        var status = workflow.Statuses.First();
+
+        // Act
+        var result = workflow.DescribeStatus(status.Id, "Rewritten.", EventActor.System, At);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        status.Description.Should().Be("Rewritten.");
+        workflow.DomainEvents.OfType<WorkflowStatusDescriptionChangedEvent>().Should().ContainSingle()
+            .Which.ToDescription.Should().Be("Rewritten.");
+    }
+
+    [Fact]
+    public void DescribeStatus_ShouldFail_ForASystemWorkflow()
+    {
+        // Arrange
+        var workflow = StatusWorkflow.CreateSystem("Widget Workflow", null, Widget.Key, EventActor.System, At).Value;
+        workflow.AddSystemStatus("Draft", null, StatusCategory.Proposed, StatusWorkflow.NoAlias, EventActor.System, At);
+        workflow.ClearDomainEvents();
+        var status = workflow.Statuses.Single();
+
+        // Act
+        var result = workflow.DescribeStatus(status.Id, "Anything", EventActor.System, At);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("System workflows cannot be modified");
+        status.Description.Should().BeNull();
+        workflow.DomainEvents.Should().BeEmpty();
+    }
+
     public static TheoryData<string, Func<StatusWorkflow, Result>> AdministratorStructureEdits() => new()
     {
         { "Update", w => w.Update("Renamed", null, EventActor.System, At) },

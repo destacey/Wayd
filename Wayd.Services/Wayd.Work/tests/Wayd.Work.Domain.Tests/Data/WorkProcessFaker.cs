@@ -16,7 +16,6 @@ public class WorkProcessFaker : PrivateConstructorFaker<WorkProcess>
         RuleFor(x => x.Ownership, Ownership.Owned);
         RuleFor(x => x.ExternalId, (Guid?)null);
         RuleFor(x => x.IsActive, true);
-        RuleFor("_schemes", f => new List<WorkProcessScheme>());
     }
 }
 
@@ -61,12 +60,6 @@ public static class WorkProcessFakerExtensions
     public static WorkProcessFaker WithIsActive(this WorkProcessFaker faker, bool isActive)
     {
         faker.RuleFor(x => x.IsActive, isActive);
-        return faker;
-    }
-
-    public static WorkProcessFaker WithSchemes(this WorkProcessFaker faker, List<WorkProcessScheme> schemes)
-    {
-        faker.RuleFor("_schemes", f => schemes);
         return faker;
     }
 

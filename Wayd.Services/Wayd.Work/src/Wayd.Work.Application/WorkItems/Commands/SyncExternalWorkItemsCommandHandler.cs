@@ -7,6 +7,7 @@ using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Dtos;
+using Wayd.Work.Application.WorkProcesses;
 using Wayd.Work.Domain.Interfaces;
 using Wayd.Work.Domain.Models;
 
@@ -14,9 +15,10 @@ namespace Wayd.Work.Application.WorkItems.Commands;
 
 // TODO: add validation
 
-public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbContext, IStatusResolver statusResolver, IDateTimeProvider dateTimeProvider, ILogger<SyncExternalWorkItemsCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemsCommand>
+public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbContext, IStatusWorkflowDbContext statusWorkflowDbContext, IStatusResolver statusResolver, IDateTimeProvider dateTimeProvider, ILogger<SyncExternalWorkItemsCommandHandler> logger) : ICommandHandler<SyncExternalWorkItemsCommand>
 {
     private readonly IWorkDbContext _workDbContext = workDbContext;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
     private readonly IStatusResolver _statusResolver = statusResolver;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<SyncExternalWorkItemsCommandHandler> _logger = logger;
@@ -46,9 +48,6 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
         {
             var workProcess = await _workDbContext.WorkProcesses
                 .AsNoTracking()
-                .Include(p => p.Schemes)
-                    .ThenInclude(s => s.WorkType)
-                        .ThenInclude(t => t!.Level)
                 .FirstOrDefaultAsync(wp => wp.Id == workspace.WorkProcessId, cancellationToken);
             if (workProcess is null)
             {
@@ -56,13 +55,17 @@ public sealed class SyncExternalWorkItemsCommandHandler(IWorkDbContext workDbCon
                 return Result.Failure($"Unable to sync external work items for workspace {workspace.Id} because the workspace does not have a work process.");
             }
 
-            var workTypes = workProcess.Schemes
-                .Where(s => s.WorkType is not null)
-                .Select(s => s.WorkType!)
-                .DistinctBy(t => t.Id)
+            var recordTypeIds = await _statusWorkflowDbContext.SchemeRecordTypeIds(workProcess.ExternalId, cancellationToken);
+            var workTypes = (await _workDbContext.WorkTypes
+                .AsNoTracking()
+                .Include(t => t.Level)
+                .LinkedTo(recordTypeIds)
+                .ToListAsync(cancellationToken))
                 .ToHashSet();
 
-            var workTypeByName = workTypes.ToDictionary(t => t.Name, t => t);
+            // Without regard to case: a source names a type as its process spells it, and Work keeps one type for
+            // every spelling (SyncExternalWorkProcessWorkflowsCommand).
+            var workTypeByName = workTypes.ToDictionary(t => t.Name, t => t, StringComparer.OrdinalIgnoreCase);
 
             // A status is the one the workspace's scheme gives the item's type.
             var statusesResult = await WorkTypeStatuses.Load(

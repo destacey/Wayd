@@ -6,10 +6,9 @@ import {
   compareCalendarDates,
   formatCalendarDate,
 } from '@/src/utils/calendar-date'
-import { RightOutlined } from '@ant-design/icons'
+import ViewAllLink from '@/src/components/common/view-all-link'
 import { Card, Flex, Progress, Tag, Typography } from 'antd'
 import dayjs from 'dayjs'
-import Link from 'next/link'
 import DeliverableProgress from '@/src/app/ppm/projects/_components/deliverable-progress'
 import { isOverdue } from './deliverable-status'
 
@@ -86,9 +85,7 @@ const ProjectDeliverablesSummary = ({
       title="Deliverables"
       style={style}
       extra={
-        <Link href={`/ppm/projects/${projectKey}?section=deliverables`}>
-          View all <RightOutlined style={{ fontSize: 10 }} />
-        </Link>
+        <ViewAllLink href={`/ppm/projects/${projectKey}?section=deliverables`} />
       }
     >
       <Flex gap="large" align="center" wrap>

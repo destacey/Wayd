@@ -14,7 +14,8 @@ import {
   ProductDto,
 } from '@/src/services/wayd-api'
 import { toFileName } from '@/src/utils'
-import { Button, Card, Col, Segmented, Skeleton, theme, Typography } from 'antd'
+import ViewAllLink from '@/src/components/common/view-all-link'
+import { Card, Col, Segmented, Skeleton, theme, Typography } from 'antd'
 import dynamic from 'next/dynamic'
 import {
   buildProductDependencyNeighbourhood,
@@ -143,16 +144,7 @@ const ProductDependencyMapCard = ({
         size="small"
         title="Dependencies"
         extra={
-          onViewAll && (
-            <Button
-              type="link"
-              size="small"
-              onClick={onViewAll}
-              styles={{ root: { padding: 0 } }}
-            >
-              View all
-            </Button>
-          )
+          onViewAll && <ViewAllLink onClick={onViewAll} />
         }
       >
         <DependencyMap

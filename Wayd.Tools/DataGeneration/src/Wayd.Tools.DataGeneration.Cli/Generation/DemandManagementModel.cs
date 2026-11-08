@@ -4,11 +4,43 @@ namespace Wayd.Tools.DataGeneration.Cli.Generation;
 // numbers — for the same reason as the other models: ids exist only once the API has created something, so
 // the seed areas substitute them as they go.
 
-/// <summary>The generated desks, tag categories and requests.</summary>
+/// <summary>
+/// The generated desks, tag categories and requests, and what the requests became. Outcomes point at PPM's
+/// projects, so they are empty unless PPM was generated too.
+/// </summary>
 public sealed record GeneratedDemandManagement(
     IReadOnlyList<IntakeDeskModel> Desks,
     IReadOnlyList<IntakeTagCategoryModel> TagCategories,
-    IReadOnlyList<IntakeRequestModel> Requests);
+    IReadOnlyList<IntakeRequestModel> Requests)
+{
+    /// <summary>The projects the accepted and fulfilled requests became or were absorbed into.</summary>
+    public IReadOnlyList<IntakeRequestOutcomeModel> Outcomes { get; init; } = [];
+}
+
+/// <summary>
+/// One thing the request named by <see cref="RequestHandle"/> became: the project named by
+/// <see cref="ProjectKey"/>, started for it or absorbing it. Deliverables are named as their project names them.
+/// </summary>
+public sealed class IntakeRequestOutcomeModel
+{
+    public required string RequestHandle { get; init; }
+
+    /// <summary><c>NewProject</c> or <c>ExistingProjectScope</c>.</summary>
+    public required string Kind { get; init; }
+
+    public required string ProjectKey { get; init; }
+
+    /// <summary>What the outcome covers; always present for existing project scope.</summary>
+    public string? Note { get; init; }
+
+    /// <summary>For existing project scope, the project's deliverables that meet the request; empty otherwise.</summary>
+    public required IReadOnlyList<string> DeliverableNames { get; init; }
+
+    /// <summary>Who recorded it: the request's assignee, or a member of its desk.</summary>
+    public required string AddedByEmployeeNumber { get; init; }
+
+    public required DateTimeOffset AddedOn { get; init; }
+}
 
 /// <summary>
 /// A generated desk and the people who work it, by employee number. Every member is in post today, since a

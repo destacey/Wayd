@@ -13,6 +13,7 @@ import {
 import {
   AddIntakeRequestOutcomeRequest,
   AddIntakeRequestTagRequest,
+  IntakeRequestProjectDeliverableDto,
   ProjectIntakeRequestDto,
   WorkItemIntakeRequestDto,
   ChangeIntakeRequestStatusRequest,
@@ -85,6 +86,21 @@ export interface RemoveIntakeRequestOutcomeArgs {
   requestId: string
   /** The project or work item the outcome points at. */
   targetId: string
+}
+
+export interface SetIntakeRequestOutcomeDeliverablesArgs {
+  requestId: string
+  /** The project the outcome points at. */
+  targetId: string
+  /** The outcome's whole mapping after the change; an empty list clears it. */
+  deliverableIds: string[]
+  /** The mapping the change was made against; a different current one refuses it with 409. */
+  expectedDeliverableIds: string[]
+}
+
+export interface GetIntakeRequestProjectDeliverablesArgs {
+  requestId: string
+  projectId: string
 }
 
 /** A project's list of the requests it came from or absorbed. */
@@ -666,6 +682,54 @@ export const demandManagementApi = apiSlice.injectEndpoints({
         ...requestTags(requestId),
         ...outcomeTargetTags(targetId),
       ],
+    }),
+
+    // The project's list names the deliverables each request waits on, and is keyed by the project's id, which
+    // the outcome's target is.
+    setIntakeRequestOutcomeDeliverables: builder.mutation<
+      void,
+      SetIntakeRequestOutcomeDeliverablesArgs
+    >({
+      queryFn: async ({
+        requestId,
+        targetId,
+        deliverableIds,
+        expectedDeliverableIds,
+      }) => {
+        try {
+          const data = await getIntakeRequestsClient().setOutcomeDeliverables(
+            requestId,
+            targetId,
+            { deliverableIds, expectedDeliverableIds },
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: (_result, _error, { requestId, targetId }) => [
+        ...requestTags(requestId),
+        projectRequestsTag(targetId),
+      ],
+    }),
+
+    // Read from Demand Management's copy, which follows PPM in the background, so it is never cached for long.
+    getIntakeRequestProjectDeliverables: builder.query<
+      IntakeRequestProjectDeliverableDto[],
+      GetIntakeRequestProjectDeliverablesArgs
+    >({
+      queryFn: async ({ requestId, projectId }) => {
+        try {
+          const data = await getIntakeRequestsClient().getProjectDeliverables(
+            requestId,
+            projectId,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      keepUnusedDataFor: 0,
     }),
 
     getProjectIntakeRequests: builder.query<ProjectIntakeRequestDto[], string>({
@@ -1449,6 +1513,8 @@ export const {
   useRemoveIntakeRequestParticipantMutation,
   useAddIntakeRequestOutcomeMutation,
   useRemoveIntakeRequestOutcomeMutation,
+  useSetIntakeRequestOutcomeDeliverablesMutation,
+  useGetIntakeRequestProjectDeliverablesQuery,
   useGetProjectIntakeRequestsQuery,
   useGetWorkItemIntakeRequestsQuery,
   useGetNeedByBasesQuery,

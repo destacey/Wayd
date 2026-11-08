@@ -7,7 +7,9 @@ using Wayd.Common.Application.Imports.Commands;
 using Wayd.Common.Application.Notifications.Commands;
 using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.Requests.Planning.Queries;
+using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.DemandManagement.Application.DemandEstimationScales.Commands;
+using Wayd.DemandManagement.Application.DemandProjectDeliverables.Commands;
 using Wayd.DemandManagement.Application.DemandProjects.Commands;
 using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Work.Application.Iterations.Queries;
@@ -173,6 +175,22 @@ public class JobManager(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogError(ex, "Failed to sync Demand Management projects");
+        }
+
+        // After the project copies, which each deliverable copy needs.
+        try
+        {
+            var deliverablesAsOf = _dateTimeProvider.Now;
+            var deliverables = await _dispatcher.Send(new GetSimpleProjectDeliverablesQuery(), cancellationToken);
+            var deliverableResult = await _dispatcher.Send(new SyncDemandProjectDeliverablesCommand(deliverables, deliverablesAsOf), cancellationToken);
+            if (deliverableResult.IsFailure)
+            {
+                _logger.LogError("Failed to sync Demand Management project deliverables: {Error}", deliverableResult.Error);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Failed to sync Demand Management project deliverables");
         }
 
         _logger.LogInformation("Completed {BackgroundJob} job", nameof(RunSyncProjects));

@@ -41,6 +41,24 @@ public sealed class GetProjectIntakeRequestsQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ForAMappedRequest_NamesTheDeliverablesItWaitsOn()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var project = _scenario.Project();
+        var portal = _scenario.Deliverable(project, "Portal");
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        _scenario.Outcome(request, project.Id, agent, IntakeRequestOutcomeKind.ExistingProjectScope, "Export screen", [portal.Id]);
+        _scenario.SignedInAs(_scenario.Employee(), IntakeScenario.View);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetProjectIntakeRequestsQuery(project.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().ContainSingle().Which.DeliverableIds.Should().Equal(portal.Id);
+    }
+
+    [Fact]
     public async Task Handle_IgnoresAWorkItemOutcomeWithTheSameId()
     {
         // Arrange — ids are unique across modules in practice; the kind still decides what the outcome names

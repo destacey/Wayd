@@ -49,6 +49,12 @@ public interface IDemandManagementDbContext
     DbSet<DemandProject> DemandProjects { get; }
 
     /// <summary>
+    /// The module's same-Id copies of PPM project deliverables, which existing project scope outcomes map to.
+    /// Written only by the replication handlers.
+    /// </summary>
+    DbSet<DemandProjectDeliverable> DemandProjectDeliverables { get; }
+
+    /// <summary>
     /// The module's same-Id copies of Planning's estimation scales, with their versions, which desks pin and
     /// estimates point at. Written only by the replication handlers.
     /// </summary>

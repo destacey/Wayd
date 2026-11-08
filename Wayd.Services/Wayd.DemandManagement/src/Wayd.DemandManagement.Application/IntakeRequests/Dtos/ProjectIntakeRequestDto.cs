@@ -19,4 +19,10 @@ public sealed record ProjectIntakeRequestDto
 
     /// <summary>What the project took on from the request, in the agent's words.</summary>
     public string? Note { get; init; }
+
+    /// <summary>
+    /// For existing project scope, the project's deliverables the request is mapped to, which it waits on; empty
+    /// otherwise.
+    /// </summary>
+    public IReadOnlyList<Guid> DeliverableIds { get; init; } = [];
 }

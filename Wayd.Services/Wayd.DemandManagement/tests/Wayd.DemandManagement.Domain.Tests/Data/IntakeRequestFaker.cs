@@ -201,7 +201,25 @@ public static class IntakeRequestFakerExtensions
         {
             var outcomes = (List<IntakeRequestOutcome>)OutcomesField.GetValue(request)!;
             outcomes.Clear();
-            outcomes.AddRange(targetIds.Select(id => new IntakeRequestOutcome(request.Id, kind, id, null, Guid.NewGuid(), Instant.MinValue)));
+            outcomes.AddRange(targetIds.Select(id => new IntakeRequestOutcome(request.Id, kind, id, null, [], Guid.NewGuid(), Instant.MinValue)));
+        });
+
+        return faker;
+    }
+
+    /// <summary>
+    /// Records the request as having become one existing project scope outcome pointing at
+    /// <paramref name="projectId"/>, mapped to the deliverables given. Bogus keeps one finishing action, so this
+    /// replaces <see cref="WithOutcomes"/> and <see cref="WithParticipants"/> rather than adding to them.
+    /// </summary>
+    public static IntakeRequestFaker WithProjectScopeOutcome(this IntakeRequestFaker faker, Guid projectId, params Guid[] deliverableIds)
+    {
+        faker.FinishWith((_, request) =>
+        {
+            var outcomes = (List<IntakeRequestOutcome>)OutcomesField.GetValue(request)!;
+            outcomes.Clear();
+            outcomes.Add(new IntakeRequestOutcome(request.Id, IntakeRequestOutcomeKind.ExistingProjectScope, projectId,
+                "Absorbed into the project", deliverableIds, Guid.NewGuid(), Instant.MinValue));
         });
 
         return faker;

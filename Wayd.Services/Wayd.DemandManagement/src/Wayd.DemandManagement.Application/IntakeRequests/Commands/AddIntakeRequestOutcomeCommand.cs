@@ -1,6 +1,7 @@
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
+using Wayd.DemandManagement.Domain.Models;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 
@@ -26,6 +27,12 @@ public sealed record AddIntakeRequestOutcomeCommand(Guid Id, IntakeRequestOutcom
     /// has no such work item. Ignored for the project kinds.
     /// </summary>
     public IntakeRequestOutcomeWorkItemDto? WorkItem { get; init; }
+
+    /// <summary>
+    /// For existing project scope, deliverables of the project that meet the request, checked against Demand
+    /// Management's copy of them. Empty or null for the other kinds.
+    /// </summary>
+    public IReadOnlyList<Guid>? DeliverableIds { get; init; }
 }
 
 public sealed class AddIntakeRequestOutcomeCommandValidator : CustomValidator<AddIntakeRequestOutcomeCommand>
@@ -36,6 +43,11 @@ public sealed class AddIntakeRequestOutcomeCommandValidator : CustomValidator<Ad
         RuleFor(c => c.Kind).IsInEnum();
         RuleFor(c => c.TargetId).NotEmpty();
         RuleFor(c => c.Note).MaximumLength(1024);
+        RuleFor(c => c.DeliverableIds)
+            .Must(ids => ids is null || ids.Count == 0)
+            .When(c => c.Kind != IntakeRequestOutcomeKind.ExistingProjectScope)
+            .WithMessage(IntakeRequest.DeliverablesNeedExistingProjectScopeError);
+        RuleForEach(c => c.DeliverableIds).NotEmpty();
     }
 }
 
@@ -76,7 +88,12 @@ public sealed class AddIntakeRequestOutcomeCommandHandler(
         if (targetCheck.IsFailure)
             return targetCheck;
 
-        var result = intakeRequest.AddOutcome(request.Kind, request.TargetId, request.Note, employeeId,
+        Guid[] deliverableIds = [.. (request.DeliverableIds ?? []).Distinct()];
+        var deliverableCheck = await _dbContext.CheckDeliverablesOfProject(request.TargetId, deliverableIds, [], cancellationToken);
+        if (deliverableCheck.IsFailure)
+            return deliverableCheck;
+
+        var result = intakeRequest.AddOutcome(request.Kind, request.TargetId, request.Note, deliverableIds, employeeId,
             EventActor.User(_currentUser.GetUserId(), employeeId), _dateTimeProvider.Now);
         if (result.IsFailure)
             return result;

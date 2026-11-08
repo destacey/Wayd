@@ -128,6 +128,8 @@ const IMPORTED_RECORD_TAGS: Record<ImportKey, ImportedRecordTag[]> = {
     { type: QueryTags.IntakeRequest, id: 'LIST' },
     QueryTags.IntakeRequestScore,
   ],
+  // Outcomes show on each request and on the project and work item lists, which all share this type.
+  'demand-management.intake-request-outcomes': [QueryTags.IntakeRequest],
 }
 
 export const importedRecordTags = (importType: string) =>
@@ -237,6 +239,12 @@ const SUBMITTERS: Record<
     getDeploymentsClient().import(undefined, validateOnly, upload(file)),
   'demand-management.intake-requests': ({ file }, validateOnly) =>
     getIntakeRequestsClient().import(undefined, validateOnly, upload(file)),
+  'demand-management.intake-request-outcomes': ({ file }, validateOnly) =>
+    getIntakeRequestsClient().importOutcomes(
+      undefined,
+      validateOnly,
+      upload(file),
+    ),
 }
 
 export const importsApi = apiSlice.injectEndpoints({

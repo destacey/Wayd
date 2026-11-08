@@ -95662,6 +95662,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Submit a csv file of intake request outcomes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` needs a `Note`, and can name `DeliverableIds`, semicolon-separated deliverables of that project. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ImportProcessDto> ImportOutcomesAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update an intake request.
         /// </summary>
         /// <remarks>
@@ -95808,7 +95819,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that an accepted intake request became a project or work item.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.
+        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `ExistingProjectScope` can also name `deliverableIds`, deliverables of that project that meet the request (list them with `IntakeRequests_GetProjectDeliverables`); the request counts as met once every one is Accepted. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -95824,6 +95835,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RemoveOutcomeAsync(System.Guid id, System.Guid targetId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set the project deliverables an existing project scope outcome is mapped to.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it. `expectedDeliverableIds` is the outcome's mapping as you read it (the ids of its `deliverables` on the request); when the outcome no longer holds exactly those, the change is refused with 409, so read the request again and redo it. Each deliverable must be one of that project's (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task SetOutcomeDeliverablesAsync(System.Guid id, System.Guid targetId, SetIntakeRequestOutcomeDeliverablesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the deliverables of a project that an intake request's outcome can be mapped to.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the request's desk; anyone else gets 404, as for a project Demand Management has no copy of. Ordered by name, with each deliverable's status category and meaning (`statusAlias`), descoped ones included. Read from Demand Management's copy, so a deliverable added moments ago may not be listed yet.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestProjectDeliverableDto>> GetProjectDeliverablesAsync(System.Guid id, System.Guid projectId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -96589,6 +96622,138 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
                     // Operation Path: "api/demand-management/intake-requests/import"
                     urlBuilder_.Append("api/demand-management/intake-requests/import");
+                    urlBuilder_.Append('?');
+                    if (submissionGroupId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("submissionGroupId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(submissionGroupId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (validateOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("validateOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(validateOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 202)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ImportProcessDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Submit a csv file of intake request outcomes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
+        /// </summary>
+        /// <remarks>
+        /// Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` needs a `Note`, and can name `DeliverableIds`, semicolon-separated deliverables of that project. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ImportProcessDto> ImportOutcomesAsync(System.Guid? submissionGroupId = null, bool? validateOnly = null, FileParameter file = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var boundary_ = System.Guid.NewGuid().ToString();
+                    var content_ = new System.Net.Http.MultipartFormDataContent(boundary_);
+                    content_.Headers.Remove("Content-Type");
+                    content_.Headers.TryAddWithoutValidation("Content-Type", "multipart/form-data; boundary=" + boundary_);
+
+                    if (file == null)
+                        throw new System.ArgumentNullException("file");
+                    else
+                    {
+                        var content_file_ = new System.Net.Http.StreamContent(file.Data);
+                        if (!string.IsNullOrEmpty(file.ContentType))
+                            content_file_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse(file.ContentType);
+                        content_.Add(content_file_, "file", file.FileName ?? "file");
+                    }
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/outcomes/import"
+                    urlBuilder_.Append("api/demand-management/intake-requests/outcomes/import");
                     urlBuilder_.Append('?');
                     if (submissionGroupId != null)
                     {
@@ -98066,7 +98231,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that an accepted intake request became a project or work item.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.
+        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `ExistingProjectScope` can also name `deliverableIds`, deliverables of that project that meet the request (list them with `IntakeRequests_GetProjectDeliverables`); the request counts as met once every one is Accepted. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -98243,6 +98408,231 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Set the project deliverables an existing project scope outcome is mapped to.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it. `expectedDeliverableIds` is the outcome's mapping as you read it (the ids of its `deliverables` on the request); when the outcome no longer holds exactly those, the change is refused with 409, so read the request again and redo it. Each deliverable must be one of that project's (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task SetOutcomeDeliverablesAsync(System.Guid id, System.Guid targetId, SetIntakeRequestOutcomeDeliverablesRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (targetId == null)
+                throw new System.ArgumentNullException("targetId");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/{id}/outcomes/{targetId}/deliverables"
+                    urlBuilder_.Append("api/demand-management/intake-requests/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/outcomes/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(targetId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/deliverables");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 409)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Conflict", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the deliverables of a project that an intake request's outcome can be mapped to.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the request's desk; anyone else gets 404, as for a project Demand Management has no copy of. Ordered by name, with each deliverable's status category and meaning (`statusAlias`), descoped ones included. Read from Demand Management's copy, so a deliverable added moments ago may not be listed yet.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestProjectDeliverableDto>> GetProjectDeliverablesAsync(System.Guid id, System.Guid projectId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (projectId == null)
+                throw new System.ArgumentNullException("projectId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/{id}/projects/{projectId}/deliverables"
+                    urlBuilder_.Append("api/demand-management/intake-requests/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/projects/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(projectId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/deliverables");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<IntakeRequestProjectDeliverableDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         if (status_ == 404)
@@ -115190,6 +115580,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
         public string? Note { get; set; } = default!;
 
+        /// <summary>
+        /// For `ExistingProjectScope` only, deliverables of the project that meet the request; the request counts as
+        /// <br/>met once every one is Accepted. Leave it out for the other kinds. Mapping them does not change the project.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverableIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? DeliverableIds { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -123396,6 +123793,78 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// A single CSV row for the intake request outcome import: one thing a request already in Wayd became. The
+    /// <br/>request, project, work item, deliverables and people are named by id. Every column must be in the file,
+    /// <br/>even one whose cells are all blank. Timestamps are instants, and each must carry its offset.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ImportIntakeRequestOutcomeRequest
+    {
+
+        /// <summary>
+        /// The caller's own key for this row, unique within the file (case-insensitively). Results are
+        /// <br/>reported against it. Leave a cell blank and the row is known by its position instead, but the
+        /// <br/>column itself must be in the file.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("importId")]
+        public string? ImportId { get; set; } = default!;
+
+        /// <summary>
+        /// The intake request, by id. It may be in any status.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("requestId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid RequestId { get; set; } = default!;
+
+        /// <summary>
+        /// What the request became, case-insensitively: `NewProject` (a project started for it),
+        /// <br/>`ExistingProjectScope` (an existing project that absorbed it) or `WorkItem`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Kind { get; set; } = default!;
+
+        /// <summary>
+        /// The project, by id, for `NewProject` and `ExistingProjectScope`; blank for `WorkItem`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("projectId")]
+        public System.Guid? ProjectId { get; set; } = default!;
+
+        /// <summary>
+        /// The work item, by id, for `WorkItem`; blank for the project kinds.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workItemId")]
+        public System.Guid? WorkItemId { get; set; } = default!;
+
+        /// <summary>
+        /// What the outcome covers. Required for `ExistingProjectScope`, saying what the project absorbed. Max 1024 chars.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("note")]
+        public string? Note { get; set; } = default!;
+
+        /// <summary>
+        /// For `ExistingProjectScope` only: semicolon-separated ids of the project's deliverables that meet the
+        /// <br/>request. The request counts as met once every one is Accepted. Blank maps none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverableIds")]
+        public string? DeliverableIds { get; set; } = default!;
+
+        /// <summary>
+        /// The employee who recorded the outcome, by id. Blank for the request's assignee; required when it has none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("addedById")]
+        public System.Guid? AddedById { get; set; } = default!;
+
+        /// <summary>
+        /// When the outcome was recorded, with its offset: not before the request was submitted, and not in the future.
+        /// <br/>Blank for the moment it is imported.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("addedOn")]
+        public string? AddedOn { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// A single CSV row for the intake request import: one request, as it was submitted and where its review
     /// <br/>has got to. Desks, channels, tags and people are named by id. A request starts in the status meaning
     /// <br/>Submitted and is moved to `Status` when the row names another, recorded at `StatusChangedAt`.
@@ -126192,6 +126661,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<IntakeRequestOutcomeDto> Outcomes { get; set; } = new System.Collections.ObjectModel.Collection<IntakeRequestOutcomeDto>();
 
         /// <summary>
+        /// Whether the request is met by the deliverables its outcomes are mapped to: true when every mapped deliverable
+        /// <br/>still on its project is Accepted, false while any is not, and null when no outcome maps one. New project and
+        /// <br/>work item outcomes play no part. Derived when read; reaching it changes nothing on the request.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverablesMet")]
+        public bool? DeliverablesMet { get; set; } = default!;
+
+        /// <summary>
         /// Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canChangeOutcomes")]
@@ -126427,6 +126904,51 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// A project deliverable an existing project scope outcome is mapped to, as Demand Management's copy holds it.
+    /// <br/>Summary tier, like the outcome.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestOutcomeDeliverableDto
+    {
+
+        /// <summary>
+        /// The deliverable, by its id in PPM.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// What the deliverable is called; null once it has been deleted from the project.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string? Name { get; set; } = default!;
+
+        /// <summary>
+        /// The category of the deliverable's status; null once it has been deleted from the project.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusCategory")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
+        public StatusCategory? StatusCategory { get; set; } = default!;
+
+        /// <summary>
+        /// The well-known meaning of the deliverable's status — `Accepted` is what the request waits for, and
+        /// <br/>`Descoped` means it was dropped; null once it has been deleted from the project.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusAlias")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProjectDeliverableStatusAlias>))]
+        public ProjectDeliverableStatusAlias? StatusAlias { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the deliverable is still on the project. One deleted before work on the project began stays on the
+        /// <br/>outcome as the record of what was mapped, and does not count toward whether the outcome is met.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isOnProject")]
+        public bool IsOnProject { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// One thing an intake request became. Summary tier.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -126467,6 +126989,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("note")]
         public string? Note { get; set; } = default!;
+
+        /// <summary>
+        /// For existing project scope, the project's deliverables that meet the request, by name; empty for the other
+        /// <br/>kinds.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverables")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntakeRequestOutcomeDeliverableDto> Deliverables { get; set; } = new System.Collections.ObjectModel.Collection<IntakeRequestOutcomeDeliverableDto>();
+
+        /// <summary>
+        /// Whether the mapped deliverables meet the request: true when every one still on the project is Accepted,
+        /// <br/>false while any is not (a descoped one included), and null when none is mapped. Derived when read.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isMet")]
+        public bool? IsMet { get; set; } = default!;
 
         /// <summary>
         /// The employee who recorded the outcome.
@@ -126575,6 +127112,45 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("addedOn")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset AddedOn { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A deliverable of a project, as offered for mapping to an intake request's outcome.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestProjectDeliverableDto
+    {
+
+        /// <summary>
+        /// The deliverable, by its id in PPM.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// What the deliverable is called.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The category of the deliverable's status.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusCategory")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StatusCategory>))]
+        public StatusCategory StatusCategory { get; set; } = default!;
+
+        /// <summary>
+        /// The well-known meaning of the deliverable's status.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusAlias")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProjectDeliverableStatusAlias>))]
+        public ProjectDeliverableStatusAlias StatusAlias { get; set; } = default!;
 
     }
 
@@ -132315,6 +132891,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ProjectDeliverableStatusAlias
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"None")]
+        None = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"NotStarted")]
+        NotStarted = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"InProgress")]
+        InProgress = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Accepted")]
+        Accepted = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Descoped")]
+        Descoped = 4,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectDetailsDto
     {
 
@@ -132767,6 +133364,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("note")]
         public string? Note { get; set; } = default!;
+
+        /// <summary>
+        /// For existing project scope, the project's deliverables the request is mapped to, which it waits on; empty
+        /// <br/>otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverableIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> DeliverableIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
     }
 
@@ -136622,6 +137227,32 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("isActive")]
         public bool IsActive { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The project deliverables an existing project scope outcome is mapped to: those whose acceptance the request
+    /// <br/>waits for.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class SetIntakeRequestOutcomeDeliverablesRequest
+    {
+
+        /// <summary>
+        /// Every deliverable the outcome is to be mapped to, replacing its current mapping; an empty list clears it.
+        /// <br/>Each must be a deliverable of the outcome's project, unless the outcome is already mapped to it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverableIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> DeliverableIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+        /// <summary>
+        /// The deliverables the outcome was mapped to when you read it, from the request's outcome. The change is
+        /// <br/>refused with 409 when the outcome no longer holds exactly these, so another agent's change is never undone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("expectedDeliverableIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> ExpectedDeliverableIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
     }
 

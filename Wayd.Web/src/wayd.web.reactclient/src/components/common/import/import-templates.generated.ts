@@ -3,6 +3,82 @@
 import type { ImportTemplate } from './import-template'
 
 export const importTemplates = {
+  'demand-management.intake-request-outcomes': {
+    module: 'demand-management',
+    description:
+      "Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` needs a `Note`, and can name `DeliverableIds`, semicolon-separated deliverables of that project. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.",
+    files: [
+      {
+        field: 'file',
+        required: true,
+        columns: [
+          {
+            name: 'ImportId',
+            type: 'text',
+            required: false,
+            description:
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
+          },
+          {
+            name: 'RequestId',
+            type: 'id',
+            required: true,
+            description: 'The intake request, by id. It may be in any status.',
+          },
+          {
+            name: 'Kind',
+            type: 'text',
+            required: true,
+            description:
+              'What the request became, case-insensitively: `NewProject` (a project started for it), `ExistingProjectScope` (an existing project that absorbed it) or `WorkItem`.',
+            values: ['NewProject', 'ExistingProjectScope', 'WorkItem'],
+          },
+          {
+            name: 'ProjectId',
+            type: 'id',
+            required: false,
+            description:
+              'The project, by id, for `NewProject` and `ExistingProjectScope`; blank for `WorkItem`.',
+          },
+          {
+            name: 'WorkItemId',
+            type: 'id',
+            required: false,
+            description:
+              'The work item, by id, for `WorkItem`; blank for the project kinds.',
+          },
+          {
+            name: 'Note',
+            type: 'text',
+            required: false,
+            description:
+              'What the outcome covers. Required for `ExistingProjectScope`, saying what the project absorbed. Max 1024 chars.',
+          },
+          {
+            name: 'DeliverableIds',
+            type: 'text',
+            required: false,
+            description:
+              "For `ExistingProjectScope` only: semicolon-separated ids of the project's deliverables that meet the request. The request counts as met once every one is Accepted. Blank maps none.",
+          },
+          {
+            name: 'AddedById',
+            type: 'id',
+            required: false,
+            description:
+              "The employee who recorded the outcome, by id. Blank for the request's assignee; required when it has none.",
+          },
+          {
+            name: 'AddedOn',
+            type: 'text',
+            required: false,
+            description:
+              'When the outcome was recorded, with its offset: not before the request was submitted, and not in the future. Blank for the moment it is imported.',
+          },
+        ],
+      },
+    ],
+  },
   'demand-management.intake-requests': {
     module: 'demand-management',
     description:

@@ -39,3 +39,28 @@ public sealed class IntakeRequestCsvRow
     /// <summary>An estimate value of the desk's scale, such as <c>M</c>.</summary>
     public string? Estimate { get; init; }
 }
+
+/// <summary>
+/// One row of the intake request outcomes CSV. Column names must match ImportIntakeRequestOutcomeRequest, and
+/// every column has to be present even when the seed leaves it empty.
+/// </summary>
+public sealed class IntakeRequestOutcomeCsvRow
+{
+    public required string ImportId { get; init; }
+    public required Guid RequestId { get; init; }
+
+    /// <summary><c>NewProject</c>, <c>ExistingProjectScope</c> or <c>WorkItem</c>.</summary>
+    public required string Kind { get; init; }
+
+    public Guid? ProjectId { get; init; }
+    public Guid? WorkItemId { get; init; }
+    public string? Note { get; init; }
+
+    /// <summary>Semicolon-separated deliverable ids of the row's project.</summary>
+    public string? DeliverableIds { get; init; }
+
+    public Guid? AddedById { get; init; }
+
+    /// <summary>An instant with its offset; see <see cref="DeploymentCsvRow.Timestamp"/>.</summary>
+    public string? AddedOn { get; init; }
+}

@@ -22,6 +22,7 @@ public static class ConfigureServices
         services.AddValidatorsFromAssembly(assembly);
 
         services.AddScoped<IImportDefinition, IntakeRequestImportDefinition>();
+        services.AddScoped<IImportDefinition, IntakeRequestOutcomeImportDefinition>();
 
         TypeAdapterConfig.GlobalSettings.Scan(assembly);
 

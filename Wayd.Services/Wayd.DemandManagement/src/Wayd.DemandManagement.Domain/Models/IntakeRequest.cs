@@ -716,31 +716,100 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// request knows neither who works its desk nor what exists in PPM or Work. Allowed only while
     /// the request is accepted (Active): before that nothing has been decided, and once it is closed the
     /// record of what it became is settled until it is reopened. Recording existing project scope says what
-    /// the project absorbed, because the project's own definition is not changed.
+    /// the project absorbed, because the project's own definition is not changed. Existing project scope can
+    /// also name the project's deliverables that meet the request; the caller checks they are that project's,
+    /// and mapping them changes nothing on the project.
     /// </remarks>
     /// <param name="targetId">The project or work item, by its id in its own module.</param>
+    /// <param name="deliverableIds">For existing project scope, deliverables of the project; otherwise empty.</param>
     /// <param name="addedById">The employee recording it.</param>
-    public Result AddOutcome(IntakeRequestOutcomeKind kind, Guid targetId, string? note, Guid addedById, EventActor actor, Instant timestamp)
+    public Result AddOutcome(IntakeRequestOutcomeKind kind, Guid targetId, string? note, IReadOnlyCollection<Guid> deliverableIds,
+        Guid addedById, EventActor actor, Instant timestamp)
     {
-        Guard.Against.EnumOutOfRange(kind, nameof(kind));
-        Guard.Against.Default(targetId, nameof(targetId));
-        Guard.Against.Default(addedById, nameof(addedById));
+        if (StatusCategory != StatusCategory.Active)
+            return Result.Failure(OutcomeNeedsAcceptedRequestError);
+
+        return RecordOutcome(kind, targetId, note, deliverableIds, addedById, actor, timestamp);
+    }
+
+    /// <summary>
+    /// Records an outcome the request had in the system it is imported from. Needs <see cref="Outcomes"/> loaded.
+    /// </summary>
+    /// <remarks>
+    /// Unlike <see cref="AddOutcome"/>, allowed whatever the request's status: an import records history, and a
+    /// request imported already fulfilled became what its outcomes say. Everything else an outcome needs still
+    /// holds, and the caller checks the target and its deliverables exist, as for an agent's.
+    /// </remarks>
+    /// <param name="deliverableIds">For existing project scope, deliverables of the project; otherwise empty.</param>
+    /// <param name="addedById">The employee who recorded the outcome there.</param>
+    public Result ImportOutcome(IntakeRequestOutcomeKind kind, Guid targetId, string? note, IReadOnlyCollection<Guid> deliverableIds,
+        Guid addedById, EventActor actor, Instant timestamp) =>
+        RecordOutcome(kind, targetId, note, deliverableIds, addedById, actor, timestamp);
+
+    /// <summary>
+    /// Changes the deliverables an existing project scope outcome is mapped to: those whose acceptance the request
+    /// waits for. Needs <see cref="Outcomes"/> loaded with their <see cref="IntakeRequestOutcome.Deliverables"/>.
+    /// </summary>
+    /// <remarks>
+    /// Needs an agent on the request's desk, and deliverables of the outcome's project; the caller checks both.
+    /// Allowed only while the request is accepted, as changing its outcomes is. A descoped deliverable stays mapped
+    /// until an agent takes it off, so the request shows what was dropped.
+    /// </remarks>
+    /// <param name="targetId">The project the outcome points at.</param>
+    /// <param name="deliverableIds">Every deliverable the outcome is to be mapped to; empty clears the mapping.</param>
+    public Result SetOutcomeDeliverables(Guid targetId, IReadOnlyCollection<Guid> deliverableIds, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(deliverableIds);
 
         if (StatusCategory != StatusCategory.Active)
             return Result.Failure(OutcomeNeedsAcceptedRequestError);
 
+        var outcome = _outcomes.FirstOrDefault(o => o.TargetId == targetId);
+        if (outcome is null)
+            return Result.Failure(OutcomeNotFoundError);
+
+        if (outcome.Kind != IntakeRequestOutcomeKind.ExistingProjectScope && deliverableIds.Count > 0)
+            return Result.Failure(DeliverablesNeedExistingProjectScopeError);
+
+        var (added, removed) = outcome.SetDeliverables(deliverableIds);
+        if (added.Length == 0 && removed.Length == 0)
+            return Result.Success();
+
+        var mapped = outcome.DeliverableIds();
+        RaiseWhenKeyed(() => new IntakeRequestOutcomeDeliverablesChangedEvent(Id, Key, outcome.TargetId, added, removed,
+            mapped, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Records an outcome once the caller has decided the request may take one, checking only what the outcome
+    /// itself needs.
+    /// </summary>
+    private Result RecordOutcome(IntakeRequestOutcomeKind kind, Guid targetId, string? note, IReadOnlyCollection<Guid> deliverableIds,
+        Guid addedById, EventActor actor, Instant timestamp)
+    {
+        Guard.Against.EnumOutOfRange(kind, nameof(kind));
+        Guard.Against.Default(targetId, nameof(targetId));
+        Guard.Against.Default(addedById, nameof(addedById));
+        Guard.Against.Null(deliverableIds);
+
         if (kind == IntakeRequestOutcomeKind.ExistingProjectScope && string.IsNullOrWhiteSpace(note))
             return Result.Failure(ExistingProjectScopeNeedsNoteError);
+
+        if (kind != IntakeRequestOutcomeKind.ExistingProjectScope && deliverableIds.Count > 0)
+            return Result.Failure(DeliverablesNeedExistingProjectScopeError);
 
         if (_outcomes.Any(o => o.TargetId == targetId))
             return Result.Failure(DuplicateOutcomeError);
 
-        var outcome = new IntakeRequestOutcome(Id, kind, targetId, note, addedById, timestamp);
+        var outcome = new IntakeRequestOutcome(Id, kind, targetId, note, deliverableIds, addedById, timestamp);
         _outcomes.Add(outcome);
 
         var targetIds = OutcomeTargetIds();
+        var mapped = outcome.DeliverableIds();
         RaiseWhenKeyed(() => new IntakeRequestOutcomeAddedEvent(Id, Key, outcome.Kind, outcome.TargetId, outcome.Note,
-            targetIds, actor, timestamp));
+            targetIds, mapped, actor, timestamp));
 
         return Result.Success();
     }
@@ -760,16 +829,24 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
 
         var outcome = _outcomes.FirstOrDefault(o => o.TargetId == targetId);
         if (outcome is null)
-            return Result.Failure("The request has no outcome pointing at that record.");
+            return Result.Failure(OutcomeNotFoundError);
 
         _outcomes.Remove(outcome);
 
         var targetIds = OutcomeTargetIds();
+        var mapped = outcome.DeliverableIds();
         RaiseWhenKeyed(() => new IntakeRequestOutcomeRemovedEvent(Id, Key, outcome.Kind, outcome.TargetId, outcome.Note,
-            targetIds, actor, timestamp));
+            targetIds, mapped, actor, timestamp));
 
         return Result.Success();
     }
+
+    /// <summary>The failure for changing an outcome the request does not have.</summary>
+    public const string OutcomeNotFoundError = "The request has no outcome pointing at that record.";
+
+    /// <summary>The failure for mapping deliverables to an outcome other than existing project scope.</summary>
+    public const string DeliverablesNeedExistingProjectScopeError =
+        "Only an existing project scope outcome can name deliverables.";
 
     /// <summary>
     /// The failure for adding or removing an outcome while the request is not accepted.

@@ -441,6 +441,29 @@ public class IntakeRequestOutcomeConfiguration : IEntityTypeConfiguration<Intake
             .WithMany()
             .HasForeignKey(o => o.AddedById)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(o => o.Deliverables)
+            .WithOne()
+            .HasForeignKey(d => new { d.RequestId, d.TargetId })
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(o => o.Deliverables).HasField("_deliverables").UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class IntakeRequestOutcomeDeliverableConfiguration : IEntityTypeConfiguration<IntakeRequestOutcomeDeliverable>
+{
+    public void Configure(EntityTypeBuilder<IntakeRequestOutcomeDeliverable> builder)
+    {
+        builder.ToTable("IntakeRequestOutcomeDeliverables", SchemaNames.DemandManagement);
+
+        // An outcome names a deliverable at most once.
+        builder.HasKey(d => new { d.RequestId, d.TargetId, d.DeliverableId });
+
+        // "Which requests does this deliverable serve": the reverse view on the project's page.
+        builder.HasIndex(d => d.DeliverableId);
+
+        // No foreign key on DeliverableId: the mapping outlives a deliverable deleted from its project, as the
+        // outcome outlives its project.
     }
 }
 
@@ -460,6 +483,33 @@ public class DemandProjectConfiguration : IEntityTypeConfiguration<DemandProject
         builder.Property(p => p.Name).IsRequired().HasMaxLength(128);
 
         builder.ConfigureReplicaTracking(p => p.Watermarks);
+    }
+}
+
+public class DemandProjectDeliverableConfiguration : IEntityTypeConfiguration<DemandProjectDeliverable>
+{
+    public void Configure(EntityTypeBuilder<DemandProjectDeliverable> builder)
+    {
+        builder.ToTable("DemandProjectDeliverables", SchemaNames.DemandManagement);
+
+        builder.HasKey(d => d.Id);
+        builder.HasIndex(d => d.ProjectId);
+
+        builder.Property(d => d.Id).ValueGeneratedNever();
+        builder.Property(d => d.Name).IsRequired().HasMaxLength(256);
+        builder.Property(d => d.StatusCategory).IsRequired()
+            .HasConversion<EnumConverter<StatusCategory>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+        builder.Property(d => d.StatusAlias).IsRequired().HasConversion<int>();
+
+        // Both are copies, so the deliverables go with their project's copy: nothing of PPM's is deleted.
+        builder.HasOne<DemandProject>()
+            .WithMany()
+            .HasForeignKey(d => d.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.ConfigureReplicaTracking(d => d.Watermarks);
     }
 }
 

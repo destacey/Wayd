@@ -224,6 +224,7 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<IntakeRequestTagCategory> IntakeRequestTagCategories => Set<IntakeRequestTagCategory>();
     public DbSet<IntakeRequestTag> IntakeRequestTags => Set<IntakeRequestTag>();
     public DbSet<DemandProject> DemandProjects => Set<DemandProject>();
+    public DbSet<DemandProjectDeliverable> DemandProjectDeliverables => Set<DemandProjectDeliverable>();
     public DbSet<DemandEstimationScale> DemandEstimationScales => Set<DemandEstimationScale>();
 
     IQueryable<Employee> IDemandManagementDbContext.Employees => Employees.AsNoTracking();

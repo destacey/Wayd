@@ -10,6 +10,7 @@ public static class DemandManagementArea
     public const string Settings = "demand-management.settings";
     public const string Desks = "demand-management.desks";
     public const string IntakeRequests = "demand-management.intake-requests";
+    public const string IntakeRequestOutcomes = "demand-management.intake-request-outcomes";
 
     /// <summary>The key the settings area publishes tag ids under, each keyed <c>category|tag</c>.</summary>
     public const string Tags = "demand-management.tags";
@@ -150,4 +151,62 @@ public sealed class IntakeRequestsArea() : DemandManagementSeedArea(
         size is { } s && values is { Count: > 0 }
             ? values[Math.Clamp((int)(s * values.Count), 0, values.Count - 1)]
             : null;
+}
+
+/// <summary>
+/// Records what the accepted and fulfilled requests became, resolving each request, project and deliverable the
+/// rows name. Needs Demand Management's copies of the projects and deliverables, which follow PPM's events in the
+/// background, so it waits for them before posting.
+/// </summary>
+public sealed class IntakeRequestOutcomesArea() : DemandManagementSeedArea(
+    DemandManagementArea.IntakeRequestOutcomes, DemandManagementArea.IntakeRequests, PpmArea.Projects,
+    PpmArea.ProjectDeliverables, OrganizationArea.Employees)
+{
+    /// <summary>How long the copies may take to catch up; they normally do within seconds.</summary>
+    private static readonly TimeSpan CopyTimeout = TimeSpan.FromMinutes(2);
+
+    public override string BatchedImport => "demand-management.intake-request-outcomes";
+
+    public override bool ShouldRun(SeedContext context) => context.DemandManagement?.Outcomes.Count > 0;
+
+    public override async Task Run(SeedContext context, CancellationToken cancellationToken)
+    {
+        var outcomes = Data(context).Outcomes;
+
+        var rows = outcomes.Select(o => new IntakeRequestOutcomeCsvRow
+        {
+            ImportId = $"{o.RequestHandle}|{o.ProjectKey}",
+            RequestId = context.Id(DemandManagementArea.IntakeRequests, o.RequestHandle),
+            Kind = o.Kind,
+            ProjectId = context.Id(PpmArea.Projects, o.ProjectKey),
+            Note = o.Note,
+            DeliverableIds = o.DeliverableNames.Count == 0
+                ? null
+                : string.Join(';', context.Ids(PpmArea.ProjectDeliverables, o.DeliverableNames.Select(n => $"{o.ProjectKey}|{n}"))),
+            AddedById = context.Id(OrganizationArea.Employees, o.AddedByEmployeeNumber),
+            AddedOn = DeploymentCsvRow.Timestamp(o.AddedOn),
+        }).ToList();
+
+        context.Log($"Waiting for Demand Management's copies of {rows.Select(r => r.ProjectId).Distinct().Count()} projects...");
+        await context.Client.WaitForDemandProjectCopies(Expected(rows), CopyTimeout, cancellationToken);
+
+        var batches = Batch(context, rows, r => r.RequestId);
+        context.Log($"Importing {rows.Count} intake request outcomes in {batches.Count} batch(es)...");
+
+        var created = await ImportBatches(context, "intake request outcomes", batches,
+            batch => context.Client.ImportIntakeRequestOutcomes(CsvFile.ToBytes(batch), cancellationToken));
+
+        context.Publish(Name, created);
+    }
+
+    /// <summary>For each project, one request pointing at it and every deliverable some row maps.</summary>
+    internal static IReadOnlyCollection<(Guid RequestId, Guid ProjectId, IReadOnlyCollection<Guid> DeliverableIds)> Expected(
+        IEnumerable<IntakeRequestOutcomeCsvRow> rows) =>
+        [
+            .. rows.GroupBy(r => r.ProjectId!.Value).Select(g => (
+                g.First().RequestId,
+                g.Key,
+                (IReadOnlyCollection<Guid>)[.. g.SelectMany(r => (r.DeliverableIds ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
+                    .Select(Guid.Parse).Distinct()])),
+        ];
 }

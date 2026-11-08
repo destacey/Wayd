@@ -22,8 +22,8 @@ tasks, strategic themes, and strategic initiatives with KPIs), the Product Manag
 (products and the dependencies between them, versions, release packages, releases, deployment environments
 and deployments), and the
 Planning dataset (planning intervals with their teams, objectives and risks), and the Request Desk dataset
-(intake desks with their members, tag categories, and intake requests). Use the `org-only` recipe for the
-organization on its own, or `--skip-ppm` / `--skip-product-management` / `--skip-planning` /
+(intake desks with their members, tag categories, intake requests, and what they became). Use the `org-only`
+recipe for the organization on its own, or `--skip-ppm` / `--skip-product-management` / `--skip-planning` /
 `--skip-demand-management` to leave out one area.
 Work items, sprints and objective health checks are not generated. Database **reset** is a separate,
 out-of-band operation (an Aspire dashboard command), not part of this tool.
@@ -69,8 +69,8 @@ and `members.csv` for the organization; `strategic-themes.csv`, `portfolios.csv`
 `products.csv`, `product-dependencies.csv`, `versions.csv`, `release-packages.csv`,
 `release-package-components.csv`, `releases.csv`, `release-contents.csv` and `deployments.csv` for Product
 Management; `planning-intervals.csv`, `planning-interval-objectives.csv` and `risks.csv` for Planning; and
-`intake-desks.csv` and `intake-requests.csv` for the Request Desk. The desks file is for reading only: desks
-and tag categories are created through the API at seed time. An area that is switched off writes none of its files. Roles and accounts are created through the API at
+`intake-desks.csv`, `intake-requests.csv` and `intake-request-outcomes.csv` for the Request Desk. The desks
+file is for reading only: desks and tag categories are created through the API at seed time. An area that is switched off writes none of its files. Roles and accounts are created through the API at
 seed time and have no file.
 
 ## Authentication
@@ -747,10 +747,18 @@ with the asks its departments have raised.
   an assignee, on a desk that estimates, carry an estimate, recorded as the assignee's; the generator draws a
   size between smallest and largest and the seed places it on the scale's values as the environment has them,
   so a desk whose scale has since changed, or is no longer offered, gets no estimates rather than refused rows.
+- **Outcomes** — when PPM is generated too, about three in ten Accepted and Fulfilled requests are recorded as a
+  **new project** and half as **existing project scope**; the rest have none. A new project is one created no
+  earlier than the request, finished for a Fulfilled request and still open for an Accepted one, and started for
+  one request only. Existing project scope maps one to three of the project's deliverables: a Fulfilled request's
+  are all Accepted, so it reads as met, while an Accepted request's are whatever its open project has under way,
+  so most are still waiting. Each is recorded by the request's assignee, or a member of its desk, just before a
+  Fulfilled request closed or some days after an Accepted one was taken on. Outcomes draw from a random stream of
+  their own (`demand-management.outcomes`), so they never shift the requests or the projects.
 
-Duplicates, outcomes, scores and discussion are not generated. A duplicate has to name a request already in
-Wayd, which the import cannot do within one file; an outcome needs a project or work item to point at; and
-scores and replies record the signed-in user rather than someone in the history.
+Duplicates, work item outcomes, scores and discussion are not generated. A duplicate has to name a request
+already in Wayd, which the import cannot do within one file; work items are not generated; and scores and
+replies record the signed-in user rather than someone in the history.
 
 ## How it works (and why)
 
@@ -803,6 +811,7 @@ team staffing → planning intervals (+ rosters) → planning interval objective
 demand-management feature flag → tag categories (+ the seeded channels, read back)
                     employees + flag → intake desks (+ members, estimation scales)
                                      → intake requests (after the categories and desks)
+                                         → intake request outcomes (after the projects and deliverables too)
 
 application roles → user accounts (after employees)
 ```
@@ -825,7 +834,13 @@ several imports later and leaves the copy time to catch up.
 
 The Request Desk's desks and tag categories are settings rather than records anyone imports, so they are created
 through the ordinary endpoints — create-or-get by name, like the expenditure categories — and only the
-requests go through an import. Desks name their members by employee id, so they wait for the employee import.
+requests and their outcomes go through an import. Desks name their members by employee id, so they wait for the
+employee import.
+
+Outcomes are checked against Demand Management's own copy of each project and its deliverables, which PPM's
+events fill in the background. The outcomes area waits, for up to two minutes, until every project and
+deliverable its rows name has a copy, asking through a request that points at the project, before it posts the
+file. PPM's finalize waits on more areas than the outcomes do, so it still runs last.
 
 ### One area can be more than one file
 

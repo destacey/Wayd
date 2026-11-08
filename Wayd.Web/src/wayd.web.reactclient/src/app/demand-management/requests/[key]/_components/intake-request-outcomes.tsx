@@ -12,11 +12,13 @@ import {
 } from '@/src/services/wayd-api'
 import { useRemoveIntakeRequestOutcomeMutation } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError } from '@/src/utils'
-import { Button, Flex, Popconfirm, Tag, Typography } from 'antd'
+import { Alert, Button, Flex, Popconfirm, Tag, Typography } from 'antd'
 import dayjs from 'dayjs'
 import NextLink from 'next/link'
-import { FC } from 'react'
+import { FC, useState } from 'react'
+import OutcomeDeliverableStatus from '../../../_components/outcome-deliverable-status'
 import { outcomeKindLabel } from '../../../_components/outcome-kind'
+import SetOutcomeDeliverablesForm from './set-outcome-deliverables-form'
 
 const { Text, Paragraph } = Typography
 
@@ -61,6 +63,37 @@ const OutcomeTarget: FC<{ outcome: IntakeRequestOutcomeDto }> = ({
   )
 }
 
+/** The deliverables an existing project scope outcome waits on, each with its status. */
+const OutcomeDeliverables: FC<{ outcome: IntakeRequestOutcomeDto }> = ({
+  outcome,
+}) => (
+  <Flex vertical gap={2}>
+    {outcome.deliverables.map((d) =>
+      d.isOnProject && d.statusAlias && d.statusCategory ? (
+        <Flex key={d.id} gap={6} align="center" wrap>
+          <Text>{d.name}</Text>
+          <OutcomeDeliverableStatus
+            alias={d.statusAlias}
+            category={d.statusCategory}
+          />
+        </Flex>
+      ) : (
+        <Text key={d.id} type="secondary">
+          A deliverable deleted from the project
+        </Text>
+      ),
+    )}
+  </Flex>
+)
+
+/** Whether the outcome's deliverables meet the request; nothing when it maps none. */
+const MetTag: FC<{ isMet: boolean | undefined }> = ({ isMet }) => {
+  if (isMet === true) return <Tag color="success">Met</Tag>
+  if (isMet === false)
+    return <Tag color="processing">Waiting on deliverables</Tag>
+  return null
+}
+
 export interface IntakeRequestOutcomesProps {
   request: IntakeRequestDetailsDto
 }
@@ -73,6 +106,12 @@ const IntakeRequestOutcomes: FC<IntakeRequestOutcomesProps> = ({ request }) => {
   const messageApi = useMessage()
   const [removeOutcome, { isLoading: isRemoving }] =
     useRemoveIntakeRequestOutcomeMutation()
+  const [editing, setEditing] = useState<IntakeRequestOutcomeDto | null>(null)
+
+  // Reaching it changes nothing on the request: closing it stays the desk's decision.
+  const readyToFulfil =
+    request.deliverablesMet === true &&
+    request.summary.status.category === StatusCategory.Active
 
   const onRemove = async (targetId: string) => {
     try {
@@ -98,50 +137,86 @@ const IntakeRequestOutcomes: FC<IntakeRequestOutcomesProps> = ({ request }) => {
   }
 
   return (
-    <WaydList
-      dataSource={request.outcomes}
-      rowKey={(outcome) => outcome.targetId}
-      renderItem={(outcome) => (
-        <WaydList.Item
-          actions={
-            request.canChangeOutcomes
-              ? [
-                  <Popconfirm
-                    key="remove"
-                    title="Remove this outcome?"
-                    description="The project or work item itself is not changed."
-                    okText="Remove"
-                    okButtonProps={{ danger: true, loading: isRemoving }}
-                    onConfirm={() => onRemove(outcome.targetId)}
-                  >
-                    <Button size="small" type="text" danger>
-                      Remove
-                    </Button>
-                  </Popconfirm>,
-                ]
-              : undefined
-          }
-        >
-          <WaydList.Item.Meta
-            title={
-              <Flex gap={8} align="center" wrap>
-                <OutcomeTarget outcome={outcome} />
-                <Tag>{outcomeKindLabel[outcome.kind]}</Tag>
-              </Flex>
-            }
-            description={
-              <Flex vertical gap={4}>
-                {outcome.note && <Text>{outcome.note}</Text>}
-                <Text type="secondary">
-                  Added by {outcome.addedBy.name} on{' '}
-                  {dayjs(outcome.addedOn).format('MMM D, YYYY')}
-                </Text>
-              </Flex>
-            }
-          />
-        </WaydList.Item>
+    <Flex vertical gap="small">
+      {readyToFulfil && (
+        <Alert
+          type="success"
+          showIcon
+          title="Every mapped deliverable has been accepted."
+          description="This request may be ready to fulfil."
+        />
       )}
-    />
+      <WaydList
+        dataSource={request.outcomes}
+        rowKey={(outcome) => outcome.targetId}
+        renderItem={(outcome) => (
+          <WaydList.Item
+            actions={
+              request.canChangeOutcomes
+                ? [
+                    ...(outcome.kind ===
+                      IntakeRequestOutcomeKind.ExistingProjectScope &&
+                    outcome.project
+                      ? [
+                          <Button
+                            key="deliverables"
+                            size="small"
+                            type="text"
+                            onClick={() => setEditing(outcome)}
+                          >
+                            Edit Deliverables
+                          </Button>,
+                        ]
+                      : []),
+                    <Popconfirm
+                      key="remove"
+                      title="Remove this outcome?"
+                      description="The project or work item itself is not changed."
+                      okText="Remove"
+                      okButtonProps={{ danger: true, loading: isRemoving }}
+                      onConfirm={() => onRemove(outcome.targetId)}
+                    >
+                      <Button size="small" type="text" danger>
+                        Remove
+                      </Button>
+                    </Popconfirm>,
+                  ]
+                : undefined
+            }
+          >
+            <WaydList.Item.Meta
+              title={
+                <Flex gap={8} align="center" wrap>
+                  <OutcomeTarget outcome={outcome} />
+                  <Tag>{outcomeKindLabel[outcome.kind]}</Tag>
+                  <MetTag isMet={outcome.isMet} />
+                </Flex>
+              }
+              description={
+                <Flex vertical gap={4}>
+                  {outcome.note && <Text>{outcome.note}</Text>}
+                  {outcome.deliverables.length > 0 && (
+                    <OutcomeDeliverables outcome={outcome} />
+                  )}
+                  <Text type="secondary">
+                    Added by {outcome.addedBy.name} on{' '}
+                    {dayjs(outcome.addedOn).format('MMM D, YYYY')}
+                  </Text>
+                </Flex>
+              }
+            />
+          </WaydList.Item>
+        )}
+      />
+      {editing && (
+        <SetOutcomeDeliverablesForm
+          requestId={request.summary.id}
+          outcome={editing}
+          onFormComplete={() => setEditing(null)}
+          onFormCancel={() => setEditing(null)}
+        />
+      )}
+    </Flex>
   )
 }
 

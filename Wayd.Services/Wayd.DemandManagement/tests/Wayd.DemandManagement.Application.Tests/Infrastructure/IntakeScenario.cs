@@ -9,6 +9,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Scoring;
@@ -222,11 +223,29 @@ public sealed class IntakeScenario
         return project;
     }
 
+    /// <summary>A deliverable of <paramref name="project"/> Demand Management holds a copy of.</summary>
+    public DemandProjectDeliverable Deliverable(DemandProject project, string name = "Customer portal",
+        ProjectDeliverableStatusAlias alias = ProjectDeliverableStatusAlias.NotStarted)
+    {
+        var category = alias switch
+        {
+            ProjectDeliverableStatusAlias.Accepted => StatusCategory.Done,
+            ProjectDeliverableStatusAlias.Descoped => StatusCategory.Removed,
+            ProjectDeliverableStatusAlias.InProgress => StatusCategory.Active,
+            _ => StatusCategory.Proposed,
+        };
+        var deliverable = new DemandProjectDeliverable(
+            new SourceProjectDeliverable(Guid.CreateVersion7(), project.Id, name, category, alias), Clock.Now);
+        DbContext.AddDeliverables(deliverable);
+        return deliverable;
+    }
+
     /// <summary>Records an outcome on an accepted request as already saved, raising nothing.</summary>
     public void Outcome(IntakeRequest request, Guid targetId, Employee addedBy,
-        IntakeRequestOutcomeKind kind = IntakeRequestOutcomeKind.NewProject, string? note = null)
+        IntakeRequestOutcomeKind kind = IntakeRequestOutcomeKind.NewProject, string? note = null,
+        IReadOnlyCollection<Guid>? deliverableIds = null)
     {
-        var added = request.AddOutcome(kind, targetId, note, addedBy.Id, EventActor.System, Clock.Now);
+        var added = request.AddOutcome(kind, targetId, note, deliverableIds ?? [], addedBy.Id, EventActor.System, Clock.Now);
         if (added.IsFailure)
             throw new InvalidOperationException(added.Error);
         request.ClearDomainEvents();

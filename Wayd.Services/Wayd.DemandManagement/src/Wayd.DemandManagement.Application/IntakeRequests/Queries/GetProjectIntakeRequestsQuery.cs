@@ -41,6 +41,7 @@ public sealed class GetProjectIntakeRequestsQueryHandler(
                 Status = new StatusNavigationDto { Id = x.r.StatusId, Name = x.r.StatusName, Category = x.r.StatusCategory, CategoryLabel = WorkflowOwners.CategoryLabel(DemandManagementWorkflowOwners.IntakeRequest.Key, x.r.StatusCategory), Alias = x.r.StatusAliasValue },
                 Kind = x.o.Kind,
                 Note = x.o.Note,
+                DeliverableIds = x.o.Deliverables.Select(d => d.DeliverableId).ToList(),
             })
             .ToListAsync(cancellationToken);
     }

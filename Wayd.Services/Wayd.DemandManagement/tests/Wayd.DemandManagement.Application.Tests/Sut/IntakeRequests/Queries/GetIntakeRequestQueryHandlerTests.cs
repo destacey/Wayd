@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
@@ -412,6 +413,97 @@ public sealed class GetIntakeRequestQueryHandlerTests
         gone.Project.Should().BeNull();
         gone.Note.Should().Be("Export screen");
         result.CanChangeOutcomes.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ForAMappedOutcome_ReturnsEachDeliverablesStatusAndWhetherItIsMet()
+    {
+        // Arrange — one accepted, one descoped, one deleted from the project
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var project = _scenario.Project();
+        var accepted = _scenario.Deliverable(project, "Reports", ProjectDeliverableStatusAlias.Accepted);
+        var descoped = _scenario.Deliverable(project, "Archive", ProjectDeliverableStatusAlias.Descoped);
+        var deleted = Guid.NewGuid();
+        _scenario.Outcome(request, project.Id, agent, IntakeRequestOutcomeKind.ExistingProjectScope, "Export",
+            [accepted.Id, descoped.Id, deleted]);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        var outcome = result!.Outcomes.Should().ContainSingle().Subject;
+        outcome.Deliverables.Select(d => (d.Id, d.Name, d.StatusAlias, d.IsOnProject)).Should().Equal(
+            (descoped.Id, "Archive", ProjectDeliverableStatusAlias.Descoped, true),
+            (accepted.Id, "Reports", ProjectDeliverableStatusAlias.Accepted, true),
+            (deleted, null, null, false));
+        outcome.IsMet.Should().BeFalse("the descoped deliverable was never accepted");
+        result.DeliverablesMet.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_WhenEveryMappedDeliverableStillOnItsProjectIsAccepted_IsMet()
+    {
+        // Arrange — two mapped outcomes, plus a new project outcome that plays no part
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var atlas = _scenario.Project("ATLAS");
+        var borealis = _scenario.Project("BOREAL", "Borealis");
+        _scenario.Outcome(request, atlas.Id, agent, IntakeRequestOutcomeKind.ExistingProjectScope, "Export",
+            [_scenario.Deliverable(atlas, alias: ProjectDeliverableStatusAlias.Accepted).Id, Guid.NewGuid()]);
+        _scenario.Outcome(request, borealis.Id, agent, IntakeRequestOutcomeKind.ExistingProjectScope, "Audit",
+            [_scenario.Deliverable(borealis, alias: ProjectDeliverableStatusAlias.Accepted).Id]);
+        _scenario.Outcome(request, Guid.NewGuid(), agent);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Outcomes.Where(o => o.Kind == IntakeRequestOutcomeKind.ExistingProjectScope).Should().OnlyContain(o => o.IsMet == true);
+        result.Outcomes.Single(o => o.Kind == IntakeRequestOutcomeKind.NewProject).IsMet.Should().BeNull();
+        result.DeliverablesMet.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Handle_WhenOneOutcomeIsMetAndAnotherIsNot_IsNotMet()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var atlas = _scenario.Project("ATLAS");
+        var borealis = _scenario.Project("BOREAL", "Borealis");
+        _scenario.Outcome(request, atlas.Id, agent, IntakeRequestOutcomeKind.ExistingProjectScope, "Export",
+            [_scenario.Deliverable(atlas, alias: ProjectDeliverableStatusAlias.Accepted).Id]);
+        _scenario.Outcome(request, borealis.Id, agent, IntakeRequestOutcomeKind.ExistingProjectScope, "Audit",
+            [_scenario.Deliverable(borealis, alias: ProjectDeliverableStatusAlias.InProgress).Id]);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.DeliverablesMet.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_WithNoMappedDeliverables_HasNoMetState()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var project = _scenario.Project();
+        _scenario.Outcome(request, project.Id, agent, IntakeRequestOutcomeKind.ExistingProjectScope, "Export");
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Outcomes.Single().IsMet.Should().BeNull();
+        result.Outcomes.Single().Deliverables.Should().BeEmpty();
+        result.DeliverablesMet.Should().BeNull();
     }
 
     [Fact]

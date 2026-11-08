@@ -3,7 +3,9 @@ import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   IntakeRequestDetailsDto,
+  IntakeRequestOutcomeDto,
   IntakeRequestOutcomeKind,
+  ProjectDeliverableStatusAlias,
   StatusCategory,
 } from '@/src/services/wayd-api'
 import IntakeRequestOutcomes from './intake-request-outcomes'
@@ -23,6 +25,12 @@ jest.mock(
       mockRemove,
       { isLoading: false },
     ],
+    useSetIntakeRequestOutcomeDeliverablesMutation: () => [jest.fn()],
+    useGetIntakeRequestProjectDeliverablesQuery: () => ({
+      data: [],
+      isFetching: false,
+      isError: false,
+    }),
   }),
 )
 
@@ -36,6 +44,7 @@ const request = (
       targetId: 'p-1',
       project: { id: 'p-1', key: 'ATLAS', name: 'Atlas' },
       note: 'The export screen',
+      deliverables: [],
       addedBy: agent,
       addedOn: new Date('2026-10-01T09:00:00Z'),
     },
@@ -43,6 +52,7 @@ const request = (
       kind: IntakeRequestOutcomeKind.NewProject,
       targetId: 'p-gone',
       project: undefined,
+      deliverables: [],
       addedBy: agent,
       addedOn: new Date('2026-10-02T09:00:00Z'),
     },
@@ -92,6 +102,7 @@ describe('IntakeRequestOutcomes', () => {
               status: 'In Progress',
               statusCategory: StatusCategory.Active,
             },
+            deliverables: [],
             addedBy: agent,
             addedOn: new Date('2026-10-01T09:00:00Z'),
           },
@@ -99,6 +110,7 @@ describe('IntakeRequestOutcomes', () => {
             kind: IntakeRequestOutcomeKind.WorkItem,
             targetId: 'w-gone',
             workItem: undefined,
+            deliverables: [],
             addedBy: agent,
             addedOn: new Date('2026-10-02T09:00:00Z'),
           },
@@ -119,6 +131,120 @@ describe('IntakeRequestOutcomes', () => {
       screen.getByText('A work item that has been deleted'),
     ).toBeInTheDocument()
     expect(screen.queryByText('A project that has been deleted')).toBeNull()
+  })
+
+  const mapped = (
+    deliverables: IntakeRequestOutcomeDto['deliverables'],
+    isMet: boolean | undefined,
+  ): IntakeRequestOutcomeDto => ({
+    ...request(true).outcomes[0],
+    deliverables,
+    isMet,
+  })
+
+  const mappedRequest = (
+    outcome: IntakeRequestOutcomeDto,
+    deliverablesMet: boolean | undefined,
+    category = StatusCategory.Active,
+    canChangeOutcomes = true,
+  ) =>
+    ({
+      ...request(canChangeOutcomes, [outcome]),
+      summary: { id: 'r-42', key: 42, status: { category } },
+      deliverablesMet,
+    }) as unknown as IntakeRequestDetailsDto
+
+  it('shows each mapped deliverable with its status, and one deleted from the project', () => {
+    // Arrange / Act
+    render(
+      <IntakeRequestOutcomes
+        request={mappedRequest(
+          mapped(
+            [
+              {
+                id: 'd-1',
+                name: 'Reports',
+                statusCategory: StatusCategory.Removed,
+                statusAlias: ProjectDeliverableStatusAlias.Descoped,
+                isOnProject: true,
+              },
+              { id: 'd-gone', isOnProject: false },
+            ],
+            false,
+          ),
+          false,
+        )}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByText('Reports')).toBeInTheDocument()
+    expect(screen.getByText('Descoped').closest('.ant-tag')).toHaveClass(
+      'ant-tag-warning',
+    )
+    expect(
+      screen.getByText('A deliverable deleted from the project'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Waiting on deliverables')).toBeInTheDocument()
+    expect(screen.queryByText(/ready to fulfil/)).toBeNull()
+  })
+
+  it('says an accepted request whose deliverables are all accepted may be ready to fulfil', () => {
+    // Arrange
+    const outcome = mapped(
+      [
+        {
+          id: 'd-1',
+          name: 'Reports',
+          statusCategory: StatusCategory.Done,
+          statusAlias: ProjectDeliverableStatusAlias.Accepted,
+          isOnProject: true,
+        },
+      ],
+      true,
+    )
+
+    // Act
+    render(<IntakeRequestOutcomes request={mappedRequest(outcome, true)} />)
+
+    // Assert
+    expect(screen.getByText('Met')).toBeInTheDocument()
+    expect(
+      screen.getByText('This request may be ready to fulfil.'),
+    ).toBeInTheDocument()
+  })
+
+  it('does not suggest fulfilling a request that is already closed', () => {
+    // Arrange / Act
+    render(
+      <IntakeRequestOutcomes
+        request={mappedRequest(
+          mapped([], undefined),
+          true,
+          StatusCategory.Done,
+          false,
+        )}
+      />,
+    )
+
+    // Assert
+    expect(screen.queryByText(/ready to fulfil/)).toBeNull()
+  })
+
+  it('offers editing deliverables only on an existing project scope outcome, to someone who may change outcomes', () => {
+    // Arrange / Act
+    const { rerender } = render(
+      <IntakeRequestOutcomes request={request(true)} />,
+    )
+
+    // Assert — the scope outcome takes deliverables; the new project outcome does not
+    expect(
+      screen.getAllByRole('button', { name: 'Edit Deliverables' }),
+    ).toHaveLength(1)
+    rerender(<IntakeRequestOutcomes request={request(false)} />)
+    expect(
+      screen.queryByRole('button', { name: 'Edit Deliverables' }),
+    ).toBeNull()
   })
 
   it('says there is no outcome yet', () => {

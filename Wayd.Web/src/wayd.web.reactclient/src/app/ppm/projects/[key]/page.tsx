@@ -497,6 +497,7 @@ const ProjectDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             projectRefreshing={isFetchingProject}
             addRequested={openAddDeliverableForm}
             onAddClosed={() => setOpenAddDeliverableForm(false)}
+            showIntakeRequests={demandManagementEnabled}
           />
         )
       case ProjectSections.Team:

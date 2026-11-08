@@ -3,12 +3,16 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using Wayd.Common.Application.Discussions;
 using Wayd.Common.Application.FeatureManagement;
+using Wayd.Common.Application.Imports;
+using Wayd.Common.Domain.Imports;
+using Wayd.DemandManagement.Application.IntakeRequests.Imports;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Events.StatusWorkflows;
@@ -824,6 +828,208 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         saved.Kind.Should().Be(IntakeRequestOutcomeKind.WorkItem);
         saved.TargetId.Should().Be(workItem.Id);
         saved.Note.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task RemoveIntakeRequestOutcome_MappedToDeliverables_TakesItsMappingAndLeavesTheOtherOutcomesMapping()
+    {
+        // Arrange — two existing project scope outcomes, each mapped; the handler loads only the removed one's.
+        var ct = TestContext.Current.CancellationToken;
+        var (requestId, agent, removedProjectId) = await SeedAcceptedWithAProject(ct);
+        var keptProjectId = await SeedProjectCopy(ct);
+        Guid[] removedDeliverables = [Guid.NewGuid(), Guid.NewGuid()];
+        var keptDeliverable = Guid.NewGuid();
+        await using (var mapping = _fixture.CreateContext())
+        {
+            var request = await mapping.IntakeRequests.Include(r => r.Outcomes).SingleAsync(r => r.Id == requestId, ct);
+            request.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, removedProjectId, "Export screen", removedDeliverables,
+                agent.Id, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            request.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, keptProjectId, "Audit trail", [keptDeliverable],
+                agent.Id, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            await mapping.SaveChangesAsync(ct);
+        }
+
+        // Act
+        Result removed;
+        await using (var context = _fixture.CreateContext())
+        {
+            removed = await new RemoveIntakeRequestOutcomeCommandHandler(context, Principal(agent.Id), User(), _clock)
+                .Handle(new RemoveIntakeRequestOutcomeCommand(requestId, removedProjectId), ct);
+        }
+
+        // Assert
+        removed.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        var outcomes = await reader.IntakeRequests.Where(r => r.Id == requestId)
+            .SelectMany(r => r.Outcomes).Include(o => o.Deliverables).ToListAsync(ct);
+        outcomes.Should().ContainSingle().Which.DeliverableIds().Should().Equal(keptDeliverable);
+        var payload = await reader.ActivityLogs
+            .Where(a => a.AggregateId == requestId && a.EventType == nameof(IntakeRequestOutcomeRemovedEvent))
+            .Select(a => a.Payload)
+            .SingleAsync(ct);
+        payload.Should().Contain(removedDeliverables[0].ToString()).And.Contain(removedDeliverables[1].ToString());
+    }
+
+    [Fact]
+    public async Task SaveChanges_AMappedOutcome_RoundTripsItsDeliverables()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (requestId, agent, projectId) = await SeedAcceptedWithAProject(ct);
+        Guid[] deliverables = [Guid.NewGuid(), Guid.NewGuid()];
+
+        // Act
+        await using (var mapping = _fixture.CreateContext())
+        {
+            var request = await mapping.IntakeRequests.Include(r => r.Outcomes).SingleAsync(r => r.Id == requestId, ct);
+            request.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, projectId, "Export screen", deliverables,
+                agent.Id, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            await mapping.SaveChangesAsync(ct);
+        }
+
+        // Assert
+        await using var reader = _fixture.CreateContext();
+        var outcome = await reader.IntakeRequests.Where(r => r.Id == requestId)
+            .SelectMany(r => r.Outcomes).Include(o => o.Deliverables).SingleAsync(ct);
+        outcome.DeliverableIds().Should().BeEquivalentTo(deliverables);
+    }
+
+    [Fact]
+    public async Task AddThenSetIntakeRequestOutcomeDeliverables_MapsThenReplacesAndLeavesTheOtherOutcomeAlone()
+    {
+        // Arrange — two scope outcomes; only the second's mapping changes
+        var ct = TestContext.Current.CancellationToken;
+        var (requestId, agent, projectId) = await SeedAcceptedWithAProject(ct);
+        var otherProjectId = await SeedProjectCopy(ct);
+        var portal = await SeedDeliverableCopy(projectId, "Portal", ct);
+        var reports = await SeedDeliverableCopy(projectId, "Reports", ct);
+        var audit = await SeedDeliverableCopy(otherProjectId, "Audit", ct);
+        await using (var adding = _fixture.CreateContext())
+        {
+            var handler = new AddIntakeRequestOutcomeCommandHandler(adding, Principal(agent.Id), User(), _clock);
+            (await handler.Handle(new AddIntakeRequestOutcomeCommand(requestId, IntakeRequestOutcomeKind.ExistingProjectScope, otherProjectId, "Audit trail")
+            {
+                DeliverableIds = [audit],
+            }, ct)).IsSuccess.Should().BeTrue();
+        }
+        await using (var adding = _fixture.CreateContext())
+        {
+            var handler = new AddIntakeRequestOutcomeCommandHandler(adding, Principal(agent.Id), User(), _clock);
+            (await handler.Handle(new AddIntakeRequestOutcomeCommand(requestId, IntakeRequestOutcomeKind.ExistingProjectScope, projectId, "Export screen")
+            {
+                DeliverableIds = [portal],
+            }, ct)).IsSuccess.Should().BeTrue();
+        }
+
+        // Act
+        Result set;
+        await using (var context = _fixture.CreateContext())
+        {
+            set = await new SetIntakeRequestOutcomeDeliverablesCommandHandler(context, Principal(agent.Id), User(), _clock)
+                .Handle(new SetIntakeRequestOutcomeDeliverablesCommand(requestId, projectId, [portal, reports], [portal]), ct);
+        }
+
+        // Assert
+        set.IsSuccess.Should().BeTrue();
+        await using var reader = _fixture.CreateContext();
+        var outcomes = await reader.IntakeRequests.Where(r => r.Id == requestId)
+            .SelectMany(r => r.Outcomes).Include(o => o.Deliverables).ToListAsync(ct);
+        outcomes.Single(o => o.TargetId == projectId).DeliverableIds().Should().BeEquivalentTo([portal, reports]);
+        outcomes.Single(o => o.TargetId == otherProjectId).DeliverableIds().Should().Equal(audit);
+        (await reader.ActivityLogs.CountAsync(a => a.AggregateId == requestId
+            && a.EventType == nameof(IntakeRequestOutcomeDeliverablesChangedEvent), ct)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task SetIntakeRequestOutcomeDeliverables_WithAnotherProjectsDeliverable_IsRefused()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (requestId, agent, projectId) = await SeedAcceptedWithAProject(ct);
+        var theirs = await SeedDeliverableCopy(await SeedProjectCopy(ct), "Audit", ct);
+        await using (var adding = _fixture.CreateContext())
+        {
+            (await new AddIntakeRequestOutcomeCommandHandler(adding, Principal(agent.Id), User(), _clock)
+                .Handle(new AddIntakeRequestOutcomeCommand(requestId, IntakeRequestOutcomeKind.ExistingProjectScope, projectId, "Export screen"), ct))
+                .IsSuccess.Should().BeTrue();
+        }
+
+        // Act
+        Result set;
+        await using (var context = _fixture.CreateContext())
+        {
+            set = await new SetIntakeRequestOutcomeDeliverablesCommandHandler(context, Principal(agent.Id), User(), _clock)
+                .Handle(new SetIntakeRequestOutcomeDeliverablesCommand(requestId, projectId, [theirs], []), ct);
+        }
+
+        // Assert
+        set.IsFailure.Should().BeTrue();
+        set.Error.Should().StartWith("These deliverables were not found on the project:").And.Contain(theirs.ToString());
+    }
+
+    [Fact]
+    public async Task IntakeRequestOutcomeImport_RecordsAMappedOutcomeAndRefusesAnotherProjectsDeliverable()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (requestId, agent, projectId) = await SeedAcceptedWithAProject(ct);
+        var portal = await SeedDeliverableCopy(projectId, "Portal", ct);
+        var otherProjectId = await SeedProjectCopy(ct);
+        var theirs = await SeedDeliverableCopy(otherProjectId, "Audit", ct);
+        var earlierProjectId = await SeedProjectCopy(ct);
+        var dispatcher = new Mock<IDispatcher>();
+        var featureFlags = new Mock<IFeatureFlags>();
+        ImportIntakeRequestOutcomeDto[] rows =
+        [
+            new(requestId, IntakeRequestOutcomeKind.ExistingProjectScope, projectId, null, "Export screen", [portal], agent.Id, Now),
+            new(requestId, IntakeRequestOutcomeKind.ExistingProjectScope, otherProjectId, null, "Audit trail", [portal, theirs], agent.Id, Now),
+            new(requestId, IntakeRequestOutcomeKind.NewProject, earlierProjectId, null, null, [], agent.Id, Now.Minus(Duration.FromDays(1))),
+        ];
+
+        // Act
+        CSharpFunctionalExtensions.Result<ImportPassResult> result;
+        await using (var context = _fixture.CreateContext())
+        {
+            var definition = new IntakeRequestOutcomeImportDefinition(context, dispatcher.Object, User(), _clock, featureFlags.Object,
+                new ImportPayloadSerializer());
+            result = await definition.ExecutePass(Guid.CreateVersion7(), 0,
+                [.. rows.Select((r, i) => ImportProcessRow.Create($"r{i + 1}", i + 1, definition.SerializeRow(r)))],
+                isFinalChunk: true, ct);
+            await context.SaveChangesAsync(ct);
+        }
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Rows[0].Failed.Should().BeFalse(result.Value.Rows[0].Error);
+        result.Value.Rows[1].Failed.Should().BeTrue("the portal belongs to the first project");
+        result.Value.Rows[2].Error.Should().Be("AddedOn cannot be before the request was submitted.");        await using var reader = _fixture.CreateContext();
+        var outcome = await reader.IntakeRequests.Where(r => r.Id == requestId)
+            .SelectMany(r => r.Outcomes).Include(o => o.Deliverables).SingleAsync(ct);
+        outcome.TargetId.Should().Be(projectId);
+        outcome.DeliverableIds().Should().Equal(portal);
+    }
+
+    private async Task<Guid> SeedDeliverableCopy(Guid projectId, string name, CancellationToken ct)
+    {
+        var id = Guid.NewGuid();
+        await using var context = _fixture.CreateContext();
+        context.DemandProjectDeliverables.Add(new DemandProjectDeliverable(
+            new DeliverableSource(id, projectId, name, StatusCategory.Proposed, ProjectDeliverableStatusAlias.NotStarted), Now));
+        await context.SaveChangesAsync(ct);
+        return id;
+    }
+
+    private sealed record DeliverableSource(Guid Id, Guid ProjectId, string Name, StatusCategory StatusCategory,
+        ProjectDeliverableStatusAlias StatusAlias) : ISimpleProjectDeliverable;
+
+    private async Task<Guid> SeedProjectCopy(CancellationToken ct)
+    {
+        var projectId = Guid.NewGuid();
+        await using var context = _fixture.CreateContext();
+        context.DemandProjects.Add(new DemandProject(
+            new SourceProject(projectId, new ProjectKey("P" + Guid.NewGuid().ToString("N")[..10]), "Borealis"), Now));
+        await context.SaveChangesAsync(ct);
+        return projectId;
     }
 
     /// <summary>A request accepted by its desk's admin, and a project Demand Management holds a copy of.</summary>

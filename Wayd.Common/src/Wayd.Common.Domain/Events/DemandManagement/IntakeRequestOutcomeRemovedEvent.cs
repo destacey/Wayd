@@ -20,8 +20,8 @@ public sealed record IntakeRequestOutcomeRemovedEvent : DomainEvent<IntakeReques
 
     [JsonConstructor]
     public IntakeRequestOutcomeRemovedEvent(Guid id, int key, IntakeRequestOutcomeKind kind, Guid targetId, string? note,
-        Guid[] targetIds, EventActor actor, Instant timestamp)
-        : base(actor, "1.1")
+        Guid[] targetIds, Guid[]? deliverableIds, EventActor actor, Instant timestamp)
+        : base(actor, "1.2")
     {
         Id = id;
         Key = key;
@@ -29,6 +29,7 @@ public sealed record IntakeRequestOutcomeRemovedEvent : DomainEvent<IntakeReques
         TargetId = targetId;
         Note = note;
         TargetIds = [.. targetIds];
+        DeliverableIds = [.. deliverableIds ?? []];
 
         Timestamp = timestamp;
     }
@@ -46,6 +47,11 @@ public sealed record IntakeRequestOutcomeRemovedEvent : DomainEvent<IntakeReques
     /// may hold work item ids, which no 1.0 payload carries.
     /// </summary>
     public Guid[] TargetIds { get; }
+    /// <summary>
+    /// The project deliverables the removed outcome was mapped to, which the request no longer waits for. Empty
+    /// before 1.2, when outcomes could not be mapped.
+    /// </summary>
+    public Guid[] DeliverableIds { get; }
 
     [JsonIgnore]
     public string AggregateType => "IntakeRequest";

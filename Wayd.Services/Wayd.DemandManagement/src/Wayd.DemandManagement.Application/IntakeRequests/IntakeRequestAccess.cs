@@ -16,6 +16,11 @@ internal static class IntakeRequestAccess
     /// <summary>
     /// The request, tracked, when the reader may see it; otherwise null.
     /// </summary>
+    /// <param name="deliverablesOfTargetId">
+    /// Loads the outcomes, and the mapped deliverables of the one outcome pointing at this target only: what
+    /// changing or removing that outcome reads. Every other outcome's deliverables stay unloaded, so nothing may
+    /// change them.
+    /// </param>
     public static Task<IntakeRequest?> FindVisible(
         this IDemandManagementDbContext dbContext,
         IntakeRequestReader reader,
@@ -24,14 +29,18 @@ internal static class IntakeRequestAccess
         CancellationToken cancellationToken,
         bool includeTags = false,
         bool includeOutcomes = false,
-        bool includeScores = false)
+        bool includeScores = false,
+        Guid? deliverablesOfTargetId = null)
     {
         var query = dbContext.IntakeRequests.AsQueryable();
         if (includeParticipants)
             query = query.Include(r => r.Participants);
         if (includeTags)
             query = query.Include(r => r.Tags);
-        if (includeOutcomes)
+        if (deliverablesOfTargetId is { } targetId)
+            query = query.Include(r => r.Outcomes)
+                .ThenInclude(o => o.Deliverables.Where(d => d.TargetId == targetId));
+        else if (includeOutcomes)
             query = query.Include(r => r.Outcomes);
         if (includeScores)
             query = query.Include(r => r.Scores);
@@ -65,4 +74,37 @@ internal static class IntakeRequestAccess
         Guid employeeId,
         CancellationToken cancellationToken) =>
         dbContext.Employees.AnyAsync(e => e.Id == employeeId && e.IsActive, cancellationToken);
+
+    /// <summary>
+    /// Whether every deliverable is one of the project's, by Demand Management's copy of them. One the outcome is
+    /// already mapped to passes too, so a deliverable deleted from the project can stay mapped while others change.
+    /// </summary>
+    /// <param name="alreadyMapped">The deliverables the outcome is mapped to now.</param>
+    public static async Task<Result> CheckDeliverablesOfProject(
+        this IDemandManagementDbContext dbContext,
+        Guid projectId,
+        IReadOnlyCollection<Guid> deliverableIds,
+        IReadOnlyCollection<Guid> alreadyMapped,
+        CancellationToken cancellationToken)
+    {
+        var toCheck = deliverableIds.Except(alreadyMapped).ToList();
+        if (toCheck.Count == 0)
+            return Result.Success();
+
+        var found = await dbContext.DemandProjectDeliverables
+            .Where(d => d.ProjectId == projectId && toCheck.Contains(d.Id))
+            .Select(d => d.Id)
+            .ToListAsync(cancellationToken);
+
+        var missing = toCheck.Except(found).ToList();
+        return missing.Count == 0
+            ? Result.Success()
+            : Result.Failure($"{DeliverablesNotOnProjectError} {string.Join(", ", missing)}.");
+    }
+
+    /// <summary>
+    /// The failure, followed by the ids, for mapping deliverables the outcome's project does not have; a
+    /// deliverable added to it moments ago may not have reached Demand Management's copy yet.
+    /// </summary>
+    public const string DeliverablesNotOnProjectError = "These deliverables were not found on the project:";
 }

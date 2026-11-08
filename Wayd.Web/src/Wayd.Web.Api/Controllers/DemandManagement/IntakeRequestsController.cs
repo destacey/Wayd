@@ -209,6 +209,55 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
         }
     }
 
+    [HttpPost("outcomes/import")]
+    [MustHavePermission(ApplicationAction.Administer, ApplicationResource.IntakeRequests)]
+    [EndpointSummary(
+        "Submit a csv file of intake request outcomes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.")]
+    [EndpointDescription(
+        "Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` needs a `Note`, and can name `DeliverableIds`, semicolon-separated deliverables of that project. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.")]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ImportProcessDto), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [CsvImport(IntakeRequestOutcomeImportDefinition.ImportKey)]
+    public async Task<ActionResult> ImportOutcomes([FromForm, CsvRows(typeof(ImportIntakeRequestOutcomeRequest))] IFormFile file, [FromQuery] Guid? submissionGroupId, [FromQuery] bool validateOnly, [FromServices] ImportSubmissionResponder responder, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var imported = _csvService.ReadCsv<ImportIntakeRequestOutcomeRequest>(file.OpenReadStream()).ToList();
+
+            List<SubmittedImportRow<ImportIntakeRequestOutcomeDto>> rows = [];
+            var validator = new ImportIntakeRequestOutcomeRequestValidator();
+            for (var i = 0; i < imported.Count; i++)
+            {
+                var request = imported[i];
+
+                var validationResults = await validator.ValidateAsync(request, cancellationToken);
+                if (!validationResults.IsValid)
+                {
+                    foreach (var error in validationResults.Errors)
+                    {
+                        error.ErrorMessage = $"{error.ErrorMessage} (Row: {SubmittedImportRow.KeyFor(request.ImportId, i + 1)})";
+                        ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+                    }
+                    return UnprocessableEntity(ProblemDetailsExtensions.ForValidationErrors(ModelState, HttpContext));
+                }
+
+                rows.Add(new SubmittedImportRow<ImportIntakeRequestOutcomeDto>(request.ImportId, request.ToImportIntakeRequestOutcomeDto()));
+            }
+
+            var result = await _dispatcher.Send(new ImportIntakeRequestOutcomesCommand(rows, submissionGroupId, validateOnly), cancellationToken);
+
+            return result.IsSuccess
+                ? await responder.Respond(this, result.Value, cancellationToken)
+                : BadRequest(result.ToBadRequestObject(HttpContext));
+        }
+        catch (CsvHelperException ex)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForBadRequest(ex.Message, HttpContext));
+        }
+    }
+
     [HttpPut("{id}")]
     [McpTool("IntakeRequests_Update", "Update intake request")]
     [Authorize]
@@ -387,7 +436,7 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     [McpTool("IntakeRequests_AddOutcome", "Add intake request outcome", Destructive = false)]
     [Authorize]
     [EndpointSummary("Record that an accepted intake request became a project or work item.")]
-    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.")]
+    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `ExistingProjectScope` can also name `deliverableIds`, deliverables of that project that meet the request (list them with `IntakeRequests_GetProjectDeliverables`); the request counts as met once every one is Accepted. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -396,7 +445,11 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     {
         if (request.Kind != IntakeRequestOutcomeKind.WorkItem)
             return NoContentOrError(await _dispatcher.Send(
-                new AddIntakeRequestOutcomeCommand(id, request.Kind, request.ProjectId ?? Guid.Empty, request.Note), cancellationToken));
+                new AddIntakeRequestOutcomeCommand(id, request.Kind, request.ProjectId ?? Guid.Empty, request.Note)
+                {
+                    DeliverableIds = request.DeliverableIds,
+                },
+                cancellationToken));
 
         // Demand Management never reads Work's tables, so the work item is looked up here and handed in.
         var workItemId = request.WorkItemId ?? Guid.Empty;
@@ -420,6 +473,41 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> RemoveOutcome(Guid id, Guid targetId, CancellationToken cancellationToken) =>
         NoContentOrError(await _dispatcher.Send(new RemoveIntakeRequestOutcomeCommand(id, targetId), cancellationToken));
+
+    [HttpPut("{id}/outcomes/{targetId}/deliverables")]
+    // Not idempotent: a repeat sends a mapping the first call already replaced, and is refused as stale.
+    [McpTool("IntakeRequests_SetOutcomeDeliverables", "Set intake request outcome deliverables", Idempotent = false)]
+    [Authorize]
+    [EndpointSummary("Set the project deliverables an existing project scope outcome is mapped to.")]
+    [EndpointDescription("Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it. `expectedDeliverableIds` is the outcome's mapping as you read it (the ids of its `deliverables` on the request); when the outcome no longer holds exactly those, the change is refused with 409, so read the request again and redo it. Each deliverable must be one of that project's (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> SetOutcomeDeliverables(Guid id, Guid targetId, [FromBody] SetIntakeRequestOutcomeDeliverablesRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(
+            new SetIntakeRequestOutcomeDeliverablesCommand(id, targetId, request.DeliverableIds, request.ExpectedDeliverableIds),
+            cancellationToken);
+
+        return result.IsFailure && result.Error == SetIntakeRequestOutcomeDeliverablesCommandHandler.StaleError
+            ? Conflict(ProblemDetailsExtensions.ForConflict(result.Error, HttpContext))
+            : NoContentOrError(result);
+    }
+
+    [HttpGet("{id}/projects/{projectId}/deliverables")]
+    [McpTool("IntakeRequests_GetProjectDeliverables", "List project deliverables for an intake request outcome")]
+    [Authorize]
+    [EndpointSummary("Get the deliverables of a project that an intake request's outcome can be mapped to.")]
+    [EndpointDescription("Needs an agent on the request's desk; anyone else gets 404, as for a project Demand Management has no copy of. Ordered by name, with each deliverable's status category and meaning (`statusAlias`), descoped ones included. Read from Demand Management's copy, so a deliverable added moments ago may not be listed yet.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<IntakeRequestProjectDeliverableDto>>> GetProjectDeliverables(Guid id, Guid projectId, CancellationToken cancellationToken)
+    {
+        var deliverables = await _dispatcher.Send(new GetIntakeRequestProjectDeliverablesQuery(id, projectId), cancellationToken);
+        return deliverables is null ? NotFound() : Ok(deliverables);
+    }
 
     [HttpGet("projects/{projectId}")]
     [Authorize]

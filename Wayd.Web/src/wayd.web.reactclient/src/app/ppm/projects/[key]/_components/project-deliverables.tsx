@@ -40,6 +40,8 @@ import {
   useReorderProjectDeliverablesMutation,
 } from '@/src/store/features/ppm/project-deliverables-api'
 import { useGetProjectPlanTreeQuery } from '@/src/store/features/ppm/projects-api'
+import { useGetProjectIntakeRequestsQuery } from '@/src/store/features/demand-management/demand-management-api'
+import { requestHref } from '@/src/app/demand-management/_components/intake-requests-grid'
 import { toApiError } from '@/src/utils'
 import { formatCalendarDate } from '@/src/utils/calendar-date'
 import { Card, Flex, Switch, Tag, Typography } from 'antd'
@@ -65,6 +67,8 @@ export interface ProjectDeliverablesProps {
   /** Raised by the section's Add Deliverable action, which the page renders. */
   addRequested: boolean
   onAddClosed: () => void
+  /** Demand Management is on, so each deliverable lists the intake requests it serves. */
+  showIntakeRequests?: boolean
 }
 
 /** Deliverables can be deleted only before the project starts, and only before work on them starts. */
@@ -76,6 +80,9 @@ const canDelete = (
   deliverable.status.category === StatusCategory.Proposed
 
 type Dialog = 'edit' | 'status' | 'delete' | 'tasks'
+
+/** A grid row: the deliverable, with how many of the intake requests the reader can see it serves. */
+type DeliverableRow = ProjectDeliverableDto & { requestCount: number }
 
 const Count = ({
   label,
@@ -122,9 +129,18 @@ const ProjectDeliverables = ({
   projectRefreshing,
   addRequested,
   onAddClosed,
+  showIntakeRequests = false,
 }: ProjectDeliverablesProps) => {
   const messageApi = useMessage()
   const { selectedId, select, clear } = useSelectedRecord()
+
+  // Demand Management decides which requests the reader may see, so one on a private desk is simply absent.
+  const { data: intakeRequests = [] } = useGetProjectIntakeRequestsQuery(
+    project.id,
+    { skip: !showIntakeRequests },
+  )
+  const requestsServedBy = (deliverableId: string) =>
+    intakeRequests.filter((r) => r.deliverableIds.includes(deliverableId))
 
   const { data, isLoading, isFetching, refetch } =
     useGetProjectDeliverablesQuery(project.id)
@@ -155,9 +171,13 @@ const ProjectDeliverables = ({
   const open = deliverables.filter((d) => d.isOpen)
   const overdue = open.filter(isOverdue)
 
-  const rows = showDescoped
-    ? deliverables
-    : deliverables.filter((d) => d.status.category !== StatusCategory.Removed)
+  // The count rides on the row data: the grid caches each row's column values until its data changes, so a
+  // column reading the separately fetched requests would keep the count it first saw.
+  const rows: DeliverableRow[] = (
+    showDescoped
+      ? deliverables
+      : deliverables.filter((d) => d.status.category !== StatusCategory.Removed)
+  ).map((d) => ({ ...d, requestCount: requestsServedBy(d.id).length }))
 
   const selected = deliverables.find((d) => d.id === selectedId) ?? null
   const selectedTasks = selected ? linkedTasks(plan, selected.id) : []
@@ -216,9 +236,7 @@ const ProjectDeliverables = ({
     ]
   }
 
-  const onRowReorder = async (
-    event: RowReorderEvent<ProjectDeliverableDto>,
-  ) => {
+  const onRowReorder = async (event: RowReorderEvent<DeliverableRow>) => {
     if (isBusy) return
     const ordered = mergeDeliverableOrder(
       deliverables.map((d) => d.id),
@@ -244,9 +262,9 @@ const ProjectDeliverables = ({
 
   const columns = (
     context: GridColumnContext,
-  ): ColumnDef<ProjectDeliverableDto, any>[] => [
+  ): ColumnDef<DeliverableRow, any>[] => [
     // The grab handle shares the ⋯ cell, so one column holds everything that acts on a row.
-    createActionsColumn<ProjectDeliverableDto>({
+    createActionsColumn<DeliverableRow>({
       getItems: getActionItems,
       ariaLabel: 'Deliverable actions',
       unavailable: !canManage && !canLinkTasks,
@@ -319,6 +337,17 @@ const ProjectDeliverables = ({
       size: 160,
       meta: { columnType: 'dateTime' },
     },
+    ...(showIntakeRequests
+      ? [
+          {
+            id: 'intakeRequests',
+            accessorKey: 'requestCount',
+            header: 'Requests',
+            size: 110,
+            enableColumnFilter: false,
+          } satisfies ColumnDef<DeliverableRow, number>,
+        ]
+      : []),
   ]
 
   const details = selected && (
@@ -367,6 +396,21 @@ const ProjectDeliverables = ({
       )}
       {selected.statusReason && (
         <LabeledContent label="Reason">{selected.statusReason}</LabeledContent>
+      )}
+      {showIntakeRequests && (
+        <LabeledContent label="Intake Requests">
+          {requestsServedBy(selected.id).length === 0 ? (
+            <Text type="secondary">None you can see</Text>
+          ) : (
+            <Flex vertical gap={2}>
+              {requestsServedBy(selected.id).map((r) => (
+                <Link key={r.request.id} href={requestHref(r.request.key)}>
+                  {r.request.key} · {r.request.title}
+                </Link>
+              ))}
+            </Flex>
+          )}
+        </LabeledContent>
       )}
       <LabeledContent label="Description">
         {selected.description ? (

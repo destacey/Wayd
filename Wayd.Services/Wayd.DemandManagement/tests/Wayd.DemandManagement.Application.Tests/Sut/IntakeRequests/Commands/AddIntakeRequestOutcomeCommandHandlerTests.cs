@@ -41,6 +41,75 @@ public sealed class AddIntakeRequestOutcomeCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ExistingProjectScopeWithItsProjectsDeliverables_MapsThem()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var project = _scenario.Project();
+        var portal = _scenario.Deliverable(project, "Portal");
+        var reports = _scenario.Deliverable(project, "Reports");
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new AddIntakeRequestOutcomeCommand(request.Id, IntakeRequestOutcomeKind.ExistingProjectScope, project.Id, "The export screen")
+            {
+                DeliverableIds = [portal.Id, reports.Id],
+            },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        request.Outcomes.Single().DeliverableIds().Should().BeEquivalentTo([portal.Id, reports.Id]);
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WithAnotherProjectsDeliverable_FailsNamingItAndSavesNothing()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var project = _scenario.Project("ATLAS");
+        var theirs = _scenario.Deliverable(_scenario.Project("BOREAL", "Borealis"));
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new AddIntakeRequestOutcomeCommand(request.Id, IntakeRequestOutcomeKind.ExistingProjectScope, project.Id, "The export screen")
+            {
+                DeliverableIds = [theirs.Id],
+            },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith(IntakeRequestAccess.DeliverablesNotOnProjectError).And.Contain(theirs.Id.ToString());
+        request.Outcomes.Should().BeEmpty();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Validate_DeliverablesOnANewProjectOutcome_IsRefused()
+    {
+        // Arrange
+        var validator = new AddIntakeRequestOutcomeCommandValidator();
+
+        // Act
+        var result = await validator.ValidateAsync(
+            new AddIntakeRequestOutcomeCommand(Guid.NewGuid(), IntakeRequestOutcomeKind.NewProject, Guid.NewGuid(), null)
+            {
+                DeliverableIds = [Guid.NewGuid()],
+            },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().ContainSingle(e => e.PropertyName == nameof(AddIntakeRequestOutcomeCommand.DeliverableIds));
+    }
+
+    [Fact]
     public async Task Handle_ByTheRequester_FailsAndSavesNothing()
     {
         // Arrange

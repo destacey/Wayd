@@ -113,6 +113,9 @@ public static class ConfigureServices
         services.AddScoped<IStatusRecordCounter, IntakeRequestStatusRecordMigrator>();
         services.AddScoped<IStatusRecordCounter, ProjectDeliverableStatusRecordMigrator>();
 
+        // Owner types with record types move records by type and scope, for scheme changes.
+        services.AddScoped<IRecordTypeStatusMigrator, WorkItemStatusRecordMigrator>();
+
         services.AddFollowing();
         services.AddDiscussions();
         services.AddNotifications();

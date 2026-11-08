@@ -8,6 +8,7 @@ using Wayd.Common.Domain.Events.Planning.PlanningIntervalObjectives;
 using Wayd.Common.Domain.Events.Planning.PlanningIntervals;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events.StrategicManagement;
+using Wayd.Common.Domain.Events.StatusWorkflows;
 
 namespace Wayd.Infrastructure.Messaging;
 
@@ -101,6 +102,14 @@ public static class DurableEventRoutes
         // Work WorkProcess integration-state flip → AppIntegration connection config (no projection, no FK,
         // no in-request reader — genuinely fire-and-forget). Closed generic; routed on the concrete type.
         typeof(IntegrationStateChangedEvent<Guid>),
+
+        // A work item status's change → the items and history periods holding it. No in-request reader: the
+        // item sync resolves statuses from the workflow, not from items' copies. Durable so a failure on a status
+        // many items hold is retried rather than lost once the workflow's change has committed; the handler
+        // re-reads the status, so a late or repeated delivery is harmless.
+        typeof(WorkflowStatusReclassifiedEvent),
+        typeof(WorkflowStatusRenamedEvent),
+        typeof(WorkflowStatusAliasChangedEvent),
 
         // Organization Team → PlanningTeam / WorkTeam / PpmTeam / ProductTeam. The one cross-domain edge with a downstream
         // required FK (PlanningIntervalTeam.TeamId → PlanningTeam); ManagePlanningIntervalTeamsCommand now

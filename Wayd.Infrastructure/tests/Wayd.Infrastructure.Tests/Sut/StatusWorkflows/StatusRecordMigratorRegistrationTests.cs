@@ -9,6 +9,8 @@ using Wayd.DemandManagement.Domain;
 using Wayd.Infrastructure.StatusWorkflows;
 using Wayd.ProductManagement.Application;
 using Wayd.ProductManagement.Domain;
+using Wayd.Work.Application.Persistence;
+using Wayd.Work.Domain;
 
 namespace Wayd.Infrastructure.Tests.Sut.StatusWorkflows;
 
@@ -86,6 +88,24 @@ public sealed class StatusRecordMigratorRegistrationTests
     }
 
     [Fact]
+    public void TheWorkItemRecordTypeMigrator_ResolvesForItsOwnerType()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddScoped(_ => new Mock<IWorkDbContext>().Object);
+        services.AddScoped(_ => new Mock<IStatusWorkflowDbContext>().Object);
+        services.AddScoped<IRecordTypeStatusMigrator, WorkItemStatusRecordMigrator>();
+        using var provider = services.BuildServiceProvider();
+
+        // Act
+        var migrators = provider.GetServices<IRecordTypeStatusMigrator>().ToList();
+
+        // Assert
+        // A scheme change for work items is refused outright when no migrator answers for the owner type.
+        migrators.Should().ContainSingle().Which.OwnerType.Should().Be(WorkWorkflowOwners.WorkItem.Key);
+    }
+
+    [Fact]
     public void Migrators_CarryNoServiceMarker_SoTheScanCannotClaimThem()
     {
         // Arrange
@@ -97,6 +117,7 @@ public sealed class StatusRecordMigratorRegistrationTests
             typeof(ReleasePackageStatusRecordMigrator),
             typeof(DeploymentStatusRecordMigrator),
             typeof(IntakeRequestStatusRecordMigrator),
+            typeof(WorkItemStatusRecordMigrator),
         ];
 
         // Act & Assert

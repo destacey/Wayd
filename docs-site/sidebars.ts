@@ -24,6 +24,11 @@ const sidebars: SidebarsConfig = {
       link: {type: 'doc', id: 'user-guide/index'},
       items: [
         {
+          type: 'doc',
+          id: 'user-guide/home',
+          label: 'Home',
+        },
+        {
           type: 'category',
           label: 'Organizations',
           link: {type: 'doc', id: 'user-guide/organizations/index'},

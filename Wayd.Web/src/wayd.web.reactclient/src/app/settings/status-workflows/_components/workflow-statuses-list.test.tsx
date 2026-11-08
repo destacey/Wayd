@@ -78,6 +78,7 @@ const workflow = (
   canArchive: false,
   ownership: WorkflowOwnership.Owned,
   canReclassify: false,
+  canRenameAndReorder: true,
   canDescribe: true,
   warnings: [],
   ...overrides,
@@ -103,7 +104,11 @@ describe('WorkflowStatusesList', () => {
     render(
       <WorkflowStatusesList
         canUpdate
-        statusWorkflow={workflow({ canEdit: false, canDescribe: false })}
+        statusWorkflow={workflow({
+          canEdit: false,
+          canRenameAndReorder: false,
+          canDescribe: false,
+        })}
       />,
     )
 
@@ -129,7 +134,7 @@ describe('WorkflowStatusesList', () => {
         canUpdate
         statusWorkflow={workflow({
           canEdit: false,
-          canReclassify: true,
+          canRenameAndReorder: false,
           canDescribe: true,
           state: 'Published',
           ownership: WorkflowOwnership.Managed,
@@ -154,6 +159,7 @@ describe('WorkflowStatusesList', () => {
         canUpdate={false}
         statusWorkflow={workflow({
           canEdit: false,
+          canRenameAndReorder: false,
           canDescribe: true,
           state: 'Published',
           ownership: WorkflowOwnership.Managed,
@@ -178,21 +184,28 @@ describe('WorkflowStatusesList', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('hides the actions column on a published owned workflow', () => {
-    // Arrange / Act
+  it('offers Edit and moving, but not Delete, on a published owned workflow', async () => {
+    // Arrange
     render(
       <WorkflowStatusesList
         canUpdate
         statusWorkflow={workflow({
           canEdit: false,
+          canRenameAndReorder: true,
           canDescribe: true,
           state: 'Published',
         })}
       />,
     )
 
+    // Act
+    const items = await openRowMenu('In Flight')
+
     // Assert
-    expect(screen.queryByLabelText('Status actions')).not.toBeInTheDocument()
+    expect(items).toEqual(['Edit', 'Move Up', 'Move Down'])
+    expect(
+      screen.queryByRole('button', { name: 'Add Status' }),
+    ).not.toBeInTheDocument()
   })
 
   it('hides the actions column on an archived managed workflow', () => {
@@ -202,6 +215,7 @@ describe('WorkflowStatusesList', () => {
         canUpdate
         statusWorkflow={workflow({
           canEdit: false,
+          canRenameAndReorder: false,
           canDescribe: false,
           state: 'Archived',
           ownership: WorkflowOwnership.Managed,

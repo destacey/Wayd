@@ -71081,9 +71081,12 @@ status. Publishing is refused until each is moved or loses its alias. */
     misfiledAliases: string[];
     /** Whether the statuses may be restructured — Draft, and not platform-seeded. */
     canEdit: boolean;
-    /** Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one
-until it is archived. Retired statuses never. */
+    /** Whether a status's category and alias may be changed: on a draft owned workflow only. A managed
+workflow's categories come from its source. */
     canReclassify: boolean;
+    /** Whether statuses may be renamed, re-described and reordered: on an owned workflow that is not a system or
+archived one, published included, since these change what people read rather than what records hold. */
+    canRenameAndReorder: boolean;
     /** Whether a status's description may be changed: on any workflow but a system or archived one, a managed
 one included, since a source supplies no descriptions. */
     canDescribe: boolean;

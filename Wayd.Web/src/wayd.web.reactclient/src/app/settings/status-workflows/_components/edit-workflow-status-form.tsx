@@ -30,6 +30,16 @@ const { Item } = Form
 const { TextArea } = Input
 const { Text } = Typography
 
+const scopeHintId = 'edit-workflow-status-scope'
+
+/**
+ * What the dialog may change: everything on a draft; the name and description
+ * on a published owned workflow, whose categories and meanings are fixed; only
+ * the description on a managed workflow, whose source owns the rest.
+ */
+export type WorkflowStatusEditScope =
+  'all' | 'nameAndDescription' | 'description'
+
 export interface EditWorkflowStatusFormProps {
   workflowId: string
   status: WorkflowStatusDto
@@ -37,11 +47,8 @@ export interface EditWorkflowStatusFormProps {
   aliases: WorkflowAliasDto[]
   /** What the workflow's owner type calls each category. */
   categoryLabels?: StatusCategoryLabelDto[]
-  /**
-   * Only the description can change, as on a managed workflow, whose names
-   * come from its source; the other fields are shown read-only.
-   */
-  descriptionOnly?: boolean
+  /** The fields outside the scope are shown read-only. */
+  scope?: WorkflowStatusEditScope
   onFormComplete: () => void
   onFormCancel: () => void
 }
@@ -55,8 +62,9 @@ interface EditWorkflowStatusFormValues {
 
 /**
  * One dialog over the status endpoints: renaming and reclassifying are separate
- * on the API, so only the halves that changed are sent. A description-only edit
- * goes through its own endpoint, the one a managed workflow accepts.
+ * on the API, so only the halves that changed, and are in scope, are sent. A
+ * description-only edit goes through its own endpoint, the one a managed
+ * workflow accepts.
  */
 const EditWorkflowStatusForm = ({
   workflowId,
@@ -64,7 +72,7 @@ const EditWorkflowStatusForm = ({
   statuses,
   aliases,
   categoryLabels,
-  descriptionOnly = false,
+  scope = 'all',
   onFormComplete,
   onFormCancel,
 }: EditWorkflowStatusFormProps) => {
@@ -78,7 +86,7 @@ const EditWorkflowStatusForm = ({
     useModalForm<EditWorkflowStatusFormValues>({
       onSubmit: async (values: EditWorkflowStatusFormValues, form) => {
         try {
-          if (descriptionOnly) {
+          if (scope === 'description') {
             if ((values.description ?? '') !== (status.description ?? '')) {
               const response = await describeWorkflowStatus({
                 workflowId,
@@ -100,8 +108,9 @@ const EditWorkflowStatusForm = ({
             values.name !== status.name ||
             (values.description ?? '') !== (status.description ?? '')
           const reclassified =
-            values.category !== statusCategoryFromId(status.category?.id) ||
-            alias !== status.alias
+            scope === 'all' &&
+            (values.category !== statusCategoryFromId(status.category?.id) ||
+              alias !== status.alias)
 
           if (renamed) {
             const response = await renameWorkflowStatus({
@@ -167,8 +176,9 @@ const EditWorkflowStatusForm = ({
     categoryLabels,
   )
   // Not flagged when the meaning cannot be changed here.
+  const canReclassify = scope === 'all'
   const isMisfiled =
-    !descriptionOnly && !aliasFitsCategory(aliases, alias, category)
+    canReclassify && !aliasFitsCategory(aliases, alias, category)
   const isUnknown =
     isMisfiled && !(aliases ?? []).some((a) => a.value === alias)
 
@@ -223,11 +233,12 @@ const EditWorkflowStatusForm = ({
         onValuesChange={handleValuesChange}
         name="edit-workflow-status-form"
       >
-        {descriptionOnly && (
+        {scope !== 'all' && (
           <Item>
-            <Text type="secondary" id="edit-workflow-status-description-only">
-              This workflow is kept by a sync. Only the description can be
-              changed here.
+            <Text type="secondary" id={scopeHintId}>
+              {scope === 'description'
+                ? 'This workflow is kept by a sync. Only the description can be changed here.'
+                : 'This workflow is published, so its categories and meanings are fixed. Clone it to change them.'}
             </Text>
           </Item>
         )}
@@ -236,7 +247,14 @@ const EditWorkflowStatusForm = ({
           name="name"
           rules={[{ required: true, message: 'Name is required' }, { max: 64 }]}
         >
-          <Input showCount maxLength={64} disabled={descriptionOnly} />
+          <Input
+            showCount
+            maxLength={64}
+            disabled={scope === 'description'}
+            aria-describedby={
+              scope === 'nameAndDescription' ? scopeHintId : undefined
+            }
+          />
         </Item>
         <Item
           label="Category"
@@ -247,7 +265,7 @@ const EditWorkflowStatusForm = ({
           <Select
             placeholder="Select a category"
             options={statusCategoryOptions(categoryLabels)}
-            disabled={descriptionOnly}
+            disabled={!canReclassify}
           />
         </Item>
         <Item
@@ -263,18 +281,14 @@ const EditWorkflowStatusForm = ({
               : undefined
           }
         >
-          <Select options={aliasOptions} disabled={descriptionOnly} />
+          <Select options={aliasOptions} disabled={!canReclassify} />
         </Item>
         <Item name="description" label="Description" rules={[{ max: 512 }]}>
           <TextArea
             autoSize={{ minRows: 3, maxRows: 6 }}
             showCount
             maxLength={512}
-            aria-describedby={
-              descriptionOnly
-                ? 'edit-workflow-status-description-only'
-                : undefined
-            }
+            aria-describedby={scope === 'description' ? scopeHintId : undefined}
           />
         </Item>
       </Form>

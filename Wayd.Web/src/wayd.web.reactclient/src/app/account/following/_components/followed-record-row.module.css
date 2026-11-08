@@ -1,0 +1,88 @@
+/* Shared by the button (Following page) and the link (home widget), so both
+   shed their own defaults and take the row's colour, font and alignment. */
+.row {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+  gap: var(--ant-margin-sm);
+  min-height: 60px;
+  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  border: 0;
+  border-bottom: 1px solid var(--ant-color-border-secondary);
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: var(--ant-color-text);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--ant-color-fill-quaternary);
+  color: var(--ant-color-text);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--ant-color-primary-border);
+  outline-offset: -2px;
+}
+
+.rowSelected,
+.rowSelected:hover {
+  background: var(--ant-color-primary-bg);
+  border-left-color: var(--ant-color-primary);
+}
+
+.rowBody {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The health flag and status stay on one line beside the name, however narrow the row. */
+.rowTrail {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--ant-margin-xs);
+  white-space: nowrap;
+}
+
+.rowTrail :global(.ant-tag) {
+  margin-inline-end: 0;
+}
+
+.rowMuted {
+  color: var(--ant-color-text-tertiary);
+}
+
+.rowName {
+  display: block;
+  overflow: hidden;
+  font-weight: var(--ant-font-weight-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowMeta {
+  display: block;
+  overflow: hidden;
+  color: var(--ant-color-text-secondary);
+  font-size: var(--ant-font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The kind of record leads the second line, a shade stronger so the eye can
+ * run down the list by type. */
+.rowType {
+  color: var(--ant-color-text);
+}
+
+@media (max-width: 767px) {
+  /* Touch targets of at least 44px. */
+  .row {
+    min-height: 64px;
+  }
+}

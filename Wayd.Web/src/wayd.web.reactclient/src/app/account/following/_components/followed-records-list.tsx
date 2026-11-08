@@ -2,14 +2,12 @@
 'use no memo'
 
 import {
-  MutedOutlined,
   SortAscendingOutlined,
   SortDescendingOutlined,
 } from '@ant-design/icons'
 import { Alert, Button, Input, Select, Space, Spin, Tooltip } from 'antd'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { LifecycleStatusTag } from '@/src/components/common'
 import {
   FollowedRecordDto,
   FollowSort,
@@ -17,9 +15,8 @@ import {
 } from '@/src/services/wayd-api'
 import { findScrollParent } from '@/src/utils/scroll-parent'
 import styles from '../following.module.css'
-import FollowedRecordHealth from './followed-record-health'
+import FollowedRecordRow from './followed-record-row'
 import { recordId } from '@/src/components/common/record/record-identity'
-import { formatTimeAgo } from '@/src/utils/time-ago'
 
 export interface FollowedRecordsListProps {
   records: FollowedRecordDto[]
@@ -51,56 +48,6 @@ const LoadAhead = 10
  * rows render on the first paint (and in tests, where nothing has a size).
  */
 const InitialRect = { width: 0, height: 800 }
-
-interface RowProps {
-  record: FollowedRecordDto
-  typeName: string
-  selected: boolean
-  onSelect: (record: FollowedRecordDto) => void
-}
-
-const FollowedRecordRow = ({
-  record,
-  typeName,
-  selected,
-  onSelect,
-}: RowProps) => (
-  <button
-    type="button"
-    aria-current={selected || undefined}
-    className={`${styles.row} ${selected ? styles.rowSelected : ''}`}
-    onClick={() => onSelect(record)}
-  >
-    <span className={styles.rowBody}>
-      <span className={styles.rowName}>{record.name}</span>
-      <span className={styles.rowMeta}>
-        <span className={styles.rowType}>{typeName}</span>
-        {' · '}
-        {record.key}
-        {record.parentName ? ` · ${record.parentName}` : ''}
-        {' · '}
-        {record.lastChangedOn
-          ? `changed ${formatTimeAgo(record.lastChangedOn)}`
-          : 'no changes yet'}
-      </span>
-    </span>
-    <span className={styles.rowTrail}>
-      {record.isMuted ? (
-        <Tooltip title="Muted: you are told nothing about this">
-          <MutedOutlined aria-label="Muted" className={styles.rowMuted} />
-        </Tooltip>
-      ) : null}
-      <FollowedRecordHealth record={record} variant="flag" />
-      <LifecycleStatusTag
-        status={{
-          id: 0,
-          name: record.statusName,
-          lifecycleCategory: record.lifecycle,
-        }}
-      />
-    </span>
-  </button>
-)
 
 /**
  * The followed records, one row each. Selecting a row is the only thing a row

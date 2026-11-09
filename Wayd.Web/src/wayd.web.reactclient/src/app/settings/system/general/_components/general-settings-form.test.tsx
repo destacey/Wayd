@@ -106,8 +106,14 @@ describe('GeneralSettingsForm', () => {
         'Correct the validation error(s) to continue.',
       ),
     )
+    // antd shows a field's errors a timer tick after they are set, which a
+    // loaded CI runner can push past findByText's default one second.
     expect(
-      await screen.findByText("'Mars/Base' is not a valid IANA time zone."),
+      await screen.findByText(
+        "'Mars/Base' is not a valid IANA time zone.",
+        {},
+        { timeout: 5000 },
+      ),
     ).toBeInTheDocument()
     expect(mockSuccess).not.toHaveBeenCalled()
   })

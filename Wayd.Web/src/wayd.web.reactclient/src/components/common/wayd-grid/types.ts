@@ -1,6 +1,5 @@
 import type { ColumnDef, Row, SortingState } from '../wayd-grid-core'
 import type { OnChangeFn, RowSelectionState } from '@tanstack/react-table'
-import type { FormInstance } from 'antd'
 import type { DraftItem } from '../wayd-grid-core/draft-utils'
 import type { MoveValidator } from '../wayd-grid-core/dnd/tree-projection'
 
@@ -28,53 +27,20 @@ export interface GroupHeaderContext<T extends RowData> {
 
 /**
  * Context passed to the `columns` and `leftSlot` function props.
- * Provides editing, DnD, and draft state so domain code can build columns
- * reactively (e.g. a Create button that needs `canCreateDraft`).
+ * Provides DnD and draft state so domain code can build columns reactively
+ * (e.g. a Create button that needs `canCreateDraft`).
  */
 export interface GridColumnContext {
-  selectedRowId: string | null
-  handleKeyDown: (
-    e: React.KeyboardEvent,
-    rowId: string,
-    columnId: string,
-  ) => Promise<void>
-  /** Creates an `onInputKeyDown` handler for antd Select that prevents Tab
-   *  from triggering rc-select's built-in "select on Tab" behavior while
-   *  still forwarding the event to handleKeyDown for navigation. */
-  createSelectInputKeyDown: (
-    rowId: string,
-    columnId: string,
-  ) => React.KeyboardEventHandler<HTMLInputElement | HTMLTextAreaElement>
-  getFieldError: (fieldName: string) => string | undefined
-  editableColumns: string[]
+  /** Whether rows can be dragged right now; drag handles grey out when not. */
   isDragEnabled: boolean
+  /** Whether a draft row can be added now: cell editing with
+   *  `createDraftNode` and `onCreate`, no draft already open, nothing loading. */
   canCreateDraft: boolean
+  /** Adds a draft row at the root and opens it for editing; the draft's id,
+   *  or null when none was added. */
   addDraftAtRoot: () => string | null
+  /** Adds a draft row under a parent, expanding it; the draft's id, or null. */
   addDraftAsChild: (parentId: string) => string | null
-}
-
-/**
- * Inline editing configuration for WaydGrid consumers.
- * The grid fills in `data`, `tableWrapperClassName`, `fieldErrors`,
- * `setFieldErrors`, and `onCancelDraft` internally.
- */
-export interface GridInlineEditingConfig<T extends RowData> {
-  canEdit: boolean
-  form: FormInstance
-  editableColumnIds: string[] | ((selectedRowId: string | null) => string[])
-  onSave: (rowId: string, updates: Record<string, any>) => Promise<boolean>
-  getFormValues: (rowId: string, data: T[]) => Record<string, any>
-  computeChanges: (
-    rowId: string,
-    formValues: Record<string, any>,
-    data: T[],
-  ) => Record<string, any> | null
-  validateFields?: (
-    rowId: string,
-    formValues: Record<string, any>,
-  ) => Record<string, string>
-  cellIdColumnMatchOrder: readonly string[]
-  draftPrefix?: string
 }
 
 /**
@@ -126,7 +92,7 @@ export interface WaydGridRightPane<T extends RowData> {
 /**
  * Props for the WaydGrid component — flat by default; provide `getSubRows`
  * to turn on tree mode (expansion, indentation via caller columns,
- * filterFromLeafRows, and — when configured — reparenting DnD, inline
+ * filterFromLeafRows, and — when configured — reparenting DnD, cell
  * editing, and draft rows).
  */
 export interface WaydGridProps<T extends RowData> {
@@ -250,7 +216,7 @@ export interface WaydGridProps<T extends RowData> {
    * marked `data-row-activate="ignore"`) are left alone — an actions dropdown
    * inside an activatable row still just opens the dropdown.
    *
-   * Flat mode only. Tree mode already spends the row click on inline editing.
+   * Flat mode only.
    */
   onRowActivate?: (row: T) => void
   /**
@@ -363,24 +329,11 @@ export interface WaydGridProps<T extends RowData> {
    */
   fieldToColumn?: Record<string, string>
 
-  // -- Inline editing (enabled when editingConfig is provided) --
-  /**
-   * Row-level inline editing. Cell editing (`onCommit` with `meta.editor`)
-   * is the alternative; when both are given, this one is used.
-   */
-  editingConfig?: GridInlineEditingConfig<T>
-  /** External field-level validation errors (e.g., from API 422 responses). */
-  fieldErrors?: Record<string, string>
-  /** Called when field errors change (cleared on successful validation, set on failure). */
-  onFieldErrorsChange?: (errors: Record<string, string>) => void
-
-  // -- Drafts (tree mode; enabled when createDraftNode is provided) --
+  // -- Drafts (tree mode; enabled by createDraftNode with onCreate and onCommit) --
   /** Factory to create a full row node from a draft item. */
   createDraftNode?: (draft: DraftItem) => T
   /** Called when a draft is cancelled (e.g., Escape key on a draft row). */
   onDraftCancelled?: (draftId: string) => void
-  /** Called when the internal draft list changes. */
-  onDraftsChange?: (drafts: DraftItem[]) => void
 
   // -- Row actions from the keyboard (tree mode) --
   /**
@@ -434,8 +387,6 @@ export interface RowReorderEvent<T extends RowData> {
 export interface WaydGridHandle {
   /** The underlying TanStack table instance. */
   table: any
-  /** The currently selected row ID (from the editing hook), or null. */
-  selectedRowId: string | null
   /** The displayed (post filter + sort) rows' data, in display order. */
   getDisplayedRows: () => unknown[]
   /**

@@ -1,12 +1,15 @@
 import type { TreeNode } from './dnd/tree-projection'
 
+/** Starts every draft row's id, so a draft is told from a saved row. */
+export const DRAFT_PREFIX = 'draft-'
+
 /**
- * Draft item for inline creation.
+ * A row being added in place, not yet created. It has no position among its
+ * siblings until it is: `onCreate` is given that.
  */
 export interface DraftItem {
   id: string
   parentId?: string
-  order: number
   /** The sibling the draft sits directly below; without one, it goes last. */
   afterId?: string
 }

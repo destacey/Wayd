@@ -8,6 +8,7 @@ import WaydGrid from './wayd-grid'
 import { MessageProvider } from '@/src/components/contexts/messaging/messaging-context'
 import type { WaydGridHandle, WaydGridColumnMeta } from './types'
 import type { DraftItem } from '../wayd-grid-core/draft-utils'
+import { useGridDragHandle } from '../wayd-grid-core/dnd/grid-dnd'
 import {
   dateEditor,
   pairedEditors,
@@ -2197,6 +2198,114 @@ describe('WaydGrid cell editing', () => {
       expect(onCreate).not.toHaveBeenCalled()
       expect(cellAt(draftRow, 'start')).toHaveAccessibleDescription(
         'Start: Required to create the item.',
+      )
+    })
+  })
+
+  describe('beside other grid features', () => {
+    /** Renders a row's sortable state as seen by its drag handle. */
+    const DragProbe = () => {
+      const { attributes } = useGridDragHandle()
+      return (
+        <span
+          data-testid="drag-probe"
+          aria-disabled={attributes['aria-disabled']}
+        />
+      )
+    }
+
+    const withDragProbe: ColumnDef<Item, unknown>[] = [
+      ...editableColumns,
+      { id: 'drag', header: 'Drag', cell: () => <DragProbe /> },
+    ]
+
+    it('turns dragging off while a cell editor is open, and back on after', () => {
+      // Arrange
+      const seen: boolean[] = []
+      renderEditable({
+        getSubRows: (row) => row.children,
+        enableDragAndDrop: true,
+        onNodeMove: jest.fn(() => Promise.resolve()),
+        columns: (context) => {
+          seen.push(context.isDragEnabled)
+          return editableColumns
+        },
+      })
+      const before = seen.at(-1)
+      focus(cellAt(0, 'name'))
+
+      // Act
+      press('Enter')
+      const whileOpen = seen.at(-1)
+      press('Escape')
+
+      // Assert
+      expect(before).toBe(true)
+      expect(whileOpen).toBe(false)
+      expect(seen.at(-1)).toBe(true)
+    })
+
+    it('never lets a draft row be dragged', () => {
+      // Arrange
+      render(
+        <WaydGrid<Item>
+          data={ITEMS}
+          columns={withDragProbe}
+          includeIdColumn={false}
+          getSubRows={(row) => row.children}
+          enableDragAndDrop
+          onNodeMove={jest.fn(() => Promise.resolve())}
+          createDraftNode={(draft) =>
+            item(draft.id, '', { start: null, end: null })
+          }
+          leftSlot={(ctx) => (
+            <Button onClick={() => ctx.addDraftAtRoot()}>New item</Button>
+          )}
+          onCommit={jest.fn(() => Promise.resolve())}
+          onCreate={jest.fn()}
+        />,
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'New item' }))
+      const draftRow = bodyCells('name').length - 1
+      fireEvent.pointerDown(cellAt(draftRow, 'note'))
+      focus(cellAt(draftRow, 'note'))
+      press('x')
+
+      // Act — the note is staged on the draft and its editor closes
+      press('Enter')
+
+      // Assert
+      expect(openEditor()).toBeNull()
+      const probes = screen.getAllByTestId('drag-probe')
+      expect(probes[draftRow]).toHaveAttribute('aria-disabled', 'true')
+      expect(probes[0]).toHaveAttribute('aria-disabled', 'false')
+    })
+
+    it('moves into a link with Enter on a column that has no editor', () => {
+      // Arrange
+      renderEditable({
+        columns: editableColumns.map((column): ColumnDef<Item, unknown> =>
+          column.id === 'code'
+            ? {
+                ...column,
+                cell: ({ row }) => (
+                  <a href={`#${row.original.id}`} tabIndex={-1}>
+                    {row.original.code}
+                  </a>
+                ),
+              }
+            : column,
+        ),
+      })
+      focus(cellAt(0, 'code'))
+
+      // Act
+      press('Enter')
+
+      // Assert
+      expect(openEditor()).toBeNull()
+      expect(document.activeElement).toBe(
+        within(cellAt(0, 'code')).getByRole('link', { name: 'C-1' }),
       )
     })
   })

@@ -5,7 +5,6 @@ export type {
   WaydGridProps,
   WaydGridHandle,
   GridColumnContext,
-  GridInlineEditingConfig,
   GroupHeaderContext,
   RowReorderEvent,
 } from './types'

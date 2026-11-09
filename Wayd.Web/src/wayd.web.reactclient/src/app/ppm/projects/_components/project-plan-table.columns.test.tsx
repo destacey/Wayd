@@ -5,13 +5,9 @@ import { getProjectPlanTableColumns } from './project-plan-table.columns'
 describe('project-plan-table key column', () => {
   const baseArgs: any = {
     canManageTasks: true,
-    selectedRowId: null,
     handleEditTask: jest.fn(),
     handleDeleteTask: jest.fn(),
     handleUpdateTask: jest.fn(),
-    getFieldError: jest.fn(),
-    handleKeyDown: jest.fn(),
-    createSelectInputKeyDown: jest.fn(),
     taskStatusOptions: [],
     taskStatusOptionsForMilestone: [],
     taskPriorityOptions: [],
@@ -77,13 +73,9 @@ describe('project-plan-table key column', () => {
 describe('project-plan-table overdue dates', () => {
   const baseArgs: any = {
     canManageTasks: false,
-    selectedRowId: null,
     handleEditTask: jest.fn(),
     handleDeleteTask: jest.fn(),
     handleUpdateTask: jest.fn(),
-    getFieldError: jest.fn(),
-    handleKeyDown: jest.fn(),
-    createSelectInputKeyDown: jest.fn(),
     taskStatusOptions: [],
     taskStatusOptionsForMilestone: [],
     taskPriorityOptions: [],
@@ -202,13 +194,9 @@ describe('project-plan-table overdue dates', () => {
 describe('project-plan-table schedule column', () => {
   const baseArgs: any = {
     canManageTasks: false,
-    selectedRowId: null,
     handleEditTask: jest.fn(),
     handleDeleteTask: jest.fn(),
     handleUpdateTask: jest.fn(),
-    getFieldError: jest.fn(),
-    handleKeyDown: jest.fn(),
-    createSelectInputKeyDown: jest.fn(),
     taskStatusOptions: [],
     taskStatusOptionsForMilestone: [],
     taskPriorityOptions: [],

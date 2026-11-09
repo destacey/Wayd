@@ -249,7 +249,7 @@ public sealed class RoadmapActivity : BaseRoadmapItem
     /// Sets the order of a child Roadmap Activity and resets the order of the other child Roadmap Activities to match.
     /// </summary>
     /// <param name="activity"></param>
-    /// <param name="order"></param>
+    /// <param name="order">The 1-based position among the child activities.</param>
     /// <returns></returns>
     internal Result SetChildActivityOrder(RoadmapActivity activity, int order)
     {
@@ -259,7 +259,12 @@ public sealed class RoadmapActivity : BaseRoadmapItem
         {
             return Result.Failure("Child activity not found.");
         }
-        else if (activity.Order == order)
+
+        // A child activity is numbered counting its timebox and milestone siblings, which leaves gaps; the order
+        // is a position among the activities, so close them before comparing.
+        ResetChildActivitiesOrder();
+
+        if (activity.Order == order)
         {
             return Result.Success();
         }

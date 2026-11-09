@@ -30,6 +30,27 @@ export function findNodeById<T extends TreeNode>(
 }
 
 /**
+ * The row that takes a removed row's place: its next sibling, else the one
+ * before it, else its parent. Null when `id` is not in the tree, or is the
+ * tree's only row.
+ */
+export function rowAfterRemoving<T extends TreeNode>(
+  nodes: T[],
+  id: string,
+  parentId: string | null = null,
+): string | null {
+  const index = nodes.findIndex((node) => node.id === id)
+  if (index >= 0) {
+    return nodes[index + 1]?.id ?? nodes[index - 1]?.id ?? parentId
+  }
+  for (const node of nodes) {
+    const found = rowAfterRemoving((node.children ?? []) as T[], id, node.id)
+    if (found) return found
+  }
+  return null
+}
+
+/**
  * Flattens a tree structure into an array with depth and parent metadata.
  * Used to work with dnd-kit's flat array model while preserving hierarchical relationships.
  */

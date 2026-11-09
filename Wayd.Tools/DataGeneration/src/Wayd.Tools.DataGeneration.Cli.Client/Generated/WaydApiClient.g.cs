@@ -119070,6 +119070,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
         public System.DateTimeOffset End { get; set; } = default!;
 
+        /// <summary>
+        /// The Activity's 1-based position among its parent's child Activities, or among the root Activities
+        /// <br/>(optional). Omit it to place the Activity last. Timeboxes and milestones are not counted: they always
+        /// <br/>follow the Activities. A position more than one past the last Activity is rejected.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("order")]
+        public int? Order { get; set; } = default!;
+
     }
 
     [JsonInheritanceConverter(typeof(CreateRoadmapItemRequest), "$type")]

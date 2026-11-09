@@ -50,11 +50,11 @@ public class UpdateRoadmapItemDatesCommandHandlerTests : IDisposable
         // Arrange - a parent activity with a child whose range starts inside the parent
         var roadmap = CreateActiveRoadmap();
 
-        var parentActivity = new UpsertActivity(new LocalDateRange(_today, _today.PlusDays(10)));
+        var parentActivity = new TestUpsertRoadmapActivity(new LocalDateRange(_today, _today.PlusDays(10)));
         var parentResult = roadmap.CreateActivity(parentActivity, new RoadmapActor(_currentEmployeeId, false), Actor, Now);
         parentResult.IsSuccess.Should().BeTrue();
 
-        var childActivity = new UpsertActivity(new LocalDateRange(_today, _today.PlusDays(10)), parentResult.Value.Id);
+        var childActivity = new TestUpsertRoadmapActivity(new LocalDateRange(_today, _today.PlusDays(10)), parentResult.Value.Id);
         var childResult = roadmap.CreateActivity(childActivity, new RoadmapActor(_currentEmployeeId, false), Actor, Now);
         childResult.IsSuccess.Should().BeTrue();
 
@@ -82,11 +82,11 @@ public class UpdateRoadmapItemDatesCommandHandlerTests : IDisposable
         // Arrange - a parent activity with a child; the child grows the parent to [0, 30]
         var roadmap = CreateActiveRoadmap();
 
-        var parentActivity = new UpsertActivity(new LocalDateRange(_today, _today.PlusDays(10)));
+        var parentActivity = new TestUpsertRoadmapActivity(new LocalDateRange(_today, _today.PlusDays(10)));
         var parentResult = roadmap.CreateActivity(parentActivity, new RoadmapActor(_currentEmployeeId, false), Actor, Now);
         parentResult.IsSuccess.Should().BeTrue();
 
-        var childActivity = new UpsertActivity(
+        var childActivity = new TestUpsertRoadmapActivity(
             new LocalDateRange(_today, _today.PlusDays(30)),
             parentResult.Value.Id);
         var childResult = roadmap.CreateActivity(childActivity, new RoadmapActor(_currentEmployeeId, false), Actor, Now);
@@ -129,13 +129,6 @@ public class UpdateRoadmapItemDatesCommandHandlerTests : IDisposable
     {
         _dbContext.Dispose();
         GC.SuppressFinalize(this);
-    }
-
-    private sealed record UpsertActivity(LocalDateRange DateRange, Guid? ParentId = null) : IUpsertRoadmapActivity
-    {
-        public string Name { get; init; } = "Activity";
-        public string? Description { get; init; }
-        public string? Color { get; init; }
     }
 
     private sealed record UpsertActivityDateRange(LocalDateRange DateRange) : IUpsertRoadmapActivityDateRange;

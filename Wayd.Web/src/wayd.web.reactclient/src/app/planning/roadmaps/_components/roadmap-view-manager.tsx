@@ -18,7 +18,7 @@ interface RoadmapViewManagerProps {
   roadmap: RoadmapDetailsDto
   roadmapItems: RoadmapItemListDto[]
   isRoadmapItemsLoading: boolean
-  refreshRoadmapItems: () => void
+  refreshRoadmapItems: () => Promise<unknown>
   canUpdateRoadmap: boolean
   openRoadmapItemDrawer: (itemId: string) => void
 }

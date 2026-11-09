@@ -5,7 +5,11 @@ using OneOf;
 
 namespace Wayd.Planning.Application.Roadmaps.Commands;
 
-public sealed record CreateRoadmapItemCommand(Guid RoadmapId, OneOf<IUpsertRoadmapActivity, IUpsertRoadmapMilestone, IUpsertRoadmapTimebox> Item) : ICommand<Guid>, IRequireLinkedEmployee;
+/// <summary>
+/// Creates a Roadmap Item. <paramref name="Order"/> is an Activity's 1-based place among its sibling Activities;
+/// null places it last. Timeboxes and milestones have no order and ignore it.
+/// </summary>
+public sealed record CreateRoadmapItemCommand(Guid RoadmapId, OneOf<IUpsertRoadmapActivity, IUpsertRoadmapMilestone, IUpsertRoadmapTimebox> Item, int? Order = null) : ICommand<Guid>, IRequireLinkedEmployee;
 
 public sealed class CreateRoadmapItemCommandValidator : AbstractValidator<CreateRoadmapItemCommand>
 {
@@ -24,6 +28,10 @@ public sealed class CreateRoadmapItemCommandValidator : AbstractValidator<Create
 
         RuleFor(x => x.RoadmapId)
             .NotEmpty();
+
+        RuleFor(x => x.Order)
+            .GreaterThan(0)
+            .When(x => x.Order.HasValue);
 
         RuleFor(x => x.Item)
             .NotNull()
@@ -76,7 +84,7 @@ public sealed class CreateRoadmapItemCommandHandler(IPlanningDbContext planningD
                 return Result.Failure<Guid>($"Roadmap with id {request.RoadmapId} not found");
 
             Result<BaseRoadmapItem> result = request.Item.Match(
-               activity => roadmap.CreateActivity(activity, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x),
+               activity => roadmap.CreateActivity(activity, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now, request.Order).Map(x => (BaseRoadmapItem)x),
                milestone => roadmap.CreateMilestone(milestone, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x),
                timebox => roadmap.CreateTimebox(timebox, caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now).Map(x => (BaseRoadmapItem)x)
             );

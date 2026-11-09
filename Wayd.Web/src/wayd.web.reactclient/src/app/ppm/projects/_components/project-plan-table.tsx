@@ -5,7 +5,7 @@ import { useRef, useState } from 'react'
 import { Descriptions, Typography } from 'antd'
 import dayjs from 'dayjs'
 import { toCalendarDate } from '@/src/utils/calendar-date'
-import { toApiError } from '@/src/utils/problem-details'
+import { errorDetail } from '@/src/utils/problem-details'
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
@@ -16,6 +16,7 @@ import {
   type WaydGridHandle,
   defaultMoveValidator,
   findNodeById,
+  rowAfterRemoving,
   WaydGrid,
 } from '@/src/components/common/wayd-grid'
 import CreateProjectTaskForm from './create-project-task-form'
@@ -137,24 +138,6 @@ const projectTaskMoveValidator: MoveValidator<ProjectPlanNodeDto> = (
 
 const flattenPlan = (nodes: ProjectPlanNodeDto[]): ProjectPlanNodeDto[] =>
   nodes.flatMap((node) => [node, ...flattenPlan(node.children ?? [])])
-
-/** The row that takes a removed row's place: its next sibling, else the one
- *  before it, else its parent. */
-const rowAfterRemoving = (
-  nodes: ProjectPlanNodeDto[],
-  id: string,
-  parentId: string | null = null,
-): string | null => {
-  const index = nodes.findIndex((node) => node.id === id)
-  if (index >= 0) {
-    return nodes[index + 1]?.id ?? nodes[index - 1]?.id ?? parentId
-  }
-  for (const node of nodes) {
-    const found = rowAfterRemoving(node.children ?? [], id, node.id)
-    if (found) return found
-  }
-  return null
-}
 
 const ProjectPlanTable = ({
   projectId,
@@ -285,9 +268,7 @@ const ProjectPlanTable = ({
       }).unwrap()
     } catch (error) {
       throw new Error(
-        toApiError(error).detail ||
-          toApiError((error as { data?: unknown })?.data).detail ||
-          'Failed to move task. Please try again.',
+        errorDetail(error) || 'Failed to move task. Please try again.',
       )
     }
     await refetch()

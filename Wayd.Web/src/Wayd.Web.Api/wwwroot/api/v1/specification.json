@@ -59064,6 +59064,12 @@
                 "type": "string",
                 "description": "The Activity end date.",
                 "format": "date"
+              },
+              "order": {
+                "type": "integer",
+                "description": "The Activity's 1-based position among its parent's child Activities, or among the root Activities\n(optional). Omit it to place the Activity last. Timeboxes and milestones are not counted: they always\nfollow the Activities. A position more than one past the last Activity is rejected.",
+                "format": "int32",
+                "nullable": true
               }
             },
             "additionalProperties": false

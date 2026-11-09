@@ -1,13 +1,13 @@
 ---
 title: WaydGrid
-description: How to use the WaydGrid house component — data grids with filtering, sorting, pinning, reordering, column persistence, tree mode, and inline editing.
+description: How to use the WaydGrid house component — data grids with filtering, sorting, pinning, reordering, column persistence, tree mode, and cell editing.
 sidebar_position: 7
 audience: [developer, agent]
 ---
 
 # WaydGrid
 
-`WaydGrid` is Wayd's house data-grid component, built on [TanStack Table](https://tanstack.com/table). It's the single grid used across the app — flat lists, grouped headers, and hierarchical (tree) data — with a consistent toolbar, Excel-style column filters, sorting, column sizing/visibility/pinning/reordering, always-on row virtualization, CSV export, and (opt-in) inline editing and drag-and-drop.
+`WaydGrid` is Wayd's house data-grid component, built on [TanStack Table](https://tanstack.com/table). It's the single grid used across the app — flat lists, grouped headers, and hierarchical (tree) data — with a consistent toolbar, Excel-style column filters, sorting, column sizing/visibility/pinning/reordering, always-on row virtualization, CSV export, and (opt-in) cell editing and drag-and-drop.
 
 Import it from the barrel:
 
@@ -98,7 +98,6 @@ Where a variant sets a flag, that is the starting point — the defaults below d
 | Row-reorder drag-and-drop (flat) | Off | Provide `onRowReorder` + `getRowId`, and render a `DragHandleCell` |
 | Reparenting drag-and-drop (tree) | Off | Provide `enableDragAndDrop` + `onNodeMove` |
 | Cell editing | Off | Provide `onCommit` and give columns a `meta.editor` (see [Editing cells](#editing-cells)) |
-| Row-level inline editing (being replaced) | Off | Provide `editingConfig` |
 
 ## Core props
 
@@ -118,17 +117,17 @@ Where a variant sets a flag, that is the starting point — the defaults below d
 />
 ```
 
-- **`columns`** can be a function `(context) => ColumnDef[]` when the defs need editing/DnD/draft state (see [Tree mode & editing](#tree-mode--editing)).
+- **`columns`** can be a function `(context) => ColumnDef[]` when the defs need DnD/draft state (see [Tree mode & editing](#tree-mode--editing)).
 - **`height`** omitted → an `advanced` grid auto-sizes to fill the remaining viewport height (ag-grid style); a `simple` grid sizes to its rows. Pass a number for a fixed height.
 - **`leftSlot` / `rightSlot`** inject custom toolbar content; `actionsSlot` sits just before the export button, for a grid-specific toggle; `helpContent` fills a help popover. `leftSlot` may also be a function of the `GridColumnContext`, for a Create button that adds a draft row.
 - **`getRowId`** supplies a stable row id (required for `onRowReorder`); it falls back to `row.original.id`, then a TanStack index id.
 - **`onDisplayedRowsChange`** fires with the post-filter/sort rows whenever that set changes — for deriving external UI (e.g. a chart) from the grid.
-- **`ref`** exposes a `WaydGridHandle`: the TanStack `table`, the editing `selectedRowId`, and `getDisplayedRows()`.
+- **`ref`** exposes a `WaydGridHandle`: the TanStack `table`, `getDisplayedRows()`, and, for a grid that edits, `commitCells` and `focusRow` (see [Editing cells](#editing-cells)).
 - **`includeIdColumn`** (default `true`) appends a hidden `Id` column when the rows carry an `id` and no column claims it, so a user can show it through Choose Columns and export the ids an import file needs. Pass `false` when `id` is a client-side row key rather than a Wayd record id. Its column id is exported as `ID_COLUMN_ID`.
 
 ### Opening a row
 
-`onRowActivate` makes whole rows openable — click, or Enter/Space on any of the row's cells (see [Keyboard and screen readers](#keyboard-and-screen-readers)) — so a list is keyboard-navigable without a link in every primary cell. Clicks on links, buttons, inputs, and anything marked `data-row-activate="ignore"` are left alone, so an actions dropdown inside the row still just opens. Pass `activatedRowId` (matched against `getRowId`) to highlight the open row, and `getRowActivateLabel` to give each row a short accessible name. Flat mode only: tree mode spends the row click on inline editing. A list–detail layout is the reference consumer (see [Record Pages](./record-pages.mdx#does-it-get-a-record-page-at-all)).
+`onRowActivate` makes whole rows openable — click, or Enter/Space on any of the row's cells (see [Keyboard and screen readers](#keyboard-and-screen-readers)) — so a list is keyboard-navigable without a link in every primary cell. Clicks on links, buttons, inputs, and anything marked `data-row-activate="ignore"` are left alone, so an actions dropdown inside the row still just opens. Pass `activatedRowId` (matched against `getRowId`) to highlight the open row, and `getRowActivateLabel` to give each row a short accessible name. Flat mode only. A list–detail layout is the reference consumer (see [Record Pages](./record-pages.mdx#does-it-get-a-record-page-at-all)).
 
 ### Keyboard and screen readers
 
@@ -148,7 +147,7 @@ Every WaydGrid is keyboard-navigable with nothing to configure. The body follows
 - **Columns follow the screen**: the cursor walks the visible leaf columns left-pinned, centre, right-pinned, so reordering and pinning are respected.
 - **The tree column** is the one with `meta.treeColumn: true` — the column holding the caret. Without one, the first visible column is.
 - **Controls in cells take `tabIndex={-1}`**; Enter or F2 reaches them. `createActionsColumn` does this and marks its button `data-row-actions`; a hand-built row menu should do the same. One that is missed (a `next/link` cell, a drag handle) does not break the single Tab stop: tabbing in onto it lands on the active cell, and Tab from it leaves the body.
-- **Keys inside a control are its own.** The body handles a key only when a cell itself has focus (Escape and Tab aside), never in the row being edited inline, and never from a portal — React bubbles a menu's or modal's events through the component tree, so the handlers check the event came from the body's own DOM.
+- **Keys inside a control are its own.** The body handles a key only when a cell itself has focus (Escape and Tab aside), and never from a portal — React bubbles a menu's or modal's events through the component tree, so the handlers check the event came from the body's own DOM.
 - **Virtualization**: while focus is in the body, the focused row stays rendered when scrolled away, so it keeps DOM focus. When focus is elsewhere and the active row scrolls out, the first rendered row takes the Tab stop.
 - **Tab out** works by focusing a sentinel just past (or before) the body during keydown; the browser's own Tab step then runs from there.
 - **When the active row goes away** (a cancelled draft, a deleted or filtered-out row) the Tab stop stays at the same position, on whichever row is there now.
@@ -338,17 +337,17 @@ These act on this browser only (layouts live in `localStorage`, not on the serve
 
 ## Tree mode & editing
 
-Providing `getSubRows` turns on **tree mode**: rows expand/collapse, and a filter match keeps the ancestor chain visible. Every node starts expanded; pass `initialExpanded={false}` for a list whose parents are rollups of their children. Layered on top of tree mode are optional reparenting drag-and-drop, inline editing, and draft rows.
+Providing `getSubRows` turns on **tree mode**: rows expand/collapse, and a filter match keeps the ancestor chain visible. Every node starts expanded; pass `initialExpanded={false}` for a list whose parents are rollups of their children. Layered on top of tree mode are optional reparenting drag-and-drop, cell editing, and draft rows.
 
 ```tsx
 <WaydGrid<WorkItemTreeNode>
   data={rootNodes}
   getSubRows={(node) => node.children}
-  columns={(ctx) => buildColumns(ctx)}   // function form: reads editing/DnD state
+  columns={(ctx) => buildColumns(ctx)}   // function form: reads DnD/draft state
   enableDragAndDrop
   onNodeMove={async (nodeId, parentId, order) => reparent(nodeId, parentId, order)}
   moveValidator={myMoveValidator}
-  editingConfig={editingConfig}
+  onCommit={commitCell}
 />
 ```
 
@@ -356,7 +355,7 @@ Providing `getSubRows` turns on **tree mode**: rows expand/collapse, and a filte
   - The grid supplies the mechanics but not the grip: render the shared **`DragHandleCell`** to give a row one, passing `context.isDragEnabled` (so it greys out when dragging is off) and a `disabledTooltip` naming the records in your own words. It goes in the actions column's `leading` slot. This needs the `columns` **function** form, since that is what receives the `GridColumnContext`.
   - `onRowReorder` hands you `orderedData` — every displayed row in post-drop order — so send the whole list to a reorder endpoint rather than one row and a position. Positions are relative, so a partial update leaves the rows it omits overlapping the ones it moved.
 - **Reparenting DnD** (tree): `enableDragAndDrop` + `onNodeMove`; supply a `moveValidator` for domain rules and `onMoveRejected` to surface a reason.
-- **Editing**: see [Editing cells](#editing-cells). The older row-level path, `editingConfig` (`GridInlineEditingConfig`), has no consumers; prefer cell editing. It wins when a grid passes both. The `columns` function receives a `GridColumnContext` with the editing/DnD/draft state so cells can render drag handles and Create buttons reactively.
+- **Editing**: see [Editing cells](#editing-cells). The `columns` function receives a `GridColumnContext` with the DnD and draft state so cells can render drag handles and Create buttons reactively.
 
 These features are involved — read the JSDoc on `WaydGridProps` in [`types.ts`](https://github.com/destacey/Wayd/blob/main/Wayd.Web/src/wayd.web.reactclient/src/components/common/wayd-grid/types.ts) and follow an existing consumer when wiring them — `app/planning/roadmaps/_components/roadmap-items-grid.tsx` uses cell editing (its editors are in `roadmap-items-grid.editors.tsx`), reparenting drag-and-drop and drafts; `app/ppm/projects/_components/project-plan-table.tsx` adds bar drags through `commitCells` and the row-action keys (its editors are in `project-plan-table.editors.tsx`); `project-work-items-tree-grid.tsx` beside it is a read-only tree.
 

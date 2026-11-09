@@ -23,15 +23,6 @@ export interface GridCellNavigationOptions<T extends RowData> {
   isGrouped: boolean
   /** The column whose cells expand and collapse tree rows with → and ←. */
   treeColumnId: string | null
-  /**
-   * The data id of the row in inline edit mode, if any. That row's keys
-   * belong to its editors, so navigation leaves them alone.
-   */
-  editingRowId: string | null
-  /** The data id a row is edited by (tree mode), compared with `editingRowId`. */
-  getEditingId?: (row: Row<T>) => string
-  /** Whether Enter on this cell should start inline editing. */
-  isCellEditable?: (row: Row<T>, columnId: string) => boolean
   /** Flat-mode row activation; Enter and Space on a cell call it. */
   onRowActivate?: (row: T) => void
   /** The scrolling body viewport — sizes PageUp/PageDown. */
@@ -66,8 +57,8 @@ const findCell = (
 /**
  * The grid's keyboard model for body cells — a roving tab stop that arrow
  * keys, Home/End, PageUp/PageDown and the tree keys move, with Enter, F2 and
- * Space reaching into a cell (activate the row, start inline editing, or focus
- * the cell's own control).
+ * Space reaching into a cell (activate the row, or focus the cell's own
+ * control). Cell editing claims Enter and F2 on an editable cell first.
  *
  * The body is a single Tab stop: Tab from a cell, or from a control inside
  * one, leaves the grid. That is done by moving focus to a sentinel just before
@@ -86,9 +77,6 @@ export function useGridCellNavigation<T extends RowData>({
   columnIds,
   isGrouped,
   treeColumnId,
-  editingRowId,
-  getEditingId,
-  isCellEditable,
   onRowActivate,
   bodyViewportRef,
   rowHeight,
@@ -98,9 +86,9 @@ export function useGridCellNavigation<T extends RowData>({
   const pendingFocusRef = useRef<ActiveCell | null>(null)
   const sentinelBeforeRef = useRef<HTMLSpanElement>(null)
   const sentinelAfterRef = useRef<HTMLSpanElement>(null)
-  // Whether the user last used the keyboard or a pointer. Focus is put back
-  // on a cell after inline editing ends only for keyboard users: a pointer
-  // user has just clicked somewhere else, and that is where focus belongs.
+  // Whether the user last used the keyboard or a pointer. Only a keyboard
+  // user tabbing onto a control inside a cell is sent to the Tab stop; a
+  // pointer user clicked that control, and that is where focus belongs.
   const lastInputRef = useRef<'keyboard' | 'pointer'>('pointer')
   // Set by the Menu key's keydown; the browser's own context menu follows on
   // keyup, and the grid's contextmenu handler suppresses it.
@@ -123,9 +111,6 @@ export function useGridCellNavigation<T extends RowData>({
   )
   const activeRowId = activeRowIndex >= 0 ? rows[activeRowIndex].id : null
   const activeColumnId = columnIds[activeColIndex] ?? null
-
-  const isEditingRow = (row: Row<T> | undefined) =>
-    !!row && !!editingRowId && getEditingId?.(row) === editingRowId
 
   const rowOf = (el: HTMLElement) => {
     const rowId = el.closest('tr')?.getAttribute('data-grid-row')
@@ -179,20 +164,6 @@ export function useGridCellNavigation<T extends RowData>({
     }
   }, [])
 
-  // When inline editing ends, its editors unmount and focus falls to <body>.
-  // Put it back on the cell the user was editing.
-  const previousEditingRowIdRef = useRef(editingRowId)
-  useEffect(() => {
-    const previous = previousEditingRowIdRef.current
-    previousEditingRowIdRef.current = editingRowId
-    if (!previous || editingRowId || lastInputRef.current !== 'keyboard') return
-    const active = document.activeElement
-    if (active && active !== document.body) return
-    if (activeRowId && activeColumnId) {
-      findCell(bodyViewportRef.current, activeRowId, activeColumnId)?.focus()
-    }
-  }, [editingRowId, activeRowId, activeColumnId, bodyViewportRef])
-
   /** Remember the cell focus landed in, however it got there (click, Tab,
    *  an editor taking focus). */
   const onFocus = (e: React.FocusEvent<HTMLElement>) => {
@@ -212,7 +183,6 @@ export function useGridCellNavigation<T extends RowData>({
       target !== cell &&
       enteredFromOutside &&
       lastInputRef.current === 'keyboard' &&
-      !isEditingRow(row) &&
       // An editor the grid just opened (a new draft's Name) takes focus
       // from outside too, and must keep it.
       !target.closest('[data-grid-cell-editor]')
@@ -278,8 +248,6 @@ export function useGridCellNavigation<T extends RowData>({
     if (rowIndex < 0) return
     const row = rows[rowIndex]
 
-    if (isEditingRow(row)) return
-
     const isCell = target.hasAttribute('data-grid-cell')
     // An open cell editor owns its keys. Its Escape can reach here after a
     // date panel closed on it, and must not take focus from the editor.
@@ -322,13 +290,13 @@ export function useGridCellNavigation<T extends RowData>({
           onRowActivate(row.original)
           return
         }
-        if (e.key === 'Enter') enterCell(row, target, columnId)
+        if (e.key === 'Enter') enterCell(target)
         return
       }
 
       case 'F2': {
         e.preventDefault()
-        if (!isGroupRow) enterCell(row, target, columnId)
+        if (!isGroupRow) enterCell(target)
         return
       }
 
@@ -389,25 +357,15 @@ export function useGridCellNavigation<T extends RowData>({
     focusRow(next.rowIndex, columnIds[next.colIndex])
   }
 
-  /** Enter or F2 on a cell: start inline editing where the column is
-   *  editable, otherwise move focus to the cell's own control — a link first,
-   *  and never an expand toggle, which the arrow keys already drive. */
-  const enterCell = (
-    row: Row<T>,
-    cell: HTMLElement,
-    columnId: string | null,
-  ) => {
+  /** Enter or F2 on a cell the editor did not claim: move focus to the cell's
+   *  own control — a link first, and never an expand toggle, which the arrow
+   *  keys already drive. */
+  const enterCell = (cell: HTMLElement) => {
     const content =
       cell.querySelector<HTMLElement>('a[href]') ??
       Array.from(
         cell.querySelectorAll<HTMLElement>(CELL_CONTENT_FOCUSABLE_SELECTOR),
       ).find((el) => !el.hasAttribute('aria-expanded'))
-    const editable = !!columnId && !!isCellEditable?.(row, columnId)
-    if (editable || (!content && isCellEditable)) {
-      // The row's click handler is what starts inline editing at a column.
-      cell.click()
-      return
-    }
     content?.focus()
   }
 

@@ -104,7 +104,8 @@ const createDraftProjectTask = (
   },
   assignees: [],
   progress: DRAFT_TASK_DEFAULTS.progress,
-  order: draft.order,
+  // No position among its siblings until it is created; onCreate gets that.
+  order: 0,
   children: [],
   deliverableIds: [],
 })
@@ -354,7 +355,7 @@ const ProjectPlanTable = ({
     justCreatedRef.current.set(
       created.id,
       createDraftProjectTask(
-        { id: created.id, order: 0 },
+        { id: created.id },
         {
           typeId: request.typeId,
           typeName: request.typeId === milestoneTypeId ? 'Milestone' : 'Task',

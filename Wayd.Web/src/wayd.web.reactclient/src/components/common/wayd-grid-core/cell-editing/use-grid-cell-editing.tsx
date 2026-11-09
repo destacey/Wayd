@@ -12,7 +12,7 @@ import {
 } from 'react'
 import type { RowData } from '@tanstack/react-table'
 import type { Column, Row, Table } from '../index'
-import type { DraftItem } from '../draft-utils'
+import { DRAFT_PREFIX, type DraftItem } from '../draft-utils'
 import {
   applyEntries,
   cellKey,
@@ -93,8 +93,6 @@ export interface GridCellEditingOptions<T extends RowData> {
   isTree: boolean
   /** The data id of a row: `getRowId`, else `row.id`. */
   rowKeyOf: (row: T) => string | undefined
-  /** The id prefix that marks a draft row. */
-  draftPrefix: string
   /** The grid can add draft rows (`createDraftNode` and `onCreate`). */
   canCreateDrafts: boolean
   /** Draft rows in the grid now; a new one waits for this to be zero. */
@@ -157,7 +155,6 @@ export function useGridCellEditing<T extends RowData>({
   serverData,
   isTree,
   rowKeyOf,
-  draftPrefix,
   canCreateDrafts,
   draftCount,
   insertDraft,
@@ -170,7 +167,7 @@ export function useGridCellEditing<T extends RowData>({
   notify,
   bodyViewportRef,
 }: GridCellEditingOptions<T>) {
-  const isDraftKey = (key: string) => key.startsWith(draftPrefix)
+  const isDraftKey = (key: string) => key.startsWith(DRAFT_PREFIX)
   const canCreateDraft = enabled && canCreateDrafts && draftCount === 0
   const [entries, setEntries] = useState<CellEntries>({})
   const [session, setSession] = useState<EditSession | null>(null)
@@ -1236,9 +1233,8 @@ export function useGridCellEditing<T extends RowData>({
     if (!canCreateDraft) return null
     draftCounterRef.current += 1
     const draft: DraftItem = {
-      id: `${draftPrefix}${Date.now()}-${draftCounterRef.current}`,
+      id: `${DRAFT_PREFIX}${Date.now()}-${draftCounterRef.current}`,
       parentId,
-      order: 0,
       ...(afterId ? { afterId } : {}),
     }
     insertDraft(draft)

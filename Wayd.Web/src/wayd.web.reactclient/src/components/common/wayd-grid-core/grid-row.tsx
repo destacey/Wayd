@@ -31,11 +31,7 @@ export interface GridRowClasses {
   pinned?: PinnedCellClasses
   /** Applied to a row that can be activated (pointer affordance). */
   trActivatable?: string
-  /**
-   * Applied to the currently activated row. Distinct from `trSelected`, which
-   * marks the row being inline-edited and deliberately reads as *unstyled* —
-   * this one is a highlight.
-   */
+  /** Applied to the currently activated row: a highlight. */
   trActivated?: string
   /** Marks for cells with an edit the server does not have yet. */
   edit?: GridCellEditClasses
@@ -416,9 +412,6 @@ export function SortableFlatGridRow<T extends RowData>({
 
 /** Additional row classes tree mode needs on top of the flat set. */
 export interface TreeGridRowClasses extends GridRowClasses {
-  trEditable: string
-  trSelected: string
-  editableCell: string
   /** Wraps the tree column's open editor, indenting it by the row's depth
    *  (`--wayd-grid-tree-depth`). */
   treeEditorIndent?: string
@@ -434,8 +427,6 @@ export interface TreeGridRowProps<T extends RowData>
   numericColumnIds?: ReadonlySet<string>
   /** The row's data id (not TanStack's row.id). */
   nodeId: string
-  /** Whether this row is selected for inline editing. */
-  isSelected: boolean
   /**
    * Whether the row is expanded. Passed in rather than read off `row`: the
    * compiled component can reuse its output while `row` is the same object,
@@ -446,21 +437,13 @@ export interface TreeGridRowProps<T extends RowData>
   isDragging: boolean
   /** Whether DnD is enabled for this row. */
   isDragEnabled: boolean
-  /** Whether the grid is editable at all (cursor affordance). */
-  canEdit: boolean
-  /** Column ids editable for the selected row. */
-  editableColumns: string[]
-  onRowClick: (e: React.MouseEvent, rowId: string) => void
-  onCellClick: (e: React.MouseEvent) => void
 }
 
 /**
  * The TREE form of the row-renderer seam: wraps the row in the dnd-kit
- * sortable context ({@link GridSortableRow}) and adds the editing affordances
- * (`data-cell-id` per cell, editable-cell styling on the selected row).
- * Indentation and the expand caret are rendered by the caller's columns
- * (via `row.depth` / `row.getCanExpand()`), not here.
- *
+ * sortable context ({@link GridSortableRow}) and states its level and
+ * expansion for assistive tech. Indentation and the expand caret are rendered
+ * by the caller's columns (via `row.depth` / `row.getCanExpand()`), not here.
  */
 export function TreeGridRow<T extends RowData>({
   row,
@@ -468,14 +451,9 @@ export function TreeGridRow<T extends RowData>({
   classes,
   numericColumnIds,
   nodeId,
-  isSelected,
   isExpanded,
   isDragging,
   isDragEnabled,
-  canEdit,
-  editableColumns,
-  onRowClick,
-  onCellClick,
   ariaRowIndex,
   focusColumnId,
   ...edit
@@ -485,30 +463,21 @@ export function TreeGridRow<T extends RowData>({
       nodeId={nodeId}
       isDragEnabled={isDragEnabled}
       isDragging={isDragging}
-      className={`${classes.tr}${canEdit ? ` ${classes.trEditable}` : ''}${
-        index % 2 === 1 ? ` ${classes.trAlt}` : ''
-      }${isSelected ? ` ${classes.trSelected}` : ''}`}
+      className={`${classes.tr}${index % 2 === 1 ? ` ${classes.trAlt}` : ''}`}
       {...gridRowProps(row, ariaRowIndex)}
       aria-level={row.depth + 1}
       aria-expanded={row.getCanExpand() ? isExpanded : undefined}
-      onClick={(e) => onRowClick(e, nodeId)}
     >
       {row.getVisibleCells().map((cell, colIndex) => {
-        const isEditableCell =
-          isSelected && editableColumns.includes(cell.column.id)
         const pinned = pinnedTdProps(cell, classes)
         const editState = cellEditProps(cell.column.id, edit, classes)
 
         return (
           <td
             key={cell.id}
-            data-cell-id={`${nodeId}-${cell.column.id}`}
             data-column-id={cell.column.id}
-            className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${
-              isEditableCell ? ` ${classes.editableCell}` : ''
-            }${pinned.className}${editState.className}`}
+            className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}${editState.className}`}
             style={pinned.style}
-            onClick={onCellClick}
             {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
             {...editState.attrs}
           >

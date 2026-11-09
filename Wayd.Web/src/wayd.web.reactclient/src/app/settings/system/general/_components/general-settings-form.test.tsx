@@ -96,24 +96,31 @@ describe('GeneralSettingsForm', () => {
 
     // Act
     chooseLondon()
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    })
+    // antd draws a field's errors from a timer after they are set. That timer
+    // must fire inside act: outside it React hands the update to its
+    // scheduler, which the jest setup's MessageChannel stub never runs, so the
+    // error never draws however long the test waits. Fake timers fire it only
+    // when advanced here; the second act runs the timer the first one's render
+    // scheduled.
+    jest.useFakeTimers()
+    try {
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+        await jest.advanceTimersByTimeAsync(100)
+      })
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(100)
+      })
+    } finally {
+      jest.useRealTimers()
+    }
 
     // Assert
-    await waitFor(() =>
-      expect(mockError).toHaveBeenCalledWith(
-        'Correct the validation error(s) to continue.',
-      ),
+    expect(mockError).toHaveBeenCalledWith(
+      'Correct the validation error(s) to continue.',
     )
-    // antd shows a field's errors a timer tick after they are set, which a
-    // loaded CI runner can push past findByText's default one second.
     expect(
-      await screen.findByText(
-        "'Mars/Base' is not a valid IANA time zone.",
-        {},
-        { timeout: 5000 },
-      ),
+      screen.getByText("'Mars/Base' is not a valid IANA time zone."),
     ).toBeInTheDocument()
     expect(mockSuccess).not.toHaveBeenCalled()
   })

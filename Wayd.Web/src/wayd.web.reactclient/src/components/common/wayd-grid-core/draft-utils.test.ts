@@ -33,7 +33,7 @@ describe('draft-utils', () => {
     it('appends root-level draft', () => {
       const tree = [createNode('1', 'A'), createNode('2', 'B')]
       const drafts: DraftItem[] = [
-        { id: 'draft-1', parentId: undefined, order: 0 },
+        { id: 'draft-1', parentId: undefined },
       ]
 
       const result = mergeDraftsIntoTree(tree, drafts, createDraftNode)
@@ -50,7 +50,7 @@ describe('draft-utils', () => {
         createNode('2', 'B'),
       ]
       const drafts: DraftItem[] = [
-        { id: 'draft-1', parentId: '1', order: 0 },
+        { id: 'draft-1', parentId: '1' },
       ]
 
       const result = mergeDraftsIntoTree(tree, drafts, createDraftNode)
@@ -64,8 +64,8 @@ describe('draft-utils', () => {
     it('handles multiple drafts at different levels', () => {
       const tree = [createNode('1', 'A', [createNode('1-1', 'A.1')])]
       const drafts: DraftItem[] = [
-        { id: 'draft-root', parentId: undefined, order: 0 },
-        { id: 'draft-child', parentId: '1-1', order: 0 },
+        { id: 'draft-root', parentId: undefined },
+        { id: 'draft-child', parentId: '1-1' },
       ]
 
       const result = mergeDraftsIntoTree(tree, drafts, createDraftNode)
@@ -81,8 +81,8 @@ describe('draft-utils', () => {
     it('calls createDraftNode factory for each draft', () => {
       const tree = [createNode('1', 'A')]
       const drafts: DraftItem[] = [
-        { id: 'draft-1', parentId: undefined, order: 0 },
-        { id: 'draft-2', parentId: undefined, order: 1 },
+        { id: 'draft-1', parentId: undefined },
+        { id: 'draft-2', parentId: undefined },
       ]
       const factory = jest.fn(createDraftNode)
 
@@ -98,7 +98,7 @@ describe('draft-utils', () => {
       const parent = createNode('1', 'A', [child])
       const tree = [parent]
       const drafts: DraftItem[] = [
-        { id: 'draft-1', parentId: '1', order: 0 },
+        { id: 'draft-1', parentId: '1' },
       ]
 
       const result = mergeDraftsIntoTree(tree, drafts, createDraftNode)
@@ -119,7 +119,7 @@ describe('draft-utils', () => {
         ]),
       ]
       const drafts: DraftItem[] = [
-        { id: 'draft-1', parentId: '1', order: 0, afterId: '1-1' },
+        { id: 'draft-1', parentId: '1', afterId: '1-1' },
       ]
 
       // Act
@@ -137,7 +137,7 @@ describe('draft-utils', () => {
       // Arrange
       const tree = [createNode('1', 'A'), createNode('2', 'B')]
       const drafts: DraftItem[] = [
-        { id: 'draft-1', parentId: undefined, order: 0, afterId: 'gone' },
+        { id: 'draft-1', parentId: undefined, afterId: 'gone' },
       ]
 
       // Act

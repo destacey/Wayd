@@ -10,7 +10,6 @@ jest.mock('@/src/utils/csv-utils', () => {
 })
 
 import { createRef } from 'react'
-import { Form } from 'antd'
 import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import type { ColumnDef } from '../wayd-grid-core'
 import WaydGrid from './wayd-grid'
@@ -821,14 +820,16 @@ describe('WaydGrid', () => {
       expect(screen.queryByText('Review')).not.toBeInTheDocument()
     })
 
-    it('tags tree cells with data-cell-id for the editing machinery', () => {
+    it('stripes alternate tree rows by display position', () => {
       // Arrange / Act
       renderTree()
 
-      // Assert — tree rows carry per-cell ids (`{nodeId}-{columnId}`)
-      expect(
-        document.querySelector('[data-cell-id="2.1.1-name"]'),
-      ).toBeInTheDocument()
+      // Assert — the second and fourth displayed rows take the stripe
+      const rowOf = (name: string) => screen.getByText(name).closest('tr')!
+      expect(rowOf('Plan').className).not.toContain('trAlt')
+      expect(rowOf('Kickoff').className).toContain('trAlt')
+      expect(rowOf('Execute').className).not.toContain('trAlt')
+      expect(rowOf('Build widgets').className).toContain('trAlt')
     })
   })
 
@@ -2664,84 +2665,6 @@ describe('WaydGrid', () => {
 
         // Assert
         expect(document.activeElement).toBe(cellFor('Plan'))
-      })
-
-      describe('with inline editing', () => {
-        const EditableTree = () => {
-          const [form] = Form.useForm()
-          return (
-            <Form form={form}>
-              <WaydGrid<Node>
-                data={TREE}
-                includeIdColumn={false}
-                getSubRows={(row) => row.children}
-                columns={(ctx) => [
-                  {
-                    id: 'name',
-                    accessorKey: 'name',
-                    header: 'Name',
-                    cell: ({ row }) =>
-                      ctx.selectedRowId === row.original.id ? (
-                        <input
-                          aria-label="Name editor"
-                          onKeyDown={(e) =>
-                            ctx.handleKeyDown(e, row.original.id, 'name')
-                          }
-                        />
-                      ) : (
-                        row.original.name
-                      ),
-                  },
-                  { id: 'id', accessorKey: 'id', header: 'Ref' },
-                ]}
-                editingConfig={{
-                  canEdit: true,
-                  form,
-                  editableColumnIds: ['name'],
-                  onSave: async () => true,
-                  getFormValues: () => ({}),
-                  computeChanges: () => null,
-                  cellIdColumnMatchOrder: ['name'],
-                }}
-              />
-            </Form>
-          )
-        }
-
-        it('starts editing the row when Enter is pressed on an editable cell', async () => {
-          // Arrange
-          render(<EditableTree />)
-          focus(cellFor('Kickoff')!)
-
-          // Act
-          fireEvent.keyDown(cellFor('Kickoff')!, { key: 'Enter' })
-
-          // Assert — the editor opens in the row the cursor was on
-          const editor = await screen.findByRole('textbox', {
-            name: 'Name editor',
-          })
-          expect(editor.closest('tr')).toHaveTextContent('1.1')
-        })
-
-        it('returns focus to the cell when Escape ends editing', async () => {
-          // Arrange
-          render(<EditableTree />)
-          focus(cellFor('Kickoff')!)
-          fireEvent.keyDown(cellFor('Kickoff')!, { key: 'Enter' })
-          const editor = await screen.findByRole('textbox', {
-            name: 'Name editor',
-          })
-          focus(editor)
-
-          // Act
-          fireEvent.keyDown(editor, { key: 'Escape' })
-
-          // Assert — not dropped to <body>, where the keyboard user is lost
-          expect(
-            screen.queryByRole('textbox', { name: 'Name editor' }),
-          ).not.toBeInTheDocument()
-          expect(document.activeElement).toBe(cellFor('Kickoff'))
-        })
       })
 
       it('announces the tree structure on each row', () => {

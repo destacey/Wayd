@@ -16,7 +16,6 @@ import {
   useState,
 } from 'react'
 import { Popover, Spin } from 'antd'
-import type { FormInstance } from 'antd'
 import { FilterFilled, FilterOutlined } from '@ant-design/icons'
 import type { RowData } from '@tanstack/react-table'
 import type {
@@ -24,6 +23,7 @@ import type {
   ColumnDef,
   Header,
   Row,
+  Table,
   VisibilityState,
 } from '../wayd-grid-core'
 import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual'
@@ -115,6 +115,7 @@ import {
   type RowActionKey,
 } from '../wayd-grid-core/row-actions'
 import {
+  DRAFT_PREFIX,
   mergeDraftsIntoTree,
   type DraftItem,
 } from '../wayd-grid-core/draft-utils'
@@ -140,10 +141,6 @@ import {
 } from '../wayd-grid-core/grid-sorting'
 import GridToolbar from '../wayd-grid-core/grid-toolbar'
 import { countTreeNodes, flattenTree } from '../wayd-grid-core/tree-utils'
-import {
-  useGridEditing,
-  type GridEditingConfig,
-} from '../wayd-grid-core/use-grid-editing'
 import { useGridColumnStatePersistence } from '../wayd-grid-core/use-grid-persistence'
 import {
   mergeColumnVisibility,
@@ -163,8 +160,6 @@ import type {
 const EMPTY_NODE_SET: Set<string> = new Set<string>()
 
 const EMPTY_DATA: never[] = []
-const EMPTY_FIELD_ERRORS: Record<string, string> = {}
-const DRAFT_SCROLL_MARGIN = 8
 
 /** Column-reorder drags move along the header row only — lock the y axis.
  *  (Inlined rather than pulling in @dnd-kit/modifiers for one function.) */
@@ -188,69 +183,6 @@ const SIMPLE_EMPTY_BODY_HEIGHT = 140
  * jsdom tests rendering rows at all: with no layout the viewport measures
  * 0px, so the virtualizer renders indexes 0..overscan. */
 const ROW_OVERSCAN = 10
-
-const NOOP_FORM = {
-  validateFields: async () => ({}),
-  getFieldsValue: () => ({}),
-  setFieldsValue: () => {},
-  resetFields: () => {},
-} as unknown as FormInstance
-
-const escapeSelectorValue = (value: string) =>
-  typeof CSS !== 'undefined' && CSS.escape
-    ? CSS.escape(value)
-    : value.replace(/["\\]/g, '\\$&')
-
-const scrollRowIntoViewIfNeeded = (
-  rowId: string,
-  tableWrapperClassName: string,
-) => {
-  const row = document.querySelector(
-    `[data-row-id="${escapeSelectorValue(rowId)}"]`,
-  ) as HTMLElement | null
-  const wrapper = row?.closest(
-    `.${tableWrapperClassName}`,
-  ) as HTMLElement | null
-
-  if (!row || !wrapper) return 'missing'
-
-  const rowRect = row.getBoundingClientRect()
-  const wrapperRect = wrapper.getBoundingClientRect()
-
-  const visibleTop = wrapperRect.top + wrapper.clientTop
-  const visibleBottom = visibleTop + wrapper.clientHeight
-
-  if (rowRect.top < visibleTop + DRAFT_SCROLL_MARGIN) {
-    wrapper.scrollTop -= visibleTop + DRAFT_SCROLL_MARGIN - rowRect.top
-    return 'done'
-  }
-
-  if (rowRect.bottom > visibleBottom - DRAFT_SCROLL_MARGIN) {
-    wrapper.scrollTop += rowRect.bottom - (visibleBottom - DRAFT_SCROLL_MARGIN)
-    return 'done'
-  }
-
-  return 'done'
-}
-
-const requestScrollRowIntoView = (
-  rowId: string,
-  tableWrapperClassName: string,
-) => {
-  let attempts = 0
-
-  const tryScroll = () => {
-    if (scrollRowIntoViewIfNeeded(rowId, tableWrapperClassName) === 'done') {
-      return
-    }
-    attempts += 1
-    if (attempts < 12) {
-      setTimeout(tryScroll, 20)
-    }
-  }
-
-  requestAnimationFrame(tryScroll)
-}
 
 const headerCellClasses: GridHeaderCellClasses = {
   th: styles.th,
@@ -299,9 +231,6 @@ const rowClasses: GridRowClasses = {
 
 const treeRowClasses: TreeGridRowClasses = {
   ...rowClasses,
-  trEditable: styles.trEditable,
-  trSelected: styles.trSelected,
-  editableCell: styles.editableCell,
   treeEditorIndent: styles.treeEditorIndent,
 }
 
@@ -383,8 +312,6 @@ interface GridBodyProps<T extends RowData> {
   headerRowCount: number
   /** The column whose cells expand and collapse tree rows with → and ←. */
   treeColumnId: string | null
-  /** Whether Enter on a cell starts inline editing there (tree editing). */
-  isCellEditable?: (row: Row<T>, columnId: string) => boolean
   /** Column ids whose body cells right-align (numeric columns). */
   numericColumnIds: ReadonlySet<string>
   isTree: boolean
@@ -393,15 +320,8 @@ interface GridBodyProps<T extends RowData> {
   renderGroupHeader?: (context: GroupHeaderContext<T>) => ReactNode
   flatDndEnabled: boolean
   isDragEnabled: boolean
-  canEdit: boolean
-  editableColumns: string[]
-  draftPrefix: string
-  selectedRowId: string | null
   draggedNodeId: string | null
-  fieldErrors: Record<string, string>
   flatRowId: (row: Row<T>) => string
-  onRowClick: (e: React.MouseEvent, rowId: string) => void
-  onCellClick: (e: React.MouseEvent) => void
   /** Flat-mode row activation; see WaydGridProps.onRowActivate. */
   onRowActivate?: (row: T) => void
   activatedRowId?: string | null
@@ -448,22 +368,14 @@ function GridBody<T extends RowData>({
   columnIds,
   headerRowCount,
   treeColumnId,
-  isCellEditable,
   numericColumnIds,
   isTree,
   isGrouped,
   renderGroupHeader,
   flatDndEnabled,
   isDragEnabled,
-  canEdit,
-  editableColumns,
-  draftPrefix,
-  selectedRowId,
   draggedNodeId,
-  fieldErrors,
   flatRowId,
-  onRowClick,
-  onCellClick,
   onRowActivate,
   activatedRowId,
   getRowActivateLabel,
@@ -479,10 +391,6 @@ function GridBody<T extends RowData>({
     columnIds,
     isGrouped,
     treeColumnId,
-    editingRowId: isTree ? selectedRowId : null,
-    getEditingId: (row) => (row.original as { id: string }).id,
-    // Cell editing opens cells itself, ahead of navigation's Enter.
-    isCellEditable: !cellEditing && canEdit ? isCellEditable : undefined,
     onRowActivate,
     bodyViewportRef,
     rowHeight: ROW_HEIGHT_ESTIMATE,
@@ -658,17 +566,6 @@ function GridBody<T extends RowData>({
     hasRows: virtualRows.length > 0,
   })
 
-  // Virtualized rows unmount when scrolled out, but the editing machinery
-  // (focusCellById, keyboard nav, draft scroll-into-view) targets rendered
-  // DOM — make sure the selected row's index is mounted before they run.
-  useEffect(() => {
-    if (!selectedRowId) return
-    const index = rows.findIndex(
-      (row) => (row.original as { id?: string }).id === selectedRowId,
-    )
-    if (index >= 0) rowVirtualizer.scrollToIndex(index)
-  }, [selectedRowId, rows, rowVirtualizer])
-
   // While loading (or with no rows) the rows are replaced by a status
   // overlay. The overlay is a sibling of the scrolling wrapper — anchored to
   // the VISIBLE body viewport, not the table: a wide table in a narrow window
@@ -742,10 +639,10 @@ function GridBody<T extends RowData>({
                   />
                 </tr>
               )}
-              {/* flatMap, not map: a row comes back with its gap spacer
-                  (and, while edited, its error band), and React keys a nested
-                  array by position — so as the window shifted, every row
-                  would land in another slot and remount, dropping focus. */}
+              {/* flatMap, not map: a row comes back with its gap spacer,
+                  and React keys a nested array by position — so as the
+                  window shifted, every row would land in another slot and
+                  remount, dropping focus. */}
               {virtualRows.flatMap((virtualRow, position) => {
                 const row = rows[virtualRow.index]
                 // Zebra striping keys off the absolute display index so
@@ -792,10 +689,7 @@ function GridBody<T extends RowData>({
 
                 if (isTree) {
                   const nodeId = (row.original as { id: string }).id
-                  const isSelected = selectedRowId === nodeId
-                  const isRowDragging = draggedNodeId === nodeId
-                  const isDraftRow = nodeId.startsWith(draftPrefix)
-                  const rowElements = [
+                  return [
                     gapSpacer,
                     <TreeGridRow
                       key={row.id}
@@ -805,53 +699,14 @@ function GridBody<T extends RowData>({
                       classes={treeRowClasses}
                       numericColumnIds={numericColumnIds}
                       nodeId={nodeId}
-                      isSelected={isSelected}
                       isExpanded={row.getIsExpanded()}
-                      isDragging={isRowDragging}
-                      isDragEnabled={isDragEnabled && !isDraftRow}
-                      canEdit={canEdit}
-                      editableColumns={editableColumns}
-                      onRowClick={onRowClick}
-                      onCellClick={onCellClick}
+                      isDragging={draggedNodeId === nodeId}
+                      isDragEnabled={
+                        isDragEnabled && !nodeId.startsWith(DRAFT_PREFIX)
+                      }
                       {...editProps}
                     />,
                   ]
-
-                  // The error band is an extra <tr> the virtualizer doesn't
-                  // model — its height is missing from the spacer math.
-                  // Accepted: it exists only while the selected row is
-                  // mounted (active inline editing), overscan absorbs the
-                  // offset, and the estimate-derived geometry snaps back the
-                  // moment the band unmounts. If it ever visibly drifts, the
-                  // fix is per-row measureElement, not restructuring.
-                  if (isSelected && Object.keys(fieldErrors).length > 0) {
-                    const errorItems = Object.entries(fieldErrors).map(
-                      ([field, error]) => (
-                        <div key={field} className={styles.validationErrorItem}>
-                          <span className={styles.validationErrorField}>
-                            {field}:
-                          </span>{' '}
-                          {error}
-                        </div>
-                      ),
-                    )
-
-                    rowElements.push(
-                      <tr
-                        key={`${row.id}-errors`}
-                        className={`${styles.tr} ${styles.validationErrorRow}`}
-                      >
-                        <td
-                          colSpan={visibleColumnCount + 1}
-                          className={`${styles.td} ${styles.validationErrorCell}`}
-                        >
-                          {errorItems}
-                        </td>
-                      </tr>,
-                    )
-                  }
-
-                  return rowElements
                 }
 
                 // A group heading spans the grid and only expands or
@@ -1071,135 +926,6 @@ function GridBody<T extends RowData>({
   )
 }
 
-interface UseDraftCreationOptions {
-  /** Editing is on, drafts are configured, and nothing is loading or saving. */
-  canAttempt: boolean
-  hasDraft: boolean
-  isEditing: boolean
-  draftPrefix: string
-  onDraftsChange?: (drafts: DraftItem[]) => void
-  selectedRowId: string | null
-  saveFormChanges: (rowId: string) => Promise<boolean>
-  setSelectedRowId: (rowId: string | null) => void
-  setSelectedCellId: (cellId: string | null) => void
-  tableRef: { current: any }
-  draftTasksRef: { current: DraftItem[] }
-  updateDraftTasks: (updater: (prev: DraftItem[]) => DraftItem[]) => void
-}
-
-/**
- * Adds draft rows to a tree grid: saves the row being edited first, allows one
- * draft at a time, expands the parent and selects the new row's name cell.
- * Kept in its own hook because the add callbacks touch refs and are handed to
- * the consumer's column factory, which is called during render.
- */
-function useDraftCreation({
-  canAttempt,
-  hasDraft,
-  isEditing,
-  draftPrefix,
-  onDraftsChange,
-  selectedRowId,
-  saveFormChanges,
-  setSelectedRowId,
-  setSelectedCellId,
-  tableRef,
-  draftTasksRef,
-  updateDraftTasks,
-}: UseDraftCreationOptions) {
-  // The ref guards against re-entry before a re-render lands; the state mirrors
-  // it so the add-draft controls disable while one is in flight.
-  const isAddingDraftRef = useRef(false)
-  const [isAddingDraft, setIsAddingDraft] = useState(false)
-  const draftCounterRef = useRef(0)
-
-  const canCreateDraft =
-    canAttempt && !isAddingDraft && (!hasDraft || isEditing)
-
-  const addDraft = useCallback(
-    async (parentId?: string): Promise<string | null> => {
-      if (!canCreateDraft) return null
-      if (isAddingDraftRef.current) return null
-
-      isAddingDraftRef.current = true
-      setIsAddingDraft(true)
-      try {
-        if (selectedRowId) {
-          const saved = await saveFormChanges(selectedRowId)
-          if (!saved) return null
-        }
-
-        // Prevent multiple simultaneous drafts from being added.
-        if (draftTasksRef.current.length > 0) {
-          return null
-        }
-
-        draftCounterRef.current += 1
-        const newDraft: DraftItem = {
-          id: `${draftPrefix}${Date.now()}-${draftCounterRef.current}`,
-          parentId,
-          order: 0,
-        }
-        updateDraftTasks((prev) => {
-          const next = [...prev, newDraft]
-          onDraftsChange?.(next)
-          return next
-        })
-
-        if (parentId && tableRef.current) {
-          const rows = tableRef.current.getRowModel().rows
-          const parentRow = rows.find((r: any) => r.original.id === parentId)
-          if (parentRow && !parentRow.getIsExpanded()) {
-            parentRow.toggleExpanded()
-          }
-        }
-
-        // Defer selection so the draft row renders first (unselected),
-        // then a second render mounts the editable input for focusing.
-        requestAnimationFrame(() => {
-          setTimeout(() => {
-            setSelectedRowId(newDraft.id)
-            setSelectedCellId(`${newDraft.id}-name`)
-            requestScrollRowIntoView(newDraft.id, styles.tableWrapper)
-          }, 50)
-        })
-
-        return newDraft.id
-      } finally {
-        isAddingDraftRef.current = false
-        setIsAddingDraft(false)
-      }
-    },
-    [
-      canCreateDraft,
-      draftPrefix,
-      onDraftsChange,
-      saveFormChanges,
-      selectedRowId,
-      setSelectedRowId,
-      setSelectedCellId,
-      tableRef,
-      draftTasksRef,
-      updateDraftTasks,
-    ],
-  )
-
-  const addDraftAtRoot = useCallback(() => {
-    void addDraft()
-    return null
-  }, [addDraft])
-
-  const addDraftAsChild = useCallback(
-    (parentId: string) => {
-      void addDraft(parentId)
-      return null
-    },
-    [addDraft],
-  )
-
-  return { canCreateDraft, addDraftAtRoot, addDraftAsChild }
-}
-
 function WaydGridInner<T extends RowData>(
   props: WaydGridProps<T>,
   ref: Ref<WaydGridHandle>,
@@ -1242,15 +968,11 @@ function WaydGridInner<T extends RowData>(
     onNodeMove,
     onMoveRejected,
     moveValidator,
-    editingConfig,
     onCommit,
     onCreate,
     fieldToColumn,
-    fieldErrors: externalFieldErrors,
-    onFieldErrorsChange,
     createDraftNode,
     onDraftCancelled,
-    onDraftsChange,
     rowActions,
     rightPane,
     'aria-label': ariaLabel,
@@ -1488,32 +1210,9 @@ function WaydGridInner<T extends RowData>(
   // ─── Tree-mode state (drafts + DnD) ──────────────────────
   const [draggedNodeId, setDraggedNodeId] = useState<string | null>(null)
   const [draftTasks, setDraftTasks] = useState<DraftItem[]>([])
-  const draftTasksRef = useRef<DraftItem[]>([])
-
-  const updateDraftTasks = useCallback(
-    (updater: (prev: DraftItem[]) => DraftItem[]) => {
-      setDraftTasks((prev) => {
-        const next = updater(prev)
-        draftTasksRef.current = next
-        return next
-      })
-    },
-    [],
-  )
-
-  const [internalFieldErrors, setInternalFieldErrors] =
-    useState<Record<string, string>>(EMPTY_FIELD_ERRORS)
-  const fieldErrors = externalFieldErrors ?? internalFieldErrors
-  const setFieldErrors = useCallback(
-    (errors: Record<string, string>) => {
-      if (onFieldErrorsChange) {
-        onFieldErrorsChange(errors)
-      } else {
-        setInternalFieldErrors(errors)
-      }
-    },
-    [onFieldErrorsChange],
-  )
+  // Read by the drag handlers, which are created before the table exists; a
+  // layout effect publishes it ahead of any passive effect.
+  const tableRef = useRef<Table<T> | null>(null)
 
   // ─── Draft management (tree mode) ────────────────────────
   const dataWithDrafts = useMemo(() => {
@@ -1527,77 +1226,8 @@ function WaydGridInner<T extends RowData>(
     ) as unknown as T[]
   }, [data, draftTasks, createDraftNode])
 
-  // ─── Editing hook ────────────────────────────────────────
-  const canEdit = editingConfig?.canEdit ?? false
-  const draftPrefix = editingConfig?.draftPrefix ?? 'draft-'
-
-  const editing = useGridEditing<T & { id: string }>(
-    (editingConfig
-      ? {
-          ...editingConfig,
-          data: dataWithDrafts,
-          tableWrapperClassName: styles.grid,
-          fieldErrors,
-          setFieldErrors,
-          onSave: async (rowId: string, updates: Record<string, any>) => {
-            const success = await editingConfig.onSave(rowId, updates)
-            if (success && rowId.startsWith(draftPrefix)) {
-              updateDraftTasks((prev) => {
-                const next = prev.filter((d) => d.id !== rowId)
-                onDraftsChange?.(next)
-                return next
-              })
-            }
-            return success
-          },
-          onCancelDraft: (draftId: string) => {
-            updateDraftTasks((prev) => {
-              const next = prev.filter((d) => d.id !== draftId)
-              onDraftsChange?.(next)
-              return next
-            })
-            onDraftCancelled?.(draftId)
-          },
-        }
-      : {
-          data: dataWithDrafts,
-          canEdit: false,
-          form: NOOP_FORM,
-          tableWrapperClassName: styles.grid,
-          editableColumnIds: [],
-          onSave: async () => false,
-          fieldErrors: EMPTY_FIELD_ERRORS,
-          setFieldErrors: () => {},
-          getFormValues: () => ({}),
-          computeChanges: () => null,
-          cellIdColumnMatchOrder: [],
-        }) as unknown as GridEditingConfig<T & { id: string }>,
-  )
-
-  const {
-    tableRef,
-    selectedRowId,
-    setSelectedRowId,
-    setSelectedCellId,
-    isSaving,
-    saveFormChanges,
-    getFieldError,
-    editableColumns,
-    handleKeyDown,
-    createSelectInputKeyDown,
-    handleRowClick,
-  } = editing
-
   // ─── Cell editing ────────────────────────────────────────
-  // Row-level editing wins while a grid still passes editingConfig.
-  const cellEditingEnabled = !!onCommit && !editingConfig
-  useEffect(() => {
-    if (onCommit && editingConfig && process.env.NODE_ENV !== 'production') {
-      console.warn(
-        'WaydGrid: onCommit is ignored while editingConfig is set; remove editingConfig to edit by cell.',
-      )
-    }
-  }, [onCommit, editingConfig])
+  const cellEditingEnabled = !!onCommit
   const messageApi = useOptionalMessage()
   const cellEditing = useGridCellEditing<T>({
     enabled: cellEditingEnabled,
@@ -1609,15 +1239,9 @@ function WaydGridInner<T extends RowData>(
       const id = (row as { id?: string | number }).id
       return id != null ? String(id) : undefined
     },
-    draftPrefix,
     canCreateDrafts: !!createDraftNode && !!onCreate && !isLoading,
     draftCount: draftTasks.length,
-    insertDraft: (draft) =>
-      updateDraftTasks((prev) => {
-        const next = [...prev, draft]
-        onDraftsChange?.(next)
-        return next
-      }),
+    insertDraft: (draft) => setDraftTasks((prev) => [...prev, draft]),
     onCommit,
     onCreate,
     fieldToColumn,
@@ -1630,11 +1254,7 @@ function WaydGridInner<T extends RowData>(
         : undefined
     },
     removeDraft: (key, created) => {
-      updateDraftTasks((prev) => {
-        const next = prev.filter((draft) => draft.id !== key)
-        onDraftsChange?.(next)
-        return next
-      })
+      setDraftTasks((prev) => prev.filter((draft) => draft.id !== key))
       if (!created) onDraftCancelled?.(key)
     },
     notify: messageApi ? (message) => messageApi.error(message) : undefined,
@@ -1642,22 +1262,7 @@ function WaydGridInner<T extends RowData>(
   })
   const { attachTable } = cellEditing
 
-  // ─── Draft helpers ───────────────────────────────────────
-  const isEditing = selectedRowId !== null || !!cellEditing.open
-  const { canCreateDraft, addDraftAtRoot, addDraftAsChild } = useDraftCreation({
-    canAttempt: canEdit && !!createDraftNode && !isLoading && !isSaving,
-    hasDraft: draftTasks.length > 0,
-    isEditing,
-    draftPrefix,
-    onDraftsChange,
-    selectedRowId,
-    saveFormChanges,
-    setSelectedRowId,
-    setSelectedCellId,
-    tableRef,
-    draftTasksRef,
-    updateDraftTasks,
-  })
+  const isEditing = !!cellEditing.open
 
   // ─── Column context ──────────────────────────────────────
   // Tree drags reparent (onNodeMove); flat drags reorder (onRowReorder).
@@ -1668,43 +1273,18 @@ function WaydGridInner<T extends RowData>(
     !isLoading &&
     !isEditing
 
-  // Drafts come from the cell-editing path when it is on.
-  const contextCanCreateDraft = cellEditingEnabled
-    ? cellEditing.canCreateDraft
-    : canCreateDraft
-  const contextAddDraftAtRoot = cellEditingEnabled
-    ? cellEditing.addDraft
-    : addDraftAtRoot
-  const contextAddDraftAsChild = cellEditingEnabled
-    ? cellEditing.addDraft
-    : addDraftAsChild
+  const { canCreateDraft, addDraft } = cellEditing
 
   const columnContext: GridColumnContext = useMemo(() => {
     const dragEnabledForColumns = dragEnabledBase && !hasActiveFilters
 
     return {
-      selectedRowId,
-      handleKeyDown,
-      createSelectInputKeyDown,
-      getFieldError,
-      editableColumns,
       isDragEnabled: dragEnabledForColumns,
-      canCreateDraft: contextCanCreateDraft,
-      addDraftAtRoot: () => contextAddDraftAtRoot(),
-      addDraftAsChild: (parentId: string) => contextAddDraftAsChild(parentId),
+      canCreateDraft,
+      addDraftAtRoot: () => addDraft(),
+      addDraftAsChild: (parentId: string) => addDraft(parentId),
     }
-  }, [
-    hasActiveFilters,
-    selectedRowId,
-    handleKeyDown,
-    createSelectInputKeyDown,
-    getFieldError,
-    editableColumns,
-    dragEnabledBase,
-    contextCanCreateDraft,
-    contextAddDraftAtRoot,
-    contextAddDraftAsChild,
-  ])
+  }, [hasActiveFilters, dragEnabledBase, canCreateDraft, addDraft])
 
   // ─── Resolved columns ───────────────────────────────────
   // Resolved outside the memo below and passed as a boolean: keying the column
@@ -1838,13 +1418,9 @@ function WaydGridInner<T extends RowData>(
   // ─── DnD setup ───────────────────────────────────────────
   const sensors = useGridDndSensors()
 
-  const handleDragStart = useCallback(
-    (event: DragStartEvent) => {
-      setDraggedNodeId(event.active.id as string)
-      setSelectedRowId(null)
-    },
-    [setSelectedRowId],
-  )
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setDraggedNodeId(event.active.id as string)
+  }, [])
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -1943,7 +1519,7 @@ function WaydGridInner<T extends RowData>(
         toIndex,
       })
     },
-    [flatRowId, onRowReorder, tableRef],
+    [flatRowId, onRowReorder],
   )
 
   // ─── TanStack table ─────────────────────────────────────
@@ -2000,16 +1576,13 @@ function WaydGridInner<T extends RowData>(
     },
   })
 
-  // Read by the editing hook's handlers and effects, which are created before
-  // the table exists; a layout effect publishes it ahead of any passive effect.
   useLayoutEffect(() => {
     tableRef.current = table
     attachTable(table)
-  }, [table, tableRef, attachTable])
+  }, [table, attachTable])
 
   useImperativeHandle(ref, () => ({
     table,
-    selectedRowId,
     getDisplayedRows: () =>
       table
         .getRowModel()
@@ -2021,7 +1594,7 @@ function WaydGridInner<T extends RowData>(
   }))
 
   // ─── Row-action keys ─────────────────────────────────────
-  const isDraftKey = (key: string) => key.startsWith(draftPrefix)
+  const isDraftKey = (key: string) => key.startsWith(DRAFT_PREFIX)
   // Opt-in through rowActions: a grid that takes these keys must place a new
   // row where Insert puts it (onCreate's order) and reject a failed move.
   const canInsertRows =
@@ -2568,40 +2141,6 @@ function WaydGridInner<T extends RowData>(
     )
   }
 
-  // Enter on a cell starts inline editing when its column is editable for
-  // that row — the same columns a click would open an editor in.
-  const isCellEditable = (row: Row<T>, columnId: string) => {
-    const ids = editingConfig?.editableColumnIds
-    if (!ids) return false
-    const rowId = (row.original as { id: string }).id
-    return (typeof ids === 'function' ? ids(rowId) : ids).includes(columnId)
-  }
-
-  // ─── Row/cell click handlers (editing) ──────────────────
-  const handleRowClickWithContext = useCallback(
-    (e: React.MouseEvent, rowId: string) => {
-      void handleRowClick(e, {
-        rowId,
-        isEditableColumn: (columnId) => editableColumns.includes(columnId),
-        getClickedColumnId: (target) =>
-          target.closest('td')?.getAttribute('data-column-id') ?? null,
-      })
-    },
-    [handleRowClick, editableColumns],
-  )
-
-  const handleCellClick = useCallback((e: React.MouseEvent) => {
-    const target = e.target as HTMLElement
-    if (
-      target.closest('input') ||
-      target.closest('.ant-select') ||
-      target.closest('.ant-picker') ||
-      target.closest('.ant-color-picker')
-    ) {
-      e.stopPropagation()
-    }
-  }, [])
-
   // ─── Resolved leftSlot ──────────────────────────────────
   const resolvedLeftSlot =
     typeof leftSlot === 'function' ? leftSlot(columnContext) : leftSlot
@@ -2966,22 +2505,14 @@ function WaydGridInner<T extends RowData>(
             ) ?? orderedVisibleLeafColumns[0]
           )?.id ?? null
         }
-        isCellEditable={isCellEditable}
         numericColumnIds={numericColumnIds}
         isTree={isTree}
         isGrouped={isGrouped}
         renderGroupHeader={renderGroupHeader}
         flatDndEnabled={flatDndEnabled}
         isDragEnabled={isDragEnabled}
-        canEdit={canEdit}
-        editableColumns={editableColumns}
-        draftPrefix={draftPrefix}
-        selectedRowId={selectedRowId}
         draggedNodeId={draggedNodeId}
-        fieldErrors={fieldErrors}
         flatRowId={flatRowId}
-        onRowClick={handleRowClickWithContext}
-        onCellClick={handleCellClick}
         onRowActivate={isTree ? undefined : onRowActivate}
         activatedRowId={activatedRowId}
         getRowActivateLabel={getRowActivateLabel}
@@ -3079,7 +2610,7 @@ function WaydGridInner<T extends RowData>(
  * header cells, row renderers, table/state hooks, descriptor filter engine,
  * CSV export). Flat by default; provide `getSubRows` to turn on tree mode —
  * expansion, `filterFromLeafRows` (a matching child keeps its ancestor chain
- * visible), and, when configured, reparenting drag-and-drop, inline editing,
+ * visible), and, when configured, reparenting drag-and-drop, cell editing,
  * and draft rows. Flat mode supports row-reorder drag-and-drop via
  * `onRowReorder`. Rows render through the row-renderer seam: the flat forms
  * ({@link FlatGridRow} / {@link SortableFlatGridRow}) or the tree form

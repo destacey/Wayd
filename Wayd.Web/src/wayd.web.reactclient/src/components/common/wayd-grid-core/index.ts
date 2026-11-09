@@ -254,10 +254,6 @@ export type {
   ResizeClickGuard,
 } from './grid-header-row'
 
-// Inline editing hook (grid-agnostic; rows only need an id)
-export { useGridEditing } from './use-grid-editing'
-export type { GridEditingConfig, RowClickArgs } from './use-grid-editing'
-
 // DnD — shared mechanics
 export {
   DRAG_ACTIVATION_DISTANCE,

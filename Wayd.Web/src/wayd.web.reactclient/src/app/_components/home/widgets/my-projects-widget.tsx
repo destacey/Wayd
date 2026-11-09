@@ -10,6 +10,7 @@ import {
 import { Badge, Tag, Typography } from 'antd'
 import { FC } from 'react'
 import AttentionTile from '../attention-tile'
+import { useHomeContext } from '../use-home-context'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
 import { HomeWidgetProps } from '../widget-registry'
 import styles from '../home.module.css'
@@ -38,13 +39,32 @@ export const roleCounts = (summary: MyProjectsSummaryDto): RoleCount[] =>
 
 const plural = (n: number) => (n === 1 ? 'project' : 'projects')
 
+/**
+ * Whether the home context says the caller has no approved or active project,
+ * so the summary and task metrics are known to be empty without asking.
+ */
+const useHasNoProjects = () => {
+  const { context } = useHomeContext()
+  return context?.projects.totalCount === 0
+}
+
+/** The task metrics both tiles read; RTK Query shares the request. */
+const useTaskMetrics = () => {
+  const hasNoProjects = useHasNoProjects()
+  const result = useGetMyProjectsTaskMetricsQuery(STATUS_FILTER, {
+    skip: hasNoProjects,
+  })
+  return { ...result, hasNoProjects }
+}
+
 /** How many approved and active projects the caller holds a role on, by role. */
 const MyProjectsWidget: FC<HomeWidgetProps> = ({ title }) => {
+  const hasNoProjects = useHasNoProjects()
   const {
     data: summary,
     isLoading,
     isError,
-  } = useGetMyProjectsSummaryQuery(STATUS_FILTER)
+  } = useGetMyProjectsSummaryQuery(STATUS_FILTER, { skip: hasNoProjects })
 
   const body = () => {
     if (isError) return <WidgetError message="Could not load your projects." />
@@ -96,14 +116,13 @@ const MyProjectsWidget: FC<HomeWidgetProps> = ({ title }) => {
 
 /** Open tasks past their planned end, across the caller's projects. */
 export const OverdueTasksTile: FC = () => {
-  const { data, isLoading, isError } =
-    useGetMyProjectsTaskMetricsQuery(STATUS_FILTER)
+  const { data, isLoading, isError, hasNoProjects } = useTaskMetrics()
   return (
     <AttentionTile
       title="Overdue tasks"
       context="on your projects"
       // A failed refetch keeps the last good data; showing it would pass off an old count as current.
-      value={isError ? undefined : data?.overdue}
+      value={isError ? undefined : hasNoProjects ? 0 : data?.overdue}
       tooltip="Open tasks on your projects that are past their planned end date."
       href={DASHBOARD_HREF}
       alert="error"
@@ -114,13 +133,12 @@ export const OverdueTasksTile: FC = () => {
 
 /** Open tasks due by the end of this week, across the caller's projects. */
 export const DueThisWeekTile: FC = () => {
-  const { data, isLoading, isError } =
-    useGetMyProjectsTaskMetricsQuery(STATUS_FILTER)
+  const { data, isLoading, isError, hasNoProjects } = useTaskMetrics()
   return (
     <AttentionTile
       title="Due this week"
       context="on your projects"
-      value={isError ? undefined : data?.dueThisWeek}
+      value={isError ? undefined : hasNoProjects ? 0 : data?.dueThisWeek}
       tooltip="Open tasks on your projects due by the end of this week (Saturday)."
       href={DASHBOARD_HREF}
       alert="warning"

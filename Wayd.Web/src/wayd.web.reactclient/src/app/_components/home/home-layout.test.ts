@@ -13,6 +13,7 @@ import {
 import {
   attentionTiles,
   HomeWidget,
+  PlaceWidget,
   WidgetAccess,
   WidgetColumn,
 } from './widget-registry'
@@ -114,6 +115,40 @@ describe('resolveLayout', () => {
 
     // Assert
     expect(ids(result).main).toEqual(['b', 'c', 'a'])
+  })
+
+  it('lays out the placement it is given when nothing is saved', () => {
+    // Arrange: an involvement-style placement that leads with y, moved to main.
+    const place: PlaceWidget = (w) =>
+      w.id === 'y'
+        ? { column: 'main', order: 0 }
+        : { column: w.defaultColumn, order: w.defaultOrder }
+
+    // Act
+    const layout = resolveLayout(registry, access(), [], place)
+
+    // Assert
+    expect(ids(layout)).toEqual({ main: ['y', 'a', 'b', 'c'], side: ['x'] })
+  })
+
+  it('puts a widget the layout does not mention where the placement puts it', () => {
+    // Arrange: y became relevant after the layout was saved, and now leads main.
+    const layout = [
+      saved('a', 'main'),
+      saved('b', 'main'),
+      saved('c', 'main'),
+      saved('x', 'side'),
+    ]
+    const place: PlaceWidget = (w) =>
+      w.id === 'y'
+        ? { column: 'main', order: 0 }
+        : { column: w.defaultColumn, order: w.defaultOrder }
+
+    // Act
+    const result = resolveLayout(registry, access(), layout, place)
+
+    // Assert
+    expect(ids(result)).toEqual({ main: ['y', 'a', 'b', 'c'], side: ['x'] })
   })
 
   it('skips a saved widget the account can no longer use', () => {

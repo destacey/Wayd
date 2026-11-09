@@ -1,12 +1,20 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.DemandManagement.Application.IntakeDesks.Dtos;
+using Wayd.DemandManagement.Application.IntakeDesks.Queries;
 using Wayd.Organization.Application.EmployeeCapacities.Dtos;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
 using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Teams.Queries;
+using Wayd.Planning.Application.Risks.Queries;
+using Wayd.ProductManagement.Application.Products.Queries;
+using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
+using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Me;
 using Wayd.Work.Application.WorkItems.Dtos;
@@ -24,7 +32,7 @@ namespace Wayd.Web.Api.Controllers;
 [ApiController]
 [Authorize]
 [McpTools("wayd-users")]
-public class MeController(IDispatcher dispatcher, IUserService userService, ICurrentUser currentUser, ICurrentPrincipal currentPrincipal) : ControllerBase
+public class MeController(IDispatcher dispatcher, IUserService userService, ICurrentUser currentUser, ICurrentPrincipal currentPrincipal, IFeatureFlags featureFlags) : ControllerBase
 {
     private const string NoLinkedEmployee = "Your account is not linked to an employee, so nothing in Wayd is recorded against you as a person. An administrator links an account to an employee on its user record in Settings.";
 
@@ -32,6 +40,7 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
     private readonly IUserService _userService = userService;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
+    private readonly IFeatureFlags _featureFlags = featureFlags;
 
     [HttpGet]
     [EndpointSummary("Get who you are: your user account and the employee it is linked to.")]
@@ -119,6 +128,40 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
         return Ok(await _dispatcher.Send(
             new GetEmployeeWorkItemsQuery(employeeId, statusCategories, UtcQueryTime.ToInstant(doneFrom), UtcQueryTime.ToInstant(doneTo)),
             cancellationToken));
+    }
+
+    [HttpGet("home-context")]
+    [EndpointSummary("Get what you are involved in: counts of your teams, projects, intake desks, requests, risks and products.")]
+    [EndpointDescription(
+        "One call for an overview of where you work: active teams and teams of teams you are a member of; approved and active projects you hold a role on, by role; intake desks you are on, by role, and open requests you raised; open risks assigned to you; and proposed or active products your teams are linked to. Counts only, worked out from your records each time. Needs no permission beyond signing in. An area whose module's feature flag is off counts zero. Returns zeros with `hasLinkedEmployee` false, not 404, when your account is not linked to an employee. To list the records behind a count use Me_GetTeamMemberships, Projects_GetProjects with `role`, IntakeRequests_GetList with `mine` and `openOnly`, or Risks_GetMyRisks.")]
+    [McpTool("Me_GetHomeContext", "Get what I am involved in")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<HomeContextResponse>> GetHomeContext(CancellationToken cancellationToken)
+    {
+        if (await _currentPrincipal.GetEmployeeId(cancellationToken) is not { } employeeId)
+            return Ok(new HomeContextResponse());
+
+        var teams = await _dispatcher.Send(new GetEmployeeTeamInvolvementQuery(employeeId), cancellationToken);
+        var projects = await _dispatcher.Send(new GetMyProjectsSummaryQuery(StatusFilter: [ProjectStatus.Approved, ProjectStatus.Active]), cancellationToken);
+        var riskCount = await _dispatcher.Send(new GetEmployeeOpenRiskCountQuery(employeeId), cancellationToken);
+
+        var intake = await _featureFlags.IsEnabled(FeatureFlags.Names.DemandManagement, cancellationToken)
+            ? await _dispatcher.Send(new GetEmployeeIntakeInvolvementQuery(employeeId), cancellationToken)
+            : new EmployeeIntakeInvolvementDto();
+
+        var productCount = await _featureFlags.IsEnabled(FeatureFlags.Names.ProductManagement, cancellationToken)
+            ? await _dispatcher.Send(new GetTeamsProductCountQuery(teams.TeamIds), cancellationToken)
+            : 0;
+
+        return Ok(new HomeContextResponse
+        {
+            HasLinkedEmployee = true,
+            Teams = new HomeTeamsContextResponse { TeamCount = teams.TeamCount, TeamOfTeamsCount = teams.TeamOfTeamsCount },
+            Projects = projects ?? new MyProjectsSummaryDto(),
+            Intake = intake,
+            AssignedRiskCount = riskCount,
+            TeamProductCount = productCount,
+        });
     }
 
     private NotFoundObjectResult NotLinked() =>

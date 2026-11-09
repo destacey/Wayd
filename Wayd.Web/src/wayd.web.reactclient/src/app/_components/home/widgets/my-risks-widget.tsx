@@ -15,6 +15,7 @@ import {
 import { Typography } from 'antd'
 import { FC } from 'react'
 import AttentionTile from '../attention-tile'
+import { useHomeContext } from '../use-home-context'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
 import { HomeWidgetProps, widgetAnchorId } from '../widget-registry'
 import styles from '../home.module.css'
@@ -46,11 +47,15 @@ export const sortByFollowUp = (risks: RiskListDto[]): RiskListDto[] =>
 /**
  * The query both the widget and its tile read; RTK Query shares the request.
  * The username is only the cache key — the API answers for the caller — so the
- * request never waits on it.
+ * request never waits on it. Skipped when the home context says no open risk
+ * is assigned to the caller.
  */
 const useMyRisks = () => {
   const { user } = useAuth()
-  return useGetMyRisksQuery(user?.username ?? '')
+  const { context } = useHomeContext()
+  return useGetMyRisksQuery(user?.username ?? '', {
+    skip: context?.assignedRiskCount === 0,
+  })
 }
 
 const FollowUp: FC<{ risk: RiskListDto; today: CalendarDate }> = ({

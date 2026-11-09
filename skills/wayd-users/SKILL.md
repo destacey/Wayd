@@ -37,6 +37,7 @@ The `Me_*` tools act for the caller and take no id:
 | Question | Tool |
 | --- | --- |
 | Who am I, and which employee am I? | `Me_GetProfile` — `employee.id` is the id employeeId, role and assignee parameters take for you; `userId` is for parameters that say they take a user id |
+| What am I involved in? Where should I start? | `Me_GetHomeContext` — counts only: your teams, approved and active projects by role, intake desks by role and open requests you raised, open risks assigned to you, and products your teams work on; then list what a count points to with the tools below |
 | Which teams am I on? | `Me_GetTeamMemberships` — membership and the member roles you hold |
 | How is my time split across teams? | `Me_GetAllocations` (team-capacity-management flag) |
 | What are my tickets? | `Me_GetWorkItems` — pass `statusCategories` `Proposed` and `Active` for open work |

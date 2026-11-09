@@ -2931,6 +2931,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<System.Collections.Generic.ICollection<WorkItemListDto>> GetWorkItemsAsync(System.Collections.Generic.IEnumerable<StatusCategory>? statusCategories = null, System.DateTimeOffset? doneFrom = null, System.DateTimeOffset? doneTo = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get what you are involved in: counts of your teams, projects, intake desks, requests, risks and products.
+        /// </summary>
+        /// <remarks>
+        /// One call for an overview of where you work: active teams and teams of teams you are a member of; approved and active projects you hold a role on, by role; intake desks you are on, by role, and open requests you raised; open risks assigned to you; and proposed or active products your teams are linked to. Counts only, worked out from your records each time. Needs no permission beyond signing in. An area whose module's feature flag is off counts zero. Returns zeros with `hasLinkedEmployee` false, not 404, when your account is not linked to an employee. To list the records behind a count use Me_GetTeamMemberships, Projects_GetProjects with `role`, IntakeRequests_GetList with `mine` and `openOnly`, or Risks_GetMyRisks.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<HomeContextResponse> GetHomeContextAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -3322,6 +3333,83 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get what you are involved in: counts of your teams, projects, intake desks, requests, risks and products.
+        /// </summary>
+        /// <remarks>
+        /// One call for an overview of where you work: active teams and teams of teams you are a member of; approved and active projects you hold a role on, by role; intake desks you are on, by role, and open requests you raised; open risks assigned to you; and proposed or active products your teams are linked to. Counts only, worked out from your records each time. Needs no permission beyond signing in. An area whose module's feature flag is off counts zero. Returns zeros with `hasLinkedEmployee` false, not 404, when your account is not linked to an employee. To list the records behind a count use Me_GetTeamMemberships, Projects_GetProjects with `role`, IntakeRequests_GetList with `mine` and `openOnly`, or Risks_GetMyRisks.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<HomeContextResponse> GetHomeContextAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/me/home-context"
+                    urlBuilder_.Append("api/me/home-context");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HomeContextResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -121517,6 +121605,40 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// What an employee is part of in intake: the desks they are named on, by role, and the open requests they raised.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class EmployeeIntakeInvolvementDto
+    {
+
+        /// <summary>
+        /// How many desks the employee is a member of, in any role.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deskCount")]
+        public int DeskCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many of those desks the employee is a Desk Admin on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("adminDeskCount")]
+        public int AdminDeskCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many of those desks the employee is an Agent on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("agentDeskCount")]
+        public int AgentDeskCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many requests in a Proposed or Active status the employee is the requester of or submitted: the
+        /// <br/>requests the list shows under Mine with Open only.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("openRequestsRaisedCount")]
+        public int OpenRequestsRaisedCount { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class EmployeeListDto
     {
@@ -123217,6 +123339,59 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// What the caller is involved in, as counts per area, worked out from their linked employee's records on each
+    /// <br/>request. Every count is zero when the account is not linked to an employee, and an area whose module is
+    /// <br/>switched off by its feature flag counts zero too.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class HomeContextResponse
+    {
+
+        /// <summary>
+        /// Whether the account is linked to an employee; when false, every count is zero.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hasLinkedEmployee")]
+        public bool HasLinkedEmployee { get; set; } = default!;
+
+        /// <summary>
+        /// The active teams and teams of teams the caller is a member of.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public HomeTeamsContextResponse Teams { get; set; } = new HomeTeamsContextResponse();
+
+        /// <summary>
+        /// The approved and active projects the caller holds a role on or has a task assigned on, by role: the same
+        /// <br/>counts as Projects_GetMyProjectsSummary with those statuses.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("projects")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public MyProjectsSummaryDto Projects { get; set; } = new MyProjectsSummaryDto();
+
+        /// <summary>
+        /// The intake desks the caller is named on and the open requests they raised. Zero when the
+        /// <br/>demand-management feature flag is off.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("intake")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public EmployeeIntakeInvolvementDto Intake { get; set; } = new EmployeeIntakeInvolvementDto();
+
+        /// <summary>
+        /// How many open risks are assigned to the caller.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("assignedRiskCount")]
+        public int AssignedRiskCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many proposed or active products the caller's teams are linked to, each counted once. Zero when the
+        /// <br/>product-management feature flag is off.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamProductCount")]
+        public int TeamProductCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// A column of the home page. Saved layouts store the member name, and every user load reads it, so a
     /// <br/>member is never renamed or removed.
     /// </summary>
@@ -123305,6 +123480,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visible")]
         public bool Visible { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The active teams and teams of teams the caller is a direct member of, each counted once.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class HomeTeamsContextResponse
+    {
+
+        /// <summary>
+        /// How many active teams the caller is a member of.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamCount")]
+        public int TeamCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many active teams of teams the caller is a direct member of.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamOfTeamsCount")]
+        public int TeamOfTeamsCount { get; set; } = default!;
 
     }
 

@@ -1,3 +1,4 @@
+import { HomeContextResponse } from '@/src/services/wayd-api'
 import { ComponentType, FC } from 'react'
 
 /** The home page column a widget sits in. */
@@ -44,6 +45,12 @@ export interface HomeWidget {
   Component: ComponentType<HomeWidgetProps>
   /** Tiles the widget adds to the attention strip, in the order they show. */
   tiles?: AttentionTileDefinition[]
+  /**
+   * How much the widget's area involves the caller, on the `Involvement` scale
+   * in `home-involvement.ts`; it orders the default layout. Left out for shared
+   * context that involves everyone alike.
+   */
+  involvement?: (context: HomeContextResponse) => number
 }
 
 /** Where a widget sits: its column and its position within it, lower first. */

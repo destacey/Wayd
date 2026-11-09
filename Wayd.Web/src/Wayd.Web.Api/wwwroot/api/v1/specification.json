@@ -1414,6 +1414,33 @@
         ]
       }
     },
+    "/api/me/home-context": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "Get what you are involved in: counts of your teams, projects, intake desks, requests, risks and products.",
+        "description": "One call for an overview of where you work: active teams and teams of teams you are a member of; approved and active projects you hold a role on, by role; intake desks you are on, by role, and open requests you raised; open risks assigned to you; and proposed or active products your teams are linked to. Counts only, worked out from your records each time. Needs no permission beyond signing in. An area whose module's feature flag is off counts zero. Returns zeros with `hasLinkedEmployee` false, not 404, when your account is not linked to an employee. To list the records behind a count use Me_GetTeamMemberships, Projects_GetProjects with `role`, IntakeRequests_GetList with `mine` and `openOnly`, or Risks_GetMyRisks.",
+        "operationId": "Me_GetHomeContext",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeContextResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/me/follows": {
       "get": {
         "tags": [
@@ -61601,6 +61628,39 @@
         "additionalProperties": false,
         "description": "One work address on an employee. Only work addresses are recorded — home and personal addresses are\nfiltered out at the connector."
       },
+      "EmployeeIntakeInvolvementDto": {
+        "required": [
+          "deskCount",
+          "adminDeskCount",
+          "agentDeskCount",
+          "openRequestsRaisedCount"
+        ],
+        "type": "object",
+        "properties": {
+          "deskCount": {
+            "type": "integer",
+            "description": "How many desks the employee is a member of, in any role.",
+            "format": "int32"
+          },
+          "adminDeskCount": {
+            "type": "integer",
+            "description": "How many of those desks the employee is a Desk Admin on.",
+            "format": "int32"
+          },
+          "agentDeskCount": {
+            "type": "integer",
+            "description": "How many of those desks the employee is an Agent on.",
+            "format": "int32"
+          },
+          "openRequestsRaisedCount": {
+            "type": "integer",
+            "description": "How many requests in a Proposed or Active status the employee is the requester of or submitted: the\nrequests the list shows under Mine with Open only.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "What an employee is part of in intake: the desks they are named on, by role, and the open requests they raised."
+      },
       "EmployeeListDto": {
         "required": [
           "displayName",
@@ -63266,6 +63326,59 @@
         },
         "additionalProperties": false
       },
+      "HomeContextResponse": {
+        "required": [
+          "hasLinkedEmployee",
+          "teams",
+          "projects",
+          "intake",
+          "assignedRiskCount",
+          "teamProductCount"
+        ],
+        "type": "object",
+        "properties": {
+          "hasLinkedEmployee": {
+            "type": "boolean",
+            "description": "Whether the account is linked to an employee; when false, every count is zero."
+          },
+          "teams": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/HomeTeamsContextResponse"
+              }
+            ],
+            "description": "The active teams and teams of teams the caller is a member of."
+          },
+          "projects": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MyProjectsSummaryDto"
+              }
+            ],
+            "description": "The approved and active projects the caller holds a role on or has a task assigned on, by role: the same\ncounts as Projects_GetMyProjectsSummary with those statuses."
+          },
+          "intake": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EmployeeIntakeInvolvementDto"
+              }
+            ],
+            "description": "The intake desks the caller is named on and the open requests they raised. Zero when the\ndemand-management feature flag is off."
+          },
+          "assignedRiskCount": {
+            "type": "integer",
+            "description": "How many open risks are assigned to the caller.",
+            "format": "int32"
+          },
+          "teamProductCount": {
+            "type": "integer",
+            "description": "How many proposed or active products the caller's teams are linked to, each counted once. Zero when the\nproduct-management feature flag is off.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "What the caller is involved in, as counts per area, worked out from their linked employee's records on each\nrequest. Every count is zero when the account is not linked to an employee, and an area whose module is\nswitched off by its feature flag counts zero too."
+      },
       "HomeLayoutColumn": {
         "enum": [
           "Main",
@@ -63346,6 +63459,27 @@
         },
         "additionalProperties": false,
         "description": "Where one widget sits on the home page, and whether it shows."
+      },
+      "HomeTeamsContextResponse": {
+        "required": [
+          "teamCount",
+          "teamOfTeamsCount"
+        ],
+        "type": "object",
+        "properties": {
+          "teamCount": {
+            "type": "integer",
+            "description": "How many active teams the caller is a member of.",
+            "format": "int32"
+          },
+          "teamOfTeamsCount": {
+            "type": "integer",
+            "description": "How many active teams of teams the caller is a direct member of.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The active teams and teams of teams the caller is a direct member of, each counted once."
       },
       "HttpValidationProblemDetails": {
         "allOf": [

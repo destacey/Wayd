@@ -7,6 +7,7 @@ import {
   EmployeesClient,
   HealthChecksClient,
   LinksClient,
+  MeClient,
   MyFollowsClient,
   MyNotificationMutesClient,
   MyNotificationsClient,
@@ -439,6 +440,8 @@ export const getHealthChecksClient = () =>
   new HealthChecksClient('', axiosClient)
 
 export const getLinksClient = () => new LinksClient('', axiosClient)
+
+export const getMeClient = () => new MeClient('', axiosClient)
 
 export const getMyFollowsClient = () => new MyFollowsClient('', axiosClient)
 

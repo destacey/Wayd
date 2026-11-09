@@ -1766,10 +1766,12 @@ public class RoadmapTests
 
     private LocalDateRange Days(int start, int end) => new(_dateTimeProvider.Today.PlusDays(start), _dateTimeProvider.Today.PlusDays(end));
 
+    private TestUpsertRoadmapActivity ActivityUpsert(string name, LocalDateRange dateRange, Guid? parentId = null) =>
+        new(_activityFaker.WithName(name).WithDateRange(dateRange).WithColor(null).Generate()) { ParentId = parentId };
+
     private RoadmapActivity AddActivity(Roadmap roadmap, string name, LocalDateRange dateRange, Guid? parentId = null)
     {
-        var upsert = new TestUpsertRoadmapActivity(_activityFaker.WithName(name).WithDateRange(dateRange).WithColor(null).Generate()) { ParentId = parentId };
-        var activity = roadmap.CreateActivity(upsert, As(EventOwnerId), Actor, Now).Value;
+        var activity = roadmap.CreateActivity(ActivityUpsert(name, dateRange, parentId), As(EventOwnerId), Actor, Now).Value;
         roadmap.ClearDomainEvents();
 
         return activity;
@@ -1782,6 +1784,13 @@ public class RoadmapTests
         roadmap.ClearDomainEvents();
 
         return milestone;
+    }
+
+    private void AddTimebox(Roadmap roadmap, LocalDateRange dateRange, Guid? parentId)
+    {
+        var upsert = new TestUpsertRoadmapTimebox(_timeboxFaker.WithDateRange(dateRange).Generate()) { ParentId = parentId };
+        _ = roadmap.CreateTimebox(upsert, As(EventOwnerId), Actor, Now).Value;
+        roadmap.ClearDomainEvents();
     }
 
     [Fact]
@@ -2004,6 +2013,90 @@ public class RoadmapTests
         added.Order.Should().Be(1);
         var dates = roadmap.DomainEvents.Last().Should().BeOfType<RoadmapItemDatesChangedEvent>().Subject;
         dates.Changes.Should().Equal(new RoadmapItemDateChange(parent.Id, RoadmapItemType.Activity, Days(1, 10), Days(1, 20)));
+    }
+
+    [Fact]
+    public void CreateActivity_WithAnOrder_AtTheRoot_CreatesItInPlaceAndRaisesOnlyAdded()
+    {
+        // Arrange
+        var roadmap = SavedRoadmap();
+        var first = AddActivity(roadmap, "First", Days(1, 5));
+        var second = AddActivity(roadmap, "Second", Days(1, 5));
+        var third = AddActivity(roadmap, "Third", Days(1, 5));
+
+        // Act
+        var result = roadmap.CreateActivity(ActivityUpsert("Inserted", Days(1, 5)), As(EventOwnerId), Actor, Now, order: 2);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        roadmap.Items.OfType<RoadmapActivity>().OrderBy(a => a.Order).Select(a => (a.Id, a.Order))
+            .Should().Equal((first.Id, 1), (result.Value.Id, 2), (second.Id, 3), (third.Id, 4));
+        var added = roadmap.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<RoadmapActivityAddedEvent>().Subject;
+        added.Order.Should().Be(2);
+    }
+
+    [Theory]
+    [InlineData(1, new[] { "Inserted", "First", "Second" })]
+    [InlineData(2, new[] { "First", "Inserted", "Second" })]
+    [InlineData(3, new[] { "First", "Second", "Inserted" })]
+    public void CreateActivity_WithAnOrder_UnderAParent_CountsPositionsAmongItsActivities(int order, string[] expected)
+    {
+        // Arrange — the timebox between them numbers the activities 1 and 3
+        var roadmap = SavedRoadmap();
+        var parent = AddActivity(roadmap, "Parent", Days(1, 30));
+        AddActivity(roadmap, "First", Days(2, 5), parent.Id);
+        AddTimebox(roadmap, Days(2, 5), parent.Id);
+        AddActivity(roadmap, "Second", Days(2, 5), parent.Id);
+
+        // Act
+        var result = roadmap.CreateActivity(ActivityUpsert("Inserted", Days(2, 5), parent.Id), As(EventOwnerId), Actor, Now, order);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        parent.Children.OfType<RoadmapActivity>().OrderBy(a => a.Order).Select(a => (a.Name, a.Order))
+            .Should().Equal(expected.Select((name, i) => (name, i + 1)));
+        roadmap.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<RoadmapActivityAddedEvent>()
+            .Which.Order.Should().Be(order);
+    }
+
+    [Fact]
+    public void MoveActivity_IntoAParentWhoseActivitiesATimeboxSplits_CountsPositionsAmongItsActivities()
+    {
+        // Arrange — outdenting Child out of Second, to just after it: the timebox numbers Second 3
+        var roadmap = SavedRoadmap();
+        var parent = AddActivity(roadmap, "Parent", Days(1, 30));
+        AddActivity(roadmap, "First", Days(2, 5), parent.Id);
+        AddTimebox(roadmap, Days(2, 5), parent.Id);
+        var second = AddActivity(roadmap, "Second", Days(2, 5), parent.Id);
+        var child = AddActivity(roadmap, "Child", Days(2, 5), second.Id);
+
+        // Act
+        var result = roadmap.MoveActivity(child.Id, parent.Id, 3, As(EventOwnerId), Actor, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        parent.Children.OfType<RoadmapActivity>().OrderBy(a => a.Order).Select(a => (a.Name, a.Order))
+            .Should().Equal(("First", 1), ("Second", 2), ("Child", 3));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(4)]
+    public void CreateActivity_WithAnOrderOutsideTheSiblings_FailsAndAddsNothing(int order)
+    {
+        // Arrange
+        var roadmap = SavedRoadmap();
+        AddActivity(roadmap, "First", Days(1, 5));
+        AddActivity(roadmap, "Second", Days(1, 5));
+
+        // Act
+        var result = roadmap.CreateActivity(ActivityUpsert("Inserted", Days(1, 5)), As(EventOwnerId), Actor, Now, order);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Order must be between 1 and 3.");
+        roadmap.Items.Should().HaveCount(2);
+        roadmap.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]

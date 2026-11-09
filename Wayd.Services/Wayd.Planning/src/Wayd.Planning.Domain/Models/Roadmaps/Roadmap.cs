@@ -496,7 +496,8 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
         EventActor actor,
         Instant timestamp,
         Func<Guid, IUpsertRoadmapItem, T> createRootFunc,
-        Func<RoadmapActivity, IUpsertRoadmapItem, T> createChildFunc)
+        Func<RoadmapActivity, IUpsertRoadmapItem, T> createChildFunc,
+        int? activityOrder = null)
         where T : BaseRoadmapItem
     {
         try
@@ -509,7 +510,7 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
 
             var before = SnapshotItems();
 
-            T item;
+            RoadmapActivity? parent = null;
             if (newItem.ParentId.HasValue)
             {
                 var parentActivityResult = GetActivity(newItem.ParentId.Value);
@@ -517,14 +518,34 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
                 {
                     return Result.Failure<T>(parentActivityResult.Error);
                 }
-                item = createChildFunc(parentActivityResult.Value, newItem);
-            }
-            else
-            {
-                item = createRootFunc(Id, newItem);
+                parent = parentActivityResult.Value;
             }
 
+            if (activityOrder.HasValue)
+            {
+                var lastOrder = (parent?.Children.OfType<RoadmapActivity>().Count() ?? RootActivities.Count) + 1;
+                if (activityOrder.Value < 1 || activityOrder.Value > lastOrder)
+                {
+                    return Result.Failure<T>($"Order must be between 1 and {lastOrder}.");
+                }
+            }
+
+            var item = parent is null
+                ? createRootFunc(Id, newItem)
+                : createChildFunc(parent, newItem);
+
             _items.Add(item);
+
+            // Created last, then moved into place before the changes are raised, so the added event
+            // carries the final order and no reader sees the activity last.
+            if (activityOrder.HasValue)
+            {
+                var orderResult = ApplyActivityOrder(item.Id, activityOrder.Value);
+                if (orderResult.IsFailure)
+                {
+                    return Result.Failure<T>(orderResult.Error);
+                }
+            }
 
             RaiseItemChanges(before, item.Id, actor, timestamp);
 
@@ -536,7 +557,12 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
         }
     }
 
-    public Result<RoadmapActivity> CreateActivity(IUpsertRoadmapActivity newActivity, RoadmapActor caller, EventActor actor, Instant timestamp)
+    /// <summary>
+    /// Creates an Activity at the root or under a parent Activity.
+    /// </summary>
+    /// <param name="order">The Activity's 1-based place among its sibling Activities, at most one past the last;
+    /// null places it last. Timeboxes and milestones are not counted: they always follow the Activities.</param>
+    public Result<RoadmapActivity> CreateActivity(IUpsertRoadmapActivity newActivity, RoadmapActor caller, EventActor actor, Instant timestamp, int? order = null)
     {
         return CreateRoadmapItem<RoadmapActivity>(
             newActivity,
@@ -544,7 +570,8 @@ public sealed class Roadmap : BaseAuditableEntity, ILocalSchedule, IHasIdAndKey
             actor,
             timestamp,
             (roadmapId, item) => RoadmapActivity.CreateRoot(roadmapId, (IUpsertRoadmapActivity)item, RootActivities.Count + 1),
-            (parent, item) => parent.CreateChildActivity((IUpsertRoadmapActivity)item)
+            (parent, item) => parent.CreateChildActivity((IUpsertRoadmapActivity)item),
+            order
         );
     }
 

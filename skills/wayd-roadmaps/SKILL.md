@@ -93,7 +93,7 @@ For a question like "what's planned next quarter on the Platform roadmap?":
 - `"activity"` or `"timebox"` — with `start` and `end` (`YYYY-MM-DD`, start ≤ end)
 - `"milestone"` — with `date`
 
-Create and update bodies also take `roadmapId` (and `itemId` on update), `name` (≤ 128 chars), and optional `description`, `color` (hex, e.g. `#4096FF`) and `parentId` (the UUID of an activity on the same roadmap). For example, to add a milestone under an activity:
+Create and update bodies also take `roadmapId` (and `itemId` on update), `name` (≤ 128 chars), and optional `description`, `color` (hex, e.g. `#4096FF`) and `parentId` (the UUID of an activity on the same roadmap). Creating an activity also takes an optional 1-based `order` among its sibling activities (at most one past the last); without it the activity goes last. Timeboxes and milestones have no order and always follow the activities. For example, to add a milestone under an activity:
 
 ```json
 { "$type": "milestone", "roadmapId": "<roadmap id>", "name": "Beta launch", "date": "2026-11-02", "parentId": "<activity id>" }

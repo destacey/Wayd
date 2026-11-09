@@ -64196,6 +64196,10 @@ export interface CreateRoadmapActivityRequest extends CreateRoadmapItemRequest {
     start: string;
     /** The Activity end date. */
     end: string;
+    /** The Activity's 1-based position among its parent's child Activities, or among the root Activities
+(optional). Omit it to place the Activity last. Timeboxes and milestones are not counted: they always
+follow the Activities. A position more than one past the last Activity is rejected. */
+    order?: number | undefined;
 }
 
 export interface CreateRoadmapMilestoneRequest extends CreateRoadmapItemRequest {

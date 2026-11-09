@@ -12,6 +12,7 @@ jest.mock('@/src/components/contexts/messaging', () => ({
 
 const mockPatch = jest.fn()
 const mockCreate = jest.fn()
+const mockPlaceActivity = jest.fn()
 let mockRoadmapColors: unknown[] = []
 jest.mock('@/src/store/features/planning/roadmaps-api', () => ({
   useGetRoadmapQuery: () => ({
@@ -19,8 +20,27 @@ jest.mock('@/src/store/features/planning/roadmaps-api', () => ({
   }),
   usePatchRoadmapItemMutation: () => [mockPatch],
   useCreateRoadmapItemMutation: () => [mockCreate],
-  useUpdateRoadmapActivityPlacementMutation: () => [jest.fn()],
+  useUpdateRoadmapActivityPlacementMutation: () => [mockPlaceActivity],
   useUpdateRoadmapItemDatesMutation: () => [jest.fn()],
+}))
+
+jest.mock('./delete-roadmap-item-form', () => ({
+  __esModule: true,
+  default: ({
+    roadmapItemId,
+    onFormComplete,
+    onFormCancel,
+  }: {
+    roadmapItemId: string
+    onFormComplete: () => void
+    onFormCancel: () => void
+  }) => (
+    <div role="dialog" aria-label="Delete roadmap item">
+      {roadmapItemId}
+      <button onClick={onFormComplete}>Confirm delete</button>
+      <button onClick={onFormCancel}>Cancel delete</button>
+    </div>
+  ),
 }))
 
 // The chart pane is not under test; keep it hidden.
@@ -68,19 +88,28 @@ const resolved = (value?: unknown) => ({
 })
 const rejected = (error: unknown) => ({ unwrap: () => Promise.reject(error) })
 
-const renderGrid = () => {
+const renderGrid = ({
+  items = ITEMS,
+  canManage = true,
+}: { items?: RoadmapItemListDto[]; canManage?: boolean } = {}) => {
   const openRoadmapItemDrawer = jest.fn()
-  render(
-    <RoadmapItemsGrid
-      roadmapId="r1"
-      roadmapItemsData={ITEMS}
-      roadmapItemsIsLoading={false}
-      refreshRoadmapItems={jest.fn()}
-      openRoadmapItemDrawer={openRoadmapItemDrawer}
-      canManage
-    />,
+  const refreshRoadmapItems = jest.fn().mockResolvedValue(undefined)
+  const props = {
+    roadmapId: 'r1',
+    roadmapItemsIsLoading: false,
+    refreshRoadmapItems,
+    openRoadmapItemDrawer,
+    canManage,
+  }
+  const { rerender } = render(
+    <RoadmapItemsGrid {...props} roadmapItemsData={items} />,
   )
-  return { openRoadmapItemDrawer }
+  return {
+    openRoadmapItemDrawer,
+    refreshRoadmapItems,
+    rerender: (next: RoadmapItemListDto[]) =>
+      rerender(<RoadmapItemsGrid {...props} roadmapItemsData={next} />),
+  }
 }
 
 /** Opens a row's actions menu and returns its item labels. */
@@ -510,6 +539,353 @@ describe('RoadmapItemsGrid cell editing', () => {
 
       // Assert
       expect(document.querySelector('tbody [data-grid-cell-editor]')).toBeNull()
+    })
+  })
+
+  describe('row-action keys', () => {
+    // Rows: 0 Alpha, 1 Alpha child, 2 Beta, 3 Sprint 1, 4 Launch
+    const TREE = [
+      {
+        ...ITEMS[0],
+        children: [
+          {
+            id: 'c1',
+            name: 'Alpha child',
+            type: { name: 'Activity' },
+            $type: 'activity',
+            parent: { id: 'a1' },
+            start: '2026-03-02',
+            end: '2026-03-10',
+            color: null,
+            children: [],
+          },
+        ],
+      },
+      {
+        id: 'a2',
+        name: 'Beta',
+        type: { name: 'Activity' },
+        $type: 'activity',
+        start: '2026-04-01',
+        end: '2026-04-30',
+        color: null,
+        children: [],
+      },
+      ITEMS[1],
+      ITEMS[2],
+    ] as unknown as RoadmapItemListDto[]
+    const ROW = { a1: 0, c1: 1, a2: 2, t1: 3, m1: 4 }
+
+    const openEditorRow = () =>
+      bodyCells('name').findIndex((cell) =>
+        cell.contains(document.querySelector('tbody [data-grid-cell-editor]')),
+      )
+    const announcements = () =>
+      screen.getAllByRole('status').map((region) => region.textContent?.trim())
+
+    /** Gives the open draft its dates, then its name, which creates it. */
+    const completeDraft = async (row: number, name: string) => {
+      focus(cellAt(row, 'start'))
+      press('Enter')
+      typeDate('2026-05-01')
+      press('Tab')
+      typeDate('2026-05-31')
+      press('Enter')
+      await flush()
+      editText(row, 'name', name)
+      press('Enter')
+      await flush()
+    }
+
+    it('Insert creates an activity below the row, in that place', async () => {
+      // Arrange
+      renderGrid({ items: TREE })
+      focus(cellAt(ROW.a2, 'name'))
+      press('Insert')
+      const draftRow = openEditorRow()
+
+      // Act
+      await completeDraft(draftRow, 'Gamma')
+
+      // Assert
+      expect(draftRow).toBe(ROW.a2 + 1)
+      expect(mockCreate.mock.calls).toStrictEqual([
+        [
+          {
+            $type: 'activity',
+            roadmapId: 'r1',
+            parentId: undefined,
+            name: 'Gamma',
+            start: '2026-05-01',
+            end: '2026-05-31',
+            order: 3,
+          },
+        ],
+      ])
+    })
+
+    it('Ctrl+Enter creates an activity below a child, under its parent', async () => {
+      // Arrange
+      renderGrid({ items: TREE })
+      focus(cellAt(ROW.c1, 'name'))
+      press('Enter', { ctrlKey: true })
+      const draftRow = openEditorRow()
+
+      // Act
+      await completeDraft(draftRow, 'Second child')
+
+      // Assert
+      expect(draftRow).toBe(ROW.c1 + 1)
+      expect(mockCreate.mock.calls[0][0]).toStrictEqual(
+        expect.objectContaining({ parentId: 'a1', order: 2 }),
+      )
+    })
+
+    it('creates an activity inserted below a timebox after the last activity', async () => {
+      // Arrange — the grid counts the timebox; the roadmap orders only activities
+      renderGrid({ items: TREE })
+      focus(cellAt(ROW.t1, 'name'))
+      press('Insert')
+      const draftRow = openEditorRow()
+
+      // Act
+      await completeDraft(draftRow, 'Gamma')
+
+      // Assert
+      expect(draftRow).toBe(ROW.t1 + 1)
+      expect(mockCreate.mock.calls[0][0]).toStrictEqual(
+        expect.objectContaining({ parentId: undefined, order: 3 }),
+      )
+    })
+
+    it('Insert adds nothing under an item that cannot hold children', async () => {
+      // Arrange — a timebox has no children in practice; the guard still holds
+      const items = [
+        {
+          ...ITEMS[1],
+          children: [
+            {
+              id: 'x1',
+              name: 'Stray',
+              type: { name: 'Activity' },
+              $type: 'activity',
+              start: '2026-03-02',
+              end: '2026-03-05',
+              color: null,
+              children: [],
+            },
+          ],
+        },
+      ] as unknown as RoadmapItemListDto[]
+      renderGrid({ items })
+      const rows = bodyCells('name').length
+      focus(cellAt(1, 'name'))
+
+      // Act
+      press('Insert')
+      await flush()
+
+      // Assert
+      expect(bodyCells('name')).toHaveLength(rows)
+      expect(announcements()).toContain('A row cannot be added here.')
+    })
+
+    it('Alt+Shift+Right indents an activity under the one above', async () => {
+      // Arrange
+      mockPlaceActivity.mockReturnValue(resolved())
+      const { refreshRoadmapItems } = renderGrid({ items: TREE })
+      focus(cellAt(ROW.a2, 'name'))
+
+      // Act
+      press('ArrowRight', { altKey: true, shiftKey: true })
+      await flush()
+
+      // Assert
+      expect(mockPlaceActivity.mock.calls).toStrictEqual([
+        [
+          {
+            request: {
+              roadmapId: 'r1',
+              itemId: 'a2',
+              parentId: 'a1',
+              order: 2,
+            },
+          },
+        ],
+      ])
+      expect(refreshRoadmapItems).toHaveBeenCalledTimes(1)
+      expect(announcements()).toContain('Indented.')
+    })
+
+    it('Alt+Shift+Left outdents an activity to just after its parent', async () => {
+      // Arrange
+      mockPlaceActivity.mockReturnValue(resolved())
+      renderGrid({ items: TREE })
+      focus(cellAt(ROW.c1, 'name'))
+
+      // Act
+      press('ArrowLeft', { altKey: true, shiftKey: true })
+      await flush()
+
+      // Assert
+      expect(mockPlaceActivity.mock.calls).toStrictEqual([
+        [
+          {
+            request: {
+              roadmapId: 'r1',
+              itemId: 'c1',
+              parentId: undefined,
+              order: 2,
+            },
+          },
+        ],
+      ])
+    })
+
+    it('reports once that only activities move', async () => {
+      // Arrange
+      renderGrid({ items: TREE })
+      focus(cellAt(ROW.t1, 'name'))
+
+      // Act
+      press('ArrowRight', { altKey: true, shiftKey: true })
+      await flush()
+
+      // Assert
+      expect(mockPlaceActivity).not.toHaveBeenCalled()
+      expect(mockMessage.warning.mock.calls).toStrictEqual([
+        ['Only activities can be reordered'],
+      ])
+    })
+
+    it('reports a move the server refuses once, and leaves the row', async () => {
+      // Arrange
+      mockPlaceActivity.mockReturnValue(
+        rejected({ status: 400, data: { detail: 'Not allowed.' } }),
+      )
+      const { refreshRoadmapItems } = renderGrid({ items: TREE })
+      focus(cellAt(ROW.a2, 'name'))
+
+      // Act
+      press('ArrowRight', { altKey: true, shiftKey: true })
+      await flush()
+
+      // Assert
+      expect(mockMessage.warning.mock.calls).toStrictEqual([['Not allowed.']])
+      expect(mockMessage.error).not.toHaveBeenCalled()
+      expect(refreshRoadmapItems).not.toHaveBeenCalled()
+      expect(announcements()).not.toContain('Indented.')
+    })
+
+    it('reports a refused move with a fallback when the server gives no reason', async () => {
+      // Arrange
+      mockPlaceActivity.mockReturnValue(rejected({ status: 500 }))
+      renderGrid({ items: TREE })
+      focus(cellAt(ROW.a2, 'name'))
+
+      // Act
+      press('ArrowRight', { altKey: true, shiftKey: true })
+      await flush()
+
+      // Assert
+      expect(mockMessage.warning.mock.calls).toStrictEqual([
+        ['Failed to reorganize activity. Please try again.'],
+      ])
+    })
+
+    it('Ctrl+Delete asks to delete the item', () => {
+      // Arrange
+      renderGrid({ items: TREE })
+      focus(cellAt(ROW.t1, 'start'))
+
+      // Act
+      press('Delete', { ctrlKey: true })
+
+      // Assert
+      expect(
+        screen.getByRole('dialog', { name: 'Delete roadmap item' }),
+      ).toHaveTextContent('t1')
+    })
+
+    it('returns focus to the item when the delete is cancelled', async () => {
+      // Arrange
+      renderGrid({ items: TREE })
+      focus(cellAt(ROW.a2, 'start'))
+      press('Delete', { ctrlKey: true })
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel delete' }))
+      await flush()
+
+      // Assert
+      expect(document.activeElement).toBe(cellAt(ROW.a2, 'name'))
+    })
+
+    it('moves focus to the row taking a deleted item’s place', async () => {
+      // Arrange
+      const { refreshRoadmapItems, rerender } = renderGrid({ items: TREE })
+      focus(cellAt(ROW.a2, 'start'))
+      press('Delete', { ctrlKey: true })
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: 'Confirm delete' }))
+      rerender(TREE.filter((item) => item.id !== 'a2'))
+      await flush()
+
+      // Assert
+      expect(refreshRoadmapItems).toHaveBeenCalledTimes(1)
+      expect(document.activeElement).toBe(cellAt(ROW.a2, 'name'))
+      expect(cellAt(ROW.a2, 'name')).toHaveTextContent('Sprint 1')
+    })
+
+    it('Ctrl+Shift+Enter opens the item drawer', () => {
+      // Arrange
+      const { openRoadmapItemDrawer } = renderGrid({ items: TREE })
+      focus(cellAt(ROW.m1, 'start'))
+
+      // Act
+      press('Enter', { ctrlKey: true, shiftKey: true })
+
+      // Assert
+      expect(openRoadmapItemDrawer.mock.calls).toStrictEqual([['m1']])
+    })
+
+    it('gives a reader only the key that opens an item', async () => {
+      // Arrange
+      const { openRoadmapItemDrawer } = renderGrid({
+        items: TREE,
+        canManage: false,
+      })
+      const rows = bodyCells('name').length
+      focus(cellAt(ROW.a2, 'name'))
+
+      // Act
+      press('Insert')
+      press('ArrowRight', { altKey: true, shiftKey: true })
+      press('Delete', { ctrlKey: true })
+      press('Enter', { ctrlKey: true, shiftKey: true })
+      await flush()
+
+      // Assert
+      expect(bodyCells('name')).toHaveLength(rows)
+      expect(mockPlaceActivity).not.toHaveBeenCalled()
+      expect(
+        screen.queryByRole('dialog', { name: 'Delete roadmap item' }),
+      ).not.toBeInTheDocument()
+      expect(openRoadmapItemDrawer.mock.calls).toStrictEqual([['a2']])
+    })
+
+    it('lists the row keys in the help panel', () => {
+      // Arrange
+      renderGrid({ items: TREE })
+
+      // Act
+      fireEvent.click(screen.getByRole('button', { name: /help/i }))
+
+      // Assert
+      expect(screen.getByText('Insert / Ctrl + Enter')).toBeInTheDocument()
+      expect(screen.getByText('Ctrl + Delete')).toBeInTheDocument()
+      expect(screen.getByText('Ctrl + Shift + Enter')).toBeInTheDocument()
     })
   })
 })

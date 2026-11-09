@@ -17,8 +17,10 @@ import {
   type FilterOption,
   type MoveValidator,
   type GridColumnContext,
+  type WaydGridHandle,
   defaultMoveValidator,
   findNodeById,
+  rowAfterRemoving,
 } from '@/src/components/common/wayd-grid'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
@@ -29,7 +31,8 @@ import {
   useUpdateRoadmapItemDatesMutation,
 } from '@/src/store/features/planning/roadmaps-api'
 import { isApiError, type ApiError } from '@/src/utils'
-import { FC, ReactNode, useCallback, useMemo, useState } from 'react'
+import { errorDetail } from '@/src/utils/problem-details'
+import { FC, ReactNode, useCallback, useMemo, useRef, useState } from 'react'
 import EditRoadmapActivityForm from './edit-roadmap-activity-form'
 import DeleteRoadmapItemForm from './delete-roadmap-item-form'
 import EditRoadmapTimeboxForm from './edit-roadmap-timebox-form'
@@ -68,7 +71,8 @@ export interface RoadmapItemsGridProps {
   roadmapId: string
   roadmapItemsData: RoadmapItemListDto[]
   roadmapItemsIsLoading: boolean
-  refreshRoadmapItems: () => void
+  /** Refetches the items; resolves once they are in. */
+  refreshRoadmapItems: () => Promise<unknown>
   viewSelector?: ReactNode | undefined
   openRoadmapItemDrawer: (itemId: string) => void
   canManage: boolean
@@ -133,6 +137,27 @@ function mapToTreeNode(item: RoadmapItemUnion): RoadmapItemTreeNode {
   return node
 }
 
+/** Activities and the root take children; timeboxes and milestones do not. */
+const canHoldItems = (parent: RoadmapItemTreeNode | null) =>
+  !parent || parent.type === 'Activity'
+
+/**
+ * Where a new activity goes among its sibling activities. The grid counts
+ * every sibling, but timeboxes and milestones always follow the activities,
+ * so a place after one of them is the end of the activities.
+ */
+const activityOrderAt = (
+  nodes: RoadmapItemTreeNode[],
+  parentId: string | null,
+  order: number,
+) => {
+  const siblings = parentId
+    ? (findNodeById(nodes, parentId)?.children ?? [])
+    : nodes
+  const activities = siblings.filter((node) => node.type === 'Activity')
+  return Math.min(order, activities.length + 1)
+}
+
 const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   roadmapId,
   roadmapItemsData,
@@ -143,6 +168,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   canManage,
 }) => {
   const messageApi = useMessage()
+  const gridRef = useRef<WaydGridHandle>(null)
 
   const { data: roadmap } = useGetRoadmapQuery(roadmapId)
   const roadmapColors = useMemo(() => roadmap?.colors ?? [], [roadmap?.colors])
@@ -301,6 +327,8 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
 
   const handleNodeMove = useCallback(
     async (nodeId: string, parentId: string | null, order: number) => {
+      // Failures reject, so the grid reports them once (onMoveRejected) and
+      // a keyboard move knows the row stayed where it was.
       try {
         await updateActivityPlacement({
           request: {
@@ -310,15 +338,15 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
             order,
           },
         }).unwrap()
-        refreshRoadmapItems()
-      } catch (error: any) {
-        messageApi.error(
-          error?.data?.detail ||
+      } catch (error) {
+        throw new Error(
+          errorDetail(error) ||
             'Failed to reorganize activity. Please try again.',
         )
       }
+      await refreshRoadmapItems()
     },
-    [roadmapId, updateActivityPlacement, refreshRoadmapItems, messageApi],
+    [roadmapId, updateActivityPlacement, refreshRoadmapItems],
   )
 
   const createDraftRoadmapItem = useCallback(
@@ -349,14 +377,25 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
     }).unwrap()
   }
 
-  /** Creates a new row once it has a name and dates; returns its id. */
+  /**
+   * Creates a new row once it has a name and dates; returns its id. An
+   * activity added below a row is created in that place.
+   */
   const createRoadmapItemFromDraft = (
     parentId: string | null,
     values: Record<string, unknown>,
-  ) =>
-    createRoadmapItem(
-      toCreateRoadmapItemRequest(roadmapId, parentId, values),
+    position?: { order: number },
+  ) => {
+    const request = toCreateRoadmapItemRequest(roadmapId, parentId, values)
+    return createRoadmapItem(
+      position && request.$type === 'activity'
+        ? {
+            ...request,
+            order: activityOrderAt(treeData, parentId, position.order),
+          }
+        : request,
     ).unwrap()
+  }
 
   const columns = (ctx: GridColumnContext) =>
     getRoadmapItemsGridColumns({
@@ -389,16 +428,25 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
   }
 
   const onDeleteRoadmapItemFormClosed = (wasSaved: boolean) => {
+    // The deleted row's cell held focus; it moves to the row taking its place.
+    const deleting = selectedItemId
+    const next = deleting ? rowAfterRemoving(treeData, deleting) : null
     setOpenDeleteRoadmapItemForm(false)
     setSelectedItemId(null)
-    if (wasSaved) {
-      refreshRoadmapItems()
+    // The form unmounts without handing focus back, so a cancel returns it.
+    if (!wasSaved) {
+      if (deleting) gridRef.current?.focusRow(deleting, 'name')
+      return
     }
+    void refreshRoadmapItems().then(() => {
+      if (next) gridRef.current?.focusRow(next, 'name')
+    })
   }
 
   return (
     <>
       <WaydGrid<RoadmapItemTreeNode>
+        ref={gridRef}
         data={treeData}
         getSubRows={(row) => row.children}
         isLoading={roadmapItemsIsLoading}
@@ -423,7 +471,7 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
               }
             : undefined
         }
-        onRefresh={async () => refreshRoadmapItems()}
+        onRefresh={refreshRoadmapItems}
         emptyMessage="No Roadmap Items"
         csvFileName="roadmap-items"
         enableDragAndDrop={enableDragAndDrop}
@@ -436,6 +484,15 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
         onCreate={canManage ? createRoadmapItemFromDraft : undefined}
         fieldToColumn={FIELD_TO_COLUMN}
         createDraftNode={canManage ? createDraftRoadmapItem : undefined}
+        rowActions={{
+          ...(canManage
+            ? {
+                canInsertUnder: canHoldItems,
+                onDelete: onDeleteItem,
+              }
+            : {}),
+          onOpen: (row) => openRoadmapItemDrawer(row.id),
+        }}
         leftSlot={(ctx) =>
           canManage && (
             <Button

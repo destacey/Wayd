@@ -1,5 +1,6 @@
 import { ApiException } from '@/src/services/wayd-api'
 import toFormErrors, {
+  errorDetail,
   errorsByField,
   isApiError,
   toApiError,
@@ -232,5 +233,21 @@ describe('toApiError', () => {
   it('reads anything else as no error response', () => {
     // Arrange / Act / Assert
     expect(toApiError(new Error('Network Error'))).toEqual({})
+  })
+})
+
+describe('errorDetail', () => {
+  it.each([
+    ['the problem details', { status: 400, detail: 'Raw.' }, 'Raw.'],
+    ['an RTK error carrying them in data', { status: 400, data: { status: 400, detail: 'Wrapped.' } }, 'Wrapped.'],
+    ['an error with no detail', { status: 500 }, undefined],
+    ['nothing', undefined, undefined],
+  ])('reads %s', (_case, error, expected) => {
+    // Arrange — the error a failed call threw
+    // Act
+    const detail = errorDetail(error)
+
+    // Assert
+    expect(detail).toBe(expected)
   })
 })

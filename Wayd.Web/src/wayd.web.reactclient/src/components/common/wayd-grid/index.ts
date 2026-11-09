@@ -24,6 +24,7 @@ export {
   countTreeNodes,
   findNodeById,
   flattenTree,
+  rowAfterRemoving,
 } from '../wayd-grid-core/tree-utils'
 export {
   DragHandleCell,

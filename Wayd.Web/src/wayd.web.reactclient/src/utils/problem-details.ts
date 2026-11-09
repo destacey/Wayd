@@ -45,6 +45,16 @@ export const toApiError = (error: unknown): ApiError => {
   return isApiError(error) ? error : {}
 }
 
+/**
+ * The `detail` of a failed call, whether the error is the problem details
+ * itself or an RTK Query error carrying them in `data`; undefined when it has
+ * none.
+ */
+export const errorDetail = (error: unknown): string | undefined =>
+  toApiError(error).detail ||
+  toApiError((error as { data?: unknown } | null)?.data).detail ||
+  undefined
+
 const normalizeName = (raw: string) => {
   const trimmed = (raw ?? '').trim()
   if (!trimmed) return trimmed

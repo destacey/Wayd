@@ -1,5 +1,11 @@
 import type { TreeNode, FlattenedTreeNode } from './dnd/tree-projection'
-import { countTreeNodes, findNodeById, flattenTree, buildTree } from './tree-utils'
+import {
+  countTreeNodes,
+  findNodeById,
+  flattenTree,
+  buildTree,
+  rowAfterRemoving,
+} from './tree-utils'
 
 interface TestNode extends TreeNode {
   name: string
@@ -295,6 +301,46 @@ describe('tree-utils', () => {
       expect(rebuilt[0].children[0].children[0].id).toBe('1-1-1')
       expect(rebuilt[0].children[1].id).toBe('1-2')
       expect(rebuilt[1].id).toBe('2')
+    })
+  })
+
+  describe('rowAfterRemoving', () => {
+    const tree = [
+      createNode('1', 'A', [createNode('1-1', 'A1'), createNode('1-2', 'A2')]),
+      createNode('2', 'B'),
+    ]
+
+    it.each([
+      ['its next sibling', '1-1', '1-2'],
+      ['the sibling before it when it is last', '1-2', '1-1'],
+      ['the next sibling of a root row', '1', '2'],
+    ])('takes %s', (_case, id, expected) => {
+      // Arrange — the shared tree
+      // Act
+      const next = rowAfterRemoving(tree, id)
+
+      // Assert
+      expect(next).toBe(expected)
+    })
+
+    it('takes the parent of an only child', () => {
+      // Arrange
+      const nodes = [createNode('1', 'A', [createNode('1-1', 'A1')])]
+
+      // Act
+      const next = rowAfterRemoving(nodes, '1-1')
+
+      // Assert
+      expect(next).toBe('1')
+    })
+
+    it('returns null for a row not in the tree', () => {
+      // Arrange — the shared tree
+      // Act
+      const next = rowAfterRemoving(tree, 'missing')
+
+      // Assert
+      expect(next).toBeNull()
     })
   })
 })

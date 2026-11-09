@@ -1656,6 +1656,58 @@ export class MeClient {
         }
         return Promise.resolve<WorkItemListDto[]>(null as any);
     }
+
+    /**
+     * Get what you are involved in: counts of your teams, projects, intake desks, requests, risks and products.
+     * @return OK
+     */
+    getHomeContext( cancelToken?: CancelToken): Promise<HomeContextResponse> {
+        let url_ = this.baseUrl + "/api/me/home-context";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetHomeContext(_response);
+        });
+    }
+
+    protected processGetHomeContext(response: AxiosResponse): Promise<HomeContextResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<HomeContextResponse>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<HomeContextResponse>(null as any);
+    }
 }
 
 export class MyFollowsClient {
@@ -65052,6 +65104,19 @@ carries and that the rest of the app resolves against. Exactly one address per e
     isPrimary: boolean;
 }
 
+/** What an employee is part of in intake: the desks they are named on, by role, and the open requests they raised. */
+export interface EmployeeIntakeInvolvementDto {
+    /** How many desks the employee is a member of, in any role. */
+    deskCount: number;
+    /** How many of those desks the employee is a Desk Admin on. */
+    adminDeskCount: number;
+    /** How many of those desks the employee is an Agent on. */
+    agentDeskCount: number;
+    /** How many requests in a Proposed or Active status the employee is the requester of or submitted: the
+requests the list shows under Mine with Open only. */
+    openRequestsRaisedCount: number;
+}
+
 export interface EmployeeListDto {
     /** The employee's unique identifier. */
     id: string;
@@ -65650,6 +65715,25 @@ export interface HolidayRequest {
     name: string;
 }
 
+/** What the caller is involved in, as counts per area, worked out from their linked employee's records on each request. Every count is zero when the account is not linked to an employee, and an area whose module is switched off by its feature flag counts zero too. */
+export interface HomeContextResponse {
+    /** Whether the account is linked to an employee; when false, every count is zero. */
+    hasLinkedEmployee: boolean;
+    /** The active teams and teams of teams the caller is a member of. */
+    teams: HomeTeamsContextResponse;
+    /** The approved and active projects the caller holds a role on or has a task assigned on, by role: the same
+counts as Projects_GetMyProjectsSummary with those statuses. */
+    projects: MyProjectsSummaryDto;
+    /** The intake desks the caller is named on and the open requests they raised. Zero when the
+demand-management feature flag is off. */
+    intake: EmployeeIntakeInvolvementDto;
+    /** How many open risks are assigned to the caller. */
+    assignedRiskCount: number;
+    /** How many proposed or active products the caller's teams are linked to, each counted once. Zero when the
+product-management feature flag is off. */
+    teamProductCount: number;
+}
+
 /** A column of the home page. Saved layouts store the member name, and every user load reads it, so a member is never renamed or removed. */
 export enum HomeLayoutColumn {
     Main = "Main",
@@ -65680,6 +65764,14 @@ export interface HomeLayoutWidgetResponse {
     column: HomeLayoutColumn;
     /** Whether the widget shows; false when the user turned it off. */
     visible: boolean;
+}
+
+/** The active teams and teams of teams the caller is a direct member of, each counted once. */
+export interface HomeTeamsContextResponse {
+    /** How many active teams the caller is a member of. */
+    teamCount: number;
+    /** How many active teams of teams the caller is a direct member of. */
+    teamOfTeamsCount: number;
 }
 
 export interface ProblemDetails {

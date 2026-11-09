@@ -17,7 +17,9 @@ import {
   SavedWidget,
   toSavedWidgets,
 } from './home-layout'
+import { involvementPlacement } from './home-involvement'
 import { HomeWidgets } from './home-widgets'
+import { useHomeContext } from './use-home-context'
 import {
   attentionTiles,
   isWidgetAvailable,
@@ -46,7 +48,11 @@ export const useHomeLayout = () => {
   const { isEnabled: isFeatureEnabled, isLoading: isFlagsLoading } =
     useFeatureFlags()
   const messageApi = useMessage()
-  const { data, isLoading, isError } = useGetHomeLayoutQuery()
+  const { data, isLoading: isSavedLoading, isError } = useGetHomeLayoutQuery()
+  const { context, isLoading: isContextLoading } = useHomeContext({
+    refresh: true,
+  })
+  const isLoading = isSavedLoading || isContextLoading
   const [updateHomeLayout] = useUpdateHomeLayoutMutation()
   const [draft, setDraft] = useState<LayoutDraft | null>(null)
 
@@ -56,7 +62,11 @@ export const useHomeLayout = () => {
     hasLinkedEmployee,
   }
   const saved = fromSavedWidgets(data?.widgets ?? [])
-  const layout = draft?.layout ?? resolveLayout(HomeWidgets, access, saved)
+  // The default, and where a widget the saved layout lacks joins it, follow
+  // what the caller is involved in; a failed context falls back to the registry's.
+  const place = involvementPlacement(HomeWidgets, context)
+  const layout =
+    draft?.layout ?? resolveLayout(HomeWidgets, access, saved, place)
   const columns = arrangeFromLayout(HomeWidgets, access, layout)
   // A draft taken before access changed may hold a widget the user can no
   // longer use; the drawer never offers one. A save still keeps it, from the basis.
@@ -79,7 +89,7 @@ export const useHomeLayout = () => {
 
   const reset = () =>
     setDraft({
-      layout: resolveLayout(HomeWidgets, access, []),
+      layout: resolveLayout(HomeWidgets, access, [], place),
       basis: [],
       changed: true,
       reset: true,
@@ -105,7 +115,7 @@ export const useHomeLayout = () => {
     columns,
     tiles: attentionTiles(columns),
     hasLinkedEmployee,
-    /** True until the saved layout has loaded, so the page never reshuffles in front of the user. */
+    /** True until the saved layout and the involvement it is ordered by have loaded, so the page never reshuffles in front of the user. */
     isLayoutLoading: isLoading,
     customize: {
       canCustomize,

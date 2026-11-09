@@ -1,8 +1,10 @@
 import {
+  HomeContextResponse,
   HomeLayoutColumn,
   HomeLayoutWidgetResponse,
 } from '@/src/services/wayd-api'
 import { act, fireEvent, render, screen } from '@testing-library/react'
+import { homeContext } from './_components/home/home-context-test-utils'
 import HomePage from './page'
 
 const mockAuth = {
@@ -64,6 +66,15 @@ jest.mock('@/src/store/features/user-management/profile-api', () => ({
       }
     },
   ],
+}))
+
+const mockHome = {
+  context: undefined as HomeContextResponse | undefined,
+  isLoading: false,
+}
+
+jest.mock('./_components/home/use-home-context', () => ({
+  useHomeContext: () => mockHome,
 }))
 
 jest.mock('@/src/components/contexts/messaging', () => ({
@@ -132,6 +143,9 @@ jest.mock('./_components/home/home-widgets', () => {
         defaultOrder: 20,
         requires: { permissions: ['Permissions.PlanningIntervals.View'] },
         Component: stand('Permitted widget'),
+        // Leads, so moves to the top of main, for a member of a team.
+        involvement: (context: HomeContextResponse) =>
+          context.teams.teamCount > 0 ? 3 : 1,
       },
       {
         id: 'lazy',
@@ -164,6 +178,8 @@ describe('HomePage', () => {
     mockLayout.isLoading = false
     mockLayout.saveFails = false
     mockLayout.loadFails = false
+    mockHome.context = undefined
+    mockHome.isLoading = false
     mockUpdateHomeLayout.mockClear()
     mockMessage.error.mockClear()
   })
@@ -326,6 +342,8 @@ describe('HomePage customizing', () => {
     mockLayout.isLoading = false
     mockLayout.saveFails = false
     mockLayout.loadFails = false
+    mockHome.context = undefined
+    mockHome.isLoading = false
     mockUpdateHomeLayout.mockClear()
     mockMessage.error.mockClear()
   })
@@ -358,6 +376,51 @@ describe('HomePage customizing', () => {
     expect(screen.queryByText(/Personal widget/)).not.toBeInTheDocument()
     expect(screen.queryByText('Personal tile')).not.toBeInTheDocument()
     expect(screen.getByText(/Flagged widget/)).toBeInTheDocument()
+  })
+
+  it('orders the default by what the caller is involved in', () => {
+    // Arrange
+    mockAuth.claims.add('Permissions.PlanningIntervals.View')
+    mockHome.context = homeContext({ teams: { teamCount: 1 } })
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(pageWidgets().slice(0, 2)).toEqual([
+      'Permitted widget (Permitted)',
+      'Personal widget (Personal)',
+    ])
+  })
+
+  it('keeps a saved layout over the involvement order', () => {
+    // Arrange
+    mockAuth.claims.add('Permissions.PlanningIntervals.View')
+    mockHome.context = homeContext({ teams: { teamCount: 1 } })
+    mockLayout.widgets = [
+      saved('personal', HomeLayoutColumn.Main),
+      saved('permitted', HomeLayoutColumn.Main),
+    ]
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(pageWidgets().slice(0, 2)).toEqual([
+      'Personal widget (Personal)',
+      'Permitted widget (Permitted)',
+    ])
+  })
+
+  it('draws no widget until the involvement the default is ordered by has loaded', () => {
+    // Arrange
+    mockHome.isLoading = true
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(screen.queryByText(/widget/)).not.toBeInTheDocument()
   })
 
   it('draws no widget or tile until the saved layout has loaded', () => {
@@ -458,6 +521,27 @@ describe('HomePage customizing', () => {
 
     // Assert
     expect(mockUpdateHomeLayout).toHaveBeenCalledWith({ widgets: [] })
+  })
+
+  it('resets to the involvement order, not the registry defaults', () => {
+    // Arrange
+    mockAuth.claims.add('Permissions.PlanningIntervals.View')
+    mockHome.context = homeContext({ teams: { teamCount: 1 } })
+    mockLayout.widgets = [
+      saved('personal', HomeLayoutColumn.Main),
+      saved('permitted', HomeLayoutColumn.Side),
+    ]
+    render(<HomePage />)
+    openCustomize()
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }))
+
+    // Assert
+    expect(pageWidgets().slice(0, 2)).toEqual([
+      'Permitted widget (Permitted)',
+      'Personal widget (Personal)',
+    ])
   })
 
   it('keeps a saved widget the account cannot use when saving', async () => {

@@ -4,8 +4,15 @@ import MyRisksWidget, {
   RiskFollowUpsTile,
   sortByFollowUp,
 } from './my-risks-widget'
-import { RiskListDto } from '@/src/services/wayd-api'
+import { HomeContextResponse, RiskListDto } from '@/src/services/wayd-api'
 import { tileValueStyle } from '../attention-tile-test-utils'
+import { homeContext } from '../home-context-test-utils'
+
+const mockHome: { context?: HomeContextResponse } = {}
+
+jest.mock('../use-home-context', () => ({
+  useHomeContext: () => ({ context: mockHome.context, isLoading: false }),
+}))
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn() }),
@@ -94,6 +101,37 @@ describe('sortByFollowUp', () => {
 describe('MyRisksWidget', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+    mockHome.context = undefined
+  })
+
+  it('asks for the risks while the home context is not known', () => {
+    // Arrange
+    mockRisks.mockReturnValue(loaded([]))
+
+    // Act
+    render(<MyRisksWidget title="My risks" />)
+
+    // Assert
+    expect(mockRisks).toHaveBeenCalledWith('alex@example.com', { skip: false })
+  })
+
+  it('skips the request when the home context says none are assigned', () => {
+    // Arrange
+    mockHome.context = homeContext({ assignedRiskCount: 0 })
+    mockRisks.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+    })
+
+    // Act
+    render(<MyRisksWidget title="My risks" />)
+
+    // Assert
+    expect(mockRisks).toHaveBeenCalledWith('alex@example.com', { skip: true })
+    expect(
+      screen.getByText(/No open risks are assigned to you/),
+    ).toBeInTheDocument()
   })
 
   it('says how it fills when no risk is assigned', () => {

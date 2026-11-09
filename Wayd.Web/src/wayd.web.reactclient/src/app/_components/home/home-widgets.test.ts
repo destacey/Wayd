@@ -1,3 +1,5 @@
+import { homeContext, HomeContextOverrides } from './home-context-test-utils'
+import { involvementPlacement } from './home-involvement'
 import { HomeWidgets } from './home-widgets'
 import { arrangeWidgets, attentionTiles, WidgetAccess } from './widget-registry'
 
@@ -79,5 +81,84 @@ describe('HomeWidgets', () => {
     expect(ids).not.toContain('whats-changed')
     expect(ids).not.toContain('following')
     expect(ids).toContain('my-projects')
+  })
+})
+
+const defaultFor = (overrides: HomeContextOverrides) => {
+  const columns = arrangeWidgets(
+    HomeWidgets,
+    everything,
+    involvementPlacement(HomeWidgets, homeContext(overrides)),
+  )
+  return {
+    main: columns.main.map((w) => w.id),
+    side: columns.side.map((w) => w.id),
+    tiles: attentionTiles(columns).map((t) => t.id),
+  }
+}
+
+describe('HomeWidgets involvement rules', () => {
+  it('puts a team member’s sprints first, above areas they are not in', () => {
+    // Arrange / Act
+    const layout = defaultFor({ teams: { teamCount: 2 } })
+
+    // Assert
+    expect(layout.main).toEqual([
+      'my-team-sprints',
+      'whats-changed',
+      'my-projects',
+      'my-risks',
+    ])
+    expect(layout.side).toEqual(['planning-intervals', 'following'])
+  })
+
+  it('puts a project leader’s projects and their task counts first', () => {
+    // Arrange / Act
+    const layout = defaultFor({ projects: { totalCount: 3, ownerCount: 1 } })
+
+    // Assert
+    expect(layout.main[0]).toBe('my-projects')
+    expect(layout.tiles.slice(0, 2)).toEqual([
+      'overdue-tasks',
+      'tasks-due-this-week',
+    ])
+  })
+
+  it('ranks a project member below a project leader but above shared widgets', () => {
+    // Arrange / Act
+    const layout = defaultFor({ projects: { totalCount: 1, memberCount: 1 } })
+
+    // Assert
+    expect(layout.main).toEqual(['my-projects', 'whats-changed', 'my-risks'])
+  })
+
+  it('interleaves a leader who is also on a team and holds risks', () => {
+    // Arrange / Act
+    const layout = defaultFor({
+      teams: { teamCount: 1 },
+      projects: { totalCount: 2, managerCount: 2 },
+      assignedRiskCount: 1,
+    })
+
+    // Assert
+    expect(layout.main).toEqual([
+      'my-projects',
+      'my-team-sprints',
+      'my-risks',
+      'whats-changed',
+    ])
+    expect(layout.side).toEqual(['planning-intervals', 'following'])
+  })
+
+  it('keeps sprints in the side column for a member of a team of teams only', () => {
+    // Arrange / Act
+    const layout = defaultFor({ teams: { teamOfTeamsCount: 1 } })
+
+    // Assert
+    expect(layout.side).toEqual([
+      'planning-intervals',
+      'following',
+      'my-team-sprints',
+    ])
   })
 })

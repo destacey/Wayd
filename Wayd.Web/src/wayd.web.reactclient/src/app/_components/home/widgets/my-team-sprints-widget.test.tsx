@@ -1,5 +1,13 @@
+import { HomeContextResponse } from '@/src/services/wayd-api'
 import { act, render, screen } from '@testing-library/react'
+import { homeContext } from '../home-context-test-utils'
 import MyTeamSprintsWidget from './my-team-sprints-widget'
+
+const mockHome: { context?: HomeContextResponse } = {}
+
+jest.mock('../use-home-context', () => ({
+  useHomeContext: () => ({ context: mockHome.context, isLoading: false }),
+}))
 
 let mockReport: {
   hasSprints: (hasSprints: boolean) => void
@@ -22,6 +30,24 @@ jest.mock(
 )
 
 describe('MyTeamSprintsWidget', () => {
+  beforeEach(() => {
+    mockHome.context = undefined
+  })
+
+  it('says how it fills, without looking for sprints, when the caller is on no team', () => {
+    // Arrange
+    mockHome.context = homeContext({ teams: { teamOfTeamsCount: 1 } })
+
+    // Act
+    render(<MyTeamSprintsWidget title="My team sprints" />)
+
+    // Assert
+    expect(
+      screen.getByText(/You are not a member of a team/),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Team sprint cards')).not.toBeInTheDocument()
+  })
+
   it('draws a skeleton until the sprints are known', () => {
     // Arrange / Act
     const { container } = render(

@@ -5,8 +5,10 @@ import {
 } from '@/src/services/wayd-api'
 import {
   arrangeWidgets,
+  defaultPlacement,
   HomeWidget,
   isWidgetAvailable,
+  PlaceWidget,
   WidgetAccess,
   WidgetColumn,
   WidgetPlacement,
@@ -63,34 +65,36 @@ export const toSavedWidgets = (
 /**
  * Merges the saved layout with the registry for this account. Saved widgets
  * keep their column, order and visibility; a widget the account can use but
- * the layout does not mention (new, or newly available) joins its default
- * column ahead of the first widget with a later default order. Saved ids the
- * account cannot use, or the registry no longer has, are left out.
+ * the layout does not mention (new, or newly available) joins the column
+ * `place` gives it, ahead of the first widget `place` orders after it. Saved
+ * ids the account cannot use, or the registry no longer has, are left out.
+ * With nothing saved, this is the default layout `place` describes.
  */
 export const resolveLayout = (
   widgets: HomeWidget[],
   access: WidgetAccess,
   saved: SavedWidget[],
+  place: PlaceWidget = defaultPlacement,
 ): HomeLayout => {
   const available = widgets.filter((w) => isWidgetAvailable(w, access))
-  const byId = new Map(available.map((w) => [w.id, w]))
+  const placement = new Map(available.map((w) => [w.id, place(w)]))
   const layout: HomeLayout = { main: [], side: [] }
   const placed = new Set<string>()
 
   for (const entry of saved) {
-    if (!byId.has(entry.widgetId) || placed.has(entry.widgetId)) continue
+    if (!placement.has(entry.widgetId) || placed.has(entry.widgetId)) continue
     layout[entry.column].push({ id: entry.widgetId, visible: entry.visible })
     placed.add(entry.widgetId)
   }
 
+  const orderOf = (id: string) => placement.get(id)!.order
   const missing = available
     .filter((w) => !placed.has(w.id))
-    .sort((a, b) => a.defaultOrder - b.defaultOrder)
+    .sort((a, b) => orderOf(a.id) - orderOf(b.id))
   for (const widget of missing) {
-    const slots = layout[widget.defaultColumn]
-    const before = slots.findIndex(
-      (s) => byId.get(s.id)!.defaultOrder > widget.defaultOrder,
-    )
+    const { column, order } = placement.get(widget.id)!
+    const slots = layout[column]
+    const before = slots.findIndex((s) => orderOf(s.id) > order)
     slots.splice(before === -1 ? slots.length : before, 0, {
       id: widget.id,
       visible: true,

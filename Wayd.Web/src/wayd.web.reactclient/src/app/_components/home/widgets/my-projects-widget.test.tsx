@@ -4,8 +4,19 @@ import MyProjectsWidget, {
   OverdueTasksTile,
   roleCounts,
 } from './my-projects-widget'
-import { MyProjectsSummaryDto, ProjectStatus } from '@/src/services/wayd-api'
+import {
+  HomeContextResponse,
+  MyProjectsSummaryDto,
+  ProjectStatus,
+} from '@/src/services/wayd-api'
 import { tileValueStyle } from '../attention-tile-test-utils'
+import { homeContext } from '../home-context-test-utils'
+
+const mockHome: { context?: HomeContextResponse } = {}
+
+jest.mock('../use-home-context', () => ({
+  useHomeContext: () => ({ context: mockHome.context, isLoading: false }),
+}))
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn() }),
@@ -65,9 +76,32 @@ describe('roleCounts', () => {
   })
 })
 
+beforeEach(() => {
+  mockHome.context = undefined
+})
+
 describe('MyProjectsWidget', () => {
   beforeEach(() => {
     jest.clearAllMocks()
+  })
+
+  it('skips the request when the home context says there are no projects', () => {
+    // Arrange
+    mockHome.context = homeContext()
+    mockSummary.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+    })
+
+    // Act
+    render(<MyProjectsWidget title="My projects" />)
+
+    // Assert
+    expect(mockSummary).toHaveBeenCalledWith(expect.anything(), { skip: true })
+    expect(
+      screen.getByText(/You have no approved or active projects/),
+    ).toBeInTheDocument()
   })
 
   it('shows the project count and a tag per role held, linking to the dashboard', () => {
@@ -87,9 +121,10 @@ describe('MyProjectsWidget', () => {
       'href',
       '/ppm/dashboards/projects',
     )
-    expect(mockSummary).toHaveBeenCalledWith({
-      status: [ProjectStatus.Approved, ProjectStatus.Active],
-    })
+    expect(mockSummary).toHaveBeenCalledWith(
+      { status: [ProjectStatus.Approved, ProjectStatus.Active] },
+      { skip: false },
+    )
   })
 
   it('says "project" for a count of one', () => {
@@ -156,6 +191,25 @@ describe('MyProjectsWidget', () => {
 })
 
 describe('OverdueTasksTile', () => {
+  it('counts zero without asking when the home context says there are no projects', () => {
+    // Arrange
+    mockHome.context = homeContext()
+    mockMetrics.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+    })
+
+    // Act
+    render(<OverdueTasksTile />)
+
+    // Assert
+    expect(mockMetrics).toHaveBeenCalledWith(expect.anything(), { skip: true })
+    expect(
+      screen.getByRole('button', { name: 'Overdue tasks on your projects: 0' }),
+    ).toBeInTheDocument()
+  })
+
   it('counts overdue tasks in the error colour', () => {
     // Arrange
     mockMetrics.mockReturnValue(metrics(7, 2))

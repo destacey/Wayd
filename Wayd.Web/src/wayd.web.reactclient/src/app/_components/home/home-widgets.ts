@@ -1,4 +1,6 @@
+import { HomeContextResponse } from '@/src/services/wayd-api'
 import { lazy } from 'react'
+import { Involvement } from './home-involvement'
 import { HomeWidget } from './widget-registry'
 import FollowingWidget from './widgets/following-widget'
 import MyProjectsWidget, {
@@ -16,6 +18,16 @@ import WhatsChangedWidget, {
 const MyTeamSprintsWidget = lazy(
   () => import('./widgets/my-team-sprints-widget'),
 )
+
+/** Leading a project (sponsor, owner or manager) outranks working on one. */
+const projectInvolvement = ({ projects }: HomeContextResponse) => {
+  if (projects.sponsorCount + projects.ownerCount + projects.managerCount > 0)
+    return Involvement.Leads
+  return projects.totalCount > 0 ? Involvement.Involved : Involvement.None
+}
+
+const teamCount = ({ teams }: HomeContextResponse) =>
+  teams.teamCount + teams.teamOfTeamsCount
 
 /**
  * Every widget the home page can show. Ids are stored in users' saved layouts,
@@ -45,6 +57,7 @@ export const HomeWidgets: HomeWidget[] = [
       linkedEmployee: true,
     },
     Component: MyProjectsWidget,
+    involvement: projectInvolvement,
     tiles: [
       { id: 'overdue-tasks', Tile: OverdueTasksTile },
       { id: 'tasks-due-this-week', Tile: DueThisWeekTile },
@@ -58,6 +71,8 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 30,
     requires: { permissions: ['Permissions.Risks.View'], linkedEmployee: true },
     Component: MyRisksWidget,
+    involvement: (context) =>
+      context.assignedRiskCount > 0 ? Involvement.Involved : Involvement.None,
     tiles: [{ id: 'risk-follow-ups', Tile: RiskFollowUpsTile }],
   },
   {
@@ -70,6 +85,9 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 10,
     requires: { permissions: ['Permissions.PlanningIntervals.View'] },
     Component: PlanningIntervalsWidget,
+    // Teams plan in planning intervals, so they are context for team members.
+    involvement: (context) =>
+      teamCount(context) > 0 ? Involvement.Involved : Involvement.None,
   },
   {
     id: 'my-team-sprints',
@@ -85,6 +103,9 @@ export const HomeWidgets: HomeWidget[] = [
       linkedEmployee: true,
     },
     Component: MyTeamSprintsWidget,
+    // A team member's sprint is their day-to-day work.
+    involvement: (context) =>
+      context.teams.teamCount > 0 ? Involvement.Leads : Involvement.None,
   },
   {
     id: 'following',

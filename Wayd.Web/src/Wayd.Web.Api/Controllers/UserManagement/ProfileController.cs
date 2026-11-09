@@ -127,6 +127,36 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpGet("home-layout")]
+    [EndpointSummary("Get the home page layout of the currently logged in user.")]
+    [EndpointDescription("The widgets the user placed, in order, with their column and whether they show. No widgets means the user has not customized the page and sees the default.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<HomeLayoutResponse>> GetHomeLayout(CancellationToken cancellationToken)
+    {
+        if (User.GetUserId() is not { } userId || string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        return Ok(HomeLayoutResponse.From(await _userService.GetHomeLayout(userId, cancellationToken)));
+    }
+
+    [HttpPut("home-layout")]
+    [EndpointSummary("Update the home page layout of the currently logged in user.")]
+    [EndpointDescription("Replaces the saved layout and leaves the user's other preferences untouched. Send no widgets to return to the default.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> UpdateHomeLayout(UpdateHomeLayoutRequest request, CancellationToken cancellationToken)
+    {
+        if (User.GetUserId() is not { } userId || string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var result = await _userService.UpdateHomeLayout(userId, request.ToUserHomeLayoutDto(), cancellationToken);
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpGet("logs")]
     [EndpointSummary("Get audit logs of currently logged in user.")]
     [ProducesResponseType(StatusCodes.Status200OK)]

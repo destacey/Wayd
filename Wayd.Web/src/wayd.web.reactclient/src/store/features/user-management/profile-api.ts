@@ -1,6 +1,12 @@
 import { getProfileClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
-import { ChangePasswordRequest, UserDetailsDto, UserPreferencesDto } from '@/src/services/wayd-api'
+import {
+  ChangePasswordRequest,
+  HomeLayoutResponse,
+  UpdateHomeLayoutRequest,
+  UserDetailsDto,
+  UserPreferencesDto,
+} from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 
 // Note: permissions are no longer fetched via a separate endpoint — they're
@@ -43,6 +49,50 @@ export const profileApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: [{ type: QueryTags.UserPreferences, id: 'USER' }],
     }),
+    getHomeLayout: builder.query<HomeLayoutResponse, void>({
+      queryFn: async () => {
+        try {
+          const data = await getProfileClient().getHomeLayout()
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: () => [QueryTags.HomeLayout],
+    }),
+    updateHomeLayout: builder.mutation<null, UpdateHomeLayoutRequest>({
+      queryFn: async (request) => {
+        try {
+          await getProfileClient().updateHomeLayout(request)
+          // The API answers 204 with no body; RTK Query rejects undefined as a result.
+          return { data: null }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // The page already shows the new layout while the drawer is open; patching
+      // the cache keeps it there between the drawer closing and the refetch,
+      // rather than flashing the old one. Rolled back on failure.
+      onQueryStarted: async (request, { dispatch, queryFulfilled }) => {
+        const patch = dispatch(
+          profileApi.util.updateQueryData(
+            'getHomeLayout',
+            undefined,
+            (draft) => {
+              draft.widgets = request.widgets
+            },
+          ),
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patch.undo()
+        }
+      },
+      invalidatesTags: [QueryTags.HomeLayout],
+    }),
     changePassword: builder.mutation<void, ChangePasswordRequest>({
       queryFn: async (args) => {
         try {
@@ -61,5 +111,7 @@ export const {
   useGetProfileQuery,
   useGetUserPreferencesQuery,
   useUpdateUserPreferencesMutation,
+  useGetHomeLayoutQuery,
+  useUpdateHomeLayoutMutation,
   useChangePasswordMutation,
 } = profileApi

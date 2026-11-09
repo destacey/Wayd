@@ -6918,6 +6918,93 @@
         ]
       }
     },
+    "/api/user-management/profiles/home-layout": {
+      "get": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Get the home page layout of the currently logged in user.",
+        "description": "The widgets the user placed, in order, with their column and whether they show. No widgets means the user has not customized the page and sees the default.",
+        "operationId": "Profile_GetHomeLayout",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeLayoutResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Update the home page layout of the currently logged in user.",
+        "description": "Replaces the saved layout and leaves the user's other preferences untouched. Send no widgets to return to the default.",
+        "operationId": "Profile_UpdateHomeLayout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHomeLayoutRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/user-management/profiles/logs": {
       "get": {
         "tags": [
@@ -63179,6 +63266,87 @@
         },
         "additionalProperties": false
       },
+      "HomeLayoutColumn": {
+        "enum": [
+          "Main",
+          "Side"
+        ],
+        "type": "string",
+        "description": "A column of the home page. Saved layouts store the member name, and every user load reads it, so a\nmember is never renamed or removed."
+      },
+      "HomeLayoutResponse": {
+        "required": [
+          "widgets"
+        ],
+        "type": "object",
+        "properties": {
+          "widgets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeLayoutWidgetResponse"
+            },
+            "description": "The placed widgets, in the order they show within their columns."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The signed-in user's saved home page arrangement. No widgets means they use the default."
+      },
+      "HomeLayoutWidgetRequest": {
+        "required": [
+          "widgetId",
+          "column",
+          "visible"
+        ],
+        "type": "object",
+        "properties": {
+          "widgetId": {
+            "type": "string",
+            "description": "The widget's id in the client's widget registry."
+          },
+          "column": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/HomeLayoutColumn"
+              }
+            ],
+            "description": "The column the widget sits in."
+          },
+          "visible": {
+            "type": "boolean",
+            "description": "Whether the widget shows; false when the user turned it off."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Where one widget sits on the home page, and whether it shows."
+      },
+      "HomeLayoutWidgetResponse": {
+        "required": [
+          "widgetId",
+          "column",
+          "visible"
+        ],
+        "type": "object",
+        "properties": {
+          "widgetId": {
+            "type": "string",
+            "description": "The widget's id in the client's widget registry."
+          },
+          "column": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/HomeLayoutColumn"
+              }
+            ],
+            "description": "The column the widget sits in."
+          },
+          "visible": {
+            "type": "boolean",
+            "description": "Whether the widget shows; false when the user turned it off."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Where one widget sits on the home page, and whether it shows."
+      },
       "HttpValidationProblemDetails": {
         "allOf": [
           {
@@ -84744,6 +84912,23 @@
           }
         },
         "additionalProperties": false
+      },
+      "UpdateHomeLayoutRequest": {
+        "required": [
+          "widgets"
+        ],
+        "type": "object",
+        "properties": {
+          "widgets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeLayoutWidgetRequest"
+            },
+            "description": "The placed widgets, in the order they show within their columns."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The signed-in user's home page arrangement, replacing the one saved. Send no widgets to clear it and use\nthe default again. Widget ids are the client's; the server checks only the layout's shape."
       },
       "UpdateIncidentSeveritySetRequest": {
         "required": [

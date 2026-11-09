@@ -92,6 +92,15 @@ public interface IUserService : ITransientService
 
     Task<Result> UpdateThemeConfig(string userId, UserThemeConfigDto? themeConfig, CancellationToken cancellationToken);
 
+    /// <summary>The user's saved home page arrangement, with no widgets when they use the default.</summary>
+    Task<UserHomeLayoutDto> GetHomeLayout(string userId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Replaces the user's home page arrangement, leaving their other preferences as they are. An empty list
+    /// clears it, so the default applies again.
+    /// </summary>
+    Task<Result> UpdateHomeLayout(string userId, UserHomeLayoutDto layout, CancellationToken cancellationToken);
+
     /// <summary>
     /// Stages an Entra tenant migration for multiple users in one transaction. Users
     /// are re-validated server-side (still Entra, still on the source tenant, no

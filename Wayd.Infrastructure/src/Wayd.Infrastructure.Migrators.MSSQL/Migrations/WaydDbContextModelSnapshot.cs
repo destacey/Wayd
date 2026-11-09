@@ -10225,6 +10225,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         {
                             b1.Property<string>("ApplicationUserId");
 
+                            b1.Property<string>("HomeLayout");
+
                             b1.Property<string>("ThemeConfig");
 
                             b1.Property<string>("Tours")

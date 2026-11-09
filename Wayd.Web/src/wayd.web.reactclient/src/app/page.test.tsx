@@ -1,4 +1,8 @@
-import { act, render, screen } from '@testing-library/react'
+import {
+  HomeLayoutColumn,
+  HomeLayoutWidgetResponse,
+} from '@/src/services/wayd-api'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import HomePage from './page'
 
 const mockAuth = {
@@ -30,6 +34,56 @@ jest.mock('@/src/hooks', () => ({
 jest.mock('@/src/hooks/use-document-title', () => ({
   useDocumentTitle: jest.fn(),
 }))
+
+const mockLayout = {
+  widgets: [] as HomeLayoutWidgetResponse[],
+  isLoading: false,
+  loadFails: false,
+  saveFails: false,
+}
+const mockUpdateHomeLayout = jest.fn()
+const mockMessage = { error: jest.fn() }
+
+jest.mock('@/src/store/features/user-management/profile-api', () => ({
+  useGetHomeLayoutQuery: () => ({
+    data:
+      mockLayout.isLoading || mockLayout.loadFails
+        ? undefined
+        : { widgets: mockLayout.widgets },
+    isLoading: mockLayout.isLoading,
+    isError: mockLayout.loadFails,
+  }),
+  useUpdateHomeLayoutMutation: () => [
+    (request: unknown) => {
+      mockUpdateHomeLayout(request)
+      return {
+        unwrap: () =>
+          mockLayout.saveFails
+            ? Promise.reject(new Error('save failed'))
+            : Promise.resolve(null),
+      }
+    },
+  ],
+}))
+
+jest.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => mockMessage,
+}))
+
+// antd's Drawer reaches for Next's server-side AsyncLocalStorage, which jsdom
+// has no runtime for. Only the Drawer is stubbed, so its rows stay real.
+jest.mock('antd', () => {
+  const actual = jest.requireActual('antd')
+  const MockDrawer = ({ open, footer, children }: any) =>
+    open ? (
+      <div data-testid="customize-drawer">
+        {children}
+        {footer}
+      </div>
+    ) : null
+  MockDrawer.displayName = 'MockDrawer'
+  return { ...actual, Drawer: MockDrawer }
+})
 
 // Real gating and layout over stand-in widgets, so the page test sees what the
 // registry decides without each widget's requests. Each stand-in shows the
@@ -106,6 +160,12 @@ describe('HomePage', () => {
     ])
     mockAuth.flags = new Set(['following'])
     mockAuth.flagsLoading = false
+    mockLayout.widgets = []
+    mockLayout.isLoading = false
+    mockLayout.saveFails = false
+    mockLayout.loadFails = false
+    mockUpdateHomeLayout.mockClear()
+    mockMessage.error.mockClear()
   })
 
   it('shows nothing of a flagged widget until its flag is known to be on', () => {
@@ -231,5 +291,215 @@ describe('HomePage', () => {
     expect(
       screen.queryByText(/Nothing on the home page applies/),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('HomePage customizing', () => {
+  const saved = (
+    widgetId: string,
+    column: HomeLayoutColumn,
+    visible = true,
+  ): HomeLayoutWidgetResponse => ({ widgetId, column, visible })
+
+  /** The page's widgets, top to bottom, main column first. */
+  const pageWidgets = () =>
+    screen
+      .queryAllByText(/ widget \(/)
+      .filter((el) => !el.closest('[data-testid="customize-drawer"]'))
+      .map((el) => el.textContent)
+
+  const openCustomize = () =>
+    fireEvent.click(screen.getByRole('button', { name: /Customize/ }))
+
+  const closeCustomize = async () => {
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    })
+  }
+
+  beforeEach(() => {
+    mockAuth.employeeId = 'emp-1'
+    mockAuth.claims = new Set(['Permissions.Projects.View'])
+    mockAuth.flags = new Set(['following'])
+    mockAuth.flagsLoading = false
+    mockLayout.widgets = []
+    mockLayout.isLoading = false
+    mockLayout.saveFails = false
+    mockLayout.loadFails = false
+    mockUpdateHomeLayout.mockClear()
+    mockMessage.error.mockClear()
+  })
+
+  it('arranges the page as the saved layout says', () => {
+    // Arrange: Flagged moved to main above Personal.
+    mockLayout.widgets = [
+      saved('flagged', HomeLayoutColumn.Main),
+      saved('personal', HomeLayoutColumn.Main),
+    ]
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(pageWidgets()).toEqual([
+      'Flagged widget (Flagged)',
+      'Personal widget (Personal)',
+    ])
+  })
+
+  it('leaves out a hidden widget and its tiles', () => {
+    // Arrange
+    mockLayout.widgets = [saved('personal', HomeLayoutColumn.Main, false)]
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(screen.queryByText(/Personal widget/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Personal tile')).not.toBeInTheDocument()
+    expect(screen.getByText(/Flagged widget/)).toBeInTheDocument()
+  })
+
+  it('draws no widget or tile until the saved layout has loaded', () => {
+    // Arrange
+    mockLayout.isLoading = true
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(screen.queryByText(/widget/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Personal tile')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Customize/ })).toBeDisabled()
+  })
+
+  it('falls back to the default but offers no Customize when the saved layout fails to load', () => {
+    // Arrange
+    mockLayout.loadFails = true
+
+    // Act
+    render(<HomePage />)
+
+    // Assert — customizing would overwrite the saved layout with the default
+    expect(pageWidgets()).toEqual([
+      'Personal widget (Personal)',
+      'Flagged widget (Flagged)',
+    ])
+    expect(screen.getByRole('button', { name: /Customize/ })).toBeDisabled()
+  })
+
+  it('offers no Customize until the feature flags have loaded', () => {
+    // Arrange
+    mockAuth.flagsLoading = true
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(screen.getByRole('button', { name: /Customize/ })).toBeDisabled()
+  })
+
+  it('follows each change on the page and saves when the drawer closes', async () => {
+    // Arrange
+    render(<HomePage />)
+    openCustomize()
+
+    // Act
+    fireEvent.click(screen.getByRole('switch', { name: 'Show Personal' }))
+
+    // Assert — the page follows at once; nothing is saved yet
+    expect(pageWidgets()).toEqual(['Flagged widget (Flagged)'])
+    expect(screen.queryByText('Personal tile')).not.toBeInTheDocument()
+    expect(mockUpdateHomeLayout).not.toHaveBeenCalled()
+
+    // Act
+    await closeCustomize()
+
+    // Assert
+    expect(mockUpdateHomeLayout).toHaveBeenCalledTimes(1)
+    expect(mockUpdateHomeLayout).toHaveBeenCalledWith({
+      widgets: [
+        saved('personal', HomeLayoutColumn.Main, false),
+        saved('flagged', HomeLayoutColumn.Side),
+      ],
+    })
+    expect(mockMessage.error).not.toHaveBeenCalled()
+  })
+
+  it('saves nothing when the drawer closes unchanged', async () => {
+    // Arrange
+    render(<HomePage />)
+    openCustomize()
+
+    // Act
+    await closeCustomize()
+
+    // Assert
+    expect(mockUpdateHomeLayout).not.toHaveBeenCalled()
+  })
+
+  it('clears the saved layout on Reset to default', async () => {
+    // Arrange
+    mockLayout.widgets = [saved('personal', HomeLayoutColumn.Side, false)]
+    render(<HomePage />)
+    openCustomize()
+
+    // Act
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }))
+
+    // Assert — the default shows at once
+    expect(pageWidgets()).toEqual([
+      'Personal widget (Personal)',
+      'Flagged widget (Flagged)',
+    ])
+
+    // Act
+    await closeCustomize()
+
+    // Assert
+    expect(mockUpdateHomeLayout).toHaveBeenCalledWith({ widgets: [] })
+  })
+
+  it('keeps a saved widget the account cannot use when saving', async () => {
+    // Arrange: the following flag is off, so Flagged is neither shown nor offered.
+    mockAuth.flags = new Set()
+    mockLayout.widgets = [
+      saved('flagged', HomeLayoutColumn.Main, false),
+      saved('personal', HomeLayoutColumn.Main),
+      saved('retired', HomeLayoutColumn.Side),
+    ]
+    render(<HomePage />)
+    openCustomize()
+    expect(
+      screen.queryByRole('switch', { name: 'Show Flagged' }),
+    ).not.toBeInTheDocument()
+
+    // Act
+    fireEvent.click(screen.getByRole('switch', { name: 'Show Personal' }))
+    await closeCustomize()
+
+    // Assert
+    expect(mockUpdateHomeLayout).toHaveBeenCalledWith({
+      widgets: [
+        saved('flagged', HomeLayoutColumn.Main, false),
+        saved('personal', HomeLayoutColumn.Main, false),
+      ],
+    })
+  })
+
+  it('says so when the layout cannot be saved', async () => {
+    // Arrange
+    mockLayout.saveFails = true
+    render(<HomePage />)
+    openCustomize()
+    fireEvent.click(screen.getByRole('switch', { name: 'Show Personal' }))
+
+    // Act
+    await closeCustomize()
+
+    // Assert
+    expect(mockMessage.error).toHaveBeenCalledWith(
+      expect.stringMatching(/could not be saved/),
+    )
   })
 })

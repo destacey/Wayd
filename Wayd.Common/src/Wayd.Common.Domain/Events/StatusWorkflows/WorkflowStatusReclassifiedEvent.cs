@@ -20,7 +20,9 @@ namespace Wayd.Common.Domain.Events.StatusWorkflows;
 /// <para>
 /// Raised by <c>StatusWorkflow.ReclassifyStatus</c>, which is Draft-only for exactly the reason above:
 /// on a published workflow the records carrying a denormalized category would all be left disagreeing
-/// with the status they point at, and moving those is a remap rather than an edit.
+/// with the status they point at, and moving those is a remap rather than an edit. Also raised by
+/// <c>StatusWorkflow.SyncFromSource</c> when a managed workflow's source moves a status to another category;
+/// that workflow is published, so the owning module re-stamps the records holding the status.
 /// </para>
 /// </remarks>
 public sealed record WorkflowStatusReclassifiedEvent : DomainEvent<WorkflowStatusReclassifiedEvent>, IDomainEventDescriptor, IAggregateEvent

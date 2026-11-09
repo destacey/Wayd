@@ -172,9 +172,26 @@ public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPut("{id}/statuses/{statusId}/description")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
+    [EndpointSummary("Change a status's description.")]
+    [EndpointDescription("Changes only the description, so it works on a managed workflow, whose status names belong to its source. Refused for system and archived workflows.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> DescribeStatus(Guid id, Guid statusId, [FromBody] DescribeWorkflowStatusRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToDescribeWorkflowStatusCommand(id, statusId), cancellationToken);
+
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPut("{id}/statuses/{statusId}/classification")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.StatusWorkflows)]
     [EndpointSummary("Change the category and well-known meaning of a status.")]
+    [EndpointDescription("Draft owned workflows only. Refused on a managed workflow, whose categories come from its source with each sync.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

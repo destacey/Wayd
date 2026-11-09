@@ -64,6 +64,8 @@ const workflow: StatusWorkflowDetailsDto = {
   canArchive: false,
   ownership: WorkflowOwnership.Owned,
   canReclassify: false,
+  canRenameAndReorder: false,
+  canDescribe: false,
   warnings: [],
 }
 

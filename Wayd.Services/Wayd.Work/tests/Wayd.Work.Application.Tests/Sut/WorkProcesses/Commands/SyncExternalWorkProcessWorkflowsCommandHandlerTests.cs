@@ -308,6 +308,19 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandlerTests : IDispo
         return workflow;
     }
 
+    /// <summary>
+    /// Has the workflow sync bring each seeded engine workflow into line with the source, as the engine command
+    /// does, so a test can tell the statuses the sync creates from those already there.
+    /// </summary>
+    private void ApplyWorkflowSyncs() =>
+        _dispatcher.Setup(d => d.Send(It.IsAny<SyncManagedWorkflowCommand>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((SyncManagedWorkflowCommand c, CancellationToken _) =>
+            {
+                var workflow = _engineWorkflows.Single(w => w.ExternalKey == c.ExternalKey);
+                workflow.SyncFromSource(c.Name, c.Statuses, EventActor.Sync(null), Now).IsSuccess.Should().BeTrue();
+                return Sent(c, workflow.Id);
+            });
+
     [Fact]
     public async Task Handle_ShouldLinkTheWorkTypeToItsRecordType()
     {
@@ -468,18 +481,23 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandlerTests : IDispo
     }
 
     [Fact]
-    public async Task Handle_ShouldGiveEachStatusWithNoDescription_TheOneWorksSharedStatusOfItsNameHad()
+    public async Task Handle_ShouldGiveAStatusItCreates_TheDescriptionWorksSharedStatusOfItsNameHad()
     {
-        // Arrange — "Closed" already has a description of its own, which the sync keeps
-        var process = ExternalProcess("Agile", WorkType("Bug", ("New", StatusCategory.Proposed, 1, true), ("Closed", StatusCategory.Done, 2, true)));
+        // Arrange — "Active" was already here with no description and "Closed" has one of its own; both are left
+        // alone, since an existing status's description is the administrator's
+        var process = ExternalProcess("Agile", WorkType("Bug",
+            ("New", StatusCategory.Proposed, 1, true), ("Active", StatusCategory.Active, 2, true), ("Closed", StatusCategory.Done, 3, true)));
         SeedProcess(process);
         _dbContext.AddWorkType(new WorkTypeFaker().WithName("Bug").Generate());
         var workflow = SeedEngineWorkflow(process, "Bug",
-            new SourceStatus("state-Bug-New", "New", StatusCategory.Proposed), new SourceStatus("state-Bug-Closed", "Closed", StatusCategory.Done));
+            new SourceStatus("state-Bug-Active", "Active", StatusCategory.Active), new SourceStatus("state-Bug-Closed", "Closed", StatusCategory.Done));
+        var active = workflow.Statuses.Single(s => s.Name == "Active");
         var closed = workflow.Statuses.Single(s => s.Name == "Closed");
         workflow.DescribeStatus(closed.Id, "Finished.", EventActor.System, Now);
         workflow.ClearDomainEvents();
+        ApplyWorkflowSyncs();
         _dbContext.AddLegacyWorkStatusDescription(new LegacyWorkStatusDescriptionFaker().WithName("new").WithDescription("Not started yet.").Generate());
+        _dbContext.AddLegacyWorkStatusDescription(new LegacyWorkStatusDescriptionFaker().WithName("Active").WithDescription("Being worked on.").Generate());
         _dbContext.AddLegacyWorkStatusDescription(new LegacyWorkStatusDescriptionFaker().WithName("Closed").WithDescription("Done and dusted.").Generate());
 
         // Act
@@ -487,17 +505,44 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandlerTests : IDispo
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        SentOf<SyncManagedWorkflowCommand>().Single().Statuses.Select(s => (s.Name, s.Description)).Should().Equal(
+            ("New", "Not started yet."), ("Active", "Being worked on."), ("Closed", "Done and dusted."));
         var created = workflow.Statuses.Single(s => s.Name == "New");
         created.Description.Should().Be("Not started yet.");
+        active.Description.Should().BeNull();
         closed.Description.Should().Be("Finished.");
-        // Through the workflow, so the Activity log records it.
-        workflow.DomainEvents.OfType<WorkflowStatusDescriptionChangedEvent>().Should().ContainSingle()
-            .Which.StatusId.Should().Be(created.Id);
-        _statusWorkflowDbContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
+        // In the same save as the status, and on the event that adds it, which the Activity log records.
+        workflow.DomainEvents.OfType<WorkflowStatusAddedEvent>().Should().ContainSingle()
+            .Which.Description.Should().Be("Not started yet.");
+        workflow.DomainEvents.OfType<WorkflowStatusDescriptionChangedEvent>().Should().BeEmpty();
     }
 
     [Fact]
-    public async Task Handle_ShouldSaveNoDescription_WhenNoStatusMatchesOne()
+    public async Task Handle_ShouldLeaveADescriptionAnAdministratorCleared_Cleared()
+    {
+        // Arrange
+        var process = ExternalProcess("Agile", WorkType("Bug", ("New", StatusCategory.Proposed, 1, true)));
+        SeedProcess(process);
+        _dbContext.AddWorkType(new WorkTypeFaker().WithName("Bug").Generate());
+        var workflow = SeedEngineWorkflow(process, "Bug", new SourceStatus("state-Bug-New", "New", StatusCategory.Proposed));
+        var status = workflow.Statuses.Single();
+        workflow.DescribeStatus(status.Id, "Not started yet.", EventActor.Sync(null), Now);
+        workflow.DescribeStatus(status.Id, null, EventActor.User(Guid.NewGuid().ToString()), Now);
+        workflow.ClearDomainEvents();
+        ApplyWorkflowSyncs();
+        _dbContext.AddLegacyWorkStatusDescription(new LegacyWorkStatusDescriptionFaker().WithName("New").WithDescription("Not started yet.").Generate());
+
+        // Act
+        var result = await _handler.Handle(new SyncExternalWorkProcessWorkflowsCommand(process), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        status.Description.Should().BeNull();
+        workflow.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldSendNoDescription_WhenNoStatusMatchesOne()
     {
         // Arrange
         var process = ExternalProcess("Agile", WorkType("Bug", ("New", StatusCategory.Proposed, 1, true)));
@@ -512,9 +557,7 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandlerTests : IDispo
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
-        workflow.Statuses.Single().Description.Should().BeNull();
-        workflow.DomainEvents.Should().BeEmpty();
-        _statusWorkflowDbContext.Verify(c => c.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+        SentOf<SyncManagedWorkflowCommand>().Single().Statuses.Should().OnlyContain(s => s.Description == null);
     }
 
     [Fact]

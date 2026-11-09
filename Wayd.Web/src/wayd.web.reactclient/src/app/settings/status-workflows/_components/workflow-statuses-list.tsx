@@ -19,17 +19,25 @@ import { ItemType } from 'antd/es/menu/interface'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useMemo, useState } from 'react'
 import AddWorkflowStatusForm from './add-workflow-status-form'
-import EditWorkflowStatusForm from './edit-workflow-status-form'
+import EditWorkflowStatusForm, {
+  type WorkflowStatusEditScope,
+} from './edit-workflow-status-form'
 import { isApiError, type ApiError } from '@/src/utils'
 
 export interface WorkflowStatusesListProps {
   statusWorkflow: StatusWorkflowDetailsDto
+  /** Whether the user holds the Update permission on status workflows. */
+  canUpdate: boolean
   loadData?: () => void
 }
 
 interface RowMenuProps {
   status: WorkflowStatusDto
   sortedStatuses: WorkflowStatusDto[]
+  /** Whether statuses can be moved up and down. */
+  canReorder: boolean
+  /** Whether statuses can be deleted. */
+  canDelete: boolean
   onEditClicked: (status: WorkflowStatusDto) => void
   onDeleteClicked: (status: WorkflowStatusDto) => void
   onMoveClicked: (status: WorkflowStatusDto, direction: 'up' | 'down') => void
@@ -50,7 +58,7 @@ const getRowMenuItems = (props: RowMenuProps): ItemType[] => {
     },
   ]
 
-  if (!isFirst) {
+  if (props.canReorder && !isFirst) {
     items.push({
       key: 'move-up',
       label: 'Move Up',
@@ -58,7 +66,7 @@ const getRowMenuItems = (props: RowMenuProps): ItemType[] => {
     })
   }
 
-  if (!isLast) {
+  if (props.canReorder && !isLast) {
     items.push({
       key: 'move-down',
       label: 'Move Down',
@@ -66,21 +74,24 @@ const getRowMenuItems = (props: RowMenuProps): ItemType[] => {
     })
   }
 
-  items.push(
-    { key: 'divider', type: 'divider' },
-    {
-      key: 'delete',
-      label: 'Delete',
-      danger: true,
-      onClick: () => props.onDeleteClicked(props.status),
-    },
-  )
+  if (props.canDelete) {
+    items.push(
+      { key: 'divider', type: 'divider' },
+      {
+        key: 'delete',
+        label: 'Delete',
+        danger: true,
+        onClick: () => props.onDeleteClicked(props.status),
+      },
+    )
+  }
 
   return items
 }
 
 const WorkflowStatusesList = ({
   statusWorkflow,
+  canUpdate,
   loadData,
 }: WorkflowStatusesListProps) => {
   const messageApi = useMessage()
@@ -100,7 +111,16 @@ const WorkflowStatusesList = ({
   const ownerType = ownerTypes?.find((o) => o.key === statusWorkflow.owner?.key)
   const aliases = ownerType?.aliases ?? []
 
-  const canEdit = statusWorkflow.canEdit
+  // The permission claim and the record's own verdict must both allow each.
+  const canEdit = canUpdate && statusWorkflow.canEdit
+  const canRenameAndReorder = canUpdate && statusWorkflow.canRenameAndReorder
+  const editScope: WorkflowStatusEditScope | undefined = canEdit
+    ? 'all'
+    : canRenameAndReorder
+      ? 'nameAndDescription'
+      : canUpdate && statusWorkflow.canDescribe
+        ? 'description'
+        : undefined
 
   const sortedStatuses = useMemo(
     () =>
@@ -179,12 +199,14 @@ const WorkflowStatusesList = ({
 
     return [
       createActionsColumn<WorkflowStatusDto>({
-        unavailable: !canEdit,
+        unavailable: !editScope,
         ariaLabel: 'Status actions',
         getItems: (status) =>
           getRowMenuItems({
             status,
             sortedStatuses,
+            canReorder: canRenameAndReorder,
+            canDelete: canEdit,
             onEditClicked: handleEdit,
             onDeleteClicked: handleDelete,
             onMoveClicked: handleMove,
@@ -221,6 +243,8 @@ const WorkflowStatusesList = ({
     ]
   }, [
     canEdit,
+    canRenameAndReorder,
+    editScope,
     sortedStatuses,
     modal,
     removeStatus,
@@ -232,7 +256,11 @@ const WorkflowStatusesList = ({
   const actions = (
     <Space>
       {canEdit && (
-        <Button type="primary" size="small" onClick={() => setOpenAddForm(true)}>
+        <Button
+          type="primary"
+          size="small"
+          onClick={() => setOpenAddForm(true)}
+        >
           Add Status
         </Button>
       )}
@@ -262,13 +290,14 @@ const WorkflowStatusesList = ({
           onFormCancel={() => setOpenAddForm(false)}
         />
       )}
-      {editingStatus && (
+      {editingStatus && editScope && (
         <EditWorkflowStatusForm
           workflowId={statusWorkflow.id}
           status={editingStatus}
           statuses={sortedStatuses}
           aliases={aliases}
           categoryLabels={ownerType?.categoryLabels}
+          scope={editScope}
           onFormComplete={() => setEditingStatus(null)}
           onFormCancel={() => setEditingStatus(null)}
         />

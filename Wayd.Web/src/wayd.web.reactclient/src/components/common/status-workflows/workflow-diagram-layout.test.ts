@@ -86,6 +86,8 @@ const workflow = (
   canArchive: false,
   ownership: WorkflowOwnership.Owned,
   canReclassify: false,
+  canRenameAndReorder: false,
+  canDescribe: false,
   warnings: [],
   ...overrides,
 })

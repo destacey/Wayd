@@ -3196,6 +3196,173 @@ public class UserServiceTests
     }
 
     #endregion
+
+    #region Preferences
+
+    private static UserHomeLayout SavedHomeLayout() => new()
+    {
+        Widgets =
+        [
+            new UserHomeLayoutWidget { WidgetId = "my-risks", Column = HomeLayoutColumn.Side, Visible = true },
+            new UserHomeLayoutWidget { WidgetId = "following", Column = HomeLayoutColumn.Main, Visible = false },
+        ],
+    };
+
+    private ApplicationUser UserWithPreferences(UserPreferences preferences)
+    {
+        var user = CreateUser();
+        user.Preferences = preferences;
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+        return user;
+    }
+
+    [Fact]
+    public async Task UpdateThemeConfig_ShouldKeepHomeLayoutAndTours()
+    {
+        // Arrange
+        var layout = SavedHomeLayout();
+        var user = UserWithPreferences(new UserPreferences
+        {
+            Tours = new() { ["home"] = true },
+            HomeLayout = layout,
+        });
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateThemeConfig(
+            "user-1",
+            new UserThemeConfigDto { ColorPrimary = "#123456", UseCompactAlgorithm = true },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        user.Preferences.ThemeConfig.Should().BeEquivalentTo(new UserThemeConfig { ColorPrimary = "#123456", UseCompactAlgorithm = true });
+        user.Preferences.HomeLayout.Should().BeSameAs(layout);
+        user.Preferences.Tours.Should().Equal(new Dictionary<string, bool> { ["home"] = true });
+        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdatePreferences_ShouldKeepHomeLayout()
+    {
+        // Arrange
+        var layout = SavedHomeLayout();
+        var user = UserWithPreferences(new UserPreferences { HomeLayout = layout });
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdatePreferences(
+            "user-1",
+            new UserPreferencesDto { Tours = new() { ["projects"] = true } },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        user.Preferences.Tours.Should().Equal(new Dictionary<string, bool> { ["projects"] = true });
+        user.Preferences.HomeLayout.Should().BeSameAs(layout);
+        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateHomeLayout_ShouldSaveWidgetsInOrder_AndKeepThemeAndTours()
+    {
+        // Arrange
+        var theme = new UserThemeConfig { ColorPrimary = "#abcdef", UseCompactAlgorithm = true };
+        var user = UserWithPreferences(new UserPreferences
+        {
+            Tours = new() { ["home"] = true },
+            ThemeConfig = theme,
+        });
+        var layout = new UserHomeLayoutDto
+        {
+            Widgets =
+            [
+                new UserHomeLayoutWidgetDto { WidgetId = "following", Column = HomeLayoutColumn.Main, Visible = true },
+                new UserHomeLayoutWidgetDto { WidgetId = "my-projects", Column = HomeLayoutColumn.Side, Visible = false },
+            ],
+        };
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateHomeLayout("user-1", layout, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        user.Preferences.HomeLayout!.Widgets.Should().BeEquivalentTo(
+            [
+                new UserHomeLayoutWidget { WidgetId = "following", Column = HomeLayoutColumn.Main, Visible = true },
+                new UserHomeLayoutWidget { WidgetId = "my-projects", Column = HomeLayoutColumn.Side, Visible = false },
+            ],
+            o => o.WithStrictOrdering());
+        user.Preferences.ThemeConfig.Should().BeSameAs(theme);
+        user.Preferences.Tours.Should().Equal(new Dictionary<string, bool> { ["home"] = true });
+        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateHomeLayout_ShouldClearTheLayout_WhenNoWidgetsAreSent()
+    {
+        // Arrange
+        var user = UserWithPreferences(new UserPreferences { HomeLayout = SavedHomeLayout() });
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateHomeLayout("user-1", new UserHomeLayoutDto(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        user.Preferences.HomeLayout.Should().BeNull();
+        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateHomeLayout_ShouldFail_WhenUserDoesNotExist()
+    {
+        // Arrange
+        UserWithPreferences(new UserPreferences());
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateHomeLayout("missing", new UserHomeLayoutDto(), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not found");
+        _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetHomeLayout_ShouldReturnTheSavedWidgetsInOrder()
+    {
+        // Arrange
+        UserWithPreferences(new UserPreferences { HomeLayout = SavedHomeLayout() });
+        var sut = CreateSut();
+
+        // Act
+        var layout = await sut.GetHomeLayout("user-1", TestContext.Current.CancellationToken);
+
+        // Assert
+        layout.Widgets.Should().Equal(
+            new UserHomeLayoutWidgetDto { WidgetId = "my-risks", Column = HomeLayoutColumn.Side, Visible = true },
+            new UserHomeLayoutWidgetDto { WidgetId = "following", Column = HomeLayoutColumn.Main, Visible = false });
+    }
+
+    [Fact]
+    public async Task GetHomeLayout_ShouldReturnNoWidgets_WhenNoneIsSaved()
+    {
+        // Arrange
+        UserWithPreferences(new UserPreferences());
+        var sut = CreateSut();
+
+        // Act
+        var layout = await sut.GetHomeLayout("user-1", TestContext.Current.CancellationToken);
+
+        // Assert
+        layout.Widgets.Should().BeEmpty();
+    }
+
+    #endregion
 }
 
 /// <summary>

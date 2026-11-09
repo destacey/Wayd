@@ -203,6 +203,7 @@ export enum QueryTags {
   // USER PROFILE
   Profile = 'UserManagement.Profile',
   UserPreferences = 'UserManagement.UserPreferences',
+  HomeLayout = 'UserManagement.HomeLayout',
   PersonalAccessTokens = 'UserManagement.PersonalAccessTokens',
   UserSessions = 'UserManagement.UserSessions',
 

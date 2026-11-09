@@ -8620,6 +8620,131 @@ export class ProfileClient {
     }
 
     /**
+     * Get the home page layout of the currently logged in user.
+     * @return OK
+     */
+    getHomeLayout( cancelToken?: CancelToken): Promise<HomeLayoutResponse> {
+        let url_ = this.baseUrl + "/api/user-management/profiles/home-layout";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetHomeLayout(_response);
+        });
+    }
+
+    protected processGetHomeLayout(response: AxiosResponse): Promise<HomeLayoutResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<HomeLayoutResponse>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<HomeLayoutResponse>(null as any);
+    }
+
+    /**
+     * Update the home page layout of the currently logged in user.
+     * @return No Content
+     */
+    updateHomeLayout(request: UpdateHomeLayoutRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/user-management/profiles/home-layout";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateHomeLayout(_response);
+        });
+    }
+
+    protected processUpdateHomeLayout(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get audit logs of currently logged in user.
      * @return OK
      */
@@ -60613,6 +60738,78 @@ export class StatusWorkflowsClient {
     }
 
     /**
+     * Change a status's description.
+     * @return No Content
+     */
+    describeStatus(id: string, statusId: string, request: DescribeWorkflowStatusRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/status-workflows/{id}/statuses/{statusId}/description";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (statusId === undefined || statusId === null)
+            throw new globalThis.Error("The parameter 'statusId' must be defined.");
+        url_ = url_.replace("{statusId}", encodeURIComponent("" + statusId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processDescribeStatus(_response);
+        });
+    }
+
+    protected processDescribeStatus(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Change the category and well-known meaning of a status.
      * @return No Content
      */
@@ -64615,6 +64812,12 @@ combining windows should sum `count` and `windowDays` instead. */
     perDay?: number | undefined;
 }
 
+/** A request to change only a status's description, leaving its name as it is. */
+export interface DescribeWorkflowStatusRequest {
+    /** What the status means, shown when picking it. Empty or omitted clears it. */
+    description?: string | undefined;
+}
+
 export interface DescriptiveNavigationDtoOfGuidAndInteger {
     id: string;
     key: number;
@@ -65445,6 +65648,38 @@ export interface HolidayRequest {
     date: string;
     /** What the day is, such as "New Year's Day". */
     name: string;
+}
+
+/** A column of the home page. Saved layouts store the member name, and every user load reads it, so a member is never renamed or removed. */
+export enum HomeLayoutColumn {
+    Main = "Main",
+    Side = "Side",
+}
+
+/** The signed-in user's saved home page arrangement. No widgets means they use the default. */
+export interface HomeLayoutResponse {
+    /** The placed widgets, in the order they show within their columns. */
+    widgets: HomeLayoutWidgetResponse[];
+}
+
+/** Where one widget sits on the home page, and whether it shows. */
+export interface HomeLayoutWidgetRequest {
+    /** The widget's id in the client's widget registry. */
+    widgetId: string;
+    /** The column the widget sits in. */
+    column: HomeLayoutColumn;
+    /** Whether the widget shows; false when the user turned it off. */
+    visible: boolean;
+}
+
+/** Where one widget sits on the home page, and whether it shows. */
+export interface HomeLayoutWidgetResponse {
+    /** The widget's id in the client's widget registry. */
+    widgetId: string;
+    /** The column the widget sits in. */
+    column: HomeLayoutColumn;
+    /** Whether the widget shows; false when the user turned it off. */
+    visible: boolean;
 }
 
 export interface ProblemDetails {
@@ -70969,7 +71204,7 @@ export interface StatusWorkflowDetailsDto {
     state: string;
     isSystem: boolean;
     /** Whether administrators author this workflow, or a sync keeps it from its source. A managed
-workflow's statuses follow the source; only their categories and aliases are edited here. */
+workflow's statuses, categories included, follow the source; only their descriptions are edited here. */
     ownership: WorkflowOwnership;
     /** The source's identifier for this workflow when it is managed; null when owned. */
     externalKey?: string | undefined;
@@ -71003,9 +71238,15 @@ status. Publishing is refused until each is moved or loses its alias. */
     misfiledAliases: string[];
     /** Whether the statuses may be restructured — Draft, and not platform-seeded. */
     canEdit: boolean;
-    /** Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one
-until it is archived. Retired statuses never. */
+    /** Whether a status's category and alias may be changed: on a draft owned workflow only. A managed
+workflow's categories come from its source. */
     canReclassify: boolean;
+    /** Whether statuses may be renamed, re-described and reordered: on an owned workflow that is not a system or
+archived one, published included, since these change what people read rather than what records hold. */
+    canRenameAndReorder: boolean;
+    /** Whether a status's description may be changed: on any workflow but a system or archived one, a managed
+one included, since a source supplies no descriptions. */
+    canDescribe: boolean;
     /** What a check found wrong that does not stop this workflow being used, one sentence each. Only a
 managed workflow has any: it syncs regardless, and administration flags it until they are fixed. */
     warnings: string[];
@@ -72503,6 +72744,12 @@ export interface UpdateHolidayCalendarRequest {
     name: string;
     /** What the calendar covers, such as the region or office. */
     description?: string | undefined;
+}
+
+/** The signed-in user's home page arrangement, replacing the one saved. Send no widgets to clear it and use the default again. Widget ids are the client's; the server checks only the layout's shape. */
+export interface UpdateHomeLayoutRequest {
+    /** The placed widgets, in the order they show within their columns. */
+    widgets: HomeLayoutWidgetRequest[];
 }
 
 export interface UpdateIncidentSeveritySetRequest {

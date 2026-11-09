@@ -6918,6 +6918,93 @@
         ]
       }
     },
+    "/api/user-management/profiles/home-layout": {
+      "get": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Get the home page layout of the currently logged in user.",
+        "description": "The widgets the user placed, in order, with their column and whether they show. No widgets means the user has not customized the page and sees the default.",
+        "operationId": "Profile_GetHomeLayout",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeLayoutResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Profile"
+        ],
+        "summary": "Update the home page layout of the currently logged in user.",
+        "description": "Replaces the saved layout and leaves the user's other preferences untouched. Send no widgets to return to the default.",
+        "operationId": "Profile_UpdateHomeLayout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHomeLayoutRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/user-management/profiles/logs": {
       "get": {
         "tags": [
@@ -52958,12 +53045,87 @@
         ]
       }
     },
+    "/api/status-workflows/{id}/statuses/{statusId}/description": {
+      "put": {
+        "tags": [
+          "StatusWorkflows"
+        ],
+        "summary": "Change a status's description.",
+        "description": "Changes only the description, so it works on a managed workflow, whose status names belong to its source. Refused for system and archived workflows.",
+        "operationId": "StatusWorkflows_DescribeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          },
+          {
+            "name": "statusId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 2
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DescribeWorkflowStatusRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 3
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/status-workflows/{id}/statuses/{statusId}/classification": {
       "put": {
         "tags": [
           "StatusWorkflows"
         ],
         "summary": "Change the category and well-known meaning of a status.",
+        "description": "Draft owned workflows only. Refused on a managed workflow, whose categories come from its source with each sync.",
         "operationId": "StatusWorkflows_ReclassifyStatus",
         "parameters": [
           {
@@ -60787,6 +60949,19 @@
         "additionalProperties": false,
         "description": "How often production deployments completed over the window."
       },
+      "DescribeWorkflowStatusRequest": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "maxLength": 512,
+            "type": "string",
+            "description": "What the status means, shown when picking it. Empty or omitted clears it.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A request to change only a status's description, leaving its name as it is."
+      },
       "DescriptiveNavigationDto": {
         "allOf": [
           {
@@ -63090,6 +63265,87 @@
           }
         },
         "additionalProperties": false
+      },
+      "HomeLayoutColumn": {
+        "enum": [
+          "Main",
+          "Side"
+        ],
+        "type": "string",
+        "description": "A column of the home page. Saved layouts store the member name, and every user load reads it, so a\nmember is never renamed or removed."
+      },
+      "HomeLayoutResponse": {
+        "required": [
+          "widgets"
+        ],
+        "type": "object",
+        "properties": {
+          "widgets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeLayoutWidgetResponse"
+            },
+            "description": "The placed widgets, in the order they show within their columns."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The signed-in user's saved home page arrangement. No widgets means they use the default."
+      },
+      "HomeLayoutWidgetRequest": {
+        "required": [
+          "widgetId",
+          "column",
+          "visible"
+        ],
+        "type": "object",
+        "properties": {
+          "widgetId": {
+            "type": "string",
+            "description": "The widget's id in the client's widget registry."
+          },
+          "column": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/HomeLayoutColumn"
+              }
+            ],
+            "description": "The column the widget sits in."
+          },
+          "visible": {
+            "type": "boolean",
+            "description": "Whether the widget shows; false when the user turned it off."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Where one widget sits on the home page, and whether it shows."
+      },
+      "HomeLayoutWidgetResponse": {
+        "required": [
+          "widgetId",
+          "column",
+          "visible"
+        ],
+        "type": "object",
+        "properties": {
+          "widgetId": {
+            "type": "string",
+            "description": "The widget's id in the client's widget registry."
+          },
+          "column": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/HomeLayoutColumn"
+              }
+            ],
+            "description": "The column the widget sits in."
+          },
+          "visible": {
+            "type": "boolean",
+            "description": "Whether the widget shows; false when the user turned it off."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Where one widget sits on the home page, and whether it shows."
       },
       "HttpValidationProblemDetails": {
         "allOf": [
@@ -79937,6 +80193,8 @@
           "misfiledAliases",
           "canEdit",
           "canReclassify",
+          "canRenameAndReorder",
+          "canDescribe",
           "warnings",
           "canPublish",
           "canArchive"
@@ -79973,7 +80231,7 @@
                 "$ref": "#/components/schemas/WorkflowOwnership"
               }
             ],
-            "description": "Whether administrators author this workflow, or a sync keeps it from its source. A managed\nworkflow's statuses follow the source; only their categories and aliases are edited here."
+            "description": "Whether administrators author this workflow, or a sync keeps it from its source. A managed\nworkflow's statuses, categories included, follow the source; only their descriptions are edited here."
           },
           "externalKey": {
             "type": "string",
@@ -80057,7 +80315,15 @@
           },
           "canReclassify": {
             "type": "boolean",
-            "description": "Whether a status's category and alias may be changed: on a draft owned workflow, and on a managed one\nuntil it is archived. Retired statuses never."
+            "description": "Whether a status's category and alias may be changed: on a draft owned workflow only. A managed\nworkflow's categories come from its source."
+          },
+          "canRenameAndReorder": {
+            "type": "boolean",
+            "description": "Whether statuses may be renamed, re-described and reordered: on an owned workflow that is not a system or\narchived one, published included, since these change what people read rather than what records hold."
+          },
+          "canDescribe": {
+            "type": "boolean",
+            "description": "Whether a status's description may be changed: on any workflow but a system or archived one, a managed\none included, since a source supplies no descriptions."
           },
           "warnings": {
             "type": "array",
@@ -84646,6 +84912,23 @@
           }
         },
         "additionalProperties": false
+      },
+      "UpdateHomeLayoutRequest": {
+        "required": [
+          "widgets"
+        ],
+        "type": "object",
+        "properties": {
+          "widgets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HomeLayoutWidgetRequest"
+            },
+            "description": "The placed widgets, in the order they show within their columns."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The signed-in user's home page arrangement, replacing the one saved. Send no widgets to clear it and use\nthe default again. Widget ids are the client's; the server checks only the layout's shape."
       },
       "UpdateIncidentSeveritySetRequest": {
         "required": [

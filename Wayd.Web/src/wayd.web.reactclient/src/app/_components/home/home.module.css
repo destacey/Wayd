@@ -1,8 +1,18 @@
+/* The greeting with the Customize home button at its end; the button wraps
+   under the greeting on a phone rather than squeezing it. */
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 16px;
+}
+
 .greeting {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-bottom: 16px;
 }
 
 /* Nested under .greeting to outrank antd's heading margin; the gap spaces it. */
@@ -120,4 +130,85 @@
   align-items: center;
   gap: 4px 12px;
   font-size: var(--ant-font-size-sm);
+}
+
+/* Customize drawer */
+
+.customizeIntro {
+  display: block;
+  margin-bottom: 16px;
+}
+
+.customizeColumn + .customizeColumn {
+  margin-top: 24px;
+}
+
+.customizeColumnHeading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+/* Tall enough when empty to stay a drop target. */
+.customizeList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 56px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.customizeEmpty {
+  padding: 16px;
+  text-align: center;
+  border: 1px dashed var(--ant-color-border);
+  border-radius: var(--ant-border-radius);
+}
+
+.customizeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius);
+}
+
+.customizeRowPlaceholder {
+  opacity: 0.4;
+}
+
+.customizeRowDragging {
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--ant-box-shadow-secondary);
+}
+
+/* touch-action lets a finger drag the handle instead of scrolling the drawer. */
+.customizeHandle.customizeHandle {
+  color: var(--ant-color-text-tertiary);
+  cursor: grab;
+  touch-action: none;
+}
+
+.customizeRowText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.customizeRowDescription {
+  font-size: var(--ant-font-size-sm);
+}
+
+.customizeFooter {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
 }

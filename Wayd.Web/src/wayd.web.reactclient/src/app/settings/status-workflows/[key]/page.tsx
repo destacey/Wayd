@@ -204,6 +204,7 @@ const StatusWorkflowDetailsPage = (props: {
         return (
           <WorkflowStatusesList
             statusWorkflow={statusWorkflow!}
+            canUpdate={canUpdate}
             loadData={refetch}
           />
         )

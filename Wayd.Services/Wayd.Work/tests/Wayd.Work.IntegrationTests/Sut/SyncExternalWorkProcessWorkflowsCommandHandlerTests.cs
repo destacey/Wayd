@@ -7,6 +7,7 @@ using Wayd.Common.Application.Requests.WorkManagement.Commands;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Application.StatusWorkflows.Commands;
 using Wayd.Common.Domain.Enums.AppIntegrations;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Models;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -143,8 +144,48 @@ public sealed class SyncExternalWorkProcessWorkflowsCommandHandlerTests(SqlServe
         var status = workflow.Statuses.Single(s => s.Name == triage);
         status.Description.Should().Be("Waiting to be looked at.", "the name is matched without regard to case");
         workflow.Statuses.Where(s => s.Name != triage).Should().OnlyContain(s => s.Description == null);
-        (await verify.Context.ActivityLogs.CountAsync(a => a.AggregateId == workflow.Id && a.EventType == "WorkflowStatusDescriptionChangedEvent", ct))
-            .Should().Be(1, "the description is given through the workflow, so the Activity log records it");
+        // Saved with the status, so the event that brings the status in (the workflow's creation here) records it.
+        var logged = await verify.Context.ActivityLogs.AsNoTracking()
+            .Where(a => a.AggregateId == workflow.Id)
+            .Select(a => new { a.EventType, a.Payload })
+            .ToListAsync(ct);
+        logged.Should().Contain(a => a.Payload.Contains(triage) && a.Payload.Contains("Waiting to be looked at."));
+        logged.Should().NotContain(a => a.EventType == "WorkflowStatusDescriptionChangedEvent");
+    }
+
+    [Fact]
+    public async Task Handle_LeavesADescriptionAnAdministratorCleared_Cleared()
+    {
+        // Arrange — the first sync gives the new status its shared description, which an administrator clears
+        var ct = TestContext.Current.CancellationToken;
+        var (process, _, bug) = await SeedProcess(ct);
+        var triage = $"Triage {Guid.NewGuid():N}"[..20];
+        await using (var seed = _fixture.CreateContext())
+        {
+            await seed.Database.ExecuteSqlInterpolatedAsync(
+                $"INSERT INTO [Work].[LegacyWorkStatusDescriptions] ([Name], [Description]) VALUES ({triage}, 'Waiting to be looked at.');", ct);
+        }
+        var synced = process.With(bug with { WorkflowStates = [.. bug.WorkflowStates, new TestState("triage", triage, StatusCategory.Proposed, 4, true)] });
+        await SyncProcess(synced, ct);
+        await using (var edit = new WaydDbContextAccessor(_fixture))
+        {
+            var workflow = await edit.Context.StatusWorkflows.Include(w => w.Statuses)
+                .SingleAsync(w => w.ExternalKey == $"work-process:{process.Id:D}:Custom.Bug", ct);
+            var status = workflow.Statuses.Single(s => s.Name == triage);
+            status.Description.Should().Be("Waiting to be looked at.");
+            workflow.DescribeStatus(status.Id, null, EventActor.User(Guid.NewGuid().ToString()), SqlServerDbContextFixture.FixedNow)
+                .IsSuccess.Should().BeTrue();
+            await edit.Context.SaveChangesAsync(ct);
+        }
+
+        // Act
+        await SyncProcess(synced, ct);
+
+        // Assert
+        await using var verify = new WaydDbContextAccessor(_fixture);
+        var reread = await verify.Context.StatusWorkflows.AsNoTracking().Include(w => w.Statuses)
+            .SingleAsync(w => w.ExternalKey == $"work-process:{process.Id:D}:Custom.Bug", ct);
+        reread.Statuses.Single(s => s.Name == triage).Description.Should().BeNull("only a status the sync creates is given the shared description");
     }
 
     /// <summary>

@@ -8,11 +8,12 @@ import {
   WorkflowStatusDto,
 } from '@/src/services/wayd-api'
 import {
+  useDescribeWorkflowStatusMutation,
   useReclassifyWorkflowStatusMutation,
   useRenameWorkflowStatusMutation,
 } from '@/src/store/features/common/status-workflows-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Input, Modal, Select } from 'antd'
+import { Form, Input, Modal, Select, Typography } from 'antd'
 import { useEffect } from 'react'
 import { useModalForm } from '@/src/hooks'
 import {
@@ -27,6 +28,17 @@ import {
 
 const { Item } = Form
 const { TextArea } = Input
+const { Text } = Typography
+
+const scopeHintId = 'edit-workflow-status-scope'
+
+/**
+ * What the dialog may change: everything on a draft; the name and description
+ * on a published owned workflow, whose categories and meanings are fixed; only
+ * the description on a managed workflow, whose source owns the rest.
+ */
+export type WorkflowStatusEditScope =
+  'all' | 'nameAndDescription' | 'description'
 
 export interface EditWorkflowStatusFormProps {
   workflowId: string
@@ -35,6 +47,8 @@ export interface EditWorkflowStatusFormProps {
   aliases: WorkflowAliasDto[]
   /** What the workflow's owner type calls each category. */
   categoryLabels?: StatusCategoryLabelDto[]
+  /** The fields outside the scope are shown read-only. */
+  scope?: WorkflowStatusEditScope
   onFormComplete: () => void
   onFormCancel: () => void
 }
@@ -47,8 +61,10 @@ interface EditWorkflowStatusFormValues {
 }
 
 /**
- * One dialog over two endpoints: renaming and reclassifying are separate on the
- * API, so only the halves that changed are sent.
+ * One dialog over the status endpoints: renaming and reclassifying are separate
+ * on the API, so only the halves that changed, and are in scope, are sent. A
+ * description-only edit goes through its own endpoint, the one a managed
+ * workflow accepts.
  */
 const EditWorkflowStatusForm = ({
   workflowId,
@@ -56,6 +72,7 @@ const EditWorkflowStatusForm = ({
   statuses,
   aliases,
   categoryLabels,
+  scope = 'all',
   onFormComplete,
   onFormCancel,
 }: EditWorkflowStatusFormProps) => {
@@ -63,19 +80,37 @@ const EditWorkflowStatusForm = ({
 
   const [renameWorkflowStatus] = useRenameWorkflowStatusMutation()
   const [reclassifyWorkflowStatus] = useReclassifyWorkflowStatusMutation()
+  const [describeWorkflowStatus] = useDescribeWorkflowStatusMutation()
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditWorkflowStatusFormValues>({
       onSubmit: async (values: EditWorkflowStatusFormValues, form) => {
         try {
+          if (scope === 'description') {
+            if ((values.description ?? '') !== (status.description ?? '')) {
+              const response = await describeWorkflowStatus({
+                workflowId,
+                statusId: status.id,
+                request: { description: values.description },
+              })
+              if (response.error) {
+                throw response.error
+              }
+            }
+
+            messageApi.success('Status updated successfully.')
+            return true
+          }
+
           const alias = values.alias ?? NO_ALIAS
 
           const renamed =
             values.name !== status.name ||
             (values.description ?? '') !== (status.description ?? '')
           const reclassified =
-            values.category !== statusCategoryFromId(status.category?.id) ||
-            alias !== status.alias
+            scope === 'all' &&
+            (values.category !== statusCategoryFromId(status.category?.id) ||
+              alias !== status.alias)
 
           if (renamed) {
             const response = await renameWorkflowStatus({
@@ -140,7 +175,10 @@ const EditWorkflowStatusForm = ({
     status.id,
     categoryLabels,
   )
-  const isMisfiled = !aliasFitsCategory(aliases, alias, category)
+  // Not flagged when the meaning cannot be changed here.
+  const canReclassify = scope === 'all'
+  const isMisfiled =
+    canReclassify && !aliasFitsCategory(aliases, alias, category)
   const isUnknown =
     isMisfiled && !(aliases ?? []).some((a) => a.value === alias)
 
@@ -195,15 +233,28 @@ const EditWorkflowStatusForm = ({
         onValuesChange={handleValuesChange}
         name="edit-workflow-status-form"
       >
+        {scope !== 'all' && (
+          <Item>
+            <Text type="secondary" id={scopeHintId}>
+              {scope === 'description'
+                ? 'This workflow is kept by a sync. Only the description can be changed here.'
+                : 'This workflow is published, so its categories and meanings are fixed. Clone it to change them.'}
+            </Text>
+          </Item>
+        )}
         <Item
           label="Name"
           name="name"
-          rules={[
-            { required: true, message: 'Name is required' },
-            { max: 128 },
-          ]}
+          rules={[{ required: true, message: 'Name is required' }, { max: 64 }]}
         >
-          <Input showCount maxLength={128} />
+          <Input
+            showCount
+            maxLength={64}
+            disabled={scope === 'description'}
+            aria-describedby={
+              scope === 'nameAndDescription' ? scopeHintId : undefined
+            }
+          />
         </Item>
         <Item
           label="Category"
@@ -214,6 +265,7 @@ const EditWorkflowStatusForm = ({
           <Select
             placeholder="Select a category"
             options={statusCategoryOptions(categoryLabels)}
+            disabled={!canReclassify}
           />
         </Item>
         <Item
@@ -229,13 +281,14 @@ const EditWorkflowStatusForm = ({
               : undefined
           }
         >
-          <Select options={aliasOptions} />
+          <Select options={aliasOptions} disabled={!canReclassify} />
         </Item>
-        <Item name="description" label="Description" rules={[{ max: 1024 }]}>
+        <Item name="description" label="Description" rules={[{ max: 512 }]}>
           <TextArea
             autoSize={{ minRows: 3, maxRows: 6 }}
             showCount
-            maxLength={1024}
+            maxLength={512}
+            aria-describedby={scope !== 'all' ? scopeHintId : undefined}
           />
         </Item>
       </Form>

@@ -40,7 +40,7 @@ A count shows only when its widget does: without the Following flag there is no 
 
 ## Widgets
 
-This is where each widget sits until you [customize](#customizing) the page.
+This is each widget's usual place. Until you [customize](#customizing) the page, Wayd reorders them around your work, as [How the default is chosen](#how-the-default-is-chosen) describes.
 
 ### Main column
 
@@ -52,6 +52,19 @@ This is where each widget sits until you [customize](#customizing) the page.
 - **Planning intervals** — the [planning intervals](./planning/planning-intervals.mdx) running now and those starting in the next two weeks, with their dates, how many days are left (today included) or until they start, and links to Plan Review and the current iteration.
 - **My team sprints** — the active sprint of each team you are a member of, one section per team.
 - **Following** — the records you [follow](./following.mdx), most recently changed first. **View all** opens your Following list.
+
+## How the default is chosen
+
+The columns above are the starting point. Until you customize the page, Wayd reorders them around what you are involved in, so you land on your own work without setting anything up. It works this out from your records each time you open the page — your team memberships, the roles you hold and tasks assigned to you on approved and active projects, the risks assigned to you — and never asks or stores what your job is.
+
+- **What you lead or do every day comes first.** If you sponsor, own or manage a project, My projects moves to the top of the main column. If you are a member of a team, My team sprints moves to the top of the main column too.
+- **Areas you work in come next.** My projects for a project member or task assignee, My risks when risks are assigned to you, and Planning intervals when you are on a team or a team of teams.
+- **Shared widgets follow** — What's changed and Following.
+- **Areas you are not part of go last.** They still show, with a line saying how they fill.
+
+Someone involved in several areas gets them interleaved in that order; widgets that rank the same keep their usual order. The **Needs attention** counts follow the widgets, so a project manager's row leads with overdue and due-this-week tasks.
+
+Once you save a layout it wins: involvement no longer moves anything you placed. A widget that becomes available to you afterwards still joins where the default would put it, and **Reset to default** returns to the involvement-based order.
 
 ## Customizing
 

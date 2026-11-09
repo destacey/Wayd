@@ -10,7 +10,6 @@ using Wayd.Common.Domain.Events.ProductManagement.Incidents;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.Events.StrategicManagement;
-using Wayd.Common.Domain.Events.StatusWorkflows;
 
 namespace Wayd.Infrastructure.Messaging;
 

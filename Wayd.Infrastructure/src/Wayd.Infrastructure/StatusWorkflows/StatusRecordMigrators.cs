@@ -258,9 +258,11 @@ public sealed class ProjectDeliverableStatusRecordMigrator(IProjectPortfolioMana
 }
 
 public sealed class IncidentStatusRecordMigrator(IProductManagementDbContext dbContext)
-    : StatusRecordMigratorBase<Incident>(dbContext)
+    : StatusRecordMigratorBase<Incident>
 {
+    private readonly IProductManagementDbContext _dbContext = dbContext;
+
     public override string OwnerType => ProductWorkflowOwners.Incident.Key;
 
-    protected override IQueryable<Incident> Records => DbContext.Incidents;
+    protected override IQueryable<Incident> Records => _dbContext.Incidents;
 }

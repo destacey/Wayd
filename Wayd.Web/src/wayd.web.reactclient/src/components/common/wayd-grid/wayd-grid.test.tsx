@@ -819,6 +819,18 @@ describe('WaydGrid', () => {
       expect(screen.queryByText('Plan')).not.toBeInTheDocument()
       expect(screen.queryByText('Review')).not.toBeInTheDocument()
     })
+
+    it('stripes alternate tree rows by display position', () => {
+      // Arrange / Act
+      renderTree()
+
+      // Assert — the second and fourth displayed rows take the stripe
+      const rowOf = (name: string) => screen.getByText(name).closest('tr')!
+      expect(rowOf('Plan').className).not.toContain('trAlt')
+      expect(rowOf('Kickoff').className).toContain('trAlt')
+      expect(rowOf('Execute').className).not.toContain('trAlt')
+      expect(rowOf('Build widgets').className).toContain('trAlt')
+    })
   })
 
   describe('grouped headers (ColGroupDef-style bands)', () => {

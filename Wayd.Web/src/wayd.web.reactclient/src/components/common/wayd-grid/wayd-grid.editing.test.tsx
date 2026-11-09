@@ -1134,6 +1134,32 @@ describe('WaydGrid cell editing', () => {
       )
     })
 
+    it('lets only one draft wait at a time', () => {
+      // Arrange
+      render(
+        <DraftHarness
+          onCreate={jest.fn()}
+          leftSlot={(ctx) => (
+            <Button
+              onClick={() => ctx.addDraftAtRoot()}
+              disabled={!ctx.canCreateDraft}
+            >
+              New item
+            </Button>
+          )}
+        />,
+      )
+      const button = screen.getByRole('button', { name: 'New item' })
+      const before = button.hasAttribute('disabled')
+
+      // Act
+      fireEvent.click(button)
+
+      // Assert
+      expect(before).toBe(false)
+      expect(screen.getByRole('button', { name: 'New item' })).toBeDisabled()
+    })
+
     it('discards an empty draft with Escape and keeps focus in the grid', () => {
       // Arrange
       const onCreate = jest.fn()

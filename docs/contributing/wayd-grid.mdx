@@ -460,13 +460,13 @@ A tree grid that passes `rowActions` answers to row keys, in navigation mode onl
 | Ctrl+Delete | `rowActions.onDelete(row)`; ask before deleting. Return `false` for a row that cannot be deleted | `rowActions.onDelete` |
 | Ctrl+Shift+Enter | `rowActions.onOpen(row)`, the row's details; `false` as for delete | `rowActions.onOpen` |
 
-- **Order.** Moves and inserts use the data order, so both are refused while the grid is searched, filtered or sorted, as dragging is. `onCreate` gets the new row's `{ order }` and must create it there in one request — created last and then moved, the row would show twice while the second request runs. The project task create endpoint takes an optional `order` for this.
+- **Order.** Moves and inserts use the data order, so both are refused while the grid is searched, filtered or sorted, as dragging is. `onCreate` gets the new row's `{ order }` and must create it there in one request — created last and then moved, the row would show twice while the second request runs. The project task and roadmap activity create endpoints take an optional `order` for this. The order counts every sibling in the data; a consumer whose server orders only some kinds of row maps it to its own — the roadmap grid counts only activities, since timeboxes and milestones always follow them, and sends no order for a timebox.
 - **Moves.** A move goes through `moveValidator` (or `defaultMoveValidator`) before `onNodeMove(id, parentId, order)`, and a second move waits for the first to land. A rejection — the validator's, or `onNodeMove` rejecting — reaches `onMoveRejected`, so `onNodeMove` should reject rather than report a failure itself. A row indented under a collapsed one expands it, and focus follows the moved row once the data shows it.
 - **Saying why.** A matched key never falls through to navigation. A key the grid takes but cannot act on (no row above to indent under, a parent `canInsertUnder` refuses, a draft still open, a row `onDelete` declines) says why in the grid's polite live region, and a move that succeeds says "Indented." or "Outdented.". A rejected move is told through `onMoveRejected` instead when the grid has one, since its toast is already an alert. The messages are for screen readers; a sighted user sees only the toasts. Draft rows take none of these keys.
 - **Help.** The default help panel lists the Rows section with only the keys the grid supports; pass `helpNotes` to add the grid's own notes after the keys rather than replacing the panel with `helpContent`.
-- **Focus after a delete.** `WaydGridHandle.focusRow(rowId, columnId)` puts focus on a row once the data has it — the row taking a deleted row's place after the refetch, or the row itself when its delete is cancelled.
+- **Focus after a delete.** `WaydGridHandle.focusRow(rowId, columnId)` puts focus on a row once the data has it — the row taking a deleted row's place after the refetch, or the row itself when its delete is cancelled. `rowAfterRemoving(data, id)` finds the row that takes its place.
 
-The project plan is the reference consumer.
+The project plan is the reference consumer; the roadmap items grid uses the same keys.
 
 ### Chart pane
 

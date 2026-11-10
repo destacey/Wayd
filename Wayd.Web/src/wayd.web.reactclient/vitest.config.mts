@@ -50,6 +50,9 @@ export default defineConfig({
       modules: { classNameStrategy: 'non-scoped' },
     },
     setupFiles: ['./src/vitest.setup.ts'],
+    // Puts back every `vi.spyOn` before each test, so a spy on a global (console, storage, window)
+    // never outlives the test that made it, even one that fails before its own cleanup.
+    restoreMocks: true,
     // Every suite loads antd and its icons. Run natively, Node reads their CommonJS builds file by
     // file, afresh in each test file, which took most of the run; pre-bundled, each is one module.
     server: { deps: { inline: ['antd', '@ant-design/icons'] } },

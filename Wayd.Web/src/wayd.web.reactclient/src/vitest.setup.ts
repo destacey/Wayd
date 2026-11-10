@@ -31,4 +31,7 @@ vi.mock('./components/contexts/theme', () => ({
 
 afterEach(() => {
   vi.clearAllMocks()
+  // A test that fails before its own `vi.useRealTimers()` would otherwise leave the rest of the
+  // file on fake timers, where every later wait hangs.
+  vi.useRealTimers()
 })

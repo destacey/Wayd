@@ -178,6 +178,31 @@ Element.prototype.getBoundingClientRect = function (this: Element) {
   return originalGetBoundingClientRect.call(this)
 }
 
+// jsdom cannot load another document, so following a link prints "Not implemented: navigation to
+// another Document". The click itself still reaches every handler; only the navigation that would
+// follow it is cancelled, after the handlers have run. next/link cancels it only under a mounted
+// router, which component suites do not have.
+const cancelNavigation = (event: Event) => event.preventDefault()
+window.addEventListener('click', (event) => {
+  const link = (event.target as Element | null)?.closest?.('a[href]')
+  if (link && !link.getAttribute('href')?.startsWith('#')) {
+    cancelNavigation(event)
+  }
+})
+// A download helper clicks a link that is not in the document, which the listener above never
+// hears. jsdom does not implement `download` (assigning `link.download` sets a plain property, not
+// the attribute), so it tries to navigate to the blob or data URL instead of saving it.
+const anchorClick = HTMLAnchorElement.prototype.click
+HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
+  if (this.isConnected) return anchorClick.call(this)
+  this.addEventListener('click', cancelNavigation)
+  try {
+    anchorClick.call(this)
+  } finally {
+    this.removeEventListener('click', cancelNavigation)
+  }
+}
+
 // jsdom's storage is real and outlives a test, so each test starts with it empty.
 afterEach(() => {
   localStorage.clear()

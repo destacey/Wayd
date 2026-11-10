@@ -55782,6 +55782,31 @@
   },
   "components": {
     "schemas": {
+      "ActiveIncidentLinkDto": {
+        "required": [
+          "key",
+          "title",
+          "severityName"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "integer",
+            "description": "Incident key. The record is addressed by this key.",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "description": "Incident title, shown when the link is hovered."
+          },
+          "severityName": {
+            "type": "string",
+            "description": "Severity name shown in the grid column."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An active incident a product or release row links to."
+      },
       "ActivityCategory": {
         "enum": [
           "Created",
@@ -67239,7 +67264,8 @@
           "severityLevel",
           "status",
           "statusAlias",
-          "products"
+          "products",
+          "releases"
         ],
         "type": "object",
         "properties": {
@@ -67285,6 +67311,13 @@
             "items": {
               "$ref": "#/components/schemas/NavigationDto"
             }
+          },
+          "releases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            },
+            "description": "Releases this incident points at. One incident may point at several."
           }
         },
         "additionalProperties": false,
@@ -74414,7 +74447,8 @@
           "isReleasable",
           "status",
           "tags",
-          "teams"
+          "teams",
+          "activeIncidents"
         ],
         "type": "object",
         "properties": {
@@ -74488,6 +74522,13 @@
             "type": "string",
             "description": "Color of string? ProductDto.ActiveIncidentSeverityName, from the severity level.",
             "nullable": true
+          },
+          "activeIncidents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActiveIncidentLinkDto"
+            },
+            "description": "Active incidents on this product, highest severity first. Each one is a link to its record."
           }
         },
         "additionalProperties": false,
@@ -77554,7 +77595,8 @@
           "version",
           "status",
           "versions",
-          "packages"
+          "packages",
+          "activeIncidents"
         ],
         "type": "object",
         "properties": {
@@ -77635,6 +77677,13 @@
             "type": "string",
             "description": "Color of string? ReleaseDto.ActiveIncidentSeverityName, from the severity level.",
             "nullable": true
+          },
+          "activeIncidents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActiveIncidentLinkDto"
+            },
+            "description": "Active incidents on this release, highest severity first. Each one is a link to its record."
           }
         },
         "additionalProperties": false,

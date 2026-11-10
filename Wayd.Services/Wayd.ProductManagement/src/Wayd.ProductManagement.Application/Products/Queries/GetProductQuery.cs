@@ -47,7 +47,12 @@ public sealed class GetProductQueryHandler(IProductManagementDbContext productMa
             cancellationToken);
 
         return severity.TryGetValue(product.Id, out var top)
-            ? product with { ActiveIncidentSeverityName = top.Name, ActiveIncidentSeverityColor = top.Color }
+            ? product with
+            {
+                ActiveIncidentSeverityName = top.Name,
+                ActiveIncidentSeverityColor = top.Color,
+                ActiveIncidents = top.ToLinkDtos(),
+            }
             : product;
     }
 }

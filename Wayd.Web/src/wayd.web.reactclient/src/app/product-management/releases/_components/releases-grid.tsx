@@ -11,6 +11,8 @@ import { ReleaseDto } from '@/src/services/wayd-api'
 import { Tooltip, Typography } from 'antd'
 import Link from 'next/link'
 import { ReactElement } from 'react'
+import { activeIncidentColumn } from '../../_components/active-incident-links'
+import { incidentRowTint } from '../../_components/incident-row-tint'
 
 const { Text } = Typography
 
@@ -109,13 +111,7 @@ export const buildReleaseColumns = (
       </Tooltip>
     ),
   },
-  {
-    id: 'activeIncident',
-    accessorFn: (row) => row.activeIncidentSeverityName ?? '',
-    header: 'Incident',
-    size: 140,
-    meta: { filterType: 'set' },
-  },
+  activeIncidentColumn<ReleaseDto>(),
   {
     id: 'targetDate',
     accessorKey: 'targetDate',
@@ -156,7 +152,7 @@ const ReleasesGrid: React.FC<ReleasesGridProps> = ({
     csvFileName="releases"
     persistStateKey={persistStateKey}
     emptyMessage={emptyMessage}
-    getRowBackground={(row) => row.activeIncidentSeverityColor || undefined}
+    getRowBackground={(row) => incidentRowTint(row.activeIncidentSeverityColor)}
   />
 )
 

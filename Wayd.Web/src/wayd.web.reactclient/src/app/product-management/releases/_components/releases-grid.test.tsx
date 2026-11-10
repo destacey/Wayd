@@ -26,12 +26,13 @@ const cellBackground = (cell: HTMLElement) =>
   cell.style.backgroundColor || cell.style.background
 
 describe('ReleasesGrid', () => {
-  it('tints every cell from the highest active incident and names it', () => {
+  it('tints every cell from the highest active incident and links each one', () => {
     // Arrange
-    const releases = [
-      release(1, '2026.07', { name: 'SEV-2', color: '#D4A017' }),
-      release(2, '2026.08'),
+    const hotRelease = release(1, '2026.07', { name: 'SEV-2', color: '#D4A017' })
+    ;(hotRelease as { activeIncidents: unknown }).activeIncidents = [
+      { key: 4, title: 'Pricing stall', severityName: 'SEV-2' },
     ]
+    const releases = [hotRelease, release(2, '2026.08')]
 
     // Act
     render(<ReleasesGrid releases={releases} isLoading={false} />)
@@ -41,11 +42,16 @@ describe('ReleasesGrid', () => {
       screen.getByRole('columnheader', { name: /Incident/ }),
     ).toBeInTheDocument()
     const hot = screen.getByText('2026.07').closest('tr')!
-    expect(hot).toHaveTextContent('SEV-2')
+    expect(screen.getByRole('link', { name: 'SEV-2' })).toHaveAttribute(
+      'href',
+      '/product-management/incidents/4',
+    )
     const hotCells = hot.querySelectorAll('td')
     expect(hotCells.length).toBeGreaterThan(1)
     for (const cell of hotCells) {
-      expect(cellBackground(cell as HTMLElement)).toBe('rgb(212, 160, 23)')
+      const background = cellBackground(cell as HTMLElement)
+      expect(background).toContain('color-mix')
+      expect(background).toContain('rgb(212, 160, 23)')
     }
 
     const cool = screen.getByText('2026.08').closest('tr')!

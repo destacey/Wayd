@@ -314,12 +314,16 @@ describe('ProductsGrid', () => {
     expect(screen.getAllByText('Application').length).toBeGreaterThan(0)
   })
 
-  it('tints every cell from the highest active incident and names it', () => {
+  it('tints every cell from the highest active incident and links each one', () => {
     // Arrange
     const withIncident = {
       ...product('a1', 1, 'Storefront Suite'),
       activeIncidentSeverityName: 'SEV-1',
       activeIncidentSeverityColor: '#E07A4C',
+      activeIncidents: [
+        { key: 7, title: 'Checkout down', severityName: 'SEV-1' },
+        { key: 8, title: 'A warning', severityName: 'SEV-3' },
+      ],
     } as ProductDto
     const quiet = product('b2', 2, 'Storefront Web')
 
@@ -338,11 +342,20 @@ describe('ProductsGrid', () => {
       screen.getByRole('columnheader', { name: /Incident/ }),
     ).toBeInTheDocument()
     const hot = screen.getByText('Storefront Suite').closest('tr')!
-    expect(hot).toHaveTextContent('SEV-1')
+    expect(screen.getByRole('link', { name: 'SEV-1' })).toHaveAttribute(
+      'href',
+      '/product-management/incidents/7',
+    )
+    expect(screen.getByRole('link', { name: 'SEV-3' })).toHaveAttribute(
+      'href',
+      '/product-management/incidents/8',
+    )
     const hotCells = hot.querySelectorAll('td')
     expect(hotCells.length).toBeGreaterThan(1)
     for (const cell of hotCells) {
-      expect(cellBackground(cell as HTMLElement)).toBe('rgb(224, 122, 76)')
+      const background = cellBackground(cell as HTMLElement)
+      expect(background).toContain('color-mix')
+      expect(background).toContain('rgb(224, 122, 76)')
     }
 
     const cool = screen.getByText('Storefront Web').closest('tr')!

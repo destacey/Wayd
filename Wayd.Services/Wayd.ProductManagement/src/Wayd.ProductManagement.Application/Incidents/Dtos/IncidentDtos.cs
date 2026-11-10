@@ -35,6 +35,22 @@ public sealed record IncidentSummaryDto
     public StatusNavigationDto Status { get; init; } = default!;
     public ProductStatusAlias StatusAlias { get; init; }
     public IReadOnlyList<NavigationDto> Products { get; init; } = [];
+
+    /// <summary>Releases this incident points at. One incident may point at several.</summary>
+    public IReadOnlyList<NavigationDto> Releases { get; init; } = [];
+}
+
+/// <summary>An active incident a product or release row links to.</summary>
+public sealed record ActiveIncidentLinkDto
+{
+    /// <summary>Incident key. The record is addressed by this key.</summary>
+    public int Key { get; init; }
+
+    /// <summary>Incident title, shown when the link is hovered.</summary>
+    public string Title { get; init; } = string.Empty;
+
+    /// <summary>Severity name shown in the grid column.</summary>
+    public string SeverityName { get; init; } = string.Empty;
 }
 
 /// <summary>
@@ -114,7 +130,8 @@ internal static class IncidentProjections
         Incident incident,
         Employee commander,
         IncidentSeverityLevel level,
-        IReadOnlyList<Product> products) =>
+        IReadOnlyList<Product> products,
+        IReadOnlyList<Release> releases) =>
         new()
         {
             Id = incident.Id,
@@ -128,6 +145,7 @@ internal static class IncidentProjections
             Status = Status(incident),
             StatusAlias = incident.StatusAlias,
             Products = products.Select(Product).ToList(),
+            Releases = releases.Select(Release).ToList(),
         };
 
     internal static IncidentDto Details(

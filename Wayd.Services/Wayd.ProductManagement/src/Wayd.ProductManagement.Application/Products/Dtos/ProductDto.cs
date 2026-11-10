@@ -2,6 +2,7 @@
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain;
@@ -72,6 +73,11 @@ public sealed record ProductDto
     public string? ActiveIncidentSeverityColor { get; init; }
 
     /// <summary>
+    /// Active incidents on this product, highest severity first. Each one is a link to its record.
+    /// </summary>
+    public IReadOnlyList<ActiveIncidentLinkDto> ActiveIncidents { get; init; } = [];
+
+    /// <summary>
     /// Maps a product and its tag assignments, for <c>ProjectToType</c>.
     /// </summary>
     /// <remarks>
@@ -122,7 +128,8 @@ public sealed record ProductDto
             })
             // Filled after the projection from the product's active incidents.
             .Ignore(dto => dto.ActiveIncidentSeverityName!)
-            .Ignore(dto => dto.ActiveIncidentSeverityColor!);
+            .Ignore(dto => dto.ActiveIncidentSeverityColor!)
+            .Ignore(dto => dto.ActiveIncidents);
 
         return config;
     }

@@ -46,7 +46,12 @@ public sealed class GetReleaseQueryHandler(IProductManagementDbContext productMa
             cancellationToken);
 
         return severity.TryGetValue(release.Id, out var top)
-            ? release with { ActiveIncidentSeverityName = top.Name, ActiveIncidentSeverityColor = top.Color }
+            ? release with
+            {
+                ActiveIncidentSeverityName = top.Name,
+                ActiveIncidentSeverityColor = top.Color,
+                ActiveIncidents = top.ToLinkDtos(),
+            }
             : release;
     }
 }

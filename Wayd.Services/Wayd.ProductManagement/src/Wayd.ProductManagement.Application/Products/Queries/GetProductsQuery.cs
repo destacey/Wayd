@@ -71,10 +71,11 @@ public sealed class GetProductsQueryHandler(IProductManagementDbContext productM
             list,
             severity,
             product => product.Id,
-            (product, name, color) => product with
+            (product, top) => product with
             {
-                ActiveIncidentSeverityName = name,
-                ActiveIncidentSeverityColor = color,
+                ActiveIncidentSeverityName = top.Name,
+                ActiveIncidentSeverityColor = top.Color,
+                ActiveIncidents = top.ToLinkDtos(),
             });
 
         return list;

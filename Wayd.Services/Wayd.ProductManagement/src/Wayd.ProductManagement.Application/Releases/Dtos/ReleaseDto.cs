@@ -1,6 +1,7 @@
 ﻿using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProductManagement.Domain;
 
@@ -54,6 +55,11 @@ public sealed record ReleaseDto
 
     /// <summary>Color of <see cref="ActiveIncidentSeverityName"/>, from the severity level.</summary>
     public string? ActiveIncidentSeverityColor { get; init; }
+
+    /// <summary>
+    /// Active incidents on this release, highest severity first. Each one is a link to its record.
+    /// </summary>
+    public IReadOnlyList<ActiveIncidentLinkDto> ActiveIncidents { get; init; } = [];
 
     /// <summary>
     /// Maps a release and its contents, for <c>ProjectToType</c>.
@@ -116,7 +122,8 @@ public sealed record ReleaseDto
             })
             // Filled after the projection from the release's active incidents.
             .Ignore(dto => dto.ActiveIncidentSeverityName!)
-            .Ignore(dto => dto.ActiveIncidentSeverityColor!);
+            .Ignore(dto => dto.ActiveIncidentSeverityColor!)
+            .Ignore(dto => dto.ActiveIncidents);
 
         return config;
     }

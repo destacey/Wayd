@@ -117072,6 +117072,35 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         }
     }
 
+    /// <summary>
+    /// An active incident a product or release row links to.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ActiveIncidentLinkDto
+    {
+
+        /// <summary>
+        /// Incident key. The record is addressed by this key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        /// <summary>
+        /// Incident title, shown when the link is hovered.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Title { get; set; } = default!;
+
+        /// <summary>
+        /// Severity name shown in the grid column.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("severityName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string SeverityName { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public enum ActivityCategory
     {
@@ -128141,6 +128170,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<NavigationDto> Products { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
 
+        /// <summary>
+        /// Releases this incident points at. One incident may point at several.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("releases")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<NavigationDto> Releases { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -135314,6 +135350,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("activeIncidentSeverityColor")]
         public string? ActiveIncidentSeverityColor { get; set; } = default!;
 
+        /// <summary>
+        /// Active incidents on this product, highest severity first. Each one is a link to its record.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeIncidents")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ActiveIncidentLinkDto> ActiveIncidents { get; set; } = new System.Collections.ObjectModel.Collection<ActiveIncidentLinkDto>();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -138255,6 +138298,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("activeIncidentSeverityColor")]
         public string? ActiveIncidentSeverityColor { get; set; } = default!;
+
+        /// <summary>
+        /// Active incidents on this release, highest severity first. Each one is a link to its record.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeIncidents")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<ActiveIncidentLinkDto> ActiveIncidents { get; set; } = new System.Collections.ObjectModel.Collection<ActiveIncidentLinkDto>();
 
     }
 

@@ -19,16 +19,17 @@ public sealed class IncidentActivityTests
         // Act
         var result = IncidentActivity.HighestByOwner(
         [
-            new IncidentActivity.Row(productId, ProductStatusAlias.Closed, StatusCategory.Done, 0, closed, "SEV-1", "#E07A4C"),
-            new IncidentActivity.Row(productId, ProductStatusAlias.Open, StatusCategory.Done, 0, Guid.CreateVersion7(), "Done", "#000000"),
-            new IncidentActivity.Row(productId, ProductStatusAlias.Responding, StatusCategory.Active, 1, severe, "SEV-2", "#D4A017"),
-            new IncidentActivity.Row(productId, ProductStatusAlias.Open, StatusCategory.Active, 2, milder, "SEV-3", "#7FA3BF"),
+            new IncidentActivity.Row(productId, ProductStatusAlias.Closed, StatusCategory.Done, 0, closed, "SEV-1", "#E07A4C", 1, "Closed outage"),
+            new IncidentActivity.Row(productId, ProductStatusAlias.Open, StatusCategory.Done, 0, Guid.CreateVersion7(), "Done", "#000000", 2, "Finished"),
+            new IncidentActivity.Row(productId, ProductStatusAlias.Responding, StatusCategory.Active, 1, severe, "SEV-2", "#D4A017", 3, "Checkout slow"),
+            new IncidentActivity.Row(productId, ProductStatusAlias.Open, StatusCategory.Active, 2, milder, "SEV-3", "#7FA3BF", 4, "A warning"),
         ]);
 
         // Assert
         result.Should().ContainKey(productId);
         result[productId].Name.Should().Be("SEV-2");
         result[productId].Color.Should().Be("#D4A017");
+        result[productId].Incidents.Select(incident => incident.Key).Should().Equal(3, 4);
     }
 
     [Fact]
@@ -42,8 +43,8 @@ public sealed class IncidentActivityTests
         // Act
         var result = IncidentActivity.HighestByOwner(
         [
-            new IncidentActivity.Row(productId, ProductStatusAlias.Open, StatusCategory.Active, 0, later, "Later", "#111111"),
-            new IncidentActivity.Row(productId, ProductStatusAlias.Open, StatusCategory.Active, 0, earlier, "Earlier", "#222222"),
+            new IncidentActivity.Row(productId, ProductStatusAlias.Open, StatusCategory.Active, 0, later, "Later", "#111111", 9, "Later incident"),
+            new IncidentActivity.Row(productId, ProductStatusAlias.Open, StatusCategory.Active, 0, earlier, "Earlier", "#222222", 8, "Earlier incident"),
         ]);
 
         // Assert

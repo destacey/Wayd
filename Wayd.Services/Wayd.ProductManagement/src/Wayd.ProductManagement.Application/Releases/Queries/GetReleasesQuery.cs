@@ -83,10 +83,11 @@ public sealed class GetReleasesQueryHandler(IProductManagementDbContext productM
             list,
             severity,
             release => release.Id,
-            (release, name, color) => release with
+            (release, top) => release with
             {
-                ActiveIncidentSeverityName = name,
-                ActiveIncidentSeverityColor = color,
+                ActiveIncidentSeverityName = top.Name,
+                ActiveIncidentSeverityColor = top.Color,
+                ActiveIncidents = top.ToLinkDtos(),
             });
 
         return list;

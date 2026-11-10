@@ -64016,6 +64016,16 @@ export class WorkflowSchemesClient {
     }
 }
 
+/** An active incident a product or release row links to. */
+export interface ActiveIncidentLinkDto {
+    /** Incident key. The record is addressed by this key. */
+    key: number;
+    /** Incident title, shown when the link is hovered. */
+    title: string;
+    /** Severity name shown in the grid column. */
+    severityName: string;
+}
+
 export enum ActivityCategory {
     Created = "Created",
     Updated = "Updated",
@@ -67803,6 +67813,8 @@ export interface IncidentSummaryDto {
     status: StatusNavigationDto;
     statusAlias: ProductStatusAlias;
     products: NavigationDto[];
+    /** Releases this incident points at. One incident may point at several. */
+    releases: NavigationDto[];
 }
 
 export enum IncidentTimelineLinkAction {
@@ -70256,6 +70268,8 @@ export interface ProductDto {
     activeIncidentSeverityName?: string | undefined;
     /** Color of string? ProductDto.ActiveIncidentSeverityName, from the severity level. */
     activeIncidentSeverityColor?: string | undefined;
+    /** Active incidents on this product, highest severity first. Each one is a link to its record. */
+    activeIncidents: ActiveIncidentLinkDto[];
 }
 
 export enum ProductStatusAlias {
@@ -71240,6 +71254,8 @@ export interface ReleaseDto {
     activeIncidentSeverityName?: string | undefined;
     /** Color of string? ReleaseDto.ActiveIncidentSeverityName, from the severity level. */
     activeIncidentSeverityColor?: string | undefined;
+    /** Active incidents on this release, highest severity first. Each one is a link to its record. */
+    activeIncidents: ActiveIncidentLinkDto[];
 }
 
 /** How often versions shipped. */

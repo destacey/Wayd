@@ -40,11 +40,12 @@ public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context
         var incidentsWithLinks = await _context.Incidents
             .AsNoTracking()
             .Include(i => i.ProductLinks)
+            .Include(i => i.ReleaseLinks)
             .Where(i => incidentIds.Contains(i.Id))
             .ToListAsync(cancellationToken);
-        var linksByIncident = incidentsWithLinks.ToDictionary(i => i.Id, i => i.ProductLinks);
-        var productIds = linksByIncident.Values
-            .SelectMany(l => l.Select(link => link.ProductId))
+        var byId = incidentsWithLinks.ToDictionary(i => i.Id);
+        var productIds = incidentsWithLinks
+            .SelectMany(i => i.ProductLinks.Select(link => link.ProductId))
             .Distinct()
             .ToList();
         var productsById = productIds.Count == 0
@@ -53,15 +54,24 @@ public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context
                 .AsNoTracking()
                 .Where(p => productIds.Contains(p.Id))
                 .ToDictionaryAsync(p => p.Id, cancellationToken);
+        var releaseIds = incidentsWithLinks
+            .SelectMany(i => i.ReleaseLinks.Select(link => link.ReleaseId))
+            .Distinct()
+            .ToList();
+        var releasesById = releaseIds.Count == 0
+            ? new Dictionary<Guid, Release>()
+            : await _context.Releases
+                .AsNoTracking()
+                .Where(r => releaseIds.Contains(r.Id))
+                .ToDictionaryAsync(r => r.Id, cancellationToken);
 
         var items = page
             .Select(row =>
             {
-                var links = linksByIncident.GetValueOrDefault(row.incident.Id) ?? [];
-                var products = links
-                    .Select(l => productsById[l.ProductId])
-                    .ToList();
-                return IncidentProjections.Summary(row.incident, row.commander, row.level, products);
+                var incident = byId.GetValueOrDefault(row.incident.Id);
+                var products = incident?.ProductLinks.Select(l => productsById[l.ProductId]).ToList() ?? [];
+                var releases = incident?.ReleaseLinks.Select(l => releasesById[l.ReleaseId]).ToList() ?? [];
+                return IncidentProjections.Summary(row.incident, row.commander, row.level, products, releases);
             })
             .ToList();
 

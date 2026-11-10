@@ -1,7 +1,7 @@
 using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
-using Wayd.ProductManagement.Application;
+using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.Incidents;
@@ -24,30 +24,58 @@ internal static class IncidentActivity
         int SortOrder,
         Guid LevelId,
         string Name,
-        string Color);
+        string Color,
+        int IncidentKey,
+        string Title);
+
+    /// <summary>One active incident a product or release row can link to.</summary>
+    internal readonly record struct ActiveIncidentLink(int Key, string Title, string SeverityName);
+
+    /// <summary>The highest active severity for one owner, and every active incident that owner has.</summary>
+    internal readonly record struct ActiveSeverity(
+        string Name,
+        string Color,
+        IReadOnlyList<ActiveIncidentLink> Incidents)
+    {
+        public List<ActiveIncidentLinkDto> ToLinkDtos() =>
+            Incidents.Select(incident => new ActiveIncidentLinkDto
+            {
+                Key = incident.Key,
+                Title = incident.Title,
+                SeverityName = incident.SeverityName,
+            }).ToList();
+    }
 
     internal static bool IsActive(ProductStatusAlias alias, StatusCategory category) =>
         IncidentReadRule.LifecycleOf(alias, category) == LifecycleCategory.Active;
 
-    internal static IReadOnlyDictionary<Guid, (string Name, string Color)> HighestByOwner(IEnumerable<Row> rows) =>
+    internal static IReadOnlyDictionary<Guid, ActiveSeverity> HighestByOwner(IEnumerable<Row> rows) =>
         rows.Where(row => IsActive(row.Alias, row.Category))
             .GroupBy(row => row.OwnerId)
             .ToDictionary(
                 group => group.Key,
                 group =>
                 {
-                    var top = group.OrderBy(row => row.SortOrder).ThenBy(row => row.LevelId).First();
-                    return (top.Name, top.Color);
+                    var ordered = group
+                        .OrderBy(row => row.SortOrder)
+                        .ThenBy(row => row.LevelId)
+                        .ThenBy(row => row.IncidentKey)
+                        .ToList();
+                    var top = ordered[0];
+                    return new ActiveSeverity(
+                        top.Name,
+                        top.Color,
+                        ordered.Select(row => new ActiveIncidentLink(row.IncidentKey, row.Title, row.Name)).ToList());
                 });
 
-    internal static async Task<IReadOnlyDictionary<Guid, (string Name, string Color)>> ForProducts(
+    internal static async Task<IReadOnlyDictionary<Guid, ActiveSeverity>> ForProducts(
         IProductManagementDbContext context,
         IReadOnlyCollection<Guid> productIds,
         CancellationToken cancellationToken)
     {
         if (productIds.Count == 0)
         {
-            return new Dictionary<Guid, (string Name, string Color)>();
+            return new Dictionary<Guid, ActiveSeverity>();
         }
 
         var raw = await (
@@ -58,6 +86,8 @@ internal static class IncidentActivity
             select new
             {
                 link.ProductId,
+                incident.Key,
+                incident.Title,
                 incident.StatusAliasValue,
                 incident.StatusCategory,
                 level.SortOrder,
@@ -73,17 +103,19 @@ internal static class IncidentActivity
             row.SortOrder,
             row.LevelId,
             row.Name,
-            row.Color)));
+            row.Color,
+            row.Key,
+            row.Title)));
     }
 
-    internal static async Task<IReadOnlyDictionary<Guid, (string Name, string Color)>> ForReleases(
+    internal static async Task<IReadOnlyDictionary<Guid, ActiveSeverity>> ForReleases(
         IProductManagementDbContext context,
         IReadOnlyCollection<Guid> releaseIds,
         CancellationToken cancellationToken)
     {
         if (releaseIds.Count == 0)
         {
-            return new Dictionary<Guid, (string Name, string Color)>();
+            return new Dictionary<Guid, ActiveSeverity>();
         }
 
         var raw = await (
@@ -94,6 +126,8 @@ internal static class IncidentActivity
             select new
             {
                 link.ReleaseId,
+                incident.Key,
+                incident.Title,
                 incident.StatusAliasValue,
                 incident.StatusCategory,
                 level.SortOrder,
@@ -109,20 +143,22 @@ internal static class IncidentActivity
             row.SortOrder,
             row.LevelId,
             row.Name,
-            row.Color)));
+            row.Color,
+            row.Key,
+            row.Title)));
     }
 
     internal static void Apply<T>(
         List<T> rows,
-        IReadOnlyDictionary<Guid, (string Name, string Color)> severity,
+        IReadOnlyDictionary<Guid, ActiveSeverity> severity,
         Func<T, Guid> id,
-        Func<T, string, string, T> withSeverity)
+        Func<T, ActiveSeverity, T> withSeverity)
     {
         for (var index = 0; index < rows.Count; index++)
         {
             if (severity.TryGetValue(id(rows[index]), out var top))
             {
-                rows[index] = withSeverity(rows[index], top.Name, top.Color);
+                rows[index] = withSeverity(rows[index], top);
             }
         }
     }

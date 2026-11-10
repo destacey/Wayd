@@ -27,17 +27,3 @@ export function formatIncidentAge(noticedAt: Date | string, now = Date.now()): s
   const days = Math.floor(hours / 24)
   return `${days}d`
 }
-
-export function formatIncidentProductLabel(
-  products: ReadonlyArray<{ name: string }>,
-): string {
-  if (products.length === 0) {
-    return '—'
-  }
-
-  if (products.length === 1) {
-    return products[0]!.name
-  }
-
-  return `${products[0]!.name} +${products.length - 1}`
-}

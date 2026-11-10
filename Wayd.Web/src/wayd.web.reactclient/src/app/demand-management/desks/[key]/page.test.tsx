@@ -62,6 +62,10 @@ vi.mock('../../_components/intake-requests-grid', () => ({
 vi.mock('@/src/components/common/wayd-grid', () => ({
   WaydGrid: () => <div data-testid="members-grid" />,
 }))
+// Reads its settings from the store, which this suite does not provide.
+vi.mock('@/src/components/common/discussions', () => ({
+  DiscussionSettingsPanel: () => <div data-testid="discussion-settings" />,
+}))
 
 let mockDesk: any
 vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
@@ -77,6 +81,9 @@ vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
     refetch: vi.fn(),
   }),
   useGetNeedByBasesQuery: () => ({ data: [] }),
+  useGetIntakeChannelsQuery: () => ({ data: [] }),
+  useGetIntakeRequestTagCategoriesQuery: () => ({ data: [] }),
+  useGetIntakeDeskWorkflowQuery: () => ({ data: undefined, isLoading: false }),
   useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
   useUpdateIntakeDeskMutation: () => [vi.fn()],
   useDeleteIntakeDeskMutation: () => [vi.fn()],

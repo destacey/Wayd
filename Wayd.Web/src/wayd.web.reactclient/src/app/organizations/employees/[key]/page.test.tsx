@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import EmployeeDetailsPage from './page'
 
@@ -129,6 +129,17 @@ vi.mock('@/src/store/features/organizations/employee-api', () => ({
     data: [],
     isLoading: false,
   })),
+  useGetEmployeeWorkItemsQuery: vi.fn(() => ({
+    data: [],
+    isLoading: false,
+  })),
+}))
+
+vi.mock('@/src/store/features/organization/team-members-api', () => ({
+  useGetEmployeeTeamMembershipsQuery: vi.fn(() => ({
+    data: [],
+    isLoading: false,
+  })),
 }))
 
 vi.mock('./_components/employee-capacity', () => {
@@ -160,10 +171,12 @@ describe('EmployeeDetailsPage', () => {
     params.status = 'fulfilled'
     params.value = { key: '42' }
 
-    render(
-      <Suspense fallback={<div>Loading employee page</div>}>
-        <EmployeeDetailsPage params={params} />
-      </Suspense>,
+    await act(async () =>
+      render(
+        <Suspense fallback={<div>Loading employee page</div>}>
+          <EmployeeDetailsPage params={params} />
+        </Suspense>,
+      ),
     )
 
     expect(
@@ -194,10 +207,12 @@ describe('EmployeeDetailsPage', () => {
     params.value = { key: '42' }
 
     // Act
-    render(
-      <Suspense fallback={<div>Loading employee page</div>}>
-        <EmployeeDetailsPage params={params} />
-      </Suspense>,
+    await act(async () =>
+      render(
+        <Suspense fallback={<div>Loading employee page</div>}>
+          <EmployeeDetailsPage params={params} />
+        </Suspense>,
+      ),
     )
 
     // Assert
@@ -220,10 +235,12 @@ describe('EmployeeDetailsPage', () => {
     params.status = 'fulfilled'
     params.value = { key: '42' }
 
-    render(
-      <Suspense fallback={<div>Loading employee page</div>}>
-        <EmployeeDetailsPage params={params} />
-      </Suspense>,
+    await act(async () =>
+      render(
+        <Suspense fallback={<div>Loading employee page</div>}>
+          <EmployeeDetailsPage params={params} />
+        </Suspense>,
+      ),
     )
 
     // Act — the panel is closed by default, so the content keeps the width.

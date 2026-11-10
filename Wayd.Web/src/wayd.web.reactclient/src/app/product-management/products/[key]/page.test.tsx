@@ -131,10 +131,11 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
 }))
 
-vi.mock('@/src/components/common', () => ({
+vi.mock(import('@/src/components/common'), async (importOriginal) => ({
+  ...(await importOriginal()),
   // Dividers are rendered as marker elements rather than skipped, so a test can
   // assert how the menu is grouped and not just what it contains.
-  PageActions: ({ actionItems }: { actionItems: any[] }) => (
+  PageActions: ({ actionItems = [] }: { actionItems?: any[] }) => (
     <div data-testid="page-actions">
       {actionItems.map((item, index) =>
         item.type === 'divider' ? (

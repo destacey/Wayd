@@ -108,14 +108,14 @@ vi.mock('@/src/hooks/use-document-title', () => ({
   useDocumentTitle: vi.fn(),
 }))
 
-vi.mock('@/src/hooks', async () => {
+vi.mock(import('@/src/hooks'), async () => {
   const { useState } = await vi.importActual<typeof import('react')>('react')
   return {
     useAppDispatch: () => vi.fn(),
     useFeatureFlag: () => ({ isEnabled: false, isLoading: false }),
     // The facts rail remembers whether it is hidden. This mock replaces the
     // whole hooks barrel, so a plain state hook stands in for the real one.
-    useLocalStorageState: (_key: string, initial: unknown) => useState(initial),
+    useLocalStorageState: <T,>(_key: string, initial: T) => useState(initial),
   }
 })
 

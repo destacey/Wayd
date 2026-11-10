@@ -19,9 +19,8 @@ vi.mock(import('antd'), async (importOriginal) => {
   const actual = await importOriginal()
   return {
     ...actual,
-    // The HOC only ever shows an error, so the other message methods are left out.
+    // MessageProvider hands the HOC useMessage's api, and the HOC calls only its error.
     message: {
-      error: vi.fn(),
       useMessage: vi.fn(() => [
         {
           error: vi.fn(),

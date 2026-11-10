@@ -102,6 +102,8 @@ const desk = (overrides: Record<string, unknown> = {}) => ({
   canManage: false,
   canAdminister: false,
   canDelete: false,
+  channelIds: [],
+  tagCategoryIds: [],
   ...overrides,
 })
 

@@ -49,7 +49,7 @@ vi.mock(import('antd'), async (importOriginal) => {
         ))}
       </div>
     ),
-  }
+  } satisfies Partial<Record<keyof typeof actual, unknown>>
   // Plain stand-ins without antd's statics and refs; the drawer only renders them.
   return { ...actual, ...(stubs as unknown as Partial<typeof actual>) }
 })

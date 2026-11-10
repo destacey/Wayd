@@ -2,30 +2,15 @@
 import type { MockInstance } from 'vitest'
 import { downloadJson, downloadJsonWithTimestamp } from './json-utils'
 
-vi.mock('dayjs', async () => {
-  const originalDayjs = (await vi.importActual<any>('dayjs')).default
-  return {
-    default: vi.fn((date?: any) => {
-      const instance = originalDayjs(date)
-      return {
-        ...instance,
-        format: vi.fn((format: string) => {
-          if (format === 'YYYY-MM-DD') {
-            return '2026-09-06'
-          }
-          return instance.format(format)
-        }),
-      }
-    }),
-  }
-})
-
 describe('json-utils', () => {
   let mockLink: any
   let appendChildSpy: MockInstance
   let removeChildSpy: MockInstance
 
   beforeEach(() => {
+    // Only Date is faked, so the filename's date is fixed and nothing else waits on fake timers.
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 8, 6, 12))
     global.URL.createObjectURL = vi.fn(() => 'blob:mock-json-url')
     global.URL.revokeObjectURL = vi.fn()
 

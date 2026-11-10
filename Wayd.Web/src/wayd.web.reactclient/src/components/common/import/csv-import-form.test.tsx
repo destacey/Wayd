@@ -37,8 +37,8 @@ vi.mock('@/src/store/features/admin/imports-api', () => ({
   useSubmitImportMutation: () => [submitImport],
 }))
 
-vi.mock('@/src/utils/csv-utils', async () => ({
-  ...(await vi.importActual<any>('@/src/utils/csv-utils')),
+vi.mock(import('@/src/utils/csv-utils'), async (importOriginal) => ({
+  ...(await importOriginal()),
   downloadCsv: (...args: unknown[]) => downloadCsv(...args),
 }))
 

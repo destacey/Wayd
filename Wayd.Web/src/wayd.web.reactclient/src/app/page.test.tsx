@@ -82,8 +82,8 @@ vi.mock('@/src/components/contexts/messaging', () => ({
 
 // antd's Drawer reaches for Next's server-side AsyncLocalStorage, which jsdom
 // has no runtime for. Only the Drawer is stubbed, so its rows stay real.
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
   const MockDrawer = ({ open, footer, children }: any) =>
     open ? (
       <div data-testid="customize-drawer">
@@ -92,7 +92,8 @@ vi.mock('antd', async () => {
       </div>
     ) : null
   MockDrawer.displayName = 'MockDrawer'
-  return { ...actual, Drawer: MockDrawer }
+  // Stubs the component only; nothing here renders antd's static inner panel.
+  return { ...actual, Drawer: MockDrawer as unknown as typeof actual.Drawer }
 })
 
 // Real gating and layout over stand-in widgets, so the page test sees what the

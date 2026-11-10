@@ -9,8 +9,8 @@ import {
 // ─── Mock dayjs ──────────────────────────────────────────────────────────────
 // Allows controlling "now" for checkpoint derivation tests.
 
-vi.mock('dayjs', async () => {
-  const originalDayjs = (await vi.importActual<any>('dayjs')).default
+vi.mock(import('dayjs'), async (importOriginal) => {
+  const originalDayjs = (await importOriginal()).default
   const mockDayjs = (date?: string | Date) => {
     if (date === undefined) {
       return originalDayjs(mockDayjs.mockedNow)
@@ -18,8 +18,7 @@ vi.mock('dayjs', async () => {
     return originalDayjs(date)
   }
   mockDayjs.mockedNow = '2026-02-15T12:00:00'
-  Object.assign(mockDayjs, originalDayjs)
-  return { default: mockDayjs }
+  return { default: Object.assign(mockDayjs, originalDayjs) }
 })
 
 // ─── Mock useTheme ───────────────────────────────────────────────────────────

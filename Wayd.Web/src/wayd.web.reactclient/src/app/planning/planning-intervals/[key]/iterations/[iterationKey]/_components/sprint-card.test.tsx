@@ -8,6 +8,7 @@ import {
   SprintScopeDto,
 } from '@/src/services/wayd-api'
 import { useGetSprintScopeQuery } from '@/src/store/features/work-management/sprints-api'
+import type { MetricCardProps } from '@/src/components/common/metrics/metric-card'
 
 vi.mock('@/src/store/features/work-management/sprints-api', () => ({
   useGetSprintScopeQuery: vi.fn(),
@@ -18,21 +19,13 @@ vi.mock('@/src/components/contexts/theme', () => ({
 }))
 
 // Mock Metrics components; the figures stay real so what is shown can be asserted.
-vi.mock('@/src/components/common/metrics', async () => ({
+vi.mock(import('@/src/components/common/metrics'), async () => ({
   sprintOverviewFigures: (
-    await vi.importActual<any>(
-      '@/src/components/common/metrics/sprint-overview-figures',
-    )
+    await vi.importActual<
+      typeof import('@/src/components/common/metrics/sprint-overview-figures')
+    >('@/src/components/common/metrics/sprint-overview-figures')
   ).sprintOverviewFigures,
-  MetricCard: ({
-    title,
-    value,
-    secondaryValue,
-  }: {
-    title: string
-    value: any
-    secondaryValue?: string
-  }) => (
+  MetricCard: ({ title, value, secondaryValue }: MetricCardProps) => (
     <div data-testid={`metric-${title}`}>
       <span>{title}</span>
       <span data-testid={`value-${title}`}>{value}</span>

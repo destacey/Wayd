@@ -3,10 +3,13 @@ import { render, screen } from '@testing-library/react'
 import FollowingWidget, { FOLLOWING_COUNT } from './following-widget'
 import { FollowSort, SortDirection } from '@/src/services/wayd-api'
 
-vi.mock('@/src/store/features/common/follows-api', async () => ({
-  ...(await vi.importActual<any>('@/src/store/features/common/follows-api')),
-  useGetMyFollowsInfiniteQuery: vi.fn(),
-}))
+vi.mock(
+  import('@/src/store/features/common/follows-api'),
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    useGetMyFollowsInfiniteQuery: vi.fn(),
+  }),
+)
 
 import { useGetMyFollowsInfiniteQuery } from '@/src/store/features/common/follows-api'
 

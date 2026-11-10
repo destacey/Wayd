@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react'
 import TimelineProgress from './timeline-progress'
 
 // Mock Ant Design Grid useBreakpoint hook
-vi.mock('antd', async () => {
-  const actualAntd = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actualAntd = await importOriginal()
   return {
     ...actualAntd,
     Grid: {

@@ -5,8 +5,8 @@ import { DEFAULT_REQUEST_FILTERS } from './request-filters'
 const mockSearch = vi.fn()
 
 // The wide layout, where the filters show inline rather than folded into a drawer.
-vi.mock('antd', async () => {
-  const antd = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const antd = await importOriginal()
   return {
     ...antd,
     Grid: { ...antd.Grid, useBreakpoint: () => ({ md: true }) },

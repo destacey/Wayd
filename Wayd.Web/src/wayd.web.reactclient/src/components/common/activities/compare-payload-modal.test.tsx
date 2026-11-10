@@ -9,8 +9,8 @@ import ComparePayloadModal, {
 } from './compare-payload-modal'
 
 const mockSuccess = vi.fn()
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
   const MockModal = ({ title, open, children }: any) =>
     open ? (
       <div role="dialog">
@@ -22,7 +22,9 @@ vi.mock('antd', async () => {
 
   return {
     ...actual,
-    Modal: MockModal,
+    // Stubs the component only; nothing here calls Modal's static methods.
+    Modal: MockModal as unknown as typeof actual.Modal,
+    // Only useApp is read, and only for the message it shows.
     App: {
       ...actual.App,
       useApp: () => ({
@@ -30,7 +32,7 @@ vi.mock('antd', async () => {
           success: mockSuccess,
         },
       }),
-    },
+    } as unknown as typeof actual.App,
   }
 })
 

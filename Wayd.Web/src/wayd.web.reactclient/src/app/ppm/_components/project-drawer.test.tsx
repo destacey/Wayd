@@ -11,8 +11,8 @@ vi.mock('next/link', () => {
 // antd's Drawer reaches for Next's server-side AsyncLocalStorage, which jsdom
 // has no runtime for — a bare <Drawer> fails to render on its own. Only the
 // Drawer is stubbed, so the facts markup under test stays real.
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
   const MockDrawer = ({ title, extra, open, children }: any) =>
     open ? (
       <div>
@@ -22,7 +22,8 @@ vi.mock('antd', async () => {
       </div>
     ) : null
   MockDrawer.displayName = 'MockDrawer'
-  return { ...actual, Drawer: MockDrawer }
+  // Stubs the component only; nothing here renders antd's static inner panel.
+  return { ...actual, Drawer: MockDrawer as unknown as typeof actual.Drawer }
 })
 
 const mockProject = vi.fn()

@@ -41,8 +41,8 @@ vi.mock('./delete-roadmap-item-form', () => ({
 }))
 
 // The chart pane is not under test; keep it hidden.
-vi.mock('@/src/components/common/timeline', async () => ({
-  ...(await vi.importActual<any>('@/src/components/common/timeline')),
+vi.mock(import('@/src/components/common/timeline'), async (importOriginal) => ({
+  ...(await importOriginal()),
   useGanttVisibility: () => ({ visible: false, toggle: vi.fn() }),
 }))
 

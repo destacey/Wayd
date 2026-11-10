@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import StageSignInTenantForm from './stage-sign-in-tenant-form'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 // Mock window.getComputedStyle for Ant Design Modal
 Object.defineProperty(window, 'getComputedStyle', {
@@ -19,11 +20,11 @@ vi.mock('@/src/components/contexts/auth', () => ({
 
 // isValid is set from an async validation this test setup never delivers; the submit
 // itself still runs the real validateFields and onSubmit.
-vi.mock('@/src/hooks', async () => {
-  const actual = await vi.importActual<any>('@/src/hooks')
+vi.mock(import('@/src/hooks'), async (importOriginal) => {
+  const actual = await importOriginal()
   return {
     ...actual,
-    useModalForm: (options: Parameters<typeof actual.useModalForm>[0]) => ({
+    useModalForm: <TValues,>(options: UseModalFormOptions<TValues>) => ({
       ...actual.useModalForm(options),
       isValid: true,
     }),

@@ -15,18 +15,21 @@ vi.mock('../contexts/auth', () => ({
   }),
 }))
 
-vi.mock('antd', async () => ({
-  ...(await vi.importActual<any>('antd')),
-  message: {
-    error: vi.fn(),
-    useMessage: vi.fn(() => [
-      {
-        error: vi.fn(),
-      },
-      <div key="contextHolder" />,
-    ]),
-  },
-}))
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    // MessageProvider hands the HOC useMessage's api, and the HOC calls only its error.
+    message: {
+      useMessage: vi.fn(() => [
+        {
+          error: vi.fn(),
+        },
+        <div key="contextHolder" />,
+      ]),
+    } as unknown as typeof actual.message,
+  }
+})
 
 describe('authorizeForm HOC', () => {
   let onNotAuthorized: Mock

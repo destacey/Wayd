@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProductDto, ProductTagCategoryDto } from '@/src/services/wayd-api'
 import ManageProductTagsForm from './manage-product-tags-form'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 const tagOption = (id: string, name: string, order: number) => ({
   id,
@@ -80,17 +81,14 @@ const mockMessageError = vi.fn()
 // in initialises a store this form never touches. The form instance is real, though —
 // antd's Form binds to it, and a stub object breaks on render. handleOk runs the real
 // submit so the diffing under test is exercised end to end.
-vi.mock('@/src/hooks', async () => {
-  const { Form: AntForm } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form: AntForm } = await vi.importActual<typeof import('antd')>('antd')
   return {
-    useModalForm: ({
+    useModalForm: <TValues,>({
       onSubmit,
       onComplete,
-    }: {
-      onSubmit: (values: unknown, form: unknown) => Promise<boolean>
-      onComplete: () => void
-    }) => {
-      const [form] = AntForm.useForm()
+    }: UseModalFormOptions<TValues>) => {
+      const [form] = AntForm.useForm<TValues>()
       return {
         form,
         isOpen: true,

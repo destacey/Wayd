@@ -5,6 +5,7 @@ import {
   IntakeRequestTagCategoryDto,
 } from '@/src/services/wayd-api'
 import ManageIntakeRequestTagsForm from './manage-intake-request-tags-form'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 const tag = (id: string, name: string) => ({
   id,
@@ -78,17 +79,14 @@ const mockComplete = vi.fn()
 
 // The form instance is real so antd's Form binds to it; handleOk runs the real submit so the diff is
 // exercised end to end.
-vi.mock('@/src/hooks', async () => {
-  const { Form: AntForm } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form: AntForm } = await vi.importActual<typeof import('antd')>('antd')
   return {
-    useModalForm: ({
+    useModalForm: <TValues,>({
       onSubmit,
       onComplete,
-    }: {
-      onSubmit: (values: unknown, form: unknown) => Promise<boolean>
-      onComplete: () => void
-    }) => {
-      const [form] = AntForm.useForm()
+    }: UseModalFormOptions<TValues>) => {
+      const [form] = AntForm.useForm<TValues>()
       return {
         form,
         isOpen: true,

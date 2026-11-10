@@ -2,25 +2,24 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ManageTagsForm from './manage-tags-form'
 import { TagAssignment, TagCategory } from './types'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 // Not spread from the real barrel: it re-exports store-bound hooks, and pulling
 // those in initialises a store this component never touches. The form instance is
 // real, though — antd's Form binds to it, and a stub breaks on render.
-vi.mock('@/src/hooks', async () => {
-  const { Form } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form } = await vi.importActual<typeof import('antd')>('antd')
   return {
-    useModalForm: ({
-      onSubmit,
-    }: {
-      onSubmit: (values: Record<string, unknown>) => Promise<boolean>
-    }) => {
-      const [form] = Form.useForm()
+    useModalForm: <TValues,>({ onSubmit }: UseModalFormOptions<TValues>) => {
+      const [form] = Form.useForm<TValues>()
       return {
         form,
         isOpen: true,
         isValid: true,
         isSaving: false,
-        handleOk: async () => await onSubmit(form.getFieldsValue()),
+        handleOk: async () => {
+          await onSubmit(form.getFieldsValue(), form)
+        },
         handleCancel: vi.fn(),
       }
     },

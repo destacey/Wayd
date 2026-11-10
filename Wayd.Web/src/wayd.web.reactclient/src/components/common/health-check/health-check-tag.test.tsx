@@ -21,12 +21,13 @@ vi.mock('../markdown', () => ({
   ),
 }))
 
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
 
   return {
     ...actual,
-    Popover: ({
+    // A plain function stands in for antd's forwardRef component; no ref is passed.
+    Popover: (({
       children,
       content,
       onOpenChange,
@@ -43,7 +44,7 @@ vi.mock('antd', async () => {
           {typeof content === 'function' ? content() : content}
         </div>
       </div>
-    ),
+    )) as unknown as typeof actual.Popover,
   }
 })
 

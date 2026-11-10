@@ -27,8 +27,8 @@ vi.mock('@/src/store/features/planning/risks-api', () => ({
   useGetMyRisksQuery: vi.fn(),
 }))
 
-vi.mock('@/src/utils', async () => ({
-  ...(await vi.importActual<any>('@/src/utils')),
+vi.mock(import('@/src/utils'), async (importOriginal) => ({
+  ...(await importOriginal()),
   todayCalendarDate: () => '2026-11-08',
 }))
 

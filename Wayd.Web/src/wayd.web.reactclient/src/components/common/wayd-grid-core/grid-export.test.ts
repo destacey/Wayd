@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Capture CSV export output. Keep generateCsv real so we assert on real content.
-vi.mock('@/src/utils/csv-utils', async () => {
-  const actual = await vi.importActual<any>('@/src/utils/csv-utils')
+vi.mock(import('@/src/utils/csv-utils'), async (importOriginal) => {
+  const actual = await importOriginal()
   return {
     ...actual,
     downloadCsvWithTimestamp: vi.fn(),

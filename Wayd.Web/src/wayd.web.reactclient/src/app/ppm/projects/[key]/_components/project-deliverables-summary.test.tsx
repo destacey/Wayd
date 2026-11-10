@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react'
 import { ProjectDeliverableDto, StatusCategory } from '@/src/services/wayd-api'
 import ProjectDeliverablesSummary from './project-deliverables-summary'
 
-vi.mock('@/src/utils/calendar-date', async () => ({
-  ...(await vi.importActual<any>('@/src/utils/calendar-date')),
+vi.mock(import('@/src/utils/calendar-date'), async (importOriginal) => ({
+  ...(await importOriginal()),
   todayCalendarDate: () => '2026-11-06',
 }))
 

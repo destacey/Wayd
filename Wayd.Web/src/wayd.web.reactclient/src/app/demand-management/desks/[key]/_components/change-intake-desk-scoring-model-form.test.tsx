@@ -1,25 +1,20 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ChangeIntakeDeskScoringModelForm from './change-intake-desk-scoring-model-form'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-vi.mock('@/src/hooks', async () => {
-  const { Form } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form } = await vi.importActual<typeof import('antd')>('antd')
   return {
-    useModalForm: ({
+    useModalForm: <TValues,>({
       onSubmit,
       onComplete,
-    }: {
-      onSubmit: (
-        values: Record<string, unknown>,
-        form: unknown,
-      ) => Promise<boolean>
-      onComplete: () => void
-    }) => {
-      const [form] = Form.useForm()
+    }: UseModalFormOptions<TValues>) => {
+      const [form] = Form.useForm<TValues>()
       return {
         form,
         isOpen: true,

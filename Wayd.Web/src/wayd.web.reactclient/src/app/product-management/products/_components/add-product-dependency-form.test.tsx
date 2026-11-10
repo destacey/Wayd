@@ -1,10 +1,13 @@
 import { act, render } from '@testing-library/react'
 import { DependencyStrength, ProductDto } from '@/src/services/wayd-api'
 import AddProductDependencyForm from './add-product-dependency-form'
+import type { FormInstance } from 'antd'
+import type { UseModalFormOptions } from '@/src/hooks'
+import type { ProductTreeSelectProps } from '../../_components'
 
 const addDependency = vi.fn()
 
-let mockPickerProps: Record<string, unknown> = {}
+let mockPickerProps: Partial<ProductTreeSelectProps> = {}
 
 vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
@@ -27,37 +30,27 @@ vi.mock('@/src/store/features/product-management/products-api', () => ({
 }))
 
 // The picker is exercised by its own suite; here what the form hands it is what matters.
-vi.mock('../../_components', async () => ({
-  ...(await vi.importActual<any>('../../_components/product-tree')),
-  ProductTreeSelect: (props: Record<string, unknown>) => {
+vi.mock(import('../../_components'), async () => ({
+  ...(await vi.importActual<typeof import('../../_components/product-tree')>(
+    '../../_components/product-tree',
+  )),
+  ProductTreeSelect: (props: ProductTreeSelectProps) => {
     mockPickerProps = props
-    return null
+    return <></>
   },
 }))
 
 /** The submit handler from the live form, so a test need not click a jsdom-disabled button. */
 let submitForm: (() => Promise<void>) | undefined
-let formInstance:
-  | {
-      setFieldsValue: (values: Record<string, unknown>) => void
-      getFieldValue: (name: string) => unknown
-    }
-  | undefined
+let formInstance: FormInstance | undefined
 
 // The form instance is real — antd's Form binds to it, and a stub breaks on render. See
 // complete-deployment-form.test.tsx for why the OK button's enabled state is not asserted.
-vi.mock('@/src/hooks', async () => {
-  const { Form } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form } = await vi.importActual<typeof import('antd')>('antd')
   return {
-    useModalForm: ({
-      onSubmit,
-    }: {
-      onSubmit: (
-        values: Record<string, unknown>,
-        form: unknown,
-      ) => Promise<boolean>
-    }) => {
-      const [form] = Form.useForm()
+    useModalForm: <TValues,>({ onSubmit }: UseModalFormOptions<TValues>) => {
+      const [form] = Form.useForm<TValues>()
       formInstance = form
       const handleOk = async () => {
         await onSubmit(form.getFieldsValue(true), form)

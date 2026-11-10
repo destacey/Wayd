@@ -1,5 +1,6 @@
 import React, { Suspense } from 'react'
 import { act, render, screen } from '@testing-library/react'
+import type { FormInstance } from 'antd'
 import ProductDetailsPage from './page'
 
 // The graph canvas measures itself and reads the theme provider, neither of which this page supplies.
@@ -81,8 +82,8 @@ vi.mock('./_components/product-dependencies', () => ({
   default: () => <div data-testid="product-dependencies" />,
 }))
 
-vi.mock('../_components/product-teams', async () => ({
-  ...(await vi.importActual<any>('../_components/product-teams')),
+vi.mock(import('../_components/product-teams'), async (importOriginal) => ({
+  ...(await importOriginal()),
   default: () => <div data-testid="product-team-links" />,
 }))
 
@@ -100,8 +101,8 @@ const mockReplace = vi.fn((url: string) => {
 
 // jsdom has no matchMedia, so useBreakpoint reports nothing and RecordLayout
 // renders its compact form. Pin a wide viewport so the rail and facts are shown.
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
   return {
     ...actual,
     Grid: {
@@ -130,10 +131,11 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => mockSearchParams,
 }))
 
-vi.mock('@/src/components/common', () => ({
+vi.mock(import('@/src/components/common'), async (importOriginal) => ({
+  ...(await importOriginal()),
   // Dividers are rendered as marker elements rather than skipped, so a test can
   // assert how the menu is grouped and not just what it contains.
-  PageActions: ({ actionItems }: { actionItems: any[] }) => (
+  PageActions: ({ actionItems = [] }: { actionItems?: any[] }) => (
     <div data-testid="page-actions">
       {actionItems.map((item, index) =>
         item.type === 'divider' ? (
@@ -166,11 +168,15 @@ vi.mock('@/src/components/contexts/messaging', () => ({
 
 // Spread the real module: RecordLayout reaches for useLocalStorageState through
 // the same barrel, and replacing it wholesale takes that with it.
-vi.mock('@/src/hooks', async () => ({
-  ...(await vi.importActual<any>('@/src/hooks')),
+vi.mock(import('@/src/hooks'), async (importOriginal) => ({
+  ...(await importOriginal()),
   useDocumentTitle: vi.fn(),
-  useModalForm: () => ({
-    form: { setFieldsValue: vi.fn(), getFieldValue: vi.fn() },
+  useModalForm: <TValues,>() => ({
+    // The modal stays closed here, so the form needs only these two methods.
+    form: {
+      setFieldsValue: vi.fn(),
+      getFieldValue: vi.fn(),
+    } as unknown as FormInstance<TValues>,
     isOpen: false,
     isValid: true,
     isSaving: false,

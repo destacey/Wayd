@@ -45,17 +45,17 @@ vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: vi.fn() }),
 }))
 
-vi.mock('@/src/hooks', async () => {
+vi.mock(import('@/src/hooks'), async () => {
   const { useState } = await vi.importActual<typeof import('react')>('react')
   return {
     useDocumentTitle: vi.fn(),
-    useDebounce: (value: unknown) => value,
+    useDebounce: <T,>(value: T) => value,
     useRemainingHeight: () => [vi.fn(), 600],
     useLinkedEmployee: () => ({
       employeeId: mockAuth.employeeId,
       hasLinkedEmployee: mockAuth.employeeId !== null,
     }),
-    useLocalStorageState: (_key: string, initial: unknown) => useState(initial),
+    useLocalStorageState: <T,>(_key: string, initial: T) => useState(initial),
   }
 })
 

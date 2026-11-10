@@ -60,8 +60,8 @@ vi.mock('@/src/store/features/ppm/project-deliverables-api', () => ({
 // A dragged bar's drop, handed to the test to call.
 let mockBarCommit:
   ((change: { id: string; start: number; end: number }) => unknown) | undefined
-vi.mock('@/src/components/common/timeline', async () => ({
-  ...(await vi.importActual<any>('@/src/components/common/timeline')),
+vi.mock(import('@/src/components/common/timeline'), async (importOriginal) => ({
+  ...(await importOriginal()),
   useGanttVisibility: () => ({ visible: false, toggle: vi.fn() }),
   useBarDrag: (options: { onCommit: typeof mockBarCommit }) => {
     mockBarCommit = options.onCommit

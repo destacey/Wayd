@@ -18,15 +18,13 @@ vi.mock('./export-activities-modal', () => {
   return { default: MockExportModal }
 })
 
-vi.mock('./compare-payload-modal', async () => {
+vi.mock(import('./compare-payload-modal'), async (importOriginal) => {
   const MockCompareModal = ({ open }: any) =>
     open ? <div>Compare Event Payloads</div> : null
   MockCompareModal.displayName = 'MockCompareModal'
   return {
     default: MockCompareModal,
-    isComparableActivity: (
-      await vi.importActual<any>('./compare-payload-modal')
-    ).isComparableActivity,
+    isComparableActivity: (await importOriginal()).isComparableActivity,
   }
 })
 

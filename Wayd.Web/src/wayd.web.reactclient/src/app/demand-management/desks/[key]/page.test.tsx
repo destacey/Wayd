@@ -12,8 +12,8 @@ vi.mock('next/navigation', () => ({
 }))
 
 // jsdom has no matchMedia; pin a wide viewport so the rail renders.
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
   return {
     ...actual,
     Grid: {
@@ -46,8 +46,8 @@ vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-vi.mock('@/src/hooks', async () => ({
-  ...(await vi.importActual<any>('@/src/hooks')),
+vi.mock(import('@/src/hooks'), async (importOriginal) => ({
+  ...(await importOriginal()),
   useDocumentTitle: vi.fn(),
 }))
 
@@ -61,6 +61,10 @@ vi.mock('../../_components/intake-requests-grid', () => ({
 }))
 vi.mock('@/src/components/common/wayd-grid', () => ({
   WaydGrid: () => <div data-testid="members-grid" />,
+}))
+// Reads its settings from the store, which this suite does not provide.
+vi.mock('@/src/components/common/discussions', () => ({
+  DiscussionSettingsPanel: () => <div data-testid="discussion-settings" />,
 }))
 
 let mockDesk: any
@@ -77,6 +81,9 @@ vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
     refetch: vi.fn(),
   }),
   useGetNeedByBasesQuery: () => ({ data: [] }),
+  useGetIntakeChannelsQuery: () => ({ data: [] }),
+  useGetIntakeRequestTagCategoriesQuery: () => ({ data: [] }),
+  useGetIntakeDeskWorkflowQuery: () => ({ data: undefined, isLoading: false }),
   useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
   useUpdateIntakeDeskMutation: () => [vi.fn()],
   useDeleteIntakeDeskMutation: () => [vi.fn()],
@@ -95,6 +102,8 @@ const desk = (overrides: Record<string, unknown> = {}) => ({
   canManage: false,
   canAdminister: false,
   canDelete: false,
+  channelIds: [],
+  tagCategoryIds: [],
   ...overrides,
 })
 

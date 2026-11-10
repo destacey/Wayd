@@ -62,7 +62,7 @@ import {
 } from '../wayd-grid-core/filters'
 
 import { applySafeAccessor } from '../wayd-grid-core/column-accessors'
-import { rowScaleFor, virtualSpacers } from '../wayd-grid-core/virtual-geometry'
+import { virtualSpacers } from '../wayd-grid-core/virtual-geometry'
 import { withPinnedIndex } from '../wayd-grid-core/grid-keyboard'
 import { useGridCellNavigation } from '../wayd-grid-core/use-grid-cell-navigation'
 import {
@@ -168,10 +168,9 @@ const restrictToHorizontalAxis: Modifier = ({ transform }) => ({
   y: 0,
 })
 
-/** Fixed row-height estimate for the virtualizer. Rows are uniform in
- * practice (.td: 4px padding + 1px border + one no-wrap text line), so a
- * fixed estimate avoids per-row measurement; positions stay self-consistent
- * because the spacer rows use the same estimates. */
+/** Row height used until a body row has been measured. Rows are uniform in
+ * practice (.td: 4px padding + 1px border + one no-wrap text line), so one
+ * measured row sizes them all. */
 const ROW_HEIGHT_ESTIMATE = 28
 
 /** Column-header row height, for sizing a `variant="simple"` grid to its rows. */
@@ -341,6 +340,10 @@ interface GridBodyProps<T extends RowData> {
   rowActionSupport?: GridRowActionSupport
   /** Where in the grid's footer the key hints render. */
   footerHintsHost?: HTMLElement | null
+  /** The height a body row renders at, once measured; null before. */
+  measuredRowHeight: number | null
+  /** Reports a body row's rendered height. */
+  onRowHeightMeasured: (height: number) => void
 }
 
 /**
@@ -383,8 +386,15 @@ function GridBody<T extends RowData>({
   runRowAction,
   rowActionSupport,
   footerHintsHost,
+  measuredRowHeight,
+  onRowHeightMeasured,
 }: GridBodyProps<T>) {
   // Owns virtualizer + TanStack row JSX — same staleness hazard as the grid.
+
+  // Rows render at a content-driven height (29px against the 28px estimate is
+  // typical). The virtualizer sizes rows at the measured height; on the
+  // estimate, scroll-to-row targets and chart bars fall a pixel short per row.
+  const rowHeight = measuredRowHeight ?? ROW_HEIGHT_ESTIMATE
 
   const navigation = useGridCellNavigation({
     rows,
@@ -393,7 +403,7 @@ function GridBody<T extends RowData>({
     treeColumnId,
     onRowActivate,
     bodyViewportRef,
-    rowHeight: ROW_HEIGHT_ESTIMATE,
+    rowHeight,
   })
 
   // The row with an open editor stays rendered wherever focus is — even in
@@ -504,28 +514,26 @@ function GridBody<T extends RowData>({
     // When a right (chart) pane is present the bar track FOLLOWS this scroller's
     // scrollTop — one virtualizer drives both, so bars can't drift from rows.
     getScrollElement: () => bodyViewportRef.current,
-    estimateSize: () => ROW_HEIGHT_ESTIMATE,
+    estimateSize: () => rowHeight,
     overscan: ROW_OVERSCAN,
   })
   const virtualRows = rowVirtualizer.getVirtualItems()
   const totalSize = rowVirtualizer.getTotalSize()
+  const hasRenderedRows = virtualRows.length > 0
+
+  // The virtualizer caches row sizes; a new measured height must replace them.
+  useLayoutEffect(() => {
+    if (measuredRowHeight !== null) rowVirtualizer.measure()
+  }, [measuredRowHeight, rowVirtualizer])
 
   // Bring a newly opened editor into view (a draft added off screen).
   useEffect(() => {
     if (openRowIndex >= 0) rowVirtualizer.scrollToIndex(openRowIndex)
   }, [openRowIndex, rowVirtualizer])
 
-  // Chart pane only: the grid's real rows render at a content-driven height that
-  // can differ from the virtualizer's estimate (e.g. 29px actual vs 28 estimate).
-  // The grid itself is unaffected (its <tr>s flow naturally), but bars positioned
-  // by the estimate-based `virtualRow.start` would drift down the list. Measure
-  // the real row height and scale the geometry handed to renderRow so bars sit on
-  // their rows. Only active when a right pane is present; no effect otherwise.
-  const [measuredRowHeight, setMeasuredRowHeight] = useState<number | null>(
-    null,
-  )
+  // The virtualizer renders no rows until it has read the viewport, so the
+  // first rows are measured on the render that brings them.
   useLayoutEffect(() => {
-    if (!rightPane) return
     const viewport = bodyViewportRef.current
     if (!viewport) return
     const measure = () => {
@@ -533,22 +541,19 @@ function GridBody<T extends RowData>({
         'tbody tr:not([aria-hidden])',
       )
       const h = tr?.getBoundingClientRect().height
-      if (h && h > 0) setMeasuredRowHeight((prev) => (prev === h ? prev : h))
+      if (h && h > 0) onRowHeightMeasured(h)
     }
     measure()
     if (typeof ResizeObserver === 'undefined') return
     const observer = new ResizeObserver(measure)
     observer.observe(viewport)
     return () => observer.disconnect()
-  }, [rightPane, rows.length, bodyViewportRef])
-  // Scale factor from the virtualizer's estimate to the real row height.
-  const rowScale = rowScaleFor(measuredRowHeight, ROW_HEIGHT_ESTIMATE)
+  }, [rows.length, hasRenderedRows, bodyViewportRef, onRowHeightMeasured])
 
   // The Tab stop must be on a rendered cell or Tab skips the body. When the
   // active row has scrolled away (and so is not pinned), the first row in
   // view takes it — not one in the overscan above, which Tab would scroll to.
-  // Row starts are in estimated px; the scroll offset is real px.
-  const firstInView = (rowVirtualizer.scrollOffset ?? 0) / rowScale
+  const firstInView = rowVirtualizer.scrollOffset ?? 0
   const tabStopRowIndex = virtualRows.some(
     (virtualRow) => virtualRow.index === navigation.activeRowIndex,
   )
@@ -562,7 +567,6 @@ function GridBody<T extends RowData>({
     firstRowStart: virtualRows[0]?.start ?? 0,
     lastRowEnd: virtualRows[virtualRows.length - 1]?.end ?? 0,
     totalSize: rowVirtualizer.getTotalSize(),
-    rowScale,
     hasRows: virtualRows.length > 0,
   })
 
@@ -682,7 +686,7 @@ function GridBody<T extends RowData>({
                       <td
                         className={styles.virtualSpacer}
                         colSpan={visibleColumnCount + 1}
-                        style={{ height: gap * rowScale }}
+                        style={{ height: gap }}
                       />
                     </tr>
                   ) : null
@@ -881,23 +885,22 @@ function GridBody<T extends RowData>({
       onScroll={onBarTrackScroll}
     >
       <div ref={rightPaneCanvasRef} className={styles.rightPaneCanvas}>
-        {/* Geometry is in REAL-pixel space (estimate scaled to the measured row
-            height) so bars align with the grid's naturally-flowing rows and the
-            canvas translate (real scrollTop) stays in sync. */}
+        {/* The virtualizer sizes rows at their measured height, so its
+            geometry is the grid rows' own and bars sit on their rows. */}
         <div
           className={styles.rightPaneCanvasInner}
-          style={{ height: totalSize * rowScale }}
+          style={{ height: totalSize }}
         >
           {/* Chart-wide layer behind rows (e.g. vertical gridlines). */}
           {!showStatusOverlay &&
-            rightPane.renderBackground?.({ totalHeight: totalSize * rowScale })}
+            rightPane.renderBackground?.({ totalHeight: totalSize })}
           {!showStatusOverlay &&
             virtualRows.map((virtualRow) => (
               <div key={rows[virtualRow.index].id} data-gantt-row="">
                 {rightPane.renderRow({
                   row: rows[virtualRow.index],
-                  top: virtualRow.start * rowScale,
-                  height: virtualRow.size * rowScale,
+                  top: virtualRow.start,
+                  height: virtualRow.size,
                 })}
               </div>
             ))}
@@ -997,8 +1000,11 @@ function WaydGridInner<T extends RowData>(
   // Sized from `data` rather than the table's row model, which is built later
   // in this component. Equivalent for a simple grid: filtering is off, so no
   // row is ever hidden.
+  const [measuredRowHeight, setMeasuredRowHeight] = useState<number | null>(
+    null,
+  )
   const simpleBodyHeight = data?.length
-    ? data.length * ROW_HEIGHT_ESTIMATE
+    ? data.length * (measuredRowHeight ?? ROW_HEIGHT_ESTIMATE)
     : SIMPLE_EMPTY_BODY_HEIGHT
   const simpleHeight = SIMPLE_HEADER_HEIGHT + simpleBodyHeight + 2
   const resolvedHeight = height ?? (isSimple ? simpleHeight : autoHeight)
@@ -2520,6 +2526,8 @@ function WaydGridInner<T extends RowData>(
         runRowAction={hasRowActions ? runRowAction : undefined}
         rowActionSupport={rowActionSupport}
         footerHintsHost={footerHintsHost}
+        measuredRowHeight={measuredRowHeight}
+        onRowHeightMeasured={setMeasuredRowHeight}
       />
     </div>
   )

@@ -14,7 +14,10 @@ vi.mock('./widgets/my-risks-widget', () => ({
   default: () => null,
   RiskFollowUpsTile: () => null,
 }))
-vi.mock('./widgets/my-team-sprints-widget', () => ({ default: () => null }))
+vi.mock('./widgets/my-teams-widget', () => ({ default: () => null }))
+vi.mock('./widgets/my-teams-tile', () => ({
+  DependenciesAtRiskTile: () => null,
+}))
 vi.mock('./widgets/planning-intervals-widget', () => ({ default: () => null }))
 vi.mock('./widgets/whats-changed-widget', () => ({
   default: () => null,
@@ -53,16 +56,17 @@ describe('HomeWidgets', () => {
     expect(attentionTiles(columns)).toEqual([])
   })
 
-  it('fills the strip with the four tiles of the default briefing', () => {
+  it('offers every tile of the default briefing, most urgent first', () => {
     // Arrange / Act
     const tiles = attentionTiles(arrangeWidgets(HomeWidgets, everything))
 
     // Assert
     expect(tiles.map((t) => t.id)).toEqual([
-      'unread-notifications',
       'overdue-tasks',
-      'tasks-due-this-week',
       'risk-follow-ups',
+      'dependencies-at-risk',
+      'tasks-due-this-week',
+      'unread-notifications',
     ])
   })
 
@@ -95,13 +99,13 @@ const defaultFor = (overrides: HomeContextOverrides) => {
 }
 
 describe('HomeWidgets involvement rules', () => {
-  it('puts a team member’s sprints first, above areas they are not in', () => {
+  it('puts a team member’s teams first, above areas they are not in', () => {
     // Arrange / Act
     const layout = defaultFor({ teams: { teamCount: 2 } })
 
     // Assert
     expect(layout.main).toEqual([
-      'my-team-sprints',
+      'my-teams',
       'whats-changed',
       'my-projects',
       'my-risks',
@@ -109,17 +113,34 @@ describe('HomeWidgets involvement rules', () => {
     expect(layout.side).toEqual(['planning-intervals', 'following'])
   })
 
-  it('puts a project leader’s projects and their task counts first', () => {
+  it('puts a project leader’s projects first', () => {
     // Arrange / Act
     const layout = defaultFor({ projects: { totalCount: 3, ownerCount: 1 } })
 
     // Assert
     expect(layout.main[0]).toBe('my-projects')
-    expect(layout.tiles.slice(0, 2)).toEqual([
-      'overdue-tasks',
-      'tasks-due-this-week',
-    ])
   })
+
+  it.each([
+    ['a project leader', { projects: { totalCount: 3, ownerCount: 1 } }],
+    ['a team member', { teams: { teamCount: 2 } }],
+    ['someone involved in nothing', {}],
+  ] as [string, HomeContextOverrides][])(
+    'orders the tiles by priority alone for %s',
+    (_, overrides) => {
+      // Arrange / Act
+      const layout = defaultFor(overrides)
+
+      // Assert
+      expect(layout.tiles).toEqual([
+        'overdue-tasks',
+        'risk-follow-ups',
+        'dependencies-at-risk',
+        'tasks-due-this-week',
+        'unread-notifications',
+      ])
+    },
+  )
 
   it('ranks a project member below a project leader but above shared widgets', () => {
     // Arrange / Act
@@ -140,22 +161,18 @@ describe('HomeWidgets involvement rules', () => {
     // Assert
     expect(layout.main).toEqual([
       'my-projects',
-      'my-team-sprints',
+      'my-teams',
       'my-risks',
       'whats-changed',
     ])
     expect(layout.side).toEqual(['planning-intervals', 'following'])
   })
 
-  it('keeps sprints in the side column for a member of a team of teams only', () => {
+  it('keeps My teams in the side column for a member of a team of teams only', () => {
     // Arrange / Act
     const layout = defaultFor({ teams: { teamOfTeamsCount: 1 } })
 
     // Assert
-    expect(layout.side).toEqual([
-      'planning-intervals',
-      'following',
-      'my-team-sprints',
-    ])
+    expect(layout.side).toEqual(['planning-intervals', 'following', 'my-teams'])
   })
 })

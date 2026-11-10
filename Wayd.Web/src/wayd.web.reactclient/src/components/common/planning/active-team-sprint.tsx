@@ -8,7 +8,7 @@ import {
 import { SizingMethod } from '@/src/services/wayd-api'
 import { Card, Flex, Skeleton, Typography } from 'antd'
 import Link from 'next/link'
-import { FC } from 'react'
+import { FC, ReactNode } from 'react'
 import styles from './active-team-sprint.module.css'
 import {
   CompletionRateMetric,
@@ -35,12 +35,15 @@ export interface ActiveTeamSprintProps {
    * padding of its own — rather than as a card nested inside another.
    */
   embedded?: boolean
+  /** Drawn instead of nothing when the team turns out to have no active sprint, or it fails to load. */
+  fallback?: ReactNode
 }
 
 const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
   teamId,
   showTeamLink = false,
   embedded = false,
+  fallback = null,
 }) => {
   const { token } = useTheme()
 
@@ -68,7 +71,7 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
   }
 
   if (!sprintData) {
-    return null
+    return fallback
   }
 
   const activeDays = sprintActiveDays(sprintData)

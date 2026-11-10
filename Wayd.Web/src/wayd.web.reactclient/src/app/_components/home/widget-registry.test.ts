@@ -1,6 +1,7 @@
 import {
   arrangeWidgets,
   attentionTiles,
+  visibleAttentionTiles,
   HomeWidget,
   isWidgetAvailable,
   WidgetAccess,
@@ -26,7 +27,7 @@ const access = (overrides: Partial<WidgetAccess> = {}): WidgetAccess => ({
   ...overrides,
 })
 
-const tile = (id: string) => ({ id, Tile: Nothing })
+const tile = (id: string, priority = 0) => ({ id, priority, Tile: Nothing })
 
 describe('isWidgetAvailable', () => {
   it('shows a widget with no requirements to anyone', () => {
@@ -176,21 +177,18 @@ describe('attentionTiles', () => {
     expect(tiles.map((t) => t.id)).toEqual(['a1', 'a2', 'b1'])
   })
 
-  it('shows at most four', () => {
+  it('puts a higher priority ahead of page order', () => {
     // Arrange
     const columns = {
-      main: [
-        widget({ id: 'a', tiles: [tile('a1'), tile('a2'), tile('a3')] }),
-        widget({ id: 'b', tiles: [tile('b1'), tile('b2')] }),
-      ],
-      side: [],
+      main: [widget({ id: 'a', tiles: [tile('low', 10), tile('tied', 50)] })],
+      side: [widget({ id: 'b', tiles: [tile('high', 90), tile('later', 50)] })],
     }
 
     // Act
     const tiles = attentionTiles(columns)
 
     // Assert
-    expect(tiles.map((t) => t.id)).toEqual(['a1', 'a2', 'a3', 'b1'])
+    expect(tiles.map((t) => t.id)).toEqual(['high', 'tied', 'later', 'low'])
   })
 
   it('drops the tiles of a widget that is not shown', () => {
@@ -211,5 +209,73 @@ describe('attentionTiles', () => {
 
     // Assert
     expect(tiles.map((t) => t.id)).toEqual(['kept'])
+  })
+})
+
+describe('visibleAttentionTiles', () => {
+  const tiles = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => tile(id))
+  const counted = (value: number | undefined) => ({ value, loading: false })
+
+  it('shows at most four', () => {
+    // Arrange
+    const reports = Object.fromEntries(tiles.map((t) => [t.id, counted(1)]))
+
+    // Act
+    const visible = visibleAttentionTiles(tiles, reports)
+
+    // Assert
+    expect([...visible]).toEqual(['a', 'b', 'c', 'd'])
+  })
+
+  it('gives a zero’s slot to the next tile', () => {
+    // Arrange
+    const reports = {
+      a: counted(0),
+      b: counted(2),
+      c: counted(0),
+      d: counted(1),
+      e: counted(3),
+      f: counted(4),
+    }
+
+    // Act
+    const visible = visibleAttentionTiles(tiles, reports)
+
+    // Assert
+    expect([...visible]).toEqual(['b', 'd', 'e', 'f'])
+  })
+
+  it('holds a slot for a tile still loading or not yet reported', () => {
+    // Arrange
+    const reports = { a: { value: undefined, loading: true }, b: counted(0) }
+
+    // Act
+    const visible = visibleAttentionTiles(tiles, reports)
+
+    // Assert
+    expect([...visible]).toEqual(['a', 'c', 'd', 'e'])
+  })
+
+  it('keeps a tile whose count failed, since a dash is not good news', () => {
+    // Arrange
+    const reports = Object.fromEntries(tiles.map((t) => [t.id, counted(0)]))
+    reports.c = counted(undefined)
+
+    // Act
+    const visible = visibleAttentionTiles(tiles, reports)
+
+    // Assert
+    expect([...visible]).toEqual(['c'])
+  })
+
+  it('shows nothing when every count is zero', () => {
+    // Arrange
+    const reports = Object.fromEntries(tiles.map((t) => [t.id, counted(0)]))
+
+    // Act
+    const visible = visibleAttentionTiles(tiles, reports)
+
+    // Assert
+    expect(visible.size).toBe(0)
   })
 })

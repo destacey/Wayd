@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import AttentionTile, { attentionColor } from './attention-tile'
+import { AttentionSlotContext } from './attention-strip'
 import { tileValueStyle } from './attention-tile-test-utils'
 
 const mockPush = vi.fn()
@@ -130,5 +131,43 @@ describe('AttentionTile', () => {
     expect(target.scrollIntoView).toHaveBeenCalled()
     expect(mockPush).not.toHaveBeenCalled()
     target.remove()
+  })
+})
+
+describe('AttentionTile in a strip slot', () => {
+  const tileIn = (visible: boolean, report = vi.fn()) => {
+    render(
+      <AttentionSlotContext.Provider value={{ visible, report }}>
+        <AttentionTile
+          title="Overdue tasks"
+          value={4}
+          tooltip="Open tasks past their planned end."
+          href="/ppm/dashboards/projects"
+          alert="error"
+          loading={false}
+        />
+      </AttentionSlotContext.Provider>,
+    )
+    return report
+  }
+
+  it('reports its count to the slot', () => {
+    // Arrange / Act
+    const report = tileIn(true)
+
+    // Assert
+    expect(report).toHaveBeenCalledWith({ value: 4, loading: false })
+    expect(
+      screen.getByRole('button', { name: 'Overdue tasks: 4' }),
+    ).toBeInTheDocument()
+  })
+
+  it('draws nothing without a slot, but still reports', () => {
+    // Arrange / Act
+    const report = tileIn(false)
+
+    // Assert
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(report).toHaveBeenCalledWith({ value: 4, loading: false })
   })
 })

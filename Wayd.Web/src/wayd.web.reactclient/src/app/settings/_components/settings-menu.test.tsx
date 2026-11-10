@@ -12,11 +12,14 @@ vi.mock('@/src/components/contexts/auth', () => ({
 
 // Keyed by flag: the rail gates two groups on two different flags, so a single shared return value
 // would tie them together and let one group's test silently decide the other's.
-vi.mock('@/src/hooks', async () => {
-  const actual = await vi.importActual<any>('@/src/hooks')
+vi.mock(import('@/src/hooks'), async (importOriginal) => {
+  const actual = await importOriginal()
   return {
     ...actual,
-    useFeatureFlag: (name: string) => ({ isEnabled: mockFlags[name] ?? false }),
+    useFeatureFlag: (name: string) => ({
+      isEnabled: mockFlags[name] ?? false,
+      isLoading: false,
+    }),
   }
 })
 

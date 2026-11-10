@@ -17,10 +17,11 @@ vi.mock('@/src/utils/json-utils', () => ({
 
 const mockSuccess = vi.fn()
 const mockError = vi.fn()
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
   return {
     ...actual,
+    // Only useApp is read, and only for the messages it shows.
     App: {
       ...actual.App,
       useApp: () => ({
@@ -29,7 +30,7 @@ vi.mock('antd', async () => {
           error: mockError,
         },
       }),
-    },
+    } as unknown as typeof actual.App,
   }
 })
 

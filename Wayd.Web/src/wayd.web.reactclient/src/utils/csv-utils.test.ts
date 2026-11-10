@@ -6,24 +6,6 @@ import {
   downloadCsvWithTimestamp,
 } from './csv-utils'
 
-vi.mock('dayjs', async () => {
-  const originalDayjs = (await vi.importActual<any>('dayjs')).default
-  return {
-    default: vi.fn((date?: any) => {
-      const instance = originalDayjs(date)
-      return {
-        ...instance,
-        format: vi.fn((format: string) => {
-          if (format === 'YYYY-MM-DD') {
-            return '2025-12-21'
-          }
-          return instance.format(format)
-        }),
-      }
-    }),
-  }
-})
-
 describe('csv-utils', () => {
   describe('escapeCsv', () => {
     it('should return empty string for null or undefined', () => {
@@ -240,6 +222,9 @@ describe('csv-utils', () => {
     let mockLink: any
 
     beforeEach(() => {
+      // Only Date is faked, so the filename's date is fixed and nothing else waits on fake timers.
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date(2025, 11, 21, 12))
       global.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
       global.URL.revokeObjectURL = vi.fn()
 

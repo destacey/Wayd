@@ -6,8 +6,8 @@ import { Grid } from 'antd'
 
 const { useBreakpoint } = Grid
 
-vi.mock('antd', async () => {
-  const originalModule = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const originalModule = await importOriginal()
   return {
     ...originalModule,
     Grid: {

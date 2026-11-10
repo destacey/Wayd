@@ -13,8 +13,8 @@ vi.mock('@/src/components/contexts/messaging', () => ({
 let formInstance: FormInstance | undefined
 
 // The form instance is real — antd's Form binds to it, and a stub breaks on render.
-vi.mock('@/src/hooks', async () => {
-  const { Form } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form } = await vi.importActual<typeof import('antd')>('antd')
   return {
     useModalForm: () => {
       const [form] = Form.useForm()

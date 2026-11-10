@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import EmployeeDetailsPage from './page'
 
@@ -35,8 +35,8 @@ const mockReplace = vi.fn((url: string) => {
 // jsdom has no matchMedia, so useBreakpoint reports no md and RecordLayout
 // renders its compact Select. Pin a wide viewport so both the section rail and
 // the record facts rail are asserted — facts auto-collapse below xl.
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
   return {
     ...actual,
     Grid: {
@@ -108,14 +108,14 @@ vi.mock('@/src/hooks/use-document-title', () => ({
   useDocumentTitle: vi.fn(),
 }))
 
-vi.mock('@/src/hooks', async () => {
+vi.mock(import('@/src/hooks'), async () => {
   const { useState } = await vi.importActual<typeof import('react')>('react')
   return {
     useAppDispatch: () => vi.fn(),
     useFeatureFlag: () => ({ isEnabled: false, isLoading: false }),
     // The facts rail remembers whether it is hidden. This mock replaces the
     // whole hooks barrel, so a plain state hook stands in for the real one.
-    useLocalStorageState: (_key: string, initial: unknown) => useState(initial),
+    useLocalStorageState: <T,>(_key: string, initial: T) => useState(initial),
   }
 })
 
@@ -126,6 +126,17 @@ vi.mock('@/src/store/features/organizations/employee-api', () => ({
     error: undefined,
   })),
   useGetDirectReportsQuery: vi.fn(() => ({
+    data: [],
+    isLoading: false,
+  })),
+  useGetEmployeeWorkItemsQuery: vi.fn(() => ({
+    data: [],
+    isLoading: false,
+  })),
+}))
+
+vi.mock('@/src/store/features/organization/team-members-api', () => ({
+  useGetEmployeeTeamMembershipsQuery: vi.fn(() => ({
     data: [],
     isLoading: false,
   })),
@@ -160,10 +171,12 @@ describe('EmployeeDetailsPage', () => {
     params.status = 'fulfilled'
     params.value = { key: '42' }
 
-    render(
-      <Suspense fallback={<div>Loading employee page</div>}>
-        <EmployeeDetailsPage params={params} />
-      </Suspense>,
+    await act(async () =>
+      render(
+        <Suspense fallback={<div>Loading employee page</div>}>
+          <EmployeeDetailsPage params={params} />
+        </Suspense>,
+      ),
     )
 
     expect(
@@ -194,10 +207,12 @@ describe('EmployeeDetailsPage', () => {
     params.value = { key: '42' }
 
     // Act
-    render(
-      <Suspense fallback={<div>Loading employee page</div>}>
-        <EmployeeDetailsPage params={params} />
-      </Suspense>,
+    await act(async () =>
+      render(
+        <Suspense fallback={<div>Loading employee page</div>}>
+          <EmployeeDetailsPage params={params} />
+        </Suspense>,
+      ),
     )
 
     // Assert
@@ -220,10 +235,12 @@ describe('EmployeeDetailsPage', () => {
     params.status = 'fulfilled'
     params.value = { key: '42' }
 
-    render(
-      <Suspense fallback={<div>Loading employee page</div>}>
-        <EmployeeDetailsPage params={params} />
-      </Suspense>,
+    await act(async () =>
+      render(
+        <Suspense fallback={<div>Loading employee page</div>}>
+          <EmployeeDetailsPage params={params} />
+        </Suspense>,
+      ),
     )
 
     // Act — the panel is closed by default, so the content keeps the width.

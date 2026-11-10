@@ -6,6 +6,7 @@ import CreateConnectionForm, {
   CreateConnectionFormValues,
   getDiscriminator,
 } from './create-connection-form'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 const mockCreate = vi.fn()
 const mockVerify = vi.fn()
@@ -25,18 +26,11 @@ vi.mock('@/src/components/common/markdown', () => ({
 
 // Form.useWatch does not refire after typing under jsdom, so validity stays false and the
 // footer buttons never enable. Keep the form instance real and submit through validateFields.
-vi.mock('@/src/hooks', async () => {
-  const { Form } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form } = await vi.importActual<typeof import('antd')>('antd')
   return {
-    useModalForm: ({
-      onSubmit,
-    }: {
-      onSubmit: (
-        values: Record<string, unknown>,
-        form: unknown,
-      ) => Promise<boolean>
-    }) => {
-      const [form] = Form.useForm()
+    useModalForm: <TValues,>({ onSubmit }: UseModalFormOptions<TValues>) => {
+      const [form] = Form.useForm<TValues>()
       return {
         form,
         isOpen: true,

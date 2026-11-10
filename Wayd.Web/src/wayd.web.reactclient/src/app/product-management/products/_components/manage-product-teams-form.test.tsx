@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { ProductDto } from '@/src/services/wayd-api'
 import ManageProductTeamsForm from './manage-product-teams-form'
+import type { FormInstance } from 'antd'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 const setTeams = vi.fn()
 const messageError = vi.fn()
@@ -25,26 +27,14 @@ vi.mock('@/src/store/features/organizations/team-api', () => ({
 
 /** The submit handler from the live form, so a test need not click a jsdom-disabled button. */
 let submitForm: (() => Promise<void>) | undefined
-let formInstance:
-  | {
-      setFieldsValue: (values: Record<string, unknown>) => void
-      getFieldsValue: (all: true) => Record<string, unknown>
-    }
-  | undefined
+let formInstance: FormInstance | undefined
 
 // The form instance is real — antd's Form binds to it, and a stub breaks on render.
-vi.mock('@/src/hooks', async () => {
-  const { Form } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form } = await vi.importActual<typeof import('antd')>('antd')
   return {
-    useModalForm: ({
-      onSubmit,
-    }: {
-      onSubmit: (
-        values: Record<string, unknown>,
-        form: unknown,
-      ) => Promise<boolean>
-    }) => {
-      const [form] = Form.useForm()
+    useModalForm: <TValues,>({ onSubmit }: UseModalFormOptions<TValues>) => {
+      const [form] = Form.useForm<TValues>()
       formInstance = form
       const handleOk = async () => {
         await onSubmit(form.getFieldsValue(true), form)

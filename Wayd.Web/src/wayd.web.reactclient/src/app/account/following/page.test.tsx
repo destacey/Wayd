@@ -19,13 +19,16 @@ vi.mock('@/src/components/contexts/auth', () => ({
 }))
 
 const mockScreens = vi.fn()
-vi.mock('antd', async () => ({
-  ...(await vi.importActual<any>('antd')),
-  Grid: {
-    ...(await vi.importActual<any>('antd')).Grid,
-    useBreakpoint: () => mockScreens(),
-  },
-}))
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    Grid: {
+      ...actual.Grid,
+      useBreakpoint: () => mockScreens(),
+    },
+  }
+})
 
 const mockPush = vi.fn()
 const mockBack = vi.fn()
@@ -39,11 +42,15 @@ vi.mock('next/navigation', () => ({
 
 const mockUseCounts = vi.fn()
 const mockUseFollows = vi.fn()
-vi.mock('@/src/store/features/common/follows-api', async () => ({
-  ...(await vi.importActual<any>('@/src/store/features/common/follows-api')),
-  useGetMyFollowCountsQuery: (...args: unknown[]) => mockUseCounts(...args),
-  useGetMyFollowsInfiniteQuery: (...args: unknown[]) => mockUseFollows(...args),
-}))
+vi.mock(
+  import('@/src/store/features/common/follows-api'),
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    useGetMyFollowCountsQuery: (...args: unknown[]) => mockUseCounts(...args),
+    useGetMyFollowsInfiniteQuery: (...args: unknown[]) =>
+      mockUseFollows(...args),
+  }),
+)
 
 vi.mock('./_components/following-rail', () => ({
   default: ({ onChange }: { onChange: (f: { view: FollowView }) => void }) => (

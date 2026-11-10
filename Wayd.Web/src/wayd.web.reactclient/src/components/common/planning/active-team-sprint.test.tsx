@@ -33,11 +33,13 @@ vi.mock('./timeline-progress', () => ({
 }))
 
 // Mock Metrics; the figures stay real so what is shown can be asserted.
-vi.mock('../metrics', async () => ({
+vi.mock(import('../metrics'), async () => ({
   sprintOverviewFigures: (
-    await vi.importActual<any>('../metrics/sprint-overview-figures')
+    await vi.importActual<typeof import('../metrics/sprint-overview-figures')>(
+      '../metrics/sprint-overview-figures',
+    )
   ).sprintOverviewFigures,
-  MetricCard: ({ title, value }: { title: string; value: number }) => (
+  MetricCard: ({ title, value }: MetricCardProps) => (
     <div data-testid={`metric-${title}`}>{value}</div>
   ),
   CompletionRateMetric: ({
@@ -86,6 +88,7 @@ import {
   useGetSprintMetricsQuery,
   useGetSprintScopeQuery,
 } from '../../../store/features/work-management/sprints-api'
+import type { MetricCardProps } from '@/src/components/common/metrics/metric-card'
 
 describe('ActiveTeamSprint', () => {
   const mockSprint = {

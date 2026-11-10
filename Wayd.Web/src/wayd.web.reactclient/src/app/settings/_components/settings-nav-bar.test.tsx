@@ -5,9 +5,12 @@ vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasClaim: () => true }),
 }))
 
-vi.mock('@/src/hooks', async () => {
-  const actual = await vi.importActual<any>('@/src/hooks')
-  return { ...actual, useFeatureFlag: () => ({ isEnabled: false }) }
+vi.mock(import('@/src/hooks'), async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    useFeatureFlag: () => ({ isEnabled: false, isLoading: false }),
+  }
 })
 
 vi.mock('@/src/store/features/admin/imports-api', () => ({

@@ -1,26 +1,21 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ChangeDiscussionSettingsForm from './change-discussion-settings-form'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 const mockMessage = { error: vi.fn(), success: vi.fn(), warning: vi.fn() }
 vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => mockMessage,
 }))
 
-vi.mock('@/src/hooks', async () => {
-  const { Form } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form } = await vi.importActual<typeof import('antd')>('antd')
   return {
-    useModalForm: ({
+    useModalForm: <TValues,>({
       onSubmit,
       onComplete,
-    }: {
-      onSubmit: (
-        values: Record<string, unknown>,
-        form: unknown,
-      ) => Promise<boolean>
-      onComplete: () => void
-    }) => {
-      const [form] = Form.useForm()
+    }: UseModalFormOptions<TValues>) => {
+      const [form] = Form.useForm<TValues>()
       return {
         form,
         isOpen: true,

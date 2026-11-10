@@ -12,8 +12,8 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => mockParams,
 }))
 
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
   return {
     ...actual,
     Grid: { ...actual.Grid, useBreakpoint: vi.fn() },

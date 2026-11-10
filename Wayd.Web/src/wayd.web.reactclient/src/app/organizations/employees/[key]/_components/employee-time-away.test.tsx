@@ -47,9 +47,8 @@ vi.mock('./employee-holiday-calendar-form', () => ({
 }))
 
 const mockWorkingDayForm = vi.fn()
-vi.mock('./employee-working-day-form', async () => ({
-  workingDayLabel: (await vi.importActual<any>('./employee-working-day-form'))
-    .workingDayLabel,
+vi.mock(import('./employee-working-day-form'), async (importOriginal) => ({
+  workingDayLabel: (await importOriginal()).workingDayLabel,
   default: (props: unknown) => {
     mockWorkingDayForm(props)
     return <div data-testid="working-day-form" />

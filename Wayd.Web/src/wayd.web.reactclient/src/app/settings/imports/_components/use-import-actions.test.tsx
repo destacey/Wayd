@@ -25,10 +25,11 @@ interface ConfirmConfig {
 /** The last dialog an action opened, so its wording and its confirm can both be exercised. */
 let lastConfirm: ConfirmConfig | undefined
 
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
   return {
     ...actual,
+    // Only useApp is read, and only for its confirm dialog.
     App: {
       ...actual.App,
       // Rendering antd's confirm portal drags Next server internals into jsdom. Capturing the config
@@ -40,7 +41,7 @@ vi.mock('antd', async () => {
           },
         },
       }),
-    },
+    } as unknown as typeof actual.App,
   }
 })
 

@@ -16,22 +16,26 @@ vi.mock('@/src/hooks', () => ({
 }))
 
 const mockScreens = vi.fn()
-vi.mock('antd', async () => ({
-  ...(await vi.importActual<any>('antd')),
-  Grid: {
-    ...(await vi.importActual<any>('antd')).Grid,
-    useBreakpoint: () => mockScreens(),
-  },
-}))
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    Grid: {
+      ...actual.Grid,
+      useBreakpoint: () => mockScreens(),
+    },
+  }
+})
 
 const mockUseCount = vi.fn()
-vi.mock('@/src/store/features/common/notifications-api', async () => ({
-  ...(await vi.importActual<any>(
-    '@/src/store/features/common/notifications-api',
-  )),
-  useGetUnreadNotificationCountQuery: (...args: unknown[]) =>
-    mockUseCount(...args),
-}))
+vi.mock(
+  import('@/src/store/features/common/notifications-api'),
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    useGetUnreadNotificationCountQuery: (...args: unknown[]) =>
+      mockUseCount(...args),
+  }),
+)
 
 vi.mock('./notification-panel', () => ({
   default: ({

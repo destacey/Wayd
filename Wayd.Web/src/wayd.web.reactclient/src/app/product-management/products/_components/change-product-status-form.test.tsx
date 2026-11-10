@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProductDto, TransitionConditionKind } from '@/src/services/wayd-api'
 import ChangeProductStatusForm from './change-product-status-form'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 const product = {
   id: 'product-1',
@@ -45,13 +46,11 @@ vi.mock('@/src/components/contexts/messaging', () => ({
 // those in initialises the store this form never touches. The form instance is
 // real, though — antd's Form binds to it, and a stub object breaks on render.
 // OK validates and submits as the real hook does.
-vi.mock('@/src/hooks', async () => {
-  const { Form: AntForm } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form: AntForm } = await vi.importActual<typeof import('antd')>('antd')
   return {
-    useModalForm: (options: {
-      onSubmit: (values: unknown, form: unknown) => Promise<boolean>
-    }) => {
-      const [form] = AntForm.useForm()
+    useModalForm: <TValues,>(options: UseModalFormOptions<TValues>) => {
+      const [form] = AntForm.useForm<TValues>()
       return {
         form,
         isOpen: true,

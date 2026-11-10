@@ -254,3 +254,7 @@ Uses Vitest with React Testing Library. Component suites (`*.test.tsx`) run in j
 PRs run without coverage, since nothing reads it there; only the main-branch build collects it (v8
 coverage adds about a tenth to the run). Both the .NET and client coverage numbers are published to that
 run's summary page.
+
+The client figure counts every hand-written source file under `src/`, so a file no test loads reports 0%
+rather than dropping out. The generated API client (`wayd-api.ts`), type declarations, and the test files
+with their setup and helpers are left out (`coverage.exclude` in `vitest.config.mts`).

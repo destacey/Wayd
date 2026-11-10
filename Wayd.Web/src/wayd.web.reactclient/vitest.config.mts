@@ -71,9 +71,19 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['lcov', 'text-summary'],
-      // Source only: the setup files and CSS modules would otherwise count towards the figure.
+      // Every hand-written source file counts, so one no test loads reports 0% rather than vanishing.
+      // Left out: the generated API client (larger than the rest of the source), type declarations,
+      // and the suites with their setup and helpers.
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.test.{ts,tsx}', 'src/vitest.setup*.ts'],
+      exclude: [
+        'src/services/wayd-api.ts',
+        'src/**/*.d.ts',
+        'src/**/*.test.{ts,tsx}',
+        'src/vitest.setup*.ts',
+        'src/**/*-test-utils.ts',
+        'src/**/*test-data.ts',
+        'src/components/common/wayd-grid-core/test-table.ts',
+      ],
     },
   },
 })

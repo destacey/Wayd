@@ -1441,6 +1441,43 @@
         ]
       }
     },
+    "/api/me/teams/summary": {
+      "get": {
+        "tags": [
+          "Me"
+        ],
+        "summary": "Get a summary of each team you are a member of, for how that team works today.",
+        "description": "One entry per active team you are a member of (teams of teams are left out), by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health and its `openRiskCount`. A team with no operating model today has neither `sprint` nor `flow`. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount`. Returns 404 when your account is not linked to an employee.",
+        "operationId": "Me_GetTeamsSummary",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyTeamsSummaryResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/me/follows": {
       "get": {
         "tags": [
@@ -66070,6 +66107,42 @@
         },
         "additionalProperties": false
       },
+      "InProgressWorkItemDto": {
+        "required": [
+          "id",
+          "key",
+          "workspaceKey",
+          "title",
+          "activatedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The work item's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "description": "The work item's key, such as `WAYD-123`, which its page is addressed by."
+          },
+          "workspaceKey": {
+            "type": "string",
+            "description": "The key of the workspace the work item is in, which its page is addressed under."
+          },
+          "title": {
+            "type": "string",
+            "description": "The work item's title."
+          },
+          "activatedOn": {
+            "type": "string",
+            "description": "When the work item first entered an In Progress-category status.",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A work item in progress, with when it started."
+      },
       "InstantWindowDto": {
         "required": [
           "earliest"
@@ -69113,6 +69186,182 @@
         },
         "additionalProperties": false,
         "description": "Summary of the current user's project involvement, with counts per role."
+      },
+      "MyTeamFlowSummaryResponse": {
+        "required": [
+          "inProgressCount",
+          "completedSince",
+          "completedCount"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPeriod": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MyTeamReportingPeriodResponse"
+              }
+            ],
+            "description": "The team's current reporting period, or null when the team has no reporting cadence.",
+            "nullable": true
+          },
+          "inProgressCount": {
+            "type": "integer",
+            "description": "Requirement-tier work items in an In Progress-category status now.",
+            "format": "int32"
+          },
+          "completedSince": {
+            "type": "string",
+            "description": "The first day `completedCount` counts from, in the team's time zone: 13 days before today, or\nthe day the team became Kanban when that is later.",
+            "format": "date"
+          },
+          "completedCount": {
+            "type": "integer",
+            "description": "Requirement-tier work items finished from `completedSince` through today.",
+            "format": "int32"
+          },
+          "medianCycleTimeDays": {
+            "type": "number",
+            "description": "The median cycle time in days of the items `completedCount` counts; null when none has one.",
+            "format": "double",
+            "nullable": true
+          },
+          "oldestInProgress": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/InProgressWorkItemDto"
+              }
+            ],
+            "description": "The work item in progress longest, or null when nothing in progress has a start time.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A Kanban team's flow: what it has in progress, and what it finished lately."
+      },
+      "MyTeamReportingPeriodResponse": {
+        "required": [
+          "start",
+          "end"
+        ],
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "description": "The period's first day.",
+            "format": "date"
+          },
+          "end": {
+            "type": "string",
+            "description": "The period's last day, included in it.",
+            "format": "date"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A reporting period of a Kanban team's cadence."
+      },
+      "MyTeamSprintSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "activeSprint": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The sprint the team is running now, or null between sprints.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A Scrum team's sprint today."
+      },
+      "MyTeamsSummaryResponse": {
+        "required": [
+          "teams"
+        ],
+        "type": "object",
+        "properties": {
+          "teams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyTeamSummaryResponse"
+            },
+            "description": "One entry per team, by team name."
+          },
+          "dependenciesAtRiskCount": {
+            "type": "integer",
+            "description": "The open dependencies at risk or unhealthy across the teams, each counted once even when it joins two of them.\nNull without the View Work Items permission.",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The active teams the caller is a member of, each summarised for how it works today. Teams of teams are not\nincluded. A section is null when the caller lacks the permission the team page needs to show it."
+      },
+      "MyTeamSummaryResponse": {
+        "required": [
+          "team"
+        ],
+        "type": "object",
+        "properties": {
+          "team": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TeamNavigationDto"
+              }
+            ],
+            "description": "The team."
+          },
+          "methodology": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Methodology"
+              }
+            ],
+            "description": "How the team works today, read from the operating model that covers today's date in the team's own time\nzone. Null when no operating model covers today, in which case neither `sprint` nor\n`flow` is returned.",
+            "nullable": true
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The IANA time zone of today's operating model, which the team's dates are counted in; null with no model.",
+            "nullable": true
+          },
+          "sprint": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MyTeamSprintSummaryResponse"
+              }
+            ],
+            "description": "A Scrum team's sprint. Null for any other team, or without the View Iterations permission.",
+            "nullable": true
+          },
+          "flow": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MyTeamFlowSummaryResponse"
+              }
+            ],
+            "description": "A Kanban team's flow. Null for any other team, or without the View Work Items permission.",
+            "nullable": true
+          },
+          "dependencies": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TeamDependencyHealthDto"
+              }
+            ],
+            "description": "The team's open dependencies by planning health, counted as its Dependencies section lists them, including\nthose within the team. Null without the View Work Items permission.",
+            "nullable": true
+          },
+          "openRiskCount": {
+            "type": "integer",
+            "description": "How many open risks the team has. Null without the View Risks permission.",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One of the caller's teams, summarised for the methodology it follows today."
       },
       "NavigationDto": {
         "allOf": [
@@ -83266,6 +83515,33 @@
         },
         "additionalProperties": false,
         "description": "Where a team's dependencies, or those of every team beneath a team of teams, ran from `from` to `to`\n(inclusive, days in the team's time zone): which teams they ran between, how many, and how that changed over\nthe range."
+      },
+      "TeamDependencyHealthDto": {
+        "required": [
+          "openCount",
+          "atRiskCount",
+          "unhealthyCount"
+        ],
+        "type": "object",
+        "properties": {
+          "openCount": {
+            "type": "integer",
+            "description": "The open dependencies with an end on the team, including those with both ends on it.",
+            "format": "int32"
+          },
+          "atRiskCount": {
+            "type": "integer",
+            "description": "The open dependencies whose ends are both unplanned.",
+            "format": "int32"
+          },
+          "unhealthyCount": {
+            "type": "integer",
+            "description": "The open dependencies planned to finish after they are needed, or whose successor started first.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One team's open dependencies, as predecessor or successor, counted by planning health."
       },
       "TeamDetailsDto": {
         "required": [

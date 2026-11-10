@@ -68,7 +68,8 @@ public sealed record CadencePeriod(
 
         foreach (var model in Runs(schedule).OrderByDescending(m => m.Start))
         {
-            var zone = DateTimeZoneProviders.Tzdb[model.TimeZone];
+            // A zone id the tz database has dropped reads as UTC rather than failing the team's every read.
+            var zone = DateTimeZoneProviders.Tzdb.GetZoneOrNull(model.TimeZone) ?? DateTimeZone.Utc;
             var today = now.InZone(zone).Date;
             if (model.Start > today)
                 continue;

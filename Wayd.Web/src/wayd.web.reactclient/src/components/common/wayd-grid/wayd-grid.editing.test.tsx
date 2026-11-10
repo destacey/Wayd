@@ -1133,6 +1133,63 @@ describe('WaydGrid cell editing', () => {
       )
     })
 
+    it.each([
+      ['with', { renderRow: () => null }],
+      ['without', undefined],
+    ])(
+      'scrolls a child draft added below the visible rows into view, %s a chart pane',
+      async (_, rightPane) => {
+        // Arrange — rows rendering at 29px against the 28px estimate, and a
+        // parent whose 150 children push its new child (row 151 of 202) far
+        // below the window
+        const ROW_HEIGHT = 29
+        vi.spyOn(
+          HTMLTableRowElement.prototype,
+          'getBoundingClientRect',
+        ).mockReturnValue({ height: ROW_HEIGHT } as DOMRect)
+        const data = [
+          item('p', 'Parent', {
+            children: Array.from({ length: 150 }, (_, i) =>
+              item(`c${i}`, `Child ${i}`),
+            ),
+          }),
+          ...Array.from({ length: 50 }, (_, i) => item(`r${i}`, `Root ${i}`)),
+        ]
+        render(
+          <DraftHarness
+            data={data}
+            onCreate={vi.fn()}
+            rightPane={rightPane}
+            leftSlot={(ctx) => (
+              <Button onClick={() => ctx.addDraftAsChild('p')}>
+                New child
+              </Button>
+            )}
+          />,
+        )
+        const viewport = document.querySelector<HTMLElement>(
+          '[data-grid-body-viewport]',
+        )!
+        // jsdom has no layout: give the body its scroll height, and record
+        // where the grid scrolls it.
+        Object.defineProperty(viewport, 'scrollHeight', {
+          configurable: true,
+          get: () => 202 * ROW_HEIGHT,
+        })
+        const scrollTo = vi.fn()
+        viewport.scrollTo = scrollTo as typeof viewport.scrollTo
+
+        // Act
+        fireEvent.click(screen.getByRole('button', { name: 'New child' }))
+        await flush()
+
+        // Assert — the draft's bottom edge meets the 600px viewport's
+        expect(scrollTo).toHaveBeenLastCalledWith(
+          expect.objectContaining({ top: 152 * ROW_HEIGHT - 600 }),
+        )
+      },
+    )
+
     it('lets only one draft wait at a time', () => {
       // Arrange
       render(

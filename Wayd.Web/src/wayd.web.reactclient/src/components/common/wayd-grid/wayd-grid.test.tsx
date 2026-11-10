@@ -1751,6 +1751,36 @@ describe('WaydGrid', () => {
       expect(renderRow).toHaveBeenCalled()
     })
 
+    it('places bars at the rendered row height', () => {
+      // Arrange — rows render at 29px against the 28px estimate
+      vi.spyOn(
+        HTMLTableRowElement.prototype,
+        'getBoundingClientRect',
+      ).mockReturnValue({ height: 29 } as DOMRect)
+      const renderRow = ({
+        row,
+        top,
+        height,
+      }: {
+        row: { original: Flag }
+        top: number
+        height: number
+      }) => (
+        <div
+          data-testid={`bar-${row.original.id}`}
+          data-top={top}
+          data-height={height}
+        />
+      )
+
+      // Act
+      renderGrid({ rightPane: { renderRow } })
+
+      // Assert
+      expect(screen.getByTestId('bar-2')).toHaveAttribute('data-top', '29')
+      expect(screen.getByTestId('bar-2')).toHaveAttribute('data-height', '29')
+    })
+
     it('renders the rightPane header (e.g. the date axis)', () => {
       // Arrange / Act
       renderGrid({
@@ -1774,6 +1804,24 @@ describe('WaydGrid', () => {
       expect(
         container.querySelectorAll('[data-grid-body-viewport]'),
       ).toHaveLength(1)
+    })
+  })
+
+  describe('simple variant', () => {
+    it('fits its height to the rows at their rendered height', () => {
+      // Arrange — rows render at 29px against the 28px estimate
+      vi.spyOn(
+        HTMLTableRowElement.prototype,
+        'getBoundingClientRect',
+      ).mockReturnValue({ height: 29 } as DOMRect)
+
+      // Act
+      const { container } = renderGrid({ variant: 'simple' })
+
+      // Assert — header (39) + three rows + borders (2)
+      expect(container.firstElementChild).toHaveStyle({
+        height: `${39 + DATA.length * 29 + 2}px`,
+      })
     })
   })
 

@@ -28,21 +28,29 @@
   background: var(--ant-color-fill-tertiary);
 }
 
-.titleCell a {
-  color: inherit;
+.titleCell {
+  min-width: 0;
+}
+
+.titleLink {
+  color: var(--ant-color-link);
+  font-weight: normal;
   text-decoration: none;
 }
 
-.titleCell a:hover strong {
-  color: var(--ant-color-primary);
+.titleLink:hover {
+  color: var(--ant-color-link-hover);
 }
 
-.incidentRow strong {
-  font-weight: 700;
+.titleLink:focus-visible {
+  outline: 2px solid var(--ant-color-primary);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
-.titleCell {
-  min-width: 0;
+/* Shared with the record page, which keeps the heavier weight. */
+.incidentRow .rank {
+  font-weight: normal;
 }
 
 .detail {

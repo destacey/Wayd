@@ -114,8 +114,11 @@ function IncidentListRow({ row }: { row: IncidentSummaryDto }) {
         color={row.severityLevel.color}
       />
       <span className={styles.titleCell}>
-        <Link href={`/product-management/incidents/${row.key}`}>
-          <strong>{row.title}</strong>
+        <Link
+          href={`/product-management/incidents/${row.key}`}
+          className={styles.titleLink}
+        >
+          {row.title}
         </Link>
       </span>
       <span>{formatIncidentProductLabel(row.products ?? [])}</span>

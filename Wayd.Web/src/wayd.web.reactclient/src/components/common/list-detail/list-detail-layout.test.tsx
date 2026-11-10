@@ -16,8 +16,8 @@ const mockDrawerProps = vi.fn()
 // Grid.useBreakpoint — the component destructures it at module load, so a
 // spy installed later would never be seen. It has to be replaced in the
 // factory. Everything else stays real.
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
   const MockDrawer = ({ title, open, children, ...rest }: any) => {
     mockDrawerProps(rest)
     return open ? (
@@ -30,7 +30,8 @@ vi.mock('antd', async () => {
   MockDrawer.displayName = 'MockDrawer'
   return {
     ...actual,
-    Drawer: MockDrawer,
+    // Stubs the component only; nothing here renders antd's static inner panel.
+    Drawer: MockDrawer as unknown as typeof actual.Drawer,
     Grid: { ...actual.Grid, useBreakpoint: () => mockBreakpoint() },
   }
 })

@@ -7,8 +7,8 @@ import { HomeWidget } from './widget-registry'
 
 // antd's Drawer reaches for Next's server-side AsyncLocalStorage, which jsdom
 // has no runtime for. Only the Drawer is stubbed, so the rows under test stay real.
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
   const MockDrawer = ({
     title,
     open,
@@ -26,19 +26,24 @@ vi.mock('antd', async () => {
       </div>
     ) : null
   MockDrawer.displayName = 'MockDrawer'
-  return { ...actual, Drawer: MockDrawer }
+  // Stubs the component only; nothing here renders antd's static inner panel.
+  return { ...actual, Drawer: MockDrawer as unknown as typeof actual.Drawer }
 })
 
 // jsdom has no layout, so no sensor can drive a drag. The real DndContext
 // renders; its handlers are captured so a test can fire the drag events.
 const mockDndRendered = vi.fn()
-vi.mock('@dnd-kit/core', async () => {
-  const actual = await vi.importActual<any>('@dnd-kit/core')
+vi.mock(import('@dnd-kit/core'), async (importOriginal) => {
+  const actual = await importOriginal()
   const CapturingDndContext = (props: any) => {
     mockDndRendered(props)
     return <actual.DndContext {...props} />
   }
-  return { ...actual, DndContext: CapturingDndContext }
+  // A plain function stands in for the memoized component; nothing reads its memo fields.
+  return {
+    ...actual,
+    DndContext: CapturingDndContext as unknown as typeof actual.DndContext,
+  }
 })
 
 const drag = async (

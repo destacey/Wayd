@@ -4,6 +4,7 @@ import { IntakeDeskVisibility } from '@/src/services/wayd-api'
 import RerouteIntakeRequestForm, {
   wideningNotice,
 } from './reroute-intake-request-form'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
@@ -11,20 +12,14 @@ vi.mock('@/src/components/contexts/messaging', () => ({
 
 // Under jsdom, Form.useWatch does not refire after typing, so keep the form instance real and submit through
 // validateFields, which, like the real hook, returns only the fields that are mounted.
-vi.mock('@/src/hooks', async () => {
-  const { Form } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form } = await vi.importActual<typeof import('antd')>('antd')
   return {
-    useModalForm: ({
+    useModalForm: <TValues,>({
       onSubmit,
       onComplete,
-    }: {
-      onSubmit: (
-        values: Record<string, unknown>,
-        form: unknown,
-      ) => Promise<boolean>
-      onComplete: () => void
-    }) => {
-      const [form] = Form.useForm()
+    }: UseModalFormOptions<TValues>) => {
+      const [form] = Form.useForm<TValues>()
       return {
         form,
         isOpen: true,

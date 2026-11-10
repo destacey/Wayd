@@ -12,8 +12,8 @@ vi.mock('next/navigation', () => ({
 }))
 
 // jsdom has no matchMedia; pin a wide viewport so the rail renders.
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
   return {
     ...actual,
     Grid: {
@@ -46,8 +46,8 @@ vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-vi.mock('@/src/hooks', async () => ({
-  ...(await vi.importActual<any>('@/src/hooks')),
+vi.mock(import('@/src/hooks'), async (importOriginal) => ({
+  ...(await importOriginal()),
   useDocumentTitle: vi.fn(),
 }))
 

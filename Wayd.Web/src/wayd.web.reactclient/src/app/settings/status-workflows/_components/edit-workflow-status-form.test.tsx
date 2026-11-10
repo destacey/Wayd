@@ -9,6 +9,7 @@ import {
 import EditWorkflowStatusForm, {
   type WorkflowStatusEditScope,
 } from './edit-workflow-status-form'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
@@ -16,20 +17,14 @@ vi.mock('@/src/components/contexts/messaging', () => ({
 
 // Not spread from the real barrel: it re-exports store-bound hooks. The stand-in
 // keeps the hook's contract — a form that is open and submits its values.
-vi.mock('@/src/hooks', async () => {
-  const { Form } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form } = await vi.importActual<typeof import('antd')>('antd')
   return {
-    useModalForm: ({
+    useModalForm: <TValues,>({
       onSubmit,
       onComplete,
-    }: {
-      onSubmit: (
-        values: Record<string, unknown>,
-        form: unknown,
-      ) => Promise<boolean>
-      onComplete: () => void
-    }) => {
-      const [form] = Form.useForm()
+    }: UseModalFormOptions<TValues>) => {
+      const [form] = Form.useForm<TValues>()
       return {
         form,
         isOpen: true,

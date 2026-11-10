@@ -35,8 +35,8 @@ const mockReplace = vi.fn((url: string) => {
 // jsdom has no matchMedia, so useBreakpoint reports no md and RecordLayout
 // renders its compact Select. Pin a wide viewport so both the section rail and
 // the record facts rail are asserted — facts auto-collapse below xl.
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
   return {
     ...actual,
     Grid: {

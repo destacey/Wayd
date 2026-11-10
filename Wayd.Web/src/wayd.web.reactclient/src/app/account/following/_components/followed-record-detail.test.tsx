@@ -24,12 +24,22 @@ vi.mock('@/src/components/contexts/messaging', () => ({
 
 const mockUseGetFollowedRecordQuery = vi.fn()
 const mockUnfollow = vi.fn()
-vi.mock('@/src/store/features/common/follows-api', async () => ({
-  ...(await vi.importActual<any>('@/src/store/features/common/follows-api')),
-  useGetFollowedRecordQuery: (...args: unknown[]) =>
-    mockUseGetFollowedRecordQuery(...args),
-  useUnfollowMutation: () => [mockUnfollow, { isLoading: false }],
-}))
+vi.mock(
+  import('@/src/store/features/common/follows-api'),
+  async (importOriginal) => {
+    const actual = await importOriginal()
+    return {
+      ...actual,
+      useGetFollowedRecordQuery: (...args: unknown[]) =>
+        mockUseGetFollowedRecordQuery(...args),
+      // The component reads only isLoading from the mutation's state.
+      useUnfollowMutation: (() => [
+        mockUnfollow,
+        { isLoading: false },
+      ]) as unknown as typeof actual.useUnfollowMutation,
+    }
+  },
+)
 
 const mockUseGetProjectQuery = vi.fn()
 vi.mock('@/src/store/features/ppm/projects-api', () => ({

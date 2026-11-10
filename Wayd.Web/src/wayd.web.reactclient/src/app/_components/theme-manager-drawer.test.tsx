@@ -8,10 +8,9 @@ vi.mock('@/src/components/contexts/theme', () => ({
   default: vi.fn(),
 }))
 
-vi.mock('antd', async () => {
-  const actual = await vi.importActual<any>('antd')
-  return {
-    ...actual,
+vi.mock(import('antd'), async (importOriginal) => {
+  const actual = await importOriginal()
+  const stubs = {
     Drawer: ({ children, title }: any) => (
       <section>
         <h2>{title}</h2>
@@ -51,6 +50,8 @@ vi.mock('antd', async () => {
       </div>
     ),
   }
+  // Plain stand-ins without antd's statics and refs; the drawer only renders them.
+  return { ...actual, ...(stubs as unknown as Partial<typeof actual>) }
 })
 
 const setCurrentTheme = vi.fn()

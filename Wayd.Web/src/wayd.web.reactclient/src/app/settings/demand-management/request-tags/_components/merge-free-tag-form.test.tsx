@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import MergeFreeTagForm from './merge-free-tag-form'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 const mockError = vi.fn()
 vi.mock('@/src/components/contexts/messaging', () => ({
@@ -8,17 +9,14 @@ vi.mock('@/src/components/contexts/messaging', () => ({
 }))
 
 // The form instance is real so antd's Form binds to it; handleOk runs the real submit.
-vi.mock('@/src/hooks', async () => {
-  const { Form: AntForm } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form: AntForm } = await vi.importActual<typeof import('antd')>('antd')
   return {
-    useModalForm: ({
+    useModalForm: <TValues,>({
       onSubmit,
       onComplete,
-    }: {
-      onSubmit: (values: unknown, form: unknown) => Promise<boolean>
-      onComplete: () => void
-    }) => {
-      const [form] = AntForm.useForm()
+    }: UseModalFormOptions<TValues>) => {
+      const [form] = AntForm.useForm<TValues>()
       return {
         form,
         isOpen: true,

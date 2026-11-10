@@ -6,6 +6,8 @@ import {
 } from '@/src/services/wayd-api'
 import { todayCalendarDate } from '@/src/utils'
 import ChangeProductDependencyTermsForm from './change-product-dependency-terms-form'
+import type { FormInstance } from 'antd'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 const changeTerms = vi.fn()
 
@@ -19,27 +21,15 @@ vi.mock('@/src/store/features/product-management/products-api', () => ({
 
 /** The submit handler from the live form, so a test need not click a jsdom-disabled button. */
 let submitForm: (() => Promise<void>) | undefined
-let formInstance:
-  | {
-      setFieldsValue: (values: Record<string, unknown>) => void
-      getFieldValue: (name: string) => unknown
-    }
-  | undefined
+let formInstance: FormInstance | undefined
 
 // The form instance is real — antd's Form binds to it, and a stub breaks on render. See
 // complete-deployment-form.test.tsx for why the OK button's enabled state is not asserted.
-vi.mock('@/src/hooks', async () => {
-  const { Form } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form } = await vi.importActual<typeof import('antd')>('antd')
   return {
-    useModalForm: ({
-      onSubmit,
-    }: {
-      onSubmit: (
-        values: Record<string, unknown>,
-        form: unknown,
-      ) => Promise<boolean>
-    }) => {
-      const [form] = Form.useForm()
+    useModalForm: <TValues,>({ onSubmit }: UseModalFormOptions<TValues>) => {
+      const [form] = Form.useForm<TValues>()
       formInstance = form
       const handleOk = async () => {
         await onSubmit(form.getFieldsValue(true), form)

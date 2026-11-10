@@ -3,6 +3,7 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { WorkTypeTier } from '@/src/services/wayd-api'
 import AddProjectWorkItemsForm from './add-project-work-items-form'
+import type { UseModalFormOptions } from '@/src/hooks'
 
 const mockError = vi.fn()
 vi.mock('@/src/components/contexts/messaging', () => ({
@@ -11,22 +12,16 @@ vi.mock('@/src/components/contexts/messaging', () => ({
 
 // Under jsdom, Form.useWatch does not refire after typing, so the real hook's validity never updates; as the
 // other form suites do, keep the form instance real and submit through validateFields.
-vi.mock('@/src/hooks', async () => {
-  const { Form } = await vi.importActual<any>('antd')
+vi.mock(import('@/src/hooks'), async () => {
+  const { Form } = await vi.importActual<typeof import('antd')>('antd')
   return {
     // The search waits for typing to settle; the tests search at once.
-    useDebounce: (value: unknown) => value,
-    useModalForm: ({
+    useDebounce: <T,>(value: T) => value,
+    useModalForm: <TValues,>({
       onSubmit,
       onComplete,
-    }: {
-      onSubmit: (
-        values: Record<string, unknown>,
-        form: unknown,
-      ) => Promise<boolean>
-      onComplete: () => void
-    }) => {
-      const [form] = Form.useForm()
+    }: UseModalFormOptions<TValues>) => {
+      const [form] = Form.useForm<TValues>()
       return {
         form,
         isOpen: true,

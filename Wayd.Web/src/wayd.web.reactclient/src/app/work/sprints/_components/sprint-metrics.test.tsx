@@ -22,6 +22,7 @@ import {
   useGetSprintScopeQuery,
 } from '@/src/store/features/work-management/sprints-api'
 import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations/team-api'
+import type { MetricCardProps } from '@/src/components/common/metrics/metric-card'
 
 // Mock dayjs
 vi.mock('dayjs', () => {
@@ -77,22 +78,15 @@ const card = (title: string, value: unknown, secondaryValue?: unknown) => (
 )
 
 // Mock Metrics components; the figures stay real so what is shown can be asserted.
-vi.mock('@/src/components/common/metrics', async () => ({
+vi.mock(import('@/src/components/common/metrics'), async () => ({
   sprintOverviewFigures: (
-    await vi.importActual<any>(
-      '@/src/components/common/metrics/sprint-overview-figures',
-    )
+    await vi.importActual<
+      typeof import('@/src/components/common/metrics/sprint-overview-figures')
+    >('@/src/components/common/metrics/sprint-overview-figures')
   ).sprintOverviewFigures,
   METRIC_CARD_FLEX: {},
-  MetricCard: ({
-    title,
-    value,
-    secondaryValue,
-  }: {
-    title: string
-    value: number
-    secondaryValue?: unknown
-  }) => card(title, value, secondaryValue),
+  MetricCard: ({ title, value, secondaryValue }: MetricCardProps) =>
+    card(String(title), value, secondaryValue),
   DaysCountdownMetric: () => <div data-testid="countdown-metric" />,
   CompletionRateMetric: ({
     completed,

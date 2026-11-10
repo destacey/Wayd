@@ -17,14 +17,14 @@ import {
   renderWorkspaceLink,
 } from './cell-renderers'
 
-jest.mock('next/link', () => {
+vi.mock('next/link', () => {
   const MockLink = ({ children, href, ...props }: any) => (
     <a href={href} {...props}>
       {children}
     </a>
   )
   MockLink.displayName = 'MockLink'
-  return MockLink
+  return { default: MockLink }
 })
 
 describe('renderTeamLink', () => {
@@ -41,7 +41,11 @@ describe('renderTeamLink', () => {
     // Arrange / Act
     render(
       <>
-        {renderTeamLink({ key: 3, name: 'Platform Group', type: 'TeamOfTeams' })}
+        {renderTeamLink({
+          key: 3,
+          name: 'Platform Group',
+          type: 'TeamOfTeams',
+        })}
       </>,
     )
 
@@ -62,9 +66,7 @@ describe('renderTeamLink', () => {
 describe('NavigationDto link renderers', () => {
   const cases: Array<{
     name: string
-    render: (
-      e: { key: number; name: string } | null,
-    ) => React.ReactNode
+    render: (e: { key: number; name: string } | null) => React.ReactNode
     href: string
   }> = [
     {
@@ -86,16 +88,19 @@ describe('NavigationDto link renderers', () => {
     },
   ]
 
-  it.each(cases)('renders a $name link to the right route', ({ render: r, href }) => {
-    // Arrange / Act
-    render(<>{r({ key: 8, name: 'Q3' })}</>)
+  it.each(cases)(
+    'renders a $name link to the right route',
+    ({ render: r, href }) => {
+      // Arrange / Act
+      render(<>{r({ key: 8, name: 'Q3' })}</>)
 
-    // Assert
-    expect(screen.getByRole('link', { name: 'Q3' })).toHaveAttribute(
-      'href',
-      href,
-    )
-  })
+      // Assert
+      expect(screen.getByRole('link', { name: 'Q3' })).toHaveAttribute(
+        'href',
+        href,
+      )
+    },
+  )
 
   it.each(cases)('renders nothing for a missing $name', ({ render: r }) => {
     // Arrange / Act
@@ -159,10 +164,7 @@ describe('renderUserLink', () => {
 
     // Assert
     const link = screen.getByRole('link', { name: 'ada' })
-    expect(link).toHaveAttribute(
-      'href',
-      '/settings/user-management/users/u-1',
-    )
+    expect(link).toHaveAttribute('href', '/settings/user-management/users/u-1')
   })
 
   it('renders nothing for a missing user', () => {
@@ -177,9 +179,7 @@ describe('renderUserLink', () => {
 describe('renderWorkItemLink', () => {
   it('links a work item within its workspace, labeled by key', () => {
     // Arrange / Act
-    render(
-      <>{renderWorkItemLink({ key: 'WEB-42', workspaceKey: 'WEB' })}</>,
-    )
+    render(<>{renderWorkItemLink({ key: 'WEB-42', workspaceKey: 'WEB' })}</>)
 
     // Assert
     const link = screen.getByRole('link', { name: 'WEB-42' })
@@ -220,9 +220,7 @@ describe('renderWorkItemLink', () => {
     )
 
     // Assert — the primary link plus the external one
-    expect(
-      screen.getByRole('link', { name: 'WEB-42' }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'WEB-42' })).toBeInTheDocument()
     const external = screen.getByTitle('Open in external system')
     expect(external).toHaveAttribute('href', 'https://example.com/WEB-42')
     expect(external).toHaveAttribute('target', '_blank')

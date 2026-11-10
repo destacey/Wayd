@@ -3,14 +3,14 @@ import userEvent from '@testing-library/user-event'
 import { IntakeDeskRole, IntakeDeskVisibility } from '@/src/services/wayd-api'
 import EditIntakeDeskSettingsForm from './edit-intake-desk-settings-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-// In Jest, Form.useWatch does not refire after typing, so keep the form instance real and submit through
+// Under jsdom, Form.useWatch does not refire after typing, so keep the form instance real and submit through
 // validateFields, which, like the real hook, returns only the fields that are mounted.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -32,51 +32,48 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields().catch(() => null)
           if (values && (await onSubmit(values, form))) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const mockUpdate = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useUpdateIntakeDeskMutation: () => [mockUpdate],
-    useGetIntakeChannelsQuery: () => ({
-      data: [
-        { id: 'c-1', name: 'Support', order: 1, isActive: true },
-        { id: 'c-2', name: 'Security', order: 2, isActive: true },
-        { id: 'c-3', name: 'Engineering', order: 3, isActive: false },
-      ],
-    }),
-    useGetIntakeRequestTagCategoriesQuery: () => ({
-      data: [
-        { id: 'a-1', name: 'Area', isActive: true, tags: [] },
-        { id: 'a-2', name: 'Segment', isActive: true, tags: [] },
-        { id: 'a-3', name: 'Retired', isActive: false, tags: [] },
-      ],
-    }),
-    useGetIntakeDeskVisibilitiesQuery: () => ({
-      data: [
-        {
-          id: 1,
-          code: 'Open',
-          name: 'Open',
-          description: 'Anyone reads it.',
-          order: 1,
-        },
-        {
-          id: 3,
-          code: 'Private',
-          name: 'Private',
-          description: 'Only the desk.',
-          order: 3,
-        },
-      ],
-    }),
+const mockUpdate = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useUpdateIntakeDeskMutation: () => [mockUpdate],
+  useGetIntakeChannelsQuery: () => ({
+    data: [
+      { id: 'c-1', name: 'Support', order: 1, isActive: true },
+      { id: 'c-2', name: 'Security', order: 2, isActive: true },
+      { id: 'c-3', name: 'Engineering', order: 3, isActive: false },
+    ],
   }),
-)
+  useGetIntakeRequestTagCategoriesQuery: () => ({
+    data: [
+      { id: 'a-1', name: 'Area', isActive: true, tags: [] },
+      { id: 'a-2', name: 'Segment', isActive: true, tags: [] },
+      { id: 'a-3', name: 'Retired', isActive: false, tags: [] },
+    ],
+  }),
+  useGetIntakeDeskVisibilitiesQuery: () => ({
+    data: [
+      {
+        id: 1,
+        code: 'Open',
+        name: 'Open',
+        description: 'Anyone reads it.',
+        order: 1,
+      },
+      {
+        id: 3,
+        code: 'Private',
+        name: 'Private',
+        description: 'Only the desk.',
+        order: 3,
+      },
+    ],
+  }),
+}))
 
 const desk = (overrides: Record<string, unknown> = {}) =>
   ({
@@ -117,8 +114,8 @@ const renderForm = async (d = desk()) =>
     const element = (next: ReturnType<typeof desk>) => (
       <EditIntakeDeskSettingsForm
         desk={next}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />
     )
     const view = render(element(d))
@@ -160,9 +157,7 @@ describe('EditIntakeDeskSettingsForm', () => {
     await userEvent.type(name, 'IT services')
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockUpdate).toHaveBeenCalledWith({
@@ -189,21 +184,15 @@ describe('EditIntakeDeskSettingsForm', () => {
   it('saves the tag categories a desk chooses to offer', async () => {
     // Arrange
     await renderForm()
-    await act(() =>
-      userEvent.click(
-        screen.getByRole('radio', {
-          name: 'Only the tag categories chosen here',
-        }),
-      ),
+    await userEvent.click(
+      screen.getByRole('radio', {
+        name: 'Only the tag categories chosen here',
+      }),
     )
-    await act(() =>
-      userEvent.click(screen.getByRole('checkbox', { name: 'Segment' })),
-    )
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Segment' }))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockUpdate).toHaveBeenCalledWith(
@@ -217,14 +206,12 @@ describe('EditIntakeDeskSettingsForm', () => {
   it('saves free tags turned on', async () => {
     // Arrange
     await renderForm()
-    await act(() =>
-      userEvent.click(screen.getByRole('switch', { name: 'Allow free tags' })),
+    await userEvent.click(
+      screen.getByRole('switch', { name: 'Allow free tags' }),
     )
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockUpdate).toHaveBeenCalledWith(
@@ -247,19 +234,13 @@ describe('EditIntakeDeskSettingsForm', () => {
   it('saves the channels a desk chooses to offer', async () => {
     // Arrange
     await renderForm()
-    await act(() =>
-      userEvent.click(
-        screen.getByRole('radio', { name: 'Only the channels chosen here' }),
-      ),
+    await userEvent.click(
+      screen.getByRole('radio', { name: 'Only the channels chosen here' }),
     )
-    await act(() =>
-      userEvent.click(screen.getByRole('checkbox', { name: 'Security' })),
-    )
+    await userEvent.click(screen.getByRole('checkbox', { name: 'Security' }))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockUpdate).toHaveBeenCalledWith(
@@ -297,9 +278,7 @@ describe('EditIntakeDeskSettingsForm', () => {
     )
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockUpdate).toHaveBeenCalledWith(

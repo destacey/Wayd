@@ -12,8 +12,7 @@ import RecordStatusHistory, {
 import type { WaydWorkflowDiagramProps } from './wayd-workflow-diagram'
 
 // The canvas is React Flow's; what matters here is what it is handed.
-jest.mock('./wayd-workflow-diagram', () => ({
-  __esModule: true,
+vi.mock('./wayd-workflow-diagram', () => ({
   default: ({ workflow, path }: WaydWorkflowDiagramProps) => (
     <div data-testid="workflow-diagram">
       {workflow.name}: current {path?.currentStatusId ?? 'none'}, taken{' '}
@@ -112,7 +111,7 @@ const renderHistory = (overrides: Partial<RecordStatusHistoryProps> = {}) =>
       transitions={history}
       isLoading={false}
       view="timeline"
-      onViewChange={jest.fn()}
+      onViewChange={vi.fn()}
       workflow={undefined}
       isWorkflowLoading={false}
       isWorkflowError={false}
@@ -123,7 +122,7 @@ const renderHistory = (overrides: Partial<RecordStatusHistoryProps> = {}) =>
 describe('RecordStatusHistory', () => {
   it('shows the timeline by default and asks for the diagram when chosen', async () => {
     // Arrange
-    const onViewChange = jest.fn()
+    const onViewChange = vi.fn()
     renderHistory({ onViewChange })
 
     // Act

@@ -5,15 +5,13 @@ import {
 } from '@/src/services/wayd-api'
 import RemoveProductDependencyForm from './remove-product-dependency-form'
 
-jest.unmock('dayjs')
+const removeDependency = vi.fn()
 
-const removeDependency = jest.fn()
-
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/store/features/product-management/products-api', () => ({
+vi.mock('@/src/store/features/product-management/products-api', () => ({
   useRemoveProductDependencyMutation: () => [removeDependency],
 }))
 
@@ -28,8 +26,8 @@ let formInstance:
 
 // The form instance is real — antd's Form binds to it, and a stub breaks on render. See
 // complete-deployment-form.test.tsx for why the OK button's enabled state is not asserted.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -51,7 +49,7 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk,
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -72,7 +70,7 @@ const submit = async () => {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   removeDependency.mockResolvedValue({ data: undefined })
 })
 

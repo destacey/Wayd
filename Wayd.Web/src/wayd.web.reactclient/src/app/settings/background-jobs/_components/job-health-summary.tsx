@@ -144,10 +144,12 @@ const JobHealthSummary: FC<JobHealthSummaryProps> = ({
         onClick={() => onSelectState(JobStateFilter.Processing)}
       >
         {health.workerCount > 0 && (
-          <span className={styles.qualifier}>
+          <>
             {' '}
-            of {plural(health.workerCount, 'worker')}
-          </span>
+            <span className={styles.qualifier}>
+              of {plural(health.workerCount, 'worker')}
+            </span>
+          </>
         )}
       </CountCell>
       <CountCell
@@ -163,10 +165,12 @@ const JobHealthSummary: FC<JobHealthSummaryProps> = ({
         onClick={() => onSelectState(JobStateFilter.Scheduled)}
       >
         {!!current?.retries && (
-          <span className={styles.retrying}>
+          <>
             {' '}
-            · {current.retries.toLocaleString()} retrying
-          </span>
+            <span className={styles.retrying}>
+              · {current.retries.toLocaleString()} retrying
+            </span>
+          </>
         )}
       </CountCell>
       <CountCell

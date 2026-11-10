@@ -3,9 +3,9 @@ import { JsonPatchOperationType } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { roadmapApi } from './roadmaps-api'
 
-const patchRoadmapItem = jest.fn()
+const patchRoadmapItem = vi.fn()
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   getRoadmapsClient: () => ({ patchRoadmapItem }),
 }))
 

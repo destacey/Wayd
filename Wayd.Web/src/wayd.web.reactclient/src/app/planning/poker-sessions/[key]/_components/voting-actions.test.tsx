@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PokerRoundDto } from '@/src/services/wayd-api'
@@ -8,16 +9,16 @@ import {
   useSetPokerRoundConsensusMutation,
 } from '@/src/store/features/planning/poker-sessions-api'
 
-jest.mock('@/src/store/features/planning/poker-sessions-api', () => ({
-  useRevealPokerRoundMutation: jest.fn(),
-  useResetPokerRoundMutation: jest.fn(),
-  useSetPokerRoundConsensusMutation: jest.fn(),
+vi.mock('@/src/store/features/planning/poker-sessions-api', () => ({
+  useRevealPokerRoundMutation: vi.fn(),
+  useResetPokerRoundMutation: vi.fn(),
+  useSetPokerRoundConsensusMutation: vi.fn(),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
-    success: jest.fn(),
-    error: jest.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
   }),
 }))
 
@@ -44,20 +45,20 @@ const defaultProps = {
 }
 
 describe('VotingActions', () => {
-  const mockReveal = jest.fn().mockResolvedValue({})
-  const mockReset = jest.fn().mockResolvedValue({})
-  const mockSetConsensus = jest.fn().mockResolvedValue({})
+  const mockReveal = vi.fn().mockResolvedValue({})
+  const mockReset = vi.fn().mockResolvedValue({})
+  const mockSetConsensus = vi.fn().mockResolvedValue({})
 
   beforeEach(() => {
-    ;(useRevealPokerRoundMutation as jest.Mock).mockReturnValue([
+    ;(useRevealPokerRoundMutation as Mock).mockReturnValue([
       mockReveal,
       { isLoading: false },
     ])
-    ;(useResetPokerRoundMutation as jest.Mock).mockReturnValue([
+    ;(useResetPokerRoundMutation as Mock).mockReturnValue([
       mockReset,
       { isLoading: false },
     ])
-    ;(useSetPokerRoundConsensusMutation as jest.Mock).mockReturnValue([
+    ;(useSetPokerRoundConsensusMutation as Mock).mockReturnValue([
       mockSetConsensus,
       { isLoading: false },
     ])
@@ -76,9 +77,7 @@ describe('VotingActions', () => {
   })
 
   it('shows Reveal Cards button when round is voting', () => {
-    render(
-      <VotingActions {...defaultProps} round={makeRound('Voting')} />,
-    )
+    render(<VotingActions {...defaultProps} round={makeRound('Voting')} />)
 
     expect(screen.getByText('Reveal Cards')).toBeInTheDocument()
     expect(screen.queryByText('Re-vote')).not.toBeInTheDocument()
@@ -112,9 +111,7 @@ describe('VotingActions', () => {
   it('calls reveal mutation when Reveal Cards is clicked', async () => {
     const user = userEvent.setup()
 
-    render(
-      <VotingActions {...defaultProps} round={makeRound('Voting')} />,
-    )
+    render(<VotingActions {...defaultProps} round={makeRound('Voting')} />)
 
     await user.click(screen.getByText('Reveal Cards'))
 

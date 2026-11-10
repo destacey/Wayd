@@ -37,16 +37,16 @@ let statusOptions = [
   },
 ]
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 // Not spread from the real barrel: it re-exports store-bound hooks, and pulling
 // those in initialises the store this form never touches. The form instance is
 // real, though — antd's Form binds to it, and a stub object breaks on render.
 // OK validates and submits as the real hook does.
-jest.mock('@/src/hooks', () => {
-  const { Form: AntForm } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form: AntForm } = await vi.importActual<any>('antd')
   return {
     useModalForm: (options: {
       onSubmit: (values: unknown, form: unknown) => Promise<boolean>
@@ -65,16 +65,16 @@ jest.mock('@/src/hooks', () => {
             // A validation failure leaves the form open, as the real hook does.
           }
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const getProductStatusOptions = jest.fn()
-const changeProductStatus = jest.fn()
+const getProductStatusOptions = vi.fn()
+const changeProductStatus = vi.fn()
 
-jest.mock('@/src/store/features/product-management/products-api', () => ({
+vi.mock('@/src/store/features/product-management/products-api', () => ({
   useChangeProductStatusMutation: () => [changeProductStatus],
   useGetProductStatusOptionsQuery: (productId: string) => {
     getProductStatusOptions(productId)
@@ -101,7 +101,7 @@ const chooseStatus = async (name: string) => {
 }
 
 const submit = async () => {
-  // Inside act: the save lands after awaited validation, and jest.setup's
+  // Inside act: the save lands after awaited validation, and vitest.setup.dom's
   // MessageChannel stub never flushes an update made outside it.
   await act(async () => {
     fireEvent.click(screen.getByRole('button', { name: 'Change' }))

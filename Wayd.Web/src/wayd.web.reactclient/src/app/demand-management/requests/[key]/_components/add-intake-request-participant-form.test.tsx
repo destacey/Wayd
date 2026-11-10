@@ -4,14 +4,14 @@ import userEvent from '@testing-library/user-event'
 import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
 import AddIntakeRequestParticipantForm from './add-intake-request-participant-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-// In Jest, Form.useWatch does not refire after typing, so the real hook's validity never updates; as the
+// Under jsdom, Form.useWatch does not refire after typing, so the real hook's validity never updates; as the
 // other form suites do, keep the form instance real and submit through validateFields.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -32,27 +32,24 @@ jest.mock('@/src/hooks', () => {
         handleOk: async () => {
           if (await onSubmit(await form.validateFields(), form)) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const mockAdd = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useAddIntakeRequestParticipantMutation: () => [mockAdd],
-    useGetIntakeEmployeeOptionsQuery: () => ({
-      data: [
-        { id: 'e-1', key: 1, name: 'Avery Requester' },
-        { id: 'e-2', key: 2, name: 'Blake Submitter' },
-        { id: 'e-3', key: 3, name: 'Casey Participant' },
-        { id: 'e-4', key: 4, name: 'Drew Newcomer' },
-      ],
-    }),
+const mockAdd = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useAddIntakeRequestParticipantMutation: () => [mockAdd],
+  useGetIntakeEmployeeOptionsQuery: () => ({
+    data: [
+      { id: 'e-1', key: 1, name: 'Avery Requester' },
+      { id: 'e-2', key: 2, name: 'Blake Submitter' },
+      { id: 'e-3', key: 3, name: 'Casey Participant' },
+      { id: 'e-4', key: 4, name: 'Drew Newcomer' },
+    ],
   }),
-)
+}))
 
 const request = {
   summary: {
@@ -77,7 +74,7 @@ const openPicker = async () => {
     .getByText('Person')
     .closest('.ant-form-item')!
     .querySelector('input')!
-  await act(() => userEvent.click(select))
+  await userEvent.click(select)
 }
 
 describe('AddIntakeRequestParticipantForm', () => {
@@ -91,8 +88,8 @@ describe('AddIntakeRequestParticipantForm', () => {
       render(
         <AddIntakeRequestParticipantForm
           request={request}
-          onFormComplete={jest.fn()}
-          onFormCancel={jest.fn()}
+          onFormComplete={vi.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
@@ -110,23 +107,21 @@ describe('AddIntakeRequestParticipantForm', () => {
   it('adds the chosen person to the request', async () => {
     // Arrange
     mockAdd.mockReturnValue({ unwrap: () => Promise.resolve(null) })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     await act(async () =>
       render(
         <AddIntakeRequestParticipantForm
           request={request}
           onFormComplete={onFormComplete}
-          onFormCancel={jest.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
     await openPicker()
-    await act(() => userEvent.click(screen.getByTitle('Drew Newcomer')))
+    await userEvent.click(screen.getByTitle('Drew Newcomer'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Add' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     // Assert
     expect(mockAdd).toHaveBeenCalledWith({

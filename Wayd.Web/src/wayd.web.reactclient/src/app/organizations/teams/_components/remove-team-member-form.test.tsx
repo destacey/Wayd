@@ -2,8 +2,6 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import RemoveTeamMemberForm from './remove-team-member-form'
 
-jest.unmock('dayjs')
-
 // Mock window.getComputedStyle for Ant Design Modal
 Object.defineProperty(window, 'getComputedStyle', {
   value: () => ({
@@ -11,9 +9,9 @@ Object.defineProperty(window, 'getComputedStyle', {
   }),
 })
 
-const mockMessageSuccess = jest.fn()
-const mockMessageError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
+const mockMessageSuccess = vi.fn()
+const mockMessageError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
     success: mockMessageSuccess,
     error: mockMessageError,
@@ -21,19 +19,19 @@ jest.mock('@/src/components/contexts/messaging', () => ({
 }))
 
 let mockCapacityEnabled = true
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useFeatureFlag: () => ({ isEnabled: mockCapacityEnabled, isLoading: false }),
 }))
 
-const mockRemoveTeamMember = jest.fn()
-jest.mock('@/src/store/features/organization/team-members-api', () => ({
+const mockRemoveTeamMember = vi.fn()
+vi.mock('@/src/store/features/organization/team-members-api', () => ({
   useRemoveTeamMemberMutation: () => [mockRemoveTeamMember],
-  useRemoveTeamOfTeamsMemberMutation: () => [jest.fn()],
+  useRemoveTeamOfTeamsMemberMutation: () => [vi.fn()],
 }))
 
-const mockChangeAllocations = jest.fn()
+const mockChangeAllocations = vi.fn()
 let mockAllocations: unknown[] = []
-jest.mock('@/src/store/features/organization/employee-allocations-api', () => ({
+vi.mock('@/src/store/features/organization/employee-allocations-api', () => ({
   useGetEmployeeAllocationsQuery: (
     _arg: unknown,
     options: { skip?: boolean },
@@ -58,14 +56,14 @@ const allocation = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 })
 
-const renderForm = (onFormComplete = jest.fn()) =>
+const renderForm = (onFormComplete = vi.fn()) =>
   render(
     <RemoveTeamMemberForm
       teamId="team-1"
       teamType="Team"
       member={member as never}
       onFormComplete={onFormComplete}
-      onFormCancel={jest.fn()}
+      onFormCancel={vi.fn()}
     />,
   )
 
@@ -73,7 +71,7 @@ const endAllocationLabel = 'Also end their allocation to this team from today'
 
 describe('RemoveTeamMemberForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockCapacityEnabled = true
     mockAllocations = []
     mockRemoveTeamMember.mockResolvedValue({ data: undefined })
@@ -81,7 +79,7 @@ describe('RemoveTeamMemberForm', () => {
   })
 
   it('removes the member without touching allocations when they have none on the team', async () => {
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     renderForm(onFormComplete)
 
     expect(screen.queryByText(endAllocationLabel)).not.toBeInTheDocument()
@@ -101,7 +99,7 @@ describe('RemoveTeamMemberForm', () => {
       allocation({ id: 'allocation-2', role: undefined }),
       allocation({ id: 'allocation-3', team: { id: 'team-2' } }),
     ]
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     renderForm(onFormComplete)
 
     expect(screen.getByText(endAllocationLabel)).toBeInTheDocument()
@@ -137,7 +135,7 @@ describe('RemoveTeamMemberForm', () => {
       calls.push('remove member')
       return { data: undefined }
     })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     renderForm(onFormComplete)
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove' }))
@@ -151,7 +149,7 @@ describe('RemoveTeamMemberForm', () => {
     mockChangeAllocations.mockResolvedValue({
       error: { detail: 'Only members of a team can change its allocations.' },
     })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     renderForm(onFormComplete)
 
     await userEvent.click(screen.getByRole('button', { name: 'Remove' }))
@@ -163,7 +161,7 @@ describe('RemoveTeamMemberForm', () => {
 
   it('leaves the allocation in place when the option is turned off', async () => {
     mockAllocations = [allocation()]
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     renderForm(onFormComplete)
 
     await userEvent.click(screen.getByText(endAllocationLabel))

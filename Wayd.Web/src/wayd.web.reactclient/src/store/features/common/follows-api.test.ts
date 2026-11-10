@@ -1,14 +1,15 @@
+// @vitest-environment jsdom
 import { configureStore } from '@reduxjs/toolkit'
 import { waitFor } from '@testing-library/react'
 import { apiSlice } from '../apiSlice'
 import { followsApi, FollowTarget } from './follows-api'
 
-const getFollowStatus = jest.fn()
-const follow = jest.fn()
-const unfollow = jest.fn()
-const getFollowedRecord = jest.fn()
+const getFollowStatus = vi.fn()
+const follow = vi.fn()
+const unfollow = vi.fn()
+const getFollowedRecord = vi.fn()
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   getMyFollowsClient: () => ({
     getFollowStatus,
     follow,
@@ -41,7 +42,7 @@ const deferred = () => {
 
 describe('followsApi', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('shows the record as followed while the follow is still in flight', async () => {

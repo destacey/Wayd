@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { Grid } from 'antd'
@@ -5,25 +6,25 @@ import RecordLayout from './record-layout'
 
 let mockParams = new URLSearchParams()
 
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: jest.fn() }),
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: vi.fn() }),
   usePathname: () => '/organizations/teams/4',
   useSearchParams: () => mockParams,
 }))
 
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   return {
     ...actual,
-    Grid: { ...actual.Grid, useBreakpoint: jest.fn() },
+    Grid: { ...actual.Grid, useBreakpoint: vi.fn() },
   }
 })
 
-const mockBreakpoint = Grid.useBreakpoint as unknown as jest.Mock
+const mockBreakpoint = Grid.useBreakpoint as unknown as Mock
 
 describe('RecordLayout — rendering before data arrives', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockBreakpoint.mockReturnValue({ md: true })
   })
 

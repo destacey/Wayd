@@ -3,9 +3,8 @@ import { WorkTypeTier } from '@/src/components/types'
 import { WorkItemDetailsDto } from '@/src/services/wayd-api'
 import WorkItemFacts from './work-item-facts'
 
-// The planning barrel pulls in forms whose module-level date math breaks under the global dayjs
-// stub; these tests render no sprint.
-jest.mock('@/src/components/common/planning', () => ({
+// The planning barrel pulls in every planning form; these tests render no sprint.
+vi.mock('@/src/components/common/planning', () => ({
   SprintLink: () => null,
 }))
 

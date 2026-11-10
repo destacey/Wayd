@@ -1,27 +1,26 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import SettingsNavBar from './settings-nav-bar'
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasClaim: () => true }),
 }))
 
-jest.mock('@/src/hooks', () => {
-  const actual = jest.requireActual('@/src/hooks')
+vi.mock('@/src/hooks', async () => {
+  const actual = await vi.importActual<any>('@/src/hooks')
   return { ...actual, useFeatureFlag: () => ({ isEnabled: false }) }
 })
 
-jest.mock('@/src/store/features/admin/imports-api', () => ({
+vi.mock('@/src/store/features/admin/imports-api', () => ({
   useGetImportDefinitionsQuery: () => ({ data: [] }),
 }))
 
-jest.mock('@/src/store/features/common/status-workflows-api', () => ({
+vi.mock('@/src/store/features/common/status-workflows-api', () => ({
   useGetWorkflowOwnerTypesQuery: () => ({ data: [] }),
 }))
 
 let mockPathname = '/settings/user-management/users'
 
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
 }))
 

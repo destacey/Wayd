@@ -2,10 +2,6 @@ import { VersionDto } from '@/src/services/wayd-api'
 import dayjs from 'dayjs'
 import { countReleasedWithin } from './version-cadence'
 
-// The global setup mocks dayjs down to formatting, so subtract and startOf are absent — and date
-// arithmetic across a window boundary is the whole of what this covers. Use the real dayjs.
-jest.unmock('dayjs')
-
 const version = (overrides: Partial<VersionDto> = {}): VersionDto =>
   ({
     id: 'r',

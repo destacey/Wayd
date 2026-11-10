@@ -1,5 +1,4 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import dayjs from 'dayjs'
 import {
   WorkDistributionDimension,
@@ -16,10 +15,8 @@ import {
   WorkDistributionSettings,
 } from './work-distribution-report'
 
-jest.unmock('dayjs')
-
-jest.mock('@/src/store/features/organizations/team-api', () => ({
-  useGetTeamWorkDistributionQuery: jest.fn(),
+vi.mock('@/src/store/features/organizations/team-api', () => ({
+  useGetTeamWorkDistributionQuery: vi.fn(),
 }))
 
 const settings: WorkDistributionSettings = {
@@ -101,8 +98,8 @@ describe('WorkDistributionReport', () => {
     'ends the default range on yesterday in the team time zone %s',
     (timeZone, from, to) => {
       // Arrange
-      jest.useFakeTimers({ now: new Date('2026-09-22T11:00:00Z') })
-      const query = jest.mocked(useGetTeamWorkDistributionQuery)
+      vi.useFakeTimers({ now: new Date('2026-09-22T11:00:00Z') })
+      const query = vi.mocked(useGetTeamWorkDistributionQuery)
       query.mockReturnValue({
         data: undefined,
         isFetching: true,
@@ -124,7 +121,7 @@ describe('WorkDistributionReport', () => {
           expect.objectContaining({ from, to }),
         )
       } finally {
-        jest.useRealTimers()
+        vi.useRealTimers()
       }
     },
   )
@@ -138,7 +135,7 @@ describe('WorkDistributionReportView', () => {
         distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
-        onSettingsChange={jest.fn()}
+        onSettingsChange={vi.fn()}
         isTeamOfTeams
       />,
     )
@@ -157,7 +154,7 @@ describe('WorkDistributionReportView', () => {
         distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
-        onSettingsChange={jest.fn()}
+        onSettingsChange={vi.fn()}
         isTeamOfTeams
       />,
     )
@@ -175,7 +172,7 @@ describe('WorkDistributionReportView', () => {
         distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
-        onSettingsChange={jest.fn()}
+        onSettingsChange={vi.fn()}
         isTeamOfTeams
       />,
     )
@@ -186,7 +183,7 @@ describe('WorkDistributionReportView', () => {
         distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
-        onSettingsChange={jest.fn()}
+        onSettingsChange={vi.fn()}
         isTeamOfTeams={false}
       />,
     )
@@ -201,7 +198,7 @@ describe('WorkDistributionReportView', () => {
         distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
-        onSettingsChange={jest.fn()}
+        onSettingsChange={vi.fn()}
         isTeamOfTeams
       />,
     )
@@ -212,7 +209,7 @@ describe('WorkDistributionReportView', () => {
         distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
-        onSettingsChange={jest.fn()}
+        onSettingsChange={vi.fn()}
         isTeamOfTeams={false}
       />,
     )
@@ -232,7 +229,7 @@ describe('WorkDistributionReportView', () => {
         distribution={distribution}
         isLoading={false}
         settings={{ ...settings, measure: WorkDistributionMeasure.StoryPoints }}
-        onSettingsChange={jest.fn()}
+        onSettingsChange={vi.fn()}
         isTeamOfTeams
       />,
     )
@@ -250,7 +247,7 @@ describe('WorkDistributionReportView', () => {
         distribution={createWorkDistribution()}
         isLoading={false}
         settings={{ ...settings, measure: WorkDistributionMeasure.TeamEffort }}
-        onSettingsChange={jest.fn()}
+        onSettingsChange={vi.fn()}
         isTeamOfTeams
       />,
     )
@@ -265,7 +262,7 @@ describe('WorkDistributionReportView', () => {
         distribution={createWorkDistribution()}
         isLoading={false}
         settings={settings}
-        onSettingsChange={jest.fn()}
+        onSettingsChange={vi.fn()}
         isTeamOfTeams
       />,
     )
@@ -276,7 +273,7 @@ describe('WorkDistributionReportView', () => {
         distribution={createWorkDistribution()}
         isLoading={false}
         settings={{ ...settings, measure: WorkDistributionMeasure.StoryPoints }}
-        onSettingsChange={jest.fn()}
+        onSettingsChange={vi.fn()}
         isTeamOfTeams
       />,
     )
@@ -294,7 +291,7 @@ describe('WorkDistributionReportView', () => {
           dimension: WorkDistributionDimension.StrategicTheme,
           themeCounting: ThemeCounting.CountFully,
         }}
-        onSettingsChange={jest.fn()}
+        onSettingsChange={vi.fn()}
         isTeamOfTeams
       />,
     )
@@ -303,7 +300,7 @@ describe('WorkDistributionReportView', () => {
   })
 
   it('reports a new dimension through onSettingsChange', () => {
-    const onSettingsChange = jest.fn()
+    const onSettingsChange = vi.fn()
     render(
       <WorkDistributionReportView
         distribution={createWorkDistribution()}
@@ -330,7 +327,7 @@ describe('WorkDistributionReportView', () => {
         distribution={distribution}
         isLoading={false}
         settings={settings}
-        onSettingsChange={jest.fn()}
+        onSettingsChange={vi.fn()}
         isTeamOfTeams
       />,
     )

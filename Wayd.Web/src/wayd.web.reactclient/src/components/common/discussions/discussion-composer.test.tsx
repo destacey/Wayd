@@ -11,7 +11,7 @@ const participant = {
 describe('DiscussionComposer', () => {
   it('writes only the note audience as mentions in an internal note', async () => {
     // Arrange — someone picked while it was a reply, who cannot read notes
-    const onSubmit = jest.fn().mockResolvedValue(true)
+    const onSubmit = vi.fn().mockResolvedValue(true)
     render(
       <DiscussionComposer
         canPostInternal
@@ -48,7 +48,7 @@ describe('DiscussionComposer', () => {
         canPostInternal={false}
         showSubject
         mentionCandidates={[]}
-        onSubmit={jest.fn()}
+        onSubmit={vi.fn()}
       />,
     )
     expect(screen.queryByRole('button', { name: 'Clear' })).toBeNull()
@@ -74,7 +74,7 @@ describe('DiscussionComposer', () => {
     ['Enter alone, which starts a new line', {}, 0],
   ])('posts on %s only when asked', async (_, modifiers, posts) => {
     // Arrange
-    const onSubmit = jest.fn().mockResolvedValue(true)
+    const onSubmit = vi.fn().mockResolvedValue(true)
     render(
       <DiscussionComposer
         canPostInternal={false}

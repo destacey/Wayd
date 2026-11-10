@@ -3,22 +3,19 @@ import { Dropdown } from 'antd'
 import useTagCategoryActions from './use-tag-category-actions'
 import { TagCategoryActionTarget } from './types'
 
-const mockHasPermissionClaim = jest.fn()
+const mockHasPermissionClaim = vi.fn()
 /** Captures which record the delete dialog was aimed at. */
-const mockDeleteTarget = jest.fn()
+const mockDeleteTarget = vi.fn()
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: mockHasPermissionClaim }),
 }))
 
 // The dialogs have their own tests; here they only need to be identifiable.
-jest.mock('./edit-tag-category-form', () => ({
-  __esModule: true,
+vi.mock('./edit-tag-category-form', () => ({
   default: () => <div>edit dialog</div>,
 }))
-jest.mock('./delete-tag-category-form', () => ({
-  __esModule: true,
+vi.mock('./delete-tag-category-form', () => ({
   default: ({
     category,
     onFormComplete,
@@ -30,8 +27,7 @@ jest.mock('./delete-tag-category-form', () => ({
     return <button onClick={onFormComplete}>confirm delete</button>
   },
 }))
-jest.mock('./change-tag-category-active-form', () => ({
-  __esModule: true,
+vi.mock('./change-tag-category-active-form', () => ({
   default: ({ isActive }: { isActive: boolean }) => (
     <div>{isActive ? 'activate' : 'deactivate'} dialog</div>
   ),
@@ -51,7 +47,7 @@ const category = (
 
 const Harness = ({
   target,
-  onDeleted = jest.fn(),
+  onDeleted = vi.fn(),
 }: {
   target: TagCategoryActionTarget
   onDeleted?: (id: string) => void
@@ -81,7 +77,7 @@ const openMenu = () => {
 
 describe('useTagCategoryActions', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockHasPermissionClaim.mockReturnValue(true)
   })
 
@@ -182,7 +178,7 @@ describe('useTagCategoryActions', () => {
 
     it('aims the delete dialog at the row it came from and reports the deleted id', () => {
       // Arrange
-      const onDeleted = jest.fn()
+      const onDeleted = vi.fn()
       const target = category({ id: 'category-9', name: 'Customer segment' })
       render(<Harness target={target} onDeleted={onDeleted} />)
       openMenu()

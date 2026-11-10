@@ -1,27 +1,28 @@
+import type { Mock } from 'vitest'
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Grid } from 'antd'
 import RecordLayout from './record-layout'
 
-const mockReplace = jest.fn()
+const mockReplace = vi.fn()
 let mockParams = new URLSearchParams()
 
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mockReplace }),
   usePathname: () => '/organizations/teams/14',
   useSearchParams: () => mockParams,
 }))
 
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   return {
     ...actual,
-    Grid: { ...actual.Grid, useBreakpoint: jest.fn() },
+    Grid: { ...actual.Grid, useBreakpoint: vi.fn() },
   }
 })
 
-const mockBreakpoint = Grid.useBreakpoint as unknown as jest.Mock
+const mockBreakpoint = Grid.useBreakpoint as unknown as Mock
 
 const SECTIONS = [
   { id: 'overview', label: 'Overview' },
@@ -29,7 +30,9 @@ const SECTIONS = [
 ]
 const REPORTS = [{ id: 'cycle-time', label: 'Cycle Time' }]
 
-const renderLayout = (props?: Partial<React.ComponentProps<typeof RecordLayout>>) =>
+const renderLayout = (
+  props?: Partial<React.ComponentProps<typeof RecordLayout>>,
+) =>
   render(
     <RecordLayout
       sections={SECTIONS}
@@ -43,7 +46,7 @@ const renderLayout = (props?: Partial<React.ComponentProps<typeof RecordLayout>>
 
 describe('RecordLayout', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockParams = new URLSearchParams()
     mockBreakpoint.mockReturnValue({ md: true, lg: true })
   })
@@ -176,9 +179,7 @@ describe('RecordLayout', () => {
     )
 
     // Assert
-    expect(
-      screen.getByRole('button', { name: 'Add item' }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add item' })).toBeInTheDocument()
   })
 
   it('omits the heading for a section that renders its own', () => {
@@ -190,9 +191,7 @@ describe('RecordLayout', () => {
     render(
       <RecordLayout
         sections={SECTIONS}
-        reports={[
-          { id: 'cycle-time', label: 'Cycle Time', hideHeading: true },
-        ]}
+        reports={[{ id: 'cycle-time', label: 'Cycle Time', hideHeading: true }]}
         defaultSection="overview"
       >
         {() => <div>report content</div>}
@@ -200,9 +199,7 @@ describe('RecordLayout', () => {
     )
 
     // Assert — still reachable in the rail, just not repeated in the content
-    expect(
-      screen.queryByRole('heading', { name: 'Cycle Time' }),
-    ).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'Cycle Time' })).toBeNull()
     expect(screen.getByRole('tab', { name: /Cycle Time/ })).toBeInTheDocument()
   })
 
@@ -231,7 +228,7 @@ describe('RecordLayout', () => {
     const Boom = () => {
       throw new Error('section blew up')
     }
-    const spy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     // Act
     render(
@@ -252,7 +249,7 @@ describe('RecordLayout', () => {
 
 describe('RecordLayout with a single section', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockParams = new URLSearchParams()
     mockBreakpoint.mockReturnValue({ md: true, lg: true, xl: true })
   })
@@ -298,7 +295,9 @@ describe('RecordLayout with a single section', () => {
 
     // Assert
     expect(screen.getByRole('heading', { name: 'Risk' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Add check' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Add check' }),
+    ).toBeInTheDocument()
   })
 
   it('still shows a rail once a report joins the single section', () => {
@@ -321,7 +320,7 @@ describe('RecordLayout with a single section', () => {
 
 describe('RecordLayout record facts', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockParams = new URLSearchParams()
   })
 
@@ -348,7 +347,9 @@ describe('RecordLayout record facts', () => {
 
     // Assert
     expect(screen.queryByText('fact: code PLAT')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Show Details panel' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Show Details panel' }),
+    ).toBeInTheDocument()
   })
 
   it('opens the panel beside the content from the edge handle', async () => {
@@ -405,6 +406,8 @@ describe('RecordLayout record facts', () => {
 
     // Assert
     expect(screen.getByText('fact: code PLAT')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Details/ })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /Details/ }),
+    ).not.toBeInTheDocument()
   })
 })

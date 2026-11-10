@@ -70,7 +70,7 @@ describe('isWidgetAvailable', () => {
   it('needs the feature flag the widget names to be on', () => {
     // Arrange
     const subject = widget({ requires: { featureFlag: 'following' } })
-    const isFeatureEnabled = jest.fn((name: string) => name !== 'following')
+    const isFeatureEnabled = vi.fn((name: string) => name !== 'following')
 
     // Act
     const result = isWidgetAvailable(subject, access({ isFeatureEnabled }))

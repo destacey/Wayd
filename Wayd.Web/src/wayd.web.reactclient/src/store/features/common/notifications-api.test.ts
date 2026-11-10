@@ -6,12 +6,12 @@ import {
 } from '@/src/components/common/notifications/notification-test-data'
 import { notificationsApi } from './notifications-api'
 
-const getNotifications = jest.fn()
-const getUnreadCount = jest.fn()
-const markRecordRead = jest.fn()
-const markAllRead = jest.fn()
+const getNotifications = vi.fn()
+const getUnreadCount = vi.fn()
+const markRecordRead = vi.fn()
+const markAllRead = vi.fn()
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   getMyNotificationsClient: () => ({
     getNotifications,
     getUnreadCount,
@@ -42,7 +42,7 @@ const loadedStore = async () => {
     notificationsApi.endpoints.getUnreadNotificationCount.initiate(),
   )
   await waitForCalls()
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   getNotifications.mockResolvedValue(emptyPage)
   getUnreadCount.mockResolvedValue({ count: 0, isCapped: false })
   return store
@@ -52,7 +52,7 @@ const waitForCalls = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 describe('notificationsApi', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('passes the filter and page to the list endpoint', async () => {
@@ -115,7 +115,7 @@ describe('notificationsApi paging', () => {
     buildNotification({ record: buildNotifiedRecord({ id }) })
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('asks for the next page with the cursor the last one gave', async () => {

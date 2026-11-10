@@ -4,15 +4,15 @@ import ProductTagSettingsForm, {
   ProductTagSettingsFormProps,
 } from './product-tag-settings-form'
 
-const mockUpdate = jest.fn()
-const mockSuccess = jest.fn()
-const mockError = jest.fn()
+const mockUpdate = vi.fn()
+const mockSuccess = vi.fn()
+const mockError = vi.fn()
 
-jest.mock('@/src/store/features/admin/system-settings-api', () => ({
+vi.mock('@/src/store/features/admin/system-settings-api', () => ({
   useUpdateProductTagSettingsMutation: () => [mockUpdate, { isLoading: false }],
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ success: mockSuccess, error: mockError }),
 }))
 
@@ -33,7 +33,7 @@ const freeTagsSwitch = () =>
 
 describe('ProductTagSettingsForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('shows the saved value', () => {

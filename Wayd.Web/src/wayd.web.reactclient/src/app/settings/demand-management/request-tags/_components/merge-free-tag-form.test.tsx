@@ -2,14 +2,14 @@ import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import MergeFreeTagForm from './merge-free-tag-form'
 
-const mockError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: mockError, success: jest.fn() }),
+const mockError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: mockError, success: vi.fn() }),
 }))
 
 // The form instance is real so antd's Form binds to it; handleOk runs the real submit.
-jest.mock('@/src/hooks', () => {
-  const { Form: AntForm } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form: AntForm } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -27,7 +27,7 @@ jest.mock('@/src/hooks', () => {
         handleOk: async () => {
           if (await onSubmit(form.getFieldsValue(), form)) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -41,41 +41,36 @@ const source = {
   requestCount: 2,
 }
 
-const mockMerge = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useMergeIntakeRequestTagMutation: () => [mockMerge],
-    useSearchIntakeRequestTagsQuery: () => ({
-      data: [
-        source,
-        {
-          id: 't-payments',
-          name: 'Payments',
-          categoryId: 'a-area',
-          categoryName: 'Area',
-          isFree: false,
-          isActive: true,
-          requestCount: 5,
-        },
-        {
-          id: 't-billing',
-          name: 'billing',
-          isFree: true,
-          isActive: true,
-          requestCount: 1,
-        },
-      ],
-      isLoading: false,
-    }),
+const mockMerge = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useMergeIntakeRequestTagMutation: () => [mockMerge],
+  useSearchIntakeRequestTagsQuery: () => ({
+    data: [
+      source,
+      {
+        id: 't-payments',
+        name: 'Payments',
+        categoryId: 'a-area',
+        categoryName: 'Area',
+        isFree: false,
+        isActive: true,
+        requestCount: 5,
+      },
+      {
+        id: 't-billing',
+        name: 'billing',
+        isFree: true,
+        isActive: true,
+        requestCount: 1,
+      },
+    ],
+    isLoading: false,
   }),
-)
+}))
 
 const openTargets = async () => {
   const input = screen.getByRole('combobox')
-  await act(async () => {
-    await userEvent.setup().click(input)
-  })
+  await userEvent.setup().click(input)
   const listboxId = input.getAttribute('aria-controls')!
   return await waitFor(() => {
     const el = document
@@ -99,8 +94,8 @@ describe('MergeFreeTagForm', () => {
       render(
         <MergeFreeTagForm
           tag={source}
-          onFormComplete={jest.fn()}
-          onFormCancel={jest.fn()}
+          onFormComplete={vi.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
@@ -116,27 +111,23 @@ describe('MergeFreeTagForm', () => {
 
   it('merges into the chosen tag', async () => {
     // Arrange
-    const onComplete = jest.fn()
+    const onComplete = vi.fn()
     await act(async () =>
       render(
         <MergeFreeTagForm
           tag={source}
           onFormComplete={onComplete}
-          onFormCancel={jest.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
     const dropdown = await openTargets()
-    await act(async () => {
-      await userEvent
-        .setup()
-        .click(within(dropdown).getByTitle('Area | Payments'))
-    })
+    await userEvent
+      .setup()
+      .click(within(dropdown).getByTitle('Area | Payments'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Merge' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Merge' }))
 
     // Assert
     expect(mockMerge).toHaveBeenCalledWith({

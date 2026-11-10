@@ -1,7 +1,3 @@
-// The global jest.setup dayjs mock returns raw values; the formatter tests
-// below need the real library (same opt-in as the filter suites).
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
 import type { ColumnDef } from './index'
 import {
   applyColumnType,

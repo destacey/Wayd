@@ -1,40 +1,24 @@
+import type { MockedFunction } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { Grid } from 'antd'
-import { useFactsRail, FACTS_RAIL_KEY, FACTS_RAIL_WIDTH_KEY } from './use-facts-rail'
+import {
+  useFactsRail,
+  FACTS_RAIL_KEY,
+  FACTS_RAIL_WIDTH_KEY,
+} from './use-facts-rail'
 import { RecordLayoutConstants } from '@/src/config/theme/theme-constants'
 
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   return {
     ...actual,
-    Grid: { ...actual.Grid, useBreakpoint: jest.fn() },
+    Grid: { ...actual.Grid, useBreakpoint: vi.fn() },
   }
 })
 
-const mockUseBreakpoint = Grid.useBreakpoint as jest.MockedFunction<
+const mockUseBreakpoint = Grid.useBreakpoint as MockedFunction<
   typeof Grid.useBreakpoint
 >
-
-// The global setup stubs localStorage with bare jest.fn()s and no backing
-// store, so nothing survives a write. Persistence is the point of this hook,
-// so give it a real store for this suite only.
-const store = new Map<string, string>()
-
-beforeAll(() => {
-  Object.defineProperty(window, 'localStorage', {
-    configurable: true,
-    value: {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => void store.set(k, v),
-      removeItem: (k: string) => void store.delete(k),
-      clear: () => store.clear(),
-      key: (i: number) => [...store.keys()][i] ?? null,
-      get length() {
-        return store.size
-      },
-    },
-  })
-})
 
 // Ant's breakpoints are cumulative, so a width implies every smaller one.
 const atWidth = (width: 'xl' | 'lg' | 'md' | 'sm') =>
@@ -49,8 +33,7 @@ const atWidth = (width: 'xl' | 'lg' | 'md' | 'sm') =>
 
 describe('useFactsRail', () => {
   beforeEach(() => {
-    store.clear()
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('reports no panel when the record has no facts', () => {
@@ -144,8 +127,7 @@ describe('useFactsRail', () => {
 
 describe('useFactsRail width', () => {
   beforeEach(() => {
-    store.clear()
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     atWidth('xl')
   })
 
@@ -172,7 +154,7 @@ describe('useFactsRail width', () => {
   it('clamps a stored width that is too wide to fit', () => {
     // Arrange — a width saved on a larger monitor, or hand-edited, must not
     // be able to squeeze the content column out.
-    store.set(
+    window.localStorage.setItem(
       `${FACTS_RAIL_WIDTH_KEY}:v1`,
       String(RecordLayoutConstants.FACTS_RAIL_MAX_WIDTH + 400),
     )
@@ -188,7 +170,7 @@ describe('useFactsRail width', () => {
 
   it('clamps a stored width that is too narrow to read', () => {
     // Arrange
-    store.set(`${FACTS_RAIL_WIDTH_KEY}:v1`, '10')
+    window.localStorage.setItem(`${FACTS_RAIL_WIDTH_KEY}:v1`, '10')
 
     // Act
     const { result } = renderHook(() => useFactsRail(true))
@@ -210,6 +192,6 @@ describe('useFactsRail width', () => {
     // Assert
     expect(result.current.open).toBe(true)
     expect(result.current.width).toBe(380)
-    expect(store.get(`${FACTS_RAIL_KEY}:v1`)).toBe('true')
+    expect(window.localStorage.getItem(`${FACTS_RAIL_KEY}:v1`)).toBe('true')
   })
 })

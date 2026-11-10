@@ -2,21 +2,21 @@ import { act, render } from '@testing-library/react'
 import { ProductTeamLinkDto } from '@/src/services/wayd-api'
 import UnlinkProductTeamForm from './unlink-product-team-form'
 
-const mutate = jest.fn()
-const messageError = jest.fn()
+const mutate = vi.fn()
+const messageError = vi.fn()
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: messageError, success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: messageError, success: vi.fn() }),
 }))
 
-jest.mock('@/src/store/features/product-management/products-api', () => ({
+vi.mock('@/src/store/features/product-management/products-api', () => ({
   useUnlinkProductTeamMutation: () => [mutate],
 }))
 
 /** The confirm handler from the live dialog, so a test need not click through the modal. */
 let confirm: (() => Promise<void>) | undefined
 
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useConfirmModal: ({ onSubmit }: { onSubmit: () => Promise<boolean> }) => {
     const handleOk = async () => {
       await onSubmit()
@@ -26,7 +26,7 @@ jest.mock('@/src/hooks', () => ({
       isOpen: true,
       isSaving: false,
       handleOk,
-      handleCancel: jest.fn(),
+      handleCancel: vi.fn(),
     }
   },
 }))
@@ -48,7 +48,7 @@ const renderForm = () =>
   )
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   mutate.mockResolvedValue({ data: undefined })
 })
 

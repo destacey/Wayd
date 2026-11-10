@@ -40,7 +40,7 @@ wayd.web.reactclient/
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | `eslint .` — the whole client, even when given paths |
 | `npm run lint:deprecations` | Uses of `@deprecated` APIs (type-aware, slower) |
-| `npm test` | Jest; `npm run test:docs` runs the docs suite on its own config |
+| `npm test` | Vitest, run once; `npm run test:watch` reruns on change, `npm run test:docs` runs the docs suite on its own config |
 | `npm run generate:import-templates` | Regenerates the CSV import templates from the API spec |
 
 `NEXT_PUBLIC_API_BASE_URL` is the API's address. Aspire sets it; for `npm run dev` on its own, put it in a gitignored `.env.local` (`NEXT_PUBLIC_API_BASE_URL='http://localhost:5150'`). It is inlined at build time, so a change needs `.next` cleared — `npm run dev` does that. The Docker image is built with the placeholder `APP_NEXT_PUBLIC_API_BASE_URL`, which `entrypoint.sh` replaces with the container's `NEXT_PUBLIC_API_BASE_URL` at start and refuses to start without.

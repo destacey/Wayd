@@ -1,5 +1,4 @@
-jest.unmock('dayjs')
-
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
 global.ResizeObserver = class {
@@ -10,21 +9,21 @@ global.ResizeObserver = class {
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation((query) => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 })
 
-jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
-  useGetPlanningIntervalIterationsQuery: jest.fn(),
-  useGetPlanningIntervalIterationMetricsQuery: jest.fn(),
+vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
+  useGetPlanningIntervalIterationsQuery: vi.fn(),
+  useGetPlanningIntervalIterationMetricsQuery: vi.fn(),
 }))
 
 import {
@@ -33,9 +32,9 @@ import {
 } from '@/src/store/features/planning/planning-interval-api'
 import IterationsCards from './iteration-cards'
 
-const mockQuery = useGetPlanningIntervalIterationsQuery as unknown as jest.Mock
+const mockQuery = useGetPlanningIntervalIterationsQuery as unknown as Mock
 const mockMetricsQuery =
-  useGetPlanningIntervalIterationMetricsQuery as unknown as jest.Mock
+  useGetPlanningIntervalIterationMetricsQuery as unknown as Mock
 
 // Iteration metrics from one sprint, plus what Kanban teams completed by date.
 const metricsData = (
@@ -74,13 +73,13 @@ const mkIteration = (overrides: {
 
 describe('IterationCards', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
-    jest.useRealTimers()
+    vi.clearAllMocks()
+    vi.useRealTimers()
     mockMetricsQuery.mockReturnValue({ data: undefined })
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   it('shows a loading skeleton while the query is pending', () => {
@@ -138,7 +137,7 @@ describe('IterationCards', () => {
   })
 
   it('shows "Day X/Y" progress for the active iteration', () => {
-    jest.useFakeTimers().setSystemTime(localDate('2024-06-16').getTime())
+    vi.useFakeTimers().setSystemTime(localDate('2024-06-16').getTime())
 
     mockQuery.mockReturnValue({
       data: [
@@ -181,7 +180,7 @@ describe('IterationCards', () => {
   })
 
   it('clamps the active day to the iteration bounds when the system clock is past the end', () => {
-    jest.useFakeTimers().setSystemTime(localDate('2025-01-01').getTime())
+    vi.useFakeTimers().setSystemTime(localDate('2025-01-01').getTime())
 
     mockQuery.mockReturnValue({
       data: [
@@ -279,7 +278,7 @@ describe('IterationCards', () => {
 
   describe('health flag', () => {
     const setupActive = () => {
-      jest.useFakeTimers().setSystemTime(localDate('2024-06-16').getTime())
+      vi.useFakeTimers().setSystemTime(localDate('2024-06-16').getTime())
       mockQuery.mockReturnValue({
         data: [
           mkIteration({

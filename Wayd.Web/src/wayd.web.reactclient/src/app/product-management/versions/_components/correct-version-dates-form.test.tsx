@@ -4,23 +4,21 @@ import userEvent from '@testing-library/user-event'
 import dayjs from 'dayjs'
 import CorrectVersionDatesForm from './correct-version-dates-form'
 
-jest.unmock('dayjs')
+const correctDates = vi.fn()
 
-const correctDates = jest.fn()
-
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/store/features/product-management/versions-api', () => ({
+vi.mock('@/src/store/features/product-management/versions-api', () => ({
   useCorrectVersionDatesMutation: () => [correctDates],
 }))
 
 // Not spread from the real barrel: it re-exports store-bound hooks, and pulling those in
 // initialises a store this form never touches. The form instance is real, though — antd's Form
 // binds to it, and a stub breaks on render.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -37,7 +35,7 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk: async () => await onSubmit(form.getFieldsValue(), form),
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }

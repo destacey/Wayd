@@ -3,16 +3,16 @@ import userEvent from '@testing-library/user-event'
 import { RiskDetailsDto } from '@/src/services/wayd-api'
 import DeleteRiskForm from './delete-risk-form'
 
-const mockMessageSuccess = jest.fn()
-const mockMessageError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
+const mockMessageSuccess = vi.fn()
+const mockMessageError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
     success: mockMessageSuccess,
     error: mockMessageError,
   }),
 }))
 
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useConfirmModal: ({
     onSubmit,
     onComplete,
@@ -25,12 +25,12 @@ jest.mock('@/src/hooks', () => ({
     handleOk: async () => {
       if (await onSubmit()) onComplete()
     },
-    handleCancel: jest.fn(),
+    handleCancel: vi.fn(),
   }),
 }))
 
-const mockDelete = jest.fn()
-jest.mock('@/src/store/features/planning/risks-api', () => ({
+const mockDelete = vi.fn()
+vi.mock('@/src/store/features/planning/risks-api', () => ({
   useDeleteRiskMutation: () => [mockDelete],
 }))
 
@@ -42,7 +42,7 @@ const risk = {
 
 describe('DeleteRiskForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockDelete.mockResolvedValue({ data: undefined })
   })
 
@@ -52,8 +52,8 @@ describe('DeleteRiskForm', () => {
       render(
         <DeleteRiskForm
           risk={risk}
-          onFormSave={jest.fn()}
-          onFormCancel={jest.fn()}
+          onFormSave={vi.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
@@ -67,21 +67,19 @@ describe('DeleteRiskForm', () => {
 
   it('deletes the risk by its id and reports success', async () => {
     // Arrange
-    const onFormSave = jest.fn()
+    const onFormSave = vi.fn()
     await act(async () =>
       render(
         <DeleteRiskForm
           risk={risk}
           onFormSave={onFormSave}
-          onFormCancel={jest.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Delete' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
     // Assert
     expect(mockDelete).toHaveBeenCalledWith(risk.id)
@@ -96,21 +94,19 @@ describe('DeleteRiskForm', () => {
     mockDelete.mockResolvedValue({
       error: { status: 404, detail: 'Risk 314 not found.' },
     })
-    const onFormSave = jest.fn()
+    const onFormSave = vi.fn()
     await act(async () =>
       render(
         <DeleteRiskForm
           risk={risk}
           onFormSave={onFormSave}
-          onFormCancel={jest.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Delete' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
     // Assert
     expect(mockMessageError).toHaveBeenCalledWith('Risk 314 not found.')

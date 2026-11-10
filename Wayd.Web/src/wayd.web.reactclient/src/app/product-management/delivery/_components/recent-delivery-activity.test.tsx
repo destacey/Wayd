@@ -7,9 +7,6 @@ import { render, screen } from '@testing-library/react'
 import dayjs from 'dayjs'
 import RecentDeliveryActivity from './recent-delivery-activity'
 
-// The global mock stubs dayjs to formatting only; this component compares dates.
-jest.unmock('dayjs')
-
 const event = (
   overrides: Partial<RecentDeliveryEventDto> = {},
 ): RecentDeliveryEventDto =>

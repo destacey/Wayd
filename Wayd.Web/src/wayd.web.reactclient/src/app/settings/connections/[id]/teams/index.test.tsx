@@ -1,15 +1,16 @@
+import type { Mock } from 'vitest'
 import { render, waitFor } from '@testing-library/react'
 import { ItemType } from 'antd/es/menu/interface'
 import { teamsDetailEntry } from './index'
 
-const mockTest = jest.fn()
-const mockMessage = { error: jest.fn(), success: jest.fn() }
+const mockTest = vi.fn()
+const mockMessage = { error: vi.fn(), success: vi.fn() }
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => mockMessage,
 }))
 
-jest.mock('@/src/store/features/app-integration/connections-api', () => ({
+vi.mock('@/src/store/features/app-integration/connections-api', () => ({
   useTestCommunicationConnectionMutation: () => [
     mockTest,
     { isLoading: false },
@@ -20,7 +21,7 @@ const fallback =
   'The connection test failed. Confirm admin consent, permissions, and that your Wayd email exists in the tenant.'
 
 const renderActions = () => {
-  const setItems = jest.fn()
+  const setItems = vi.fn()
   const ExtraActions = teamsDetailEntry.ExtraActions
   if (!ExtraActions) throw new Error('Teams detail entry has no extra actions')
 
@@ -29,7 +30,7 @@ const renderActions = () => {
       ctx={{
         connectionId: 'conn-1',
         connection: {} as never,
-        reload: jest.fn(),
+        reload: vi.fn(),
         canUpdate: true,
       }}
       setItems={setItems}
@@ -39,7 +40,7 @@ const renderActions = () => {
   return setItems
 }
 
-const runTest = async (setItems: jest.Mock) => {
+const runTest = async (setItems: Mock) => {
   await waitFor(() => expect(setItems).toHaveBeenCalled())
   const items = setItems.mock.calls.at(-1)?.[0] as ItemType[]
   const action = items.find(

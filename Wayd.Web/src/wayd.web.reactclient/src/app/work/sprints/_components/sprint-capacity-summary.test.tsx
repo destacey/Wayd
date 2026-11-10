@@ -14,8 +14,8 @@ let mockCapacity: SprintCapacityDto | undefined
 // What RTK Query still holds from the previous sprint while this one loads.
 let mockStaleCapacity: SprintCapacityDto | undefined
 let mockIsFetching = false
-const mockCapacityArgs = jest.fn()
-jest.mock('@/src/store/features/work-management/sprints-api', () => ({
+const mockCapacityArgs = vi.fn()
+vi.mock('@/src/store/features/work-management/sprints-api', () => ({
   useGetSprintCapacityQuery: (arg: unknown) => {
     mockCapacityArgs(arg)
     return {
@@ -95,7 +95,7 @@ describe('lastSprints', () => {
 
 describe('SprintCapacitySummary', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockCapacity = capacity()
     mockStaleCapacity = undefined
     mockIsFetching = false

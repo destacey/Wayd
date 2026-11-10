@@ -3,8 +3,8 @@ import IterationProgressBar from './iteration-progress-bar'
 import * as iterationHealthUtils from '../../../utils/iteration-health'
 
 // Mock the iteration health utility
-jest.mock('../../../utils/iteration-health', () => ({
-  calculateSprintHealth: jest.fn(),
+vi.mock('../../../utils/iteration-health', () => ({
+  calculateSprintHealth: vi.fn(),
   IterationHealthStatus: {
     NotStarted: 'Not Started',
     OnTrack: 'On Track',
@@ -15,8 +15,7 @@ jest.mock('../../../utils/iteration-health', () => ({
 }))
 
 // Mock useTheme
-jest.mock('../../contexts/theme', () => ({
-  __esModule: true,
+vi.mock('../../contexts/theme', () => ({
   default: () => ({
     token: {
       colorSuccess: '#52c41a',
@@ -36,11 +35,11 @@ describe('IterationProgressBar', () => {
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('renders with correct completion percentage', () => {
-    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
+    vi.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OnTrack,
       variancePercent: 0,
     })
@@ -52,7 +51,7 @@ describe('IterationProgressBar', () => {
   })
 
   it('displays green color for On Track status', () => {
-    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
+    vi.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OnTrack,
       variancePercent: 0,
     })
@@ -64,7 +63,7 @@ describe('IterationProgressBar', () => {
   })
 
   it('displays green color for Completed status', () => {
-    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
+    vi.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.Completed,
       variancePercent: 0,
     })
@@ -78,7 +77,7 @@ describe('IterationProgressBar', () => {
   })
 
   it('displays yellow color for At Risk status', () => {
-    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
+    vi.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.AtRisk,
       variancePercent: -15,
     })
@@ -90,7 +89,7 @@ describe('IterationProgressBar', () => {
   })
 
   it('displays red color for Off Track status', () => {
-    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
+    vi.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OffTrack,
       variancePercent: -30,
     })
@@ -102,7 +101,7 @@ describe('IterationProgressBar', () => {
   })
 
   it('handles zero total correctly', () => {
-    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
+    vi.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.NotStarted,
       variancePercent: 0,
     })
@@ -116,7 +115,7 @@ describe('IterationProgressBar', () => {
   })
 
   it('hides info by default', () => {
-    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
+    vi.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OnTrack,
       variancePercent: 0,
     })
@@ -128,7 +127,7 @@ describe('IterationProgressBar', () => {
   })
 
   it('shows info when showInfo is true', () => {
-    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
+    vi.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OnTrack,
       variancePercent: 0,
     })
@@ -145,7 +144,7 @@ describe('IterationProgressBar', () => {
   })
 
   it('uses small size by default', () => {
-    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
+    vi.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OnTrack,
       variancePercent: 0,
     })
@@ -157,7 +156,7 @@ describe('IterationProgressBar', () => {
   })
 
   it('uses default size when specified', () => {
-    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
+    vi.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OnTrack,
       variancePercent: 0,
     })
@@ -172,7 +171,7 @@ describe('IterationProgressBar', () => {
   })
 
   it('recalculates health when props change', () => {
-    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
+    vi.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OnTrack,
       variancePercent: 0,
     })
@@ -198,7 +197,7 @@ describe('IterationProgressBar', () => {
   })
 
   it('calculates correct percentage for partial completion', () => {
-    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
+    vi.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OnTrack,
       variancePercent: 0,
     })
@@ -213,7 +212,7 @@ describe('IterationProgressBar', () => {
 
   it('fills against the commitment and passes it to the health calculation', () => {
     // Arrange
-    jest.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
+    vi.mocked(iterationHealthUtils.calculateSprintHealth).mockReturnValue({
       status: iterationHealthUtils.IterationHealthStatus.OnTrack,
       variancePercent: 0,
     })

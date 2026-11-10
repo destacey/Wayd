@@ -4,9 +4,9 @@ import WaydGridPager, { GridPaging, useGridPaging } from './wayd-grid-pager'
 const paging = (overrides: Partial<GridPaging> = {}): GridPaging => ({
   page: 1,
   pageSize: 50,
-  setPaging: jest.fn(),
-  resetPage: jest.fn(),
-  keepInRange: jest.fn(),
+  setPaging: vi.fn(),
+  resetPage: vi.fn(),
+  keepInRange: vi.fn(),
   ...overrides,
 })
 
@@ -151,7 +151,7 @@ describe('WaydGridPager', () => {
 
   it('asks for the next page', () => {
     // Arrange
-    const setPaging = jest.fn()
+    const setPaging = vi.fn()
     render(
       <WaydGridPager
         paging={paging({ setPaging })}

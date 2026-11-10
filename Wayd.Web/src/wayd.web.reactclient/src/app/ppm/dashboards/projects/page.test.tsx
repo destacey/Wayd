@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import ProjectsDashboardPage from './page'
@@ -14,65 +15,67 @@ global.ResizeObserver = class {
 // The page is about which endpoint and which employee the queries are scoped
 // to, so the mocks record the arguments and the tests assert on those.
 let mockSearchParams = new URLSearchParams()
-const mockReplace = jest.fn((url: string) => {
+const mockReplace = vi.fn((url: string) => {
   mockSearchParams = new URLSearchParams(url.split('?')[1] ?? '')
 })
 const mockAuth = { employeeId: 'me' as string | null }
-const mockProjectsQuery = jest.fn()
-const mockPortfolioProjectsQuery = jest.fn()
-const mockProgramProjectsQuery = jest.fn()
-const mockPlanSummariesQuery = jest.fn()
+const mockProjectsQuery = vi.fn()
+const mockPortfolioProjectsQuery = vi.fn()
+const mockProgramProjectsQuery = vi.fn()
+const mockPlanSummariesQuery = vi.fn()
 
 const idle = {
   data: undefined,
   isLoading: false,
   error: undefined,
-  refetch: jest.fn(),
+  refetch: vi.fn(),
 }
 
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   usePathname: () => '/ppm/dashboards/projects',
-  useRouter: () => ({ replace: mockReplace, push: jest.fn() }),
+  useRouter: () => ({ replace: mockReplace, push: vi.fn() }),
   useSearchParams: () => mockSearchParams,
 }))
 
-jest.mock('@/src/components/hoc', () => ({
+vi.mock('@/src/components/hoc', () => ({
   authorizePage: (component: unknown) => component,
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn() }),
 }))
 
-jest.mock('@/src/hooks', () => ({
-  useDocumentTitle: jest.fn(),
-  useDebounce: (value: unknown) => value,
-  useRemainingHeight: () => [jest.fn(), 600],
-  useLinkedEmployee: () => ({
-    employeeId: mockAuth.employeeId,
-    hasLinkedEmployee: mockAuth.employeeId !== null,
-  }),
-  useLocalStorageState: (_key: string, initial: unknown) =>
-    jest.requireActual('react').useState(initial),
-}))
+vi.mock('@/src/hooks', async () => {
+  const { useState } = await vi.importActual<typeof import('react')>('react')
+  return {
+    useDocumentTitle: vi.fn(),
+    useDebounce: (value: unknown) => value,
+    useRemainingHeight: () => [vi.fn(), 600],
+    useLinkedEmployee: () => ({
+      employeeId: mockAuth.employeeId,
+      hasLinkedEmployee: mockAuth.employeeId !== null,
+    }),
+    useLocalStorageState: (_key: string, initial: unknown) => useState(initial),
+  }
+})
 
-jest.mock('@/src/store/features/ppm/projects-api', () => ({
+vi.mock('@/src/store/features/ppm/projects-api', () => ({
   useGetProjectsQuery: (...args: unknown[]) => mockProjectsQuery(...args),
   useGetProjectsPlanSummariesQuery: (...args: unknown[]) =>
     mockPlanSummariesQuery(...args),
 }))
 
-jest.mock('@/src/store/features/ppm/portfolios-api', () => ({
+vi.mock('@/src/store/features/ppm/portfolios-api', () => ({
   useGetPortfolioProjectsQuery: (...args: unknown[]) =>
     mockPortfolioProjectsQuery(...args),
 }))
 
-jest.mock('@/src/store/features/ppm/programs-api', () => ({
+vi.mock('@/src/store/features/ppm/programs-api', () => ({
   useGetProgramProjectsQuery: (...args: unknown[]) =>
     mockProgramProjectsQuery(...args),
 }))
 
-jest.mock('./_components/scope-bar', () => {
+vi.mock('./_components/scope-bar', () => {
   const MockScopeBar = ({
     scope,
     onScopeChange,
@@ -104,22 +107,22 @@ jest.mock('./_components/scope-bar', () => {
     </div>
   )
   MockScopeBar.displayName = 'MockScopeBar'
-  return MockScopeBar
+  return { default: MockScopeBar }
 })
 
-jest.mock('./_components/attention-tiles', () => {
+vi.mock('./_components/attention-tiles', () => {
   const MockTiles = () => <div data-testid="tiles" />
   MockTiles.displayName = 'MockAttentionTiles'
-  return MockTiles
+  return { default: MockTiles }
 })
 
-jest.mock('./_components/breakdown-strip', () => {
+vi.mock('./_components/breakdown-strip', () => {
   const MockStrip = () => <div data-testid="breakdowns" />
   MockStrip.displayName = 'MockBreakdownStrip'
-  return MockStrip
+  return { default: MockStrip }
 })
 
-jest.mock('./_components/projects-dashboard-grid', () => {
+vi.mock('./_components/projects-dashboard-grid', () => {
   const MockGrid = ({
     employeeId,
     onViewChange,
@@ -135,22 +138,22 @@ jest.mock('./_components/projects-dashboard-grid', () => {
     </div>
   )
   MockGrid.displayName = 'MockProjectsDashboardGrid'
-  return MockGrid
+  return { default: MockGrid }
 })
 
-jest.mock('./_components/projects-dashboard-timeline', () => {
+vi.mock('./_components/projects-dashboard-timeline', () => {
   const MockTimeline = () => <div data-testid="timeline" />
   MockTimeline.displayName = 'MockProjectsDashboardTimeline'
-  return MockTimeline
+  return { default: MockTimeline }
 })
 
-jest.mock('./_components/projects-dashboard-cards', () => {
+vi.mock('./_components/projects-dashboard-cards', () => {
   const MockCards = () => <div data-testid="cards" />
   MockCards.displayName = 'MockProjectsDashboardCards'
-  return MockCards
+  return { default: MockCards }
 })
 
-jest.mock('./_components/dashboard-toolbar', () => {
+vi.mock('./_components/dashboard-toolbar', () => {
   const MockToolbar = ({
     onViewChange,
   }: {
@@ -164,28 +167,27 @@ jest.mock('./_components/dashboard-toolbar', () => {
     </>
   )
   MockToolbar.displayName = 'MockDashboardToolbar'
-  return MockToolbar
+  return { default: MockToolbar }
 })
 
-jest.mock('@/src/app/ppm/_components/project-drawer', () => {
+vi.mock('@/src/app/ppm/_components/project-drawer', () => {
   const MockDrawer = () => null
   MockDrawer.displayName = 'MockProjectDrawer'
-  return MockDrawer
+  return { default: MockDrawer }
 })
 
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   PageTitle: ({ title }: { title: string }) => <h1>{title}</h1>,
   UnlinkedEmployeeAlert: () => null,
 }))
 
-jest.mock('@/src/components/common/basic-breadcrumb', () => {
+vi.mock('@/src/components/common/basic-breadcrumb', () => {
   const MockBreadcrumb = () => null
   MockBreadcrumb.displayName = 'MockBreadcrumb'
-  return MockBreadcrumb
+  return { default: MockBreadcrumb }
 })
 
-const lastCall = (mock: jest.Mock) =>
-  mock.mock.calls[mock.mock.calls.length - 1]
+const lastCall = (mock: Mock) => mock.mock.calls[mock.mock.calls.length - 1]
 /** The person-scoped call to the general list: the one carrying a role filter. */
 const lastPersonCall = () =>
   [...mockProjectsQuery.mock.calls].reverse().find(([args]) => 'role' in args)!
@@ -200,7 +202,7 @@ const aProject = {
 
 describe('ProjectsDashboardPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockSearchParams = new URLSearchParams()
     mockAuth.employeeId = 'me'
     mockProjectsQuery.mockReturnValue({ ...idle, data: [] })

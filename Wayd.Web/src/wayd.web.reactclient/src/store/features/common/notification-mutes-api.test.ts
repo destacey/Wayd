@@ -4,17 +4,17 @@ import { apiSlice } from '../apiSlice'
 import { notificationMutesApi } from './notification-mutes-api'
 import { notificationsApi } from './notifications-api'
 
-const getRecordMuteStatus = jest.fn()
-const getMutedRecords = jest.fn()
-const getReasonMutes = jest.fn()
-const muteRecord = jest.fn()
-const unmuteRecord = jest.fn()
-const muteReason = jest.fn()
-const unmuteReason = jest.fn()
-const getNotifications = jest.fn()
-const getUnreadCount = jest.fn()
+const getRecordMuteStatus = vi.fn()
+const getMutedRecords = vi.fn()
+const getReasonMutes = vi.fn()
+const muteRecord = vi.fn()
+const unmuteRecord = vi.fn()
+const muteReason = vi.fn()
+const unmuteReason = vi.fn()
+const getNotifications = vi.fn()
+const getUnreadCount = vi.fn()
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   getMyNotificationMutesClient: () => ({
     getRecordMuteStatus,
     getMutedRecords,
@@ -65,7 +65,7 @@ const loadedStore = async () => {
     notificationsApi.endpoints.getUnreadNotificationCount.initiate(),
   )
   await waitForCalls()
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   resolveReads()
   return store
 }
@@ -77,7 +77,7 @@ const statusOf = (store: ReturnType<typeof createStore>) =>
 
 describe('notificationMutesApi', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('pages the muted records by number', async () => {

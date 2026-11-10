@@ -49,7 +49,7 @@ describe('formatWorkingDays', () => {
 describe('WorkingDaysSelect', () => {
   it('reports the chosen days in week order', () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <WorkingDaysSelect value={[IsoDayOfWeek.Tuesday]} onChange={onChange} />,
     )

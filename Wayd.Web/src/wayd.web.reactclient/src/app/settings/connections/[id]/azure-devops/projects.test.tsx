@@ -6,23 +6,22 @@ import {
 import { AzdoConnectionContext } from './connection-context'
 import AzdoProjects from './projects'
 
-const mockHasPermissionClaim = jest.fn()
-const mockSuccess = jest.fn()
-const mockError = jest.fn()
-const mockSetWorkspaceSync = jest.fn()
-const mockRefreshProjects = jest.fn()
-const mockSetUpFormProps = jest.fn()
+const mockHasPermissionClaim = vi.fn()
+const mockSuccess = vi.fn()
+const mockError = vi.fn()
+const mockSetWorkspaceSync = vi.fn()
+const mockRefreshProjects = vi.fn()
+const mockSetUpFormProps = vi.fn()
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: mockHasPermissionClaim }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ success: mockSuccess, error: mockError }),
 }))
 
-jest.mock('@/src/store/features/app-integration/azdo-integration-api', () => ({
+vi.mock('@/src/store/features/app-integration/azdo-integration-api', () => ({
   useSetAzdoWorkspaceSyncMutation: () => [mockSetWorkspaceSync],
   useSyncAzdoConnectionOrganizationMutation: () => [
     mockRefreshProjects,
@@ -31,15 +30,13 @@ jest.mock('@/src/store/features/app-integration/azdo-integration-api', () => ({
 }))
 
 // The dialogs are covered on their own; here only what the tab hands them is under test.
-jest.mock('./init-workspace-integration-form', () => ({
-  __esModule: true,
+vi.mock('./init-workspace-integration-form', () => ({
   default: (props: unknown) => {
     mockSetUpFormProps(props)
     return null
   },
 }))
-jest.mock('./map-workspace-teams-form', () => ({
-  __esModule: true,
+vi.mock('./map-workspace-teams-form', () => ({
   default: () => null,
 }))
 
@@ -67,7 +64,7 @@ const project = (
       : { internalId: `wayd-${name}`, isActive: syncState === 'syncing' },
 })
 
-const reloadConnectionData = jest.fn()
+const reloadConnectionData = vi.fn()
 
 const renderProjects = (
   workspaces: AzureDevOpsWorkspaceDto[],
@@ -93,7 +90,7 @@ const rowOf = (name: string) => screen.getByText(name).closest('tr')!
 
 describe('AzdoProjects', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockHasPermissionClaim.mockReturnValue(true)
     reloadConnectionData.mockResolvedValue(undefined)
   })

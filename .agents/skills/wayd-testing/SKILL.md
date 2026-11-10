@@ -1,6 +1,6 @@
 ---
 name: wayd-testing
-description: Writes, reviews, and verifies tests in the Wayd repository — .NET handlers and domain models (xUnit, FluentAssertions, Moq.AutoMock, fake DbContexts, Testcontainers) and the React client (Jest, React Testing Library) — and proves each test is worth keeping with a mutation gate that shows it fails when the production code is wrong. Use when adding, reviewing, or strengthening tests; when asked whether tests are any good, would catch a bug, or are too weak or shallow; when a change lands without tests; or when choosing where to add tests next.
+description: Writes, reviews, and verifies tests in the Wayd repository — .NET handlers and domain models (xUnit, FluentAssertions, Moq.AutoMock, fake DbContexts, Testcontainers) and the React client (Vitest, React Testing Library) — and proves each test is worth keeping with a mutation gate that shows it fails when the production code is wrong. Use when adding, reviewing, or strengthening tests; when asked whether tests are any good, would catch a bug, or are too weak or shallow; when a change lands without tests; or when choosing where to add tests next.
 ---
 
 # Wayd Testing
@@ -20,7 +20,7 @@ The general conventions — project layout, stack, naming, Arrange/Act/Assert, c
 | File | Read it when |
 |---|---|
 | [dotnet.md](dotnet.md) | Writing or reviewing any .NET test — handler shape, assertion style, the unit/integration tripwire, and what a fake DbContext cannot see. |
-| [react.md](react.md) | Writing or reviewing a Jest test in the React client, or running the mutation gate against one. |
+| [react.md](react.md) | Writing or reviewing a Vitest test in the React client, or running the mutation gate against one. |
 | [mutation-gate.md](mutation-gate.md) | Before reporting test work complete, whenever the gate applies (below). |
 | [where-to-test-next.md](where-to-test-next.md) | Asked where coverage is weakest or what to test next, rather than to test a specific change. |
 
@@ -39,7 +39,7 @@ The general conventions — project layout, stack, naming, Arrange/Act/Assert, c
 The mutation gate proves each new or changed test fails when the code it covers is wrong: apply one real edit to the production code, run the covering test, record killed or survived, revert just that edit.
 
 - **Applies when** the change adds or alters an asserted behaviour, or the request enumerated behaviours to verify. Default scope: **one mutation per asserted behaviour**, taking the Return and Guard rows of the catalogue first.
-- **Runs only against a `Category=Unit` project** (or a single Jest suite). Never against an integration project.
+- **Runs only against a `Category=Unit` project** (or a single Vitest suite). Never against an integration project.
 - **A survivor is a real gap**: strengthen the test and re-apply the same mutation until it is killed.
 - **Never revert a whole file** — undo only the mutation; the working tree may hold the user's uncommitted work.
 - **Under-claim**: never report a gap you did not verify by running, and lead with the kill count.

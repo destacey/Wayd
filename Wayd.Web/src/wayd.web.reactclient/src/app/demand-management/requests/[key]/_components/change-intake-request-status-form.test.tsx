@@ -3,14 +3,14 @@ import userEvent from '@testing-library/user-event'
 import { StatusCategory } from '@/src/services/wayd-api'
 import ChangeIntakeRequestStatusForm from './change-intake-request-status-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-// In Jest, Form.useWatch does not refire after typing, so keep the form instance real and submit through
+// Under jsdom, Form.useWatch does not refire after typing, so keep the form instance real and submit through
 // validateFields, which, like the real hook, returns only the fields that are mounted.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -32,7 +32,7 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields().catch(() => null)
           if (values && (await onSubmit(values, form))) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -52,7 +52,7 @@ const option = (
   ...overrides,
 })
 
-const mockChangeStatus = jest.fn()
+const mockChangeStatus = vi.fn()
 const mockOptions = [
   option('s-review', 'In Review'),
   option('s-waiting', 'Waiting on Requester', { alias: 2 }),
@@ -71,18 +71,15 @@ const mockRequests = [
   { id: 'r-7', key: 7, title: 'Export invoices', desk: { id: 'd-it' } },
   { id: 'r-9', key: 9, title: 'Board pack', desk: { id: 'd-secret' } },
 ]
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useChangeIntakeRequestStatusMutation: () => [mockChangeStatus],
-    useGetIntakeRequestStatusOptionsQuery: () => ({
-      data: mockOptions,
-      isLoading: false,
-      isError: false,
-    }),
-    useGetIntakeRequestsQuery: () => ({ data: mockRequests }),
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useChangeIntakeRequestStatusMutation: () => [mockChangeStatus],
+  useGetIntakeRequestStatusOptionsQuery: () => ({
+    data: mockOptions,
+    isLoading: false,
+    isError: false,
   }),
-)
+  useGetIntakeRequestsQuery: () => ({ data: mockRequests }),
+}))
 
 const request = {
   summary: {
@@ -99,8 +96,8 @@ const renderForm = async () =>
     render(
       <ChangeIntakeRequestStatusForm
         request={request}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -111,9 +108,7 @@ const choose = async (comboboxIndex: number, title: string) => {
 }
 
 const submit = async () => {
-  await act(() =>
-    userEvent.click(screen.getByRole('button', { name: 'Change' })),
-  )
+  await userEvent.click(screen.getByRole('button', { name: 'Change' }))
 }
 
 describe('ChangeIntakeRequestStatusForm', () => {

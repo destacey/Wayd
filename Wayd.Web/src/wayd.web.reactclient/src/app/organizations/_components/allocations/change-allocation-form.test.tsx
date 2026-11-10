@@ -6,17 +6,15 @@ import ChangeAllocationForm, {
   fieldForError,
 } from './change-allocation-form'
 
-jest.unmock('dayjs')
-
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 let formInstance: FormInstance | undefined
 
 // The form instance is real — antd's Form binds to it, and a stub breaks on render.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: () => {
       const [form] = Form.useForm()
@@ -26,27 +24,27 @@ jest.mock('@/src/hooks', () => {
         isOpen: true,
         isValid: true,
         isSaving: false,
-        handleOk: jest.fn(),
-        handleCancel: jest.fn(),
+        handleOk: vi.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
+vi.mock('@/src/store/features/organizations/team-api', () => ({
   useGetTeamOptionsQuery: () => ({ data: [] }),
 }))
 
-jest.mock('@/src/store/features/organization/team-member-roles-api', () => ({
+vi.mock('@/src/store/features/organization/team-member-roles-api', () => ({
   useGetTeamMemberRolesQuery: () => ({ data: [] }),
 }))
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeeOptionsQuery: () => ({ data: [] }),
 }))
 
-jest.mock('@/src/store/features/organization/employee-allocations-api', () => ({
-  useChangeEmployeeAllocationsMutation: () => [jest.fn()],
+vi.mock('@/src/store/features/organization/employee-allocations-api', () => ({
+  useChangeEmployeeAllocationsMutation: () => [vi.fn()],
 }))
 
 /** The End field's errors once the given values are validated. */
@@ -204,7 +202,7 @@ describe('ChangeAllocationForm', () => {
 
   it('checks the end again when the percent rises from zero', async () => {
     // Arrange — antd re-checks a dependent field after a MessageChannel
-    // message, which the global stub in jest.setup.ts never delivers
+    // message, which the global stub in vitest.setup.dom.ts never delivers
     const stubChannel = global.MessageChannel
     global.MessageChannel = class {
       port1: { onmessage: ((event: unknown) => void) | null } = {

@@ -1,13 +1,8 @@
 // timeline/core/scale.ts
 // Date<->pixel mapping + calendar-aware tick generation. Pure, no DOM/React.
 //
-// Originally planned on d3-scale (decision D-2), but d3's ESM-only packaging
-// fights next/jest's transform pipeline (next/jest forces node_modules to be
-// ignored unless transpilePackages is honored, which proved unreliable here).
-// The mapping for a single contiguous time domain is just linear interpolation,
-// and calendar-aware tick stepping is a few lines on dayjs (the repo's standard
-// date lib, already a dependency). So we own this small, well-bounded math
-// instead — same spirit as hand-rolling packing. See timeline-replacement spec.
+// The mapping for a single contiguous time domain is linear interpolation;
+// tick stepping is calendar-aware through dayjs.
 
 import dayjs, { type Dayjs } from 'dayjs'
 

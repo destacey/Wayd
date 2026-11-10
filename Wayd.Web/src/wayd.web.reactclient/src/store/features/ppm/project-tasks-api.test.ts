@@ -3,9 +3,9 @@ import { JsonPatchOperationType } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { projectTasksApi } from './project-tasks-api'
 
-const patchProjectTask = jest.fn()
+const patchProjectTask = vi.fn()
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   getProjectTasksClient: () => ({ patchProjectTask }),
   getProjectsClient: () => ({}),
 }))
@@ -34,7 +34,7 @@ describe('projectTasksApi', () => {
   })
 
   afterEach(() => {
-    jest.restoreAllMocks()
+    vi.restoreAllMocks()
   })
 
   describe('patchProjectTask', () => {
@@ -71,7 +71,7 @@ describe('projectTasksApi', () => {
         isAxiosError: true,
         message: 'Network Error',
       })
-      jest.spyOn(console, 'error').mockImplementation(() => {})
+      vi.spyOn(console, 'error').mockImplementation(() => {})
       const store = createStore()
 
       // Act
@@ -89,7 +89,7 @@ describe('projectTasksApi', () => {
       patchProjectTask.mockRejectedValue(
         new Error("The parameter 'id' must be defined."),
       )
-      jest.spyOn(console, 'error').mockImplementation(() => {})
+      vi.spyOn(console, 'error').mockImplementation(() => {})
       const store = createStore()
 
       // Act

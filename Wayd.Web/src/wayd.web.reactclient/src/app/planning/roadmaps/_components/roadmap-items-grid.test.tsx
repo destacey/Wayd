@@ -1,31 +1,28 @@
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
 const mockMessage = {
-  success: jest.fn(),
-  error: jest.fn(),
-  warning: jest.fn(),
-  info: jest.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
 }
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => mockMessage,
 }))
 
-const mockPatch = jest.fn()
-const mockCreate = jest.fn()
-const mockPlaceActivity = jest.fn()
+const mockPatch = vi.fn()
+const mockCreate = vi.fn()
+const mockPlaceActivity = vi.fn()
 let mockRoadmapColors: unknown[] = []
-jest.mock('@/src/store/features/planning/roadmaps-api', () => ({
+vi.mock('@/src/store/features/planning/roadmaps-api', () => ({
   useGetRoadmapQuery: () => ({
     data: { colors: mockRoadmapColors, start: '2026-01-01', end: '2026-12-31' },
   }),
   usePatchRoadmapItemMutation: () => [mockPatch],
   useCreateRoadmapItemMutation: () => [mockCreate],
   useUpdateRoadmapActivityPlacementMutation: () => [mockPlaceActivity],
-  useUpdateRoadmapItemDatesMutation: () => [jest.fn()],
+  useUpdateRoadmapItemDatesMutation: () => [vi.fn()],
 }))
 
-jest.mock('./delete-roadmap-item-form', () => ({
-  __esModule: true,
+vi.mock('./delete-roadmap-item-form', () => ({
   default: ({
     roadmapItemId,
     onFormComplete,
@@ -44,9 +41,9 @@ jest.mock('./delete-roadmap-item-form', () => ({
 }))
 
 // The chart pane is not under test; keep it hidden.
-jest.mock('@/src/components/common/timeline', () => ({
-  ...jest.requireActual('@/src/components/common/timeline'),
-  useGanttVisibility: () => ({ visible: false, toggle: jest.fn() }),
+vi.mock('@/src/components/common/timeline', async () => ({
+  ...(await vi.importActual<any>('@/src/components/common/timeline')),
+  useGanttVisibility: () => ({ visible: false, toggle: vi.fn() }),
 }))
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
@@ -92,8 +89,8 @@ const renderGrid = ({
   items = ITEMS,
   canManage = true,
 }: { items?: RoadmapItemListDto[]; canManage?: boolean } = {}) => {
-  const openRoadmapItemDrawer = jest.fn()
-  const refreshRoadmapItems = jest.fn().mockResolvedValue(undefined)
+  const openRoadmapItemDrawer = vi.fn()
+  const refreshRoadmapItems = vi.fn().mockResolvedValue(undefined)
   const props = {
     roadmapId: 'r1',
     roadmapItemsIsLoading: false,
@@ -152,7 +149,7 @@ const addDraft = () => {
 
 describe('RoadmapItemsGrid cell editing', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockRoadmapColors = []
     mockPatch.mockReturnValue(resolved())
     mockCreate.mockReturnValue(resolved('new-1'))
@@ -353,8 +350,8 @@ describe('RoadmapItemsGrid cell editing', () => {
         roadmapId="r1"
         roadmapItemsData={items}
         roadmapItemsIsLoading={false}
-        refreshRoadmapItems={jest.fn()}
-        openRoadmapItemDrawer={jest.fn()}
+        refreshRoadmapItems={vi.fn()}
+        openRoadmapItemDrawer={vi.fn()}
         canManage
       />,
     )

@@ -2,11 +2,11 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ChangeIntakeChannelStateForm from './change-intake-channel-state-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useConfirmModal: ({
     onSubmit,
     onComplete,
@@ -19,19 +19,16 @@ jest.mock('@/src/hooks', () => ({
     handleOk: async () => {
       if (await onSubmit()) onComplete()
     },
-    handleCancel: jest.fn(),
+    handleCancel: vi.fn(),
   }),
 }))
 
-const mockArchive = jest.fn()
-const mockRestore = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useArchiveIntakeChannelMutation: () => [mockArchive],
-    useRestoreIntakeChannelMutation: () => [mockRestore],
-  }),
-)
+const mockArchive = vi.fn()
+const mockRestore = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useArchiveIntakeChannelMutation: () => [mockArchive],
+  useRestoreIntakeChannelMutation: () => [mockRestore],
+}))
 
 const channel = { id: 'c-1', name: 'Support', order: 1, isActive: true }
 
@@ -45,22 +42,20 @@ describe('ChangeIntakeChannelStateForm', () => {
 
   it('archives the channel, saying requests keep it', async () => {
     // Arrange
-    const onComplete = jest.fn()
+    const onComplete = vi.fn()
     await act(async () =>
       render(
         <ChangeIntakeChannelStateForm
           channel={channel}
           archive
           onFormComplete={onComplete}
-          onFormCancel={jest.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Archive' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Archive' }))
 
     // Assert
     expect(
@@ -78,16 +73,14 @@ describe('ChangeIntakeChannelStateForm', () => {
         <ChangeIntakeChannelStateForm
           channel={{ ...channel, isActive: false }}
           archive={false}
-          onFormComplete={jest.fn()}
-          onFormCancel={jest.fn()}
+          onFormComplete={vi.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Restore' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Restore' }))
 
     // Assert
     expect(mockRestore).toHaveBeenCalledWith('c-1')

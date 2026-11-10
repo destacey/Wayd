@@ -1,32 +1,12 @@
 import { renderHook, act } from '@testing-library/react'
-import { useGanttVisibility, GANTT_VISIBILITY_KEYS } from './use-gantt-visibility'
-
-// The global setup stubs localStorage with bare jest.fn()s and no backing
-// store, so nothing survives a write. Persistence is the point of this hook,
-// so give it a real store for this suite only.
-const store = new Map<string, string>()
-
-beforeAll(() => {
-  Object.defineProperty(window, 'localStorage', {
-    configurable: true,
-    value: {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => void store.set(k, v),
-      removeItem: (k: string) => void store.delete(k),
-      clear: () => store.clear(),
-      key: (i: number) => [...store.keys()][i] ?? null,
-      get length() {
-        return store.size
-      },
-    },
-  })
-})
-
-beforeEach(() => store.clear())
+import {
+  useGanttVisibility,
+  GANTT_VISIBILITY_KEYS,
+} from './use-gantt-visibility'
 
 // The value the hook actually writes, so assertions cover the stored shape.
 const stored = (area: keyof typeof GANTT_VISIBILITY_KEYS) =>
-  store.get(`${GANTT_VISIBILITY_KEYS[area]}:v1`)
+  window.localStorage.getItem(`${GANTT_VISIBILITY_KEYS[area]}:v1`)
 
 describe('useGanttVisibility', () => {
   it('defaults to visible when nothing is stored', () => {
@@ -50,7 +30,7 @@ describe('useGanttVisibility', () => {
 
   it('restores a preference turned back on', () => {
     // Arrange — start from a stored "hidden".
-    store.set(`${GANTT_VISIBILITY_KEYS.roadmap}:v1`, 'false')
+    window.localStorage.setItem(`${GANTT_VISIBILITY_KEYS.roadmap}:v1`, 'false')
     const { result, unmount } = renderHook(() => useGanttVisibility('roadmap'))
     // Act
     act(() => result.current.toggle())

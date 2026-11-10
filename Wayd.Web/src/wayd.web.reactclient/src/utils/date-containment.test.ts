@@ -1,5 +1,3 @@
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
 import dayjs, { Dayjs } from 'dayjs'
 import {
   childrenSpan,

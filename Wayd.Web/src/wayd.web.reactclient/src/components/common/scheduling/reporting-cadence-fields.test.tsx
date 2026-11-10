@@ -7,9 +7,6 @@ import ReportingCadenceFields, {
   toReportingCadenceRequest,
 } from './reporting-cadence-fields'
 
-// The anchor's DatePicker needs the real dayjs.
-jest.unmock('dayjs')
-
 const renderInForm = (initialValues: Record<string, unknown>) =>
   render(
     <Form initialValues={initialValues}>

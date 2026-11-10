@@ -3,38 +3,34 @@ import dayjs from 'dayjs'
 import ProjectsDashboardGrid from './projects-dashboard-grid'
 import { ProjectListDto } from '@/src/services/wayd-api'
 
-// The ending-soon highlight and the date column compare dates, which the
-// global dayjs stub cannot do.
-jest.unmock('dayjs')
-
 global.ResizeObserver = class {
   observe() {}
   unobserve() {}
   disconnect() {}
 } as unknown as typeof ResizeObserver
 
-jest.mock('@/src/app/ppm/projects/_components/project-health-check-tag', () => {
+vi.mock('@/src/app/ppm/projects/_components/project-health-check-tag', () => {
   const MockTag = ({
     healthCheck,
   }: {
     healthCheck?: { status: { name: string } }
   }) => <span>{healthCheck?.status.name}</span>
   MockTag.displayName = 'MockProjectHealthCheckTag'
-  return MockTag
+  return { default: MockTag }
 })
 
-jest.mock('@/src/app/ppm/_components/stage-timeline', () => {
+vi.mock('@/src/app/ppm/_components/stage-timeline', () => {
   const MockStages = ({ stages }: { stages: { name: string }[] }) => (
     <span>{stages.map((s) => s.name).join(',')}</span>
   )
   MockStages.displayName = 'MockStageTimeline'
-  return MockStages
+  return { default: MockStages }
 })
 
-jest.mock('./team-avatars', () => {
+vi.mock('./team-avatars', () => {
   const MockAvatars = () => <span data-testid="avatars" />
   MockAvatars.displayName = 'MockTeamAvatars'
-  return MockAvatars
+  return { default: MockAvatars }
 })
 
 const me = { id: 'me', key: 1, name: 'Me' }
@@ -87,18 +83,18 @@ const projects = [
 const props = {
   projects,
   groupBy: 'portfolio' as const,
-  onGroupByChange: jest.fn(),
+  onGroupByChange: vi.fn(),
   view: 'List' as const,
-  onViewChange: jest.fn(),
+  onViewChange: vi.fn(),
   planSummaries: {
     'id-P1': { overdue: 2, dueThisWeek: 0, upcoming: 0, totalLeafTasks: 4 },
   },
   employeeId: 'me',
   selectedProjectKey: null,
-  onSelectProject: jest.fn(),
+  onSelectProject: vi.fn(),
   isLoading: false,
   today: dayjs(new Date(2026, 8, 24)),
-  onRefresh: jest.fn(),
+  onRefresh: vi.fn(),
 }
 
 const groupRows = () =>
@@ -110,7 +106,7 @@ const cells = (columnId: string) =>
   ).map((c) => c.textContent)
 
 describe('ProjectsDashboardGrid', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => vi.clearAllMocks())
 
   it('groups by the chosen column with a heading that sums up the group', () => {
     // Arrange / Act

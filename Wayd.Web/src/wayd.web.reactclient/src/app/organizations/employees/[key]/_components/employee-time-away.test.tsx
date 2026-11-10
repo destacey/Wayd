@@ -2,24 +2,21 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import EmployeeTimeAway from './employee-time-away'
 
-jest.unmock('dayjs')
-
 let mockPermissions: string[] = []
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     hasPermissionClaim: (permission: string) =>
       mockPermissions.includes(permission),
   }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ success: jest.fn(), error: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ success: vi.fn(), error: vi.fn() }),
 }))
 
-const mockReasonsArgs = jest.fn()
-const mockRemove = jest.fn()
-jest.mock('@/src/store/features/organization/employee-time-away-api', () => ({
+const mockReasonsArgs = vi.fn()
+const mockRemove = vi.fn()
+vi.mock('@/src/store/features/organization/employee-time-away-api', () => ({
   useGetTimeAwayReasonsQuery: (arg: unknown, options: unknown) => {
     mockReasonsArgs(arg, options)
     return {
@@ -32,21 +29,16 @@ jest.mock('@/src/store/features/organization/employee-time-away-api', () => ({
   useRemoveEmployeeTimeAwayMutation: () => [mockRemove],
 }))
 
-const mockTimeAwayForm = jest.fn()
-jest.mock(
-  '@/src/app/organizations/_components/time-away/time-away-form',
-  () => ({
-    __esModule: true,
-    default: (props: unknown) => {
-      mockTimeAwayForm(props)
-      return <div data-testid="time-away-form" />
-    },
-  }),
-)
+const mockTimeAwayForm = vi.fn()
+vi.mock('@/src/app/organizations/_components/time-away/time-away-form', () => ({
+  default: (props: unknown) => {
+    mockTimeAwayForm(props)
+    return <div data-testid="time-away-form" />
+  },
+}))
 
-const mockCalendarForm = jest.fn()
-jest.mock('./employee-holiday-calendar-form', () => ({
-  __esModule: true,
+const mockCalendarForm = vi.fn()
+vi.mock('./employee-holiday-calendar-form', () => ({
   SYSTEM_DEFAULT_LABEL: 'System default',
   default: (props: unknown) => {
     mockCalendarForm(props)
@@ -54,10 +46,9 @@ jest.mock('./employee-holiday-calendar-form', () => ({
   },
 }))
 
-const mockWorkingDayForm = jest.fn()
-jest.mock('./employee-working-day-form', () => ({
-  __esModule: true,
-  workingDayLabel: jest.requireActual('./employee-working-day-form')
+const mockWorkingDayForm = vi.fn()
+vi.mock('./employee-working-day-form', async () => ({
+  workingDayLabel: (await vi.importActual<any>('./employee-working-day-form'))
     .workingDayLabel,
   default: (props: unknown) => {
     mockWorkingDayForm(props)
@@ -78,13 +69,13 @@ const renderSection = (timeAway: Record<string, unknown>) =>
       employeeId="employee-1"
       timeAway={timeAway as never}
       isLoading={false}
-      onRefresh={jest.fn()}
+      onRefresh={vi.fn()}
     />,
   )
 
 describe('EmployeeTimeAway', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockPermissions = []
     mockRemove.mockResolvedValue({})
   })

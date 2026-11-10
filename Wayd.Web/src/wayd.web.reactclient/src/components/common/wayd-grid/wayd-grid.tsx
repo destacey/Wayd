@@ -588,7 +588,7 @@ function GridBody<T extends RowData>({
       onScroll={onBodyScroll}
       // Measurement hook for jsdom tests: layoutless environments report a
       // 0×0 rect here, which makes the row virtualizer render nothing —
-      // jest.setup.ts returns a fixed rect for this attribute instead.
+      // vitest.setup.dom.ts returns a fixed rect for this attribute instead.
       data-grid-body-viewport=""
     >
       {/* Tab from a body cell leaves the grid by focusing one of these first;

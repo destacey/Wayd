@@ -1,45 +1,8 @@
+// @vitest-environment jsdom
 import { renderHook, act } from '@testing-library/react'
 import { useLocalStorageState } from '.'
 
 describe('useLocalStorageState', () => {
-  // Suppress console errors during tests
-  beforeAll(() => {
-    console.error = jest.fn()
-  })
-
-  beforeEach(() => {
-    // Mock localStorage
-    const localStorageMock = (() => {
-      let store: Record<string, string> = {}
-      return {
-        getItem: (key: string) => store[key] || null,
-        setItem: (key: string, value: string) => {
-          store[key] = value
-        },
-        removeItem: (key: string) => {
-          delete store[key]
-        },
-        clear: () => {
-          store = {}
-        },
-        get length() {
-          return Object.keys(store).length
-        },
-        key: (index: number) => {
-          const keys = Object.keys(store)
-          return keys[index] || null
-        },
-      }
-    })()
-
-    Object.defineProperty(window, 'localStorage', {
-      value: localStorageMock,
-      writable: true,
-    })
-
-    localStorage.clear()
-  })
-
   it('returns the default value if key does not exist', () => {
     const { result } = renderHook(() => useLocalStorageState('key', 'default'))
     expect(result.current[0]).toBe('default')
@@ -86,7 +49,7 @@ describe('useLocalStorageState', () => {
   it('avoids redundant updates to localStorage', () => {
     localStorage.setItem('key', JSON.stringify('value'))
     const { result } = renderHook(() => useLocalStorageState('key', 'value'))
-    const setItemSpy = jest.spyOn(Storage.prototype, 'setItem')
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
 
     act(() => result.current[1]('value'))
     expect(setItemSpy).not.toHaveBeenCalled()
@@ -132,7 +95,9 @@ describe('useLocalStorageState', () => {
 
     it('maintains backward compatibility without version', () => {
       localStorage.setItem('key', JSON.stringify('storedValue'))
-      const { result } = renderHook(() => useLocalStorageState('key', 'default'))
+      const { result } = renderHook(() =>
+        useLocalStorageState('key', 'default'),
+      )
       expect(result.current[0]).toBe('storedValue')
       expect(localStorage.getItem('key')).toBe(JSON.stringify('storedValue'))
     })

@@ -2,12 +2,12 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ChangeIntakeRequestEstimateForm from './change-intake-request-estimate-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -29,19 +29,16 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields().catch(() => null)
           if (values && (await onSubmit(values, form))) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const mockChangeEstimate = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useChangeIntakeRequestEstimateMutation: () => [mockChangeEstimate],
-  }),
-)
+const mockChangeEstimate = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useChangeIntakeRequestEstimateMutation: () => [mockChangeEstimate],
+}))
 
 const estimateOn = (value: string, versionId: string, scaleName: string) => ({
   value,
@@ -57,7 +54,7 @@ const estimateOn = (value: string, versionId: string, scaleName: string) => ({
 })
 
 const renderForm = async (estimate?: ReturnType<typeof estimateOn>) => {
-  const onFormComplete = jest.fn()
+  const onFormComplete = vi.fn()
   await act(async () =>
     render(
       <ChangeIntakeRequestEstimateForm
@@ -71,7 +68,7 @@ const renderForm = async (estimate?: ReturnType<typeof estimateOn>) => {
           } as any
         }
         onFormComplete={onFormComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -79,7 +76,7 @@ const renderForm = async (estimate?: ReturnType<typeof estimateOn>) => {
 }
 
 const submit = async () => {
-  await act(() => userEvent.click(screen.getByRole('button', { name: 'Save' })))
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 }
 
 describe('ChangeIntakeRequestEstimateForm', () => {

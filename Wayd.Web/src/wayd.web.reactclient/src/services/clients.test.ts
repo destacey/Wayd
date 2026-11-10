@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { getFreshAuthToken } from './clients'
 import { ApiException, AuthClient } from './wayd-api'
 
@@ -9,27 +10,21 @@ import { ApiException, AuthClient } from './wayd-api'
 describe('getFreshAuthToken after a rate-limited refresh', () => {
   // After the stored token's expiry, so every call finds it due for a refresh
   const NOW = Date.parse('2030-01-01T00:00:00.000Z')
-  const stored = new Map<string, string>()
 
   beforeEach(() => {
-    stored.clear()
-    stored.set('wayd.local.token', 'expired-token')
-    stored.set('wayd.local.refreshToken', 'refresh-token')
-    stored.set('wayd.local.tokenExpiry', '2000-01-01T00:00:00.000Z')
-    jest
-      .mocked(localStorage.getItem)
-      .mockImplementation((key) => stored.get(key) ?? null)
+    localStorage.setItem('wayd.local.token', 'expired-token')
+    localStorage.setItem('wayd.local.refreshToken', 'refresh-token')
+    localStorage.setItem('wayd.local.tokenExpiry', '2000-01-01T00:00:00.000Z')
   })
 
   afterEach(() => {
-    jest.restoreAllMocks()
-    jest.mocked(localStorage.getItem).mockReset()
+    vi.restoreAllMocks()
   })
 
   it('sends no refresh until the wait a 429 named has passed', async () => {
     // Arrange
-    const now = jest.spyOn(Date, 'now').mockReturnValue(NOW)
-    const refresh = jest
+    const now = vi.spyOn(Date, 'now').mockReturnValue(NOW)
+    const refresh = vi
       .spyOn(AuthClient.prototype, 'refreshToken')
       .mockRejectedValue(
         new ApiException(

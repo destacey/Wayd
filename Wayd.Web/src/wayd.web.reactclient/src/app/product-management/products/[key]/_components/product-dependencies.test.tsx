@@ -7,8 +7,7 @@ import { SET_FILTER_BLANK } from '@/src/components/common/wayd-grid-core'
 import { buildDependencyColumns } from './product-dependencies'
 
 // The actions hook pulls in the dialogs; the columns under test only take its item builder.
-jest.mock('./use-product-dependency-actions', () => ({
-  __esModule: true,
+vi.mock('./use-product-dependency-actions', () => ({
   default: () => ({ getActionItems: () => [], dialogs: null }),
 }))
 

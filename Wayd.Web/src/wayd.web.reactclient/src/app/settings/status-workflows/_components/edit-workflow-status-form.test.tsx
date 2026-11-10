@@ -10,14 +10,14 @@ import EditWorkflowStatusForm, {
   type WorkflowStatusEditScope,
 } from './edit-workflow-status-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 // Not spread from the real barrel: it re-exports store-bound hooks. The stand-in
 // keeps the hook's contract — a form that is open and submits its values.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -39,16 +39,16 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields().catch(() => null)
           if (values && (await onSubmit(values, form))) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const mockRename = jest.fn()
-const mockReclassify = jest.fn()
-const mockDescribe = jest.fn()
-jest.mock('@/src/store/features/common/status-workflows-api', () => ({
+const mockRename = vi.fn()
+const mockReclassify = vi.fn()
+const mockDescribe = vi.fn()
+vi.mock('@/src/store/features/common/status-workflows-api', () => ({
   useRenameWorkflowStatusMutation: () => [mockRename],
   useReclassifyWorkflowStatusMutation: () => [mockReclassify],
   useDescribeWorkflowStatusMutation: () => [mockDescribe],
@@ -102,7 +102,7 @@ const renderForm = async (
   status: WorkflowStatusDto,
   categoryLabels?: StatusCategoryLabelDto[],
   scope?: WorkflowStatusEditScope,
-  onFormComplete: () => void = jest.fn(),
+  onFormComplete: () => void = vi.fn(),
 ) =>
   await act(async () =>
     render(
@@ -114,16 +114,16 @@ const renderForm = async (
         categoryLabels={categoryLabels}
         scope={scope}
         onFormComplete={onFormComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
 
 const chooseCategory = async (category: string) => {
   const field = screen.getByLabelText('Category')
-  await act(() => userEvent.click(field))
+  await userEvent.click(field)
   const options = await screen.findAllByTitle(category)
-  await act(() => userEvent.click(options[options.length - 1]))
+  await userEvent.click(options[options.length - 1])
 }
 
 const categoryShown = () =>
@@ -216,9 +216,7 @@ describe('EditWorkflowStatusForm', () => {
     await renderForm(statusIn(StatusCategory.Done, 2, 'Concluded'), LABELS)
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockReclassify).not.toHaveBeenCalled()
@@ -231,9 +229,7 @@ describe('EditWorkflowStatusForm', () => {
 
     // Act
     await chooseCategory('Underway')
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockReclassify).toHaveBeenCalledWith(
@@ -245,7 +241,7 @@ describe('EditWorkflowStatusForm', () => {
 
   describe('description only', () => {
     const save = () =>
-      act(() => userEvent.click(screen.getByRole('button', { name: 'Save' })))
+      userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     it('shows the name, category and meaning read-only', async () => {
       // Arrange / Act
@@ -275,8 +271,9 @@ describe('EditWorkflowStatusForm', () => {
       )
 
       // Act
-      await act(() =>
-        userEvent.type(screen.getByLabelText('Description'), 'Out the door.'),
+      await userEvent.type(
+        screen.getByLabelText('Description'),
+        'Out the door.',
       )
       await save()
 
@@ -300,7 +297,7 @@ describe('EditWorkflowStatusForm', () => {
       )
 
       // Act
-      await act(() => userEvent.clear(screen.getByLabelText('Description')))
+      await userEvent.clear(screen.getByLabelText('Description'))
       await save()
 
       // Assert
@@ -311,7 +308,7 @@ describe('EditWorkflowStatusForm', () => {
 
     it('sends nothing when the description is unchanged, and still closes', async () => {
       // Arrange
-      const onFormComplete = jest.fn()
+      const onFormComplete = vi.fn()
       await renderForm(
         statusIn(StatusCategory.Done, 2),
         undefined,
@@ -329,7 +326,7 @@ describe('EditWorkflowStatusForm', () => {
 
     it('keeps the dialog open when the description is refused', async () => {
       // Arrange
-      const onFormComplete = jest.fn()
+      const onFormComplete = vi.fn()
       mockDescribe.mockResolvedValue({
         error: { status: 400, detail: 'This workflow is archived.' },
       })
@@ -341,8 +338,9 @@ describe('EditWorkflowStatusForm', () => {
       )
 
       // Act
-      await act(() =>
-        userEvent.type(screen.getByLabelText('Description'), 'Out the door.'),
+      await userEvent.type(
+        screen.getByLabelText('Description'),
+        'Out the door.',
       )
       await save()
 
@@ -368,7 +366,7 @@ describe('EditWorkflowStatusForm', () => {
 
   describe('name and description', () => {
     const save = () =>
-      act(() => userEvent.click(screen.getByRole('button', { name: 'Save' })))
+      userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     it('shows the category and meaning read-only', async () => {
       // Arrange / Act
@@ -391,7 +389,7 @@ describe('EditWorkflowStatusForm', () => {
     it('sends a description change through rename', async () => {
       // Arrange
       mockRename.mockResolvedValue({})
-      const onFormComplete = jest.fn()
+      const onFormComplete = vi.fn()
       await renderForm(
         statusIn(StatusCategory.Done, 2),
         undefined,
@@ -400,8 +398,9 @@ describe('EditWorkflowStatusForm', () => {
       )
 
       // Act
-      await act(() =>
-        userEvent.type(screen.getByLabelText('Description'), 'Out the door.'),
+      await userEvent.type(
+        screen.getByLabelText('Description'),
+        'Out the door.',
       )
       await save()
 
@@ -417,7 +416,7 @@ describe('EditWorkflowStatusForm', () => {
 
     it('sends nothing when nothing changed, and still closes', async () => {
       // Arrange
-      const onFormComplete = jest.fn()
+      const onFormComplete = vi.fn()
       await renderForm(
         statusIn(StatusCategory.Done, 2),
         undefined,
@@ -445,8 +444,8 @@ describe('EditWorkflowStatusForm', () => {
       )
 
       // Act
-      await act(() => userEvent.clear(screen.getByLabelText('Name')))
-      await act(() => userEvent.type(screen.getByLabelText('Name'), 'Live'))
+      await userEvent.clear(screen.getByLabelText('Name'))
+      await userEvent.type(screen.getByLabelText('Name'), 'Live')
       await save()
 
       // Assert

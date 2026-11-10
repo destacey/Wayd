@@ -4,9 +4,9 @@ import ListDetailLayout, {
   LIST_DETAIL_PANEL_WIDTH_KEY,
 } from './list-detail-layout'
 
-const mockBreakpoint = jest.fn()
+const mockBreakpoint = vi.fn()
 /** Captures the props the Drawer was given, so deprecated ones are catchable. */
-const mockDrawerProps = jest.fn()
+const mockDrawerProps = vi.fn()
 
 // Two stubs, both narrow:
 //
@@ -16,8 +16,8 @@ const mockDrawerProps = jest.fn()
 // Grid.useBreakpoint — the component destructures it at module load, so a
 // spy installed later would never be seen. It has to be replaced in the
 // factory. Everything else stays real.
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   const MockDrawer = ({ title, open, children, ...rest }: any) => {
     mockDrawerProps(rest)
     return open ? (
@@ -63,7 +63,7 @@ const renderPanel = (
   render(
     <ListDetailLayout
       open
-      onClose={jest.fn()}
+      onClose={vi.fn()}
       title="Capital"
       details={<div>Accounting Code 4100</div>}
       {...props}
@@ -74,7 +74,7 @@ const renderPanel = (
 
 describe('ListDetailLayout', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     wide()
   })
 
@@ -110,7 +110,7 @@ describe('ListDetailLayout', () => {
 
     it('closes from the panel header', () => {
       // Arrange
-      const onClose = jest.fn()
+      const onClose = vi.fn()
       renderPanel({ onClose })
 
       // Act
@@ -144,7 +144,7 @@ describe('ListDetailLayout', () => {
 
     it('opens the action items from the ⋯', () => {
       // Arrange
-      const onClick = jest.fn()
+      const onClick = vi.fn()
       renderPanel({ actionItems: [{ key: 'edit', label: 'Edit', onClick }] })
 
       // Act
@@ -248,15 +248,12 @@ describe('ListDetailLayout', () => {
     })
 
     it('clamps a stored width that would squeeze the list out', () => {
-      // Arrange — jest.setup stubs localStorage with bare jest.fn()s and no
-      // backing store, so a persistence test has to install a real one. The
-      // version lives in the key (`key:v1`); the value is the bare JSON.
-      const store: Record<string, string> = {
-        [`${LIST_DETAIL_PANEL_WIDTH_KEY}:v1`]: JSON.stringify(5000),
-      }
-      const getItem = jest
-        .spyOn(window.localStorage, 'getItem')
-        .mockImplementation((key: string) => store[key] ?? null)
+      // Arrange — the version lives in the key (`key:v1`); the value is the
+      // bare JSON.
+      localStorage.setItem(
+        `${LIST_DETAIL_PANEL_WIDTH_KEY}:v1`,
+        JSON.stringify(5000),
+      )
 
       // Act
       renderPanel()
@@ -268,7 +265,6 @@ describe('ListDetailLayout', () => {
         'aria-valuenow',
         String(ListDetailConstants.PANEL_MAX_WIDTH),
       )
-      getItem.mockRestore()
     })
   })
 

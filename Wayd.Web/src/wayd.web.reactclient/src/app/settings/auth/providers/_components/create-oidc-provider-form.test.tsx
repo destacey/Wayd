@@ -2,17 +2,17 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { OidcProviderType } from '@/src/services/wayd-api'
 import CreateOidcProviderForm from './create-oidc-provider-form'
 
-const createOidcProvider = jest.fn()
+const createOidcProvider = vi.fn()
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/store/features/user-management/oidc-providers-api', () => ({
+vi.mock('@/src/store/features/user-management/oidc-providers-api', () => ({
   useCreateOidcProviderMutation: () => [createOidcProvider],
 }))
 
-jest.mock('@/src/store/features/user-management/roles-api', () => ({
+vi.mock('@/src/store/features/user-management/roles-api', () => ({
   useGetRolesQuery: () => ({ data: [] }),
 }))
 
@@ -22,8 +22,8 @@ let submitForm: (() => Promise<void>) | undefined
 // Not spread from the real barrel: it re-exports store-bound hooks, and pulling those in
 // initialises a store this form never touches. The form instance is real, though — antd's Form
 // binds to it, and a stub breaks on render.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -44,7 +44,7 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk,
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -66,7 +66,7 @@ const chooseProviderType = (label: string) => {
 const nameInput = () => screen.getByLabelText('Name') as HTMLInputElement
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   createOidcProvider.mockResolvedValue({ data: 'new-id' })
 })
 

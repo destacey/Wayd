@@ -11,11 +11,6 @@ import { roundTripCases } from './round-trip-cases'
 import seededContent from './seeded-content.json'
 import { createHeadlessMarkdownEditor, roundTrip } from './tiptap-markdown'
 
-// jest.setup.ts stubs these globally; the classifier renders through the real MarkdownRenderer.
-jest.unmock('react-markdown')
-jest.unmock('remark-gfm')
-jest.unmock('rehype-raw')
-
 /**
  * Markdown round-trip harness for the WYSIWYG editor (#1201, #1202).
  *

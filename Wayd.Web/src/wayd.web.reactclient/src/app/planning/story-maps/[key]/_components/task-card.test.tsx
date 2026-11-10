@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StoryMapTaskDto } from '@/src/services/wayd-api'
@@ -12,11 +13,11 @@ import { useBoardSortable } from './use-board-sortable'
  */
 
 // The real hook needs a DndContext; the card only cares about isDragging and the ref/class values.
-jest.mock('./use-board-sortable', () => ({
-  useBoardSortable: jest.fn(),
+vi.mock('./use-board-sortable', () => ({
+  useBoardSortable: vi.fn(),
 }))
 
-const mockUseBoardSortable = useBoardSortable as jest.Mock
+const mockUseBoardSortable = useBoardSortable as Mock
 
 const buildTask = (overrides: Partial<StoryMapTaskDto> = {}): StoryMapTaskDto =>
   ({
@@ -32,19 +33,19 @@ const buildTask = (overrides: Partial<StoryMapTaskDto> = {}): StoryMapTaskDto =>
     ...overrides,
   }) as StoryMapTaskDto
 
-const mockOnSelectTask = jest.fn()
+const mockOnSelectTask = vi.fn()
 
 const buildActions = (overrides: Partial<BoardActions> = {}): BoardActions =>
   ({
     canUpdate: true,
     autoEditId: null,
-    onAutoEditEnd: jest.fn(),
+    onAutoEditEnd: vi.fn(),
     personas: [],
     onSelectTask: mockOnSelectTask,
     selectedTaskId: null,
-    onRenameTask: jest.fn(),
-    onDeleteTask: jest.fn(),
-    onToggleTaskPersona: jest.fn(),
+    onRenameTask: vi.fn(),
+    onDeleteTask: vi.fn(),
+    onToggleTaskPersona: vi.fn(),
     ...overrides,
   }) as unknown as BoardActions
 
@@ -52,7 +53,7 @@ const setSortable = (isDragging = false) => {
   mockUseBoardSortable.mockReturnValue({
     attributes: {},
     listeners: {},
-    setNodeRef: jest.fn(),
+    setNodeRef: vi.fn(),
     style: {},
     isDragging,
     dragClassName: '',
@@ -74,7 +75,7 @@ const renderCard = (props: Partial<Parameters<typeof TaskCard>[0]> = {}) =>
   )
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   setSortable()
 })
 

@@ -8,9 +8,9 @@ import ComparePayloadModal, {
   computePayloadDiff,
 } from './compare-payload-modal'
 
-const mockSuccess = jest.fn()
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+const mockSuccess = vi.fn()
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   const MockModal = ({ title, open, children }: any) =>
     open ? (
       <div role="dialog">
@@ -140,7 +140,7 @@ describe('ComparePayloadModal component', () => {
     render(
       <ComparePayloadModal
         open={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         currentActivity={currActivity}
         previousActivity={prevActivity}
         allActivities={[currActivity, prevActivity]}
@@ -171,7 +171,7 @@ describe('ComparePayloadModal component', () => {
     render(
       <ComparePayloadModal
         open={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         currentActivity={currActivity}
         allActivities={[currActivity, otherType, prevActivity, oldest]}
       />,
@@ -198,7 +198,7 @@ describe('ComparePayloadModal component', () => {
     render(
       <ComparePayloadModal
         open={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         currentActivity={currActivity}
         allActivities={[currActivity, otherRecord, prevActivity]}
       />,
@@ -228,7 +228,7 @@ describe('ComparePayloadModal component', () => {
     render(
       <ComparePayloadModal
         open={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         currentActivity={v2}
         allActivities={[v2, v1]}
       />,
@@ -247,7 +247,7 @@ describe('ComparePayloadModal component', () => {
     render(
       <ComparePayloadModal
         open={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         currentActivity={currActivity}
         previousActivity={prevActivity}
       />,
@@ -262,7 +262,7 @@ describe('ComparePayloadModal component', () => {
     render(
       <ComparePayloadModal
         open={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         currentActivity={currActivity}
         previousActivity={prevActivity}
       />,
@@ -284,7 +284,7 @@ describe('ComparePayloadModal component', () => {
     render(
       <ComparePayloadModal
         open={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         currentActivity={currActivity}
         previousActivity={prevActivity}
       />,
@@ -311,7 +311,7 @@ describe('ComparePayloadModal component', () => {
     render(
       <ComparePayloadModal
         open={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         currentActivity={emptyCurr}
         previousActivity={emptyPrev}
       />,

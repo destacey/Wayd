@@ -13,19 +13,21 @@ const employee = {
   jobTitle: 'Principal Engineer',
 }
 
-jest.mock('next/dynamic', () => {
-  return () => {
-    const DynamicComponent = ({ employeeId }: { employeeId: string }) => (
-      <div data-testid="employee-cycle-time-report">{employeeId}</div>
-    )
-    return DynamicComponent
+vi.mock('next/dynamic', () => {
+  return {
+    default: () => {
+      const DynamicComponent = ({ employeeId }: { employeeId: string }) => (
+        <div data-testid="employee-cycle-time-report">{employeeId}</div>
+      )
+      return DynamicComponent
+    },
   }
 })
 
 // The page renders RecordLayout, which reads the section from the URL and
 // navigates with router.replace — so the route is the thing to assert on.
 let mockSearchParams = new URLSearchParams()
-const mockReplace = jest.fn((url: string) => {
+const mockReplace = vi.fn((url: string) => {
   const query = url.split('?')[1] ?? ''
   mockSearchParams = new URLSearchParams(query)
 })
@@ -33,8 +35,8 @@ const mockReplace = jest.fn((url: string) => {
 // jsdom has no matchMedia, so useBreakpoint reports no md and RecordLayout
 // renders its compact Select. Pin a wide viewport so both the section rail and
 // the record facts rail are asserted — facts auto-collapse below xl.
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   return {
     ...actual,
     Grid: {
@@ -44,14 +46,14 @@ jest.mock('antd', () => {
   }
 })
 
-jest.mock('next/navigation', () => ({
-  notFound: jest.fn(),
+vi.mock('next/navigation', () => ({
+  notFound: vi.fn(),
   usePathname: () => '/organizations/employees/42',
-  useRouter: () => ({ replace: mockReplace, push: jest.fn() }),
+  useRouter: () => ({ replace: mockReplace, push: vi.fn() }),
   useSearchParams: () => mockSearchParams,
 }))
 
-jest.mock('@/src/components/common/page-title', () => {
+vi.mock('@/src/components/common/page-title', () => {
   const PageTitle = ({
     title,
     subtitle,
@@ -67,10 +69,10 @@ jest.mock('@/src/components/common/page-title', () => {
       {actions}
     </div>
   )
-  return PageTitle
+  return { default: PageTitle }
 })
 
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   InactiveTag: ({ isActive }: { isActive: boolean }) => (
     <span>{isActive ? 'Active' : 'Inactive'}</span>
   ),
@@ -89,60 +91,64 @@ jest.mock('@/src/components/common', () => ({
   },
 }))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
-    hasClaim: jest.fn(() => true),
-    hasPermissionClaim: jest.fn(() => false),
+    hasClaim: vi.fn(() => true),
+    hasPermissionClaim: vi.fn(() => false),
   }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
-    error: jest.fn(),
+    error: vi.fn(),
   }),
 }))
 
-jest.mock('@/src/hooks/use-document-title', () => ({
-  useDocumentTitle: jest.fn(),
+vi.mock('@/src/hooks/use-document-title', () => ({
+  useDocumentTitle: vi.fn(),
 }))
 
-jest.mock('@/src/hooks', () => ({
-  useAppDispatch: () => jest.fn(),
-  useFeatureFlag: () => ({ isEnabled: false, isLoading: false }),
-  // The facts rail remembers whether it is hidden. The global localStorage
-  // stub has no backing store, so stand in a plain state hook.
-  useLocalStorageState: (_key: string, initial: unknown) =>
-    jest.requireActual('react').useState(initial),
-}))
+vi.mock('@/src/hooks', async () => {
+  const { useState } = await vi.importActual<typeof import('react')>('react')
+  return {
+    useAppDispatch: () => vi.fn(),
+    useFeatureFlag: () => ({ isEnabled: false, isLoading: false }),
+    // The facts rail remembers whether it is hidden. This mock replaces the
+    // whole hooks barrel, so a plain state hook stands in for the real one.
+    useLocalStorageState: (_key: string, initial: unknown) => useState(initial),
+  }
+})
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
-  useGetEmployeeQuery: jest.fn(() => ({
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
+  useGetEmployeeQuery: vi.fn(() => ({
     data: employee,
     isLoading: false,
     error: undefined,
   })),
-  useGetDirectReportsQuery: jest.fn(() => ({
+  useGetDirectReportsQuery: vi.fn(() => ({
     data: [],
     isLoading: false,
   })),
 }))
 
-jest.mock('./_components/employee-capacity', () => {
+vi.mock('./_components/employee-capacity', () => {
   const MockEmployeeCapacity = () => <div data-testid="employee-capacity" />
   MockEmployeeCapacity.displayName = 'MockEmployeeCapacity'
-  return MockEmployeeCapacity
+  return { default: MockEmployeeCapacity }
 })
 
-jest.mock('./_components/employee-teams-grid', () => {
+vi.mock('./_components/employee-teams-grid', () => {
   const EmployeeTeamsGrid = () => <div>Employee Teams Grid</div>
-  return EmployeeTeamsGrid
+  return { default: EmployeeTeamsGrid }
 })
 
-jest.mock('@/src/app/organizations/employees/_components/delete-employee-form', () => {
-  const DeleteEmployeeForm = () => <div>Delete Employee Form</div>
-  return DeleteEmployeeForm
-})
+vi.mock(
+  '@/src/app/organizations/employees/_components/delete-employee-form',
+  () => {
+    const DeleteEmployeeForm = () => <div>Delete Employee Form</div>
+    return { default: DeleteEmployeeForm }
+  },
+)
 
 describe('EmployeeDetailsPage', () => {
   it('reaches the cycle time report from the section rail', async () => {
@@ -178,7 +184,9 @@ describe('EmployeeDetailsPage', () => {
   it('renders the cycle time report when the URL selects it', async () => {
     // Arrange — arriving by deep link, the case tab state could not express
     mockSearchParams = new URLSearchParams('section=cycle-time-report')
-    const params = Promise.resolve({ key: '42' }) as Promise<{ key: string }> & {
+    const params = Promise.resolve({ key: '42' }) as Promise<{
+      key: string
+    }> & {
       status: string
       value: { key: string }
     }
@@ -203,7 +211,9 @@ describe('EmployeeDetailsPage', () => {
     // the default one rather than inheriting the previous test's deep link.
     mockSearchParams = new URLSearchParams()
     const user = userEvent.setup()
-    const params = Promise.resolve({ key: '42' }) as Promise<{ key: string }> & {
+    const params = Promise.resolve({ key: '42' }) as Promise<{
+      key: string
+    }> & {
       status: string
       value: { key: string }
     }
@@ -217,7 +227,9 @@ describe('EmployeeDetailsPage', () => {
     )
 
     // Act — the panel is closed by default, so the content keeps the width.
-    await user.click(await screen.findByRole('button', { name: 'Show Details' }))
+    await user.click(
+      await screen.findByRole('button', { name: 'Show Details' }),
+    )
 
     // Assert — the facts are in the panel...
     expect(screen.getByText(employee.email)).toBeInTheDocument()

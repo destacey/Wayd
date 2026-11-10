@@ -1,9 +1,9 @@
 import { render } from '@testing-library/react'
 import MyProjectsRedirectPage from './page'
 
-const mockReplace = jest.fn()
+const mockReplace = vi.fn()
 
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mockReplace }),
 }))
 

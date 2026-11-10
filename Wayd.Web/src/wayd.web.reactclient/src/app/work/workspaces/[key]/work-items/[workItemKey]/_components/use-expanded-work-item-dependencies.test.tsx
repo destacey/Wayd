@@ -9,10 +9,11 @@ import {
 import { apiSlice } from '@/src/store/features/apiSlice'
 import { useExpandedWorkItemDependencies } from './use-expanded-work-item-dependencies'
 
-const getWorkItemDependencies = jest.fn()
+const getWorkItemDependencies = vi.fn()
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   getWorkspacesClient: () => ({ getWorkItemDependencies }),
+  isAuthActive: () => false,
 }))
 
 const item = (id: string, key: string): WorkItemDetailsNavigationDto => ({

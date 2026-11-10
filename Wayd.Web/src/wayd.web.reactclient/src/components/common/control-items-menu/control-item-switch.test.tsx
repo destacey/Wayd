@@ -9,7 +9,7 @@ describe('ControlItemSwitch', () => {
   const defaultProps: ControlItemSwitchProps = {
     label: 'Test Label',
     checked: false,
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   }
 
   it('renders correctly with given props', () => {

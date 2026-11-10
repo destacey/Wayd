@@ -2,11 +2,11 @@ import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import ProjectPlanItemDrawer from './project-plan-item-drawer'
 
-jest.mock('@/src/store/features/ppm/project-tasks-api', () => ({
-  useGetProjectTaskQuery: jest.fn(),
+vi.mock('@/src/store/features/ppm/project-tasks-api', () => ({
+  useGetProjectTaskQuery: vi.fn(),
 }))
 
-jest.mock('@/src/components/common/content', () => ({
+vi.mock('@/src/components/common/content', () => ({
   LabeledContent: ({
     label,
     children,
@@ -21,28 +21,28 @@ jest.mock('@/src/components/common/content', () => ({
   ),
 }))
 
-jest.mock('@/src/components/common/markdown', () => ({
+vi.mock('@/src/components/common/markdown', () => ({
   MarkdownRenderer: ({ markdown }: { markdown: string }) => (
     <div data-testid="markdown">{markdown}</div>
   ),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
-    error: jest.fn(),
-    warning: jest.fn(),
-    success: jest.fn(),
-    info: jest.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    success: vi.fn(),
+    info: vi.fn(),
   }),
 }))
 
-jest.mock('next/link', () => {
+vi.mock('next/link', () => {
   const MockLink = ({ href, children }: any) => <a href={href}>{children}</a>
   MockLink.displayName = 'MockLink'
-  return MockLink
+  return { default: MockLink }
 })
 
-jest.mock('antd', () => {
+vi.mock('antd', () => {
   const MockDrawer = ({ title, open, children, extra }: any) =>
     open ? (
       <div>
@@ -89,7 +89,7 @@ jest.mock('antd', () => {
   }
 })
 
-const { useGetProjectTaskQuery } = jest.requireMock(
+const { useGetProjectTaskQuery } = await vi.importMock<any>(
   '@/src/store/features/ppm/project-tasks-api',
 )
 
@@ -99,15 +99,15 @@ describe('ProjectPlanItemDrawer', () => {
     taskId: 'task-1',
     stageName: 'Build',
     drawerOpen: true,
-    onDrawerClose: jest.fn(),
-    onOpenTask: jest.fn(),
-    onEditTask: jest.fn(),
-    onDeleteTask: jest.fn(),
-    onAddChildTask: jest.fn(),
+    onDrawerClose: vi.fn(),
+    onOpenTask: vi.fn(),
+    onEditTask: vi.fn(),
+    onDeleteTask: vi.fn(),
+    onAddChildTask: vi.fn(),
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('hides estimated effort when not provided and hides parent task when absent', () => {
@@ -163,7 +163,9 @@ describe('ProjectPlanItemDrawer', () => {
       'href',
       '/organizations/employees/EMP-2',
     )
-    expect(screen.getByTestId('markdown')).toHaveTextContent('**markdown** text')
+    expect(screen.getByTestId('markdown')).toHaveTextContent(
+      '**markdown** text',
+    )
   })
 
   it('fires row menu actions', () => {

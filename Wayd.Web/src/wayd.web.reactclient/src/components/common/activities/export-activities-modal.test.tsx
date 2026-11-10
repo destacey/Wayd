@@ -9,16 +9,16 @@ import ExportActivitiesModal, {
   formatEventForExport,
 } from './export-activities-modal'
 
-const mockDownloadJsonWithTimestamp = jest.fn()
-jest.mock('@/src/utils/json-utils', () => ({
+const mockDownloadJsonWithTimestamp = vi.fn()
+vi.mock('@/src/utils/json-utils', () => ({
   downloadJsonWithTimestamp: (...args: any[]) =>
     mockDownloadJsonWithTimestamp(...args),
 }))
 
-const mockSuccess = jest.fn()
-const mockError = jest.fn()
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+const mockSuccess = vi.fn()
+const mockError = vi.fn()
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   return {
     ...actual,
     App: {
@@ -56,7 +56,7 @@ const createActivity = (
 
 describe('ExportActivitiesModal', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('exports which record a related entry was raised on', () => {
@@ -87,7 +87,7 @@ describe('ExportActivitiesModal', () => {
     render(
       <ExportActivitiesModal
         open={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         activities={[createActivity()]}
         totalCount={1}
       />,
@@ -105,7 +105,7 @@ describe('ExportActivitiesModal', () => {
     render(
       <ExportActivitiesModal
         open={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
         activities={[createActivity()]}
         searchQuery="Alpha"
       />,
@@ -119,7 +119,7 @@ describe('ExportActivitiesModal', () => {
 
   it('exports all loaded activities to JSON on Download JSON click', async () => {
     const user = userEvent.setup()
-    const onClose = jest.fn()
+    const onClose = vi.fn()
     const activities = [
       createActivity({
         id: 2,
@@ -164,15 +164,12 @@ describe('ExportActivitiesModal', () => {
 
   it('progressively fetches remaining batches when onFetchBatch is provided and totalCount exceeds loaded activities', async () => {
     const user = userEvent.setup()
-    const onClose = jest.fn()
+    const onClose = vi.fn()
 
     const initialActivities = [createActivity({ id: 2 })]
-    const batch2 = [
-      createActivity({ id: 3 }),
-      createActivity({ id: 4 }),
-    ]
+    const batch2 = [createActivity({ id: 3 }), createActivity({ id: 4 })]
 
-    const onFetchBatch = jest.fn().mockImplementation(async (page: number) => {
+    const onFetchBatch = vi.fn().mockImplementation(async (page: number) => {
       if (page === 1) {
         return { items: initialActivities, totalCount: 150 }
       }
@@ -206,7 +203,7 @@ describe('ExportActivitiesModal', () => {
 
   it('filters by search query when scope is filtered', async () => {
     const user = userEvent.setup()
-    const onClose = jest.fn()
+    const onClose = vi.fn()
 
     const activities = [
       createActivity({ id: 2, summary: 'Sprint 1 Created' }),

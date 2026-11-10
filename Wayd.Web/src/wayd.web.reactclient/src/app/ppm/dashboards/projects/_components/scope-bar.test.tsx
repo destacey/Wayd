@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import ScopeBar from './scope-bar'
@@ -9,20 +10,20 @@ global.ResizeObserver = class {
   disconnect() {}
 } as unknown as typeof ResizeObserver
 
-jest.mock('@/src/store/features/ppm/projects-api', () => ({
-  useGetProjectStatusOptionsQuery: jest.fn(),
+vi.mock('@/src/store/features/ppm/projects-api', () => ({
+  useGetProjectStatusOptionsQuery: vi.fn(),
 }))
 
-jest.mock('@/src/store/features/ppm/portfolios-api', () => ({
-  useGetPortfolioOptionsQuery: jest.fn(),
+vi.mock('@/src/store/features/ppm/portfolios-api', () => ({
+  useGetPortfolioOptionsQuery: vi.fn(),
 }))
 
-jest.mock('@/src/store/features/ppm/programs-api', () => ({
-  useGetProgramOptionsQuery: jest.fn(),
+vi.mock('@/src/store/features/ppm/programs-api', () => ({
+  useGetProgramOptionsQuery: vi.fn(),
 }))
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
-  useGetEmployeeOptionsQuery: jest.fn(),
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
+  useGetEmployeeOptionsQuery: vi.fn(),
 }))
 
 import { useGetProjectStatusOptionsQuery } from '@/src/store/features/ppm/projects-api'
@@ -30,26 +31,26 @@ import { useGetPortfolioOptionsQuery } from '@/src/store/features/ppm/portfolios
 import { useGetProgramOptionsQuery } from '@/src/store/features/ppm/programs-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 
-const mockStatusQuery = useGetProjectStatusOptionsQuery as jest.Mock
-const mockEmployeeQuery = useGetEmployeeOptionsQuery as jest.Mock
-const mockPortfolioQuery = useGetPortfolioOptionsQuery as jest.Mock
-const mockProgramQuery = useGetProgramOptionsQuery as jest.Mock
+const mockStatusQuery = useGetProjectStatusOptionsQuery as Mock
+const mockEmployeeQuery = useGetEmployeeOptionsQuery as Mock
+const mockPortfolioQuery = useGetPortfolioOptionsQuery as Mock
+const mockProgramQuery = useGetProgramOptionsQuery as Mock
 
 const defaultProps = {
   scope: { kind: 'me' } as const,
-  onScopeChange: jest.fn(),
+  onScopeChange: vi.fn(),
   hasLinkedEmployee: true,
   selectedRoles: [] as ProjectMemberRole[],
-  onRoleChange: jest.fn(),
+  onRoleChange: vi.fn(),
   selectedStatuses: [] as ProjectStatus[],
-  onStatusChange: jest.fn(),
-  onReset: jest.fn(),
-  onRefresh: jest.fn(),
+  onStatusChange: vi.fn(),
+  onReset: vi.fn(),
+  onRefresh: vi.fn(),
 }
 
 describe('ScopeBar', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockStatusQuery.mockReturnValue({
       data: [
         {

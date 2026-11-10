@@ -1,28 +1,26 @@
 import { render, screen } from '@testing-library/react'
 
 // Mock WaydGrid with a light stand-in that renders the toolbar slots under test.
-jest.mock('../wayd-grid', () => ({
-  WaydGrid: jest.fn(({ leftSlot }) => (
+vi.mock('../wayd-grid', () => ({
+  WaydGrid: vi.fn(({ leftSlot }) => (
     <div data-testid="wayd-grid">
       <div data-testid="left-slot">{leftSlot}</div>
     </div>
   )),
-  createActionsColumn: jest.fn(() => ({ id: 'actions' })),
-  renderTeamLink: jest.fn(() => null),
+  createActionsColumn: vi.fn(() => ({ id: 'actions' })),
+  renderTeamLink: vi.fn(() => null),
 }))
 
-jest.mock('../control-items-menu', () => ({
+vi.mock('../control-items-menu', () => ({
   ControlItemsMenu: () => null,
   ControlItemSwitch: () => null,
 }))
 
-jest.mock('./create-risk-form', () => ({
-  __esModule: true,
+vi.mock('./create-risk-form', () => ({
   default: () => null,
 }))
 
-jest.mock('./edit-risk-form', () => ({
-  __esModule: true,
+vi.mock('./edit-risk-form', () => ({
   default: () => null,
 }))
 
@@ -31,8 +29,7 @@ const mockAuth = {
   permissions: ['Permissions.Risks.Create', 'Permissions.Risks.Update'],
 }
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     user: { employeeId: mockAuth.employeeId },
     hasPermissionClaim: (permission: string) =>
@@ -47,9 +44,9 @@ describe('RisksGrid', () => {
     render(
       <RisksGrid
         risks={[]}
-        updateIncludeClosed={jest.fn()}
+        updateIncludeClosed={vi.fn()}
         isLoadingRisks={false}
-        refreshRisks={jest.fn()}
+        refreshRisks={vi.fn()}
         newRisksAllowed
       />,
     )

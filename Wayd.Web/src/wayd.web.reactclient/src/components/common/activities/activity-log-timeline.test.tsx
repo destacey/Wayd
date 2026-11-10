@@ -11,22 +11,22 @@ import ActivityLogTimeline, {
   isActivityMatchingQuery,
 } from './activity-log-timeline'
 
-jest.mock('./export-activities-modal', () => {
+vi.mock('./export-activities-modal', () => {
   const MockExportModal = ({ open }: any) =>
     open ? <div>Export Activity History</div> : null
   MockExportModal.displayName = 'MockExportModal'
-  return MockExportModal
+  return { default: MockExportModal }
 })
 
-jest.mock('./compare-payload-modal', () => {
+vi.mock('./compare-payload-modal', async () => {
   const MockCompareModal = ({ open }: any) =>
     open ? <div>Compare Event Payloads</div> : null
   MockCompareModal.displayName = 'MockCompareModal'
   return {
-    __esModule: true,
     default: MockCompareModal,
-    isComparableActivity: jest.requireActual('./compare-payload-modal')
-      .isComparableActivity,
+    isComparableActivity: (
+      await vi.importActual<any>('./compare-payload-modal')
+    ).isComparableActivity,
   }
 })
 
@@ -217,7 +217,7 @@ describe('ActivityLogTimeline', () => {
         isLoading={false}
         totalCount={3}
         hasMore={true}
-        onLoadMore={jest.fn()}
+        onLoadMore={vi.fn()}
       />,
     )
 
@@ -448,7 +448,7 @@ describe('ActivityLogTimeline', () => {
 
   it('renders load more toolbar with remaining count and triggers callback on click', async () => {
     const user = userEvent.setup()
-    const handleLoadMore = jest.fn()
+    const handleLoadMore = vi.fn()
     const activities = [createActivity({ id: 2 })]
 
     render(
@@ -494,7 +494,7 @@ describe('ActivityLogTimeline', () => {
 
   it('copies raw payload to clipboard and triggers context-aware message on click', async () => {
     const user = userEvent.setup()
-    const writeTextMock = jest
+    const writeTextMock = vi
       .spyOn(navigator.clipboard, 'writeText')
       .mockResolvedValue(undefined)
 
@@ -865,7 +865,10 @@ describe('ActivityLogTimeline', () => {
 
   it.each([
     ['https://agent.acme.example/metadata.json', 'agent.acme.example'],
-    ['https://agent.acme.example:8443/metadata.json', 'agent.acme.example:8443'],
+    [
+      'https://agent.acme.example:8443/metadata.json',
+      'agent.acme.example:8443',
+    ],
     ['not a url', 'not a url'],
   ])('shows client id %s as %s', (clientId, expected) => {
     expect(clientHost(clientId)).toBe(expected)

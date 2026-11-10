@@ -1,17 +1,18 @@
-jest.mock('../../../utils', () => ({
-  daysRemaining: jest.fn(),
-  percentageElapsed: jest.fn(),
+vi.mock('../../../utils', () => ({
+  daysRemaining: vi.fn(),
+  percentageElapsed: vi.fn(),
 }))
 
+import type { MockedFunction } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import DaysCountdownMetric from './days-countdown-metric'
 import { daysRemaining, percentageElapsed } from '../../../utils'
 import { IterationState } from '../../types'
 
-const mockedDaysRemaining = daysRemaining as jest.MockedFunction<
+const mockedDaysRemaining = daysRemaining as MockedFunction<
   typeof daysRemaining
 >
-const mockedPercentageElapsed = percentageElapsed as jest.MockedFunction<
+const mockedPercentageElapsed = percentageElapsed as MockedFunction<
   typeof percentageElapsed
 >
 
@@ -20,7 +21,7 @@ describe('DaysCountdownMetric', () => {
   const pastDate = '2025-01-01'
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('renders "Days Until Start" for future state', () => {

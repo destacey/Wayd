@@ -12,27 +12,6 @@ const renderFilter = (key = KEY) =>
   renderHook(() => useStatusFilter(key, DEFAULTS))
 
 describe('useStatusFilter', () => {
-  // The global setup stubs localStorage with bare jest.fn()s and no backing
-  // store, so nothing written is ever readable. These tests are about what
-  // survives a remount, so they need storage that actually stores.
-  beforeEach(() => {
-    const store = new Map<string, string>()
-
-    Object.defineProperty(window, 'localStorage', {
-      value: {
-        getItem: (key: string) => store.get(key) ?? null,
-        setItem: (key: string, value: string) => void store.set(key, value),
-        removeItem: (key: string) => void store.delete(key),
-        clear: () => store.clear(),
-        get length() {
-          return store.size
-        },
-        key: (index: number) => [...store.keys()][index] ?? null,
-      },
-      writable: true,
-    })
-  })
-
   it('starts at the defaults when nothing is remembered', () => {
     // Arrange / Act
     const { result } = renderFilter()

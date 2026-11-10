@@ -1,5 +1,4 @@
 import { render, screen, within } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import {
   SizingMethod,
   TeamCadenceMetricsDto,
@@ -10,15 +9,12 @@ import {
   TeamCadenceMetricsReportViewProps,
 } from './team-cadence-metrics-report'
 
-jest.unmock('dayjs')
-
-jest.mock('@/src/store/features/organizations/team-api', () => ({
-  useGetTeamCadenceMetricsQuery: jest.fn(),
+vi.mock('@/src/store/features/organizations/team-api', () => ({
+  useGetTeamCadenceMetricsQuery: vi.fn(),
 }))
 
 // The chart needs a canvas; the table carries the same figures.
-jest.mock('./team-cadence-velocity-chart', () => ({
-  __esModule: true,
+vi.mock('./team-cadence-velocity-chart', () => ({
   default: () => <div data-testid="velocity-chart" />,
 }))
 
@@ -74,9 +70,9 @@ const renderView = (props: Partial<TeamCadenceMetricsReportViewProps> = {}) =>
     <TeamCadenceMetricsReportView
       metrics={createMetrics()}
       isLoading={false}
-      onPeriodWindowChange={jest.fn()}
+      onPeriodWindowChange={vi.fn()}
       byCount={false}
-      onByCountChange={jest.fn()}
+      onByCountChange={vi.fn()}
       {...props}
     />,
   )

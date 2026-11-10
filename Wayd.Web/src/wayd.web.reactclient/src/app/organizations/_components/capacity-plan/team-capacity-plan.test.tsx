@@ -1,9 +1,7 @@
-import { act, render, screen, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TeamCapacityPlanDto } from '@/src/services/wayd-api'
 import TeamCapacityPlan from './team-capacity-plan'
-
-jest.unmock('dayjs')
 
 // The antd Table measures its scrollbar with a pseudo-element, which jsdom does
 // not implement and reports as an error.
@@ -14,51 +12,48 @@ Object.defineProperty(window, 'getComputedStyle', {
 })
 
 let mockPermissions: string[] = []
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     hasPermissionClaim: (permission: string) =>
       mockPermissions.includes(permission),
   }),
 }))
 
-const mockSuccess = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ success: mockSuccess, error: jest.fn() }),
+const mockSuccess = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ success: mockSuccess, error: vi.fn() }),
 }))
 
 let mockPlan: TeamCapacityPlanDto | undefined
-const mockPlanArgs = jest.fn()
-jest.mock('@/src/store/features/organization/team-capacity-api', () => ({
+const mockPlanArgs = vi.fn()
+vi.mock('@/src/store/features/organization/team-capacity-api', () => ({
   useGetTeamCapacityPlanQuery: (arg: unknown) => {
     mockPlanArgs(arg)
     return { currentData: mockPlan, isFetching: false, error: undefined }
   },
 }))
 
-const mockChangeAllocations = jest.fn()
-jest.mock('@/src/store/features/organization/employee-allocations-api', () => ({
+const mockChangeAllocations = vi.fn()
+vi.mock('@/src/store/features/organization/employee-allocations-api', () => ({
   useChangeEmployeeAllocationsMutation: () => [mockChangeAllocations],
 }))
 
 let mockMembers: unknown[] | undefined
-jest.mock('@/src/store/features/organization/team-members-api', () => ({
+vi.mock('@/src/store/features/organization/team-members-api', () => ({
   useGetTeamMembersQuery: () => ({ data: mockMembers }),
   useGetTeamOfTeamsMembersQuery: () => ({ data: undefined }),
 }))
 
-const mockTimeAwayForm = jest.fn()
-jest.mock('../time-away/time-away-form', () => ({
-  __esModule: true,
+const mockTimeAwayForm = vi.fn()
+vi.mock('../time-away/time-away-form', () => ({
   default: (props: unknown) => {
     mockTimeAwayForm(props)
     return <div data-testid="time-away-form" />
   },
 }))
 
-const mockChangeForm = jest.fn()
-jest.mock('../allocations/change-allocation-form', () => ({
-  __esModule: true,
+const mockChangeForm = vi.fn()
+vi.mock('../allocations/change-allocation-form', () => ({
   default: (props: unknown) => {
     mockChangeForm(props)
     return <div data-testid="change-form" />
@@ -148,7 +143,7 @@ const renderPlan = () =>
 
 describe('TeamCapacityPlan', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockPermissions = ['Permissions.Teams.Update']
     mockPlan = plan()
     mockMembers = [{ employee: { id: 'member-1' } }]
@@ -205,9 +200,7 @@ describe('TeamCapacityPlan', () => {
     await userEvent.clear(secondWeek)
     await userEvent.type(secondWeek, '0')
     // The save's updates land after its awaits, which only act flushes here.
-    await act(async () => {
-      await userEvent.click(screen.getByRole('button', { name: 'Save' }))
-    })
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(mockSuccess).toHaveBeenCalledWith('Plan saved.')
     expect(mockChangeAllocations).toHaveBeenCalledTimes(1)
@@ -250,9 +243,7 @@ describe('TeamCapacityPlan', () => {
     await userEvent.clear(firstWeek)
     await userEvent.type(firstWeek, '100')
     // The save's updates land after its awaits, which only act flushes here.
-    await act(async () => {
-      await userEvent.click(screen.getByRole('button', { name: 'Save' }))
-    })
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     expect(
       await screen.findByText(

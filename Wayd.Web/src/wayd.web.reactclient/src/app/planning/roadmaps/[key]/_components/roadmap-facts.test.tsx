@@ -1,8 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import RoadmapFacts from './roadmap-facts'
 
-jest.unmock('dayjs')
-
 const roadmap = {
   id: 'roadmap-1',
   key: 8,

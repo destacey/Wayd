@@ -2,16 +2,15 @@ import { render, screen } from '@testing-library/react'
 import { UserDetailsDto } from '@/src/services/wayd-api'
 import UserOverview from './user-overview'
 
-jest.mock('next/link', () => {
+vi.mock('next/link', () => {
   const MockLink = ({ href, children }: any) => <a href={href}>{children}</a>
   MockLink.displayName = 'MockLink'
-  return MockLink
+  return { default: MockLink }
 })
 
 // The identity history grid has its own tests; here it only needs to not reach
 // for the API.
-jest.mock('../../_components/user-identity-history', () => ({
-  __esModule: true,
+vi.mock('../../_components/user-identity-history', () => ({
   default: () => <div>identity history</div>,
 }))
 
@@ -49,7 +48,9 @@ describe('UserOverview', () => {
 
     it('names Entra rather than showing its provider id', () => {
       // Arrange / Act — "MicrosoftEntraId" is not something to show a person
-      render(<UserOverview user={user({ loginProvider: 'MicrosoftEntraId' })} />)
+      render(
+        <UserOverview user={user({ loginProvider: 'MicrosoftEntraId' })} />,
+      )
 
       // Assert
       expect(valueFor('Login Provider')).toBe('Microsoft Entra ID')
@@ -106,10 +107,9 @@ describe('UserOverview', () => {
       )
 
       // Assert
-      expect(screen.getByRole('link', { name: 'Rowan Morgan' })).toHaveAttribute(
-        'href',
-        '/organizations/employees/42',
-      )
+      expect(
+        screen.getByRole('link', { name: 'Rowan Morgan' }),
+      ).toHaveAttribute('href', '/organizations/employees/42')
     })
 
     it('says so when no employee is linked', () => {

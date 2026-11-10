@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+import type { MockInstance } from 'vitest'
 import {
   AUTOSIZE_MAX_WIDTH,
   AUTOSIZE_MIN_WIDTH,
@@ -84,12 +86,12 @@ describe('column-autosize', () => {
   describe('measureColumnContent', () => {
     let headerRoot: HTMLElement
     let bodyRoot: HTMLElement
-    let rectSpy: jest.SpyInstance
+    let rectSpy: MockInstance
 
     beforeEach(() => {
       // jsdom has no layout — report a width derived from the text so the
       // grouping/max logic is observable (10px per character).
-      rectSpy = jest
+      rectSpy = vi
         .spyOn(Element.prototype, 'getBoundingClientRect')
         .mockImplementation(function (this: Element) {
           return { width: (this.textContent ?? '').length * 10 } as DOMRect

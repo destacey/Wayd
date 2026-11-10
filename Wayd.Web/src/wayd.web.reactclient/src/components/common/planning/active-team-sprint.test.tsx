@@ -1,25 +1,24 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import ActiveTeamSprint from './active-team-sprint'
 import { SizingMethod } from '../../../services/wayd-api'
 
 // Mock the API hooks
-jest.mock('../../../store/features/organizations/team-api', () => ({
-  useGetActiveSprintQuery: jest.fn(),
+vi.mock('../../../store/features/organizations/team-api', () => ({
+  useGetActiveSprintQuery: vi.fn(),
 }))
 
-jest.mock('../../../store/features/work-management/sprints-api', () => ({
-  useGetSprintMetricsQuery: jest.fn(),
-  useGetSprintScopeQuery: jest.fn(),
+vi.mock('../../../store/features/work-management/sprints-api', () => ({
+  useGetSprintMetricsQuery: vi.fn(),
+  useGetSprintScopeQuery: vi.fn(),
 }))
 
-jest.mock('./sprint-say-do-metric', () => ({
-  __esModule: true,
+vi.mock('./sprint-say-do-metric', () => ({
   default: () => <div data-testid="say-do-metric" />,
 }))
 
 // Mock useTheme
-jest.mock('../../contexts/theme', () => ({
-  __esModule: true,
+vi.mock('../../contexts/theme', () => ({
   default: () => ({
     token: {
       colorSuccess: '#52c41a',
@@ -29,15 +28,14 @@ jest.mock('../../contexts/theme', () => ({
 }))
 
 // Mock TimelineProgress
-jest.mock('./timeline-progress', () => ({
-  __esModule: true,
+vi.mock('./timeline-progress', () => ({
   default: () => <div data-testid="timeline-progress">Timeline Progress</div>,
 }))
 
 // Mock Metrics; the figures stay real so what is shown can be asserted.
-jest.mock('../metrics', () => ({
-  sprintOverviewFigures: jest.requireActual(
-    '../metrics/sprint-overview-figures',
+vi.mock('../metrics', async () => ({
+  sprintOverviewFigures: (
+    await vi.importActual<any>('../metrics/sprint-overview-figures')
   ).sprintOverviewFigures,
   MetricCard: ({ title, value }: { title: string; value: number }) => (
     <div data-testid={`metric-${title}`}>{value}</div>
@@ -65,8 +63,7 @@ jest.mock('../metrics', () => ({
 }))
 
 // Mock IterationHealthIndicator
-jest.mock('./iteration-health-indicator', () => ({
-  __esModule: true,
+vi.mock('./iteration-health-indicator', () => ({
   default: ({ total, completed }: { total: number; completed: number }) => (
     <div data-testid="iteration-health-indicator">
       Health: {completed}/{total}
@@ -75,14 +72,12 @@ jest.mock('./iteration-health-indicator', () => ({
 }))
 
 // The burn-up reads its own query; the card only places it.
-jest.mock('./sprint-burn-up', () => ({
-  __esModule: true,
+vi.mock('./sprint-burn-up', () => ({
   default: () => <div data-testid="sprint-burn-up" />,
 }))
 
 // Mock SprintPiPredictability
-jest.mock('./sprint-pi-predictability', () => ({
-  __esModule: true,
+vi.mock('./sprint-pi-predictability', () => ({
   default: () => null,
 }))
 
@@ -120,15 +115,15 @@ describe('ActiveTeamSprint', () => {
   }
 
   beforeEach(() => {
-    ;(useGetActiveSprintQuery as jest.Mock).mockReturnValue({
+    ;(useGetActiveSprintQuery as Mock).mockReturnValue({
       data: mockSprint,
       isLoading: false,
     })
-    ;(useGetSprintMetricsQuery as jest.Mock).mockReturnValue({
+    ;(useGetSprintMetricsQuery as Mock).mockReturnValue({
       data: mockMetrics,
       isLoading: false,
     })
-    ;(useGetSprintScopeQuery as jest.Mock).mockReturnValue({
+    ;(useGetSprintScopeQuery as Mock).mockReturnValue({
       data: undefined,
       isLoading: false,
     })
@@ -167,7 +162,7 @@ describe('ActiveTeamSprint', () => {
 
   it('shows item counts for a Count-sized sprint', () => {
     // Arrange
-    ;(useGetSprintMetricsQuery as jest.Mock).mockReturnValue({
+    ;(useGetSprintMetricsQuery as Mock).mockReturnValue({
       data: {
         ...mockMetrics,
         sizingMethod: SizingMethod.Count,
@@ -194,7 +189,7 @@ describe('ActiveTeamSprint', () => {
   it('shows predictability and say/do once the sprint has a commitment', () => {
     // Arrange
     const measure = (count: number, estimate: number) => ({ count, estimate })
-    ;(useGetSprintScopeQuery as jest.Mock).mockReturnValue({
+    ;(useGetSprintScopeQuery as Mock).mockReturnValue({
       data: {
         effectiveStart: '2023-01-02T00:00:00Z',
         historyIncomplete: false,
@@ -255,7 +250,7 @@ describe('ActiveTeamSprint', () => {
 
   it('renders skeleton when loading sprint', () => {
     // Arrange
-    ;(useGetActiveSprintQuery as jest.Mock).mockReturnValue({
+    ;(useGetActiveSprintQuery as Mock).mockReturnValue({
       data: undefined,
       isLoading: true,
     })
@@ -269,7 +264,7 @@ describe('ActiveTeamSprint', () => {
 
   it('renders loading state when loading metrics', () => {
     // Arrange
-    ;(useGetSprintMetricsQuery as jest.Mock).mockReturnValue({
+    ;(useGetSprintMetricsQuery as Mock).mockReturnValue({
       data: undefined,
       isLoading: true,
     })
@@ -285,7 +280,7 @@ describe('ActiveTeamSprint', () => {
 
   it('renders nothing if no active sprint', () => {
     // Arrange
-    ;(useGetActiveSprintQuery as jest.Mock).mockReturnValue({
+    ;(useGetActiveSprintQuery as Mock).mockReturnValue({
       data: undefined,
       isLoading: false,
     })

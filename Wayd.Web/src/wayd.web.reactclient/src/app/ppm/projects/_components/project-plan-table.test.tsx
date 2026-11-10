@@ -1,20 +1,18 @@
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
 const mockMessage = {
-  success: jest.fn(),
-  error: jest.fn(),
-  warning: jest.fn(),
-  info: jest.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
 }
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => mockMessage,
 }))
 
-const mockPatchTask = jest.fn()
-const mockPatchStage = jest.fn()
-const mockCreateTask = jest.fn()
-const mockPlaceTask = jest.fn()
-jest.mock('@/src/store/features/ppm/project-tasks-api', () => ({
+const mockPatchTask = vi.fn()
+const mockPatchStage = vi.fn()
+const mockCreateTask = vi.fn()
+const mockPlaceTask = vi.fn()
+vi.mock('@/src/store/features/ppm/project-tasks-api', () => ({
   useGetTaskStatusOptionsQuery: (arg?: { forMilestone?: boolean }) => ({
     data: arg?.forMilestone
       ? [
@@ -44,10 +42,10 @@ jest.mock('@/src/store/features/ppm/project-tasks-api', () => ({
   useUpdateProjectTaskPlacementMutation: () => [mockPlaceTask],
   useCreateProjectTaskMutation: () => [mockCreateTask],
 }))
-jest.mock('@/src/store/features/ppm/projects-api', () => ({
+vi.mock('@/src/store/features/ppm/projects-api', () => ({
   usePatchProjectStageMutation: () => [mockPatchStage],
 }))
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeeOptionsQuery: () => ({
     data: [
       { label: 'Ada Lovelace', value: 'e1' },
@@ -55,24 +53,23 @@ jest.mock('@/src/store/features/organizations/employee-api', () => ({
     ],
   }),
 }))
-jest.mock('@/src/store/features/ppm/project-deliverables-api', () => ({
+vi.mock('@/src/store/features/ppm/project-deliverables-api', () => ({
   useGetProjectDeliverablesQuery: () => ({ data: [] }),
 }))
 
 // A dragged bar's drop, handed to the test to call.
 let mockBarCommit:
   ((change: { id: string; start: number; end: number }) => unknown) | undefined
-jest.mock('@/src/components/common/timeline', () => ({
-  ...jest.requireActual('@/src/components/common/timeline'),
-  useGanttVisibility: () => ({ visible: false, toggle: jest.fn() }),
+vi.mock('@/src/components/common/timeline', async () => ({
+  ...(await vi.importActual<any>('@/src/components/common/timeline')),
+  useGanttVisibility: () => ({ visible: false, toggle: vi.fn() }),
   useBarDrag: (options: { onCommit: typeof mockBarCommit }) => {
     mockBarCommit = options.onCommit
-    return { active: null, start: jest.fn() }
+    return { active: null, start: vi.fn() }
   },
 }))
 
-jest.mock('./delete-project-task-form', () => ({
-  __esModule: true,
+vi.mock('./delete-project-task-form', () => ({
   default: ({
     taskIdOrKey,
     onFormComplete,
@@ -89,8 +86,7 @@ jest.mock('./delete-project-task-form', () => ({
     </div>
   ),
 }))
-jest.mock('./project-plan-item-drawer', () => ({
-  __esModule: true,
+vi.mock('./project-plan-item-drawer', () => ({
   default: ({
     drawerOpen,
     taskId,
@@ -104,16 +100,13 @@ jest.mock('./project-plan-item-drawer', () => ({
       </div>
     ) : null,
 }))
-jest.mock('./create-project-task-form', () => ({
-  __esModule: true,
+vi.mock('./create-project-task-form', () => ({
   default: () => null,
 }))
-jest.mock('./edit-project-task-form', () => ({
-  __esModule: true,
+vi.mock('./edit-project-task-form', () => ({
   default: () => null,
 }))
-jest.mock('./edit-project-stage-form', () => ({
-  __esModule: true,
+vi.mock('./edit-project-stage-form', () => ({
   default: () => null,
 }))
 
@@ -200,7 +193,7 @@ const renderPlan = (canManageTasks = true) =>
       tasks={PLAN}
       isLoading={false}
       canManageTasks={canManageTasks}
-      refetch={jest.fn(() => Promise.resolve())}
+      refetch={vi.fn(() => Promise.resolve())}
     />,
   )
 
@@ -247,7 +240,7 @@ const ms = (date: string) => dayjs(date).valueOf()
 
 describe('ProjectPlanTable cell editing', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockPatchTask.mockReturnValue(resolved())
     mockPatchStage.mockReturnValue(resolved())
     mockCreateTask.mockReturnValue(resolved({ id: 'new-1', key: 'P-9' }))
@@ -1043,7 +1036,7 @@ describe('ProjectPlanTable cell editing', () => {
 
     it('moves focus to the row taking a deleted task’s place', async () => {
       // Arrange
-      const refetch = jest.fn(() => Promise.resolve())
+      const refetch = vi.fn(() => Promise.resolve())
       const props = {
         projectId: 'p-id',
         projectKey: 'P',

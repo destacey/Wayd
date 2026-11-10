@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { renderHook, act } from '@testing-library/react'
 import { useRemainingHeight } from './use-remaining-height'
 
@@ -177,7 +178,7 @@ describe('useRemainingHeight', () => {
   })
 
   it('cleans up resize listener on unmount', () => {
-    const removeSpy = jest.spyOn(window, 'removeEventListener')
+    const removeSpy = vi.spyOn(window, 'removeEventListener')
 
     const { unmount } = renderHook(() => useRemainingHeight())
     unmount()

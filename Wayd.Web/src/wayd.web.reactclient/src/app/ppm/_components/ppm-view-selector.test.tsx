@@ -11,7 +11,7 @@ global.ResizeObserver = class {
 describe('PpmViewSelector', () => {
   it('offers List and Timeline by default and reports the chosen view', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(<PpmViewSelector value="List" onChange={onChange} />)
 
     // Act
@@ -28,7 +28,7 @@ describe('PpmViewSelector', () => {
       <PpmViewSelector
         views={['Card', 'List', 'Timeline']}
         value="Card"
-        onChange={jest.fn()}
+        onChange={vi.fn()}
       />,
     )
 

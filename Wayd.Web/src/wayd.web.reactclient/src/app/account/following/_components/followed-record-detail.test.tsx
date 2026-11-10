@@ -6,41 +6,37 @@ import {
 } from '@/src/services/wayd-api'
 import FollowedRecordDetail from './followed-record-detail'
 
-jest.mock('@/src/store/features/ppm/project-health-checks-api', () => ({
+vi.mock('@/src/store/features/ppm/project-health-checks-api', () => ({
   useGetProjectHealthCheckQuery: () => ({ data: undefined, isLoading: false }),
 }))
 
-jest.mock(
-  '@/src/store/features/planning/pi-objective-health-checks-api',
-  () => ({
-    useGetObjectiveHealthCheckQuery: () => ({
-      data: undefined,
-      isLoading: false,
-    }),
+vi.mock('@/src/store/features/planning/pi-objective-health-checks-api', () => ({
+  useGetObjectiveHealthCheckQuery: () => ({
+    data: undefined,
+    isLoading: false,
   }),
-)
+}))
 
-const mockMessage = { error: jest.fn(), success: jest.fn() }
-jest.mock('@/src/components/contexts/messaging', () => ({
+const mockMessage = { error: vi.fn(), success: vi.fn() }
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => mockMessage,
 }))
 
-const mockUseGetFollowedRecordQuery = jest.fn()
-const mockUnfollow = jest.fn()
-jest.mock('@/src/store/features/common/follows-api', () => ({
-  ...jest.requireActual('@/src/store/features/common/follows-api'),
+const mockUseGetFollowedRecordQuery = vi.fn()
+const mockUnfollow = vi.fn()
+vi.mock('@/src/store/features/common/follows-api', async () => ({
+  ...(await vi.importActual<any>('@/src/store/features/common/follows-api')),
   useGetFollowedRecordQuery: (...args: unknown[]) =>
     mockUseGetFollowedRecordQuery(...args),
   useUnfollowMutation: () => [mockUnfollow, { isLoading: false }],
 }))
 
-const mockUseGetProjectQuery = jest.fn()
-jest.mock('@/src/store/features/ppm/projects-api', () => ({
+const mockUseGetProjectQuery = vi.fn()
+vi.mock('@/src/store/features/ppm/projects-api', () => ({
   useGetProjectQuery: (...args: unknown[]) => mockUseGetProjectQuery(...args),
 }))
 
-jest.mock('@/src/app/ppm/_components/stage-timeline', () => ({
-  __esModule: true,
+vi.mock('@/src/app/ppm/_components/stage-timeline', () => ({
   default: ({ stages }: { stages: { name: string }[] }) => (
     <div data-testid="stage-timeline">
       {stages.map((s) => s.name).join(', ')}
@@ -48,7 +44,7 @@ jest.mock('@/src/app/ppm/_components/stage-timeline', () => ({
   ),
 }))
 
-jest.mock('@/src/components/common/activities', () => ({
+vi.mock('@/src/components/common/activities', () => ({
   ActivityLogTimeline: ({ activities }: { activities: unknown[] }) => (
     <div data-testid="activity">{activities.length} changes</div>
   ),
@@ -88,7 +84,7 @@ const returns = (data: FollowedRecordDetailDto | undefined, error?: unknown) =>
     isLoading: false,
     isError: error !== undefined,
     error,
-    refetch: jest.fn(),
+    refetch: vi.fn(),
   })
 
 const renderDetail = (
@@ -99,14 +95,14 @@ const renderDetail = (
       ownerType="ppm.project"
       ownerId="p-1"
       typeName="Project"
-      onUnfollowed={jest.fn()}
+      onUnfollowed={vi.fn()}
       {...props}
     />,
   )
 
 describe('FollowedRecordDetail', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     returns(detail())
     mockUseGetProjectQuery.mockReturnValue({
       data: { stages: [{ name: 'Plan' }, { name: 'Build' }] },
@@ -227,7 +223,7 @@ describe('FollowedRecordDetail', () => {
 
   it('pins Open and Unfollow on the phone view, Open as a real link', () => {
     // Arrange & Act
-    renderDetail({ asView: true, onBack: jest.fn() })
+    renderDetail({ asView: true, onBack: vi.fn() })
 
     // Assert
     expect(screen.getByRole('link', { name: 'Open Project' })).toHaveAttribute(
@@ -239,7 +235,7 @@ describe('FollowedRecordDetail', () => {
 
   it('unfollows and moves on', async () => {
     // Arrange
-    const onUnfollowed = jest.fn()
+    const onUnfollowed = vi.fn()
     renderDetail({ onUnfollowed })
 
     // Act
@@ -258,7 +254,7 @@ describe('FollowedRecordDetail', () => {
   it('explains a failed unfollow and stays', async () => {
     // Arrange
     mockUnfollow.mockResolvedValue({ error: { status: 400, detail: 'Nope.' } })
-    const onUnfollowed = jest.fn()
+    const onUnfollowed = vi.fn()
     renderDetail({ onUnfollowed })
 
     // Act
@@ -283,7 +279,7 @@ describe('FollowedRecordDetail', () => {
 
   it('offers a way back when shown as its own view', () => {
     // Arrange
-    const onBack = jest.fn()
+    const onBack = vi.fn()
     renderDetail({ asView: true, onBack })
 
     // Act

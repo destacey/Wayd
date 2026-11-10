@@ -1,16 +1,6 @@
-// Mock unist-util-visit since it's ESM-only and next/jest doesn't transform it
-jest.mock('unist-util-visit', () => ({
-  visit: (tree: { children: { type: string; url?: string }[] }, type: string, fn: (node: { type: string; url?: string }) => void) => {
-    for (const node of tree.children) {
-      if (node.type === type) fn(node)
-    }
-  },
-}))
-
 import remarkDocsLinks from './remark-docs-links'
 
-// Create a minimal mock AST link node and tree to test the plugin
-// without needing the full unified/remark pipeline (which is ESM-only)
+// Hand-built trees keep these tests on the plugin, independent of the remark parser.
 interface LinkNode {
   type: 'link'
   url: string
@@ -89,10 +79,7 @@ describe('remark-docs-links', () => {
     })
 
     it('strips .md extension', () => {
-      const [url] = transformLinks(
-        ['./guide.md'],
-        ['docs', 'index'],
-      )
+      const [url] = transformLinks(['./guide.md'], ['docs', 'index'])
       expect(url).toBe('/docs/docs/guide')
     })
 
@@ -153,10 +140,7 @@ describe('remark-docs-links', () => {
     })
 
     it('does not modify anchor-only links', () => {
-      const [url] = transformLinks(
-        ['#my-section'],
-        ['user-guide', 'index'],
-      )
+      const [url] = transformLinks(['#my-section'], ['user-guide', 'index'])
       expect(url).toBe('#my-section')
     })
   })

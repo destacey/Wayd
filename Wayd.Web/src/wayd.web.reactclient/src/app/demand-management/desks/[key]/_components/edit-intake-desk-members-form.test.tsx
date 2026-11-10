@@ -3,14 +3,14 @@ import userEvent from '@testing-library/user-event'
 import { IntakeDeskRole, IntakeDeskVisibility } from '@/src/services/wayd-api'
 import EditIntakeDeskMembersForm from './edit-intake-desk-members-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-// In Jest, Form.useWatch does not refire after typing, so keep the form instance real and submit through
+// Under jsdom, Form.useWatch does not refire after typing, so keep the form instance real and submit through
 // validateFields, which, like the real hook, returns only the fields that are mounted.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -32,7 +32,7 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields().catch(() => null)
           if (values && (await onSubmit(values, form))) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -41,7 +41,7 @@ jest.mock('@/src/hooks', () => {
 // The employee picker is an antd Select, which jsdom drives poorly; each stand-in picks the employees its
 // test names, and shows whether it is disabled.
 let mockPicks: Record<string, string[]> = {}
-jest.mock('@/src/components/common/organizations', () => ({
+vi.mock('@/src/components/common/organizations', () => ({
   EmployeeSelect: ({
     id,
     disabled,
@@ -65,14 +65,11 @@ jest.mock('@/src/components/common/organizations', () => ({
   },
 }))
 
-const mockUpdate = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useUpdateIntakeDeskMutation: () => [mockUpdate],
-    useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
-  }),
-)
+const mockUpdate = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useUpdateIntakeDeskMutation: () => [mockUpdate],
+  useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
+}))
 
 const desk = (overrides: Record<string, unknown> = {}) =>
   ({
@@ -108,8 +105,8 @@ const renderForm = async (d = desk()) =>
     const element = (next: ReturnType<typeof desk>) => (
       <EditIntakeDeskMembersForm
         desk={next}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />
     )
     const view = render(element(d))
@@ -136,12 +133,10 @@ describe('EditIntakeDeskMembersForm', () => {
     // Arrange
     mockPicks = { agentIds: ['e-2', 'e-3'] }
     await renderForm()
-    await act(() => userEvent.click(screen.getByText('pick agentIds')))
+    await userEvent.click(screen.getByText('pick agentIds'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockUpdate).toHaveBeenCalledWith(
@@ -160,12 +155,10 @@ describe('EditIntakeDeskMembersForm', () => {
     // Arrange
     mockPicks = { agentIds: ['e-1', 'e-2'] }
     await renderForm()
-    await act(() => userEvent.click(screen.getByText('pick agentIds')))
+    await userEvent.click(screen.getByText('pick agentIds'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(
@@ -184,9 +177,7 @@ describe('EditIntakeDeskMembersForm', () => {
     )
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockUpdate).toHaveBeenCalledWith(

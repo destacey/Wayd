@@ -2,9 +2,9 @@ import { render, screen, within } from '@testing-library/react'
 import { WorkProcessSchemeDto } from '@/src/services/wayd-api'
 import WorkProcessSchemes from './work-process-schemes'
 
-const mockSchemesQuery = jest.fn()
+const mockSchemesQuery = vi.fn()
 
-jest.mock('@/src/store/features/work-management/work-process-api', () => ({
+vi.mock('@/src/store/features/work-management/work-process-api', () => ({
   useGetWorkProcessSchemesQuery: (...args: unknown[]) =>
     mockSchemesQuery(...args),
 }))
@@ -28,7 +28,7 @@ const PROCESS_ID = 'a4f1c2e0-0000-0000-0000-000000000001'
 
 describe('WorkProcessSchemes', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockSchemesQuery.mockReturnValue({ data: [scheme()], isLoading: false })
   })
 

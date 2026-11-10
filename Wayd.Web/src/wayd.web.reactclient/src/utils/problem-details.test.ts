@@ -55,7 +55,7 @@ describe('isApiError', () => {
       expect(error.status).toBe(404)
       expect(error.detail).toBe('Not found')
     } else {
-      fail('Expected isApiError to return true')
+      expect.unreachable('Expected isApiError to return true')
     }
   })
 })

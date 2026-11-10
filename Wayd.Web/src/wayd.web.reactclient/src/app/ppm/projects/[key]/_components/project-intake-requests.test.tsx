@@ -7,17 +7,13 @@ import {
 } from '@/src/services/wayd-api'
 import ProjectIntakeRequests from './project-intake-requests'
 
-const mockQuery = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetProjectIntakeRequestsQuery: (projectId: string) =>
-      mockQuery(projectId),
-  }),
-)
+const mockQuery = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetProjectIntakeRequestsQuery: (projectId: string) => mockQuery(projectId),
+}))
 
-const mockDeliverables = jest.fn()
-jest.mock('@/src/store/features/ppm/project-deliverables-api', () => ({
+const mockDeliverables = vi.fn()
+vi.mock('@/src/store/features/ppm/project-deliverables-api', () => ({
   useGetProjectDeliverablesQuery: (projectId: string) =>
     mockDeliverables(projectId),
 }))

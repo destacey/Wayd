@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -11,30 +12,30 @@ import {
 import { useGetTeamMembersQuery } from '@/src/store/features/organization/team-members-api'
 import { useGetTeamCapacityQuery } from '@/src/store/features/organization/team-capacity-api'
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
-  useGetTeamBacklogQuery: jest.fn(),
-  useGetTeamDependenciesQuery: jest.fn(),
-  useGetTeamRisksQuery: jest.fn(),
+vi.mock('@/src/store/features/organizations/team-api', () => ({
+  useGetTeamBacklogQuery: vi.fn(),
+  useGetTeamDependenciesQuery: vi.fn(),
+  useGetTeamRisksQuery: vi.fn(),
 }))
 
-jest.mock('@/src/store/features/organization/team-members-api', () => ({
-  useGetTeamMembersQuery: jest.fn(),
+vi.mock('@/src/store/features/organization/team-members-api', () => ({
+  useGetTeamMembersQuery: vi.fn(),
 }))
 
-jest.mock('@/src/store/features/organization/team-capacity-api', () => ({
-  useGetTeamCapacityQuery: jest.fn(),
+vi.mock('@/src/store/features/organization/team-capacity-api', () => ({
+  useGetTeamCapacityQuery: vi.fn(),
 }))
 
-const mockBacklog = useGetTeamBacklogQuery as unknown as jest.Mock
-const mockDependencies = useGetTeamDependenciesQuery as unknown as jest.Mock
-const mockRisks = useGetTeamRisksQuery as unknown as jest.Mock
-const mockMembers = useGetTeamMembersQuery as unknown as jest.Mock
-const mockCapacity = useGetTeamCapacityQuery as unknown as jest.Mock
+const mockBacklog = useGetTeamBacklogQuery as unknown as Mock
+const mockDependencies = useGetTeamDependenciesQuery as unknown as Mock
+const mockRisks = useGetTeamRisksQuery as unknown as Mock
+const mockMembers = useGetTeamMembersQuery as unknown as Mock
+const mockCapacity = useGetTeamCapacityQuery as unknown as Mock
 
 // No operating model, so the sprint and cadence summaries stay out of the way.
 const team = { id: 'team-1', key: 7, name: 'Platform Core' } as TeamDetailsDto
 
-const navigate = jest.fn()
+const navigate = vi.fn()
 const renderOverview = (capacityEnabled = true, forTeam = team) =>
   render(
     <TeamOverview
@@ -50,7 +51,7 @@ const person = (...percents: number[]) => ({
 
 describe('TeamOverview', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockBacklog.mockReturnValue({ data: [], isLoading: false })
     mockDependencies.mockReturnValue({ data: [], isLoading: false })
     mockRisks.mockReturnValue({ data: [], isLoading: false })
@@ -59,7 +60,7 @@ describe('TeamOverview', () => {
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   it("shows today's allocations as full-time equivalents", () => {
@@ -81,7 +82,7 @@ describe('TeamOverview', () => {
   it("asks for capacity on today's date in the team's time zone", () => {
     // Arrange
     // Noon UTC on 10 March is already 11 March in Auckland (UTC+13).
-    jest.useFakeTimers().setSystemTime(new Date('2026-03-10T12:00:00Z'))
+    vi.useFakeTimers().setSystemTime(new Date('2026-03-10T12:00:00Z'))
     const aucklandTeam = {
       ...team,
       operatingModel: { timeZone: 'Pacific/Auckland' },

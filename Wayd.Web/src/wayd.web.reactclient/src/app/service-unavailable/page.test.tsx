@@ -1,24 +1,12 @@
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import ServiceUnavailablePage from './page'
 
-// Suppress Ant Design act() warnings from async state updates
-const originalError = console.error
-beforeAll(() => {
-  console.error = (...args: any[]) => {
-    if (typeof args[0] === 'string' && args[0].includes('act(')) return
-    originalError.call(console, ...args)
-  }
-})
-afterAll(() => {
-  console.error = originalError
-})
-
 // Mock fetch response (Response class is not available in jsdom)
 const mockOkResponse = { ok: true, status: 200 }
 const mock404Response = { ok: false, status: 404 }
 
 describe('ServiceUnavailablePage', () => {
-  const mockFetch = jest.fn()
+  const mockFetch = vi.fn()
   const originalFetch = global.fetch
 
   beforeEach(() => {
@@ -107,7 +95,7 @@ describe('ServiceUnavailablePage', () => {
     })
 
     it('calls onRetry when provided', async () => {
-      const onRetry = jest.fn()
+      const onRetry = vi.fn()
       await act(async () => {
         render(<ServiceUnavailablePage onRetry={onRetry} />)
       })
@@ -123,7 +111,7 @@ describe('ServiceUnavailablePage', () => {
     })
 
     it('calls onLogout when provided', async () => {
-      const onLogout = jest.fn()
+      const onLogout = vi.fn()
       await act(async () => {
         render(<ServiceUnavailablePage onLogout={onLogout} />)
       })

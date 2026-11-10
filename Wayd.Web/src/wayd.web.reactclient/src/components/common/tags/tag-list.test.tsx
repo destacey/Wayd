@@ -99,7 +99,7 @@ describe('TagList', () => {
 
   it('offers managing when a handler is given', async () => {
     // Arrange
-    const onManage = jest.fn()
+    const onManage = vi.fn()
     render(<TagList tags={[]} onManage={onManage} />)
 
     // Act

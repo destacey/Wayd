@@ -91,7 +91,7 @@ describe('EstimationScaleValuesField', () => {
 
   it('marks a value as a card when Card is chosen', async () => {
     // Arrange
-    const onValues = jest.fn()
+    const onValues = vi.fn()
     render(
       <Harness
         initial={[estimate('1'), estimate('2'), estimate('?')]}
@@ -119,7 +119,7 @@ describe('EstimationScaleValuesField', () => {
     const { container } = render(
       <Harness
         initial={[estimate('1'), estimate('2'), card('?')]}
-        onValues={jest.fn()}
+        onValues={vi.fn()}
       />,
     )
 
@@ -135,7 +135,7 @@ describe('EstimationScaleValuesField', () => {
     render(
       <Harness
         initial={[estimate('1'), estimate('2'), card('?')]}
-        onValues={jest.fn()}
+        onValues={vi.fn()}
       />,
     )
     expect(
@@ -156,7 +156,7 @@ describe('EstimationScaleValuesField', () => {
     render(
       <Harness
         initial={[estimate('1'), estimate('2'), estimate('3')]}
-        onValues={jest.fn()}
+        onValues={vi.fn()}
       />,
     )
 
@@ -174,7 +174,7 @@ describe('EstimationScaleValuesField', () => {
   it('refuses a value of only spaces', async () => {
     // Arrange
     render(
-      <Harness initial={[estimate('1'), estimate('2')]} onValues={jest.fn()} />,
+      <Harness initial={[estimate('1'), estimate('2')]} onValues={vi.fn()} />,
     )
 
     // Act — the API refuses a blank value, so the form must too
@@ -194,7 +194,7 @@ describe('EstimationScaleValuesField', () => {
 
   it('adds a new value as an estimate', async () => {
     // Arrange
-    const onValues = jest.fn()
+    const onValues = vi.fn()
     render(
       <Harness initial={[estimate('1'), estimate('2')]} onValues={onValues} />,
     )

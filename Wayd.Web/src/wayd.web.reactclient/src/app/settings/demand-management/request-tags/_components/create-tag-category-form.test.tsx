@@ -2,14 +2,14 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CreateTagCategoryForm from './create-tag-category-form'
 
-const mockError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: mockError, success: jest.fn() }),
+const mockError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: mockError, success: vi.fn() }),
 }))
 
-// Form.useWatch does not refire in Jest, so keep the form real and submit through validateFields.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+// Form.useWatch does not refire under jsdom, so keep the form real and submit through validateFields.
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -31,26 +31,23 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields().catch(() => null)
           if (values && (await onSubmit(values, form))) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const mockCreate = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useCreateIntakeRequestTagCategoryMutation: () => [mockCreate],
-  }),
-)
+const mockCreate = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useCreateIntakeRequestTagCategoryMutation: () => [mockCreate],
+}))
 
-const renderForm = async (onComplete = jest.fn()) => {
+const renderForm = async (onComplete = vi.fn()) => {
   await act(async () =>
     render(
       <CreateTagCategoryForm
         onFormComplete={onComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -70,9 +67,7 @@ describe('CreateTagCategoryForm', () => {
     await userEvent.type(screen.getByLabelText('Name'), 'Area')
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Add' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     // Assert
     expect(mockCreate).toHaveBeenCalledWith({
@@ -90,9 +85,7 @@ describe('CreateTagCategoryForm', () => {
     await userEvent.click(screen.getByRole('switch'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Add' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     // Assert
     expect(mockCreate).toHaveBeenCalledWith(
@@ -113,9 +106,7 @@ describe('CreateTagCategoryForm', () => {
     await userEvent.type(screen.getByLabelText('Name'), 'Area')
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Add' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     // Assert
     expect(mockError).toHaveBeenCalledWith(

@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import React from 'react'
 import { render } from '@testing-library/react'
 import ResponsiveFlex from './responsive-flex'
@@ -5,20 +6,20 @@ import { Grid } from 'antd'
 
 const { useBreakpoint } = Grid
 
-jest.mock('antd', () => {
-  const originalModule = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const originalModule = await vi.importActual<any>('antd')
   return {
     ...originalModule,
     Grid: {
       ...originalModule.Grid,
-      useBreakpoint: jest.fn(),
+      useBreakpoint: vi.fn(),
     },
   }
 })
 
 describe('ResponsiveFlex', () => {
   it('renders children correctly', () => {
-    ;(useBreakpoint as jest.Mock).mockReturnValue({ md: true })
+    ;(useBreakpoint as Mock).mockReturnValue({ md: true })
     const { getByText } = render(
       <ResponsiveFlex>
         <div>Child 1</div>
@@ -30,7 +31,7 @@ describe('ResponsiveFlex', () => {
   })
 
   it('sets vertical layout on small screens', () => {
-    ;(useBreakpoint as jest.Mock).mockReturnValue({ md: false })
+    ;(useBreakpoint as Mock).mockReturnValue({ md: false })
     const { container } = render(
       <ResponsiveFlex>
         <div>Child</div>
@@ -40,7 +41,7 @@ describe('ResponsiveFlex', () => {
   })
 
   it('sets horizontal layout on large screens', () => {
-    ;(useBreakpoint as jest.Mock).mockReturnValue({ md: true })
+    ;(useBreakpoint as Mock).mockReturnValue({ md: true })
     const { container } = render(
       <ResponsiveFlex>
         <div>Child</div>
@@ -50,7 +51,7 @@ describe('ResponsiveFlex', () => {
   })
 
   it('wraps each child in a shrinkable equal-width column on large screens', () => {
-    ;(useBreakpoint as jest.Mock).mockReturnValue({ md: true })
+    ;(useBreakpoint as Mock).mockReturnValue({ md: true })
     const { getByText } = render(
       <ResponsiveFlex>
         <div>Child 1</div>
@@ -64,7 +65,7 @@ describe('ResponsiveFlex', () => {
   })
 
   it('does not wrap children on small screens', () => {
-    ;(useBreakpoint as jest.Mock).mockReturnValue({ md: false })
+    ;(useBreakpoint as Mock).mockReturnValue({ md: false })
     const { getByText, container } = render(
       <ResponsiveFlex>
         <div>Child 1</div>

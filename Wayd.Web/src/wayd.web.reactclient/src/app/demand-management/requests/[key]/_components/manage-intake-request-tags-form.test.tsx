@@ -69,17 +69,17 @@ const request = {
   },
 } as unknown as IntakeRequestDetailsDto
 
-const mockTag = jest.fn()
-const mockUntag = jest.fn()
-const mockTagByName = jest.fn()
+const mockTag = vi.fn()
+const mockUntag = vi.fn()
+const mockTagByName = vi.fn()
 let mockAllowsFreeTags = false
-const mockError = jest.fn()
-const mockComplete = jest.fn()
+const mockError = vi.fn()
+const mockComplete = vi.fn()
 
 // The form instance is real so antd's Form binds to it; handleOk runs the real submit so the diff is
 // exercised end to end.
-jest.mock('@/src/hooks', () => {
-  const { Form: AntForm } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form: AntForm } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -97,47 +97,42 @@ jest.mock('@/src/hooks', () => {
         handleOk: async () => {
           if (await onSubmit(form.getFieldsValue(), form)) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: mockError, success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: mockError, success: vi.fn() }),
 }))
 
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetIntakeRequestTagCategoriesQuery: (args?: { deskId?: string }) => ({
-      // With the desk, what it offers; without, every category.
-      data: args?.deskId
-        ? [AREA, SEGMENT]
-        : [AREA, SEGMENT, OLD_AREA, UNRELATED],
-      isLoading: false,
-    }),
-    useTagIntakeRequestMutation: () => [mockTag],
-    useUntagIntakeRequestMutation: () => [mockUntag],
-    useTagIntakeRequestByNameMutation: () => [mockTagByName],
-    useGetIntakeDeskQuery: () => ({
-      data: { id: 'd-1', allowsFreeTags: mockAllowsFreeTags },
-      isLoading: false,
-    }),
-    useSearchIntakeRequestTagsQuery: () => ({
-      data: [
-        {
-          id: 't-followup',
-          name: 'follow up',
-          isFree: true,
-          isActive: true,
-          requestCount: 2,
-        },
-      ],
-      isLoading: false,
-    }),
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetIntakeRequestTagCategoriesQuery: (args?: { deskId?: string }) => ({
+    // With the desk, what it offers; without, every category.
+    data: args?.deskId ? [AREA, SEGMENT] : [AREA, SEGMENT, OLD_AREA, UNRELATED],
+    isLoading: false,
   }),
-)
+  useTagIntakeRequestMutation: () => [mockTag],
+  useUntagIntakeRequestMutation: () => [mockUntag],
+  useTagIntakeRequestByNameMutation: () => [mockTagByName],
+  useGetIntakeDeskQuery: () => ({
+    data: { id: 'd-1', allowsFreeTags: mockAllowsFreeTags },
+    isLoading: false,
+  }),
+  useSearchIntakeRequestTagsQuery: () => ({
+    data: [
+      {
+        id: 't-followup',
+        name: 'follow up',
+        isFree: true,
+        isActive: true,
+        requestCount: 2,
+      },
+    ],
+    isLoading: false,
+  }),
+}))
 
 const renderForm = async () =>
   await act(async () =>
@@ -145,7 +140,7 @@ const renderForm = async () =>
       <ManageIntakeRequestTagsForm
         request={request}
         onFormComplete={mockComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -159,9 +154,7 @@ const openDropdown = async (label: string) => {
   const input = fieldFor(label).querySelector(
     'input[role="combobox"]',
   ) as HTMLElement
-  await act(async () => {
-    await user.click(input)
-  })
+  await user.click(input)
   const listboxId = input.getAttribute('aria-controls')!
   return await waitFor(() => {
     const el = document
@@ -174,15 +167,11 @@ const openDropdown = async (label: string) => {
 
 const selectOption = async (label: string, option: string) => {
   const dropdown = await openDropdown(label)
-  await act(async () => {
-    await userEvent.setup().click(await within(dropdown).findByTitle(option))
-  })
+  await userEvent.setup().click(await within(dropdown).findByTitle(option))
 }
 
 const save = async () => {
-  await act(async () => {
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }))
-  })
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }))
 }
 
 describe('ManageIntakeRequestTagsForm', () => {
@@ -244,9 +233,7 @@ describe('ManageIntakeRequestTagsForm', () => {
     ) as HTMLInputElement
 
     // Act — committed with the field's comma separator, which jsdom drives reliably
-    await act(async () => {
-      await userEvent.setup().type(input, 'Follow Up,escalated,')
-    })
+    await userEvent.setup().type(input, 'Follow Up,escalated,')
     await save()
 
     // Assert

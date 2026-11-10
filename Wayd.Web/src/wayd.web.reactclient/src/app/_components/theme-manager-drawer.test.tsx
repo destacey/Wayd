@@ -1,15 +1,15 @@
+import type { Mock } from 'vitest'
 import React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
 import ThemeManagerDrawer from './theme-manager-drawer'
 import useTheme, { ThemeContextType } from '@/src/components/contexts/theme'
 
-jest.mock('@/src/components/contexts/theme', () => ({
-  __esModule: true,
-  default: jest.fn(),
+vi.mock('@/src/components/contexts/theme', () => ({
+  default: vi.fn(),
 }))
 
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   return {
     ...actual,
     Drawer: ({ children, title }: any) => (
@@ -53,9 +53,9 @@ jest.mock('antd', () => {
   }
 })
 
-const setCurrentTheme = jest.fn()
-const setCurrentMode = jest.fn()
-const setUserThemeConfig = jest.fn()
+const setCurrentTheme = vi.fn()
+const setCurrentMode = vi.fn()
+const setUserThemeConfig = vi.fn()
 
 const baseThemeContext: ThemeContextType = {
   currentTheme: 'wayd',
@@ -81,12 +81,12 @@ const baseThemeContext: ThemeContextType = {
 
 describe('ThemeManagerDrawer', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
-    ;(useTheme as jest.Mock).mockReturnValue(baseThemeContext)
+    vi.clearAllMocks()
+    ;(useTheme as Mock).mockReturnValue(baseThemeContext)
   })
 
   it('resets primary override on theme change and preserves compact density', () => {
-    ;(useTheme as jest.Mock).mockReturnValue({
+    ;(useTheme as Mock).mockReturnValue({
       ...baseThemeContext,
       userThemeConfig: {
         colorPrimary: '#f5222d',
@@ -94,34 +94,38 @@ describe('ThemeManagerDrawer', () => {
       },
     })
 
-    render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
+    render(<ThemeManagerDrawer open={true} onClose={vi.fn()} />)
 
     fireEvent.change(screen.getByLabelText('Theme'), {
       target: { value: 'shadcn' },
     })
 
     expect(setCurrentTheme).toHaveBeenCalledWith('shadcn')
-    expect(setUserThemeConfig).toHaveBeenCalledWith({ useCompactAlgorithm: true })
+    expect(setUserThemeConfig).toHaveBeenCalledWith({
+      useCompactAlgorithm: true,
+    })
   })
 
   it('does not offer a deprecated theme to users who are not on it', () => {
     // Arrange & Act
-    render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
+    render(<ThemeManagerDrawer open={true} onClose={vi.fn()} />)
 
     // Assert
-    expect(screen.queryByRole('option', { name: 'Glass' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('option', { name: 'Glass' }),
+    ).not.toBeInTheDocument()
   })
 
   it('keeps a deprecated theme listed and selected for users still on it', () => {
     // Arrange
-    ;(useTheme as jest.Mock).mockReturnValue({
+    ;(useTheme as Mock).mockReturnValue({
       ...baseThemeContext,
       currentTheme: 'glass',
       availableModes: ['light'],
     })
 
     // Act
-    render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
+    render(<ThemeManagerDrawer open={true} onClose={vi.fn()} />)
 
     // Assert
     expect(screen.getByRole('option', { name: 'Glass' })).toBeInTheDocument()
@@ -129,7 +133,7 @@ describe('ThemeManagerDrawer', () => {
   })
 
   it('changes mode without resetting user overrides', () => {
-    ;(useTheme as jest.Mock).mockReturnValue({
+    ;(useTheme as Mock).mockReturnValue({
       ...baseThemeContext,
       userThemeConfig: {
         colorPrimary: '#f5222d',
@@ -137,7 +141,7 @@ describe('ThemeManagerDrawer', () => {
       },
     })
 
-    render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
+    render(<ThemeManagerDrawer open={true} onClose={vi.fn()} />)
 
     fireEvent.click(screen.getByLabelText('Dark'))
 
@@ -146,43 +150,43 @@ describe('ThemeManagerDrawer', () => {
   })
 
   it('hides the mode control when the theme supports a single mode', () => {
-    ;(useTheme as jest.Mock).mockReturnValue({
+    ;(useTheme as Mock).mockReturnValue({
       ...baseThemeContext,
       currentTheme: 'glass',
       availableModes: ['light'],
     })
 
-    render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
+    render(<ThemeManagerDrawer open={true} onClose={vi.fn()} />)
 
     expect(screen.queryByText('Mode')).not.toBeInTheDocument()
   })
 
   it('hides primary color controls when theme does not allow primary override', () => {
-    ;(useTheme as jest.Mock).mockReturnValue({
+    ;(useTheme as Mock).mockReturnValue({
       ...baseThemeContext,
       allowsPrimaryOverride: false,
     })
 
-    render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
+    render(<ThemeManagerDrawer open={true} onClose={vi.fn()} />)
 
     expect(screen.queryByText('Primary Color')).not.toBeInTheDocument()
   })
 
   it('shows primary color controls when theme allows primary override', () => {
-    render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
+    render(<ThemeManagerDrawer open={true} onClose={vi.fn()} />)
 
     expect(screen.getByText('Primary Color')).toBeInTheDocument()
   })
 
   it('shows and selects the Theme Default swatch when default primary is not in presets', () => {
-    ;(useTheme as jest.Mock).mockReturnValue({
+    ;(useTheme as Mock).mockReturnValue({
       ...baseThemeContext,
       token: { colorPrimary: '#1f83d2' } as any,
       defaultPrimaryColor: '#1f83d2',
       userThemeConfig: null,
     })
 
-    render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
+    render(<ThemeManagerDrawer open={true} onClose={vi.fn()} />)
 
     const selected = screen.getByLabelText('Theme Default (selected)')
     expect(selected).toBeInTheDocument()
@@ -190,7 +194,7 @@ describe('ThemeManagerDrawer', () => {
   })
 
   it('resets all theme overrides when reset is clicked', () => {
-    render(<ThemeManagerDrawer open={true} onClose={jest.fn()} />)
+    render(<ThemeManagerDrawer open={true} onClose={vi.fn()} />)
 
     fireEvent.click(screen.getByRole('button', { name: 'Reset to Defaults' }))
     expect(setUserThemeConfig).toHaveBeenCalledWith(null)

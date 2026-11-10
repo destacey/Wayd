@@ -5,14 +5,14 @@ import RerouteIntakeRequestForm, {
   wideningNotice,
 } from './reroute-intake-request-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-// In Jest, Form.useWatch does not refire after typing, so keep the form instance real and submit through
+// Under jsdom, Form.useWatch does not refire after typing, so keep the form instance real and submit through
 // validateFields, which, like the real hook, returns only the fields that are mounted.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -34,7 +34,7 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields().catch(() => null)
           if (values && (await onSubmit(values, form))) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -55,7 +55,7 @@ const desk = (
   ...overrides,
 })
 
-const mockReroute = jest.fn()
+const mockReroute = vi.fn()
 const arrival = (defaultStatusId?: string) => ({
   data: {
     statuses: [
@@ -66,7 +66,7 @@ const arrival = (defaultStatusId?: string) => ({
   },
   isFetching: false,
 })
-const mockArrival = jest.fn((_args?: { deskId: string }): any =>
+const mockArrival = vi.fn((_args?: { deskId: string }): any =>
   arrival('s-submitted'),
 )
 const mockDesks = [
@@ -80,15 +80,12 @@ const mockDesks = [
   desk('d-other-private', 'Legal', IntakeDeskVisibility.Private),
   desk('d-summary', 'Finance', IntakeDeskVisibility.SummaryOnly),
 ]
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useRerouteIntakeRequestMutation: () => [mockReroute],
-    useGetIntakeDesksQuery: () => ({ data: mockDesks }),
-    useGetIntakeRequestArrivalStatusesQuery: (args: { deskId: string }) =>
-      mockArrival(args),
-  }),
-)
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useRerouteIntakeRequestMutation: () => [mockReroute],
+  useGetIntakeDesksQuery: () => ({ data: mockDesks }),
+  useGetIntakeRequestArrivalStatusesQuery: (args: { deskId: string }) =>
+    mockArrival(args),
+}))
 
 const request = (assignee?: { id: string; name: string }) =>
   ({
@@ -106,8 +103,8 @@ const renderForm = async (r = request()) =>
     render(
       <RerouteIntakeRequestForm
         request={r}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -119,7 +116,7 @@ const chooseDesk = async (name: string) => {
 }
 
 const submit = async () => {
-  await act(() => userEvent.click(screen.getByRole('button', { name: 'Move' })))
+  await userEvent.click(screen.getByRole('button', { name: 'Move' }))
 }
 
 describe('wideningNotice', () => {

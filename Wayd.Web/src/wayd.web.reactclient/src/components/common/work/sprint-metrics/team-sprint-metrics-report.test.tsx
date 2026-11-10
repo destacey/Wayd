@@ -1,5 +1,4 @@
 import { render, screen, within } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import {
   SizingMethod,
   SprintMetricsExclusion,
@@ -11,16 +10,14 @@ import {
   TeamSprintMetricsReportViewProps,
 } from './team-sprint-metrics-report'
 
-jest.unmock('dayjs')
-
-jest.mock('next/link', () => {
+vi.mock('next/link', () => {
   const MockLink = ({ href, children }: any) => <a href={href}>{children}</a>
   MockLink.displayName = 'MockLink'
-  return MockLink
+  return { default: MockLink }
 })
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
-  useGetTeamSprintMetricsQuery: jest.fn(),
+vi.mock('@/src/store/features/organizations/team-api', () => ({
+  useGetTeamSprintMetricsQuery: vi.fn(),
 }))
 
 const sprint = (
@@ -104,9 +101,9 @@ const renderView = (
     <TeamSprintMetricsReportView
       metrics={createMetrics()}
       isLoading={false}
-      onSprintWindowChange={jest.fn()}
+      onSprintWindowChange={vi.fn()}
       byCount={false}
-      onByCountChange={jest.fn()}
+      onByCountChange={vi.fn()}
       {...overrides}
     />,
   )

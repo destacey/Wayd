@@ -19,7 +19,7 @@ const STATE_OPTIONS: StatusOptionModel<string>[] = [
   { value: StrategicThemeState.Active, label: 'Active' },
 ]
 
-const onStatusChange = jest.fn()
+const onStatusChange = vi.fn()
 
 const renderBar = (
   selectedStatuses: string[],
@@ -49,10 +49,11 @@ const isLit = (label: string) => {
 }
 
 /** Color appears only on lit buttons; every unlit one is the same plain outline. */
-const isColored = (label: string) => getButton(label).style.backgroundColor !== ''
+const isColored = (label: string) =>
+  getButton(label).style.backgroundColor !== ''
 
 describe('PpmFilterBar status buttons', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => vi.clearAllMocks())
 
   it('lights only the selected statuses', () => {
     // Arrange / Act

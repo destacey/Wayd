@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+import type { Mock, MockInstance } from 'vitest'
 import { downloadSvg, downloadSvgAsPng } from './export-svg'
 
 const SVG =
@@ -8,14 +10,14 @@ const SVG =
 // invariant and poisons every later test in the file. Re-stubbed per test,
 // since the suites below call restoreAllMocks.
 beforeEach(() => {
-  jest
-    .spyOn(HTMLAnchorElement.prototype, 'click')
-    .mockImplementation(() => undefined)
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(
+    () => undefined,
+  )
 })
 
 /** Capture the <a> the download path appends to the body. */
 function lastDownloadLink(
-  appendChild: jest.SpyInstance,
+  appendChild: MockInstance,
 ): HTMLAnchorElement | undefined {
   return appendChild.mock.calls
     .map(([node]) => node)
@@ -26,17 +28,17 @@ function lastDownloadLink(
 }
 
 describe('downloadSvg', () => {
-  let appendChild: jest.SpyInstance
+  let appendChild: MockInstance
 
   beforeEach(() => {
-    appendChild = jest.spyOn(document.body, 'appendChild')
-    global.URL.createObjectURL = jest.fn(() => 'blob:svg')
-    global.URL.revokeObjectURL = jest.fn()
+    appendChild = vi.spyOn(document.body, 'appendChild')
+    global.URL.createObjectURL = vi.fn(() => 'blob:svg')
+    global.URL.revokeObjectURL = vi.fn()
   })
 
   afterEach(() => {
     document.body.innerHTML = ''
-    jest.restoreAllMocks()
+    vi.restoreAllMocks()
   })
 
   test('downloads the markup under the given filename', () => {
@@ -54,8 +56,7 @@ describe('downloadSvg', () => {
     downloadSvg(SVG, 'roadmap.svg')
 
     // Assert — the wrong MIME type makes the file download as plain text.
-    const blob = (global.URL.createObjectURL as jest.Mock).mock
-      .calls[0][0] as Blob
+    const blob = (global.URL.createObjectURL as Mock).mock.calls[0][0] as Blob
     expect(blob.type).toContain('image/svg+xml')
   })
 
@@ -66,52 +67,51 @@ describe('downloadSvg', () => {
     // Assert — a BOM renders as visible characters in consumers that ignore
     // the charset; the renderer escapes non-ASCII to numeric references
     // instead, so the payload is pure ASCII and needs no marker.
-    const blob = (global.URL.createObjectURL as jest.Mock).mock
-      .calls[0][0] as Blob
+    const blob = (global.URL.createObjectURL as Mock).mock.calls[0][0] as Blob
     expect(blob.size).toBe(SVG.length)
   })
 })
 
 describe('downloadSvgAsPng', () => {
-  let appendChild: jest.SpyInstance
+  let appendChild: MockInstance
 
   /**
    * Make `new Image().src = …` resolve or fail on demand — jsdom never loads
    * images, so without this the export's onload never fires.
    *
-   * `jest.spyOn(…, 'src', 'set')` (rather than a raw defineProperty) is what
+   * `vi.spyOn(…, 'src', 'set')` (rather than a raw defineProperty) is what
    * lets `restoreAllMocks` put jsdom's own setter back; a hand-rolled
    * descriptor leaks into every later test in the file.
    */
   const stubImageLoad = (outcome: 'load' | 'error') => {
-    jest
-      .spyOn(global.Image.prototype, 'src', 'set')
-      .mockImplementation(function (this: HTMLImageElement) {
-        setTimeout(() => {
-          if (outcome === 'load') this.onload?.(new Event('load'))
-          else this.onerror?.(new Event('error'))
-        }, 0)
-      })
+    vi.spyOn(global.Image.prototype, 'src', 'set').mockImplementation(function (
+      this: HTMLImageElement,
+    ) {
+      setTimeout(() => {
+        if (outcome === 'load') this.onload?.(new Event('load'))
+        else this.onerror?.(new Event('error'))
+      }, 0)
+    })
   }
 
   beforeEach(() => {
-    appendChild = jest.spyOn(document.body, 'appendChild')
-    global.URL.createObjectURL = jest.fn(() => 'blob:png')
-    global.URL.revokeObjectURL = jest.fn()
+    appendChild = vi.spyOn(document.body, 'appendChild')
+    global.URL.createObjectURL = vi.fn(() => 'blob:png')
+    global.URL.revokeObjectURL = vi.fn()
 
     // jsdom neither loads images nor implements canvas 2D; stand both in.
     stubImageLoad('load')
-    jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-      drawImage: jest.fn(),
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+      drawImage: vi.fn(),
     } as unknown as CanvasRenderingContext2D)
-    jest
-      .spyOn(HTMLCanvasElement.prototype, 'toBlob')
-      .mockImplementation((cb: BlobCallback) => cb(new Blob(['png'])))
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(
+      (cb: BlobCallback) => cb(new Blob(['png'])),
+    )
   })
 
   afterEach(() => {
     document.body.innerHTML = ''
-    jest.restoreAllMocks()
+    vi.restoreAllMocks()
   })
 
   test('rasterises the SVG and downloads it as a PNG', async () => {
@@ -132,13 +132,13 @@ describe('downloadSvgAsPng', () => {
    */
   const captureCanvasSize = () => {
     const size = { width: 0, height: 0 }
-    jest
-      .spyOn(HTMLCanvasElement.prototype, 'toBlob')
-      .mockImplementation(function (this: HTMLCanvasElement, cb: BlobCallback) {
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(
+      function (this: HTMLCanvasElement, cb: BlobCallback) {
         size.width = this.width
         size.height = this.height
         cb(new Blob(['png']))
-      })
+      },
+    )
     return size
   }
 
@@ -186,9 +186,9 @@ describe('downloadSvgAsPng', () => {
 
   test('reports a helpful error when the PNG cannot be encoded', async () => {
     // Arrange
-    jest
-      .spyOn(HTMLCanvasElement.prototype, 'toBlob')
-      .mockImplementation((cb: BlobCallback) => cb(null))
+    vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(
+      (cb: BlobCallback) => cb(null),
+    )
 
     // Act / Assert — the message must point at the SVG alternative.
     await expect(

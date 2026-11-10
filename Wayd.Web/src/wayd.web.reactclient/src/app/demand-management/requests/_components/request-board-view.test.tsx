@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   IntakeDeskDto,
@@ -32,20 +32,17 @@ const desk = (id: string, name: string, isOpen = true) =>
 const DESKS = [desk('d-product', 'Product delivery'), desk('d-it', 'IT')]
 
 let mockWorkflows: IntakeDeskWorkflowDto[] = []
-const mockWorkflowsQuery = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetIntakeDeskWorkflowsQuery: (deskIds: string[]) => {
-      mockWorkflowsQuery(deskIds)
-      return {
-        currentData: mockWorkflows,
-        isFetching: false,
-        isError: false,
-      }
-    },
-  }),
-)
+const mockWorkflowsQuery = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetIntakeDeskWorkflowsQuery: (deskIds: string[]) => {
+    mockWorkflowsQuery(deskIds)
+    return {
+      currentData: mockWorkflows,
+      isFetching: false,
+      isError: false,
+    }
+  },
+}))
 
 describe('boardTitle', () => {
   it('names the one desk the board is for', () => {
@@ -110,7 +107,7 @@ describe('RequestBoardView', () => {
         requests={[]}
         filters={DEFAULT_REQUEST_FILTERS}
         desks={DESKS}
-        onPickDesk={jest.fn()}
+        onPickDesk={vi.fn()}
       />,
     )
 
@@ -128,7 +125,7 @@ describe('RequestBoardView', () => {
         requests={[]}
         filters={DEFAULT_REQUEST_FILTERS}
         desks={undefined}
-        onPickDesk={jest.fn()}
+        onPickDesk={vi.fn()}
       />,
     )
 
@@ -148,7 +145,7 @@ describe('RequestBoardView', () => {
         requests={undefined}
         filters={DEFAULT_REQUEST_FILTERS}
         desks={DESKS}
-        onPickDesk={jest.fn()}
+        onPickDesk={vi.fn()}
       />,
     )
 
@@ -165,7 +162,7 @@ describe('RequestBoardView', () => {
       workflow('w-1', 'Intake review'),
       workflow('w-2', 'IT demand'),
     ]
-    const onPickDesk = jest.fn()
+    const onPickDesk = vi.fn()
     render(
       <RequestBoardView
         requests={[]}
@@ -176,7 +173,7 @@ describe('RequestBoardView', () => {
     )
 
     // Act
-    await act(() => userEvent.click(screen.getByRole('button', { name: 'IT' })))
+    await userEvent.click(screen.getByRole('button', { name: 'IT' }))
 
     // Assert
     expect(

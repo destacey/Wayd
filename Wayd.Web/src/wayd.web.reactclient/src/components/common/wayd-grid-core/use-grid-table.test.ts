@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react'
 
 import { mergeColumnVisibility, useGridState } from './use-grid-table'
@@ -57,7 +58,11 @@ describe('use-grid-table', () => {
 
     it('still lets the consumer force a hiddenByDefault column hidden', () => {
       // Arrange / Act
-      const merged = mergeColumnVisibility({ id: false }, { id: true }, { id: false })
+      const merged = mergeColumnVisibility(
+        { id: false },
+        { id: true },
+        { id: false },
+      )
 
       // Assert
       expect(merged).toEqual({ id: false })
@@ -97,9 +102,7 @@ describe('use-grid-table', () => {
       expect(result.current.columnPinning).toEqual({ start: [], end: [] })
       expect(result.current.columnOrder).toEqual([])
       expect(result.current.sorting).toEqual([{ id: 'name', desc: false }])
-      expect(result.current.columnFilters).toEqual([
-        { id: 'name', value: 'x' },
-      ])
+      expect(result.current.columnFilters).toEqual([{ id: 'name', value: 'x' }])
     })
   })
 })

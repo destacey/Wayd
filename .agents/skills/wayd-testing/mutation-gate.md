@@ -22,7 +22,7 @@ Skip code where a bug is impossible or harmless: auto-properties, records, plain
 
 ## Where it can run
 
-Only against a `Category=Unit` project, or a single Jest suite (baseline `npm run test:ci`, then `npx jest <path>` per mutation, from `Wayd.Web/src/wayd.web.reactclient`).
+Only against a `Category=Unit` project, or a single Vitest suite (`npx vitest run <path>` from `Wayd.Web/src/wayd.web.reactclient`, both for the baseline and per mutation — the full client run is minutes long and saturates the machine).
 
 | Change covered by | Instead of the loop |
 |---|---|

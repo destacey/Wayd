@@ -4,6 +4,7 @@ global.ResizeObserver = class {
   disconnect() {}
 }
 
+import type { Mock } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SprintMetrics from './sprint-metrics'
@@ -23,39 +24,37 @@ import {
 import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations/team-api'
 
 // Mock dayjs
-jest.mock('dayjs', () => {
-  const mockDayjs = jest.fn(() => ({
-    add: jest.fn().mockReturnThis(),
-    endOf: jest.fn().mockReturnThis(),
-    startOf: jest.fn().mockReturnThis(),
-    format: jest.fn(() => '2025-01-01'),
-    toDate: jest.fn(() => new Date()),
-  })) as jest.Mock & { extend: jest.Mock }
-  mockDayjs.extend = jest.fn()
-  return mockDayjs
+vi.mock('dayjs', () => {
+  const mockDayjs = vi.fn(() => ({
+    add: vi.fn().mockReturnThis(),
+    endOf: vi.fn().mockReturnThis(),
+    startOf: vi.fn().mockReturnThis(),
+    format: vi.fn(() => '2025-01-01'),
+    toDate: vi.fn(() => new Date()),
+  })) as Mock & { extend: Mock }
+  mockDayjs.extend = vi.fn()
+  return { default: mockDayjs }
 })
 
 // Mock the API hooks
-jest.mock('@/src/store/features/work-management/sprints-api', () => ({
-  useGetSprintMetricsQuery: jest.fn(),
-  useGetSprintScopeQuery: jest.fn(),
+vi.mock('@/src/store/features/work-management/sprints-api', () => ({
+  useGetSprintMetricsQuery: vi.fn(),
+  useGetSprintScopeQuery: vi.fn(),
 }))
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
-  useGetTeamSprintMetricsQuery: jest.fn(),
+vi.mock('@/src/store/features/organizations/team-api', () => ({
+  useGetTeamSprintMetricsQuery: vi.fn(),
 }))
 
 // The charts read their own query; the overview only places them.
-jest.mock('./sprint-burn-charts', () => ({
-  __esModule: true,
+vi.mock('./sprint-burn-charts', () => ({
   default: ({ byCount }: { byCount: boolean }) => (
     <div data-testid="burn-charts">{byCount ? 'count' : 'estimate'}</div>
   ),
 }))
 
 // Mock useTheme
-jest.mock('@/src/components/contexts/theme', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/theme', () => ({
   default: () => ({
     token: {
       colorSuccess: '#52c41a',
@@ -78,9 +77,11 @@ const card = (title: string, value: unknown, secondaryValue?: unknown) => (
 )
 
 // Mock Metrics components; the figures stay real so what is shown can be asserted.
-jest.mock('@/src/components/common/metrics', () => ({
-  sprintOverviewFigures: jest.requireActual(
-    '@/src/components/common/metrics/sprint-overview-figures',
+vi.mock('@/src/components/common/metrics', async () => ({
+  sprintOverviewFigures: (
+    await vi.importActual<any>(
+      '@/src/components/common/metrics/sprint-overview-figures',
+    )
   ).sprintOverviewFigures,
   METRIC_CARD_FLEX: {},
   MetricCard: ({
@@ -109,7 +110,7 @@ jest.mock('@/src/components/common/metrics', () => ({
 }))
 
 // Mock IterationHealthIndicator
-jest.mock('@/src/components/common/planning', () => ({
+vi.mock('@/src/components/common/planning', () => ({
   IterationHealthIndicator: ({
     completed,
     total,
@@ -217,11 +218,11 @@ describe('SprintMetrics', () => {
     scopeData: SprintScopeDto | undefined,
     isLoading = false,
   ) => {
-    ;(useGetSprintMetricsQuery as jest.Mock).mockReturnValue({
+    ;(useGetSprintMetricsQuery as Mock).mockReturnValue({
       data: metricsData,
       isLoading,
     })
-    ;(useGetSprintScopeQuery as jest.Mock).mockReturnValue({
+    ;(useGetSprintScopeQuery as Mock).mockReturnValue({
       data: scopeData,
       isLoading,
     })
@@ -233,11 +234,8 @@ describe('SprintMetrics', () => {
     )
 
   beforeEach(() => {
-    // The unit switch is remembered in local storage, stubbed in jest.setup; start each test with nothing stored.
-    ;(localStorage.getItem as jest.Mock).mockReset()
-    ;(localStorage.setItem as jest.Mock).mockClear()
     mockQueries(metrics, scope)
-    ;(useGetTeamSprintMetricsQuery as jest.Mock).mockReturnValue({
+    ;(useGetTeamSprintMetricsQuery as Mock).mockReturnValue({
       data: undefined,
     })
   })
@@ -251,7 +249,7 @@ describe('SprintMetrics', () => {
       sprints: 7,
     })
     const mockTeamMetrics = (sizingMethod: SizingMethod) =>
-      (useGetTeamSprintMetricsQuery as jest.Mock).mockReturnValue({
+      (useGetTeamSprintMetricsQuery as Mock).mockReturnValue({
         data: {
           teamId: 'team-1',
           sprintWindow: 7,
@@ -559,17 +557,12 @@ describe('SprintMetrics', () => {
       await waitFor(() =>
         expect(screen.getByTestId('burn-charts')).toHaveTextContent('count'),
       )
-      expect(localStorage.setItem).toHaveBeenCalledWith(
-        'sprint-overview-by-count',
-        'true',
-      )
+      expect(localStorage.getItem('sprint-overview-by-count')).toBe('true')
     })
 
     it('open in the unit the viewer last chose', () => {
       // Arrange
-      ;(localStorage.getItem as jest.Mock).mockImplementation((key: string) =>
-        key === 'sprint-overview-by-count' ? 'true' : null,
-      )
+      localStorage.setItem('sprint-overview-by-count', 'true')
 
       // Act
       render(<SprintMetrics sprint={activeSprint} />)
@@ -637,7 +630,7 @@ describe('SprintMetrics', () => {
   describe('health indicator', () => {
     it('measures health on work done against everything in the sprint but descoped work', async () => {
       // Arrange
-      const onHealthIndicatorReady = jest.fn()
+      const onHealthIndicatorReady = vi.fn()
 
       // Act
       render(
@@ -649,7 +642,7 @@ describe('SprintMetrics', () => {
 
       // Assert
       await waitFor(() => expect(onHealthIndicatorReady).toHaveBeenCalled())
-      render(onHealthIndicatorReady.mock.calls.at(-1)[0])
+      render(onHealthIndicatorReady.mock.calls.at(-1)![0])
       expect(
         screen.getByTestId('iteration-health-indicator'),
       ).toHaveTextContent('60/110')
@@ -658,7 +651,7 @@ describe('SprintMetrics', () => {
     it('is not reported while loading', () => {
       // Arrange
       mockQueries(undefined, undefined, true)
-      const onHealthIndicatorReady = jest.fn()
+      const onHealthIndicatorReady = vi.fn()
 
       // Act
       render(

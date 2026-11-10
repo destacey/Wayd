@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react'
 
 import {
@@ -18,59 +19,25 @@ const useHarness = (persistStateKey?: string) => {
 const STORAGE_KEY = gridStateStorageKey('test-grid')
 
 describe('use-grid-persistence', () => {
-  beforeAll(() => {
-    console.error = jest.fn()
-  })
-
   beforeEach(() => {
-    // jest.setup's localStorage stub has no backing store — replace it with a
-    // real in-memory implementation (same pattern as use-local-storage-state.test.ts)
-    const localStorageMock = (() => {
-      let store: Record<string, string> = {}
-      return {
-        getItem: (key: string) => store[key] ?? null,
-        setItem: (key: string, value: string) => {
-          store[key] = value
-        },
-        removeItem: (key: string) => {
-          delete store[key]
-        },
-        clear: () => {
-          store = {}
-        },
-        get length() {
-          return Object.keys(store).length
-        },
-        key: (index: number) => {
-          const keys = Object.keys(store)
-          return keys[index] ?? null
-        },
-      }
-    })()
-
-    Object.defineProperty(window, 'localStorage', {
-      value: localStorageMock,
-      writable: true,
-    })
-
-    jest.useFakeTimers()
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   describe('useGridColumnStatePersistence', () => {
     it('never touches storage without a persist key', () => {
       // Arrange
-      const getItemSpy = jest.spyOn(window.localStorage, 'getItem')
-      const setItemSpy = jest.spyOn(window.localStorage, 'setItem')
+      const getItemSpy = vi.spyOn(Storage.prototype, 'getItem')
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
 
       // Act
       const { result } = renderHook(() => useHarness(undefined))
       act(() => {
         result.current.setColumnSizing({ name: 240 })
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
 
       // Assert
@@ -80,12 +47,12 @@ describe('use-grid-persistence', () => {
 
     it('keeps defaults and writes nothing when no entry is stored', () => {
       // Arrange
-      const setItemSpy = jest.spyOn(window.localStorage, 'setItem')
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
 
       // Act
       const { result } = renderHook(() => useHarness('test-grid'))
       act(() => {
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
 
       // Assert — pristine grids leave no localStorage residue
@@ -161,7 +128,7 @@ describe('use-grid-persistence', () => {
       // Act - first mount migrates, debounce flushes the write, remount reads
       const first = renderHook(() => useHarness('test-grid'))
       act(() => {
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
       first.unmount()
       const second = renderHook(() => useHarness('test-grid'))
@@ -214,12 +181,12 @@ describe('use-grid-persistence', () => {
           columnPinning: { start: [], end: [] },
         }),
       )
-      const setItemSpy = jest.spyOn(window.localStorage, 'setItem')
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
 
       // Act
       const { result } = renderHook(() => useHarness('test-grid'))
       act(() => {
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
 
       // Assert — still valid, order defaults to [], and nothing is rewritten
@@ -237,7 +204,7 @@ describe('use-grid-persistence', () => {
         result.current.setColumnOrder(['team', 'name'])
       })
       act(() => {
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
 
       // Assert
@@ -251,7 +218,7 @@ describe('use-grid-persistence', () => {
 
     it('treats an empty order as default (no write)', () => {
       // Arrange
-      const setItemSpy = jest.spyOn(window.localStorage, 'setItem')
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
       const { result } = renderHook(() => useHarness('test-grid'))
 
       // Act — set then clear the order back to empty
@@ -262,7 +229,7 @@ describe('use-grid-persistence', () => {
         result.current.setColumnOrder([])
       })
       act(() => {
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
 
       // Assert — back to all-default: no residual entry
@@ -281,12 +248,12 @@ describe('use-grid-persistence', () => {
           columnPinning: { start: [], end: [] },
         }),
       )
-      const setItemSpy = jest.spyOn(window.localStorage, 'setItem')
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
 
       // Act
       renderHook(() => useHarness('test-grid'))
       act(() => {
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
 
       // Assert — applying the loaded state must not trigger a save
@@ -295,7 +262,7 @@ describe('use-grid-persistence', () => {
 
     it('debounces rapid changes into a single write of the full payload', () => {
       // Arrange
-      const setItemSpy = jest.spyOn(window.localStorage, 'setItem')
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
       const { result } = renderHook(() => useHarness('test-grid'))
 
       // Act — simulate a resize drag: many sizing updates in quick succession
@@ -310,7 +277,7 @@ describe('use-grid-persistence', () => {
         result.current.setColumnPinning({ start: ['key'], end: [] })
       })
       act(() => {
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
 
       // Assert
@@ -334,7 +301,7 @@ describe('use-grid-persistence', () => {
         }))
       })
       act(() => {
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
 
       // Assert
@@ -363,7 +330,7 @@ describe('use-grid-persistence', () => {
         result.current.resetColumnState()
       })
       act(() => {
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
 
       // Assert — reset doubles as "delete the stored layout"
@@ -456,7 +423,7 @@ describe('use-grid-persistence', () => {
         result.current.setColumnSizing({ name: 999 })
       })
       act(() => {
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
       unmount()
 

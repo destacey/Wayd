@@ -1,6 +1,5 @@
 import type React from 'react'
 import { fireEvent, render, screen } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import { MarkdownCodeBlock, MarkdownCodeBlockProps } from '.'
 
 describe('MarkdownCodeBlock', () => {
@@ -18,13 +17,13 @@ describe('MarkdownCodeBlock', () => {
   beforeEach(() => {
     Object.assign(navigator, {
       clipboard: {
-        writeText: jest.fn().mockResolvedValue(undefined),
+        writeText: vi.fn().mockResolvedValue(undefined),
       },
     })
   })
 
   afterEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('renders the component with the correct styles and children', () => {
@@ -33,7 +32,7 @@ describe('MarkdownCodeBlock', () => {
     const codeElement = screen.getByText('Sample code block')
     expect(codeElement).toBeInTheDocument()
     expect(codeElement).toHaveStyle('font-family: monospace')
-    expect(codeElement).toHaveStyle('font-size: 0.9em')
+    expect(codeElement.style.fontSize).toBe('0.9em')
   })
 
   it('copies the code block content to the clipboard when the copy button is clicked', () => {

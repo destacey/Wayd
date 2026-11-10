@@ -14,27 +14,21 @@ const version = {
   status: { id: 'status-1', name: 'Planned', category: 'Proposed', alias: 0 },
 } as unknown as VersionDto
 
-const updateVersion = jest.fn().mockResolvedValue({ data: undefined })
+const updateVersion = vi.fn().mockResolvedValue({ data: undefined })
 
-jest.mock('@/src/components/common/markdown', () => ({
+vi.mock('@/src/components/common/markdown', () => ({
   MarkdownEditor: () => <textarea data-testid="markdown-editor" />,
 }))
 
-// Ships as untranspiled ESM, which Jest cannot parse from node_modules.
-jest.mock('antd/es/input/TextArea', () => ({
-  __esModule: true,
-  default: (props: Record<string, unknown>) => <textarea {...props} />,
-}))
-
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 // Not spread from the real barrel: it re-exports store-bound hooks, and pulling
 // those in initialises a store this form never touches. The form instance is
 // real, though — antd's Form binds to it, and a stub breaks on render.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -51,13 +45,13 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk: async () => await onSubmit(form.getFieldsValue(), form),
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-jest.mock('@/src/store/features/product-management/versions-api', () => ({
+vi.mock('@/src/store/features/product-management/versions-api', () => ({
   useUpdateVersionMutation: () => [updateVersion],
 }))
 

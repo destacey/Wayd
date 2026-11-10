@@ -69,19 +69,19 @@ const FREE_TAGS = [
   },
 ]
 
-const mockTagProduct = jest.fn()
-const mockTagProductByName = jest.fn()
-const mockUntagProduct = jest.fn()
+const mockTagProduct = vi.fn()
+const mockTagProductByName = vi.fn()
+const mockUntagProduct = vi.fn()
 let mockAllowsFreeTags = false
 let mockSettingsFailed = false
-const mockMessageError = jest.fn()
+const mockMessageError = vi.fn()
 
 // Not spread from the real barrel: it re-exports store-bound hooks, and pulling those
 // in initialises a store this form never touches. The form instance is real, though —
 // antd's Form binds to it, and a stub object breaks on render. handleOk runs the real
 // submit so the diffing under test is exercised end to end.
-jest.mock('@/src/hooks', () => {
-  const { Form: AntForm } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form: AntForm } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -99,17 +99,17 @@ jest.mock('@/src/hooks', () => {
         handleOk: async () => {
           if (await onSubmit(form.getFieldsValue(), form)) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: mockMessageError, success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: mockMessageError, success: vi.fn() }),
 }))
 
-jest.mock(
+vi.mock(
   '@/src/store/features/product-management/product-tag-categories-api',
   () => ({
     useGetProductTagCategoriesQuery: () => ({
@@ -119,13 +119,13 @@ jest.mock(
   }),
 )
 
-jest.mock('@/src/store/features/product-management/products-api', () => ({
+vi.mock('@/src/store/features/product-management/products-api', () => ({
   useTagProductMutation: () => [mockTagProduct],
   useTagProductByNameMutation: () => [mockTagProductByName],
   useUntagProductMutation: () => [mockUntagProduct],
 }))
 
-jest.mock('@/src/store/features/product-management/product-tags-api', () => ({
+vi.mock('@/src/store/features/product-management/product-tags-api', () => ({
   useGetProductTagsSettingsQuery: () => ({
     data: mockSettingsFailed
       ? undefined
@@ -144,8 +144,8 @@ const renderForm = async () =>
     render(
       <ManageProductTagsForm
         product={product}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -158,11 +158,7 @@ const selectOption = async (categoryLabel: string, optionName: string) => {
   const user = userEvent.setup()
   const field = fieldFor(categoryLabel)
 
-  await act(async () => {
-    await user.click(
-      field.querySelector('input[role="combobox"]') as HTMLElement,
-    )
-  })
+  await user.click(field.querySelector('input[role="combobox"]') as HTMLElement)
 
   // antd portals each dropdown out of the form, every opened field keeps its own
   // mounted, and a selected tag renders a titled element of its own — so neither a
@@ -180,16 +176,12 @@ const selectOption = async (categoryLabel: string, optionName: string) => {
     return el
   })
 
-  await act(async () => {
-    await user.click(await within(dropdown).findByTitle(optionName))
-  })
+  await user.click(await within(dropdown).findByTitle(optionName))
 }
 
 const save = async () => {
   const user = userEvent.setup()
-  await act(async () => {
-    await user.click(screen.getByRole('button', { name: 'Save' }))
-  })
+  await user.click(screen.getByRole('button', { name: 'Save' }))
 }
 
 describe('ManageProductTagsForm', () => {
@@ -331,9 +323,7 @@ describe('ManageProductTagsForm', () => {
 
     // Act — the field's comma separator commits each entry, which jsdom drives reliably
     await selectOption('Tier', 'gold')
-    await act(async () => {
-      await userEvent.type(input, 'follow up,')
-    })
+    await userEvent.type(input, 'follow up,')
     await save()
 
     // Assert
@@ -360,9 +350,7 @@ describe('ManageProductTagsForm', () => {
     ) as HTMLElement
 
     // Act
-    await act(async () => {
-      await userEvent.click(removeButton)
-    })
+    await userEvent.click(removeButton)
     await save()
 
     // Assert

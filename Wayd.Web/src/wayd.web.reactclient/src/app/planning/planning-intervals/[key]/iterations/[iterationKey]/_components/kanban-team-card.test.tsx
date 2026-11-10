@@ -5,12 +5,11 @@ import {
   SizingMethod,
 } from '@/src/services/wayd-api'
 
-jest.mock('@/src/components/contexts/theme', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/theme', () => ({
   default: () => ({ token: { colorSuccess: '#52c41a' } }),
 }))
 
-jest.mock('@/src/components/common/metrics', () => ({
+vi.mock('@/src/components/common/metrics', () => ({
   MetricCard: ({ title, value }: { title: string; value: any }) => (
     <div data-testid={`metric-${title}`}>
       <span data-testid={`value-${title}`}>{value}</span>
@@ -23,12 +22,11 @@ jest.mock('@/src/components/common/metrics', () => ({
   ),
 }))
 
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   WaydTooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))
 
-jest.mock('next/link', () => ({
-  __esModule: true,
+vi.mock('next/link', () => ({
   default: ({
     children,
     href,

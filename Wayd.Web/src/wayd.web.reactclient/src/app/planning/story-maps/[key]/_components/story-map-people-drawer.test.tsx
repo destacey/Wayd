@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
@@ -8,8 +9,8 @@ import {
 import StoryMapPeopleDrawer, { accessSummary } from './story-map-people-drawer'
 import { useGetStoryMapEditorTeamMembersQuery } from '@/src/store/features/planning/story-maps-api'
 
-jest.mock('@/src/store/features/planning/story-maps-api', () => ({
-  useGetStoryMapEditorTeamMembersQuery: jest.fn(),
+vi.mock('@/src/store/features/planning/story-maps-api', () => ({
+  useGetStoryMapEditorTeamMembersQuery: vi.fn(),
 }))
 
 const employee = (id: string, name: string) => ({ id, key: 1, name })
@@ -28,14 +29,14 @@ const map = {
 
 describe('StoryMapPeopleDrawer', () => {
   beforeEach(() => {
-    ;(useGetStoryMapEditorTeamMembersQuery as jest.Mock).mockReturnValue({
+    ;(useGetStoryMapEditorTeamMembersQuery as Mock).mockReturnValue({
       data: [employee('t-1', 'Tam Teammate')],
       isFetching: false,
     })
   })
 
   it('lists owners, editors and who can see and edit the map', () => {
-    render(<StoryMapPeopleDrawer map={map} open onClose={jest.fn()} />)
+    render(<StoryMapPeopleDrawer map={map} open onClose={vi.fn()} />)
 
     expect(screen.getByText('Olive Owner')).toBeInTheDocument()
     expect(screen.getByText('Eddie Editor')).toBeInTheDocument()
@@ -45,7 +46,7 @@ describe('StoryMapPeopleDrawer', () => {
   })
 
   it('expands an editor team into its members', async () => {
-    render(<StoryMapPeopleDrawer map={map} open onClose={jest.fn()} />)
+    render(<StoryMapPeopleDrawer map={map} open onClose={vi.fn()} />)
 
     expect(useGetStoryMapEditorTeamMembersQuery).toHaveBeenLastCalledWith(
       { storyMapId: 'map-1', teamId: 'team-1' },
@@ -66,7 +67,7 @@ describe('StoryMapPeopleDrawer', () => {
       <StoryMapPeopleDrawer
         map={{ ...map, owners: [] }}
         open
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     )
 

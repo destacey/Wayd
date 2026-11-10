@@ -5,18 +5,14 @@ import IntakeDeskWorkflow from './intake-desk-workflow'
 let mockWorkflow: any
 let mockCanViewWorkflows = false
 
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetIntakeDeskWorkflowQuery: () => ({
-      data: mockWorkflow,
-      isLoading: false,
-    }),
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetIntakeDeskWorkflowQuery: () => ({
+    data: mockWorkflow,
+    isLoading: false,
   }),
-)
+}))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     hasPermissionClaim: (claim: string) =>
       claim === 'Permissions.StatusWorkflows.View' && mockCanViewWorkflows,
@@ -24,8 +20,7 @@ jest.mock('@/src/components/contexts/auth', () => ({
 }))
 
 // The form is covered on its own; here only whether the setting opens it.
-jest.mock('./change-intake-desk-workflow-form', () => ({
-  __esModule: true,
+vi.mock('./change-intake-desk-workflow-form', () => ({
   default: () => <div>Change Workflow form</div>,
 }))
 

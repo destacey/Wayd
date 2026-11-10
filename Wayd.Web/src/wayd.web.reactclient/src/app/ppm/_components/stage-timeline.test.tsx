@@ -1,7 +1,3 @@
-// The global dayjs stub reads a calendar date as UTC midnight, which is the
-// previous day west of UTC.
-jest.unmock('dayjs')
-
 import { render, screen, act } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { ProjectStageListDto } from '@/src/services/wayd-api'

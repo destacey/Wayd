@@ -6,7 +6,7 @@ describe('FilterPopup', () => {
   describe('text filter', () => {
     it('emits a text descriptor as the user types a value', () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <FilterPopup filterType="text" value={undefined} onChange={onChange} />,
       )
@@ -26,7 +26,7 @@ describe('FilterPopup', () => {
 
     it('adds a second condition up to the max, then hides the add button', () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <FilterPopup
           filterType="text"
@@ -64,7 +64,7 @@ describe('FilterPopup', () => {
             ],
             join: 'AND',
           }}
-          onChange={jest.fn()}
+          onChange={vi.fn()}
           maxConditions={2}
         />,
       )
@@ -75,7 +75,7 @@ describe('FilterPopup', () => {
 
     it('clears the filter via Clear', () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <FilterPopup
           filterType="text"

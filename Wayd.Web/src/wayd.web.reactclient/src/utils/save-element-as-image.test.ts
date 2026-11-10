@@ -1,7 +1,9 @@
+// @vitest-environment jsdom
+import type { Mock } from 'vitest'
 import html2canvas from 'html2canvas'
 import { saveElementAsImage } from './save-element-as-image'
 
-jest.mock('html2canvas', () => jest.fn())
+vi.mock('html2canvas', () => ({ default: vi.fn() }))
 
 describe('saveElementAsImage', () => {
   let element: HTMLElement
@@ -14,14 +16,14 @@ describe('saveElementAsImage', () => {
 
     // Mock html2canvas to return a dummy canvas
     const canvas = document.createElement('canvas')
-    canvas.toDataURL = jest.fn(() => 'data:image/png;base64,dummy')
-    ;(html2canvas as jest.Mock).mockResolvedValue(canvas)
+    canvas.toDataURL = vi.fn(() => 'data:image/png;base64,dummy')
+    ;(html2canvas as Mock).mockResolvedValue(canvas)
   })
 
   afterEach(() => {
     // Clean up the DOM
     document.body.innerHTML = ''
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   test('calls html2canvas with the provided element', async () => {
@@ -31,9 +33,9 @@ describe('saveElementAsImage', () => {
   })
 
   test('triggers a download with the correct filename', async () => {
-    const createElementSpy = jest.spyOn(document, 'createElement')
-    const appendChildSpy = jest.spyOn(document.body, 'appendChild')
-    const removeChildSpy = jest.spyOn(document.body, 'removeChild')
+    const createElementSpy = vi.spyOn(document, 'createElement')
+    const appendChildSpy = vi.spyOn(document.body, 'appendChild')
+    const removeChildSpy = vi.spyOn(document.body, 'removeChild')
 
     await saveElementAsImage(element, 'custom-filename.png')
 
@@ -53,7 +55,9 @@ describe('saveElementAsImage', () => {
   })
 
   test('handles missing element gracefully', async () => {
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
 
     await saveElementAsImage(null as any)
 
@@ -79,7 +83,10 @@ describe('saveElementAsImage', () => {
   })
 
   test('uses devicePixelRatio when greater than 2', async () => {
-    const descriptor = Object.getOwnPropertyDescriptor(window, 'devicePixelRatio')
+    const descriptor = Object.getOwnPropertyDescriptor(
+      window,
+      'devicePixelRatio',
+    )
     Object.defineProperty(window, 'devicePixelRatio', {
       value: 3,
       writable: true,
@@ -112,8 +119,10 @@ describe('saveElementAsImage', () => {
   })
 
   test('logs an error if html2canvas fails', async () => {
-    ;(html2canvas as jest.Mock).mockRejectedValue(new Error('Canvas error'))
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation()
+    ;(html2canvas as Mock).mockRejectedValue(new Error('Canvas error'))
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {})
 
     await saveElementAsImage(element)
 

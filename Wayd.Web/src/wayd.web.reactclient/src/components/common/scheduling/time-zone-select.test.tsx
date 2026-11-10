@@ -2,9 +2,9 @@ import { render, screen } from '@testing-library/react'
 import { TimeZoneDto } from '@/src/services/wayd-api'
 import TimeZoneSelect, { timeZoneLabel } from './time-zone-select'
 
-const mockUseGetTimeZonesQuery = jest.fn()
+const mockUseGetTimeZonesQuery = vi.fn()
 
-jest.mock('@/src/store/features/common/time-zones-api', () => ({
+vi.mock('@/src/store/features/common/time-zones-api', () => ({
   useGetTimeZonesQuery: () => mockUseGetTimeZonesQuery(),
 }))
 

@@ -3,16 +3,13 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SubmitIntakeRequestPage from './page'
 
-// jest.setup stubs dayjs down to formatting; the date pickers need the real module.
-jest.unmock('dayjs')
-
-const mockPush = jest.fn()
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush, back: jest.fn() }),
+const mockPush = vi.fn()
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush, back: vi.fn() }),
 }))
 
-// The markdown editor pulls in ESM-only packages Jest cannot parse.
-jest.mock('@/src/components/common/markdown', () => ({
+// The markdown renderer and editor have their own suites; plain stand-ins keep this one on the form.
+vi.mock('@/src/components/common/markdown', () => ({
   MarkdownRenderer: ({ markdown }: { markdown: string }) => (
     <div>{markdown}</div>
   ),
@@ -31,24 +28,24 @@ jest.mock('@/src/components/common/markdown', () => ({
   ),
 }))
 
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   PageTitle: ({ title }: { title: string }) => <h1>{title}</h1>,
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 let mockEmployeeId: string | null = 'e-1'
-jest.mock('@/src/hooks', () => ({
-  useDocumentTitle: jest.fn(),
+vi.mock('@/src/hooks', () => ({
+  useDocumentTitle: vi.fn(),
   useLinkedEmployee: () => ({
     employeeId: mockEmployeeId,
     hasLinkedEmployee: mockEmployeeId !== null,
   }),
 }))
 
-jest.mock('@/src/components/hoc', () => ({
+vi.mock('@/src/components/hoc', () => ({
   authorizePage: (Component: React.ComponentType<any>) => Component,
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
@@ -70,34 +67,31 @@ const desk = (id: string, name: string, description: string) => ({
 let mockDesks: any[] = []
 // The channels the chosen desk offers.
 let mockChannels: any[] = []
-const mockCreate = jest.fn()
+const mockCreate = vi.fn()
 
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetIntakeDesksQuery: () => ({ data: mockDesks, isLoading: false }),
-    useGetIntakeChannelsQuery: () => ({ data: mockChannels }),
-    useGetIntakeEmployeeOptionsQuery: () => ({
-      data: [
-        { id: 'e-1', key: 1, name: 'Avery Example' },
-        { id: 'e-2', key: 2, name: 'Blake Sample' },
-      ],
-    }),
-    useGetNeedByBasesQuery: () => ({ data: [] }),
-    useGetNeedByBasisFamiliesQuery: () => ({ data: [] }),
-    useCreateIntakeRequestMutation: () => [mockCreate],
-    useGetIntakeDeskWorkflowQuery: () => ({
-      data: undefined,
-      isLoading: false,
-    }),
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetIntakeDesksQuery: () => ({ data: mockDesks, isLoading: false }),
+  useGetIntakeChannelsQuery: () => ({ data: mockChannels }),
+  useGetIntakeEmployeeOptionsQuery: () => ({
+    data: [
+      { id: 'e-1', key: 1, name: 'Avery Example' },
+      { id: 'e-2', key: 2, name: 'Blake Sample' },
+    ],
   }),
-)
+  useGetNeedByBasesQuery: () => ({ data: [] }),
+  useGetNeedByBasisFamiliesQuery: () => ({ data: [] }),
+  useCreateIntakeRequestMutation: () => [mockCreate],
+  useGetIntakeDeskWorkflowQuery: () => ({
+    data: undefined,
+    isLoading: false,
+  }),
+}))
 
 const renderPage = async () =>
   await act(async () => render(<SubmitIntakeRequestPage />))
 
 const clickButton = (name: string) =>
-  act(() => userEvent.click(screen.getByRole('button', { name })))
+  userEvent.click(screen.getByRole('button', { name }))
 
 /** Continues past the ask and the why-and-when steps, then submits from the check. */
 const submitThroughSteps = async () => {
@@ -184,9 +178,7 @@ describe('SubmitIntakeRequestPage', () => {
     ).toBeInTheDocument()
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByText('Changes to what we sell')),
-    )
+    await userEvent.click(screen.getByText('Changes to what we sell'))
 
     // Assert — the title names the chosen desk for the rest of the form
     expect(await screen.findByLabelText('Title')).toBeInTheDocument()
@@ -202,14 +194,10 @@ describe('SubmitIntakeRequestPage', () => {
       desk('d-2', 'Product', 'Changes to what we sell'),
     ]
     await renderPage()
-    await act(() =>
-      userEvent.click(screen.getByText('Changes to what we sell')),
-    )
+    await userEvent.click(screen.getByText('Changes to what we sell'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Back' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }))
 
     // Assert
     expect(
@@ -227,22 +215,14 @@ describe('SubmitIntakeRequestPage', () => {
       unwrap: () => Promise.resolve({ id: 'r-1', key: 42 }),
     })
     await renderPage()
-    await act(() =>
-      userEvent.click(screen.getByText('Laptops, access and software')),
-    )
-    await act(() =>
-      userEvent.click(screen.getByLabelText('Where did this come from?')),
-    )
-    await act(() => userEvent.click(screen.getByTitle('Security')))
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Back' })),
-    )
+    await userEvent.click(screen.getByText('Laptops, access and software'))
+    await userEvent.click(screen.getByLabelText('Where did this come from?'))
+    await userEvent.click(screen.getByTitle('Security'))
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }))
 
     // Act — the other desk offers no channel
     mockChannels = []
-    await act(() =>
-      userEvent.click(screen.getByText('Changes to what we sell')),
-    )
+    await userEvent.click(screen.getByText('Changes to what we sell'))
     await userEvent.type(screen.getByLabelText('Title'), 'Export invoices')
     await userEvent.type(
       screen.getAllByLabelText('markdown')[0],
@@ -283,10 +263,8 @@ describe('SubmitIntakeRequestPage', () => {
       screen.getAllByLabelText('markdown')[0],
       'Mine is five years old',
     )
-    await act(() =>
-      userEvent.click(screen.getByLabelText('Where did this come from?')),
-    )
-    await act(() => userEvent.click(screen.getByTitle('Security')))
+    await userEvent.click(screen.getByLabelText('Where did this come from?'))
+    await userEvent.click(screen.getByTitle('Security'))
 
     // Act
     await submitThroughSteps()
@@ -341,21 +319,17 @@ describe('SubmitIntakeRequestPage', () => {
       unwrap: () => Promise.resolve({ id: 'r-2', key: 43 }),
     })
     await renderPage()
-    await act(() =>
-      userEvent.click(screen.getByText('Changes to what we sell')),
-    )
+    await userEvent.click(screen.getByText('Changes to what we sell'))
     await userEvent.type(await screen.findByLabelText('Title'), 'Bulk export')
     await userEvent.type(screen.getAllByLabelText('markdown')[0], 'For finance')
-    await act(() =>
-      userEvent.click(screen.getByLabelText('Where did this come from?')),
-    )
-    await act(() => userEvent.click(screen.getByTitle('Security')))
+    await userEvent.click(screen.getByLabelText('Where did this come from?'))
+    await userEvent.click(screen.getByTitle('Security'))
     const requester = screen
       .getByText('Requested by')
       .closest('.ant-form-item')!
       .querySelector('.ant-select')!
-    await act(() => userEvent.click(requester.querySelector('input')!))
-    await act(() => userEvent.click(screen.getByTitle('Blake Sample')))
+    await userEvent.click(requester.querySelector('input')!)
+    await userEvent.click(screen.getByTitle('Blake Sample'))
 
     // Act
     await submitThroughSteps()
@@ -390,10 +364,8 @@ describe('SubmitIntakeRequestPage', () => {
     await renderPage()
     await userEvent.type(screen.getByLabelText('Title'), 'New laptop')
     await userEvent.type(screen.getAllByLabelText('markdown')[0], 'Old one')
-    await act(() =>
-      userEvent.click(screen.getByLabelText('Where did this come from?')),
-    )
-    await act(() => userEvent.click(screen.getByTitle('Security')))
+    await userEvent.click(screen.getByLabelText('Where did this come from?'))
+    await userEvent.click(screen.getByTitle('Security'))
 
     // Act
     await clickButton('Continue')
@@ -421,10 +393,8 @@ describe('SubmitIntakeRequestPage', () => {
     await renderPage()
     await userEvent.type(screen.getByLabelText('Title'), 'New laptop')
     await userEvent.type(screen.getAllByLabelText('markdown')[0], 'Old one')
-    await act(() =>
-      userEvent.click(screen.getByLabelText('Where did this come from?')),
-    )
-    await act(() => userEvent.click(screen.getByTitle('Security')))
+    await userEvent.click(screen.getByLabelText('Where did this come from?'))
+    await userEvent.click(screen.getByTitle('Security'))
 
     // Act
     await submitThroughSteps()

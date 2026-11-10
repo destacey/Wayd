@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { message } from 'antd'
@@ -7,21 +8,20 @@ import { MessageProvider } from '../contexts/messaging'
 const DummyForm: React.FC = () => <div>Dummy Form</div>
 DummyForm.displayName = 'DummyForm'
 
-const mockHasClaim = jest.fn()
-jest.mock('../contexts/auth', () => ({
-  __esModule: true,
+const mockHasClaim = vi.fn()
+vi.mock('../contexts/auth', () => ({
   default: () => ({
     hasClaim: mockHasClaim,
   }),
 }))
 
-jest.mock('antd', () => ({
-  ...jest.requireActual('antd'),
+vi.mock('antd', async () => ({
+  ...(await vi.importActual<any>('antd')),
   message: {
-    error: jest.fn(),
-    useMessage: jest.fn(() => [
+    error: vi.fn(),
+    useMessage: vi.fn(() => [
       {
-        error: jest.fn(),
+        error: vi.fn(),
       },
       <div key="contextHolder" />,
     ]),
@@ -29,12 +29,12 @@ jest.mock('antd', () => ({
 }))
 
 describe('authorizeForm HOC', () => {
-  let onNotAuthorized: jest.Mock
+  let onNotAuthorized: Mock
 
   beforeEach(() => {
-    onNotAuthorized = jest.fn()
+    onNotAuthorized = vi.fn()
     mockHasClaim.mockReset()
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   const renderWithMessageProvider = (ui: React.ReactElement) => {
@@ -58,7 +58,7 @@ describe('authorizeForm HOC', () => {
     await waitFor(() => {
       expect(onNotAuthorized).toHaveBeenCalledTimes(1)
 
-      const [mockMessageApi] = (message.useMessage as jest.Mock).mock.results[0]
+      const [mockMessageApi] = (message.useMessage as Mock).mock.results[0]
         .value
       expect(mockMessageApi.error).toHaveBeenCalledWith(
         'You do not have the correct permissions to access this form.',

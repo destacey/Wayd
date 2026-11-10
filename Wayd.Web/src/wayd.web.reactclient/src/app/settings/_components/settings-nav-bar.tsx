@@ -48,7 +48,9 @@ const SettingsNavBar = () => {
         <span className={styles.location}>
           <span className={styles.visuallyHidden}>Settings menu: </span>
           {location?.group && (
-            <span className={styles.group}>{location.group} › </span>
+            <>
+              <span className={styles.group}>{location.group} ›</span>{' '}
+            </>
           )}
           {location?.page ?? 'Settings'}
         </span>

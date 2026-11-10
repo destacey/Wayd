@@ -4,7 +4,7 @@ import StatusWorkflowsPage from './page'
 
 // The grid is not under test: the page hands its rows' actions to the actions column, captured here.
 let mockGetItems: ((workflow: any) => any[]) | undefined
-jest.mock('@/src/components/common/wayd-grid-core', () => ({
+vi.mock('@/src/components/common/wayd-grid-core', () => ({
   createActionsColumn: ({
     getItems,
   }: {
@@ -14,26 +14,31 @@ jest.mock('@/src/components/common/wayd-grid-core', () => ({
     return { id: 'actions' }
   },
 }))
-jest.mock('@/src/components/common/wayd-grid', () => ({
+vi.mock('@/src/components/common/wayd-grid', () => ({
   WaydGrid: () => null,
 }))
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   PageTitle: () => null,
 }))
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => true }),
 }))
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
-jest.mock('@/src/hooks', () => ({ useDocumentTitle: jest.fn() }))
-jest.mock('@/src/components/hoc', () => ({
+vi.mock('@/src/hooks', () => ({ useDocumentTitle: vi.fn() }))
+vi.mock('@/src/components/hoc', () => ({
   authorizePage: (Component: React.ComponentType<any>) => Component,
 }))
-jest.mock('./_components/clone-status-workflow-form', () => () => null)
-jest.mock('./_components/reassign-workflow-modal', () => () => null)
-jest.mock('./_components/create-status-workflow-form', () => () => null)
+vi.mock('./_components/clone-status-workflow-form', () => ({
+  default: () => null,
+}))
+vi.mock('./_components/reassign-workflow-modal', () => ({
+  default: () => null,
+}))
+vi.mock('./_components/create-status-workflow-form', () => ({
+  default: () => null,
+}))
 
 const assignment = (workflowId: string, scopeId?: string) => ({
   id: `a-${workflowId}-${scopeId ?? 'org'}`,
@@ -46,16 +51,16 @@ const mockAssignments = [
   assignment('w-default'),
   assignment('w-board', 'desk-1'),
 ]
-jest.mock('@/src/store/features/common/status-workflows-api', () => ({
+vi.mock('@/src/store/features/common/status-workflows-api', () => ({
   useGetStatusWorkflowsQuery: () => ({
     data: [],
     isLoading: false,
     error: undefined,
-    refetch: jest.fn(),
+    refetch: vi.fn(),
   }),
   useGetWorkflowAssignmentsQuery: () => ({
     data: mockAssignments,
-    refetch: jest.fn(),
+    refetch: vi.fn(),
   }),
 }))
 

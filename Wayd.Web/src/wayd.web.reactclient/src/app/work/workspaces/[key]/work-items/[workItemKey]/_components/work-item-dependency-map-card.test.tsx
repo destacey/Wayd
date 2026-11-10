@@ -16,8 +16,7 @@ import WorkItemDependencyMapCard from './work-item-dependency-map-card'
 
 // The canvas measures itself and reads the theme provider, neither of which this test supplies. The stub
 // renders what the card hands it and exposes the expand buttons; the map's own tests cover drawing.
-jest.mock('@/src/components/common/dependency-map/dependency-map', () => ({
-  __esModule: true,
+vi.mock('@/src/components/common/dependency-map/dependency-map', () => ({
   default: ({
     nodes,
     edges,
@@ -63,8 +62,7 @@ jest.mock('@/src/components/common/dependency-map/dependency-map', () => ({
 }))
 
 // The drawer fetches its work item; the card only decides which one it opens.
-jest.mock('./work-item-drawer', () => ({
-  __esModule: true,
+vi.mock('./work-item-drawer', () => ({
   default: ({
     workspaceKey,
     workItemKey,
@@ -84,8 +82,8 @@ jest.mock('./work-item-drawer', () => ({
     ),
 }))
 
-jest.mock('./use-expanded-work-item-dependencies', () => ({
-  useExpandedWorkItemDependencies: jest.fn(),
+vi.mock('./use-expanded-work-item-dependencies', () => ({
+  useExpandedWorkItemDependencies: vi.fn(),
 }))
 
 const workItem = {
@@ -124,10 +122,7 @@ const dependency = (
   createdOn: new Date('2026-01-01'),
 })
 
-const renderCard = (
-  dependencies: ScopedDependencyDto[],
-  onViewAll = jest.fn(),
-) =>
+const renderCard = (dependencies: ScopedDependencyDto[], onViewAll = vi.fn()) =>
   render(
     <WorkItemDependencyMapCard
       workItem={workItem}
@@ -136,25 +131,15 @@ const renderCard = (
     />,
   )
 
-// An in-memory session, so what the card writes is what it reads back.
-let session: Record<string, string>
-const getStored = jest.mocked(window.sessionStorage.getItem)
-const setStored = jest.mocked(window.sessionStorage.setItem)
-const expanded = jest.mocked(useExpandedWorkItemDependencies)
+const expanded = vi.mocked(useExpandedWorkItemDependencies)
 
 describe('WorkItemDependencyMapCard', () => {
   beforeEach(() => {
-    session = {}
-    getStored.mockImplementation((key: string) => session[key] ?? null)
-    setStored.mockImplementation((key: string, value: string) => {
-      session[key] = value
-    })
     expanded.mockReturnValue({})
   })
 
   afterEach(() => {
-    getStored.mockReset()
-    setStored.mockReset()
+    vi.restoreAllMocks()
     expanded.mockReset()
   })
 
@@ -168,7 +153,7 @@ describe('WorkItemDependencyMapCard', () => {
 
   it('draws every link, each in a style the card defines', async () => {
     // Arrange
-    session[WORK_ITEM_DEPENDENCY_FILTER_KEY] = 'all'
+    sessionStorage.setItem(WORK_ITEM_DEPENDENCY_FILTER_KEY, 'all')
     renderCard([
       dependency('d1', auth, 'Predecessor', 'To Do', 'Unhealthy'),
       dependency('d2', refund, 'Successor', 'Done'),
@@ -184,7 +169,7 @@ describe('WorkItemDependencyMapCard', () => {
 
   it('keys every line style in the legend', async () => {
     // Arrange
-    session[WORK_ITEM_DEPENDENCY_FILTER_KEY] = 'all'
+    sessionStorage.setItem(WORK_ITEM_DEPENDENCY_FILTER_KEY, 'all')
 
     // Act
     renderCard([dependency('d1', auth, 'Predecessor')])
@@ -228,7 +213,7 @@ describe('WorkItemDependencyMapCard', () => {
 
     // Assert
     expect(screen.getByTestId('map-edges')).toHaveTextContent('done,open')
-    expect(session[WORK_ITEM_DEPENDENCY_FILTER_KEY]).toBe('all')
+    expect(sessionStorage.getItem(WORK_ITEM_DEPENDENCY_FILTER_KEY)).toBe('all')
     expect(screen.getByText('Closed')).toBeInTheDocument()
   })
 
@@ -271,7 +256,10 @@ describe('WorkItemDependencyMapCard', () => {
     // Assert
     expect(expanded).toHaveBeenLastCalledWith(expect.any(Array), [auth.id])
     expect(screen.getByTestId('map-edges')).toHaveTextContent('d1,beyond')
-    expect(JSON.parse(session[expansionStorageKey(workItem.id)]).left).toEqual({
+    expect(
+      JSON.parse(sessionStorage.getItem(expansionStorageKey(workItem.id))!)
+        .left,
+    ).toEqual({
       [auth.id]: {},
     })
   })
@@ -300,10 +288,13 @@ describe('WorkItemDependencyMapCard', () => {
     // Arrange
     const user = userEvent.setup()
     const keys = item('w-5', 'SEC-2')
-    session[expansionStorageKey(workItem.id)] = JSON.stringify({
-      left: { [auth.id]: {} },
-      right: {},
-    })
+    sessionStorage.setItem(
+      expansionStorageKey(workItem.id),
+      JSON.stringify({
+        left: { [auth.id]: {} },
+        right: {},
+      }),
+    )
     expanded.mockReturnValue({
       [auth.id]: {
         workItem: auth,
@@ -326,7 +317,7 @@ describe('WorkItemDependencyMapCard', () => {
   it('opens the Dependencies section from View all', async () => {
     // Arrange
     const user = userEvent.setup()
-    const onViewAll = jest.fn()
+    const onViewAll = vi.fn()
     renderCard([dependency('d1', auth, 'Predecessor')], onViewAll)
 
     // Act

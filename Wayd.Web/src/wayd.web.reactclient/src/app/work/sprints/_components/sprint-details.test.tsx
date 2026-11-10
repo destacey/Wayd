@@ -6,19 +6,19 @@ import {
 } from '@/src/services/wayd-api'
 import SprintDetails, { sprintOverlapWarning } from './sprint-details'
 
-jest.mock('@/src/components/common/planning/timeline-progress', () => {
+vi.mock('@/src/components/common/planning/timeline-progress', () => {
   const TimelineProgress = () => <div>Timeline</div>
-  return TimelineProgress
+  return { default: TimelineProgress }
 })
-jest.mock('./sprint-metrics', () => {
+vi.mock('./sprint-metrics', () => {
   const SprintMetrics = () => <div>Metrics</div>
-  return SprintMetrics
+  return { default: SprintMetrics }
 })
-jest.mock('./sprint-capacity-summary', () => {
+vi.mock('./sprint-capacity-summary', () => {
   const SprintCapacitySummary = ({ sprintKey }: { sprintKey: number }) => (
     <div>{`Capacity of ${sprintKey}`}</div>
   )
-  return SprintCapacitySummary
+  return { default: SprintCapacitySummary }
 })
 
 const sprint: SprintDetailsDto = {

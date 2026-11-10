@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import BaselineNotice from './baseline-notice'
 
-const mockEmployee = jest.fn()
+const mockEmployee = vi.fn()
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeeByIdQuery: (...args: unknown[]) => mockEmployee(...args),
 }))
 

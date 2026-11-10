@@ -2,25 +2,23 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PlanVersionForm from './plan-version-form'
 
-jest.unmock('dayjs')
+const planVersion = vi.fn()
+const cutVersion = vi.fn()
+const markReleased = vi.fn()
+const errorMessage = vi.fn()
+const successMessage = vi.fn()
 
-const planVersion = jest.fn()
-const cutVersion = jest.fn()
-const markReleased = jest.fn()
-const errorMessage = jest.fn()
-const successMessage = jest.fn()
-
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: errorMessage, success: successMessage }),
 }))
 
-jest.mock('@/src/store/features/product-management/versions-api', () => ({
+vi.mock('@/src/store/features/product-management/versions-api', () => ({
   usePlanVersionMutation: () => [planVersion],
   useCutVersionMutation: () => [cutVersion],
   useMarkVersionReleasedMutation: () => [markReleased],
 }))
 
-jest.mock('@/src/store/features/product-management/products-api', () => ({
+vi.mock('@/src/store/features/product-management/products-api', () => ({
   useGetProductsQuery: () => ({
     data: [{ id: 'product-1', key: 7, name: 'Wayd API', isReleasable: true }],
     isLoading: false,
@@ -30,8 +28,8 @@ jest.mock('@/src/store/features/product-management/products-api', () => ({
 // Not spread from the real barrel: it re-exports store-bound hooks, and pulling those in
 // initialises a store this form never touches. The form instance is real, though — antd's Form
 // binds to it, and a stub breaks on render.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -48,7 +46,7 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk: async () => await onSubmit(form.getFieldsValue(), form),
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }

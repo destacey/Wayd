@@ -2,18 +2,17 @@ import { render, screen, within } from '@testing-library/react'
 import { ProgramDetailsDto } from '@/src/services/wayd-api'
 import ProgramFacts from './program-facts'
 
-jest.mock('next/link', () => {
+vi.mock('next/link', () => {
   const MockLink = ({ href, children }: any) => <a href={href}>{children}</a>
   MockLink.displayName = 'MockLink'
-  return MockLink
+  return { default: MockLink }
 })
 
-jest.mock('@/src/components/common/links/links-card', () => ({
-  __esModule: true,
+vi.mock('@/src/components/common/links/links-card', () => ({
   default: () => <div data-testid="links-card" />,
 }))
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeeByIdQuery: () => ({
     data: undefined,
     isLoading: false,

@@ -9,8 +9,7 @@ import {
 import WaydWorkflowDiagram from './wayd-workflow-diagram'
 import { buildRecordPath } from './workflow-diagram-layout'
 
-jest.mock('@/src/components/contexts/theme/use-theme', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/theme/use-theme', () => ({
   default: () => ({ currentMode: 'light' }),
 }))
 

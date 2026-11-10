@@ -1,13 +1,9 @@
 // Mocks must precede the import of the component under test.
 
-// jest.setup stubs dayjs down to formatting, which leaves antd's Table without
-// dayjs.isDayjs. The grid needs the real module.
-jest.unmock('dayjs')
-
-const mockLogout = jest.fn()
-const mockRevokeSession = jest.fn()
-const mockRevokeAllSessions = jest.fn()
-const mockRefetch = jest.fn()
+const mockLogout = vi.fn()
+const mockRevokeSession = vi.fn()
+const mockRevokeAllSessions = vi.fn()
+const mockRefetch = vi.fn()
 
 let mockQueryState: {
   data?: unknown[]
@@ -15,18 +11,17 @@ let mockQueryState: {
   error?: unknown
 } = { data: [], isLoading: false }
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ success: jest.fn(), error: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ success: vi.fn(), error: vi.fn() }),
 }))
 
 // The real auth context reaches the OIDC client registry and the browser's
 // location, neither of which belongs in a unit test of this tab.
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ logout: mockLogout }),
 }))
 
-jest.mock('@/src/store/features/user-management/user-sessions-api', () => ({
+vi.mock('@/src/store/features/user-management/user-sessions-api', () => ({
   useGetMySessionsQuery: () => ({ ...mockQueryState, refetch: mockRefetch }),
   useRevokeSessionMutation: () => [
     mockRevokeSession.mockReturnValue({ unwrap: () => Promise.resolve() }),
@@ -59,7 +54,7 @@ const session = (overrides: Record<string, unknown> = {}) => ({
 
 describe('Sessions', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockQueryState = { data: [], isLoading: false }
   })
 
@@ -173,7 +168,9 @@ describe('Sessions', () => {
       render(<Sessions />)
 
       // Assert
-      expect(screen.queryByText('Connected application')).not.toBeInTheDocument()
+      expect(
+        screen.queryByText('Connected application'),
+      ).not.toBeInTheDocument()
     })
 
     it('disconnects a connector through the row action', async () => {
@@ -189,10 +186,14 @@ describe('Sessions', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Session actions' }))
       fireEvent.click(await screen.findByText('Disconnect'))
       const dialog = await screen.findByRole('dialog')
-      fireEvent.click(within(dialog).getByRole('button', { name: 'Disconnect' }))
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: 'Disconnect' }),
+      )
 
       // Assert
-      expect(within(dialog).getByText(/tools\.acme\.example/)).toBeInTheDocument()
+      expect(
+        within(dialog).getByText(/tools\.acme\.example/),
+      ).toBeInTheDocument()
       await waitFor(() =>
         expect(mockRevokeSession).toHaveBeenCalledWith(
           '33333333-3333-3333-3333-333333333333',
@@ -217,7 +218,11 @@ describe('Sessions', () => {
 
   it('shows an error state when the sessions query fails', () => {
     // Arrange
-    mockQueryState = { data: undefined, isLoading: false, error: new Error('nope') }
+    mockQueryState = {
+      data: undefined,
+      isLoading: false,
+      error: new Error('nope'),
+    }
 
     // Act
     render(<Sessions />)

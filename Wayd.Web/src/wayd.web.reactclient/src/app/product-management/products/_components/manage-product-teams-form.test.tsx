@@ -2,18 +2,18 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import { ProductDto } from '@/src/services/wayd-api'
 import ManageProductTeamsForm from './manage-product-teams-form'
 
-const setTeams = jest.fn()
-const messageError = jest.fn()
+const setTeams = vi.fn()
+const messageError = vi.fn()
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: messageError, success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: messageError, success: vi.fn() }),
 }))
 
-jest.mock('@/src/store/features/product-management/products-api', () => ({
+vi.mock('@/src/store/features/product-management/products-api', () => ({
   useSetProductTeamsMutation: () => [setTeams],
 }))
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
+vi.mock('@/src/store/features/organizations/team-api', () => ({
   useGetTeamOptionsQuery: () => ({
     data: [
       { label: 'Atlas', value: 'atlas' },
@@ -33,8 +33,8 @@ let formInstance:
   | undefined
 
 // The form instance is real — antd's Form binds to it, and a stub breaks on render.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -56,7 +56,7 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk,
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -89,7 +89,7 @@ const submit = async () => {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   setTeams.mockResolvedValue({ data: undefined })
 })
 

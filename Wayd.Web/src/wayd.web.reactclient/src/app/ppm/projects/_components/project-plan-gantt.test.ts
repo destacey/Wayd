@@ -1,7 +1,3 @@
-// The global dayjs stub reads a calendar date as UTC midnight; the chart places
-// it at local midnight.
-jest.unmock('dayjs')
-
 import type { ProjectPlanNodeDto } from '@/src/services/wayd-api'
 import { parseCalendarDate } from '@/src/utils'
 import {

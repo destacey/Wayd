@@ -9,45 +9,43 @@ import {
 } from '@/src/services/wayd-api'
 import FollowingPage, { parseRecord } from './page'
 
-jest.mock('@/src/components/hoc', () => ({
+vi.mock('@/src/components/hoc', () => ({
   requireFeatureFlag: (Page: React.ComponentType) => Page,
 }))
 
-const mockUseAuth = jest.fn()
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+const mockUseAuth = vi.fn()
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => mockUseAuth(),
 }))
 
-const mockScreens = jest.fn()
-jest.mock('antd', () => ({
-  ...jest.requireActual('antd'),
+const mockScreens = vi.fn()
+vi.mock('antd', async () => ({
+  ...(await vi.importActual<any>('antd')),
   Grid: {
-    ...jest.requireActual('antd').Grid,
+    ...(await vi.importActual<any>('antd')).Grid,
     useBreakpoint: () => mockScreens(),
   },
 }))
 
-const mockPush = jest.fn()
-const mockBack = jest.fn()
-const mockReplace = jest.fn()
-const mockSearchParams = jest.fn()
-jest.mock('next/navigation', () => ({
+const mockPush = vi.fn()
+const mockBack = vi.fn()
+const mockReplace = vi.fn()
+const mockSearchParams = vi.fn()
+vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush, back: mockBack, replace: mockReplace }),
   usePathname: () => '/account/following',
   useSearchParams: () => mockSearchParams(),
 }))
 
-const mockUseCounts = jest.fn()
-const mockUseFollows = jest.fn()
-jest.mock('@/src/store/features/common/follows-api', () => ({
-  ...jest.requireActual('@/src/store/features/common/follows-api'),
+const mockUseCounts = vi.fn()
+const mockUseFollows = vi.fn()
+vi.mock('@/src/store/features/common/follows-api', async () => ({
+  ...(await vi.importActual<any>('@/src/store/features/common/follows-api')),
   useGetMyFollowCountsQuery: (...args: unknown[]) => mockUseCounts(...args),
   useGetMyFollowsInfiniteQuery: (...args: unknown[]) => mockUseFollows(...args),
 }))
 
-jest.mock('./_components/following-rail', () => ({
-  __esModule: true,
+vi.mock('./_components/following-rail', () => ({
   default: ({ onChange }: { onChange: (f: { view: FollowView }) => void }) => (
     <div data-testid="rail">
       <button onClick={() => onChange({ view: FollowView.Closed })}>
@@ -56,12 +54,10 @@ jest.mock('./_components/following-rail', () => ({
     </div>
   ),
 }))
-jest.mock('./_components/following-filter-bar', () => ({
-  __esModule: true,
+vi.mock('./_components/following-filter-bar', () => ({
   default: () => <div data-testid="filter-bar" />,
 }))
-jest.mock('./_components/followed-records-list', () => ({
-  __esModule: true,
+vi.mock('./_components/followed-records-list', () => ({
   default: ({
     records,
     onSelect,
@@ -88,8 +84,7 @@ jest.mock('./_components/followed-records-list', () => ({
     </div>
   ),
 }))
-jest.mock('./_components/followed-record-detail', () => ({
-  __esModule: true,
+vi.mock('./_components/followed-record-detail', () => ({
   default: ({
     ownerId,
     asView,
@@ -145,7 +140,7 @@ const givenFollows = (total: number) => {
     isError: false,
     hasNextPage: false,
     isFetchingNextPage: false,
-    fetchNextPage: jest.fn(),
+    fetchNextPage: vi.fn(),
   })
 }
 
@@ -154,7 +149,7 @@ const lastListQuery = () => mockUseFollows.mock.calls.at(-1)?.[0]
 
 describe('FollowingPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockUseAuth.mockReturnValue({ user: { employeeId: 'employee-1' } })
     mockSearchParams.mockReturnValue(new URLSearchParams())
     mockScreens.mockReturnValue(wide)

@@ -12,25 +12,24 @@ interface CapturedProps {
   audience: Record<string, string>
 }
 let captured: CapturedProps
-jest.mock('@/src/components/common/discussions', () => ({
+vi.mock('@/src/components/common/discussions', () => ({
   RecordDiscussion: (props: CapturedProps) => {
     captured = props
     return null
   },
 }))
 
-jest.mock('@/src/store/features/common/discussions-api', () => ({
+vi.mock('@/src/store/features/common/discussions-api', () => ({
   DiscussionChannelTypes: { Project: 'ppm.project' },
 }))
 
-const mockHasPermissionClaim = jest.fn()
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+const mockHasPermissionClaim = vi.fn()
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: mockHasPermissionClaim }),
 }))
 
-const mockUseEmployees = jest.fn()
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
+const mockUseEmployees = vi.fn()
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeesQuery: (...args: unknown[]) => mockUseEmployees(...args),
 }))
 
@@ -48,7 +47,7 @@ const project = {
 
 describe('ProjectDiscussion', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockHasPermissionClaim.mockReturnValue(false)
     mockUseEmployees.mockReturnValue({ data: undefined })
   })

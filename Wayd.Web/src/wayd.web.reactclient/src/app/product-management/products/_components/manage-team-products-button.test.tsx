@@ -2,14 +2,13 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import ManageTeamProductsButton from './manage-team-products-button'
 
 let mockCanUpdate = true
-const manageForm = jest.fn()
+const manageForm = vi.fn()
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => mockCanUpdate }),
 }))
 
-jest.mock('@/src/store/features/product-management/products-api', () => ({
+vi.mock('@/src/store/features/product-management/products-api', () => ({
   useGetTeamProductsQuery: () => ({
     data: [
       { product: { id: 'checkout' }, team: { id: 'payments' } },
@@ -20,8 +19,7 @@ jest.mock('@/src/store/features/product-management/products-api', () => ({
 }))
 
 // The dialog is tested on its own; here only what the button hands it matters.
-jest.mock('./manage-team-products-form', () => ({
-  __esModule: true,
+vi.mock('./manage-team-products-form', () => ({
   default: (props: unknown) => {
     manageForm(props)
     return <div>Manage dialog</div>
@@ -29,7 +27,7 @@ jest.mock('./manage-team-products-form', () => ({
 }))
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   mockCanUpdate = true
 })
 

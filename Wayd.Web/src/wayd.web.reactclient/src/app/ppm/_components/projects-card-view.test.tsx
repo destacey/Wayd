@@ -3,7 +3,7 @@ import { userEvent } from '@testing-library/user-event'
 import ProjectsCardView from './projects-card-view'
 import { ProjectListDto } from '@/src/services/wayd-api'
 
-jest.mock('antd', () => ({
+vi.mock('antd', () => ({
   Card: ({ children, onClick }: any) => <div onClick={onClick}>{children}</div>,
   Flex: ({ children }: any) => <div>{children}</div>,
   Segmented: ({ value, onChange, options }: any) => (
@@ -26,23 +26,23 @@ jest.mock('antd', () => ({
   },
 }))
 
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   LifecycleStatusTag: () => <span>Status</span>,
 }))
 
-jest.mock('@/src/components/common/planning/timeline-progress', () => {
+vi.mock('@/src/components/common/planning/timeline-progress', () => {
   const MockTimelineProgress = () => <div data-testid="timeline-progress" />
   MockTimelineProgress.displayName = 'MockTimelineProgress'
-  return MockTimelineProgress
+  return { default: MockTimelineProgress }
 })
 
-jest.mock('./stage-timeline', () => {
+vi.mock('./stage-timeline', () => {
   const MockStageTimeline = () => <div data-testid="stage-timeline" />
   MockStageTimeline.displayName = 'MockStageTimeline'
-  return MockStageTimeline
+  return { default: MockStageTimeline }
 })
 
-jest.mock('../projects/_components', () => ({
+vi.mock('../projects/_components', () => ({
   ProjectHealthCheckTag: () => null,
 }))
 
@@ -85,7 +85,7 @@ describe('ProjectsCardView', () => {
       <ProjectsCardView
         projects={projects}
         isLoading={false}
-        onCardClick={jest.fn()}
+        onCardClick={vi.fn()}
       />,
     )
 
@@ -101,7 +101,7 @@ describe('ProjectsCardView', () => {
       <ProjectsCardView
         projects={projects}
         isLoading={false}
-        onCardClick={jest.fn()}
+        onCardClick={vi.fn()}
       />,
     )
 

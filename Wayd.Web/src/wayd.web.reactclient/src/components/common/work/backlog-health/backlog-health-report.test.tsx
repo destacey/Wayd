@@ -1,5 +1,4 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import {
   BacklogHealthCheckDto,
   BacklogHealthWorkItemDto,
@@ -12,11 +11,8 @@ import {
 } from './backlog-health-formatting'
 import { BacklogHealthReportView } from './backlog-health-report'
 
-jest.unmock('dayjs')
-
 // The grid is covered by its own suite; here only which rows reach it matters.
-jest.mock('./backlog-health-grid', () => ({
-  __esModule: true,
+vi.mock('./backlog-health-grid', () => ({
   default: ({ workItems }: { workItems: BacklogHealthWorkItemDto[] }) => (
     <ul data-testid="grid">
       {workItems.map((w) => (
@@ -26,8 +22,8 @@ jest.mock('./backlog-health-grid', () => ({
   ),
 }))
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
-  useGetTeamBacklogHealthQuery: jest.fn(),
+vi.mock('@/src/store/features/organizations/team-api', () => ({
+  useGetTeamBacklogHealthQuery: vi.fn(),
 }))
 
 const graded = (
@@ -103,7 +99,7 @@ const renderView = (health?: TeamBacklogHealthDto) =>
     <BacklogHealthReportView
       health={health}
       isLoading={false}
-      refetch={jest.fn()}
+      refetch={vi.fn()}
       settings={<span>settings</span>}
     />,
   )
@@ -161,7 +157,7 @@ describe('BacklogHealthReportView', () => {
       <BacklogHealthReportView
         isLoading={false}
         error={new Error('boom')}
-        refetch={jest.fn()}
+        refetch={vi.fn()}
         settings={null}
       />,
     )
@@ -173,7 +169,7 @@ describe('BacklogHealthReportView', () => {
   })
 
   it('shows why thresholds were rejected and offers a way back to the defaults', () => {
-    const onReset = jest.fn()
+    const onReset = vi.fn()
     render(
       <BacklogHealthReportView
         isLoading={false}
@@ -185,7 +181,7 @@ describe('BacklogHealthReportView', () => {
             ],
           },
         }}
-        refetch={jest.fn()}
+        refetch={vi.fn()}
         settings={null}
         onReset={onReset}
       />,

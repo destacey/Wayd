@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import WhatsChangedWidget, {
   UnreadNotificationsTile,
@@ -5,31 +6,29 @@ import WhatsChangedWidget, {
 } from './whats-changed-widget'
 import { tileValueStyle } from '../attention-tile-test-utils'
 
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn() }),
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
 }))
 
-jest.mock(
-  '@/src/components/common/notifications/notification-list',
-  () =>
-    function MockNotificationList({
-      notifications,
-    }: {
-      notifications: { record: { name: string } }[]
-    }) {
-      return (
-        <ul>
-          {notifications.map((n) => (
-            <li key={n.record.name}>{n.record.name}</li>
-          ))}
-        </ul>
-      )
-    },
-)
+vi.mock('@/src/components/common/notifications/notification-list', () => ({
+  default: function MockNotificationList({
+    notifications,
+  }: {
+    notifications: { record: { name: string } }[]
+  }) {
+    return (
+      <ul>
+        {notifications.map((n) => (
+          <li key={n.record.name}>{n.record.name}</li>
+        ))}
+      </ul>
+    )
+  },
+}))
 
-jest.mock('@/src/store/features/common/notifications-api', () => ({
-  useGetMyNotificationsInfiniteQuery: jest.fn(),
-  useGetUnreadNotificationCountQuery: jest.fn(),
+vi.mock('@/src/store/features/common/notifications-api', () => ({
+  useGetMyNotificationsInfiniteQuery: vi.fn(),
+  useGetUnreadNotificationCountQuery: vi.fn(),
 }))
 
 import {
@@ -37,12 +36,12 @@ import {
   useGetUnreadNotificationCountQuery,
 } from '@/src/store/features/common/notifications-api'
 
-const mockNotifications = useGetMyNotificationsInfiniteQuery as jest.Mock
-const mockUnread = useGetUnreadNotificationCountQuery as jest.Mock
+const mockNotifications = useGetMyNotificationsInfiniteQuery as Mock
+const mockUnread = useGetUnreadNotificationCountQuery as Mock
 
 describe('WhatsChangedWidget', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('says how it fills when nothing has changed', () => {

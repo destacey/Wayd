@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import PlanningIntervalObjectiveWorkItemsCard from './planning-interval-objective-work-items-card'
 import {
@@ -8,24 +9,24 @@ import { IterationState } from '@/src/components/types'
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation((query) => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 })
 
-jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
-  useGetObjectiveWorkItemsQuery: jest.fn(),
-  useGetPlanningIntervalQuery: jest.fn(),
+vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
+  useGetObjectiveWorkItemsQuery: vi.fn(),
+  useGetPlanningIntervalQuery: vi.fn(),
 }))
 
-jest.mock('@/src/components/common/work', () => ({
+vi.mock('@/src/components/common/work', () => ({
   WorkItemsDashboardModal: function MockWorkItemsDashboardModal() {
     return <div>Work items dashboard modal</div>
   },
@@ -34,22 +35,19 @@ jest.mock('@/src/components/common/work', () => ({
   }: {
     workItems: unknown[]
   }) {
-    return (
-    <div>Work items: {workItems.length}</div>
-    )
+    return <div>Work items: {workItems.length}</div>
   },
 }))
 
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   WorkProgress: function MockWorkProgress() {
     return <div>Work progress</div>
   },
 }))
 
-jest.mock(
+vi.mock(
   '@/src/app/planning/planning-intervals/_components/manage-planning-interval-objective-work-items-form',
   () => ({
-    __esModule: true,
     default: function MockManagePlanningIntervalObjectiveWorkItemsForm() {
       return <div>Manage work items form</div>
     },
@@ -57,13 +55,12 @@ jest.mock(
 )
 
 const mockObjectiveWorkItemsQuery =
-  useGetObjectiveWorkItemsQuery as unknown as jest.Mock
-const mockPlanningIntervalQuery =
-  useGetPlanningIntervalQuery as unknown as jest.Mock
+  useGetObjectiveWorkItemsQuery as unknown as Mock
+const mockPlanningIntervalQuery = useGetPlanningIntervalQuery as unknown as Mock
 
 describe('PlanningIntervalObjectiveWorkItemsCard', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
 
     mockObjectiveWorkItemsQuery.mockReturnValue({
       data: {
@@ -71,7 +68,7 @@ describe('PlanningIntervalObjectiveWorkItemsCard', () => {
         workItems: [{ id: 'work-item-1' }],
       },
       isLoading: false,
-      refetch: jest.fn(),
+      refetch: vi.fn(),
     })
   })
   it('shows the work items dashboard button when the PI has started', () => {

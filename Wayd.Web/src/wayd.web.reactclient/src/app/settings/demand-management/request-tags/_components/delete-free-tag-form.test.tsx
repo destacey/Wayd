@@ -2,12 +2,12 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import DeleteFreeTagForm from './delete-free-tag-form'
 
-const mockError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: mockError, success: jest.fn() }),
+const mockError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: mockError, success: vi.fn() }),
 }))
 
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useConfirmModal: ({
     onSubmit,
     onComplete,
@@ -20,17 +20,14 @@ jest.mock('@/src/hooks', () => ({
     handleOk: async () => {
       if (await onSubmit()) onComplete()
     },
-    handleCancel: jest.fn(),
+    handleCancel: vi.fn(),
   }),
 }))
 
-const mockDelete = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useDeleteFreeIntakeRequestTagMutation: () => [mockDelete],
-  }),
-)
+const mockDelete = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useDeleteFreeIntakeRequestTagMutation: () => [mockDelete],
+}))
 
 const tag = {
   id: 't-free',
@@ -40,13 +37,13 @@ const tag = {
   requestCount: 3,
 }
 
-const renderForm = async (onComplete = jest.fn()) =>
+const renderForm = async (onComplete = vi.fn()) =>
   await act(async () =>
     render(
       <DeleteFreeTagForm
         tag={tag}
         onFormComplete={onComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -60,13 +57,11 @@ describe('DeleteFreeTagForm', () => {
 
   it('says how many requests lose the tag, then deletes it', async () => {
     // Arrange
-    const onComplete = jest.fn()
+    const onComplete = vi.fn()
     await renderForm(onComplete)
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Delete' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
     // Assert
     expect(
@@ -82,13 +77,11 @@ describe('DeleteFreeTagForm', () => {
       unwrap: () =>
         Promise.reject({ detail: 'The tags changed while saving.' }),
     })
-    const onComplete = jest.fn()
+    const onComplete = vi.fn()
     await renderForm(onComplete)
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Delete' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
     // Assert
     expect(mockError).toHaveBeenCalledWith('The tags changed while saving.')

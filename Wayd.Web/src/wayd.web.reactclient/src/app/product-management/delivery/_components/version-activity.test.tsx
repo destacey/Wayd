@@ -5,9 +5,6 @@ import VersionActivity, {
   withAlpha,
 } from './version-activity'
 
-// The global mock stubs dayjs to formatting only; this component does date arithmetic.
-jest.unmock('dayjs')
-
 const row = (
   name: string,
   days: { date: string; released: number; withdrawn?: number }[],

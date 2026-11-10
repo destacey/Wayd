@@ -1,16 +1,17 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PokerLobbyState from './poker-lobby-state'
 import { useAddPokerRoundMutation } from '@/src/store/features/planning/poker-sessions-api'
 
-jest.mock('@/src/store/features/planning/poker-sessions-api', () => ({
-  useAddPokerRoundMutation: jest.fn(),
+vi.mock('@/src/store/features/planning/poker-sessions-api', () => ({
+  useAddPokerRoundMutation: vi.fn(),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
-    success: jest.fn(),
-    error: jest.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
   }),
 }))
 
@@ -22,10 +23,10 @@ const defaultProps = {
 }
 
 describe('PokerLobbyState', () => {
-  const mockAddRound = jest.fn().mockResolvedValue({})
+  const mockAddRound = vi.fn().mockResolvedValue({})
 
   beforeEach(() => {
-    ;(useAddPokerRoundMutation as jest.Mock).mockReturnValue([
+    ;(useAddPokerRoundMutation as Mock).mockReturnValue([
       mockAddRound,
       { isLoading: false },
     ])
@@ -90,7 +91,9 @@ describe('PokerLobbyState', () => {
       const { container } = render(<PokerLobbyState {...defaultProps} />)
 
       // lobbyCards is the container, lobbyCard is each individual card
-      const lobbyCardsContainer = container.querySelector('[class*="lobbyCards"]')
+      const lobbyCardsContainer = container.querySelector(
+        '[class*="lobbyCards"]',
+      )
       expect(lobbyCardsContainer).toBeInTheDocument()
       expect(lobbyCardsContainer!.children.length).toBe(3)
     })

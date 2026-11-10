@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import TeamOfTeamsOverview from './team-of-teams-overview'
@@ -8,29 +9,27 @@ import {
 } from '@/src/store/features/organizations/team-api'
 import { useGetTeamOfTeamsMembersQuery } from '@/src/store/features/organization/team-members-api'
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
-  useGetTeamOfTeamsMembershipsQuery: jest.fn(),
-  useGetTeamOfTeamsRisksQuery: jest.fn(),
-  useGetTeamOperatingModelsForTeamsQuery: jest.fn(),
+vi.mock('@/src/store/features/organizations/team-api', () => ({
+  useGetTeamOfTeamsMembershipsQuery: vi.fn(),
+  useGetTeamOfTeamsRisksQuery: vi.fn(),
+  useGetTeamOperatingModelsForTeamsQuery: vi.fn(),
 }))
 
-jest.mock('@/src/store/features/organization/team-members-api', () => ({
-  useGetTeamOfTeamsMembersQuery: jest.fn(),
+vi.mock('@/src/store/features/organization/team-members-api', () => ({
+  useGetTeamOfTeamsMembersQuery: vi.fn(),
 }))
 
-const mockMemberships = useGetTeamOfTeamsMembershipsQuery as unknown as jest.Mock
-const mockRisks = useGetTeamOfTeamsRisksQuery as unknown as jest.Mock
-const mockMembers = useGetTeamOfTeamsMembersQuery as unknown as jest.Mock
+const mockMemberships = useGetTeamOfTeamsMembershipsQuery as unknown as Mock
+const mockRisks = useGetTeamOfTeamsRisksQuery as unknown as Mock
+const mockMembers = useGetTeamOfTeamsMembersQuery as unknown as Mock
 const mockOperatingModels =
-  useGetTeamOperatingModelsForTeamsQuery as unknown as jest.Mock
+  useGetTeamOperatingModelsForTeamsQuery as unknown as Mock
 
 const team = { id: 'tot-1', key: 3, name: 'Platform Tribe' } as any
 
-const navigate = jest.fn()
+const navigate = vi.fn()
 const renderOverview = () =>
-  render(
-    <TeamOfTeamsOverview team={team} onNavigateToSection={navigate} />,
-  )
+  render(<TeamOfTeamsOverview team={team} onNavigateToSection={navigate} />)
 
 const membership = (
   overrides: Partial<{
@@ -48,7 +47,7 @@ const membership = (
 
 describe('TeamOfTeamsOverview', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockMembers.mockReturnValue({ data: [], isLoading: false })
     mockRisks.mockReturnValue({ data: [], isLoading: false })
     mockMemberships.mockReturnValue({ data: [], isLoading: false })
@@ -60,7 +59,13 @@ describe('TeamOfTeamsOverview', () => {
     mockMemberships.mockReturnValue({
       data: [
         membership({
-          child: { id: 'c1', key: 14, name: 'Platform Core', type: 'Team', code: 'PLAT-CORE' },
+          child: {
+            id: 'c1',
+            key: 14,
+            name: 'Platform Core',
+            type: 'Team',
+            code: 'PLAT-CORE',
+          },
         }),
       ],
       isLoading: false,
@@ -85,11 +90,23 @@ describe('TeamOfTeamsOverview', () => {
       data: [
         membership({
           id: 'm1',
-          child: { id: 'c1', key: 14, name: 'Platform Core', type: 'Team', code: 'PLAT' },
+          child: {
+            id: 'c1',
+            key: 14,
+            name: 'Platform Core',
+            type: 'Team',
+            code: 'PLAT',
+          },
         }),
         membership({
           id: 'm2',
-          child: { id: 'c2', key: 15, name: 'Infrastructure', type: 'Team', code: 'INFRA' },
+          child: {
+            id: 'c2',
+            key: 15,
+            name: 'Infrastructure',
+            type: 'Team',
+            code: 'INFRA',
+          },
         }),
       ],
       isLoading: false,
@@ -150,7 +167,13 @@ describe('TeamOfTeamsOverview', () => {
         membership({
           id: 'own-parent',
           parentId: 'someone-else',
-          child: { id: team.id, key: 3, name: 'Platform Tribe', type: 'Team of Teams', code: 'PT' },
+          child: {
+            id: team.id,
+            key: 3,
+            name: 'Platform Tribe',
+            type: 'Team of Teams',
+            code: 'PT',
+          },
         }),
       ],
       isLoading: false,
@@ -168,7 +191,13 @@ describe('TeamOfTeamsOverview', () => {
     mockMemberships.mockReturnValue({
       data: [
         membership({
-          child: { id: 'c1', key: 14, name: 'Former Team', type: 'Team', code: 'OLD' },
+          child: {
+            id: 'c1',
+            key: 14,
+            name: 'Former Team',
+            type: 'Team',
+            code: 'OLD',
+          },
           end: new Date('2026-01-01'),
         }),
       ],
@@ -187,7 +216,13 @@ describe('TeamOfTeamsOverview', () => {
     mockMemberships.mockReturnValue({
       data: [
         membership({
-          child: { id: 'c2', key: 9, name: 'Identity Program', type: 'Team of Teams', code: 'IDP' },
+          child: {
+            id: 'c2',
+            key: 9,
+            name: 'Identity Program',
+            type: 'Team of Teams',
+            code: 'IDP',
+          },
         }),
       ],
       isLoading: false,

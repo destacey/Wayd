@@ -9,17 +9,17 @@ import {
 } from '@/src/services/wayd-api'
 import AddIntakeRequestOutcomeForm from './add-intake-request-outcome-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 // What validateFields rejected with: jsdom does not render a field's error text after a failed submit.
 const mockValidationFailures: unknown[] = []
 
-// In Jest, Form.useWatch does not refire after typing, so the real hook's validity never updates; as the
+// Under jsdom, Form.useWatch does not refire after typing, so the real hook's validity never updates; as the
 // other form suites do, keep the form instance real and submit through validateFields.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     // The search waits for typing to settle; the tests search at once.
     useDebounce: (value: unknown) => value,
@@ -47,31 +47,28 @@ jest.mock('@/src/hooks', () => {
             mockValidationFailures.push(error)
           }
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const mockAdd = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useAddIntakeRequestOutcomeMutation: () => [mockAdd],
-    useGetIntakeRequestProjectDeliverablesQuery: (args: unknown) =>
-      mockProjectDeliverables(args),
-  }),
-)
+const mockAdd = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useAddIntakeRequestOutcomeMutation: () => [mockAdd],
+  useGetIntakeRequestProjectDeliverablesQuery: (args: unknown) =>
+    mockProjectDeliverables(args),
+}))
 
-const mockProjectDeliverables = jest.fn()
+const mockProjectDeliverables = vi.fn()
 
-const mockSearchWorkItems = jest.fn()
-jest.mock('@/src/store/features/work-management/workspace-api', () => ({
+const mockSearchWorkItems = vi.fn()
+vi.mock('@/src/store/features/work-management/workspace-api', () => ({
   useSearchWorkItemsQuery: (term: string, options: { skip: boolean }) =>
     mockSearchWorkItems(term, options),
 }))
 
-jest.mock('@/src/store/features/ppm/projects-api', () => ({
+vi.mock('@/src/store/features/ppm/projects-api', () => ({
   useGetProjectOptionsQuery: () => ({
     data: [
       { label: 'Atlas (ATLAS)', value: 'p-1' },
@@ -87,13 +84,13 @@ const request = {
   canChangeOutcomes: true,
 } as unknown as IntakeRequestDetailsDto
 
-const renderForm = (onFormComplete = jest.fn()) =>
+const renderForm = (onFormComplete = vi.fn()) =>
   act(async () =>
     render(
       <AddIntakeRequestOutcomeForm
         request={request}
         onFormComplete={onFormComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -103,7 +100,7 @@ const openProjectPicker = async () => {
     .getByText('Project')
     .closest('.ant-form-item')!
     .querySelector('input')!
-  await act(() => userEvent.click(select))
+  await userEvent.click(select)
 }
 
 describe('AddIntakeRequestOutcomeForm', () => {
@@ -146,7 +143,7 @@ describe('AddIntakeRequestOutcomeForm', () => {
   })
 
   const chooseWorkItemKind = async () => {
-    await act(() => userEvent.click(screen.getByLabelText('Work item')))
+    await userEvent.click(screen.getByLabelText('Work item'))
   }
 
   const searchWorkItems = async (term: string) => {
@@ -154,23 +151,21 @@ describe('AddIntakeRequestOutcomeForm', () => {
       .getByText('Work Item')
       .closest('.ant-form-item')!
       .querySelector('input')!
-    await act(() => userEvent.click(select))
-    await act(() => userEvent.type(select, term))
+    await userEvent.click(select)
+    await userEvent.type(select, term)
   }
 
   it('records a work item with no project and no note', async () => {
     // Arrange
     mockAdd.mockReturnValue({ unwrap: () => Promise.resolve(null) })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     await renderForm(onFormComplete)
     await chooseWorkItemKind()
     await searchWorkItems('export')
-    await act(() => userEvent.click(screen.getByTitle('APP-2 · Export screen')))
+    await userEvent.click(screen.getByTitle('APP-2 · Export screen'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Add' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     // Assert
     expect(mockAdd).toHaveBeenCalledWith({
@@ -190,15 +185,13 @@ describe('AddIntakeRequestOutcomeForm', () => {
     mockAdd.mockReturnValue({ unwrap: () => Promise.resolve(null) })
     await renderForm()
     await openProjectPicker()
-    await act(() => userEvent.click(screen.getByTitle('Borealis (BOREAL)')))
+    await userEvent.click(screen.getByTitle('Borealis (BOREAL)'))
     await chooseWorkItemKind()
     await searchWorkItems('export')
-    await act(() => userEvent.click(screen.getByTitle('APP-2 · Export screen')))
+    await userEvent.click(screen.getByTitle('APP-2 · Export screen'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Add' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     // Assert
     expect(mockAdd).toHaveBeenCalledWith(
@@ -217,7 +210,7 @@ describe('AddIntakeRequestOutcomeForm', () => {
     await renderForm()
     await chooseWorkItemKind()
     await searchWorkItems('export')
-    await act(() => userEvent.click(screen.getByTitle('APP-2 · Export screen')))
+    await userEvent.click(screen.getByTitle('APP-2 · Export screen'))
 
     // Act
     await searchWorkItems('zzz')
@@ -246,8 +239,8 @@ describe('AddIntakeRequestOutcomeForm', () => {
       render(
         <AddIntakeRequestOutcomeForm
           request={linked}
-          onFormComplete={jest.fn()}
-          onFormCancel={jest.fn()}
+          onFormComplete={vi.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
@@ -278,15 +271,13 @@ describe('AddIntakeRequestOutcomeForm', () => {
   it('records a new project with no note', async () => {
     // Arrange
     mockAdd.mockReturnValue({ unwrap: () => Promise.resolve(null) })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     await renderForm(onFormComplete)
     await openProjectPicker()
-    await act(() => userEvent.click(screen.getByTitle('Borealis (BOREAL)')))
+    await userEvent.click(screen.getByTitle('Borealis (BOREAL)'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Add' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     // Assert
     expect(mockAdd).toHaveBeenCalledWith({
@@ -304,30 +295,24 @@ describe('AddIntakeRequestOutcomeForm', () => {
     // Arrange
     mockAdd.mockReturnValue({ unwrap: () => Promise.resolve(null) })
     await renderForm()
-    await act(() =>
-      userEvent.click(
-        screen.getByLabelText('Scope added to an existing project'),
-      ),
+    await userEvent.click(
+      screen.getByLabelText('Scope added to an existing project'),
     )
     await openProjectPicker()
-    await act(() => userEvent.click(screen.getByTitle('Borealis (BOREAL)')))
-    await act(() =>
-      userEvent.type(
-        screen.getByLabelText('Note', { selector: 'textarea' }),
-        'The export screen',
-      ),
+    await userEvent.click(screen.getByTitle('Borealis (BOREAL)'))
+    await userEvent.type(
+      screen.getByLabelText('Note', { selector: 'textarea' }),
+      'The export screen',
     )
     const picker = screen
       .getByText('Deliverables')
       .closest('.ant-form-item')!
       .querySelector('input')!
-    await act(() => userEvent.click(picker))
-    await act(() => userEvent.click(screen.getByTitle('Reports · Not Started')))
+    await userEvent.click(picker)
+    await userEvent.click(screen.getByTitle('Reports · Not Started'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Add' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     // Assert
     expect(mockProjectDeliverables).toHaveBeenCalledWith({
@@ -351,7 +336,7 @@ describe('AddIntakeRequestOutcomeForm', () => {
 
     // Act
     await openProjectPicker()
-    await act(() => userEvent.click(screen.getByTitle('Borealis (BOREAL)')))
+    await userEvent.click(screen.getByTitle('Borealis (BOREAL)'))
 
     // Assert
     expect(screen.queryByText('Deliverables')).toBeNull()
@@ -361,18 +346,14 @@ describe('AddIntakeRequestOutcomeForm', () => {
   it('refuses existing project scope without saying what was absorbed', async () => {
     // Arrange
     await renderForm()
-    await act(() =>
-      userEvent.click(
-        screen.getByLabelText('Scope added to an existing project'),
-      ),
+    await userEvent.click(
+      screen.getByLabelText('Scope added to an existing project'),
     )
     await openProjectPicker()
-    await act(() => userEvent.click(screen.getByTitle('Borealis (BOREAL)')))
+    await userEvent.click(screen.getByTitle('Borealis (BOREAL)'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Add' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     // Assert
     expect(mockAdd).not.toHaveBeenCalled()

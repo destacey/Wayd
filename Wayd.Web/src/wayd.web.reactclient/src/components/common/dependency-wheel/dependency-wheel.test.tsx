@@ -68,7 +68,7 @@ const data: DependencyWheelData = {
 const renderWheel = (
   selection: Parameters<typeof DependencyWheel>[0]['selection'] = null,
 ) => {
-  const onSelectionChange = jest.fn()
+  const onSelectionChange = vi.fn()
   render(
     <DependencyWheel
       data={data}

@@ -2,8 +2,6 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InitializeAllocationsForm from './initialize-allocations-form'
 
-jest.unmock('dayjs')
-
 // Mock window.getComputedStyle for Ant Design Modal
 Object.defineProperty(window, 'getComputedStyle', {
   value: () => ({
@@ -11,22 +9,22 @@ Object.defineProperty(window, 'getComputedStyle', {
   }),
 })
 
-const mockMessageSuccess = jest.fn()
-const mockMessageError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
+const mockMessageSuccess = vi.fn()
+const mockMessageError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
     success: mockMessageSuccess,
     error: mockMessageError,
   }),
 }))
 
-const mockChangeAllocations = jest.fn()
-jest.mock('@/src/store/features/organization/employee-allocations-api', () => ({
+const mockChangeAllocations = vi.fn()
+vi.mock('@/src/store/features/organization/employee-allocations-api', () => ({
   useChangeEmployeeAllocationsMutation: () => [mockChangeAllocations],
 }))
 
 let mockRows: unknown[] = []
-jest.mock('@/src/store/features/organization/team-capacity-api', () => ({
+vi.mock('@/src/store/features/organization/team-capacity-api', () => ({
   useGetTeamAllocationProposalQuery: () => ({
     data: { from: '2027-02-01', rows: mockRows },
     isFetching: false,
@@ -52,7 +50,7 @@ const alan = { id: 'e-3', name: 'Alan Turing' }
 const engineer = { id: 'r-1', name: 'Engineer' }
 const lead = { id: 'r-2', name: 'Lead' }
 
-const renderForm = (onFormComplete = jest.fn(), onFormCancel = jest.fn()) =>
+const renderForm = (onFormComplete = vi.fn(), onFormCancel = vi.fn()) =>
   render(
     <InitializeAllocationsForm
       teamId="team-1"
@@ -65,7 +63,7 @@ const renderForm = (onFormComplete = jest.fn(), onFormCancel = jest.fn()) =>
 
 describe('InitializeAllocationsForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockChangeAllocations.mockResolvedValue({ data: undefined })
     mockRows = [
       row(ada, engineer, 55, 28),
@@ -76,8 +74,8 @@ describe('InitializeAllocationsForm', () => {
   })
 
   it('saves nothing when the proposal is shown and then cancelled', async () => {
-    const onFormCancel = jest.fn()
-    renderForm(jest.fn(), onFormCancel)
+    const onFormCancel = vi.fn()
+    renderForm(vi.fn(), onFormCancel)
 
     expect(await screen.findByText('Grace Hopper')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -99,7 +97,7 @@ describe('InitializeAllocationsForm', () => {
   })
 
   it('saves one change per person, open-ended from the first day, once confirmed', async () => {
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     renderForm(onFormComplete)
 
     await userEvent.click(await screen.findByRole('button', { name: 'Save' }))
@@ -188,7 +186,7 @@ describe('InitializeAllocationsForm', () => {
         },
       })
       .mockResolvedValue({ data: undefined })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     renderForm(onFormComplete)
 
     // The form's state changes after the awaited saves, which only render

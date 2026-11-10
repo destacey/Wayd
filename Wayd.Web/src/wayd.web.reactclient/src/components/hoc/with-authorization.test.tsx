@@ -1,6 +1,5 @@
 import React from 'react'
 import { render } from '@testing-library/react'
-import '@testing-library/jest-dom'
 
 import { AuthContext, AuthContextType } from '../contexts/auth'
 import withAuthorization, { WithAuthorizationProps } from './with-authorization'
@@ -8,18 +7,10 @@ import withAuthorization, { WithAuthorizationProps } from './with-authorization'
 describe('withAuthorization', () => {
   const MockComponent = () => <div>Authorized</div>
 
-  const mockHasClaim = jest.fn()
-
-  jest.mock('../contexts/auth', () => ({
-    __esModule: true,
-    default: () => ({
-      hasClaim: mockHasClaim,
-      hasPermissionClaim: mockHasClaim,
-    }),
-  }))
+  const mockHasClaim = vi.fn()
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   const mockProps: WithAuthorizationProps = {

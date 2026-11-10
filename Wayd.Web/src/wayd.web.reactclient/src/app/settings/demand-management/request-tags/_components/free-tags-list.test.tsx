@@ -2,32 +2,26 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import FreeTagsList from './free-tags-list'
 
 // The dialogs have their own tests; here they only need to be identifiable.
-jest.mock('./edit-free-tag-form', () => ({
-  __esModule: true,
+vi.mock('./edit-free-tag-form', () => ({
   default: ({ tag }: { tag: { name: string } }) => (
     <div>edit dialog for {tag.name}</div>
   ),
 }))
-jest.mock('./merge-free-tag-form', () => ({
-  __esModule: true,
+vi.mock('./merge-free-tag-form', () => ({
   default: ({ tag }: { tag: { name: string } }) => (
     <div>merge dialog for {tag.name}</div>
   ),
 }))
-jest.mock('./delete-free-tag-form', () => ({
-  __esModule: true,
+vi.mock('./delete-free-tag-form', () => ({
   default: ({ tag }: { tag: { name: string } }) => (
     <div>delete dialog for {tag.name}</div>
   ),
 }))
 
-const mockSearch = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useSearchIntakeRequestTagsQuery: (args: unknown) => mockSearch(args),
-  }),
-)
+const mockSearch = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useSearchIntakeRequestTagsQuery: (args: unknown) => mockSearch(args),
+}))
 
 describe('FreeTagsList', () => {
   beforeEach(() => {
@@ -43,7 +37,7 @@ describe('FreeTagsList', () => {
         },
       ],
       isLoading: false,
-      refetch: jest.fn(),
+      refetch: vi.fn(),
     })
   })
 
@@ -79,7 +73,7 @@ describe('FreeTagsList', () => {
       data: undefined,
       isLoading: false,
       isError: true,
-      refetch: jest.fn(),
+      refetch: vi.fn(),
     })
 
     // Act

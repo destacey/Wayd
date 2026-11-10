@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import type { ColumnDef } from './index'
 import type { ColumnVisibilityState as VisibilityState } from '@tanstack/react-table'
@@ -238,7 +239,6 @@ describe('column-menu', () => {
         [COLUMN_MENU_KEYS.pinNone]: false,
       })
     })
-
   })
 
   describe('ColumnChooserModal', () => {
@@ -250,8 +250,8 @@ describe('column-menu', () => {
 
     const renderModal = (
       columnVisibility: VisibilityState = {},
-      onToggleColumn: jest.Mock = jest.fn(),
-      onClose: jest.Mock = jest.fn(),
+      onToggleColumn: Mock = vi.fn(),
+      onClose: Mock = vi.fn(),
     ) => {
       const table = buildChooserTable(chooserColumns, columnVisibility)
       render(

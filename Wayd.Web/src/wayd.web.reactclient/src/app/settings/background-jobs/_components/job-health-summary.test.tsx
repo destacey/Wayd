@@ -33,7 +33,7 @@ const server = (workerCount: number, heartbeatMsAgo: number) =>
   }) as JobServerResponse
 
 const renderSummary = (servers: JobServerResponse[] | undefined) => {
-  const onSelectState = jest.fn()
+  const onSelectState = vi.fn()
   render(
     <JobHealthSummary
       statistics={statistics}

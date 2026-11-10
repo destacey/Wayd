@@ -3,15 +3,15 @@ import { Button } from 'antd'
 import { ResumedImport } from '@/src/services/wayd-api'
 import useImportActions from './use-import-actions'
 
-const mockCancel = jest.fn()
-const mockResume = jest.fn()
-const mockRetryFailed = jest.fn()
-const mockApply = jest.fn()
-const mockPush = jest.fn()
-const mockSuccess = jest.fn()
-const mockError = jest.fn()
+const mockCancel = vi.fn()
+const mockResume = vi.fn()
+const mockRetryFailed = vi.fn()
+const mockApply = vi.fn()
+const mockPush = vi.fn()
+const mockSuccess = vi.fn()
+const mockError = vi.fn()
 
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }))
 
@@ -25,8 +25,8 @@ interface ConfirmConfig {
 /** The last dialog an action opened, so its wording and its confirm can both be exercised. */
 let lastConfirm: ConfirmConfig | undefined
 
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   return {
     ...actual,
     App: {
@@ -44,7 +44,7 @@ jest.mock('antd', () => {
   }
 })
 
-jest.mock('@/src/store/features/admin/imports-api', () => ({
+vi.mock('@/src/store/features/admin/imports-api', () => ({
   useCancelImportProcessMutation: () => [
     (id: string) => ({ unwrap: () => mockCancel(id) }),
   ],
@@ -59,7 +59,7 @@ jest.mock('@/src/store/features/admin/imports-api', () => ({
   ],
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ success: mockSuccess, error: mockError }),
 }))
 
@@ -108,7 +108,7 @@ const clickAction = (name: string) => {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   lastConfirm = undefined
   mockResume.mockResolvedValue(resumed())
   mockRetryFailed.mockResolvedValue(resumed())

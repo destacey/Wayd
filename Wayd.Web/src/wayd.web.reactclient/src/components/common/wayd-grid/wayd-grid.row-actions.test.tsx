@@ -1,5 +1,3 @@
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
 import { createRef } from 'react'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import type { ColumnDef } from '../wayd-grid-core'
@@ -60,7 +58,7 @@ const renderTree = (
       columns={columns}
       includeIdColumn={false}
       getSubRows={(row) => row.children}
-      onCommit={jest.fn(() => Promise.resolve())}
+      onCommit={vi.fn(() => Promise.resolve())}
       {...props}
     />,
   )
@@ -80,7 +78,7 @@ const press = (key: string, options: Partial<KeyboardEventInit> = {}) =>
 
 const flush = () => act(async () => {})
 
-const draftProps = (onCreate = jest.fn(() => Promise.resolve('new-1'))) => ({
+const draftProps = (onCreate = vi.fn(() => Promise.resolve('new-1'))) => ({
   createDraftNode: (draft: { id: string }) => node(draft.id, ''),
   onCreate,
   rowActions: {},
@@ -124,7 +122,7 @@ describe('WaydGrid row actions', () => {
 
     it('creates the row with its position among its siblings', async () => {
       // Arrange
-      const onCreate = jest.fn(() => Promise.resolve('new-1'))
+      const onCreate = vi.fn(() => Promise.resolve('new-1'))
       renderTree(draftProps(onCreate))
       focus(cellNamed('Alpha 1'))
       press('Insert')
@@ -142,7 +140,7 @@ describe('WaydGrid row actions', () => {
 
     it('adds nothing where the grid does not allow a row under that parent', () => {
       // Arrange
-      const canInsertUnder = jest.fn((parent: Node | null) => parent !== null)
+      const canInsertUnder = vi.fn((parent: Node | null) => parent !== null)
       renderTree({ ...draftProps(), rowActions: { canInsertUnder } })
       const before = nameCells().length
       focus(cellNamed('Beta'))
@@ -171,7 +169,7 @@ describe('WaydGrid row actions', () => {
 
   describe('indenting and outdenting', () => {
     const moveProps = () => {
-      const onNodeMove = jest.fn(() => Promise.resolve())
+      const onNodeMove = vi.fn(() => Promise.resolve())
       return { onNodeMove, enableDragAndDrop: true, rowActions: {} }
     }
 
@@ -248,7 +246,7 @@ describe('WaydGrid row actions', () => {
     it('reports a move the validator rejects and does not make it', async () => {
       // Arrange
       const props = moveProps()
-      const onMoveRejected = jest.fn()
+      const onMoveRejected = vi.fn()
       renderTree({
         ...props,
         onMoveRejected,
@@ -271,9 +269,9 @@ describe('WaydGrid row actions', () => {
 
     it('reports a failed move once, through onMoveRejected', async () => {
       // Arrange
-      const onMoveRejected = jest.fn()
+      const onMoveRejected = vi.fn()
       renderTree({
-        onNodeMove: jest.fn(() => Promise.reject(new Error('Server said no'))),
+        onNodeMove: vi.fn(() => Promise.reject(new Error('Server said no'))),
         enableDragAndDrop: true,
         rowActions: {},
         onMoveRejected,
@@ -294,7 +292,7 @@ describe('WaydGrid row actions', () => {
     it('hands the validator the target parent', async () => {
       // Arrange
       const props = moveProps()
-      const moveValidator = jest.fn(() => ({ canMove: true }))
+      const moveValidator = vi.fn(() => ({ canMove: true }))
       renderTree({ ...props, moveValidator })
       focus(cellNamed('Alpha 3'))
 
@@ -311,8 +309,8 @@ describe('WaydGrid row actions', () => {
 
     it('takes no row keys from a grid without rowActions', async () => {
       // Arrange
-      const onNodeMove = jest.fn(() => Promise.resolve())
-      const onCreate = jest.fn(() => Promise.resolve('new-1'))
+      const onNodeMove = vi.fn(() => Promise.resolve())
+      const onCreate = vi.fn(() => Promise.resolve('new-1'))
       renderTree({
         onNodeMove,
         enableDragAndDrop: true,
@@ -354,12 +352,12 @@ describe('WaydGrid row actions', () => {
         node('a1', 'Alpha 1'),
         node('b', 'Beta'),
       ]
-      const onNodeMove = jest.fn(() => Promise.resolve())
+      const onNodeMove = vi.fn(() => Promise.resolve())
       const props = {
         columns,
         includeIdColumn: false,
         getSubRows: (row: Node) => row.children,
-        onCommit: jest.fn(() => Promise.resolve()),
+        onCommit: vi.fn(() => Promise.resolve()),
         onNodeMove,
         enableDragAndDrop: true,
         rowActions: {},
@@ -389,7 +387,7 @@ describe('WaydGrid row actions', () => {
         ]),
         node('b', 'Beta'),
       ]
-      const onNodeMove = jest.fn(() => Promise.resolve())
+      const onNodeMove = vi.fn(() => Promise.resolve())
       const { rerender } = renderTree({
         onNodeMove,
         enableDragAndDrop: true,
@@ -405,7 +403,7 @@ describe('WaydGrid row actions', () => {
           columns={columns}
           includeIdColumn={false}
           getSubRows={(row) => row.children}
-          onCommit={jest.fn(() => Promise.resolve())}
+          onCommit={vi.fn(() => Promise.resolve())}
           onNodeMove={onNodeMove}
           enableDragAndDrop
           rowActions={{}}
@@ -476,7 +474,7 @@ describe('WaydGrid row actions', () => {
     it('says there is nothing above to indent under', () => {
       // Arrange
       renderTree({
-        onNodeMove: jest.fn(() => Promise.resolve()),
+        onNodeMove: vi.fn(() => Promise.resolve()),
         enableDragAndDrop: true,
         rowActions: {},
       })
@@ -494,7 +492,7 @@ describe('WaydGrid row actions', () => {
     it('says a root row is already at the top level', () => {
       // Arrange
       renderTree({
-        onNodeMove: jest.fn(() => Promise.resolve()),
+        onNodeMove: vi.fn(() => Promise.resolve()),
         enableDragAndDrop: true,
         rowActions: {},
       })
@@ -510,7 +508,7 @@ describe('WaydGrid row actions', () => {
     it('reads out the validator’s reason', () => {
       // Arrange
       renderTree({
-        onNodeMove: jest.fn(() => Promise.resolve()),
+        onNodeMove: vi.fn(() => Promise.resolve()),
         enableDragAndDrop: true,
         rowActions: {},
         moveValidator: () => ({ canMove: false, reason: 'Not here' }),
@@ -527,7 +525,7 @@ describe('WaydGrid row actions', () => {
     it('refuses a second move while the first is saving', async () => {
       // Arrange
       let finish!: () => void
-      const onNodeMove = jest.fn(
+      const onNodeMove = vi.fn(
         () => new Promise<void>((resolve) => (finish = resolve)),
       )
       renderTree({ onNodeMove, enableDragAndDrop: true, rowActions: {} })
@@ -545,7 +543,7 @@ describe('WaydGrid row actions', () => {
 
     it('moves again once the first move has landed', async () => {
       // Arrange
-      const onNodeMove = jest.fn(() => Promise.resolve())
+      const onNodeMove = vi.fn(() => Promise.resolve())
       renderTree({ onNodeMove, enableDragAndDrop: true, rowActions: {} })
       focus(cellNamed('Alpha 3'))
       press('ArrowRight', { altKey: true, shiftKey: true })
@@ -563,7 +561,7 @@ describe('WaydGrid row actions', () => {
     it('says the row moved', async () => {
       // Arrange
       renderTree({
-        onNodeMove: jest.fn(() => Promise.resolve()),
+        onNodeMove: vi.fn(() => Promise.resolve()),
         enableDragAndDrop: true,
         rowActions: {},
       })
@@ -582,7 +580,7 @@ describe('WaydGrid row actions', () => {
     it('expands the new parent, so the row stays in view', async () => {
       // Arrange
       renderTree({
-        onNodeMove: jest.fn(() => Promise.resolve()),
+        onNodeMove: vi.fn(() => Promise.resolve()),
         enableDragAndDrop: true,
         rowActions: {},
       })
@@ -631,7 +629,7 @@ describe('WaydGrid row actions', () => {
 
     it('does not move rows, as dragging does not', async () => {
       // Arrange
-      const onNodeMove = jest.fn(() => Promise.resolve())
+      const onNodeMove = vi.fn(() => Promise.resolve())
       renderTree({ onNodeMove, enableDragAndDrop: true, rowActions: {} })
       fireEvent.change(screen.getByPlaceholderText('Search'), {
         target: { value: 'Alpha' },
@@ -651,7 +649,7 @@ describe('WaydGrid row actions', () => {
   describe('deleting and opening', () => {
     it('says why when the row declines the key, and does nothing else', () => {
       // Arrange
-      const onDelete = jest.fn(() => false)
+      const onDelete = vi.fn(() => false)
       renderTree({ rowActions: { onDelete } })
       focus(cellNamed('Beta'))
 
@@ -668,7 +666,7 @@ describe('WaydGrid row actions', () => {
 
     it('does not let a move key the grid cannot do act as a plain arrow', () => {
       // Arrange — no onNodeMove, so Alt+Shift+Right moves nothing
-      renderTree({ rowActions: { onOpen: jest.fn() } })
+      renderTree({ rowActions: { onOpen: vi.fn() } })
       focus(cellNamed('Alpha 2'))
       press('ArrowLeft') // collapses it
 
@@ -685,7 +683,7 @@ describe('WaydGrid row actions', () => {
 
     it('does not let Ctrl+Enter edit the cell when it adds nothing', () => {
       // Arrange — no drafts, so Ctrl+Enter has no row to add
-      renderTree({ rowActions: { onOpen: jest.fn() } })
+      renderTree({ rowActions: { onOpen: vi.fn() } })
       focus(cellNamed('Beta'))
 
       // Act
@@ -697,7 +695,7 @@ describe('WaydGrid row actions', () => {
 
     it('takes the key when the row is deleted', () => {
       // Arrange
-      renderTree({ rowActions: { onDelete: jest.fn() } })
+      renderTree({ rowActions: { onDelete: vi.fn() } })
       focus(cellNamed('Beta'))
 
       // Act
@@ -712,7 +710,7 @@ describe('WaydGrid row actions', () => {
 
     it('asks to delete the row with Ctrl+Delete', () => {
       // Arrange
-      const onDelete = jest.fn()
+      const onDelete = vi.fn()
       renderTree({ rowActions: { onDelete } })
       focus(cellNamed('Alpha 2'))
 
@@ -725,7 +723,7 @@ describe('WaydGrid row actions', () => {
 
     it('opens the row with Ctrl+Shift+Enter', () => {
       // Arrange
-      const onOpen = jest.fn()
+      const onOpen = vi.fn()
       renderTree({ rowActions: { onOpen } })
       focus(cellNamed('Beta'))
 
@@ -738,7 +736,7 @@ describe('WaydGrid row actions', () => {
 
     it('leaves the keys to an open editor', () => {
       // Arrange
-      const onDelete = jest.fn()
+      const onDelete = vi.fn()
       renderTree({ rowActions: { onDelete } })
       focus(cellNamed('Beta'))
       press('Enter')
@@ -753,7 +751,7 @@ describe('WaydGrid row actions', () => {
 
     it('does not delete on a plain Delete', () => {
       // Arrange
-      const onDelete = jest.fn()
+      const onDelete = vi.fn()
       renderTree({ rowActions: { onDelete } })
       focus(cellNamed('Beta'))
 
@@ -770,9 +768,9 @@ describe('WaydGrid row actions', () => {
       // Arrange
       renderTree({
         ...draftProps(),
-        onNodeMove: jest.fn(() => Promise.resolve()),
+        onNodeMove: vi.fn(() => Promise.resolve()),
         enableDragAndDrop: true,
-        rowActions: { onDelete: jest.fn(), onOpen: jest.fn() },
+        rowActions: { onDelete: vi.fn(), onOpen: vi.fn() },
       })
 
       // Act
@@ -787,7 +785,7 @@ describe('WaydGrid row actions', () => {
 
     it('lists no Insert key for a grid without new rows', () => {
       // Arrange
-      renderTree({ rowActions: { onOpen: jest.fn() } })
+      renderTree({ rowActions: { onOpen: vi.fn() } })
 
       // Act
       fireEvent.click(screen.getByRole('button', { name: /help/i }))
@@ -828,7 +826,7 @@ describe('WaydGrid row actions', () => {
           columns={columns}
           includeIdColumn={false}
           getSubRows={(row) => row.children}
-          onCommit={jest.fn(() => Promise.resolve())}
+          onCommit={vi.fn(() => Promise.resolve())}
         />,
       )
       await flush()

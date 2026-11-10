@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import PlanningIntervalsWidget, {
   countdownText,
@@ -6,14 +7,14 @@ import PlanningIntervalsWidget, {
 import { PlanningIntervalListDto } from '@/src/services/wayd-api'
 import { IterationState } from '@/src/components/types'
 
-jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
-  useGetPlanningIntervalsQuery: jest.fn(),
-  useGetPlanningIntervalIterationsQuery: jest.fn(() => ({ data: undefined })),
+vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
+  useGetPlanningIntervalsQuery: vi.fn(),
+  useGetPlanningIntervalIterationsQuery: vi.fn(() => ({ data: undefined })),
 }))
 
 import { useGetPlanningIntervalsQuery } from '@/src/store/features/planning/planning-interval-api'
 
-const mockPlanningIntervals = useGetPlanningIntervalsQuery as jest.Mock
+const mockPlanningIntervals = useGetPlanningIntervalsQuery as Mock
 
 const pi = (
   key: number,
@@ -81,7 +82,7 @@ describe('countdownText', () => {
 
 describe('PlanningIntervalsWidget', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('says what it shows when no planning interval is current', () => {

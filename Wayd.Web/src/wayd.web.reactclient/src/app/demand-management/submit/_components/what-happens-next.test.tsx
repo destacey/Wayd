@@ -29,15 +29,12 @@ const STATUSES = [
 ]
 
 let mockWorkflow: { statuses: IntakeWorkflowStatusDto[] } | undefined
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetIntakeDeskWorkflowQuery: () => ({
-      data: mockWorkflow,
-      isLoading: false,
-    }),
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetIntakeDeskWorkflowQuery: () => ({
+    data: mockWorkflow,
+    isLoading: false,
   }),
-)
+}))
 
 describe('journeyOf', () => {
   it('keeps the stages on the way to done, in order, setting the detour and closings aside by meaning', () => {

@@ -7,10 +7,9 @@ import {
 } from '@/src/services/wayd-api'
 import dayjs from 'dayjs'
 
-jest.unmock('dayjs')
-jest.mock('@/src/components/common/links/links-card', () => {
+vi.mock('@/src/components/common/links/links-card', () => {
   const LinksCard = () => <div>Links Card</div>
-  return LinksCard
+  return { default: LinksCard }
 })
 
 const sprint: SprintDetailsDto = {

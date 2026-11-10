@@ -14,15 +14,14 @@ const mockAuth = {
   flagsLoading: false,
 }
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     user: { name: 'Alex Rivera', employeeId: mockAuth.employeeId },
     hasPermissionClaim: (claim: string) => mockAuth.claims.has(claim),
   }),
 }))
 
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useLinkedEmployee: () => ({
     employeeId: mockAuth.employeeId,
     hasLinkedEmployee: mockAuth.employeeId !== null,
@@ -33,8 +32,8 @@ jest.mock('@/src/hooks', () => ({
   }),
 }))
 
-jest.mock('@/src/hooks/use-document-title', () => ({
-  useDocumentTitle: jest.fn(),
+vi.mock('@/src/hooks/use-document-title', () => ({
+  useDocumentTitle: vi.fn(),
 }))
 
 const mockLayout = {
@@ -43,10 +42,10 @@ const mockLayout = {
   loadFails: false,
   saveFails: false,
 }
-const mockUpdateHomeLayout = jest.fn()
-const mockMessage = { error: jest.fn() }
+const mockUpdateHomeLayout = vi.fn()
+const mockMessage = { error: vi.fn() }
 
-jest.mock('@/src/store/features/user-management/profile-api', () => ({
+vi.mock('@/src/store/features/user-management/profile-api', () => ({
   useGetHomeLayoutQuery: () => ({
     data:
       mockLayout.isLoading || mockLayout.loadFails
@@ -73,18 +72,18 @@ const mockHome = {
   isLoading: false,
 }
 
-jest.mock('./_components/home/use-home-context', () => ({
+vi.mock('./_components/home/use-home-context', () => ({
   useHomeContext: () => mockHome,
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => mockMessage,
 }))
 
 // antd's Drawer reaches for Next's server-side AsyncLocalStorage, which jsdom
 // has no runtime for. Only the Drawer is stubbed, so its rows stay real.
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   const MockDrawer = ({ open, footer, children }: any) =>
     open ? (
       <div data-testid="customize-drawer">
@@ -99,8 +98,8 @@ jest.mock('antd', () => {
 // Real gating and layout over stand-in widgets, so the page test sees what the
 // registry decides without each widget's requests. Each stand-in shows the
 // title the page hands it.
-jest.mock('./_components/home/home-widgets', () => {
-  const { lazy } = jest.requireActual<typeof import('react')>('react')
+vi.mock('./_components/home/home-widgets', async () => {
+  const { lazy } = await vi.importActual<typeof import('react')>('react')
   const stand = (label: string) => {
     const Stand = ({ title }: { title?: string }) => (
       <div>

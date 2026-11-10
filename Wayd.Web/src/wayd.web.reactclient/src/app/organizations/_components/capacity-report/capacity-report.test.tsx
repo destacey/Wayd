@@ -2,11 +2,9 @@ import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CapacityReport from './capacity-report'
 
-jest.unmock('dayjs')
-
-const mockReportArgs = jest.fn()
+const mockReportArgs = vi.fn()
 let mockReport: Record<string, unknown> | undefined
-jest.mock('@/src/store/features/organization/team-capacity-api', () => ({
+vi.mock('@/src/store/features/organization/team-capacity-api', () => ({
   CapacityReportInterval: { Week: 'Week', Month: 'Month' },
   useGetTeamCapacityReportQuery: (arg: unknown) => {
     mockReportArgs(arg)
@@ -15,23 +13,23 @@ jest.mock('@/src/store/features/organization/team-capacity-api', () => ({
       currentData: mockReport,
       isFetching: false,
       error: undefined,
-      refetch: jest.fn(),
+      refetch: vi.fn(),
     }
   },
 }))
 
 let mockSprints: unknown[] | undefined
-jest.mock('@/src/store/features/organizations/team-api', () => ({
+vi.mock('@/src/store/features/organizations/team-api', () => ({
   useGetTeamSprintsQuery: () => ({ data: mockSprints }),
 }))
 
-jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
+vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
   useGetPlanningIntervalsQuery: () => ({ data: [] }),
   useGetPlanningIntervalIterationsQuery: () => ({ data: [] }),
 }))
 
-const mockGrid = jest.fn()
-jest.mock('@/src/components/common/wayd-grid', () => ({
+const mockGrid = vi.fn()
+vi.mock('@/src/components/common/wayd-grid', () => ({
   WaydGrid: (props: { csvFileName: string }) => {
     mockGrid(props)
     return <div data-testid={props.csvFileName} />
@@ -96,7 +94,7 @@ const lastArgs = () => mockReportArgs.mock.calls.at(-1)![0]
 
 describe('CapacityReport', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockReport = report
     mockSprints = undefined
     localStorage.clear()

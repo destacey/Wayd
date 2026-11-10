@@ -9,7 +9,7 @@ Rank .NET methods by CRAP score (complexity combined with coverage). It needs Co
 - **From CI** — every push to `main` merges both halves' coverage and uploads a `coverage-report` artifact (kept 14 days) from `.github/workflows/docker.yml`. Its `html/` folder is a ReportGenerator report; use its risk-hotspot view rather than paying for coverage locally.
 - **Locally** — `COLLECT_COVERAGE=true ./.github/scripts/dotnet-test-projects.sh unit` (then `integration`) writes `TestResults/coverage.cobertura.*.xml` at the repo root; run ReportGenerator over those files.
 
-The ranking covers .NET only. The client's Jest coverage is reported separately, and the MCP server needs its own judgement.
+The ranking covers .NET only. The client's Vitest coverage is reported separately, and the MCP server needs its own judgement.
 
 ## Using it
 

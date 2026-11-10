@@ -8,18 +8,15 @@ import { ProjectGroup } from './dashboard-model'
 import { ProjectListDto, ProjectStageListDto } from '@/src/services/wayd-api'
 import { CalendarDate } from '@/src/utils'
 
-// Building the model does date arithmetic the global dayjs stub cannot do.
-jest.unmock('dayjs')
-
 const captured: { props: Record<string, unknown> | null } = { props: null }
 
-jest.mock('@/src/app/ppm/projects/_components/project-health-check-tag', () => {
+vi.mock('@/src/app/ppm/projects/_components/project-health-check-tag', () => {
   const MockTag = () => null
   MockTag.displayName = 'MockProjectHealthCheckTag'
-  return MockTag
+  return { default: MockTag }
 })
 
-jest.mock('@/src/components/common/timeline', () => ({
+vi.mock('@/src/components/common/timeline', () => ({
   WaydTimeline: (props: Record<string, unknown>) => {
     captured.props = props
     const items = props.items as {
@@ -166,13 +163,13 @@ describe('ProjectsDashboardTimeline', () => {
     planSummaries: {},
     employeeId: null,
     selectedProjectKey: null,
-    onSelectProject: jest.fn(),
+    onSelectProject: vi.fn(),
     isLoading: false,
     today,
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     captured.props = null
   })
 

@@ -1,12 +1,10 @@
 import { render, screen } from '@testing-library/react'
-import '@testing-library/jest-dom'
 
 // window.location.replace is non-configurable in jsdom; mock the module-level
 // side-effect rather than the browser API.
-jest.mock('./page', () => {
+vi.mock('./page', () => {
   // Re-implement without the useEffect redirect so rendering tests work cleanly.
   return {
-    __esModule: true,
     default: function LogoutPage() {
       return (
         <div>

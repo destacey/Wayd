@@ -6,9 +6,6 @@ import {
 } from '@/src/services/wayd-api'
 import { needByFieldFor, toNeedByRequest } from './need-by'
 
-// jest.setup stubs dayjs down to formatting; turning a picked day into a calendar date needs the real one.
-jest.unmock('dayjs')
-
 const basis = (
   code: NeedByBasis,
   recordsCommitment: boolean,

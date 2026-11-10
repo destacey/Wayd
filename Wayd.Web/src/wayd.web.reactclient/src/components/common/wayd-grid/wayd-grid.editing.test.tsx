@@ -1,5 +1,4 @@
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
+import type { Mock } from 'vitest'
 import { createRef } from 'react'
 import { Button } from 'antd'
 import { render, screen, fireEvent, within, act } from '@testing-library/react'
@@ -130,9 +129,9 @@ type GridProps = Partial<Parameters<typeof WaydGrid<Item>>[0]> & {
 }
 
 const renderEditable = ({ ref, ...props }: GridProps = {}) => {
-  const onCommit = jest.fn<Promise<void>, [string, Record<string, unknown>]>(
-    () => Promise.resolve(),
-  )
+  const onCommit = vi.fn<
+    (...args: [string, Record<string, unknown>]) => Promise<void>
+  >(() => Promise.resolve())
   const utils = render(
     <WaydGrid<Item>
       ref={ref}
@@ -143,7 +142,7 @@ const renderEditable = ({ ref, ...props }: GridProps = {}) => {
       {...props}
     />,
   )
-  return { ...utils, onCommit: (props.onCommit as jest.Mock) ?? onCommit }
+  return { ...utils, onCommit: (props.onCommit as Mock) ?? onCommit }
 }
 
 const bodyCells = (columnId: string) =>
@@ -189,7 +188,7 @@ const editName = (rowIndex: number, value: string) => {
 }
 
 describe('WaydGrid cell editing', () => {
-  afterEach(() => jest.restoreAllMocks())
+  afterEach(() => vi.restoreAllMocks())
 
   describe('opening and closing a cell', () => {
     it('opens the focused cell on its current value with Enter', () => {
@@ -423,7 +422,7 @@ describe('WaydGrid cell editing', () => {
     it('shows the new value marked as saving until the commit settles', async () => {
       // Arrange
       const pending = deferred()
-      const onCommit = jest.fn(() => pending.promise)
+      const onCommit = vi.fn(() => pending.promise)
       renderEditable({ onCommit })
       editName(0, 'Alpha 2')
 
@@ -443,7 +442,7 @@ describe('WaydGrid cell editing', () => {
     it('runs one commit at a time for a row', async () => {
       // Arrange
       const first = deferred()
-      const onCommit = jest
+      const onCommit = vi
         .fn()
         .mockImplementationOnce(() => first.promise)
         .mockImplementation(() => Promise.resolve())
@@ -466,7 +465,7 @@ describe('WaydGrid cell editing', () => {
     it('prompts before leaving the page while a change is saving', async () => {
       // Arrange
       const pending = deferred()
-      renderEditable({ onCommit: jest.fn(() => pending.promise) })
+      renderEditable({ onCommit: vi.fn(() => pending.promise) })
       editName(0, 'Alpha 2')
       press('Enter')
       const leave = () => {
@@ -487,7 +486,7 @@ describe('WaydGrid cell editing', () => {
   })
 
   describe('failed commits', () => {
-    const rejectWith = (error: unknown) => jest.fn(() => Promise.reject(error))
+    const rejectWith = (error: unknown) => vi.fn(() => Promise.reject(error))
 
     it("keeps the user's value, marks the cell and focuses it", async () => {
       // Arrange
@@ -674,7 +673,7 @@ describe('WaydGrid cell editing', () => {
       )
       // jsdom reports the window unfocused, which the body reads as Alt+Tab
       // and so keeps the focused row pinned anyway.
-      jest.spyOn(document, 'hasFocus').mockReturnValue(true)
+      vi.spyOn(document, 'hasFocus').mockReturnValue(true)
       renderEditable({ data: many })
       editName(0, 'Renamed')
       const popupControl = document.createElement('button')
@@ -700,7 +699,7 @@ describe('WaydGrid cell editing', () => {
 
     it('keeps typed and failed values through a refetch', async () => {
       // Arrange
-      const onCommit = jest
+      const onCommit = vi
         .fn()
         .mockImplementationOnce(() =>
           Promise.reject({ status: 500, detail: 'x' }),
@@ -733,7 +732,7 @@ describe('WaydGrid cell editing', () => {
     it('keeps a failed value after moving on past the row', async () => {
       // Arrange
       const failure = deferred()
-      renderEditable({ onCommit: jest.fn(() => failure.promise) })
+      renderEditable({ onCommit: vi.fn(() => failure.promise) })
       editName(0, 'Alpha 2')
 
       // Act — Tab on, leave the next cell, move down a row; then it fails
@@ -812,7 +811,7 @@ describe('WaydGrid cell editing', () => {
 
     it('closes only the open list on the first Escape', async () => {
       // Arrange — rc-select closes its list through a MessageChannel task,
-      // which the global jest stub never delivers; deliver it here.
+      // which the global test stub never delivers; deliver it here.
       const stub = global.MessageChannel
       global.MessageChannel = class {
         port1 = { onmessage: null as null | ((e: unknown) => void) }
@@ -847,7 +846,7 @@ describe('WaydGrid cell editing', () => {
     it('commits once for Enter followed by a click', async () => {
       // Arrange
       const pending = deferred()
-      const onCommit = jest.fn(() => pending.promise)
+      const onCommit = vi.fn(() => pending.promise)
       renderEditable({ onCommit })
       editName(0, 'Alpha 2')
 
@@ -872,7 +871,7 @@ describe('WaydGrid cell editing', () => {
             data={ITEMS}
             columns={editableColumns}
             includeIdColumn={false}
-            onCommit={jest.fn(() => Promise.resolve())}
+            onCommit={vi.fn(() => Promise.resolve())}
           />
         </>,
       )
@@ -1086,14 +1085,14 @@ describe('WaydGrid cell editing', () => {
         leftSlot={(ctx) => (
           <Button onClick={() => ctx.addDraftAtRoot()}>New item</Button>
         )}
-        onCommit={jest.fn(() => Promise.resolve())}
+        onCommit={vi.fn(() => Promise.resolve())}
         {...props}
       />
     )
 
     it('creates the row when its Name commits, with the values staged before', async () => {
       // Arrange
-      const onCreate = jest.fn(() => Promise.resolve('9'))
+      const onCreate = vi.fn(() => Promise.resolve('9'))
       render(<DraftHarness onCreate={onCreate} />)
       fireEvent.click(screen.getByRole('button', { name: 'New item' }))
       const draftRow = bodyCells('name').length - 1
@@ -1122,7 +1121,7 @@ describe('WaydGrid cell editing', () => {
 
     it('opens the new draft on its Name', () => {
       // Arrange
-      render(<DraftHarness onCreate={jest.fn()} />)
+      render(<DraftHarness onCreate={vi.fn()} />)
 
       // Act
       fireEvent.click(screen.getByRole('button', { name: 'New item' }))
@@ -1138,7 +1137,7 @@ describe('WaydGrid cell editing', () => {
       // Arrange
       render(
         <DraftHarness
-          onCreate={jest.fn()}
+          onCreate={vi.fn()}
           leftSlot={(ctx) => (
             <Button
               onClick={() => ctx.addDraftAtRoot()}
@@ -1162,7 +1161,7 @@ describe('WaydGrid cell editing', () => {
 
     it('discards an empty draft with Escape and keeps focus in the grid', () => {
       // Arrange
-      const onCreate = jest.fn()
+      const onCreate = vi.fn()
       render(<DraftHarness onCreate={onCreate} />)
       fireEvent.click(screen.getByRole('button', { name: 'New item' }))
       const rowsWithDraft = bodyCells('name').length
@@ -1185,7 +1184,7 @@ describe('WaydGrid cell editing', () => {
     it('keeps what is typed in the draft while it is created', async () => {
       // Arrange
       const created = deferred()
-      const onCommit = jest.fn(() => Promise.resolve())
+      const onCommit = vi.fn(() => Promise.resolve())
       render(
         <DraftHarness
           onCommit={onCommit}
@@ -1208,7 +1207,7 @@ describe('WaydGrid cell editing', () => {
 
     it('retries the create once the Name is fixed after a failed create', async () => {
       // Arrange
-      const onCreate = jest
+      const onCreate = vi
         .fn()
         .mockImplementationOnce(() => Promise.reject({ status: 500 }))
         .mockImplementation(() => Promise.resolve('new-1'))
@@ -1241,8 +1240,8 @@ describe('WaydGrid cell editing', () => {
 
     it('never sends the dates of a draft through onCommit', async () => {
       // Arrange
-      const onCommit = jest.fn(() => Promise.resolve())
-      render(<DraftHarness onCommit={onCommit} onCreate={jest.fn()} />)
+      const onCommit = vi.fn(() => Promise.resolve())
+      render(<DraftHarness onCommit={onCommit} onCreate={vi.fn()} />)
       const draftRow = addDraft()
       fireEvent.pointerDown(cellAt(draftRow, 'start'))
       focus(cellAt(draftRow, 'start'))
@@ -1266,7 +1265,7 @@ describe('WaydGrid cell editing', () => {
       /** Creates a draft named "New thing"; onCreate resolves with new-1. */
       const createOne = async () => {
         const utils = render(
-          <DraftHarness onCreate={jest.fn(() => Promise.resolve('new-1'))} />,
+          <DraftHarness onCreate={vi.fn(() => Promise.resolve('new-1'))} />,
         )
         addDraft()
         typeInEditor('New thing')
@@ -1303,7 +1302,7 @@ describe('WaydGrid cell editing', () => {
         // Arrange — every set of rows the grid displays is recorded
         const shown: Item[][] = []
         const onDisplayedRowsChange = (rows: Item[]) => shown.push(rows)
-        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        const onCreate = vi.fn(() => Promise.resolve('new-1'))
         const { rerender } = render(
           <DraftHarness
             onCreate={onCreate}
@@ -1339,7 +1338,7 @@ describe('WaydGrid cell editing', () => {
       it('lets the draft go after two data changes without its row', async () => {
         // Arrange
         const { rerender } = await createOne()
-        const onCreate = jest.fn()
+        const onCreate = vi.fn()
 
         // Act — two refetches that do not bring the row
         rerender(<DraftHarness data={[...ITEMS]} onCreate={onCreate} />)
@@ -1355,7 +1354,7 @@ describe('WaydGrid cell editing', () => {
 
     it('retries a failed create when any of its cells is changed', async () => {
       // Arrange
-      const onCreate = jest
+      const onCreate = vi
         .fn()
         .mockImplementationOnce(() => Promise.reject({ status: 500 }))
         .mockImplementation(() => Promise.resolve('new-1'))
@@ -1420,7 +1419,7 @@ describe('WaydGrid cell editing', () => {
 
       it('waits for them, marking each, and creates once the last is filled', async () => {
         // Arrange
-        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        const onCreate = vi.fn(() => Promise.resolve('new-1'))
         render(<DraftHarness columns={columnsWith()} onCreate={onCreate} />)
         const draftRow = addDraft()
         typeInEditor('Plan')
@@ -1448,7 +1447,7 @@ describe('WaydGrid cell editing', () => {
 
       it('says which cells it still needs once it has a Name', async () => {
         // Arrange
-        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        render(<DraftHarness columns={columnsWith()} onCreate={vi.fn()} />)
         const draftRow = addDraft()
         typeInEditor('Plan')
 
@@ -1467,7 +1466,7 @@ describe('WaydGrid cell editing', () => {
 
       it('marks nothing before the draft has a Name', async () => {
         // Arrange
-        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        render(<DraftHarness columns={columnsWith()} onCreate={vi.fn()} />)
         const draftRow = addDraft()
 
         // Act — moving to Note leaves the Name empty
@@ -1481,7 +1480,7 @@ describe('WaydGrid cell editing', () => {
 
       it('creates when the Name comes last', async () => {
         // Arrange
-        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        const onCreate = vi.fn(() => Promise.resolve('new-1'))
         render(<DraftHarness columns={columnsWith()} onCreate={onCreate} />)
         const draftRow = addDraft()
         fill(draftRow, 'start', '2026-03-01')
@@ -1502,7 +1501,7 @@ describe('WaydGrid cell editing', () => {
 
       it('opens the first cell still needed with Enter on the Name', async () => {
         // Arrange
-        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        render(<DraftHarness columns={columnsWith()} onCreate={vi.fn()} />)
         const draftRow = addDraft()
         typeInEditor('Plan')
 
@@ -1519,7 +1518,7 @@ describe('WaydGrid cell editing', () => {
 
       it('checks the pair before creating', async () => {
         // Arrange
-        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        const onCreate = vi.fn(() => Promise.resolve('new-1'))
         render(<DraftHarness columns={columnsWith()} onCreate={onCreate} />)
         const draftRow = addDraft()
         typeInEditor('Plan')
@@ -1541,7 +1540,7 @@ describe('WaydGrid cell editing', () => {
 
       it('does not wait for a cell the draft cannot edit', async () => {
         // Arrange
-        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        const onCreate = vi.fn(() => Promise.resolve('new-1'))
         const lockedEnd = { ...needEnd, editable: () => false }
         render(
           <DraftHarness columns={columnsWith(lockedEnd)} onCreate={onCreate} />,
@@ -1563,7 +1562,7 @@ describe('WaydGrid cell editing', () => {
 
       it('says aloud that the draft was not created yet', async () => {
         // Arrange
-        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        render(<DraftHarness columns={columnsWith()} onCreate={vi.fn()} />)
         addDraft()
         typeInEditor('Plan')
 
@@ -1581,7 +1580,7 @@ describe('WaydGrid cell editing', () => {
 
       it('says aloud when the pair check refuses the create', async () => {
         // Arrange
-        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        render(<DraftHarness columns={columnsWith()} onCreate={vi.fn()} />)
         const draftRow = addDraft()
         typeInEditor('Plan')
         press('Tab')
@@ -1601,7 +1600,7 @@ describe('WaydGrid cell editing', () => {
 
       it('leaves a hidden required cell to the server', async () => {
         // Arrange
-        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        const onCreate = vi.fn(() => Promise.resolve('new-1'))
         const columns = columnsWith().map((column) =>
           column.id === 'end'
             ? { ...column, meta: { ...column.meta, hiddenByDefault: true } }
@@ -1625,7 +1624,7 @@ describe('WaydGrid cell editing', () => {
 
       it('keeps the other date when Escape is pressed on an empty required cell', async () => {
         // Arrange
-        const onCreate = jest.fn(() => Promise.resolve('new-1'))
+        const onCreate = vi.fn(() => Promise.resolve('new-1'))
         render(<DraftHarness columns={columnsWith()} onCreate={onCreate} />)
         const draftRow = addDraft()
         typeInEditor('Plan')
@@ -1649,7 +1648,7 @@ describe('WaydGrid cell editing', () => {
 
       it('lets Enter leave an empty Name', async () => {
         // Arrange
-        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        render(<DraftHarness columns={columnsWith()} onCreate={vi.fn()} />)
         const draftRow = addDraft()
         fill(draftRow, 'start', '2026-03-01')
         press('Enter')
@@ -1666,7 +1665,7 @@ describe('WaydGrid cell editing', () => {
 
       it('does not count a blank Name as named', async () => {
         // Arrange
-        render(<DraftHarness columns={columnsWith()} onCreate={jest.fn()} />)
+        render(<DraftHarness columns={columnsWith()} onCreate={vi.fn()} />)
         const draftRow = addDraft()
         typeInEditor('   ')
 
@@ -1694,7 +1693,7 @@ describe('WaydGrid cell editing', () => {
           columns={editableColumns}
           includeIdColumn={false}
           getSubRows={(row) => row.children}
-          onCommit={jest.fn(() => Promise.resolve())}
+          onCommit={vi.fn(() => Promise.resolve())}
         />,
       )
 
@@ -1728,7 +1727,7 @@ describe('WaydGrid cell editing', () => {
       // Arrange
       const ref = createRef<WaydGridHandle>()
       const saved = deferred()
-      const onCommit = jest.fn(() => saved.promise)
+      const onCommit = vi.fn(() => saved.promise)
       renderEditable({ ref, onCommit })
 
       // Act
@@ -1793,7 +1792,7 @@ describe('WaydGrid cell editing', () => {
       // Arrange
       const ref = createRef<WaydGridHandle>()
       const first = deferred()
-      const onCommit = jest
+      const onCommit = vi
         .fn()
         .mockImplementationOnce(() => first.promise)
         .mockImplementation(() => Promise.resolve())
@@ -1819,7 +1818,7 @@ describe('WaydGrid cell editing', () => {
       // Arrange
       const ref = createRef<WaydGridHandle>()
       const first = deferred()
-      const onCommit = jest
+      const onCommit = vi
         .fn()
         .mockImplementationOnce(() => first.promise)
         .mockImplementation(() => Promise.resolve())
@@ -1841,7 +1840,7 @@ describe('WaydGrid cell editing', () => {
     it('drops a value that failed in its cell when the row’s own comes back', async () => {
       // Arrange
       const ref = createRef<WaydGridHandle>()
-      const onCommit = jest
+      const onCommit = vi
         .fn()
         .mockImplementationOnce(() =>
           Promise.reject({ status: 500, detail: 'Boom.' }),
@@ -1869,7 +1868,7 @@ describe('WaydGrid cell editing', () => {
     it('checks the pair with the value held on its other cell', async () => {
       // Arrange — End failed at Mar 5 in its cell, earlier than the Start below
       const ref = createRef<WaydGridHandle>()
-      const onCommit = jest
+      const onCommit = vi
         .fn()
         .mockImplementationOnce(() =>
           Promise.reject({ status: 500, detail: 'Boom.' }),
@@ -1899,7 +1898,7 @@ describe('WaydGrid cell editing', () => {
     it('does nothing on a draft row', async () => {
       // Arrange
       const ref = createRef<WaydGridHandle>()
-      const onCommit = jest.fn(() => Promise.resolve())
+      const onCommit = vi.fn(() => Promise.resolve())
       render(
         <WaydGrid<Item>
           ref={ref}
@@ -1914,7 +1913,7 @@ describe('WaydGrid cell editing', () => {
             <Button onClick={() => ctx.addDraftAtRoot()}>New item</Button>
           )}
           onCommit={onCommit}
-          onCreate={jest.fn()}
+          onCreate={vi.fn()}
         />,
       )
       fireEvent.click(screen.getByRole('button', { name: 'New item' }))
@@ -1953,7 +1952,7 @@ describe('WaydGrid cell editing', () => {
     it('replaces a value that failed in its cell', async () => {
       // Arrange — End typed into its cell fails to save
       const ref = createRef<WaydGridHandle>()
-      const onCommit = jest
+      const onCommit = vi
         .fn()
         .mockImplementationOnce(() =>
           Promise.reject({ status: 500, detail: 'Boom.' }),
@@ -1990,7 +1989,7 @@ describe('WaydGrid cell editing', () => {
             data={ITEMS}
             columns={editableColumns}
             includeIdColumn={false}
-            onCommit={jest.fn(() =>
+            onCommit={vi.fn(() =>
               Promise.reject({ status: 422, errors: { End: ['Too late.'] } }),
             )}
           />
@@ -2070,7 +2069,7 @@ describe('WaydGrid cell editing', () => {
         leftSlot={(ctx) => (
           <Button onClick={() => ctx.addDraftAtRoot()}>New item</Button>
         )}
-        onCommit={jest.fn(() => Promise.resolve())}
+        onCommit={vi.fn(() => Promise.resolve())}
         columns={editableColumns.map((column) =>
           column.id === 'start'
             ? {
@@ -2095,7 +2094,7 @@ describe('WaydGrid cell editing', () => {
 
     it('creates on the Name alone where the row does not need it', async () => {
       // Arrange
-      const onCreate = jest.fn(() => Promise.resolve('new-1'))
+      const onCreate = vi.fn(() => Promise.resolve('new-1'))
       render(<DraftHarness onCreate={onCreate} />)
       addDraft()
       typeInEditor('Plan')
@@ -2130,7 +2129,7 @@ describe('WaydGrid cell editing', () => {
             ? { end: 'End is needed.' }
             : undefined,
       })
-      const onCreate = jest.fn(() => Promise.resolve('new-1'))
+      const onCreate = vi.fn(() => Promise.resolve('new-1'))
       render(
         <DraftHarness
           onCreate={onCreate}
@@ -2174,7 +2173,7 @@ describe('WaydGrid cell editing', () => {
         validate: (note, row) =>
           row.name === 'Plan' && note === 'x' ? 'Not on a plan.' : undefined,
       })
-      const onCreate = jest.fn(() => Promise.resolve('new-1'))
+      const onCreate = vi.fn(() => Promise.resolve('new-1'))
       render(
         <DraftHarness
           onCreate={onCreate}
@@ -2206,7 +2205,7 @@ describe('WaydGrid cell editing', () => {
 
     it('waits for it where the row’s staged values need it', async () => {
       // Arrange
-      const onCreate = jest.fn(() => Promise.resolve('new-1'))
+      const onCreate = vi.fn(() => Promise.resolve('new-1'))
       render(<DraftHarness onCreate={onCreate} />)
       const draftRow = addDraft()
       press('Tab') // on to Note, leaving the Name empty
@@ -2251,7 +2250,7 @@ describe('WaydGrid cell editing', () => {
       renderEditable({
         getSubRows: (row) => row.children,
         enableDragAndDrop: true,
-        onNodeMove: jest.fn(() => Promise.resolve()),
+        onNodeMove: vi.fn(() => Promise.resolve()),
         columns: (context) => {
           seen.push(context.isDragEnabled)
           return editableColumns
@@ -2280,15 +2279,15 @@ describe('WaydGrid cell editing', () => {
           includeIdColumn={false}
           getSubRows={(row) => row.children}
           enableDragAndDrop
-          onNodeMove={jest.fn(() => Promise.resolve())}
+          onNodeMove={vi.fn(() => Promise.resolve())}
           createDraftNode={(draft) =>
             item(draft.id, '', { start: null, end: null })
           }
           leftSlot={(ctx) => (
             <Button onClick={() => ctx.addDraftAtRoot()}>New item</Button>
           )}
-          onCommit={jest.fn(() => Promise.resolve())}
-          onCreate={jest.fn()}
+          onCommit={vi.fn(() => Promise.resolve())}
+          onCreate={vi.fn()}
         />,
       )
       fireEvent.click(screen.getByRole('button', { name: 'New item' }))
@@ -2428,7 +2427,7 @@ describe('WaydGrid cell editing', () => {
 
     it('go when focus leaves the grid', () => {
       // Arrange — the window keeps focus, so the grid reads it as leaving
-      jest.spyOn(document, 'hasFocus').mockReturnValue(true)
+      vi.spyOn(document, 'hasFocus').mockReturnValue(true)
       renderEditable()
       focus(cellAt(0, 'name'))
 

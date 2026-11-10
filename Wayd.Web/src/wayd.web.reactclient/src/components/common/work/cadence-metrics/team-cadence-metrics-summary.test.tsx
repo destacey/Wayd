@@ -1,14 +1,14 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import { SizingMethod, TeamCadenceMetricsDto } from '@/src/services/wayd-api'
 import { useGetTeamCadenceMetricsQuery } from '@/src/store/features/organizations/team-api'
 import TeamCadenceMetricsSummary from './team-cadence-metrics-summary'
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
-  useGetTeamCadenceMetricsQuery: jest.fn(),
+vi.mock('@/src/store/features/organizations/team-api', () => ({
+  useGetTeamCadenceMetricsQuery: vi.fn(),
 }))
 
-const mockQuery = useGetTeamCadenceMetricsQuery as jest.Mock
+const mockQuery = useGetTeamCadenceMetricsQuery as Mock
 
 const metrics = (
   overrides: Partial<TeamCadenceMetricsDto> = {},

@@ -1,14 +1,13 @@
 import { render, screen } from '@testing-library/react'
 import DiscussionSettingsPanel from './discussion-settings-panel'
 
-const mockUseGetDiscussionSettingsQuery = jest.fn()
-jest.mock('@/src/store/features/common/discussions-api', () => ({
+const mockUseGetDiscussionSettingsQuery = vi.fn()
+vi.mock('@/src/store/features/common/discussions-api', () => ({
   useGetDiscussionSettingsQuery: (args: unknown) =>
     mockUseGetDiscussionSettingsQuery(args),
 }))
 
-jest.mock('./change-discussion-settings-form', () => ({
-  __esModule: true,
+vi.mock('./change-discussion-settings-form', () => ({
   default: () => <div>settings form</div>,
 }))
 

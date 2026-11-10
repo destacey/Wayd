@@ -9,8 +9,8 @@ import {
 // ─── Mock dayjs ──────────────────────────────────────────────────────────────
 // Allows controlling "now" for checkpoint derivation tests.
 
-jest.mock('dayjs', () => {
-  const originalDayjs = jest.requireActual('dayjs')
+vi.mock('dayjs', async () => {
+  const originalDayjs = (await vi.importActual<any>('dayjs')).default
   const mockDayjs = (date?: string | Date) => {
     if (date === undefined) {
       return originalDayjs(mockDayjs.mockedNow)
@@ -19,13 +19,12 @@ jest.mock('dayjs', () => {
   }
   mockDayjs.mockedNow = '2026-02-15T12:00:00'
   Object.assign(mockDayjs, originalDayjs)
-  return mockDayjs
+  return { default: mockDayjs }
 })
 
 // ─── Mock useTheme ───────────────────────────────────────────────────────────
 
-jest.mock('../../contexts/theme', () => ({
-  __esModule: true,
+vi.mock('../../contexts/theme', () => ({
   default: () => ({
     currentTheme: 'wayd',
     currentMode: 'dark',
@@ -137,9 +136,7 @@ describe('KpiCard', () => {
   })
 
   it('formats values with suffix', () => {
-    render(
-      <KpiCard data={makeKpiData({ actualValue: 42 })} />,
-    )
+    render(<KpiCard data={makeKpiData({ actualValue: 42 })} />)
 
     expect(screen.getByText('42%')).toBeInTheDocument()
   })
@@ -255,9 +252,7 @@ describe('KpiCard', () => {
     it('shows "Awaiting first measurement" when no actual value', () => {
       render(<KpiCard data={makeKpiData({ actualValue: undefined })} />)
 
-      expect(
-        screen.getByText('Awaiting first measurement'),
-      ).toBeInTheDocument()
+      expect(screen.getByText('Awaiting first measurement')).toBeInTheDocument()
     })
 
     it('shows "No baseline" when actual exists but no progress', () => {
@@ -332,25 +327,19 @@ describe('KpiCard', () => {
     })
 
     it('shows "Healthy" when data.health is Healthy', () => {
-      render(
-        <KpiCard data={makeKpiData({ health: KpiHealth.Healthy })} />,
-      )
+      render(<KpiCard data={makeKpiData({ health: KpiHealth.Healthy })} />)
 
       expect(screen.getByText('Healthy')).toBeInTheDocument()
     })
 
     it('shows "At Risk" when data.health is AtRisk', () => {
-      render(
-        <KpiCard data={makeKpiData({ health: KpiHealth.AtRisk })} />,
-      )
+      render(<KpiCard data={makeKpiData({ health: KpiHealth.AtRisk })} />)
 
       expect(screen.getByText('At Risk')).toBeInTheDocument()
     })
 
     it('shows "Unhealthy" when data.health is Unhealthy', () => {
-      render(
-        <KpiCard data={makeKpiData({ health: KpiHealth.Unhealthy })} />,
-      )
+      render(<KpiCard data={makeKpiData({ health: KpiHealth.Unhealthy })} />)
 
       expect(screen.getByText('Unhealthy')).toBeInTheDocument()
     })
@@ -583,9 +572,7 @@ describe('KpiCard', () => {
       )
 
       expect(screen.getByText(/Improving/)).toBeInTheDocument()
-      expect(
-        screen.getByText(/since last checkpoint/),
-      ).toBeInTheDocument()
+      expect(screen.getByText(/since last checkpoint/)).toBeInTheDocument()
     })
 
     it('renders Worsening trend', () => {
@@ -705,9 +692,7 @@ describe('KpiCard', () => {
         }),
       ]
 
-      render(
-        <KpiCard data={makeKpiData()} checkpoints={checkpoints} />,
-      )
+      render(<KpiCard data={makeKpiData()} checkpoints={checkpoints} />)
 
       // nextCheckpoint goes to footer; no past checkpoint → no strip
       expect(screen.getByText(/Next checkpoint: Mar/)).toBeInTheDocument()
@@ -734,7 +719,7 @@ describe('KpiCard', () => {
 
   describe('click behavior', () => {
     it('calls onPress with KPI id when clicked', () => {
-      const onPress = jest.fn()
+      const onPress = vi.fn()
       render(<KpiCard data={makeKpiData()} onPress={onPress} />)
 
       const card = screen.getByLabelText(/KPI 100/)
@@ -755,9 +740,7 @@ describe('KpiCard', () => {
   // ─── Aria label ──────────────────────────────────────────────────────────
 
   it('has accessible aria-label with health info', () => {
-    render(
-      <KpiCard data={makeKpiData({ health: KpiHealth.Healthy })} />,
-    )
+    render(<KpiCard data={makeKpiData({ health: KpiHealth.Healthy })} />)
 
     expect(
       screen.getByLabelText('KPI 100: Test KPI, Healthy'),
@@ -777,13 +760,13 @@ describe('KpiCard', () => {
 
 describe('AddKpiCard', () => {
   it('renders Add KPI label', () => {
-    render(<AddKpiCard onClick={jest.fn()} />)
+    render(<AddKpiCard onClick={vi.fn()} />)
 
     expect(screen.getByText('Add KPI')).toBeInTheDocument()
   })
 
   it('calls onClick when clicked', () => {
-    const onClick = jest.fn()
+    const onClick = vi.fn()
     render(<AddKpiCard onClick={onClick} />)
 
     fireEvent.click(screen.getByText('Add KPI'))

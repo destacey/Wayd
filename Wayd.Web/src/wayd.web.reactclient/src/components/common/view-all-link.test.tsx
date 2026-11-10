@@ -17,7 +17,7 @@ describe('ViewAllLink', () => {
 
   it('renders a button that runs the handler when given onClick', async () => {
     // Arrange
-    const onClick = jest.fn()
+    const onClick = vi.fn()
     render(<ViewAllLink onClick={onClick} />)
 
     // Act

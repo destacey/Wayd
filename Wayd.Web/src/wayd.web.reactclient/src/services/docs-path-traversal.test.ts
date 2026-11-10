@@ -46,7 +46,7 @@ describe('resolveDocPath containment', () => {
 
     it.each(hostileSlugs)('%s', (_label, slug) => {
       // Arrange
-      const readSpy = jest.spyOn(fs, 'readFileSync')
+      const readSpy = vi.spyOn(fs, 'readFileSync')
 
       // Act
       const resolved = resolveDocPath(slug)
@@ -116,21 +116,18 @@ describe('resolveDocPath still resolves legitimate docs', () => {
     ['contributing'],
     ['user-guide'],
     ['reference'],
-  ])(
-    'resolves the directory-index form page.tsx relies on: %s',
-    (section) => {
-      // Arrange
-      // page.tsx loads a directory page as getDocBySlug([...slug, 'index']).
-      const slug = [section, 'index']
+  ])('resolves the directory-index form page.tsx relies on: %s', (section) => {
+    // Arrange
+    // page.tsx loads a directory page as getDocBySlug([...slug, 'index']).
+    const slug = [section, 'index']
 
-      // Act
-      const resolved = resolveDocPath(slug)
+    // Act
+    const resolved = resolveDocPath(slug)
 
-      // Assert
-      expect(resolved).not.toBeNull()
-      expect(resolved!.startsWith(path.resolve(DOCS_ROOT) + path.sep)).toBe(true)
-    },
-  )
+    // Assert
+    expect(resolved).not.toBeNull()
+    expect(resolved!.startsWith(path.resolve(DOCS_ROOT) + path.sep)).toBe(true)
+  })
 
   it('resolves a nested leaf page', () => {
     // Arrange

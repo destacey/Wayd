@@ -6,14 +6,11 @@ import {
 } from '@/src/services/wayd-api'
 import WorkItemIntakeRequests from './work-item-intake-requests'
 
-const mockQuery = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetWorkItemIntakeRequestsQuery: (workItemId: string) =>
-      mockQuery(workItemId),
-  }),
-)
+const mockQuery = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetWorkItemIntakeRequestsQuery: (workItemId: string) =>
+    mockQuery(workItemId),
+}))
 
 const requests: WorkItemIntakeRequestDto[] = [
   {
@@ -68,7 +65,7 @@ describe('WorkItemIntakeRequests', () => {
       data: undefined,
       isLoading: false,
       error: { status: 500 },
-      refetch: jest.fn(),
+      refetch: vi.fn(),
     })
 
     // Act

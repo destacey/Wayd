@@ -10,10 +10,10 @@ import {
 } from '@/src/components/common/notifications/notification-test-data'
 import NotificationPanel from './notification-panel'
 
-const mockUseList = jest.fn()
-const mockUseCount = jest.fn()
-const mockMarkAllRead = jest.fn()
-jest.mock('@/src/store/features/common/notifications-api', () => ({
+const mockUseList = vi.fn()
+const mockUseCount = vi.fn()
+const mockMarkAllRead = vi.fn()
+vi.mock('@/src/store/features/common/notifications-api', () => ({
   useGetMyNotificationsInfiniteQuery: (...args: unknown[]) =>
     mockUseList(...args),
   useGetUnreadNotificationCountQuery: (...args: unknown[]) =>
@@ -22,19 +22,19 @@ jest.mock('@/src/store/features/common/notifications-api', () => ({
     mockMarkAllRead,
     { isLoading: false },
   ],
-  useMarkRecordNotificationsReadMutation: () => [jest.fn(), {}],
+  useMarkRecordNotificationsReadMutation: () => [vi.fn(), {}],
 }))
 
-jest.mock('@/src/store/features/common/notification-mutes-api', () => ({
-  useMuteRecordMutation: () => [jest.fn(), {}],
-  useUnmuteRecordMutation: () => [jest.fn(), {}],
+vi.mock('@/src/store/features/common/notification-mutes-api', () => ({
+  useMuteRecordMutation: () => [vi.fn(), {}],
+  useUnmuteRecordMutation: () => [vi.fn(), {}],
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
-    success: jest.fn(),
-    error: jest.fn(),
-    destroy: jest.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+    destroy: vi.fn(),
   }),
 }))
 
@@ -51,9 +51,7 @@ const arrange = (items: NotificationDto[], unreadCount = 0) => {
 
 describe('NotificationPanel', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
-    // jest.setup's stub has no backing store; each test says what was stored.
-    jest.mocked(window.localStorage.getItem).mockReset()
+    vi.clearAllMocks()
   })
 
   it('asks for the newest ten entries and the count, both refetched on every opening', () => {
@@ -61,7 +59,7 @@ describe('NotificationPanel', () => {
     arrange([])
 
     // Act
-    render(<NotificationPanel onClose={jest.fn()} />)
+    render(<NotificationPanel onClose={vi.fn()} />)
 
     // Assert
     expect(mockUseList).toHaveBeenCalledWith(
@@ -79,7 +77,7 @@ describe('NotificationPanel', () => {
     arrange([])
 
     // Act
-    render(<NotificationPanel onClose={jest.fn()} />)
+    render(<NotificationPanel onClose={vi.fn()} />)
 
     // Assert
     expect(screen.getByRole('dialog', { name: 'Notifications' })).toHaveFocus()
@@ -88,7 +86,7 @@ describe('NotificationPanel', () => {
   it('closes on Escape and hands focus back to the bell', () => {
     // Arrange
     arrange([])
-    const onClose = jest.fn()
+    const onClose = vi.fn()
     render(<NotificationPanel onClose={onClose} />)
 
     // Act
@@ -103,7 +101,7 @@ describe('NotificationPanel', () => {
     arrange([])
 
     // Act
-    render(<NotificationPanel onClose={jest.fn()} inDrawer />)
+    render(<NotificationPanel onClose={vi.fn()} inDrawer />)
 
     // Assert
     expect(screen.queryByRole('dialog')).toBeNull()
@@ -113,7 +111,7 @@ describe('NotificationPanel', () => {
   it('shows only unread entries on the Unread tab', () => {
     // Arrange
     arrange([])
-    render(<NotificationPanel onClose={jest.fn()} />)
+    render(<NotificationPanel onClose={vi.fn()} />)
 
     // Act
     fireEvent.click(screen.getByRole('radio', { name: 'Unread' }))
@@ -129,14 +127,13 @@ describe('NotificationPanel', () => {
   it('remembers the tab the reader chose', () => {
     // Arrange
     arrange([])
-    render(<NotificationPanel onClose={jest.fn()} />)
+    render(<NotificationPanel onClose={vi.fn()} />)
 
     // Act
     fireEvent.click(screen.getByRole('radio', { name: 'Unread' }))
 
     // Assert
-    expect(window.localStorage.setItem).toHaveBeenLastCalledWith(
-      'wayd.notifications.panelView',
+    expect(window.localStorage.getItem('wayd.notifications.panelView')).toBe(
       '"unread"',
     )
   })
@@ -144,14 +141,10 @@ describe('NotificationPanel', () => {
   it('opens on the tab the reader last chose', () => {
     // Arrange
     arrange([])
-    jest
-      .mocked(window.localStorage.getItem)
-      .mockImplementation((key) =>
-        key === 'wayd.notifications.panelView' ? '"unread"' : null,
-      )
+    window.localStorage.setItem('wayd.notifications.panelView', '"unread"')
 
     // Act
-    render(<NotificationPanel onClose={jest.fn()} />)
+    render(<NotificationPanel onClose={vi.fn()} />)
 
     // Assert
     expect(screen.getByRole('radio', { name: 'Unread' })).toBeChecked()
@@ -164,7 +157,7 @@ describe('NotificationPanel', () => {
   it('marks everything read', () => {
     // Arrange
     arrange([buildNotification()], 1)
-    render(<NotificationPanel onClose={jest.fn()} />)
+    render(<NotificationPanel onClose={vi.fn()} />)
 
     // Act
     fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }))
@@ -178,7 +171,7 @@ describe('NotificationPanel', () => {
     arrange([buildReadNotification()], 1)
 
     // Act
-    render(<NotificationPanel onClose={jest.fn()} />)
+    render(<NotificationPanel onClose={vi.fn()} />)
 
     // Assert
     expect(screen.getByRole('button', { name: 'Mark all read' })).toBeEnabled()
@@ -189,7 +182,7 @@ describe('NotificationPanel', () => {
     arrange([buildReadNotification()], 0)
 
     // Act
-    render(<NotificationPanel onClose={jest.fn()} />)
+    render(<NotificationPanel onClose={vi.fn()} />)
 
     // Assert
     expect(screen.getByRole('button', { name: 'Mark all read' })).toBeDisabled()
@@ -198,7 +191,7 @@ describe('NotificationPanel', () => {
   it('links to the page and closes when it is followed', () => {
     // Arrange
     arrange([])
-    const onClose = jest.fn()
+    const onClose = vi.fn()
     render(<NotificationPanel onClose={onClose} />)
     const link = screen.getByRole('link', { name: 'See all notifications' })
 

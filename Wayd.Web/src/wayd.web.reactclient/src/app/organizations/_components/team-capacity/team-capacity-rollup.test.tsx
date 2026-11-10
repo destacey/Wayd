@@ -2,8 +2,6 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TeamCapacityRollup from './team-capacity-rollup'
 
-jest.unmock('dayjs')
-
 const range = { from: '2027-02-01', to: '2027-02-28' }
 
 const person = (id: string, key: number, name: string, allocated: number) => ({
@@ -62,7 +60,7 @@ const renderRollup = () =>
       nodes={nodes}
       range={range}
       isLoading={false}
-      onRefresh={jest.fn()}
+      onRefresh={vi.fn()}
     />,
   )
 

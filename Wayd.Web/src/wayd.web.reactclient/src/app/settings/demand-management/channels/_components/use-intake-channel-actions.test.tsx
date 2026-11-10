@@ -3,20 +3,17 @@ import { Dropdown } from 'antd'
 import { IntakeChannelDto } from '@/src/services/wayd-api'
 import useIntakeChannelActions from './use-intake-channel-actions'
 
-const mockHasPermissionClaim = jest.fn()
+const mockHasPermissionClaim = vi.fn()
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: mockHasPermissionClaim }),
 }))
 
 // The dialogs only need to be identifiable, to assert which one an action opened.
-jest.mock('./intake-channel-form', () => ({
-  __esModule: true,
+vi.mock('./intake-channel-form', () => ({
   default: () => <div>edit dialog</div>,
 }))
-jest.mock('./change-intake-channel-state-form', () => ({
-  __esModule: true,
+vi.mock('./change-intake-channel-state-form', () => ({
   default: ({ archive }: { archive: boolean }) => (
     <div>{archive ? 'archive' : 'restore'} dialog</div>
   ),

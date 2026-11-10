@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { ColumnDef } from './index'
 import type { ColumnPinningState } from '@tanstack/react-table'
 
@@ -26,8 +27,7 @@ const leafColumns: ColumnDef<Item, any>[] = [
 const buildTable = (
   columnPinning: ColumnPinningState,
   columns: ColumnDef<Item, any>[] = leafColumns,
-) =>
-  buildHeadlessTable<Item>(data, columns, { columnPinning })
+) => buildHeadlessTable<Item>(data, columns, { columnPinning })
 
 const classes: PinnedCellClasses = {
   pinned: 'pinned',
@@ -195,13 +195,22 @@ describe('column-pinning', () => {
     it('adds the edge class only on the section edge', () => {
       // Arrange / Act / Assert
       expect(
-        pinnedCellClassNames({ side: 'left', offset: 0, isEdge: false }, classes),
+        pinnedCellClassNames(
+          { side: 'left', offset: 0, isEdge: false },
+          classes,
+        ),
       ).toBe('pinned')
       expect(
-        pinnedCellClassNames({ side: 'left', offset: 0, isEdge: true }, classes),
+        pinnedCellClassNames(
+          { side: 'left', offset: 0, isEdge: true },
+          classes,
+        ),
       ).toBe('pinned left-edge')
       expect(
-        pinnedCellClassNames({ side: 'right', offset: 0, isEdge: true }, classes),
+        pinnedCellClassNames(
+          { side: 'right', offset: 0, isEdge: true },
+          classes,
+        ),
       ).toBe('pinned right-edge')
       expect(pinnedCellClassNames(undefined, classes)).toBe('')
     })

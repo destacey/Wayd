@@ -1,19 +1,18 @@
 const mockMessage = {
-  success: jest.fn(),
-  error: jest.fn(),
-  warning: jest.fn(),
-  info: jest.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
 }
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => mockMessage,
 }))
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => true }),
 }))
 
-const mockDelete = jest.fn()
-jest.mock('@/src/store/features/ppm/project-tasks-api', () => ({
+const mockDelete = vi.fn()
+vi.mock('@/src/store/features/ppm/project-tasks-api', () => ({
   useDeleteProjectTaskMutation: () => [mockDelete],
   useGetProjectTaskQuery: () => ({
     data: { id: 't1', key: 'P-1', name: 'Design' },
@@ -26,13 +25,13 @@ import DeleteProjectTaskForm from './delete-project-task-form'
 
 describe('DeleteProjectTaskForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockDelete.mockResolvedValue({})
   })
 
   const renderForm = async (
-    onFormComplete = jest.fn(),
-    onFormCancel = jest.fn(),
+    onFormComplete = vi.fn(),
+    onFormCancel = vi.fn(),
   ) => {
     render(
       <DeleteProjectTaskForm
@@ -75,13 +74,13 @@ describe('DeleteProjectTaskForm', () => {
 
   it('deletes the task when Delete is pressed', async () => {
     // Arrange
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     render(
       <DeleteProjectTaskForm
         projectIdOrKey="P"
         taskIdOrKey="t1"
         onFormComplete={onFormComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
     await act(async () => {})

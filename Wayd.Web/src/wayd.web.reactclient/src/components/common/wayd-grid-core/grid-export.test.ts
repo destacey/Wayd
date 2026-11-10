@@ -1,12 +1,14 @@
+// @vitest-environment jsdom
 // Capture CSV export output. Keep generateCsv real so we assert on real content.
-jest.mock('@/src/utils/csv-utils', () => {
-  const actual = jest.requireActual('@/src/utils/csv-utils')
+vi.mock('@/src/utils/csv-utils', async () => {
+  const actual = await vi.importActual<any>('@/src/utils/csv-utils')
   return {
     ...actual,
-    downloadCsvWithTimestamp: jest.fn(),
+    downloadCsvWithTimestamp: vi.fn(),
   }
 })
 
+import type { Mock } from 'vitest'
 import type { ColumnDef } from './index'
 import type { TableState } from './index'
 
@@ -14,7 +16,7 @@ import { buildHeadlessTable } from './test-table'
 import { downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
 import { exportGridToCsv } from './grid-export'
 
-const mockDownloadCsv = downloadCsvWithTimestamp as jest.Mock
+const mockDownloadCsv = downloadCsvWithTimestamp as Mock
 
 type Item = {
   name: string

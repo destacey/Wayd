@@ -4,11 +4,11 @@ import GeneralSettingsForm, {
   GeneralSettingsFormProps,
 } from './general-settings-form'
 
-const mockUpdate = jest.fn()
-const mockSuccess = jest.fn()
-const mockError = jest.fn()
+const mockUpdate = vi.fn()
+const mockSuccess = vi.fn()
+const mockError = vi.fn()
 
-jest.mock('@/src/store/features/admin/system-settings-api', () => ({
+vi.mock('@/src/store/features/admin/system-settings-api', () => ({
   useUpdateGeneralSettingsMutation: () => [mockUpdate, { isLoading: false }],
 }))
 
@@ -17,11 +17,11 @@ const timeZones: TimeZoneDto[] = [
   { id: 'Europe/London', currentOffset: '+00:00' },
 ]
 
-jest.mock('@/src/store/features/common/time-zones-api', () => ({
+vi.mock('@/src/store/features/common/time-zones-api', () => ({
   useGetTimeZonesQuery: () => ({ data: timeZones, isLoading: false }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ success: mockSuccess, error: mockError }),
 }))
 
@@ -47,7 +47,7 @@ const chooseLondon = () => {
 
 describe('GeneralSettingsForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('shows the saved time zone', () => {
@@ -98,21 +98,21 @@ describe('GeneralSettingsForm', () => {
     chooseLondon()
     // antd draws a field's errors from a timer after they are set. That timer
     // must fire inside act: outside it React hands the update to its
-    // scheduler, which the jest setup's MessageChannel stub never runs, so the
+    // scheduler, which the test setup's MessageChannel stub never runs, so the
     // error never draws however long the test waits. Fake timers fire it only
     // when advanced here; the second act runs the timer the first one's render
     // scheduled.
-    jest.useFakeTimers()
+    vi.useFakeTimers()
     try {
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-        await jest.advanceTimersByTimeAsync(100)
+        await vi.advanceTimersByTimeAsync(100)
       })
       await act(async () => {
-        await jest.advanceTimersByTimeAsync(100)
+        await vi.advanceTimersByTimeAsync(100)
       })
     } finally {
-      jest.useRealTimers()
+      vi.useRealTimers()
     }
 
     // Assert

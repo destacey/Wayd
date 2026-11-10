@@ -1,7 +1,3 @@
-// jest.setup stubs dayjs down to formatting, which leaves the grid's date columns without
-// dayjs.isDayjs. The grid needs the real module.
-jest.unmock('dayjs')
-
 import { act, render, screen } from '@testing-library/react'
 import {
   ImportAtomicity,
@@ -11,9 +7,9 @@ import {
 } from '@/src/services/wayd-api'
 import ImportDetails from './import-details'
 
-const mockUseGetImportProcessRowsQuery = jest.fn()
+const mockUseGetImportProcessRowsQuery = vi.fn()
 
-jest.mock('@/src/store/features/admin/imports-api', () => ({
+vi.mock('@/src/store/features/admin/imports-api', () => ({
   useGetImportProcessRowsQuery: (...args: unknown[]) =>
     mockUseGetImportProcessRowsQuery(...args),
 }))

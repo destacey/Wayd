@@ -8,17 +8,17 @@ import MutedNotifications, {
   NoMutedRecordsMessage,
 } from './muted-notifications'
 
-const mockMessageError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
+const mockMessageError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: mockMessageError }),
 }))
 
-const mockUseReasons = jest.fn()
-const mockUseRecords = jest.fn()
-const mockMuteReason = jest.fn()
-const mockUnmuteReason = jest.fn()
-const mockUnmuteRecord = jest.fn()
-jest.mock('@/src/store/features/common/notification-mutes-api', () => ({
+const mockUseReasons = vi.fn()
+const mockUseRecords = vi.fn()
+const mockMuteReason = vi.fn()
+const mockUnmuteReason = vi.fn()
+const mockUnmuteRecord = vi.fn()
+vi.mock('@/src/store/features/common/notification-mutes-api', () => ({
   useGetReasonMutesQuery: (...args: unknown[]) => mockUseReasons(...args),
   useGetMutedRecordsInfiniteQuery: (...args: unknown[]) =>
     mockUseRecords(...args),
@@ -47,12 +47,12 @@ const records = (items: MutedRecordDto[], hasNextPage = false) => ({
   isError: false,
   hasNextPage,
   isFetchingNextPage: false,
-  fetchNextPage: jest.fn(),
+  fetchNextPage: vi.fn(),
 })
 
 describe('MutedNotifications', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockUseReasons.mockReturnValue({
       data: [
         { reason: NotificationReason.Following, isMuted: false },

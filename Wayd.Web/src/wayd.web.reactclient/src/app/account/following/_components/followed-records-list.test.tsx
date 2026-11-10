@@ -11,19 +11,16 @@ import FollowedRecordsList, {
 } from './followed-records-list'
 import { typeLabel } from '@/src/components/common/record/record-identity'
 
-jest.mock('@/src/store/features/ppm/project-health-checks-api', () => ({
+vi.mock('@/src/store/features/ppm/project-health-checks-api', () => ({
   useGetProjectHealthCheckQuery: () => ({ data: undefined, isLoading: false }),
 }))
 
-jest.mock(
-  '@/src/store/features/planning/pi-objective-health-checks-api',
-  () => ({
-    useGetObjectiveHealthCheckQuery: () => ({
-      data: undefined,
-      isLoading: false,
-    }),
+vi.mock('@/src/store/features/planning/pi-objective-health-checks-api', () => ({
+  useGetObjectiveHealthCheckQuery: () => ({
+    data: undefined,
+    isLoading: false,
   }),
-)
+}))
 
 const record = (
   n: number,
@@ -49,16 +46,16 @@ const props = (
   isError: false,
   hasMore: false,
   isLoadingMore: false,
-  onLoadMore: jest.fn(),
+  onLoadMore: vi.fn(),
   search: '',
-  onSearchChange: jest.fn(),
+  onSearchChange: vi.fn(),
   sort: FollowSort.LastChanged,
-  onSortChange: jest.fn(),
+  onSortChange: vi.fn(),
   direction: SortDirection.Descending,
-  onDirectionChange: jest.fn(),
+  onDirectionChange: vi.fn(),
   typeName: (ownerType) => typeLabel(ownerType),
   selectedId: undefined,
-  onSelect: jest.fn(),
+  onSelect: vi.fn(),
   ...overrides,
 })
 
@@ -112,7 +109,7 @@ describe('FollowedRecordsList', () => {
 
   it('names each kind of record as the page does', () => {
     // Arrange
-    const typeName = jest.fn(() => 'Gadget')
+    const typeName = vi.fn(() => 'Gadget')
 
     // Act
     render(
@@ -140,7 +137,7 @@ describe('FollowedRecordsList', () => {
 
   it('selects a record when its row is chosen, and marks the selected row as current', () => {
     // Arrange
-    const onSelect = jest.fn()
+    const onSelect = vi.fn()
     render(
       <FollowedRecordsList
         {...props({ onSelect, selectedId: 'ppm.project:id-2' })}
@@ -160,7 +157,7 @@ describe('FollowedRecordsList', () => {
 
   it('loads the next page as the end of the loaded rows comes into view', () => {
     // Arrange
-    const onLoadMore = jest.fn()
+    const onLoadMore = vi.fn()
 
     // Act
     render(
@@ -180,7 +177,7 @@ describe('FollowedRecordsList', () => {
 
   it('does not ask for more when there is nothing more', () => {
     // Arrange
-    const onLoadMore = jest.fn()
+    const onLoadMore = vi.fn()
 
     // Act
     render(<FollowedRecordsList {...props({ onLoadMore, hasMore: false })} />)
@@ -191,7 +188,7 @@ describe('FollowedRecordsList', () => {
 
   it('keeps the loaded rows when the next page fails, and retries only when asked', () => {
     // Arrange
-    const onLoadMore = jest.fn()
+    const onLoadMore = vi.fn()
     render(
       <FollowedRecordsList
         {...props({
@@ -238,7 +235,7 @@ describe('FollowedRecordsList', () => {
 
   it('passes search text up', () => {
     // Arrange
-    const onSearchChange = jest.fn()
+    const onSearchChange = vi.fn()
     render(<FollowedRecordsList {...props({ onSearchChange })} />)
 
     // Act
@@ -252,7 +249,7 @@ describe('FollowedRecordsList', () => {
 
   it('passes a new sort up', () => {
     // Arrange
-    const onSortChange = jest.fn()
+    const onSortChange = vi.fn()
     render(<FollowedRecordsList {...props({ onSortChange })} />)
 
     // Act
@@ -268,7 +265,7 @@ describe('FollowedRecordsList', () => {
 
   it('flips the order between newest and oldest first', () => {
     // Arrange
-    const onDirectionChange = jest.fn()
+    const onDirectionChange = vi.fn()
     const { rerender } = render(
       <FollowedRecordsList {...props({ onDirectionChange })} />,
     )

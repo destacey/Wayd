@@ -5,17 +5,16 @@ import userEvent from '@testing-library/user-event'
 import PlanningIntervalDependenciesSection from './planning-interval-dependencies-section'
 
 let mockDependencies: DependencyDto[] = []
-jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
+vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
   useGetPlanningIntervalDependenciesQuery: () => ({
     data: mockDependencies,
     isLoading: false,
-    refetch: jest.fn(),
+    refetch: vi.fn(),
   }),
 }))
 
 // The grid's own behaviour is not under test here: only which rows the section hands it.
-jest.mock('@/src/components/common/work/dependencies-grid', () => ({
-  __esModule: true,
+vi.mock('@/src/components/common/work/dependencies-grid', () => ({
   default: (props: { dependencies: DependencyDto[]; leftSlot?: unknown }) => (
     <div>
       <ul aria-label="rows">

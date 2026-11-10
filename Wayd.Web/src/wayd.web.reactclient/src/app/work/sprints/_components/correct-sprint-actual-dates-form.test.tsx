@@ -1,7 +1,4 @@
-// The picker compares and formats real moments; the global mock only stubs format.
-jest.unmock('dayjs')
-
-import { act, render, screen, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   SprintDetailsDto,
@@ -11,17 +8,17 @@ import {
 } from '@/src/services/wayd-api'
 import CorrectSprintActualDatesForm from './correct-sprint-actual-dates-form'
 
-const correctActualDates = jest.fn()
-const errorMessage = jest.fn()
-const successMessage = jest.fn()
+const correctActualDates = vi.fn()
+const errorMessage = vi.fn()
+const successMessage = vi.fn()
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: errorMessage, success: successMessage }),
 }))
 
 // Not spread from the real barrel: it re-exports store-bound hooks. The stand-in
 // keeps the hook's contract — OK submits, and a successful submit completes.
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useConfirmModal: (options: {
     onSubmit: () => Promise<boolean>
     onComplete: () => void
@@ -36,7 +33,7 @@ jest.mock('@/src/hooks', () => ({
   }),
 }))
 
-jest.mock('@/src/store/features/work-management/sprints-api', () => ({
+vi.mock('@/src/store/features/work-management/sprints-api', () => ({
   useCorrectSprintActualDatesMutation: () => [correctActualDates],
 }))
 
@@ -92,14 +89,14 @@ const nextSprint: SprintListDto = {
 
 const renderForm = (
   overrides: Partial<SprintDetailsDto> = {},
-  onFormComplete = jest.fn(),
+  onFormComplete = vi.fn(),
 ) =>
   render(
     <CorrectSprintActualDatesForm
       sprint={{ ...sprint, ...overrides }}
       nextSprint={nextSprint}
       onFormComplete={onFormComplete}
-      onFormCancel={jest.fn()}
+      onFormCancel={vi.fn()}
     />,
   )
 
@@ -119,7 +116,7 @@ const clearPicker = async (label: string) => {
 
 describe('CorrectSprintActualDatesForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     correctActualDates.mockResolvedValue({ data: undefined })
   })
 
@@ -142,7 +139,7 @@ describe('CorrectSprintActualDatesForm', () => {
 
   it('sends only the sprints that changed, a cleared value following the planned date', async () => {
     // Arrange
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     renderForm({}, onFormComplete)
 
     // Act
@@ -219,7 +216,7 @@ describe('CorrectSprintActualDatesForm', () => {
 
   it('shows the refusal the API gives and stays open', async () => {
     // Arrange
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     correctActualDates.mockResolvedValue({
       error: {
         status: 400,
@@ -253,9 +250,10 @@ describe('CorrectSprintActualDatesForm', () => {
 
     // Act
     await clearPicker('26.3.4 started')
-    await act(() => userEvent.click(saveButton()))
+    await userEvent.click(saveButton())
 
     // Assert
+    const message = await screen.findByText('Started must be a valid moment.')
     expect(errorMessage).toHaveBeenCalledWith(
       'Correct the validation error(s) to continue.',
     )
@@ -263,8 +261,6 @@ describe('CorrectSprintActualDatesForm', () => {
       .getByLabelText('26.3.4 started')
       .closest('.ant-form-item')
     expect(field).toHaveClass('ant-form-item-has-error')
-    expect(
-      within(field as HTMLElement).getByText('Started must be a valid moment.'),
-    ).toBeInTheDocument()
+    expect(field).toContainElement(message)
   })
 })

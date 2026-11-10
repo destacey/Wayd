@@ -1,14 +1,13 @@
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
 // Capture CSV export output. Keep generateCsv real so we assert on real content.
-jest.mock('@/src/utils/csv-utils', () => {
-  const actual = jest.requireActual('@/src/utils/csv-utils')
+vi.mock('@/src/utils/csv-utils', async () => {
+  const actual = await vi.importActual<any>('@/src/utils/csv-utils')
   return {
     ...actual,
-    downloadCsvWithTimestamp: jest.fn(),
+    downloadCsvWithTimestamp: vi.fn(),
   }
 })
 
+import type { Mock } from 'vitest'
 import { createRef } from 'react'
 import { render, screen, fireEvent, within, act } from '@testing-library/react'
 import type { ColumnDef } from '../wayd-grid-core'
@@ -20,7 +19,7 @@ import { gridStateStorageKey } from '../wayd-grid-core/use-grid-persistence'
 import type { WaydGridHandle, WaydGridColumnMeta } from './types'
 import { downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
 
-const mockDownloadCsv = downloadCsvWithTimestamp as jest.Mock
+const mockDownloadCsv = downloadCsvWithTimestamp as Mock
 
 interface Flag {
   id: number
@@ -700,7 +699,7 @@ describe('WaydGrid', () => {
   describe('toolbar behavior', () => {
     it('calls onRefresh when the refresh button is clicked', () => {
       // Arrange
-      const onRefresh = jest.fn()
+      const onRefresh = vi.fn()
       const { container } = renderGrid({ onRefresh })
 
       // Act — the refresh button carries a reload icon (aria-label="reload")
@@ -982,7 +981,7 @@ describe('WaydGrid', () => {
   describe('displayed-rows surface (onDisplayedRowsChange / getDisplayedRows)', () => {
     it('fires on mount with all rows in display order', () => {
       // Arrange / Act
-      const onDisplayedRowsChange = jest.fn()
+      const onDisplayedRowsChange = vi.fn()
       renderGrid({ onDisplayedRowsChange })
 
       // Assert
@@ -997,7 +996,7 @@ describe('WaydGrid', () => {
 
     it('fires with the filtered subset when the global search changes', () => {
       // Arrange
-      const onDisplayedRowsChange = jest.fn()
+      const onDisplayedRowsChange = vi.fn()
       renderGrid({ onDisplayedRowsChange })
 
       // Act
@@ -1012,7 +1011,7 @@ describe('WaydGrid', () => {
 
     it('fires with the re-sorted order when a sort is applied', () => {
       // Arrange
-      const onDisplayedRowsChange = jest.fn()
+      const onDisplayedRowsChange = vi.fn()
       renderGrid({ onDisplayedRowsChange })
 
       // Act
@@ -1047,7 +1046,7 @@ describe('WaydGrid', () => {
     it('wraps rows in sortable rows keyed by getRowId', () => {
       // Arrange / Act
       renderGrid({
-        onRowReorder: jest.fn(),
+        onRowReorder: vi.fn(),
         getRowId: (row) => `flag-${row.id}`,
       })
 
@@ -1070,7 +1069,7 @@ describe('WaydGrid', () => {
       // Arrange — a columns function that surfaces context.isDragEnabled
       const seen: boolean[] = []
       renderGrid({
-        onRowReorder: jest.fn(),
+        onRowReorder: vi.fn(),
         getRowId: (row) => String(row.id),
         columns: (context) => {
           seen.push(context.isDragEnabled)
@@ -1147,7 +1146,7 @@ describe('WaydGrid', () => {
 
     it('renders values without TanStack deep-accessor dev warnings', () => {
       // Arrange
-      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {})
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
       try {
         // Act
@@ -1176,7 +1175,7 @@ describe('WaydGrid', () => {
   })
 
   describe('row virtualization', () => {
-    // jsdom has no layout; jest.setup.ts mocks the body viewport's rect to
+    // jsdom has no layout; vitest.setup.dom.ts mocks the body viewport's rect to
     // 800×600 (see data-grid-body-viewport). These tests pin the resulting
     // window plus the spacer geometry standing in for the unrendered rows.
     const ROW_ESTIMATE = 28
@@ -1257,7 +1256,7 @@ describe('WaydGrid', () => {
 
     it('reports ALL displayed rows through onDisplayedRowsChange, not just the window', () => {
       // Arrange / Act
-      const onDisplayedRowsChange = jest.fn()
+      const onDisplayedRowsChange = vi.fn()
       renderGrid({ data: BIG_DATA, onDisplayedRowsChange })
 
       // Assert
@@ -1527,39 +1526,12 @@ describe('WaydGrid', () => {
     const STORAGE_KEY = gridStateStorageKey('test-grid')
 
     beforeEach(() => {
-      // jest.setup's localStorage stub has no backing store — replace it with
-      // a real in-memory implementation for persistence round-trips
-      const localStorageMock = (() => {
-        let store: Record<string, string> = {}
-        return {
-          getItem: (key: string) => store[key] ?? null,
-          setItem: (key: string, value: string) => {
-            store[key] = value
-          },
-          removeItem: (key: string) => {
-            delete store[key]
-          },
-          clear: () => {
-            store = {}
-          },
-          get length() {
-            return Object.keys(store).length
-          },
-          key: (index: number) => {
-            const keys = Object.keys(store)
-            return keys[index] ?? null
-          },
-        }
-      })()
-      Object.defineProperty(window, 'localStorage', {
-        value: localStorageMock,
-        writable: true,
-      })
-      jest.useFakeTimers()
+      vi.useFakeTimers()
     })
 
     afterEach(() => {
-      jest.useRealTimers()
+      vi.useRealTimers()
+      vi.restoreAllMocks()
     })
 
     it('restores sizing, user visibility, and pinning from a stored entry', () => {
@@ -1606,7 +1578,7 @@ describe('WaydGrid', () => {
         ref.current!.table.getColumn('type').pin('start')
       })
       act(() => {
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
       unmount()
 
@@ -1635,15 +1607,15 @@ describe('WaydGrid', () => {
 
     it('never touches storage without a persistStateKey', () => {
       // Arrange
-      const getItemSpy = jest.spyOn(window.localStorage, 'getItem')
-      const setItemSpy = jest.spyOn(window.localStorage, 'setItem')
+      const getItemSpy = vi.spyOn(Storage.prototype, 'getItem')
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
       const ref = createRef<WaydGridHandle>()
 
       // Act
       renderGrid({ ref })
       act(() => {
         ref.current!.table.setColumnSizing({ name: 300 })
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
 
       // Assert
@@ -1661,7 +1633,7 @@ describe('WaydGrid', () => {
         ref.current!.table.setColumnOrder(['isEnabled', 'name', 'type'])
       })
       act(() => {
-        jest.advanceTimersByTime(1000)
+        vi.advanceTimersByTime(1000)
       })
       unmount()
 
@@ -1755,7 +1727,7 @@ describe('WaydGrid', () => {
 
     it('renders one bar per row via renderRow with its geometry', () => {
       // Arrange — a renderRow that emits a labeled marker carrying its top/height.
-      const renderRow = jest.fn(({ row, top, height }) => (
+      const renderRow = vi.fn(({ row, top, height }) => (
         <div
           data-testid={`bar-${(row.original as Flag).id}`}
           data-top={top}
@@ -1813,7 +1785,7 @@ describe('WaydGrid', () => {
     it('keeps rows as grid rows, never buttons', () => {
       // Arrange / Act — the cells take focus and keys; a row claiming a
       // button role would hide the grid's structure from assistive tech.
-      renderGrid({ onRowActivate: jest.fn() })
+      renderGrid({ onRowActivate: vi.fn() })
 
       // Assert
       bodyRows().forEach((row) => {
@@ -1824,7 +1796,7 @@ describe('WaydGrid', () => {
 
     it('activates the clicked row', () => {
       // Arrange
-      const onRowActivate = jest.fn()
+      const onRowActivate = vi.fn()
       renderGrid({ onRowActivate })
 
       // Act
@@ -1837,7 +1809,7 @@ describe('WaydGrid', () => {
 
     it('activates on Enter and Space in a focused cell', () => {
       // Arrange
-      const onRowActivate = jest.fn()
+      const onRowActivate = vi.fn()
       renderGrid({ onRowActivate })
       const cell = bodyCells('type')[0]
 
@@ -1853,7 +1825,7 @@ describe('WaydGrid', () => {
 
     it('ignores other keys', () => {
       // Arrange
-      const onRowActivate = jest.fn()
+      const onRowActivate = vi.fn()
       renderGrid({ onRowActivate })
 
       // Act
@@ -1866,7 +1838,7 @@ describe('WaydGrid', () => {
     it('names the row from getRowActivateLabel', () => {
       // Arrange / Act
       renderGrid({
-        onRowActivate: jest.fn(),
+        onRowActivate: vi.fn(),
         getRowActivateLabel: (flag) => `Open ${flag.name}`,
       })
 
@@ -1877,8 +1849,8 @@ describe('WaydGrid', () => {
     it('leaves clicks on interactive cell content alone', () => {
       // Arrange — an actions button inside an activatable row must open its
       // own thing, not the row.
-      const onRowActivate = jest.fn()
-      const onButtonClick = jest.fn()
+      const onRowActivate = vi.fn()
+      const onButtonClick = vi.fn()
       render(
         <WaydGrid<Flag>
           data={DATA}
@@ -1911,7 +1883,7 @@ describe('WaydGrid', () => {
     it('leaves keyboard activation of interactive cell content alone', () => {
       // Arrange — Enter on a focused in-cell button is that button's, and the
       // event bubbles to the row, so the row has to decline it too.
-      const onRowActivate = jest.fn()
+      const onRowActivate = vi.fn()
       render(
         <WaydGrid<Flag>
           data={DATA}
@@ -1940,7 +1912,7 @@ describe('WaydGrid', () => {
     it('respects an explicit data-row-activate="ignore" opt-out', () => {
       // Arrange — for non-semantic interactive content (a custom toggle) that
       // the interactive-element selector would not otherwise catch.
-      const onRowActivate = jest.fn()
+      const onRowActivate = vi.fn()
       render(
         <WaydGrid<Flag>
           data={DATA}
@@ -1968,7 +1940,7 @@ describe('WaydGrid', () => {
     it('marks the activated row and only that row', () => {
       // Arrange / Act — activatedRowId is matched against the row id, which
       // falls back to row.original.id.
-      renderGrid({ onRowActivate: jest.fn(), activatedRowId: '2' })
+      renderGrid({ onRowActivate: vi.fn(), activatedRowId: '2' })
 
       // Assert — the highlight is a class on exactly one row
       const activated = document.querySelectorAll(`tbody tr.${'trActivated'}`)
@@ -1979,7 +1951,7 @@ describe('WaydGrid', () => {
     it('marks no row when activatedRowId matches nothing', () => {
       // Arrange / Act — a stale id from a URL must not highlight a row, and
       // must not throw.
-      renderGrid({ onRowActivate: jest.fn(), activatedRowId: '999' })
+      renderGrid({ onRowActivate: vi.fn(), activatedRowId: '999' })
 
       // Assert
       expect(document.querySelectorAll('tbody tr.trActivated')).toHaveLength(0)
@@ -2063,7 +2035,7 @@ describe('WaydGrid', () => {
 
     it('lets the caller write the heading from the group value and its rows', () => {
       // Arrange
-      const renderGroupHeader = jest.fn(
+      const renderGroupHeader = vi.fn(
         ({ value, leafRows }: { value: unknown; leafRows: Flag[] }) =>
           `${String(value)}: ${leafRows.map((f) => f.name).join(', ')}`,
       )
@@ -2080,7 +2052,7 @@ describe('WaydGrid', () => {
 
     it('activates data rows but never a heading', () => {
       // Arrange
-      const onRowActivate = jest.fn()
+      const onRowActivate = vi.fn()
       renderGrid({ grouping: ['type'], onRowActivate })
 
       // Act
@@ -2096,7 +2068,7 @@ describe('WaydGrid', () => {
     it('keeps headings out of the displayed rows and the CSV', () => {
       // Arrange
       mockDownloadCsv.mockClear()
-      const onDisplayedRowsChange = jest.fn()
+      const onDisplayedRowsChange = vi.fn()
       const { container } = renderGrid({
         grouping: ['type'],
         onDisplayedRowsChange,
@@ -2265,7 +2237,7 @@ describe('WaydGrid', () => {
 
     it("opens the row's actions menu with Shift+F10 or the Menu key", () => {
       // Arrange
-      const onActions = jest.fn()
+      const onActions = vi.fn()
       render(
         <WaydGrid<Flag>
           data={DATA}

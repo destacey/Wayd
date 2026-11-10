@@ -18,7 +18,7 @@ const counts: FollowCountsDto = {
 describe('FollowingRail', () => {
   it('lists every type and view with its count', () => {
     // Arrange & Act
-    render(<FollowingRail counts={counts} filter={{}} onChange={jest.fn()} />)
+    render(<FollowingRail counts={counts} filter={{}} onChange={vi.fn()} />)
 
     // Assert
     expect(
@@ -43,7 +43,7 @@ describe('FollowingRail', () => {
 
   it('selects a type on its own, clearing any view', () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <FollowingRail
         counts={counts}
@@ -61,7 +61,7 @@ describe('FollowingRail', () => {
 
   it('selects a view on its own, clearing any type', () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <FollowingRail
         counts={counts}
@@ -83,7 +83,7 @@ describe('FollowingRail', () => {
       <FollowingRail
         counts={counts}
         filter={{ view: FollowView.Closed }}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
       />,
     )
 

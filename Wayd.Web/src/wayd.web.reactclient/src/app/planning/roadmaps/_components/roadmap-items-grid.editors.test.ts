@@ -1,5 +1,3 @@
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
 import type { RoadmapItemTreeNode } from './roadmap-items-grid'
 import {
   roadmapColorEditor,

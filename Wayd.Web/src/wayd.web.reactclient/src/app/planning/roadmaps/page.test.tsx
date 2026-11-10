@@ -5,45 +5,44 @@ const mockAuth = {
   permissions: ['Permissions.Roadmaps.View', 'Permissions.Roadmaps.Create'],
 }
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
-    hasClaim: jest.fn(() => true),
+    hasClaim: vi.fn(() => true),
     hasPermissionClaim: (permission: string) =>
       mockAuth.permissions.includes(permission),
   }),
 }))
 
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useLinkedEmployee: () => ({
     employeeId: mockAuth.employeeId,
     hasLinkedEmployee: mockAuth.employeeId !== null,
   }),
 }))
 
-jest.mock('@/src/hooks/use-document-title', () => ({
-  useDocumentTitle: jest.fn(),
+vi.mock('@/src/hooks/use-document-title', () => ({
+  useDocumentTitle: vi.fn(),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 // The page is exported wrapped in authorizePage; render the inner page directly.
-jest.mock('@/src/components/hoc', () => ({
+vi.mock('@/src/components/hoc', () => ({
   authorizePage: (component: unknown) => component,
 }))
 
-jest.mock('@/src/store/features/planning/roadmaps-api', () => ({
+vi.mock('@/src/store/features/planning/roadmaps-api', () => ({
   useGetRoadmapsQuery: () => ({
     data: [],
     isLoading: false,
     error: undefined,
-    refetch: jest.fn(),
+    refetch: vi.fn(),
   }),
 }))
 
-jest.mock('./_components', () => ({
+vi.mock('./_components', () => ({
   CreateRoadmapForm: () => null,
   RoadmapsFilterBar: () => null,
   RoadmapsGrid: () => null,

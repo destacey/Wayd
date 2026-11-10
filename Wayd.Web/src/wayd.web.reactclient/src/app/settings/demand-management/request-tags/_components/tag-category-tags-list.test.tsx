@@ -6,22 +6,18 @@ import {
 import TagCategoryTagsList from './tag-category-tags-list'
 
 // The dialogs have their own tests; here they only need to be identifiable.
-jest.mock('./add-tag-form', () => ({
-  __esModule: true,
+vi.mock('./add-tag-form', () => ({
   default: ({ categoryName }: { categoryName: string }) => (
     <div>add dialog for {categoryName}</div>
   ),
 }))
-jest.mock('./edit-tag-form', () => ({
-  __esModule: true,
+vi.mock('./edit-tag-form', () => ({
   default: () => <div>edit dialog</div>,
 }))
-jest.mock('./delete-tag-form', () => ({
-  __esModule: true,
+vi.mock('./delete-tag-form', () => ({
   default: () => <div>delete dialog</div>,
 }))
-jest.mock('./change-tag-active-form', () => ({
-  __esModule: true,
+vi.mock('./change-tag-active-form', () => ({
   default: ({ isActive }: { isActive: boolean }) => (
     <div>{isActive ? 'activate' : 'deactivate'} dialog</div>
   ),

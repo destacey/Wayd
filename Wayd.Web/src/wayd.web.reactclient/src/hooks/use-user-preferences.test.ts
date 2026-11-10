@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+import type { Mock } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useUserPreferences, useTourCompleted } from './use-user-preferences'
 import {
@@ -5,17 +7,17 @@ import {
   useUpdateUserPreferencesMutation,
 } from '@/src/store/features/user-management/profile-api'
 
-jest.mock('@/src/store/features/user-management/profile-api', () => ({
-  useGetUserPreferencesQuery: jest.fn(),
-  useUpdateUserPreferencesMutation: jest.fn(),
+vi.mock('@/src/store/features/user-management/profile-api', () => ({
+  useGetUserPreferencesQuery: vi.fn(),
+  useUpdateUserPreferencesMutation: vi.fn(),
 }))
 
-const mockQuery = useGetUserPreferencesQuery as jest.Mock
-const mockMutationHook = useUpdateUserPreferencesMutation as jest.Mock
-const mockUpdatePreferences = jest.fn()
+const mockQuery = useGetUserPreferencesQuery as Mock
+const mockMutationHook = useUpdateUserPreferencesMutation as Mock
+const mockUpdatePreferences = vi.fn()
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   mockMutationHook.mockReturnValue([mockUpdatePreferences])
 })
 

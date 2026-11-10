@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import {
   browserTrace,
   installBrowserTraceCapture,
@@ -72,7 +73,8 @@ describe('installBrowserTraceCapture', () => {
   beforeEach(() => {
     resetBrowserTraceCapture()
     window.fetch = originalFetch
-    delete (window as Window & { __waydTraceCapture?: boolean }).__waydTraceCapture
+    delete (window as Window & { __waydTraceCapture?: boolean })
+      .__waydTraceCapture
   })
 
   afterEach(() => {
@@ -81,7 +83,7 @@ describe('installBrowserTraceCapture', () => {
 
   it('records traceresponse from a same-origin fetch', async () => {
     // Arrange
-    window.fetch = jest.fn().mockResolvedValue({
+    window.fetch = vi.fn().mockResolvedValue({
       headers: {
         get: (name: string) =>
           name === 'traceresponse' ? '00-fetched-span-01' : null,

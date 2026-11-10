@@ -38,7 +38,7 @@ describe('FeatureFlagModuleCard', () => {
           flags: [incidents],
         }}
         canUpdate
-        onToggle={jest.fn()}
+        onToggle={vi.fn()}
       />,
     )
 
@@ -61,7 +61,7 @@ describe('FeatureFlagModuleCard', () => {
 
   it('passes the flag and its new state to onToggle', async () => {
     // Arrange
-    const onToggle = jest.fn()
+    const onToggle = vi.fn()
     render(
       <FeatureFlagModuleCard
         group={{
@@ -93,7 +93,7 @@ describe('FeatureFlagModuleCard', () => {
           flags: [incidents],
         }}
         canUpdate
-        onToggle={jest.fn()}
+        onToggle={vi.fn()}
       />,
     )
 
@@ -121,7 +121,7 @@ describe('FeatureFlagModuleCard', () => {
           flags: [],
         }}
         canUpdate
-        onToggle={jest.fn()}
+        onToggle={vi.fn()}
       />,
     )
 
@@ -139,7 +139,7 @@ describe('FeatureFlagModuleCard', () => {
           flags: [incidents],
         }}
         canUpdate={false}
-        onToggle={jest.fn()}
+        onToggle={vi.fn()}
       />,
     )
 
@@ -164,7 +164,7 @@ describe('FeatureFlagModuleCard', () => {
           ],
         }}
         canUpdate
-        onToggle={jest.fn()}
+        onToggle={vi.fn()}
       />,
     )
 

@@ -1,7 +1,4 @@
-// The picker compares and formats real moments; the global mock only stubs format.
-jest.unmock('dayjs')
-
-import { act, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   SprintDetailsDto,
@@ -12,19 +9,19 @@ import ChangeSprintLifecycleForm, {
   SprintLifecycleAction,
 } from './change-sprint-lifecycle-form'
 
-const startSprint = jest.fn()
-const completeSprint = jest.fn()
-const reopenSprint = jest.fn()
-const errorMessage = jest.fn()
-const successMessage = jest.fn()
+const startSprint = vi.fn()
+const completeSprint = vi.fn()
+const reopenSprint = vi.fn()
+const errorMessage = vi.fn()
+const successMessage = vi.fn()
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: errorMessage, success: successMessage }),
 }))
 
 // Not spread from the real barrel: it re-exports store-bound hooks. The stand-in
 // keeps the hook's contract — OK submits, and a successful submit completes.
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useConfirmModal: (options: {
     onSubmit: () => Promise<boolean>
     onComplete: () => void
@@ -39,7 +36,7 @@ jest.mock('@/src/hooks', () => ({
   }),
 }))
 
-jest.mock('@/src/store/features/work-management/sprints-api', () => ({
+vi.mock('@/src/store/features/work-management/sprints-api', () => ({
   useStartSprintMutation: () => [startSprint],
   useCompleteSprintMutation: () => [completeSprint],
   useReopenSprintMutation: () => [reopenSprint],
@@ -84,20 +81,20 @@ const openSprint = { id: 'sprint-1', key: 201, name: '26.3.2' }
 const renderForm = (
   action: SprintLifecycleAction,
   overrides: Partial<SprintDetailsDto> = {},
-  onFormComplete = jest.fn(),
+  onFormComplete = vi.fn(),
 ) =>
   render(
     <ChangeSprintLifecycleForm
       sprint={{ ...sprint, ...overrides }}
       action={action}
       onFormComplete={onFormComplete}
-      onFormCancel={jest.fn()}
+      onFormCancel={vi.fn()}
     />,
   )
 
 describe('ChangeSprintLifecycleForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     startSprint.mockResolvedValue({ data: undefined })
     completeSprint.mockResolvedValue({ data: undefined })
     reopenSprint.mockResolvedValue({ data: undefined })
@@ -105,7 +102,7 @@ describe('ChangeSprintLifecycleForm', () => {
 
   it('starts without completing another sprint when none is open', async () => {
     // Arrange
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     renderForm(SprintLifecycleAction.Start, {}, onFormComplete)
 
     // Act
@@ -189,7 +186,7 @@ describe('ChangeSprintLifecycleForm', () => {
 
   it('shows the refusal the API gives and stays open', async () => {
     // Arrange
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     completeSprint.mockResolvedValue({
       error: { status: 400, detail: 'The sprint has not started.' },
     })
@@ -271,9 +268,7 @@ describe('ChangeSprintLifecycleForm', () => {
     renderForm(SprintLifecycleAction.Start)
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Start Sprint' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Start Sprint' }))
 
     // Assert
     expect(errorMessage).toHaveBeenCalledWith(

@@ -1,7 +1,4 @@
-// The pane builds its axis through scale.tiers(), which needs REAL dayjs
-// (.startOf/.add); the global mock only stubs format. Same reason as scale.test.ts.
-jest.unmock('dayjs')
-
+import type { Mock } from 'vitest'
 import { fireEvent, render, renderHook } from '@testing-library/react'
 import { useGanttPane } from './use-gantt-pane'
 import type { GanttAccessors } from './types'
@@ -34,14 +31,18 @@ function renderRow(
   tree: Node[],
   node: Node,
   editable = false,
-  onBarPointerDown?: jest.Mock,
+  onBarPointerDown?: Mock,
 ) {
   const { result } = renderHook(() =>
     useGanttPane(tree, accessors, { editable, onBarPointerDown }),
   )
   return render(
     <div>
-      {result.current.renderRow({ row: { original: node }, top: 0, height: 32 })}
+      {result.current.renderRow({
+        row: { original: node },
+        top: 0,
+        height: 32,
+      })}
     </div>,
   )
 }
@@ -155,8 +156,9 @@ describe('useGanttPane', () => {
     )
     // Assert
     expect(header.container.querySelector('[class*="axis"]')).toBeTruthy()
-    expect(bg.container.querySelectorAll('[class*="gridline"]').length)
-      .toBeGreaterThan(0)
+    expect(
+      bg.container.querySelectorAll('[class*="gridline"]').length,
+    ).toBeGreaterThan(0)
   })
 
   it('exposes a drag scale and domain consistent with the axis', () => {
@@ -171,7 +173,7 @@ describe('useGanttPane', () => {
 
   it('makes a milestone draggable when the pane is editable', () => {
     // Arrange
-    const onBarPointerDown = jest.fn()
+    const onBarPointerDown = vi.fn()
     const ms: Node = {
       id: 'm1',
       name: 'Go live',
@@ -197,7 +199,7 @@ describe('useGanttPane', () => {
 
   it('leaves a milestone static when the pane is read-only', () => {
     // Arrange
-    const onBarPointerDown = jest.fn()
+    const onBarPointerDown = vi.fn()
     const ms: Node = {
       id: 'm1',
       name: 'Go live',

@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event'
 import PlanningIntervalDependenciesCard from './planning-interval-dependencies-card'
 
 let mockDependencies: DependencyDto[] = []
-jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
+vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
   useGetPlanningIntervalDependenciesQuery: () => ({
     data: mockDependencies,
     isLoading: false,
@@ -46,7 +46,7 @@ describe('PlanningIntervalDependenciesCard', () => {
     ]
 
     // Act
-    render(<PlanningIntervalDependenciesCard piKey={7} onOpen={jest.fn()} />)
+    render(<PlanningIntervalDependenciesCard piKey={7} onOpen={vi.fn()} />)
 
     // Assert
     expect(figure('Open')).toHaveTextContent('4')
@@ -57,7 +57,7 @@ describe('PlanningIntervalDependenciesCard', () => {
   it('opens the Dependencies section from a figure', async () => {
     // Arrange
     mockDependencies = []
-    const onOpen = jest.fn()
+    const onOpen = vi.fn()
     render(<PlanningIntervalDependenciesCard piKey={7} onOpen={onOpen} />)
 
     // Act

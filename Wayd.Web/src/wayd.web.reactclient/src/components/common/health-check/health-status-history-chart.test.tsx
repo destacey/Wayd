@@ -4,8 +4,7 @@ import HealthStatusHistoryChart, {
   toHealthStatusHistorySeries,
 } from './health-status-history-chart'
 
-jest.mock('next/dynamic', () => ({
-  __esModule: true,
+vi.mock('next/dynamic', () => ({
   default: () => {
     const Component = (props: any) => (
       <div data-testid="line-chart" data-config={JSON.stringify(props)} />
@@ -15,9 +14,8 @@ jest.mock('next/dynamic', () => ({
   },
 }))
 
-jest.mock('../../contexts/theme', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+vi.mock('../../contexts/theme', () => ({
+  default: vi.fn(() => ({
     currentTheme: 'wayd',
     currentMode: 'light',
     antDesignChartsTheme: 'light',

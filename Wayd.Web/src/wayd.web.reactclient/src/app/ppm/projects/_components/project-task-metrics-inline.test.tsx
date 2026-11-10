@@ -1,17 +1,18 @@
+import type { Mock } from 'vitest'
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import ProjectTaskMetricsInline from './project-task-metrics-inline'
 import { useGetProjectPlanSummaryQuery } from '@/src/store/features/ppm/projects-api'
 
-jest.mock('@/src/store/features/ppm/projects-api', () => ({
-  useGetProjectPlanSummaryQuery: jest.fn(),
+vi.mock('@/src/store/features/ppm/projects-api', () => ({
+  useGetProjectPlanSummaryQuery: vi.fn(),
 }))
 
-const mockQuery = useGetProjectPlanSummaryQuery as unknown as jest.Mock
+const mockQuery = useGetProjectPlanSummaryQuery as unknown as Mock
 
 describe('ProjectTaskMetricsInline', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('renders each count with its label', () => {

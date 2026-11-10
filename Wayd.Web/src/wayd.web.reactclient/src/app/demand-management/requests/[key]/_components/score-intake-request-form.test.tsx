@@ -2,22 +2,19 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ScoreIntakeRequestForm from './score-intake-request-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-const mockScore = jest.fn()
-const mockPreview = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useScoreIntakeRequestMutation: () => [mockScore, { isLoading: false }],
-    usePreviewIntakeRequestScoreMutation: () => [
-      mockPreview,
-      { isLoading: false },
-    ],
-  }),
-)
+const mockScore = vi.fn()
+const mockPreview = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useScoreIntakeRequestMutation: () => [mockScore, { isLoading: false }],
+  usePreviewIntakeRequestScoreMutation: () => [
+    mockPreview,
+    { isLoading: false },
+  ],
+}))
 
 const model = {
   id: 'm-1',
@@ -66,8 +63,8 @@ const renderForm = async (currentScore?: any) =>
         modelArchived={false}
         needBy={undefined}
         currentScore={currentScore}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -97,9 +94,7 @@ describe('ScoreIntakeRequestForm', () => {
     })
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save Score' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save Score' }))
 
     // Assert
     expect(mockScore).toHaveBeenCalledWith({
@@ -138,9 +133,7 @@ describe('ScoreIntakeRequestForm', () => {
     })
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save Score' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save Score' }))
 
     // Assert
     expect(await screen.findByText('Enter a number.')).toBeInTheDocument()
@@ -171,10 +164,8 @@ describe('ScoreIntakeRequestForm', () => {
     })
 
     // Act
-    await act(() =>
-      userEvent.click(
-        screen.getByText('Preview', { selector: 'a, button, span' }),
-      ),
+    await userEvent.click(
+      screen.getByText('Preview', { selector: 'a, button, span' }),
     )
 
     // Assert
@@ -202,8 +193,8 @@ describe('ScoreIntakeRequestForm', () => {
             } as any
           }
           currentScore={undefined}
-          onFormComplete={jest.fn()}
-          onFormCancel={jest.fn()}
+          onFormComplete={vi.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )

@@ -1,6 +1,3 @@
-// The limits compare real days and times; the global mock only stubs format.
-jest.unmock('dayjs')
-
 import dayjs from 'dayjs'
 import { disabledTimeAfter } from './past-moment'
 

@@ -3,30 +3,26 @@ import { Dropdown } from 'antd'
 import useProductTagCategoryActions from './use-product-tag-category-actions'
 import { ProductTagCategoryActionTarget } from './types'
 
-const mockHasPermissionClaim = jest.fn()
+const mockHasPermissionClaim = vi.fn()
 /** Captures which record the delete dialog was aimed at. */
-const mockDeleteTarget = jest.fn()
+const mockDeleteTarget = vi.fn()
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: mockHasPermissionClaim }),
 }))
 
 // The dialogs are covered by their own behaviour; here they only need to be
 // identifiable so we can assert which one an action opened.
-jest.mock('./edit-product-tag-category-form', () => ({
-  __esModule: true,
+vi.mock('./edit-product-tag-category-form', () => ({
   default: () => <div>edit dialog</div>,
 }))
-jest.mock('./delete-product-tag-category-form', () => ({
-  __esModule: true,
+vi.mock('./delete-product-tag-category-form', () => ({
   default: ({ category }: { category: unknown }) => {
     mockDeleteTarget(category)
     return <div>delete dialog</div>
   },
 }))
-jest.mock('./change-product-tag-category-active-form', () => ({
-  __esModule: true,
+vi.mock('./change-product-tag-category-active-form', () => ({
   default: ({ isActive }: { isActive: boolean }) => (
     <div>{isActive ? 'activate' : 'deactivate'} dialog</div>
   ),
@@ -48,8 +44,8 @@ const category = (
 /** Renders the hook's output so the menu can be opened and clicked. */
 const Harness = ({
   target,
-  onChanged = jest.fn(),
-  onDeleted = jest.fn(),
+  onChanged = vi.fn(),
+  onDeleted = vi.fn(),
 }: {
   target: ProductTagCategoryActionTarget
   onChanged?: () => void
@@ -93,7 +89,7 @@ const allowOnly = (...granted: string[]) =>
 
 describe('useProductTagCategoryActions', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     allowAll()
   })
 

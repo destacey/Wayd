@@ -19,8 +19,7 @@ import ProductDependencyMapCard from './product-dependency-map-card'
 
 // The canvas measures itself and reads the theme provider, neither of which this test supplies. The stub
 // renders what the card hands it and exposes the map's buttons; the map's own tests cover drawing.
-jest.mock('@/src/components/common/dependency-map/dependency-map', () => ({
-  __esModule: true,
+vi.mock('@/src/components/common/dependency-map/dependency-map', () => ({
   default: ({
     nodes,
     edges,
@@ -69,9 +68,9 @@ jest.mock('@/src/components/common/dependency-map/dependency-map', () => ({
 }))
 
 // Subscribing to the store is the hook's own business; here only what it returns matters.
-jest.mock(
+vi.mock(
   '../../../_components/dependency-map/use-expanded-product-dependencies',
-  () => ({ useExpandedProductDependencies: jest.fn() }),
+  () => ({ useExpandedProductDependencies: vi.fn() }),
 )
 
 const self: NavigationDto = { id: 'product-1', key: 7, name: 'Storefront' }
@@ -115,32 +114,22 @@ const renderCard = (dependencies: ProductDependenciesDto) =>
     <ProductDependencyMapCard
       product={product}
       dependencies={dependencies}
-      onViewAll={jest.fn()}
+      onViewAll={vi.fn()}
     />,
   )
 
-// An in-memory session, so what the card writes is what it reads back.
-let session: Record<string, string>
-const getStored = jest.mocked(window.sessionStorage.getItem)
-const setStored = jest.mocked(window.sessionStorage.setItem)
-const expanded = jest.mocked(useExpandedProductDependencies)
+const expanded = vi.mocked(useExpandedProductDependencies)
 
 const storedExpansions = () =>
-  JSON.parse(session[expansionStorageKey(self.id)] ?? 'null')
+  JSON.parse(sessionStorage.getItem(expansionStorageKey(self.id)) ?? 'null')
 
 describe('ProductDependencyMapCard', () => {
   beforeEach(() => {
-    session = {}
-    getStored.mockImplementation((key: string) => session[key] ?? null)
-    setStored.mockImplementation((key: string, value: string) => {
-      session[key] = value
-    })
     expanded.mockReturnValue({})
   })
 
   afterEach(() => {
-    getStored.mockReset()
-    setStored.mockReset()
+    vi.restoreAllMocks()
     expanded.mockReset()
   })
 
@@ -189,12 +178,12 @@ describe('ProductDependencyMapCard', () => {
     expect(
       screen.getByText(/Showing hard dependencies only/),
     ).toBeInTheDocument()
-    expect(session[DEPENDENCY_STRENGTH_FILTER_KEY]).toBe('hard')
+    expect(sessionStorage.getItem(DEPENDENCY_STRENGTH_FILTER_KEY)).toBe('hard')
   })
 
   it('opens filtered when the session already chose hard only', async () => {
     // Arrange
-    session[DEPENDENCY_STRENGTH_FILTER_KEY] = 'hard'
+    sessionStorage.setItem(DEPENDENCY_STRENGTH_FILTER_KEY, 'hard')
 
     // Act
     renderCard(
@@ -210,7 +199,7 @@ describe('ProductDependencyMapCard', () => {
 
   it('keeps the map, and its filter, when every link is soft', async () => {
     // Arrange
-    session[DEPENDENCY_STRENGTH_FILTER_KEY] = 'hard'
+    sessionStorage.setItem(DEPENDENCY_STRENGTH_FILTER_KEY, 'hard')
 
     // Act
     renderCard(
@@ -227,7 +216,7 @@ describe('ProductDependencyMapCard', () => {
 
   it('shows everything when session storage cannot be read', async () => {
     // Arrange
-    getStored.mockImplementation(() => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('SecurityError')
     })
 
@@ -287,11 +276,14 @@ describe('ProductDependencyMapCard', () => {
 
   it('reopens with the expansions this product was left with', async () => {
     // Arrange
-    session[expansionStorageKey(self.id)] = JSON.stringify({
-      left: {},
-      right: { [identity.id]: {} },
-      subjectShowAll: [],
-    })
+    sessionStorage.setItem(
+      expansionStorageKey(self.id),
+      JSON.stringify({
+        left: {},
+        right: { [identity.id]: {} },
+        subjectShowAll: [],
+      }),
+    )
 
     // Act
     renderCard(dependsOn(link('a', self, identity)))
@@ -304,11 +296,14 @@ describe('ProductDependencyMapCard', () => {
   it('collapses everything an expansion brought in, nested expansions included', async () => {
     // Arrange — Identity was expanded to Directory, and Directory to LDAP.
     const user = userEvent.setup()
-    session[expansionStorageKey(self.id)] = JSON.stringify({
-      left: {},
-      right: { [identity.id]: {}, [directory.id]: {} },
-      subjectShowAll: [],
-    })
+    sessionStorage.setItem(
+      expansionStorageKey(self.id),
+      JSON.stringify({
+        left: {},
+        right: { [identity.id]: {}, [directory.id]: {} },
+        subjectShowAll: [],
+      }),
+    )
     const responses: Record<string, ProductDependenciesDto> = {
       [identity.id]: dependsOn(link('b', identity, directory)),
       [directory.id]: dependsOn(link('c', directory, ldap)),
@@ -333,11 +328,14 @@ describe('ProductDependencyMapCard', () => {
   it('shows the rest of an expansion in place', async () => {
     // Arrange
     const user = userEvent.setup()
-    session[expansionStorageKey(self.id)] = JSON.stringify({
-      left: {},
-      right: { [identity.id]: {} },
-      subjectShowAll: [],
-    })
+    sessionStorage.setItem(
+      expansionStorageKey(self.id),
+      JSON.stringify({
+        left: {},
+        right: { [identity.id]: {} },
+        subjectShowAll: [],
+      }),
+    )
     expanded.mockReturnValue({
       [identity.id]: {
         dependencies: dependsOn(

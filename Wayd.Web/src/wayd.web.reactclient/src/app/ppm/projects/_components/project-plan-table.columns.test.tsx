@@ -5,9 +5,9 @@ import { getProjectPlanTableColumns } from './project-plan-table.columns'
 describe('project-plan-table key column', () => {
   const baseArgs: any = {
     canManageTasks: true,
-    handleEditTask: jest.fn(),
-    handleDeleteTask: jest.fn(),
-    handleUpdateTask: jest.fn(),
+    handleEditTask: vi.fn(),
+    handleDeleteTask: vi.fn(),
+    handleUpdateTask: vi.fn(),
     taskStatusOptions: [],
     taskStatusOptionsForMilestone: [],
     taskPriorityOptions: [],
@@ -15,22 +15,22 @@ describe('project-plan-table key column', () => {
     employeeOptions: [],
     isDragEnabled: false,
     enableDragAndDrop: false,
-    addDraftTaskAsChild: jest.fn(),
+    addDraftTaskAsChild: vi.fn(),
     canCreateTasks: true,
     isSelectedRowMilestone: false,
     taskTypeFilterOptions: [],
     taskStatusFilterOptions: [],
     taskPriorityFilterOptions: [],
     isStageNode: () => false,
-    handleEditStage: jest.fn(),
+    handleEditStage: vi.fn(),
   }
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('clicking key opens drawer for non-draft rows', () => {
-    const openPlanItemDrawer = jest.fn()
+    const openPlanItemDrawer = vi.fn()
     const columns = getProjectPlanTableColumns({
       ...baseArgs,
       openPlanItemDrawer,
@@ -49,7 +49,7 @@ describe('project-plan-table key column', () => {
   })
 
   it('draft rows render non-clickable key text', () => {
-    const openPlanItemDrawer = jest.fn()
+    const openPlanItemDrawer = vi.fn()
     const columns = getProjectPlanTableColumns({
       ...baseArgs,
       openPlanItemDrawer,
@@ -64,18 +64,19 @@ describe('project-plan-table key column', () => {
     render(<>{element}</>)
 
     expect(screen.getByText('DRAFT-1')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'DRAFT-1' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'DRAFT-1' }),
+    ).not.toBeInTheDocument()
     expect(openPlanItemDrawer).not.toHaveBeenCalled()
   })
 })
 
-
 describe('project-plan-table overdue dates', () => {
   const baseArgs: any = {
     canManageTasks: false,
-    handleEditTask: jest.fn(),
-    handleDeleteTask: jest.fn(),
-    handleUpdateTask: jest.fn(),
+    handleEditTask: vi.fn(),
+    handleDeleteTask: vi.fn(),
+    handleUpdateTask: vi.fn(),
     taskStatusOptions: [],
     taskStatusOptionsForMilestone: [],
     taskPriorityOptions: [],
@@ -120,9 +121,9 @@ describe('project-plan-table overdue dates', () => {
     const { container } = render(<>{renderPlannedEnd(task)}</>)
 
     // Assert
-    expect(container.querySelector('span')).toHaveStyle({
-      color: 'var(--ant-color-error)',
-    })
+    expect(container.querySelector('span')?.style.color).toBe(
+      'var(--ant-color-error)',
+    )
   })
 
   it('leaves a past planned end date uncolored on a completed task', () => {
@@ -169,9 +170,9 @@ describe('project-plan-table overdue dates', () => {
     const { container } = render(<>{renderPlannedStart(task)}</>)
 
     // Assert
-    expect(container.querySelector('span')).toHaveStyle({
-      color: 'var(--ant-color-error)',
-    })
+    expect(container.querySelector('span')?.style.color).toBe(
+      'var(--ant-color-error)',
+    )
   })
 
   it('leaves a past planned start date uncolored on a non-milestone task', () => {
@@ -194,9 +195,9 @@ describe('project-plan-table overdue dates', () => {
 describe('project-plan-table schedule column', () => {
   const baseArgs: any = {
     canManageTasks: false,
-    handleEditTask: jest.fn(),
-    handleDeleteTask: jest.fn(),
-    handleUpdateTask: jest.fn(),
+    handleEditTask: vi.fn(),
+    handleDeleteTask: vi.fn(),
+    handleUpdateTask: vi.fn(),
     taskStatusOptions: [],
     taskStatusOptionsForMilestone: [],
     taskPriorityOptions: [],

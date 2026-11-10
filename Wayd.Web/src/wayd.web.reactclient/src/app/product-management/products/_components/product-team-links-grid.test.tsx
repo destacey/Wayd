@@ -2,8 +2,7 @@ import { ProductTeamLinkDto, TeamType } from '@/src/services/wayd-api'
 import { buildProductTeamLinkColumns } from './product-team-links-grid'
 
 // The actions hook pulls in the dialogs; the columns under test only take its item builder.
-jest.mock('./use-product-team-link-actions', () => ({
-  __esModule: true,
+vi.mock('./use-product-team-link-actions', () => ({
   default: () => ({ getActionItems: () => [], dialogs: null }),
 }))
 

@@ -12,10 +12,11 @@
     "lint:deprecations": "eslint src -c eslint.deprecations.config.mjs",
     "typecheck": "tsc --noEmit",
     "generate:import-templates": "node scripts/generate-import-templates.mjs",
-    "test": "jest",
-    "test:coverage": "jest --coverage --ci",
-    "test:docs": "jest --config jest.docs.config.ts --no-coverage",
-    "test:ci": "jest --ci"
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:docs": "vitest run --config vitest.docs.config.mts",
+    "test:ci": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@serwist/turbopack": "^9.5.13",
@@ -25,11 +26,11 @@
     "@testing-library/user-event": "14.6.8",
     "@types/d3-chord": "3.0.6",
     "@types/d3-shape": "3.1.8",
-    "@types/jest": "30.0.0",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@typescript/native": "npm:typescript@^7.0.2",
+    "@vitest/coverage-v8": "5.1.0",
     "babel-plugin-react-compiler": "^1.0.0",
     "baseline-browser-mapping": "^2.11.31",
     "esbuild": "^0.28.1",
@@ -40,12 +41,13 @@
     "eslint-plugin-unused-imports": "^4.4.1",
     "hast-util-from-html": "^2.0.3",
     "hast-util-to-html": "^9.0.6",
-    "jest": "30.5.2",
-    "jest-environment-jsdom": "30.5.2",
+    "jsdom": "31.0.0",
     "prettier": "3.9.10",
     "rehype-stringify": "^10.0.1",
     "serwist": "^9.5.13",
-    "typescript": "npm:@typescript/typescript6@^6.0.2"
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "vite": "8.3.7",
+    "vitest": "5.1.0"
   },
   "dependencies": {
     "@ant-design/charts": "2.6.7",

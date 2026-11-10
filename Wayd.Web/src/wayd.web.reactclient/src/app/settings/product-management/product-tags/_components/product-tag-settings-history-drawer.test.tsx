@@ -1,20 +1,20 @@
 import { render } from '@testing-library/react'
 import ProductTagSettingsHistoryDrawer from './product-tag-settings-history-drawer'
 
-const mockActivitiesQuery = jest.fn()
+const mockActivitiesQuery = vi.fn()
 
-jest.mock('@/src/store/features/admin/system-settings-api', () => ({
+vi.mock('@/src/store/features/admin/system-settings-api', () => ({
   PRODUCT_TAG_SETTINGS_ACTIVITY_ID: 'product-tags',
   useGetProductTagSettingsActivitiesQuery: (
     arg: unknown,
     options: { skip: boolean },
   ) => mockActivitiesQuery(arg, options),
-  useLazyGetProductTagSettingsActivitiesQuery: () => [jest.fn()],
+  useLazyGetProductTagSettingsActivitiesQuery: () => [vi.fn()],
 }))
 
 // The timeline and export button are covered on their own; here only when the
 // drawer asks for the history is under test.
-jest.mock('@/src/components/common/activities', () => ({
+vi.mock('@/src/components/common/activities', () => ({
   ACTIVITY_LOG_PAGE_SIZE: 25,
   ActivityLogExportButton: () => null,
   ActivityLogTimeline: () => null,
@@ -29,7 +29,7 @@ describe('ProductTagSettingsHistoryDrawer', () => {
 
   it('does not load the history while closed', () => {
     // Arrange / Act
-    render(<ProductTagSettingsHistoryDrawer open={false} onClose={jest.fn()} />)
+    render(<ProductTagSettingsHistoryDrawer open={false} onClose={vi.fn()} />)
 
     // Assert
     expect(mockActivitiesQuery).toHaveBeenCalledWith(
@@ -40,7 +40,7 @@ describe('ProductTagSettingsHistoryDrawer', () => {
 
   it('loads the history once opened', () => {
     // Arrange / Act
-    render(<ProductTagSettingsHistoryDrawer open onClose={jest.fn()} />)
+    render(<ProductTagSettingsHistoryDrawer open onClose={vi.fn()} />)
 
     // Assert
     expect(mockActivitiesQuery).toHaveBeenLastCalledWith(

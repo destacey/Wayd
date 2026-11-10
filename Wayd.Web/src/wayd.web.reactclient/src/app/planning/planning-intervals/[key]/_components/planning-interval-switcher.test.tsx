@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 
@@ -8,32 +9,31 @@ global.ResizeObserver = class {
 } as unknown as typeof ResizeObserver
 
 // jsdom does not implement scrollIntoView, which IconMenu calls on open.
-Element.prototype.scrollIntoView = jest.fn()
+Element.prototype.scrollIntoView = vi.fn()
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation((query) => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 })
 
-const mockPush = jest.fn()
+const mockPush = vi.fn()
 let mockSearchParams = new URLSearchParams()
 
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
   useSearchParams: () => mockSearchParams,
 }))
 
-jest.mock('@/src/components/contexts/theme', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/theme', () => ({
   default: () => ({
     token: {
       colorTextQuaternary: 'rgba(0, 0, 0, 0.25)',
@@ -42,14 +42,14 @@ jest.mock('@/src/components/contexts/theme', () => ({
   }),
 }))
 
-jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
-  useGetPlanningIntervalsQuery: jest.fn(),
+vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
+  useGetPlanningIntervalsQuery: vi.fn(),
 }))
 
 import { useGetPlanningIntervalsQuery } from '@/src/store/features/planning/planning-interval-api'
 import PlanningIntervalSwitcher from './planning-interval-switcher'
 
-const mockQuery = useGetPlanningIntervalsQuery as unknown as jest.Mock
+const mockQuery = useGetPlanningIntervalsQuery as unknown as Mock
 
 const twoPlanningIntervals = [
   {
@@ -63,7 +63,7 @@ const twoPlanningIntervals = [
 
 describe('PlanningIntervalSwitcher', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockSearchParams = new URLSearchParams()
   })
 

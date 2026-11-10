@@ -9,8 +9,7 @@ global.ResizeObserver = class {
   disconnect() {}
 } as unknown as typeof ResizeObserver
 
-jest.mock('@/src/components/contexts/theme', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/theme', () => ({
   default: () => ({
     token: {
       colorPrimary: '#1677ff',
@@ -37,7 +36,7 @@ describe('AttentionTiles', () => {
       <AttentionTiles
         counts={counts}
         active="all"
-        onChange={jest.fn()}
+        onChange={vi.fn()}
         isLoading={false}
       />,
     )
@@ -60,7 +59,7 @@ describe('AttentionTiles', () => {
 
   it('selects a tile on click and clears it on a second click', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     const { rerender } = render(
       <AttentionTiles
         counts={counts}

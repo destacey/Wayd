@@ -1,14 +1,19 @@
 import { render, screen } from '@testing-library/react'
 import RiskRoam from './risk-roam'
 
-const mockCategories = jest.fn()
+const mockCategories = vi.fn()
 
-jest.mock('@/src/store/features/planning/risks-api', () => ({
+vi.mock('@/src/store/features/planning/risks-api', () => ({
   useGetRiskCategoriesQuery: () => mockCategories(),
 }))
 
 const CATEGORIES = [
-  { id: 1, name: 'Resolved', description: 'Not a threat at this time.', order: 1 },
+  {
+    id: 1,
+    name: 'Resolved',
+    description: 'Not a threat at this time.',
+    order: 1,
+  },
   { id: 2, name: 'Owned', description: 'Someone owns handling it.', order: 2 },
   { id: 3, name: 'Accepted', description: 'Accepted as-is.', order: 3 },
   { id: 4, name: 'Mitigated', description: 'Actions were taken.', order: 4 },
@@ -16,7 +21,7 @@ const CATEGORIES = [
 
 describe('RiskRoam', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockCategories.mockReturnValue({ data: CATEGORIES, isLoading: false })
   })
 
@@ -37,7 +42,9 @@ describe('RiskRoam', () => {
 
     // Assert
     const items = screen.getAllByRole('listitem')
-    const current = items.filter((i) => i.getAttribute('aria-current') === 'true')
+    const current = items.filter(
+      (i) => i.getAttribute('aria-current') === 'true',
+    )
     expect(current).toHaveLength(1)
     expect(current[0]).toHaveTextContent('Owned')
   })
@@ -48,9 +55,9 @@ describe('RiskRoam', () => {
 
     // Assert
     expect(
-      screen.getAllByRole('listitem').filter(
-        (i) => i.getAttribute('aria-current') === 'true',
-      ),
+      screen
+        .getAllByRole('listitem')
+        .filter((i) => i.getAttribute('aria-current') === 'true'),
     ).toHaveLength(1)
   })
 
@@ -60,9 +67,9 @@ describe('RiskRoam', () => {
 
     // Assert
     expect(
-      screen.getAllByRole('listitem').filter(
-        (i) => i.getAttribute('aria-current') === 'true',
-      ),
+      screen
+        .getAllByRole('listitem')
+        .filter((i) => i.getAttribute('aria-current') === 'true'),
     ).toHaveLength(0)
   })
 

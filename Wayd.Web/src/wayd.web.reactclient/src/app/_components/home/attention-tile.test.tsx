@@ -3,9 +3,9 @@ import { userEvent } from '@testing-library/user-event'
 import AttentionTile, { attentionColor } from './attention-tile'
 import { tileValueStyle } from './attention-tile-test-utils'
 
-const mockPush = jest.fn()
+const mockPush = vi.fn()
 
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }))
 
@@ -32,7 +32,7 @@ describe('attentionColor', () => {
 
 describe('AttentionTile', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   const renderTile = (
@@ -119,7 +119,7 @@ describe('AttentionTile', () => {
     // Arrange
     const target = document.createElement('section')
     target.id = 'home-widget-my-risks'
-    target.scrollIntoView = jest.fn()
+    target.scrollIntoView = vi.fn()
     document.body.appendChild(target)
     renderTile({ href: '#home-widget-my-risks' })
 

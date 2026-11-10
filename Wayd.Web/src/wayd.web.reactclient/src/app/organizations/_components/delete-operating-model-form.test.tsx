@@ -4,8 +4,6 @@ import DeleteOperatingModelForm, {
   findReinstatedModel,
 } from './delete-operating-model-form'
 
-jest.unmock('dayjs')
-
 // Mock window.getComputedStyle for Ant Design Modal
 Object.defineProperty(window, 'getComputedStyle', {
   value: () => ({
@@ -13,17 +11,16 @@ Object.defineProperty(window, 'getComputedStyle', {
   }),
 })
 
-const mockMessageSuccess = jest.fn()
-const mockMessageError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
+const mockMessageSuccess = vi.fn()
+const mockMessageError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
     success: mockMessageSuccess,
     error: mockMessageError,
   }),
 }))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     hasPermissionClaim: () => true,
   }),
@@ -57,7 +54,7 @@ describe('findReinstatedModel', () => {
 
 describe('DeleteOperatingModelForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('names the model that becomes current again', () => {
@@ -65,9 +62,9 @@ describe('DeleteOperatingModelForm', () => {
       <DeleteOperatingModelForm
         operatingModel={current}
         reinstatedModel={previous}
-        deleteOperatingModel={jest.fn()}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        deleteOperatingModel={vi.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
 
@@ -81,15 +78,15 @@ describe('DeleteOperatingModelForm', () => {
   })
 
   it('deletes only once the user confirms', async () => {
-    const deleteOperatingModel = jest.fn().mockResolvedValue(undefined)
-    const onFormComplete = jest.fn()
+    const deleteOperatingModel = vi.fn().mockResolvedValue(undefined)
+    const onFormComplete = vi.fn()
     render(
       <DeleteOperatingModelForm
         operatingModel={current}
         reinstatedModel={previous}
         deleteOperatingModel={deleteOperatingModel}
         onFormComplete={onFormComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
     expect(deleteOperatingModel).not.toHaveBeenCalled()
@@ -104,18 +101,18 @@ describe('DeleteOperatingModelForm', () => {
   })
 
   it('keeps the modal open and shows the API error when the delete fails', async () => {
-    const deleteOperatingModel = jest.fn().mockRejectedValue({
+    const deleteOperatingModel = vi.fn().mockRejectedValue({
       status: 400,
       detail: 'Cannot remove the last operating model.',
     })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     render(
       <DeleteOperatingModelForm
         operatingModel={current}
         reinstatedModel={undefined}
         deleteOperatingModel={deleteOperatingModel}
         onFormComplete={onFormComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
 

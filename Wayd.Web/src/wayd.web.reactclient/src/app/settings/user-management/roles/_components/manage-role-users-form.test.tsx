@@ -1,4 +1,4 @@
-import { render, screen, waitFor, act } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ManageRoleUsersForm, {
   ManageRoleUsersFormProps,
@@ -12,33 +12,32 @@ Object.defineProperty(window, 'getComputedStyle', {
 })
 
 // Mock dependencies
-const mockMessageSuccess = jest.fn()
-const mockMessageError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
+const mockMessageSuccess = vi.fn()
+const mockMessageError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
     success: mockMessageSuccess,
     error: mockMessageError,
   }),
 }))
 
-const mockHasPermissionClaim = jest.fn()
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+const mockHasPermissionClaim = vi.fn()
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     hasPermissionClaim: mockHasPermissionClaim,
   }),
 }))
 
-const mockManageRoleUsers = jest.fn()
-const mockUseGetUsersQuery = jest.fn()
-const mockUseManageRoleUsersMutation = jest.fn()
-jest.mock('@/src/store/features/user-management/users-api', () => ({
+const mockManageRoleUsers = vi.fn()
+const mockUseGetUsersQuery = vi.fn()
+const mockUseManageRoleUsersMutation = vi.fn()
+vi.mock('@/src/store/features/user-management/users-api', () => ({
   useGetUsersQuery: (...args: unknown[]) => mockUseGetUsersQuery(...args),
   useManageRoleUsersMutation: () => mockUseManageRoleUsersMutation(),
 }))
 
-const mockUseGetRoleUsersQuery = jest.fn()
-jest.mock('@/src/store/features/user-management/roles-api', () => ({
+const mockUseGetRoleUsersQuery = vi.fn()
+vi.mock('@/src/store/features/user-management/roles-api', () => ({
   useGetRoleUsersQuery: (...args: unknown[]) =>
     mockUseGetRoleUsersQuery(...args),
 }))
@@ -92,13 +91,13 @@ const roleUsers = [
 const defaultProps: ManageRoleUsersFormProps = {
   roleId: 'role-1',
   roleName: 'Admin',
-  onFormComplete: jest.fn(),
-  onFormCancel: jest.fn(),
+  onFormComplete: vi.fn(),
+  onFormCancel: vi.fn(),
 }
 
 describe('ManageRoleUsersForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockHasPermissionClaim.mockReturnValue(true)
     mockManageRoleUsers.mockResolvedValue({})
     mockUseManageRoleUsersMutation.mockReturnValue([
@@ -192,7 +191,7 @@ describe('ManageRoleUsersForm', () => {
 
   it('calls onFormCancel and shows error when user lacks permission', async () => {
     mockHasPermissionClaim.mockReturnValue(false)
-    const onFormCancel = jest.fn()
+    const onFormCancel = vi.fn()
 
     render(
       <ManageRoleUsersForm {...defaultProps} onFormCancel={onFormCancel} />,
@@ -212,9 +211,7 @@ describe('ManageRoleUsersForm', () => {
     render(<ManageRoleUsersForm {...defaultProps} />)
 
     await waitFor(() => {
-      expect(
-        screen.queryByText('Manage Role Users'),
-      ).not.toBeInTheDocument()
+      expect(screen.queryByText('Manage Role Users')).not.toBeInTheDocument()
     })
   })
 
@@ -224,7 +221,7 @@ describe('ManageRoleUsersForm', () => {
       isLoading: false,
       error: { status: 500 },
     })
-    const onFormCancel = jest.fn()
+    const onFormCancel = vi.fn()
 
     render(
       <ManageRoleUsersForm {...defaultProps} onFormCancel={onFormCancel} />,
@@ -242,7 +239,7 @@ describe('ManageRoleUsersForm', () => {
       isLoading: false,
       error: { status: 500 },
     })
-    const onFormCancel = jest.fn()
+    const onFormCancel = vi.fn()
 
     render(
       <ManageRoleUsersForm {...defaultProps} onFormCancel={onFormCancel} />,
@@ -256,7 +253,7 @@ describe('ManageRoleUsersForm', () => {
 
   it('calls onFormCancel when cancel button is clicked', async () => {
     const user = userEvent.setup()
-    const onFormCancel = jest.fn()
+    const onFormCancel = vi.fn()
 
     render(
       <ManageRoleUsersForm {...defaultProps} onFormCancel={onFormCancel} />,
@@ -302,9 +299,7 @@ describe('ManageRoleUsersForm', () => {
 
     // Select the checkbox for a user in the available list
     if (checkboxes.length > 0) {
-      await act(async () => {
-        await user.click(checkboxes[0])
-      })
+      await user.click(checkboxes[0])
 
       // Click the right arrow button to move selected items
       const moveRightButton = container.querySelector(
@@ -312,9 +307,7 @@ describe('ManageRoleUsersForm', () => {
       )
 
       if (moveRightButton) {
-        await act(async () => {
-          await user.click(moveRightButton)
-        })
+        await user.click(moveRightButton)
 
         // Now save
         const saveButton = screen.getByRole('button', { name: 'Save Changes' })
@@ -344,7 +337,7 @@ describe('ManageRoleUsersForm', () => {
     })
 
     const user = userEvent.setup()
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
 
     const { container } = render(
       <ManageRoleUsersForm {...defaultProps} onFormComplete={onFormComplete} />,
@@ -360,18 +353,14 @@ describe('ManageRoleUsersForm', () => {
     )
 
     if (checkboxes.length > 0) {
-      await act(async () => {
-        await user.click(checkboxes[0])
-      })
+      await user.click(checkboxes[0])
 
       const moveRightButton = container.querySelector(
         '.ant-transfer-operation button:not([disabled])',
       )
 
       if (moveRightButton) {
-        await act(async () => {
-          await user.click(moveRightButton)
-        })
+        await user.click(moveRightButton)
 
         const saveButton = screen.getByRole('button', { name: 'Save Changes' })
         await user.click(saveButton)
@@ -409,18 +398,14 @@ describe('ManageRoleUsersForm', () => {
     )
 
     if (checkboxes.length > 0) {
-      await act(async () => {
-        await user.click(checkboxes[0])
-      })
+      await user.click(checkboxes[0])
 
       const moveRightButton = container.querySelector(
         '.ant-transfer-operation button:not([disabled])',
       )
 
       if (moveRightButton) {
-        await act(async () => {
-          await user.click(moveRightButton)
-        })
+        await user.click(moveRightButton)
 
         const saveButton = screen.getByRole('button', { name: 'Save Changes' })
         await user.click(saveButton)
@@ -457,18 +442,14 @@ describe('ManageRoleUsersForm', () => {
     )
 
     if (checkboxes.length > 0) {
-      await act(async () => {
-        await user.click(checkboxes[0])
-      })
+      await user.click(checkboxes[0])
 
       const moveRightButton = container.querySelector(
         '.ant-transfer-operation button:not([disabled])',
       )
 
       if (moveRightButton) {
-        await act(async () => {
-          await user.click(moveRightButton)
-        })
+        await user.click(moveRightButton)
 
         const saveButton = screen.getByRole('button', { name: 'Save Changes' })
         await user.click(saveButton)

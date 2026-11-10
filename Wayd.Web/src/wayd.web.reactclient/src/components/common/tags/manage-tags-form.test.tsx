@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ManageTagsForm from './manage-tags-form'
 import { TagAssignment, TagCategory } from './types'
@@ -6,8 +6,8 @@ import { TagAssignment, TagCategory } from './types'
 // Not spread from the real barrel: it re-exports store-bound hooks, and pulling
 // those in initialises a store this component never touches. The form instance is
 // real, though — antd's Form binds to it, and a stub breaks on render.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -21,7 +21,7 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk: async () => await onSubmit(form.getFieldsValue()),
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -60,15 +60,13 @@ const freeTags = {
 }
 
 const save = async () => {
-  await act(async () => {
-    await userEvent.click(screen.getByRole('button', { name: /save/i }))
-  })
+  await userEvent.click(screen.getByRole('button', { name: /save/i }))
 }
 
 const renderForm = (
   overrides: Partial<React.ComponentProps<typeof ManageTagsForm>> = {},
 ) => {
-  const onSave = jest.fn().mockResolvedValue(true)
+  const onSave = vi.fn().mockResolvedValue(true)
   const view = render(
     <ManageTagsForm
       categories={[platform, tier]}

@@ -1,5 +1,5 @@
 import React from 'react'
-import { act, render, screen, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
   IntakeRequestDetailsDto,
@@ -7,23 +7,17 @@ import {
 } from '@/src/services/wayd-api'
 import IntakeRequestParticipants from './intake-request-participants'
 
-// jest.setup stubs dayjs down to formatting; the participant dates need the real module.
-jest.unmock('dayjs')
-
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-const mockRemove = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useRemoveIntakeRequestParticipantMutation: () => [
-      mockRemove,
-      { isLoading: false },
-    ],
-  }),
-)
+const mockRemove = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useRemoveIntakeRequestParticipantMutation: () => [
+    mockRemove,
+    { isLoading: false },
+  ],
+}))
 
 const substance = {
   submittedBy: { id: 'e-2', key: 2, name: 'Blake Submitter' },
@@ -79,17 +73,13 @@ describe('IntakeRequestParticipants', () => {
         substance={substance}
       />,
     )
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Remove' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Remove' }))
 
     // Act
-    await act(() =>
-      userEvent.click(
-        within(
-          document.querySelector('.ant-popconfirm') as HTMLElement,
-        ).getByRole('button', { name: 'Remove' }),
-      ),
+    await userEvent.click(
+      within(
+        document.querySelector('.ant-popconfirm') as HTMLElement,
+      ).getByRole('button', { name: 'Remove' }),
     )
 
     // Assert

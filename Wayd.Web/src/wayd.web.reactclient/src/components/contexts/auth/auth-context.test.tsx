@@ -1,11 +1,9 @@
 import { render, screen, waitFor, act } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import React from 'react'
 
 // --- Mocks (all before imports) ---
 
-jest.mock('../../common/forms/change-password-form', () => ({
-  __esModule: true,
+vi.mock('../../common/forms/change-password-form', () => ({
   default: ({ onFormComplete, onFormCancel }: any) => (
     <div data-testid="change-password-form">
       <button onClick={onFormComplete} data-testid="change-password-complete">
@@ -20,18 +18,17 @@ jest.mock('../../common/forms/change-password-form', () => ({
 
 // oidc-client-registry mock — logout path may call signoutRedirect; the
 // session-reading behavior we're actually testing doesn't touch it.
-jest.mock('./oidc-client-registry', () => ({
-  signoutRedirect: jest.fn().mockResolvedValue(undefined),
+vi.mock('./oidc-client-registry', () => ({
+  signoutRedirect: vi.fn().mockResolvedValue(undefined),
 }))
 
 // auth-providers-api mock — AuthProvider queries this to resolve the OIDC
 // provider for logout. Not relevant to the session-reading tests.
-jest.mock('../../../store/features/common/auth-providers-api', () => ({
+vi.mock('../../../store/features/common/auth-providers-api', () => ({
   useGetAuthProvidersQuery: () => ({ data: undefined }),
 }))
 
-jest.mock('./../../contexts/theme/use-theme', () => ({
-  __esModule: true,
+vi.mock('./../../contexts/theme/use-theme', () => ({
   default: () => ({
     token: { colorBgContainer: '#ffffff' },
     currentTheme: 'wayd',
@@ -50,25 +47,28 @@ const mockStorage = {
   mustChangePassword: null as string | null,
 }
 
-const mockLogin = jest.fn()
-const mockLogout = jest.fn()
+const mockLogin = vi.fn()
+const mockLogout = vi.fn()
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   AUTH_TOKEN_KEY: 'wayd.token',
   AUTH_REFRESH_TOKEN_KEY: 'wayd.refreshToken',
   AUTH_TOKEN_EXPIRY_KEY: 'wayd.tokenExpiry',
   AUTH_MUST_CHANGE_PASSWORD_KEY: 'wayd.mustChangePassword',
   getAuthStorage: () => ({
     getItem: (key: string) => {
-      if (key === 'wayd.mustChangePassword') return mockStorage.mustChangePassword
+      if (key === 'wayd.mustChangePassword')
+        return mockStorage.mustChangePassword
       if (key === 'wayd.token') return mockStorage.token
       return null
     },
     setItem: (key: string, value: string) => {
-      if (key === 'wayd.mustChangePassword') mockStorage.mustChangePassword = value
+      if (key === 'wayd.mustChangePassword')
+        mockStorage.mustChangePassword = value
     },
     removeItem: (key: string) => {
-      if (key === 'wayd.mustChangePassword') mockStorage.mustChangePassword = null
+      if (key === 'wayd.mustChangePassword')
+        mockStorage.mustChangePassword = null
     },
   }),
   getAuthToken: () => mockStorage.token,
@@ -77,8 +77,12 @@ jest.mock('@/src/services/clients', () => ({
   storeAuth: (tokenResponse: any) => {
     mockStorage.token = tokenResponse.token
     mockStorage.refreshToken = tokenResponse.refreshToken
-    mockStorage.tokenExpiry = new Date(tokenResponse.tokenExpiresAt).toISOString()
-    mockStorage.mustChangePassword = tokenResponse.mustChangePassword ? 'true' : null
+    mockStorage.tokenExpiry = new Date(
+      tokenResponse.tokenExpiresAt,
+    ).toISOString()
+    mockStorage.mustChangePassword = tokenResponse.mustChangePassword
+      ? 'true'
+      : null
   },
   clearAuth: () => {
     mockStorage.token = null
@@ -146,7 +150,7 @@ const TestConsumer = () => {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   clearAuth()
 })
 
@@ -182,7 +186,9 @@ describe('AuthProvider hydration from stored Wayd JWT', () => {
       expect(screen.getByTestId('authenticated')).toHaveTextContent('yes')
     })
     expect(screen.getByTestId('name')).toHaveTextContent('Alice Example')
-    expect(screen.getByTestId('username')).toHaveTextContent('alice@example.com')
+    expect(screen.getByTestId('username')).toHaveTextContent(
+      'alice@example.com',
+    )
     expect(screen.getByTestId('auth-method')).toHaveTextContent('local')
     expect(screen.getByTestId('employee-id')).toHaveTextContent('emp-123')
     expect(screen.getByTestId('permissions')).toHaveTextContent(

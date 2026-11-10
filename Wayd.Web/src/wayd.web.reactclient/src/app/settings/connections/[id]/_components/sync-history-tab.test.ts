@@ -1,8 +1,8 @@
 import { parseDetailsJson } from './sync-history-tab'
 
-jest.mock('@/src/store/features/app-integration/connections-api', () => ({}))
-jest.mock('@/src/components/contexts/auth', () => ({}))
-jest.mock('@/src/components/contexts/messaging', () => ({}))
+vi.mock('@/src/store/features/app-integration/connections-api', () => ({}))
+vi.mock('@/src/components/contexts/auth', () => ({}))
+vi.mock('@/src/components/contexts/messaging', () => ({}))
 
 describe('parseDetailsJson', () => {
   it('reads camelCase details as written', () => {

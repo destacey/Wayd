@@ -8,33 +8,32 @@ Object.defineProperty(window, 'getComputedStyle', {
   }),
 })
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ success: jest.fn(), error: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ success: vi.fn(), error: vi.fn() }),
 }))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => true }),
 }))
 
-const mockUseGetEntraTenantIdsQuery = jest.fn()
-jest.mock('@/src/store/features/user-management/users-api', () => ({
-  useCreateUserMutation: () => [jest.fn(), { isLoading: false }],
+const mockUseGetEntraTenantIdsQuery = vi.fn()
+vi.mock('@/src/store/features/user-management/users-api', () => ({
+  useCreateUserMutation: () => [vi.fn(), { isLoading: false }],
   useGetUsersQuery: () => ({ data: [] }),
   useGetEntraTenantIdsQuery: (...args: unknown[]) =>
     mockUseGetEntraTenantIdsQuery(...args),
 }))
 
-jest.mock('@/src/store/features/user-management/roles-api', () => ({
+vi.mock('@/src/store/features/user-management/roles-api', () => ({
   useGetRolesQuery: () => ({ data: [], isLoading: false }),
 }))
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeesQuery: () => ({ data: [], isLoading: false }),
 }))
 
 const renderForm = () =>
-  render(<CreateUserForm onFormCreate={jest.fn()} onFormCancel={jest.fn()} />)
+  render(<CreateUserForm onFormCreate={vi.fn()} onFormCancel={vi.fn()} />)
 
 const arrangeTenants = (tenantIds: string[]) =>
   mockUseGetEntraTenantIdsQuery.mockImplementation(
@@ -45,7 +44,7 @@ const arrangeTenants = (tenantIds: string[]) =>
 
 describe('CreateUserForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('asks for the sign-in tenant when the Entra provider allows several', async () => {

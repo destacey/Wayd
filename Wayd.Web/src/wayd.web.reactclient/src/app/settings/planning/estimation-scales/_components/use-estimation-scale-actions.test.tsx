@@ -3,41 +3,40 @@ import { Dropdown } from 'antd'
 import { EstimationScaleDto } from '@/src/services/wayd-api'
 import useEstimationScaleActions from './use-estimation-scale-actions'
 
-const mockHasPermissionClaim = jest.fn()
-const mockSetActiveStatus = jest.fn()
-const mockSuccess = jest.fn()
-const mockError = jest.fn()
+const mockHasPermissionClaim = vi.fn()
+const mockSetActiveStatus = vi.fn()
+const mockSuccess = vi.fn()
+const mockError = vi.fn()
 /** Captures which record the delete dialog was aimed at. */
-const mockDeleteTarget = jest.fn()
+const mockDeleteTarget = vi.fn()
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: mockHasPermissionClaim }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ success: mockSuccess, error: mockError }),
 }))
 
-jest.mock('@/src/store/features/planning/estimation-scales-api', () => ({
+vi.mock('@/src/store/features/planning/estimation-scales-api', () => ({
   useSetEstimationScaleActiveStatusMutation: () => [mockSetActiveStatus],
 }))
 
 // The dialogs are covered by their own tests; here they only need to be
 // identifiable so we can assert which one an action opened.
-jest.mock('./edit-estimation-scale-form', () => ({
-  __esModule: true,
+vi.mock('./edit-estimation-scale-form', () => ({
   default: () => <div>edit dialog</div>,
 }))
-jest.mock('./delete-estimation-scale-form', () => ({
-  __esModule: true,
+vi.mock('./delete-estimation-scale-form', () => ({
   default: ({ estimationScale }: { estimationScale: unknown }) => {
     mockDeleteTarget(estimationScale)
     return <div>delete dialog</div>
   },
 }))
 
-const scale = (overrides: Partial<EstimationScaleDto> = {}): EstimationScaleDto => ({
+const scale = (
+  overrides: Partial<EstimationScaleDto> = {},
+): EstimationScaleDto => ({
   id: 'scale-3',
   key: 3,
   name: 'Fibonacci',
@@ -58,8 +57,8 @@ const scale = (overrides: Partial<EstimationScaleDto> = {}): EstimationScaleDto 
 
 const Harness = ({
   estimationScale,
-  onChanged = jest.fn(),
-  onDeleted = jest.fn(),
+  onChanged = vi.fn(),
+  onDeleted = vi.fn(),
 }: {
   estimationScale: EstimationScaleDto
   onChanged?: () => void
@@ -98,7 +97,7 @@ const allowOnly = (...granted: string[]) =>
 
 describe('useEstimationScaleActions', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     allowAll()
     mockSetActiveStatus.mockResolvedValue({ data: {} })
   })
@@ -160,7 +159,7 @@ describe('useEstimationScaleActions', () => {
     it('toggles active without a confirmation dialog', async () => {
       // Arrange — reversible from the same menu item, so a confirm would only
       // add a click.
-      const onChanged = jest.fn()
+      const onChanged = vi.fn()
       render(<Harness estimationScale={scale()} onChanged={onChanged} />)
       openMenu()
 
@@ -181,7 +180,7 @@ describe('useEstimationScaleActions', () => {
     it('reports a failed toggle and does not claim success', async () => {
       // Arrange
       mockSetActiveStatus.mockResolvedValue({ error: new Error('nope') })
-      const onChanged = jest.fn()
+      const onChanged = vi.fn()
       render(<Harness estimationScale={scale()} onChanged={onChanged} />)
       openMenu()
 
@@ -210,7 +209,9 @@ describe('useEstimationScaleActions', () => {
 
     it('opens the delete dialog against the record whose menu was used', () => {
       // Arrange — the grid builds a ⋯ per row from the same hook
-      render(<Harness estimationScale={scale({ id: 'scale-9', name: 'T-Shirt' })} />)
+      render(
+        <Harness estimationScale={scale({ id: 'scale-9', name: 'T-Shirt' })} />,
+      )
       openMenu()
 
       // Act

@@ -1,40 +1,39 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import NotificationBell from './notification-bell'
 
-const mockUseAuth = jest.fn()
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+const mockUseAuth = vi.fn()
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => mockUseAuth(),
 }))
 
-jest.mock('@/src/components/contexts/theme', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/theme', () => ({
   default: () => ({ appBar: { backgroundColor: undefined, color: undefined } }),
 }))
 
-const mockUseFeatureFlag = jest.fn()
-jest.mock('@/src/hooks', () => ({
+const mockUseFeatureFlag = vi.fn()
+vi.mock('@/src/hooks', () => ({
   useFeatureFlag: (name: string) => mockUseFeatureFlag(name),
 }))
 
-const mockScreens = jest.fn()
-jest.mock('antd', () => ({
-  ...jest.requireActual('antd'),
+const mockScreens = vi.fn()
+vi.mock('antd', async () => ({
+  ...(await vi.importActual<any>('antd')),
   Grid: {
-    ...jest.requireActual('antd').Grid,
+    ...(await vi.importActual<any>('antd')).Grid,
     useBreakpoint: () => mockScreens(),
   },
 }))
 
-const mockUseCount = jest.fn()
-jest.mock('@/src/store/features/common/notifications-api', () => ({
-  ...jest.requireActual('@/src/store/features/common/notifications-api'),
+const mockUseCount = vi.fn()
+vi.mock('@/src/store/features/common/notifications-api', async () => ({
+  ...(await vi.importActual<any>(
+    '@/src/store/features/common/notifications-api',
+  )),
   useGetUnreadNotificationCountQuery: (...args: unknown[]) =>
     mockUseCount(...args),
 }))
 
-jest.mock('./notification-panel', () => ({
-  __esModule: true,
+vi.mock('./notification-panel', () => ({
   default: ({
     onClose,
     inDrawer,
@@ -64,7 +63,7 @@ const arrange = ({
 
 describe('NotificationBell', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('is absent when following is off, and asks for no count', () => {

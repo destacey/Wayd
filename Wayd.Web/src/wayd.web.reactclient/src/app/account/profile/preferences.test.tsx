@@ -1,7 +1,7 @@
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
-    success: jest.fn(),
-    error: jest.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
   }),
 }))
 
@@ -11,37 +11,6 @@ import Preferences from './preferences'
 import { GRID_PERSISTENCE_ENABLED_KEY } from '@/src/components/common/wayd-grid'
 
 describe('Preferences', () => {
-  beforeEach(() => {
-    // jest.setup's localStorage stub has no backing store — replace it with a
-    // real in-memory implementation
-    const localStorageMock = (() => {
-      let store: Record<string, string> = {}
-      return {
-        getItem: (key: string) => store[key] ?? null,
-        setItem: (key: string, value: string) => {
-          store[key] = value
-        },
-        removeItem: (key: string) => {
-          delete store[key]
-        },
-        clear: () => {
-          store = {}
-        },
-        get length() {
-          return Object.keys(store).length
-        },
-        key: (index: number) => {
-          const keys = Object.keys(store)
-          return keys[index] ?? null
-        },
-      }
-    })()
-    Object.defineProperty(window, 'localStorage', {
-      value: localStorageMock,
-      writable: true,
-    })
-  })
-
   it('defaults the remember-column-layouts switch to on', () => {
     // Arrange / Act
     render(<Preferences />)
@@ -92,12 +61,8 @@ describe('Preferences', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
 
     // Assert — grid layouts gone, unrelated keys untouched
-    expect(
-      window.localStorage.getItem('wayd-grid:ppm-projects:v1'),
-    ).toBeNull()
-    expect(
-      window.localStorage.getItem('wayd-grid:team-sprints:v1'),
-    ).toBeNull()
+    expect(window.localStorage.getItem('wayd-grid:ppm-projects:v1')).toBeNull()
+    expect(window.localStorage.getItem('wayd-grid:team-sprints:v1')).toBeNull()
     expect(window.localStorage.getItem('appTheme')).toBe('"dark"')
   })
 })

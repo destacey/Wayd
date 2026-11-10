@@ -242,13 +242,15 @@ silently runs fewer tests instead of failing.
 
 ```bash
 cd Wayd.Web/src/wayd.web.reactclient
-npm test               # watch-friendly local run
+npm test               # one run of every suite
+npm run test:watch     # reruns affected suites on change
+npx vitest run <path>  # one file or folder
 npm run test:ci        # what CI runs on a PR
 npm run test:coverage  # what CI runs on a merge to main
 ```
 
-Uses Jest with React Testing Library.
+Uses Vitest with React Testing Library. Component suites (`*.test.tsx`) run in jsdom; logic suites (`*.test.ts`) run in node, which skips building a DOM for each file, and one that renders a hook or touches the DOM starts with `// @vitest-environment jsdom`. `src/vitest.setup.ts` holds the module mocks every suite shares (`next/navigation`, the theme hook); `src/vitest.setup.dom.ts` adds the browser shims jsdom lacks, such as `matchMedia` and the grid viewport size. Storage, `dayjs` and the markdown pipeline are real: storage is cleared after each test, and a test that needs a fixed date sets one with `vi.setSystemTime`.
 
-Coverage instrumentation costs roughly four times the test run itself, so PRs run without it and only
-the main-branch build collects it. Both the .NET and client coverage numbers are published to that
+PRs run without coverage, since nothing reads it there; only the main-branch build collects it (v8
+coverage adds about a tenth to the run). Both the .NET and client coverage numbers are published to that
 run's summary page.

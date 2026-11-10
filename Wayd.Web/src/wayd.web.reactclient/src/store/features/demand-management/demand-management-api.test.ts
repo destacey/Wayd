@@ -2,20 +2,20 @@ import { configureStore } from '@reduxjs/toolkit'
 import { apiSlice } from '../apiSlice'
 import { demandManagementApi } from './demand-management-api'
 
-const getIntakeRequests = jest.fn()
-const getIntakeRequest = jest.fn()
-const update = jest.fn()
-const addParticipant = jest.fn()
-const reroute = jest.fn()
-const create = jest.fn()
-const getIntakeDesk = jest.fn()
-const changeStatus = jest.fn()
-const withdraw = jest.fn()
-const getStatusHistory = jest.fn()
-const getArrivalStatuses = jest.fn()
-const changeWorkflow = jest.fn()
+const getIntakeRequests = vi.fn()
+const getIntakeRequest = vi.fn()
+const update = vi.fn()
+const addParticipant = vi.fn()
+const reroute = vi.fn()
+const create = vi.fn()
+const getIntakeDesk = vi.fn()
+const changeStatus = vi.fn()
+const withdraw = vi.fn()
+const getStatusHistory = vi.fn()
+const getArrivalStatuses = vi.fn()
+const changeWorkflow = vi.fn()
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   getIntakeRequestsClient: () => ({
     getIntakeRequests,
     getIntakeRequest,
@@ -48,7 +48,7 @@ const details = (id: string) => ({
 
 describe('demandManagementApi', () => {
   beforeEach(() => {
-    jest.resetAllMocks()
+    vi.resetAllMocks()
   })
 
   describe('getIntakeRequests', () => {

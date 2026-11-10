@@ -3,13 +3,13 @@ import EmployeeWorkingDayForm, {
   workingDayLabel,
 } from './employee-working-day-form'
 
-const changeWorkingDayHours = jest.fn()
+const changeWorkingDayHours = vi.fn()
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/store/features/organization/employee-time-away-api', () => ({
+vi.mock('@/src/store/features/organization/employee-time-away-api', () => ({
   useChangeEmployeeWorkingDayHoursMutation: () => [changeWorkingDayHours],
 }))
 
@@ -23,8 +23,8 @@ let formInstance:
   | undefined
 
 // The form instance is real — antd's Form binds to it, and a stub breaks on render.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -43,7 +43,7 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk,
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -67,7 +67,7 @@ const submit = async () => {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   changeWorkingDayHours.mockResolvedValue({ data: undefined })
 })
 

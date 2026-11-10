@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import {
   escapeCsv,
   generateCsv,
@@ -5,20 +6,22 @@ import {
   downloadCsvWithTimestamp,
 } from './csv-utils'
 
-jest.mock('dayjs', () => {
-  const originalDayjs = jest.requireActual('dayjs')
-  return jest.fn((date?: any) => {
-    const instance = originalDayjs(date)
-    return {
-      ...instance,
-      format: jest.fn((format: string) => {
-        if (format === 'YYYY-MM-DD') {
-          return '2025-12-21'
-        }
-        return instance.format(format)
-      }),
-    }
-  })
+vi.mock('dayjs', async () => {
+  const originalDayjs = (await vi.importActual<any>('dayjs')).default
+  return {
+    default: vi.fn((date?: any) => {
+      const instance = originalDayjs(date)
+      return {
+        ...instance,
+        format: vi.fn((format: string) => {
+          if (format === 'YYYY-MM-DD') {
+            return '2025-12-21'
+          }
+          return instance.format(format)
+        }),
+      }
+    }),
+  }
 })
 
 describe('csv-utils', () => {
@@ -157,20 +160,20 @@ describe('csv-utils', () => {
 
     beforeEach(() => {
       // Mock URL.createObjectURL and URL.revokeObjectURL
-      global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
-      global.URL.revokeObjectURL = jest.fn()
+      global.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
+      global.URL.revokeObjectURL = vi.fn()
 
       // Mock document.createElement and element methods
       mockLink = {
         href: '',
         download: '',
-        click: jest.fn(),
+        click: vi.fn(),
       }
-      jest.spyOn(document, 'createElement').mockReturnValue(mockLink as any)
+      vi.spyOn(document, 'createElement').mockReturnValue(mockLink as any)
     })
 
     afterEach(() => {
-      jest.restoreAllMocks()
+      vi.restoreAllMocks()
     })
 
     it('should create blob with correct content and type', () => {
@@ -188,7 +191,7 @@ describe('csv-utils', () => {
       // Arrange — capture the parts passed to the Blob constructor
       const blobParts: unknown[][] = []
       const RealBlob = global.Blob
-      global.Blob = jest.fn((parts: unknown[], opts?: BlobPropertyBag) => {
+      global.Blob = vi.fn(function (parts: unknown[], opts?: BlobPropertyBag) {
         blobParts.push(parts)
         return new RealBlob(parts as BlobPart[], opts)
       }) as unknown as typeof Blob
@@ -237,19 +240,19 @@ describe('csv-utils', () => {
     let mockLink: any
 
     beforeEach(() => {
-      global.URL.createObjectURL = jest.fn(() => 'blob:mock-url')
-      global.URL.revokeObjectURL = jest.fn()
+      global.URL.createObjectURL = vi.fn(() => 'blob:mock-url')
+      global.URL.revokeObjectURL = vi.fn()
 
       mockLink = {
         href: '',
         download: '',
-        click: jest.fn(),
+        click: vi.fn(),
       }
-      jest.spyOn(document, 'createElement').mockReturnValue(mockLink as any)
+      vi.spyOn(document, 'createElement').mockReturnValue(mockLink as any)
     })
 
     afterEach(() => {
-      jest.restoreAllMocks()
+      vi.restoreAllMocks()
     })
 
     it('should include timestamp in filename', () => {

@@ -1,9 +1,6 @@
 import dayjs from 'dayjs'
 import { EmployeeNavigationDto, ProjectListDto } from '@/src/services/wayd-api'
 
-// The global dayjs stub formats but cannot compare or diff dates, which is
-// exactly what the ending-soon rule and the end-date sort do.
-jest.unmock('dayjs')
 import {
   collectLeadership,
   computeAttention,

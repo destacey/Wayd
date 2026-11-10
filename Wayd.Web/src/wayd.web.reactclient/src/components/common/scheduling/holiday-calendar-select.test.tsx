@@ -2,14 +2,13 @@ import { render, screen } from '@testing-library/react'
 import HolidayCalendarSelect from './holiday-calendar-select'
 
 let canView = true
-const useGetHolidayCalendarsQuery = jest.fn()
+const useGetHolidayCalendarsQuery = vi.fn()
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => canView }),
 }))
 
-jest.mock('@/src/store/features/organization/holiday-calendars-api', () => ({
+vi.mock('@/src/store/features/organization/holiday-calendars-api', () => ({
   useGetHolidayCalendarsQuery: (...args: unknown[]) =>
     useGetHolidayCalendarsQuery(...args),
 }))
@@ -18,7 +17,7 @@ const current = { id: 'cal-us', key: 1, name: 'United States' }
 
 describe('HolidayCalendarSelect', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     canView = true
   })
 

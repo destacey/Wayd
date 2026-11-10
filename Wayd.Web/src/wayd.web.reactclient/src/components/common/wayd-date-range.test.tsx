@@ -1,6 +1,3 @@
-// Calendar dates must parse as local days; the global mock only stubs format.
-jest.unmock('dayjs')
-
 import { render, screen } from '@testing-library/react'
 import WaydDateRange from './wayd-date-range'
 import { DateRange } from '../types'

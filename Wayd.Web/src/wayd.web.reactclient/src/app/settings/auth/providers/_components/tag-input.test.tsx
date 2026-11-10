@@ -3,12 +3,17 @@ import TagInput from './tag-input'
 
 // Ant Design's Tag and Input have internal complexity; stub them to simple elements
 // so tests focus on TagInput's own logic rather than Ant Design's internals.
-jest.mock('antd', () => ({
+vi.mock('antd', () => ({
   Tag: ({ children, closable, onClose, onClick, style }: any) => {
     // The add-trigger Tag has an onClick but no closable prop
     if (onClick && !closable) {
       return (
-        <button type="button" data-testid="add-trigger" onClick={onClick} style={style}>
+        <button
+          type="button"
+          data-testid="add-trigger"
+          onClick={onClick}
+          style={style}
+        >
           {children}
         </button>
       )
@@ -37,12 +42,14 @@ jest.mock('antd', () => ({
   InputRef: {},
 }))
 
-jest.mock('@ant-design/icons', () => ({
+vi.mock('@ant-design/icons', () => ({
   PlusOutlined: () => <span />,
 }))
 
-const renderTagInput = (props: Partial<Parameters<typeof TagInput>[0]> = {}) => {
-  const onChange = jest.fn()
+const renderTagInput = (
+  props: Partial<Parameters<typeof TagInput>[0]> = {},
+) => {
+  const onChange = vi.fn()
   const utils = render(<TagInput value={[]} onChange={onChange} {...props} />)
   return { ...utils, onChange }
 }
@@ -75,7 +82,9 @@ describe('TagInput', () => {
     it('passes placeholder to the text input', () => {
       renderTagInput({ placeholder: 'Add scope and press Enter' })
       openInput()
-      expect(screen.getByPlaceholderText('Add scope and press Enter')).toBeInTheDocument()
+      expect(
+        screen.getByPlaceholderText('Add scope and press Enter'),
+      ).toBeInTheDocument()
     })
   })
 
@@ -169,7 +178,9 @@ describe('TagInput', () => {
 
   describe('removing tags', () => {
     it('removes a tag when its close button is clicked', () => {
-      const { onChange } = renderTagInput({ value: ['openid', 'profile', 'email'] })
+      const { onChange } = renderTagInput({
+        value: ['openid', 'profile', 'email'],
+      })
 
       const closeBtns = screen.getAllByTestId('tag-close')
       fireEvent.click(closeBtns[1]) // click close on 'profile'

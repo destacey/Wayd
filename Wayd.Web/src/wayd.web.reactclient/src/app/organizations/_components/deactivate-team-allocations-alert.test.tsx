@@ -1,14 +1,14 @@
 import { render, screen } from '@testing-library/react'
 import DeactivateTeamAllocationsAlert from './deactivate-team-allocations-alert'
 
-const mockUseFeatureFlag = jest.fn()
-jest.mock('@/src/hooks', () => ({
+const mockUseFeatureFlag = vi.fn()
+vi.mock('@/src/hooks', () => ({
   useFeatureFlag: (name: string) => mockUseFeatureFlag(name),
 }))
 
 describe('DeactivateTeamAllocationsAlert', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('warns that allocations end when Team Capacity Management is on', () => {

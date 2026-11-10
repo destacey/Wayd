@@ -11,9 +11,6 @@ import {
 import { useEffect } from 'react'
 import { NeedByFields } from './need-by-fields'
 
-// jest.setup stubs dayjs down to formatting; the date pickers need the real module.
-jest.unmock('dayjs')
-
 const BASES: NeedByBasisDto[] = [
   {
     id: 2,
@@ -89,7 +86,7 @@ describe('NeedByFields', () => {
     render(<Harness initial={{ needBy: { date: dayjs('2026-12-31') } }} />)
 
     // Act
-    await act(() => userEvent.click(screen.getByText('A contract names it')))
+    await userEvent.click(screen.getByText('A contract names it'))
 
     // Assert
     expect(
@@ -156,10 +153,8 @@ describe('NeedByFields', () => {
     )
 
     // Act
-    await act(() =>
-      userEvent.click(
-        screen.getByRole('button', { name: 'No particular date' }),
-      ),
+    await userEvent.click(
+      screen.getByRole('button', { name: 'No particular date' }),
     )
 
     // Assert
@@ -185,7 +180,7 @@ describe('NeedByFields', () => {
     )
 
     // Act
-    await act(() => userEvent.click(screen.getByText('A contract names it')))
+    await userEvent.click(screen.getByText('A contract names it'))
 
     // Assert
     expect(formRef.current!.getFieldValue(['needBy', 'basis'])).toBe(

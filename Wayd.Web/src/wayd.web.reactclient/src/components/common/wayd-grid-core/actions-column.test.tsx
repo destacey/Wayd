@@ -4,10 +4,7 @@ import type { CellContext } from './index'
 import { flexRender } from '@tanstack/react-table'
 import type { ItemType } from 'antd/es/menu/interface'
 
-import {
-  ACTIONS_COLUMN_SIZE,
-  createActionsColumn,
-} from './actions-column'
+import { ACTIONS_COLUMN_SIZE, createActionsColumn } from './actions-column'
 
 interface Widget {
   id: string
@@ -64,7 +61,7 @@ describe('createActionsColumn', () => {
   describe('cell rendering', () => {
     it('calls getItems with the row original', () => {
       // Arrange
-      const getItems = jest.fn<ItemType[], [Widget]>(() => [
+      const getItems = vi.fn<(...args: [Widget]) => ItemType[]>(() => [
         { key: 'edit', label: 'Edit' },
       ])
       const col = createActionsColumn<Widget>({ getItems })

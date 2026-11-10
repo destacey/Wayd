@@ -1,8 +1,9 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 
 // Mock WaydGrid with a light stand-in that exposes the props under test.
-jest.mock('../wayd-grid', () => ({
-  WaydGrid: jest.fn(
+vi.mock('../wayd-grid', () => ({
+  WaydGrid: vi.fn(
     ({ data, isLoading, height, emptyMessage, columns, onRefresh }) => (
       <div data-testid="wayd-grid">
         <div data-testid="row-count">{data?.length ?? 0}</div>
@@ -19,11 +20,11 @@ jest.mock('../wayd-grid', () => ({
     ),
   ),
   // Link renderers are exercised elsewhere; stub them so the grid stays simple.
-  renderSprintLink: jest.fn(() => null),
-  renderTeamLink: jest.fn(() => null),
+  renderSprintLink: vi.fn(() => null),
+  renderTeamLink: vi.fn(() => null),
 }))
 
-// Note: useTheme and dayjs are mocked globally in jest.setup.ts
+// Note: useTheme is mocked globally in vitest.setup.ts
 
 import SprintsGrid from './sprints-grid'
 import * as WaydGridModule from '../wayd-grid'
@@ -34,7 +35,7 @@ import {
 } from '@/src/services/wayd-api'
 
 describe('SprintsGrid', () => {
-  const mockRefetch = jest.fn()
+  const mockRefetch = vi.fn()
 
   const mockSprints: SprintListDto[] = [
     {
@@ -62,7 +63,7 @@ describe('SprintsGrid', () => {
   ]
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('renders the grid', () => {
@@ -104,7 +105,7 @@ describe('SprintsGrid', () => {
     )
 
     // Assert — the grid receives the start-descending initial sort
-    const gridProps = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
+    const gridProps = (WaydGridModule.WaydGrid as unknown as Mock).mock
       .calls[0][0]
     expect(gridProps.initialSorting).toEqual([{ id: 'start', desc: true }])
   })
@@ -167,8 +168,7 @@ describe('SprintsGrid', () => {
     )
 
     // Assert — key, name, team, state, start, end
-    const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
-      .calls[0][0]
+    const call = (WaydGridModule.WaydGrid as unknown as Mock).mock.calls[0][0]
     const ids = call.columns.map((c: { id: string }) => c.id)
     expect(ids).toEqual(
       expect.arrayContaining(['key', 'name', 'team', 'state', 'start', 'end']),
@@ -186,8 +186,7 @@ describe('SprintsGrid', () => {
     )
 
     // Assert
-    const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
-      .calls[0][0]
+    const call = (WaydGridModule.WaydGrid as unknown as Mock).mock.calls[0][0]
     for (const id of ['started', 'completed']) {
       const column = call.columns.find((c: { id: string }) => c.id === id)
       expect(column.meta).toEqual({ columnType: 'dateTime' })
@@ -205,8 +204,7 @@ describe('SprintsGrid', () => {
     )
 
     // Assert
-    const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
-      .calls[0][0]
+    const call = (WaydGridModule.WaydGrid as unknown as Mock).mock.calls[0][0]
     const column = call.columns.find(
       (c: { id: string }) => c.id === 'sprintType',
     )
@@ -249,8 +247,7 @@ describe('SprintsGrid', () => {
     )
 
     // Assert
-    const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
-      .calls[0][0]
+    const call = (WaydGridModule.WaydGrid as unknown as Mock).mock.calls[0][0]
     const ids = call.columns.map((c: { id: string }) => c.id)
     expect(ids).not.toContain('team')
   })
@@ -266,8 +263,7 @@ describe('SprintsGrid', () => {
     )
 
     // Assert
-    const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
-      .calls[0][0]
+    const call = (WaydGridModule.WaydGrid as unknown as Mock).mock.calls[0][0]
     const teamColumn = call.columns.find((c: { id: string }) => c.id === 'team')
     expect(teamColumn.meta.unavailable).toBeUndefined()
   })
@@ -284,8 +280,7 @@ describe('SprintsGrid', () => {
     )
 
     // Assert
-    const call = (WaydGridModule.WaydGrid as unknown as jest.Mock).mock
-      .calls[0][0]
+    const call = (WaydGridModule.WaydGrid as unknown as Mock).mock.calls[0][0]
     expect(call.persistStateKey).toBe('team-sprints')
   })
 })

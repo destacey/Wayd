@@ -1,15 +1,16 @@
+import type { Mock } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useStoryMapTour } from './use-story-map-tour'
 import { useTourCompleted } from '@/src/hooks'
 import { StoryMapDetailsDto } from '@/src/services/wayd-api'
 
-jest.mock('@/src/hooks', () => ({
-  useTourCompleted: jest.fn(),
+vi.mock('@/src/hooks', () => ({
+  useTourCompleted: vi.fn(),
 }))
 
-const mockUseTourCompleted = useTourCompleted as jest.Mock
-const mockMarkCompleted = jest.fn()
-const mockResetTour = jest.fn()
+const mockUseTourCompleted = useTourCompleted as Mock
+const mockMarkCompleted = vi.fn()
+const mockResetTour = vi.fn()
 
 /** The tour only reads goal/step/task/persona/lane collections, so a skeletal map suffices. */
 const buildMap = (shape?: {
@@ -38,7 +39,7 @@ const mapWithStep = buildMap({ goals: [{ steps: [{ tasks: [] }] }] })
 const mapWithTask = buildMap({ goals: [{ steps: [{ tasks: [{}] }] }] })
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   mockUseTourCompleted.mockReturnValue({
     isCompleted: false,
     isLoading: false,

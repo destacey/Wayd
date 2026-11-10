@@ -1,11 +1,8 @@
 import { render, screen } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import { TeamThroughputForecastDto } from '@/src/services/wayd-api'
 import ThroughputForecastChart from './throughput-forecast-chart'
 
-jest.unmock('dayjs')
-jest.mock('next/dynamic', () => ({
-  __esModule: true,
+vi.mock('next/dynamic', () => ({
   default: () => {
     const Component = (props: any) => (
       <div data-testid="column-chart" data-config={JSON.stringify(props)} />
@@ -15,9 +12,8 @@ jest.mock('next/dynamic', () => ({
   },
 }))
 
-jest.mock('../../contexts/theme', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
+vi.mock('../../contexts/theme', () => ({
+  default: vi.fn(() => ({
     antDesignChartsTheme: 'light',
     token: { colorPrimary: '#1677ff' },
   })),

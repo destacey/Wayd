@@ -2,8 +2,7 @@ import { render, screen } from '@testing-library/react'
 import InactiveTag from './inactive-tag'
 
 // Mock the useTheme hook
-jest.mock('../contexts/theme', () => ({
-  __esModule: true,
+vi.mock('../contexts/theme', () => ({
   default: () => ({
     token: {
       colorWarning: '#faad14',
@@ -18,12 +17,16 @@ describe('InactiveTag', () => {
   })
 
   it('should return null when isActive is undefined', () => {
-    const { container } = render(<InactiveTag isActive={undefined as unknown as boolean} />)
+    const { container } = render(
+      <InactiveTag isActive={undefined as unknown as boolean} />,
+    )
     expect(container.firstChild).toBeNull()
   })
 
   it('should return null when isActive is null', () => {
-    const { container } = render(<InactiveTag isActive={null as unknown as boolean} />)
+    const { container } = render(
+      <InactiveTag isActive={null as unknown as boolean} />,
+    )
     expect(container.firstChild).toBeNull()
   })
 

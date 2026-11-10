@@ -1,9 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import EmployeeFacts from './employee-facts'
 
-const mockDirectReports = jest.fn()
+const mockDirectReports = vi.fn()
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetDirectReportsQuery: (...args: unknown[]) => mockDirectReports(...args),
 }))
 
@@ -25,7 +25,7 @@ const report = (id: string, key: number, displayName: string) => ({
 
 describe('EmployeeFacts', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockDirectReports.mockReturnValue({ data: [], isLoading: false })
   })
 
@@ -50,10 +50,9 @@ describe('EmployeeFacts', () => {
     )
 
     // Assert
-    expect(screen.getByRole('link', { name: /Daniel Okonkwo/ })).toHaveAttribute(
-      'href',
-      '/organizations/employees/77',
-    )
+    expect(
+      screen.getByRole('link', { name: /Daniel Okonkwo/ }),
+    ).toHaveAttribute('href', '/organizations/employees/77')
   })
 
   it('omits direct reports entirely when there are none', () => {
@@ -67,10 +66,7 @@ describe('EmployeeFacts', () => {
   it('lists direct reports in name order', () => {
     // Arrange
     mockDirectReports.mockReturnValue({
-      data: [
-        report('r1', 11, 'wei chen'),
-        report('r2', 12, 'Amara Sithole'),
-      ],
+      data: [report('r1', 11, 'wei chen'), report('r2', 12, 'Amara Sithole')],
       isLoading: false,
     })
 
@@ -80,7 +76,9 @@ describe('EmployeeFacts', () => {
     // Assert — case-insensitive, so a lowercase name does not sort to the end
     expect(screen.getByText('Direct Reports')).toBeInTheDocument()
     const names = screen.getAllByRole('link').map((l) => l.textContent)
-    expect(names.indexOf('Amara Sithole')).toBeLessThan(names.indexOf('wei chen'))
+    expect(names.indexOf('Amara Sithole')).toBeLessThan(
+      names.indexOf('wei chen'),
+    )
   })
 
   it('does not repeat the job title the header already carries', () => {

@@ -22,7 +22,7 @@ describe('StatusHistoryTag', () => {
 
   it('opens the history when clicked', () => {
     // Arrange
-    const onOpenHistory = jest.fn()
+    const onOpenHistory = vi.fn()
     render(<StatusHistoryTag status={status} onOpenHistory={onOpenHistory} />)
 
     // Act
@@ -35,7 +35,7 @@ describe('StatusHistoryTag', () => {
   it('opens the history from the keyboard', () => {
     // Arrange — the tag is a span rather than a button, so it carries the key handling a button
     // would have given it for free.
-    const onOpenHistory = jest.fn()
+    const onOpenHistory = vi.fn()
     render(<StatusHistoryTag status={status} onOpenHistory={onOpenHistory} />)
 
     // Act
@@ -60,7 +60,7 @@ describe('StatusHistoryTag', () => {
     // category's fixed meaning — and only then what clicking does.
     // Arrange
     const user = userEvent.setup()
-    render(<StatusHistoryTag status={status} onOpenHistory={jest.fn()} />)
+    render(<StatusHistoryTag status={status} onOpenHistory={vi.fn()} />)
 
     // Act
     await user.hover(screen.getByRole('button'))

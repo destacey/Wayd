@@ -2,14 +2,14 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import IntakeChannelForm from './intake-channel-form'
 
-const mockError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: mockError, success: jest.fn() }),
+const mockError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: mockError, success: vi.fn() }),
 }))
 
-// Form.useWatch does not refire in Jest, so keep the form real and submit through validateFields.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+// Form.useWatch does not refire under jsdom, so keep the form real and submit through validateFields.
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -31,21 +31,18 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields().catch(() => null)
           if (values && (await onSubmit(values, form))) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const mockCreate = jest.fn()
-const mockUpdate = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useCreateIntakeChannelMutation: () => [mockCreate],
-    useUpdateIntakeChannelMutation: () => [mockUpdate],
-  }),
-)
+const mockCreate = vi.fn()
+const mockUpdate = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useCreateIntakeChannelMutation: () => [mockCreate],
+  useUpdateIntakeChannelMutation: () => [mockUpdate],
+}))
 
 const channel = {
   id: 'c-1',
@@ -65,21 +62,19 @@ describe('IntakeChannelForm', () => {
   it('adds a channel, sending no description when none is given', async () => {
     // Arrange
     mockCreate.mockReturnValue({ unwrap: () => Promise.resolve('c-9') })
-    const onComplete = jest.fn()
+    const onComplete = vi.fn()
     await act(async () =>
       render(
         <IntakeChannelForm
           onFormComplete={onComplete}
-          onFormCancel={jest.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
     await userEvent.type(screen.getByLabelText('Name'), 'Partner')
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Add' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     // Assert
     expect(mockCreate).toHaveBeenCalledWith({
@@ -96,8 +91,8 @@ describe('IntakeChannelForm', () => {
       render(
         <IntakeChannelForm
           channel={channel}
-          onFormComplete={jest.fn()}
-          onFormCancel={jest.fn()}
+          onFormComplete={vi.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
@@ -107,9 +102,7 @@ describe('IntakeChannelForm', () => {
     await userEvent.type(name, 'Customer support')
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockUpdate).toHaveBeenCalledWith({
@@ -128,21 +121,19 @@ describe('IntakeChannelForm', () => {
           detail: 'A channel with this name already exists.',
         }),
     })
-    const onComplete = jest.fn()
+    const onComplete = vi.fn()
     await act(async () =>
       render(
         <IntakeChannelForm
           channel={channel}
           onFormComplete={onComplete}
-          onFormCancel={jest.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockError).toHaveBeenCalledWith(

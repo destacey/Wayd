@@ -12,24 +12,24 @@ import {
   buildReadNotification,
 } from './notification-test-data'
 
-const mockMarkRecordRead = jest.fn()
-jest.mock('@/src/store/features/common/notifications-api', () => ({
+const mockMarkRecordRead = vi.fn()
+vi.mock('@/src/store/features/common/notifications-api', () => ({
   useMarkRecordNotificationsReadMutation: () => [mockMarkRecordRead, {}],
 }))
 
-const mockMuteRecord = jest.fn()
+const mockMuteRecord = vi.fn()
 const mockMuting: { current: object } = { current: {} }
-const mockUnmuteRecord = jest.fn()
-jest.mock('@/src/store/features/common/notification-mutes-api', () => ({
+const mockUnmuteRecord = vi.fn()
+vi.mock('@/src/store/features/common/notification-mutes-api', () => ({
   useMuteRecordMutation: () => [mockMuteRecord, mockMuting.current],
   useUnmuteRecordMutation: () => [mockUnmuteRecord, {}],
 }))
 
-const mockMessageSuccess = jest.fn()
-const mockMessageInfo = jest.fn()
-const mockMessageError = jest.fn()
-const mockMessageDestroy = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
+const mockMessageSuccess = vi.fn()
+const mockMessageInfo = vi.fn()
+const mockMessageError = vi.fn()
+const mockMessageDestroy = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
     success: mockMessageSuccess,
     info: mockMessageInfo,
@@ -40,7 +40,7 @@ jest.mock('@/src/components/contexts/messaging', () => ({
 
 const renderList = (
   notifications: NotificationDto[],
-  { onNavigate = jest.fn(), isLoading = false, isError = false } = {},
+  { onNavigate = vi.fn(), isLoading = false, isError = false } = {},
 ) =>
   render(
     <NotificationList
@@ -54,7 +54,7 @@ const renderList = (
 
 describe('NotificationList', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it.each([
@@ -179,7 +179,7 @@ describe('NotificationList', () => {
 
   it('marks the record read and closes the panel when an unread entry is opened', () => {
     // Arrange
-    const onNavigate = jest.fn()
+    const onNavigate = vi.fn()
     renderList([buildNotification()], { onNavigate })
 
     // Act
@@ -195,7 +195,7 @@ describe('NotificationList', () => {
 
   it('marks nothing when a read entry is opened', () => {
     // Arrange
-    const onNavigate = jest.fn()
+    const onNavigate = vi.fn()
     renderList([buildReadNotification()], { onNavigate })
 
     // Act
@@ -208,7 +208,7 @@ describe('NotificationList', () => {
 
   it('marks an entry read without opening it', () => {
     // Arrange
-    const onNavigate = jest.fn()
+    const onNavigate = vi.fn()
     renderList([buildNotification()], { onNavigate })
 
     // Act
@@ -226,7 +226,7 @@ describe('NotificationList', () => {
     // Arrange
     mockMuteRecord.mockResolvedValue({ data: { wasAlreadyMuted: false } })
     mockUnmuteRecord.mockResolvedValue({ data: null })
-    const onNavigate = jest.fn()
+    const onNavigate = vi.fn()
     renderList([buildNotification()], { onNavigate })
 
     // Act

@@ -5,20 +5,24 @@ import HealthCheckTag, {
   HealthCheckStatusTagData,
 } from './health-check-tag'
 
-jest.mock('@ant-design/icons', () => ({
-  FlagFilled: ({ style, 'aria-label': ariaLabel }: { style?: React.CSSProperties; 'aria-label'?: string }) => (
-    <span data-testid="flag-icon" style={style} aria-label={ariaLabel} />
-  ),
+vi.mock('@ant-design/icons', () => ({
+  FlagFilled: ({
+    style,
+    'aria-label': ariaLabel,
+  }: {
+    style?: React.CSSProperties
+    'aria-label'?: string
+  }) => <span data-testid="flag-icon" style={style} aria-label={ariaLabel} />,
 }))
 
-jest.mock('../markdown', () => ({
+vi.mock('../markdown', () => ({
   MarkdownRenderer: ({ markdown }: { markdown?: string }) => (
     <div data-testid="markdown-renderer">{markdown}</div>
   ),
 }))
 
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
 
   return {
     ...actual,
@@ -103,17 +107,17 @@ describe('HealthCheckTag', () => {
 
     render(<HealthCheckTag healthCheck={healthCheck} details={details} />)
 
-    expect(screen.getByTestId('health-check-popover-content')).toHaveStyle({
-      width: 'min(420px, calc(100vw - 32px))',
-    })
+    expect(screen.getByTestId('health-check-popover-content').style.width).toBe(
+      'min(420px, -32px + 100vw)',
+    )
   })
 
   it('should use a compact responsive popover width without notes', () => {
     render(<HealthCheckTag healthCheck={healthCheck} />)
 
-    expect(screen.getByTestId('health-check-popover-content')).toHaveStyle({
-      width: 'min(280px, calc(100vw - 32px))',
-    })
+    expect(screen.getByTestId('health-check-popover-content').style.width).toBe(
+      'min(280px, -32px + 100vw)',
+    )
   })
 })
 
@@ -131,9 +135,9 @@ describe('HealthCheckTag variant=flag', () => {
 
   it('should use success color for Healthy', () => {
     render(<HealthCheckTag healthCheck={healthCheck} variant="flag" />)
-    expect(screen.getByTestId('flag-icon')).toHaveStyle({
-      color: 'var(--ant-color-success)',
-    })
+    expect(screen.getByTestId('flag-icon').style.color).toBe(
+      'var(--ant-color-success)',
+    )
   })
 
   it('should use warning color for At Risk', () => {
@@ -143,9 +147,9 @@ describe('HealthCheckTag variant=flag', () => {
         variant="flag"
       />,
     )
-    expect(screen.getByTestId('flag-icon')).toHaveStyle({
-      color: 'var(--ant-color-warning)',
-    })
+    expect(screen.getByTestId('flag-icon').style.color).toBe(
+      'var(--ant-color-warning)',
+    )
   })
 
   it('should use error color for Unhealthy', () => {
@@ -155,9 +159,9 @@ describe('HealthCheckTag variant=flag', () => {
         variant="flag"
       />,
     )
-    expect(screen.getByTestId('flag-icon')).toHaveStyle({
-      color: 'var(--ant-color-error)',
-    })
+    expect(screen.getByTestId('flag-icon').style.color).toBe(
+      'var(--ant-color-error)',
+    )
   })
 
   it('should use disabled color for unknown status', () => {
@@ -167,9 +171,9 @@ describe('HealthCheckTag variant=flag', () => {
         variant="flag"
       />,
     )
-    expect(screen.getByTestId('flag-icon')).toHaveStyle({
-      color: 'var(--ant-color-text-disabled)',
-    })
+    expect(screen.getByTestId('flag-icon').style.color).toBe(
+      'var(--ant-color-text-disabled)',
+    )
   })
 
   it('should set aria-label with the status name', () => {

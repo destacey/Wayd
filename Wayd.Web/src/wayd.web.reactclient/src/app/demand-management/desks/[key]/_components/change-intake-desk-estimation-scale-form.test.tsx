@@ -2,12 +2,12 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ChangeIntakeDeskEstimationScaleForm from './change-intake-desk-estimation-scale-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -29,40 +29,35 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields().catch(() => null)
           if (values && (await onSubmit(values, form))) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const mockChangeEstimationScale = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useChangeIntakeDeskEstimationScaleMutation: () => [
-      mockChangeEstimationScale,
+const mockChangeEstimationScale = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useChangeIntakeDeskEstimationScaleMutation: () => [mockChangeEstimationScale],
+  useGetIntakeEstimationScaleChoicesQuery: () => ({
+    data: [
+      {
+        id: 's-1',
+        key: 1,
+        name: 'T-Shirt Sizes',
+        versionNumber: 2,
+        estimateValues: ['S', 'M', 'L'],
+      },
+      {
+        id: 's-2',
+        key: 2,
+        name: 'Fibonacci',
+        versionNumber: 1,
+        estimateValues: ['1', '2', '3', '5'],
+      },
     ],
-    useGetIntakeEstimationScaleChoicesQuery: () => ({
-      data: [
-        {
-          id: 's-1',
-          key: 1,
-          name: 'T-Shirt Sizes',
-          versionNumber: 2,
-          estimateValues: ['S', 'M', 'L'],
-        },
-        {
-          id: 's-2',
-          key: 2,
-          name: 'Fibonacci',
-          versionNumber: 1,
-          estimateValues: ['1', '2', '3', '5'],
-        },
-      ],
-      isLoading: false,
-    }),
+    isLoading: false,
   }),
-)
+}))
 
 const renderForm = async (estimationScale?: { id: string; name: string }) =>
   await act(async () =>
@@ -81,16 +76,14 @@ const renderForm = async (estimationScale?: { id: string; name: string }) =>
             },
           } as any
         }
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
 
 const submit = async () => {
-  await act(() =>
-    userEvent.click(screen.getByRole('button', { name: 'Change' })),
-  )
+  await userEvent.click(screen.getByRole('button', { name: 'Change' }))
 }
 
 describe('ChangeIntakeDeskEstimationScaleForm', () => {

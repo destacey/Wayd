@@ -4,15 +4,15 @@ import userEvent from '@testing-library/user-event'
 import { WorkTypeTier } from '@/src/services/wayd-api'
 import AddProjectWorkItemsForm from './add-project-work-items-form'
 
-const mockError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: mockError, success: jest.fn() }),
+const mockError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: mockError, success: vi.fn() }),
 }))
 
-// In Jest, Form.useWatch does not refire after typing, so the real hook's validity never updates; as the
+// Under jsdom, Form.useWatch does not refire after typing, so the real hook's validity never updates; as the
 // other form suites do, keep the form instance real and submit through validateFields.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     // The search waits for typing to settle; the tests search at once.
     useDebounce: (value: unknown) => value,
@@ -39,19 +39,19 @@ jest.mock('@/src/hooks', () => {
             // A validation failure leaves the form open, as the real hook does.
           }
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const mockAdd = jest.fn()
-jest.mock('@/src/store/features/ppm/projects-api', () => ({
+const mockAdd = vi.fn()
+vi.mock('@/src/store/features/ppm/projects-api', () => ({
   useAddProjectWorkItemsMutation: () => [mockAdd],
 }))
 
-const mockSearchWorkItems = jest.fn()
-jest.mock('@/src/store/features/work-management/workspace-api', () => ({
+const mockSearchWorkItems = vi.fn()
+vi.mock('@/src/store/features/work-management/workspace-api', () => ({
   useSearchWorkItemsQuery: (arg: unknown, options: { skip: boolean }) =>
     mockSearchWorkItems(arg, options),
 }))
@@ -64,14 +64,14 @@ const epic = (id: string, key: string, title: string, project?: string) => ({
   project: project ? { id: project, name: `Project ${project}` } : undefined,
 })
 
-const renderForm = (onFormComplete = jest.fn()) =>
+const renderForm = (onFormComplete = vi.fn()) =>
   act(async () =>
     render(
       <AddProjectWorkItemsForm
         projectId="p-1"
         existingWorkItemIds={new Set(['w-1'])}
         onFormComplete={onFormComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -81,9 +81,9 @@ const searchWorkItems = async (term: string) => {
     .getByText('Work Items')
     .closest('.ant-form-item')!
     .querySelector('input')!
-  await act(() => userEvent.click(select))
-  await act(() => userEvent.clear(select))
-  await act(() => userEvent.type(select, term))
+  await userEvent.click(select)
+  await userEvent.clear(select)
+  await userEvent.type(select, term)
 }
 
 describe('AddProjectWorkItemsForm', () => {
@@ -130,16 +130,14 @@ describe('AddProjectWorkItemsForm', () => {
   it('adds every chosen work item to the project', async () => {
     // Arrange
     mockAdd.mockReturnValue({ unwrap: () => Promise.resolve(null) })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     await renderForm(onFormComplete)
     await searchWorkItems('app')
-    await act(() => userEvent.click(screen.getByTitle('APP-2 · Checkout')))
-    await act(() => userEvent.click(screen.getByTitle('APP-3 · Payments')))
+    await userEvent.click(screen.getByTitle('APP-2 · Checkout'))
+    await userEvent.click(screen.getByTitle('APP-3 · Payments'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Add' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     // Assert
     expect(mockAdd).toHaveBeenCalledWith({
@@ -155,7 +153,7 @@ describe('AddProjectWorkItemsForm', () => {
     await searchWorkItems('app')
 
     // Act
-    await act(() => userEvent.click(screen.getByTitle('APP-3 · Payments')))
+    await userEvent.click(screen.getByTitle('APP-3 · Payments'))
 
     // Assert
     expect(
@@ -172,7 +170,7 @@ describe('AddProjectWorkItemsForm', () => {
     await searchWorkItems('app')
 
     // Act
-    await act(() => userEvent.click(screen.getByTitle('APP-2 · Checkout')))
+    await userEvent.click(screen.getByTitle('APP-2 · Checkout'))
 
     // Assert
     expect(
@@ -186,7 +184,7 @@ describe('AddProjectWorkItemsForm', () => {
     // Arrange
     await renderForm()
     await searchWorkItems('app')
-    await act(() => userEvent.click(screen.getByTitle('APP-3 · Payments')))
+    await userEvent.click(screen.getByTitle('APP-3 · Payments'))
 
     // Act
     await searchWorkItems('zzz')
@@ -202,15 +200,13 @@ describe('AddProjectWorkItemsForm', () => {
       unwrap: () =>
         Promise.reject({ status: 400, detail: 'Project not found.' }),
     })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     await renderForm(onFormComplete)
     await searchWorkItems('app')
-    await act(() => userEvent.click(screen.getByTitle('APP-2 · Checkout')))
+    await userEvent.click(screen.getByTitle('APP-2 · Checkout'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Add' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
 
     // Assert
     expect(mockError).toHaveBeenCalledWith('Project not found.')

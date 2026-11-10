@@ -1,5 +1,5 @@
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ success: jest.fn(), error: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ success: vi.fn(), error: vi.fn() }),
 }))
 
 import { render as rtlRender, screen } from '@testing-library/react'
@@ -22,14 +22,13 @@ global.ResizeObserver = class {
   disconnect() {}
 } as unknown as typeof ResizeObserver
 
-jest.mock('@/src/store/features/common/status-workflows-api', () => ({
+vi.mock('@/src/store/features/common/status-workflows-api', () => ({
   useGetWorkflowOwnerTypesQuery: () => ({ data: [] }),
-  useRemoveWorkflowStatusMutation: () => [jest.fn()],
-  useReorderWorkflowStatusesMutation: () => [jest.fn()],
+  useRemoveWorkflowStatusMutation: () => [vi.fn()],
+  useReorderWorkflowStatusesMutation: () => [vi.fn()],
 }))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     hasClaim: () => true,
     hasPermissionClaim: () => true,

@@ -1,7 +1,5 @@
 import { chanceOfFinishingBy } from './forecast-formatting'
 
-jest.unmock('dayjs')
-
 describe('chanceOfFinishingBy', () => {
   const histogram = [
     { date: '2026-10-01', trials: 30 },

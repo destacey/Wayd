@@ -5,15 +5,15 @@ import StoryMapAccessFields, {
   StoryMapAccessValues,
 } from './story-map-access-fields'
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeeOptionsQuery: () => ({ data: [] }),
 }))
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
+vi.mock('@/src/store/features/organizations/team-api', () => ({
   useGetTeamOptionsQuery: () => ({ data: [] }),
 }))
 
-jest.mock('@/src/components/common/organizations', () => ({
+vi.mock('@/src/components/common/organizations', () => ({
   EmployeeSelect: () => <div />,
 }))
 

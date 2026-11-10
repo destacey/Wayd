@@ -1,14 +1,15 @@
+import type { Mock } from 'vitest'
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import { IterationState } from '../../types'
 import PlanningIntervalCard from './planning-interval-card'
 import { useGetPlanningIntervalIterationsQuery } from '@/src/store/features/planning/planning-interval-api'
 
-jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
-  useGetPlanningIntervalIterationsQuery: jest.fn(),
+vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
+  useGetPlanningIntervalIterationsQuery: vi.fn(),
 }))
 
-jest.mock('next/link', () => {
+vi.mock('next/link', () => {
   const MockedLink = ({
     children,
     href,
@@ -17,11 +18,11 @@ jest.mock('next/link', () => {
     href: string
   }) => <a href={href}>{children}</a>
   MockedLink.displayName = 'Link'
-  return MockedLink
+  return { default: MockedLink }
 })
 
 const mockIterationsQuery =
-  useGetPlanningIntervalIterationsQuery as unknown as jest.Mock
+  useGetPlanningIntervalIterationsQuery as unknown as Mock
 
 const createPlanningInterval = (overrides: Record<string, unknown> = {}) =>
   ({
@@ -36,7 +37,7 @@ const createPlanningInterval = (overrides: Record<string, unknown> = {}) =>
 
 describe('PlanningIntervalCard', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockIterationsQuery.mockReturnValue({ data: [] })
   })
 

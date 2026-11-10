@@ -1,5 +1,4 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import { BacklogHealthThresholds } from '@/src/services/wayd-api'
 import BacklogHealthSettingsPopover from './backlog-health-settings-popover'
 
@@ -39,7 +38,7 @@ const changeInput = async (label: string, value: string) => {
 
 describe('BacklogHealthSettingsPopover', () => {
   it('applies only the values that were changed', async () => {
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <BacklogHealthSettingsPopover
         settings={{ thresholds: {} }}
@@ -61,7 +60,7 @@ describe('BacklogHealthSettingsPopover', () => {
   })
 
   it('keeps earlier overrides when applying another', async () => {
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <BacklogHealthSettingsPopover
         settings={{ lookbackDays: 60, thresholds: { staleDays: 30 } }}
@@ -86,7 +85,7 @@ describe('BacklogHealthSettingsPopover', () => {
   })
 
   it('resets to the defaults', async () => {
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <BacklogHealthSettingsPopover
         settings={{ thresholds: { staleDays: 30 } }}
@@ -108,7 +107,7 @@ describe('BacklogHealthSettingsPopover', () => {
       <BacklogHealthSettingsPopover
         settings={{ thresholds: { staleDays: 30 } }}
         effective={effective}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
       />,
     )
 
@@ -116,7 +115,7 @@ describe('BacklogHealthSettingsPopover', () => {
   })
 
   it('will not apply thresholds the API would reject', async () => {
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <BacklogHealthSettingsPopover
         settings={{ thresholds: {} }}
@@ -138,7 +137,7 @@ describe('BacklogHealthSettingsPopover', () => {
     render(
       <BacklogHealthSettingsPopover
         settings={{ thresholds: {} }}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
       />,
     )
 

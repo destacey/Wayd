@@ -1,22 +1,23 @@
+// @vitest-environment jsdom
+import type { Mock } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { usePathname } from 'next/navigation'
 import { useFeatureFlag } from './use-feature-flag'
 import { useGetClientFeatureFlagsQuery } from '../store/features/feature-flags-api'
 
-jest.mock('next/navigation', () => ({
-  usePathname: jest.fn(() => '/'),
+vi.mock('next/navigation', () => ({
+  usePathname: vi.fn(() => '/'),
 }))
 
-jest.mock('../store/features/feature-flags-api', () => ({
-  useGetClientFeatureFlagsQuery: jest.fn(),
+vi.mock('../store/features/feature-flags-api', () => ({
+  useGetClientFeatureFlagsQuery: vi.fn(),
 }))
 
-const mockUseGetClientFeatureFlagsQuery =
-  useGetClientFeatureFlagsQuery as jest.Mock
+const mockUseGetClientFeatureFlagsQuery = useGetClientFeatureFlagsQuery as Mock
 
 describe('useFeatureFlag', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('returns isEnabled true when feature flag is found and enabled', () => {
@@ -111,7 +112,7 @@ describe('useFeatureFlag', () => {
   })
 
   it('skips the query on the logout route', () => {
-    ;(usePathname as jest.Mock).mockReturnValue('/logout')
+    ;(usePathname as Mock).mockReturnValue('/logout')
     mockUseGetClientFeatureFlagsQuery.mockReturnValue({
       data: undefined,
       isLoading: false,

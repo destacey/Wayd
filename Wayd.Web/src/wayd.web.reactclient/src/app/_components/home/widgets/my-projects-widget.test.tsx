@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import MyProjectsWidget, {
   DueThisWeekTile,
@@ -14,17 +15,17 @@ import { homeContext } from '../home-context-test-utils'
 
 const mockHome: { context?: HomeContextResponse } = {}
 
-jest.mock('../use-home-context', () => ({
+vi.mock('../use-home-context', () => ({
   useHomeContext: () => ({ context: mockHome.context, isLoading: false }),
 }))
 
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn() }),
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
 }))
 
-jest.mock('@/src/store/features/ppm/projects-api', () => ({
-  useGetMyProjectsSummaryQuery: jest.fn(),
-  useGetMyProjectsTaskMetricsQuery: jest.fn(),
+vi.mock('@/src/store/features/ppm/projects-api', () => ({
+  useGetMyProjectsSummaryQuery: vi.fn(),
+  useGetMyProjectsTaskMetricsQuery: vi.fn(),
 }))
 
 import {
@@ -32,8 +33,8 @@ import {
   useGetMyProjectsTaskMetricsQuery,
 } from '@/src/store/features/ppm/projects-api'
 
-const mockSummary = useGetMyProjectsSummaryQuery as jest.Mock
-const mockMetrics = useGetMyProjectsTaskMetricsQuery as jest.Mock
+const mockSummary = useGetMyProjectsSummaryQuery as Mock
+const mockMetrics = useGetMyProjectsTaskMetricsQuery as Mock
 
 const summary = (
   overrides: Partial<MyProjectsSummaryDto> = {},
@@ -82,7 +83,7 @@ beforeEach(() => {
 
 describe('MyProjectsWidget', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('skips the request when the home context says there are no projects', () => {

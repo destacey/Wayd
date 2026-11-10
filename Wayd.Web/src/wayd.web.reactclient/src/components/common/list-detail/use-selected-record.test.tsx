@@ -1,27 +1,28 @@
+import type { Mock } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import useSelectedRecord, { SELECTED_PARAM } from './use-selected-record'
 
-const mockReplace = jest.fn()
-const mockPush = jest.fn()
+const mockReplace = vi.fn()
+const mockPush = vi.fn()
 
 // The global next/navigation mock hands back a fresh router each call, so
 // there is nothing to assert on. Pin one router here instead.
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mockReplace, push: mockPush }),
-  usePathname: jest.fn(() => '/settings/ppm/expenditure-categories'),
-  useSearchParams: jest.fn(() => new URLSearchParams()),
+  usePathname: vi.fn(() => '/settings/ppm/expenditure-categories'),
+  useSearchParams: vi.fn(() => new URLSearchParams()),
 }))
 
-const mockSearchParams = useSearchParams as jest.Mock
-const mockPathname = usePathname as jest.Mock
+const mockSearchParams = useSearchParams as Mock
+const mockPathname = usePathname as Mock
 
 const withQuery = (query: string) =>
   mockSearchParams.mockReturnValue(new URLSearchParams(query))
 
 describe('useSelectedRecord', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockPathname.mockReturnValue('/settings/ppm/expenditure-categories')
     withQuery('')
   })

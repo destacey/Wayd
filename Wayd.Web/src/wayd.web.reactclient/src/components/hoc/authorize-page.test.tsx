@@ -8,15 +8,13 @@ const DummyPage: React.FC = () => <div>Dummy Page</div>
 DummyPage.displayName = 'DummyPage'
 
 // We also need to stub the NotAuthorized component that the HOC renders when the user isn't authorized.
-jest.mock('../common/not-authorized', () => {
-  /* eslint-disable react/display-name */
-  return () => <div>Not Authorized</div>
+vi.mock('../common/not-authorized', () => {
+  return { default: () => <div>Not Authorized</div> }
 })
 
 // Mock the useAuth hook so we can control its return value.
-const mockHasClaim = jest.fn()
-jest.mock('../contexts/auth', () => ({
-  __esModule: true,
+const mockHasClaim = vi.fn()
+vi.mock('../contexts/auth', () => ({
   default: () => ({
     hasClaim: mockHasClaim,
   }),

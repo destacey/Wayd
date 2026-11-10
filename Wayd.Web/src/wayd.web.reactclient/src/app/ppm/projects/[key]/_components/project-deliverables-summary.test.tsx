@@ -3,16 +3,13 @@ import { render, screen } from '@testing-library/react'
 import { ProjectDeliverableDto, StatusCategory } from '@/src/services/wayd-api'
 import ProjectDeliverablesSummary from './project-deliverables-summary'
 
-// The global stub replaces dayjs, and the target dates are formatted and compared through it.
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
-jest.mock('@/src/utils/calendar-date', () => ({
-  ...jest.requireActual('@/src/utils/calendar-date'),
+vi.mock('@/src/utils/calendar-date', async () => ({
+  ...(await vi.importActual<any>('@/src/utils/calendar-date')),
   todayCalendarDate: () => '2026-11-06',
 }))
 
-const mockQuery = jest.fn()
-jest.mock('@/src/store/features/ppm/project-deliverables-api', () => ({
+const mockQuery = vi.fn()
+vi.mock('@/src/store/features/ppm/project-deliverables-api', () => ({
   useGetProjectDeliverablesQuery: (projectId: string) => mockQuery(projectId),
 }))
 

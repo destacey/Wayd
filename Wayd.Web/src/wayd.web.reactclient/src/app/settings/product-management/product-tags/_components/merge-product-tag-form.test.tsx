@@ -1,9 +1,9 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ProductTagListItemDto } from '@/src/services/wayd-api'
 import MergeProductTagForm from './merge-product-tag-form'
 
-const mockMerge = jest.fn()
+const mockMerge = vi.fn()
 
 const source: ProductTagListItemDto = {
   id: 'free-iphone',
@@ -35,8 +35,8 @@ const TAGS: ProductTagListItemDto[] = [
 
 // The form instance is real so antd's Form binds to it; handleOk runs the real
 // submit, as the other tag form tests do.
-jest.mock('@/src/hooks', () => {
-  const { Form: AntForm } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form: AntForm } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -50,17 +50,17 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk: async () => await onSubmit(form.getFieldsValue(), form),
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/store/features/product-management/product-tags-api', () => ({
+vi.mock('@/src/store/features/product-management/product-tags-api', () => ({
   useMergeProductTagMutation: () => [mockMerge],
   useSearchProductTagsQuery: () => ({ data: TAGS, isLoading: false }),
 }))
@@ -69,15 +69,13 @@ const renderForm = () =>
   render(
     <MergeProductTagForm
       tag={source}
-      onFormComplete={jest.fn()}
-      onFormCancel={jest.fn()}
+      onFormComplete={vi.fn()}
+      onFormCancel={vi.fn()}
     />,
   )
 
 const openTargets = async () => {
-  await act(async () => {
-    await userEvent.click(screen.getByRole('combobox'))
-  })
+  await userEvent.click(screen.getByRole('combobox'))
   return await waitFor(() => {
     const dropdown = document.querySelector('.ant-select-dropdown')
     if (!dropdown) throw new Error('no dropdown')
@@ -121,14 +119,10 @@ describe('MergeProductTagForm', () => {
     const dropdown = await openTargets()
 
     // Act
-    await act(async () => {
-      await userEvent.click(
-        dropdown.querySelector('[title="Platform | ios"]') as HTMLElement,
-      )
-    })
-    await act(async () => {
-      await userEvent.click(screen.getByRole('button', { name: 'Merge' }))
-    })
+    await userEvent.click(
+      dropdown.querySelector('[title="Platform | ios"]') as HTMLElement,
+    )
+    await userEvent.click(screen.getByRole('button', { name: 'Merge' }))
 
     // Assert
     expect(mockMerge).toHaveBeenCalledWith({

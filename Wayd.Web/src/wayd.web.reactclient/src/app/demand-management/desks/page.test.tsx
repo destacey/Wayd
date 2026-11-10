@@ -2,7 +2,7 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import IntakeDesksPage from './page'
 
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   PageTitle: ({
     title,
     actions,
@@ -18,27 +18,26 @@ jest.mock('@/src/components/common', () => ({
 }))
 
 let mockClaims = new Set<string>()
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     hasPermissionClaim: (claim: string) => mockClaims.has(claim),
   }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/hooks', () => ({
-  useDocumentTitle: jest.fn(),
+vi.mock('@/src/hooks', () => ({
+  useDocumentTitle: vi.fn(),
 }))
 
-jest.mock('@/src/components/hoc', () => ({
+vi.mock('@/src/components/hoc', () => ({
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
 
 // The grid has a suite of its own; render the key and name cells and the waiting text, found by id.
-jest.mock('@/src/components/common/wayd-grid', () => ({
+vi.mock('@/src/components/common/wayd-grid', () => ({
   WaydGrid: ({ columns, data }: { columns: any[]; data: any[] }) => {
     const column = (id: string) => columns.find((c) => c.id === id)
     return (
@@ -55,23 +54,19 @@ jest.mock('@/src/components/common/wayd-grid', () => ({
   },
 }))
 
-jest.mock('../_components/create-intake-desk-form', () => ({
-  __esModule: true,
+vi.mock('../_components/create-intake-desk-form', () => ({
   default: () => <div data-testid="create-desk-form" />,
 }))
 
 let mockDesks: any[] = []
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetIntakeDesksQuery: () => ({
-      data: mockDesks,
-      isLoading: false,
-      refetch: jest.fn(),
-    }),
-    useGetIntakeDeskVisibilitiesQuery: () => ({ data: [] }),
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetIntakeDesksQuery: () => ({
+    data: mockDesks,
+    isLoading: false,
+    refetch: vi.fn(),
   }),
-)
+  useGetIntakeDeskVisibilitiesQuery: () => ({ data: [] }),
+}))
 
 const desk = (overrides: Record<string, unknown> = {}) => ({
   id: 'd-1',

@@ -1,17 +1,14 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import ForecastSettingsBar, {
   DEFAULT_FORECAST_SETTINGS,
 } from './forecast-settings-bar'
-
-jest.unmock('dayjs')
 
 describe('ForecastSettingsBar', () => {
   it('shows the history window, defaulting to the last 90 days', () => {
     render(
       <ForecastSettingsBar
         value={DEFAULT_FORECAST_SETTINGS}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
       />,
     )
 
@@ -22,7 +19,7 @@ describe('ForecastSettingsBar', () => {
     render(
       <ForecastSettingsBar
         value={DEFAULT_FORECAST_SETTINGS}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
       />,
     )
 
@@ -31,7 +28,7 @@ describe('ForecastSettingsBar', () => {
   })
 
   it('reports toggling dependencies off', () => {
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <ForecastSettingsBar
         value={DEFAULT_FORECAST_SETTINGS}
@@ -51,7 +48,7 @@ describe('ForecastSettingsBar', () => {
   })
 
   it('counts started work first by default, and reports turning it off', () => {
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <ForecastSettingsBar
         value={DEFAULT_FORECAST_SETTINGS}

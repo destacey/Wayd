@@ -1,14 +1,15 @@
+import type { MockedFunction } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import TimelineProgress from './timeline-progress'
 
 // Mock Ant Design Grid useBreakpoint hook
-jest.mock('antd', () => {
-  const actualAntd = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actualAntd = await vi.importActual<any>('antd')
   return {
     ...actualAntd,
     Grid: {
       ...actualAntd.Grid,
-      useBreakpoint: jest.fn(() => ({
+      useBreakpoint: vi.fn(() => ({
         xs: true,
         sm: true,
         md: true, // Default to desktop (md and above)
@@ -21,40 +22,20 @@ jest.mock('antd', () => {
 })
 
 // Get reference to the mocked function after module is loaded
-const { Grid } = jest.requireMock<typeof import('antd')>('antd')
-const mockUseBreakpoint = Grid.useBreakpoint as jest.MockedFunction<
+const { Grid } = await vi.importMock<typeof import('antd')>('antd')
+const mockUseBreakpoint = Grid.useBreakpoint as MockedFunction<
   typeof Grid.useBreakpoint
 >
 
-// Real dayjs for parsing and formatting; the global mock only stubs format.
-jest.unmock('dayjs')
-
 // Only Date is faked, so antd's timers still run.
 const setNow = (value: string) => {
-  jest.useFakeTimers({
-    doNotFake: [
-      'hrtime',
-      'nextTick',
-      'performance',
-      'queueMicrotask',
-      'requestAnimationFrame',
-      'cancelAnimationFrame',
-      'requestIdleCallback',
-      'cancelIdleCallback',
-      'setImmediate',
-      'clearImmediate',
-      'setInterval',
-      'clearInterval',
-      'setTimeout',
-      'clearTimeout',
-    ],
-  })
-  jest.setSystemTime(new Date(value))
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date(value))
 }
 
 describe('TimelineProgress', () => {
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   const startDate = '2025-10-26'

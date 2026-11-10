@@ -2,15 +2,15 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ChangeIntakeRequestAssigneeForm from './change-intake-request-assignee-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 let mockEmployeeId: string | null = 'e-me'
 
 // Keep the form instance real and submit through validateFields, as the real hook does.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useLinkedEmployee: () => ({
       employeeId: mockEmployeeId,
@@ -36,13 +36,13 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields().catch(() => null)
           if (values && (await onSubmit(values, form))) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const mockChangeAssignee = jest.fn()
+const mockChangeAssignee = vi.fn()
 const mockDesk = {
   id: 'd-1',
   key: 3,
@@ -52,13 +52,10 @@ const mockDesk = {
     { employee: { id: 'e-7', key: 7, name: 'Casey Agent' }, role: 'Admin' },
   ],
 }
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useChangeIntakeRequestAssigneeMutation: () => [mockChangeAssignee],
-    useGetIntakeDeskQuery: () => ({ data: mockDesk, isLoading: false }),
-  }),
-)
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useChangeIntakeRequestAssigneeMutation: () => [mockChangeAssignee],
+  useGetIntakeDeskQuery: () => ({ data: mockDesk, isLoading: false }),
+}))
 
 const request = (assignee?: { id: string; name: string }) =>
   ({
@@ -76,14 +73,14 @@ const renderForm = async (r = request()) =>
     render(
       <ChangeIntakeRequestAssigneeForm
         request={r}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
 
 const save = async () => {
-  await act(() => userEvent.click(screen.getByRole('button', { name: 'Save' })))
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 }
 
 describe('ChangeIntakeRequestAssigneeForm', () => {

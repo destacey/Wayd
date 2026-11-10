@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { act, render, screen } from '@testing-library/react'
 
 global.ResizeObserver = class {
@@ -8,43 +9,41 @@ global.ResizeObserver = class {
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation((query) => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 })
 
 let mockSearchParams = new URLSearchParams()
-const mockReplace = jest.fn()
+const mockReplace = vi.fn()
 
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   usePathname: () => '/planning/planning-intervals/7',
-  useRouter: () => ({ replace: mockReplace, push: jest.fn() }),
+  useRouter: () => ({ replace: mockReplace, push: vi.fn() }),
   useSearchParams: () => mockSearchParams,
 }))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     hasClaim: () => true,
     hasPermissionClaim: () => true,
   }),
 }))
 
-jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
-  useGetPlanningIntervalTeamsQuery: jest.fn(),
+vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
+  useGetPlanningIntervalTeamsQuery: vi.fn(),
 }))
 
 // TeamPlanReview pulls many sibling RTK queries that aren't relevant to what
 // we're testing here (which team is active for a given URL). Stub it.
-jest.mock('./plan-review/team-plan-review', () => ({
-  __esModule: true,
+vi.mock('./plan-review/team-plan-review', () => ({
   default: ({ team }: { team: { code: string } | null }) => (
     <div data-testid="team-plan-review-stub">
       {team ? `team:${team.code}` : 'no-team'}
@@ -56,7 +55,7 @@ import { useGetPlanningIntervalTeamsQuery } from '@/src/store/features/planning/
 import { PlanningIntervalDetailsDto } from '@/src/services/wayd-api'
 import PlanningIntervalPlanReviewSection from './planning-interval-plan-review-section'
 
-const mockTeamsQuery = useGetPlanningIntervalTeamsQuery as unknown as jest.Mock
+const mockTeamsQuery = useGetPlanningIntervalTeamsQuery as unknown as Mock
 
 const planningInterval = {
   id: 'pi-1',
@@ -73,7 +72,7 @@ const renderSection = async () => {
     render(
       <PlanningIntervalPlanReviewSection
         planningInterval={planningInterval}
-        refreshPlanningInterval={jest.fn()}
+        refreshPlanningInterval={vi.fn()}
       />,
     )
   })
@@ -81,7 +80,7 @@ const renderSection = async () => {
 
 describe('PlanningIntervalPlanReviewSection', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     setTeamParam()
     mockTeamsQuery.mockReturnValue({
       data: [

@@ -4,13 +4,12 @@ import useProductTeamLinkActions from './use-product-team-link-actions'
 
 let mockCanUpdate = true
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => mockCanUpdate }),
 }))
 
 // The dialog is never opened here; only whether it is offered.
-jest.mock('./unlink-product-team-form', () => () => null)
+vi.mock('./unlink-product-team-form', () => ({ default: () => null }))
 
 const link = {
   product: { id: 'web', key: 2, name: 'Storefront Web' },

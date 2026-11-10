@@ -1,15 +1,16 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import FollowingWidget, { FOLLOWING_COUNT } from './following-widget'
 import { FollowSort, SortDirection } from '@/src/services/wayd-api'
 
-jest.mock('@/src/store/features/common/follows-api', () => ({
-  ...jest.requireActual('@/src/store/features/common/follows-api'),
-  useGetMyFollowsInfiniteQuery: jest.fn(),
+vi.mock('@/src/store/features/common/follows-api', async () => ({
+  ...(await vi.importActual<any>('@/src/store/features/common/follows-api')),
+  useGetMyFollowsInfiniteQuery: vi.fn(),
 }))
 
 import { useGetMyFollowsInfiniteQuery } from '@/src/store/features/common/follows-api'
 
-const mockFollows = useGetMyFollowsInfiniteQuery as jest.Mock
+const mockFollows = useGetMyFollowsInfiniteQuery as Mock
 
 const followed = (n: number) => ({
   ownerType: 'ppm.project',
@@ -22,7 +23,7 @@ const followed = (n: number) => ({
 
 describe('FollowingWidget', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('says how to follow something when nothing is followed', () => {

@@ -6,24 +6,21 @@ import {
 } from '@/src/services/wayd-api'
 import CompleteDeploymentForm from './complete-deployment-form'
 
-jest.unmock('dayjs')
+const succeedDeployment = vi.fn()
+const failDeployment = vi.fn()
+const errorMessage = vi.fn()
+const successMessage = vi.fn()
 
-const succeedDeployment = jest.fn()
-const failDeployment = jest.fn()
-const errorMessage = jest.fn()
-const successMessage = jest.fn()
-
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: errorMessage, success: successMessage }),
 }))
 
-jest.mock('@/src/store/features/product-management/deployments-api', () => ({
+vi.mock('@/src/store/features/product-management/deployments-api', () => ({
   useSucceedDeploymentMutation: () => [succeedDeployment],
   useFailDeploymentMutation: () => [failDeployment],
 }))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => true }),
 }))
 
@@ -33,8 +30,8 @@ let submitForm: (() => Promise<void>) | undefined
 // Not spread from the real barrel: it re-exports store-bound hooks, and pulling those in
 // initialises a store this form never touches. The form instance is real, though — antd's Form
 // binds to it, and a stub breaks on render.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -55,7 +52,7 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk,
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -96,7 +93,7 @@ const submit = async () => {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   succeedDeployment.mockResolvedValue({ data: undefined })
   failDeployment.mockResolvedValue({ data: undefined })
 })

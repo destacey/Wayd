@@ -8,12 +8,11 @@ interface DynamicOptions {
 }
 
 // The stub shows the props the document editor received and keeps the options it was loaded with,
-// which are read through jest.requireMock because the module loads before this file's own bindings.
-jest.mock('next/dynamic', () => {
-  const captured: { options?: DynamicOptions } = {}
+// which live in vi.hoisted state because the module loads before this file's own bindings.
+const captured = vi.hoisted((): { options?: DynamicOptions } => ({}))
+
+vi.mock('next/dynamic', () => {
   return {
-    __esModule: true,
-    captured,
     default: (_loader: unknown, options: DynamicOptions) => {
       captured.options = options
       const Wysiwyg = (props: { value?: string; maxLength: number }) => (
@@ -26,9 +25,7 @@ jest.mock('next/dynamic', () => {
   }
 })
 
-const dynamicOptions = () =>
-  jest.requireMock<{ captured: { options?: DynamicOptions } }>('next/dynamic')
-    .captured.options
+const dynamicOptions = () => captured.options
 
 describe('MarkdownEditor', () => {
   it('shows the document editor with the props it was given', () => {

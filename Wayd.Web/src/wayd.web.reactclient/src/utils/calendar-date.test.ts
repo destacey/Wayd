@@ -1,6 +1,3 @@
-// parseCalendarDate's local reading needs real dayjs; the global mock only stubs format.
-jest.unmock('dayjs')
-
 import {
   calendarDateInZone,
   calendarDaysBetween,
@@ -78,14 +75,14 @@ describe('todayCalendarDate', () => {
 })
 
 describe('todayInZone', () => {
-  afterEach(() => jest.useRealTimers())
+  afterEach(() => vi.useRealTimers())
 
   it.each([
     ['Pacific/Kiritimati', '2026-09-23'],
     ['Etc/GMT+12', '2026-09-21'],
   ])('is today in %s', (timeZone, expected) => {
     // Arrange
-    jest.useFakeTimers({ now: new Date('2026-09-22T11:00:00Z') })
+    vi.useFakeTimers({ now: new Date('2026-09-22T11:00:00Z') })
 
     // Act
     const result = todayInZone(timeZone)

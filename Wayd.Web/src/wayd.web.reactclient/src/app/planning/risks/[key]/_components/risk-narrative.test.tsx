@@ -3,11 +3,11 @@ import RiskNarrative from './risk-narrative'
 
 // RiskRoam fetches the ROAM categories; it has its own suite, and pulling a
 // store in here would test the wiring rather than this component.
-jest.mock('@/src/components/common/planning/risk-roam', () => {
+vi.mock('@/src/components/common/planning/risk-roam', () => {
   const RiskRoam = ({ category }: { category?: string }) => (
     <div>roam: {category}</div>
   )
-  return RiskRoam
+  return { default: RiskRoam }
 })
 
 const risk = {
@@ -54,8 +54,12 @@ describe('RiskNarrative', () => {
     )
 
     // Assert
-    // ReactMarkdown is mocked globally, so the prose itself is not in the DOM
-    // — what is observable is that neither empty state is shown.
+    expect(
+      screen.getByText('Refresh storms during peak load.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Add a circuit breaker before Q3.'),
+    ).toBeInTheDocument()
     expect(screen.queryByText('No description provided.')).toBeNull()
     expect(screen.queryByText('No response recorded.')).toBeNull()
   })

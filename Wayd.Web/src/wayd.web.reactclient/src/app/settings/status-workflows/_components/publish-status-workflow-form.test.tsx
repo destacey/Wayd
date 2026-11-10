@@ -9,16 +9,16 @@ import {
 } from '@/src/services/wayd-api'
 import PublishStatusWorkflowForm from './publish-status-workflow-form'
 
-const publishStatusWorkflow = jest.fn()
+const publishStatusWorkflow = vi.fn()
 let ownerTypes: WorkflowOwnerTypeDto[] | undefined
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ success: jest.fn(), error: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ success: vi.fn(), error: vi.fn() }),
 }))
 
 // Not spread from the real barrel: it re-exports store-bound hooks. The stand-in
 // keeps the hook's contract — OK submits, and a successful submit completes.
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useConfirmModal: (options: {
     onSubmit: () => Promise<boolean>
     onComplete: () => void
@@ -33,7 +33,7 @@ jest.mock('@/src/hooks', () => ({
   }),
 }))
 
-jest.mock('@/src/store/features/common/status-workflows-api', () => ({
+vi.mock('@/src/store/features/common/status-workflows-api', () => ({
   usePublishStatusWorkflowMutation: () => [publishStatusWorkflow],
   useGetWorkflowOwnerTypesQuery: () => ({ data: ownerTypes }),
 }))
@@ -86,8 +86,8 @@ describe('PublishStatusWorkflowForm', () => {
     render(
       <PublishStatusWorkflowForm
         statusWorkflow={draft}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
 
@@ -114,8 +114,8 @@ describe('PublishStatusWorkflowForm', () => {
     render(
       <PublishStatusWorkflowForm
         statusWorkflow={draft}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
 
@@ -154,8 +154,8 @@ describe('PublishStatusWorkflowForm', () => {
     render(
       <PublishStatusWorkflowForm
         statusWorkflow={draft}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
 
@@ -175,8 +175,8 @@ describe('PublishStatusWorkflowForm', () => {
     render(
       <PublishStatusWorkflowForm
         statusWorkflow={draft}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
 
@@ -201,8 +201,8 @@ describe('PublishStatusWorkflowForm', () => {
     render(
       <PublishStatusWorkflowForm
         statusWorkflow={draft}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
 
@@ -217,14 +217,14 @@ describe('PublishStatusWorkflowForm', () => {
   it('publishes a draft that covers every required alias', async () => {
     // Arrange
     publishStatusWorkflow.mockResolvedValue({ data: undefined })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     const user = userEvent.setup()
 
     render(
       <PublishStatusWorkflowForm
         statusWorkflow={workflow()}
         onFormComplete={onFormComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
 

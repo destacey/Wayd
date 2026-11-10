@@ -1,26 +1,25 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import FollowButton from './follow-button'
 
-const mockUseFeatureFlag = jest.fn()
-jest.mock('@/src/hooks', () => ({
+const mockUseFeatureFlag = vi.fn()
+vi.mock('@/src/hooks', () => ({
   useFeatureFlag: (name: string) => mockUseFeatureFlag(name),
 }))
 
-const mockUseAuth = jest.fn()
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+const mockUseAuth = vi.fn()
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => mockUseAuth(),
 }))
 
-const mockMessageError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
+const mockMessageError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: mockMessageError }),
 }))
 
-const mockUseGetFollowStatusQuery = jest.fn()
-const mockFollow = jest.fn()
-const mockUnfollow = jest.fn()
-jest.mock('@/src/store/features/common/follows-api', () => ({
+const mockUseGetFollowStatusQuery = vi.fn()
+const mockFollow = vi.fn()
+const mockUnfollow = vi.fn()
+vi.mock('@/src/store/features/common/follows-api', () => ({
   useGetFollowStatusQuery: (...args: unknown[]) =>
     mockUseGetFollowStatusQuery(...args),
   useFollowMutation: () => [mockFollow, { isLoading: false }],
@@ -31,7 +30,7 @@ const target = { ownerType: 'ppm.project' as const, ownerId: 'project-1' }
 
 describe('FollowButton', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockUseFeatureFlag.mockReturnValue({ isEnabled: true, isLoading: false })
     mockUseAuth.mockReturnValue({ user: { employeeId: 'employee-1' } })
     mockUseGetFollowStatusQuery.mockReturnValue({

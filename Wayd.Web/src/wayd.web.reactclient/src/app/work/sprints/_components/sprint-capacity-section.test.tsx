@@ -7,19 +7,17 @@ import {
 } from '@/src/services/wayd-api'
 import SprintCapacitySection from './sprint-capacity-section'
 
-const mockPlan = jest.fn()
-jest.mock(
+const mockPlan = vi.fn()
+vi.mock(
   '@/src/app/organizations/_components/capacity-plan/team-capacity-plan',
   () => ({
-    __esModule: true,
     default: (props: { extraActions?: React.ReactNode }) => {
       mockPlan(props)
       return <div>{props.extraActions}</div>
     },
   }),
 )
-jest.mock('./sprint-capacity-summary', () => ({
-  __esModule: true,
+vi.mock('./sprint-capacity-summary', () => ({
   default: () => <div />,
 }))
 
@@ -69,7 +67,7 @@ describe('SprintCapacitySection', () => {
 
   it('offers the team days off beside the plan to those who can change them', async () => {
     // Arrange
-    const onSetTeamDaysOff = jest.fn()
+    const onSetTeamDaysOff = vi.fn()
     const withHalfDay = {
       ...sprint(true),
       teamDaysOff: [{ date: '2026-08-19', percentOff: 50 }],

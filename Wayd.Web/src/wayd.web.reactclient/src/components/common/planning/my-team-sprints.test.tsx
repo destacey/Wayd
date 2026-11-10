@@ -1,39 +1,37 @@
+import type { Mock } from 'vitest'
 import { render } from '@testing-library/react'
 import MyTeamSprints from './my-team-sprints'
 
 const mockUser = { employeeId: 'emp-1' as string | null }
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ user: mockUser }),
 }))
 
-jest.mock('@/src/store/features/organization/team-members-api', () => ({
-  useGetEmployeeTeamMembershipsQuery: jest.fn(),
+vi.mock('@/src/store/features/organization/team-members-api', () => ({
+  useGetEmployeeTeamMembershipsQuery: vi.fn(),
 }))
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
-  useGetActiveSprintQuery: jest.fn(() => ({
+vi.mock('@/src/store/features/organizations/team-api', () => ({
+  useGetActiveSprintQuery: vi.fn(() => ({
     data: undefined,
     isLoading: true,
   })),
 }))
 
-jest.mock(
-  './active-team-sprint',
-  () =>
-    function MockActiveTeamSprint() {
-      return null
-    },
-)
+vi.mock('./active-team-sprint', () => ({
+  default: function MockActiveTeamSprint() {
+    return null
+  },
+}))
 
 import { useGetEmployeeTeamMembershipsQuery } from '@/src/store/features/organization/team-members-api'
 
-const mockMemberships = useGetEmployeeTeamMembershipsQuery as jest.Mock
+const mockMemberships = useGetEmployeeTeamMembershipsQuery as Mock
 
 describe('MyTeamSprints', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockUser.employeeId = 'emp-1'
   })
 
@@ -44,7 +42,7 @@ describe('MyTeamSprints', () => {
       isSuccess: false,
       isError: false,
     })
-    const onHasSprintsChange = jest.fn()
+    const onHasSprintsChange = vi.fn()
 
     // Act
     render(<MyTeamSprints onHasSprintsChange={onHasSprintsChange} />)
@@ -60,7 +58,7 @@ describe('MyTeamSprints', () => {
       isSuccess: true,
       isError: false,
     })
-    const onHasSprintsChange = jest.fn()
+    const onHasSprintsChange = vi.fn()
 
     // Act
     render(<MyTeamSprints onHasSprintsChange={onHasSprintsChange} />)
@@ -77,7 +75,7 @@ describe('MyTeamSprints', () => {
       isSuccess: false,
       isError: false,
     })
-    const onHasSprintsChange = jest.fn()
+    const onHasSprintsChange = vi.fn()
 
     // Act
     render(<MyTeamSprints onHasSprintsChange={onHasSprintsChange} />)
@@ -93,8 +91,8 @@ describe('MyTeamSprints', () => {
       isSuccess: false,
       isError: true,
     })
-    const onHasSprintsChange = jest.fn()
-    const onLoadError = jest.fn()
+    const onHasSprintsChange = vi.fn()
+    const onLoadError = vi.fn()
 
     // Act
     render(

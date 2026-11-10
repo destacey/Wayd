@@ -5,7 +5,7 @@ import MyTeamSprintsWidget from './my-team-sprints-widget'
 
 const mockHome: { context?: HomeContextResponse } = {}
 
-jest.mock('../use-home-context', () => ({
+vi.mock('../use-home-context', () => ({
   useHomeContext: () => ({ context: mockHome.context, isLoading: false }),
 }))
 
@@ -14,20 +14,18 @@ let mockReport: {
   loadError: () => void
 }
 
-jest.mock(
-  '@/src/components/common/planning/my-team-sprints',
-  () =>
-    function MockMyTeamSprints({
-      onHasSprintsChange,
-      onLoadError,
-    }: {
-      onHasSprintsChange: (hasSprints: boolean) => void
-      onLoadError: () => void
-    }) {
-      mockReport = { hasSprints: onHasSprintsChange, loadError: onLoadError }
-      return <div>Team sprint cards</div>
-    },
-)
+vi.mock('@/src/components/common/planning/my-team-sprints', () => ({
+  default: function MockMyTeamSprints({
+    onHasSprintsChange,
+    onLoadError,
+  }: {
+    onHasSprintsChange: (hasSprints: boolean) => void
+    onLoadError: () => void
+  }) {
+    mockReport = { hasSprints: onHasSprintsChange, loadError: onLoadError }
+    return <div>Team sprint cards</div>
+  },
+}))
 
 describe('MyTeamSprintsWidget', () => {
   beforeEach(() => {

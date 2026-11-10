@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 
 global.ResizeObserver = class {
@@ -8,34 +9,33 @@ global.ResizeObserver = class {
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation((query) => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 })
 
-jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
-  useGetPlanningIntervalMetricsQuery: jest.fn(),
-  useGetPlanningIntervalObjectivesQuery: jest.fn(),
+vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
+  useGetPlanningIntervalMetricsQuery: vi.fn(),
+  useGetPlanningIntervalObjectivesQuery: vi.fn(),
 }))
 
 import { useGetPlanningIntervalMetricsQuery } from '@/src/store/features/planning/planning-interval-api'
 import { useGetPlanningIntervalObjectivesQuery } from '@/src/store/features/planning/planning-interval-api'
 import PlanningIntervalTeamCards from './planning-interval-team-cards'
-jest.mock('../../_components', () => ({
+vi.mock('../../_components', () => ({
   ObjectiveStatusChart: () => <div data-testid="objective-status-chart" />,
   ObjectiveHealthChart: () => <div data-testid="objective-health-chart" />,
 }))
 
-const mockMetrics = useGetPlanningIntervalMetricsQuery as unknown as jest.Mock
-const mockObjectives =
-  useGetPlanningIntervalObjectivesQuery as unknown as jest.Mock
+const mockMetrics = useGetPlanningIntervalMetricsQuery as unknown as Mock
+const mockObjectives = useGetPlanningIntervalObjectivesQuery as unknown as Mock
 
 const teamMetrics = (
   overrides: Partial<{
@@ -83,7 +83,7 @@ const findTeamLink = (name: string) =>
 
 describe('PlanningIntervalTeamCards', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockObjectives.mockReturnValue({ data: undefined })
   })
 
@@ -234,4 +234,3 @@ describe('PlanningIntervalTeamCards', () => {
     expect(screen.getByTestId('objective-health-chart')).toBeInTheDocument()
   })
 })
-

@@ -1,17 +1,17 @@
+// @vitest-environment jsdom
 import { renderHook } from '@testing-library/react'
 import useCanViewTeamProducts from './use-can-view-team-products'
 
 let mockFlagEnabled = true
 let mockCanViewProducts = true
 
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useFeatureFlag: (flag: string) => ({
     isEnabled: flag === 'product-management' && mockFlagEnabled,
   }),
 }))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     hasPermissionClaim: (permission: string) =>
       permission === 'Permissions.Products.View' && mockCanViewProducts,

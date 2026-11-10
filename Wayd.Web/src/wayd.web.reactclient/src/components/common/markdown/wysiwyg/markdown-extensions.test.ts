@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { Editor, type JSONContent } from '@tiptap/core'
 import { markdownEditorExtensions } from './markdown-extensions'
 

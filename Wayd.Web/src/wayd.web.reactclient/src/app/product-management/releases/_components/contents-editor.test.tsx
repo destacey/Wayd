@@ -42,7 +42,7 @@ const versions = [
 const renderEditor = (
   value: ContentsDraft,
   packages: ReleasePackageDto[],
-  onChange = jest.fn(),
+  onChange = vi.fn(),
 ) => {
   render(
     <ContentsEditor

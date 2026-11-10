@@ -1,59 +1,53 @@
 // Mocks must precede the import of the component under test.
 
-const mockReplace = jest.fn()
-const mockStoreReturnUrl = jest.fn()
-const mockTakeReturnUrl = jest.fn()
+const mockReplace = vi.fn()
+const mockStoreReturnUrl = vi.fn()
+const mockTakeReturnUrl = vi.fn()
 let mockPathname = '/'
 let mockSignedIn = false
 
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
   useRouter: () => ({ replace: mockReplace }),
 }))
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   isAuthActive: () => mockSignedIn,
 }))
 
-jest.mock('@/src/utils/return-url', () => ({
+vi.mock('@/src/utils/return-url', () => ({
   storeReturnUrl: () => mockStoreReturnUrl(),
   takeReturnUrl: () => mockTakeReturnUrl(),
 }))
 
 // The shell and the providers each reach the API or the browser; the gate's
 // job is only to choose between them.
-jest.mock('./app-header', () => ({
-  __esModule: true,
+vi.mock('./app-header', () => ({
   default: () => <div>App header</div>,
 }))
-jest.mock('./menu/app-side-nav', () => ({
-  __esModule: true,
+vi.mock('./menu/app-side-nav', () => ({
   default: () => <nav>Side nav</nav>,
 }))
-jest.mock('@/src/components/contexts/theme', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/theme', () => ({
   default: () => ({ currentTheme: 'light' }),
   ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
-jest.mock('@/src/components/contexts/menu-toggle', () => ({
+vi.mock('@/src/components/contexts/menu-toggle', () => ({
   MenuToggleProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
-jest.mock('@/src/components/contexts/auth', () => ({
+vi.mock('@/src/components/contexts/auth', () => ({
   AuthProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   MessageProvider: ({ children }: { children: React.ReactNode }) => children,
 }))
-jest.mock('../login/page', () => ({
-  __esModule: true,
+vi.mock('../login/page', () => ({
   default: () => <div>Login page</div>,
 }))
-jest.mock('../logout/page', () => ({
-  __esModule: true,
+vi.mock('../logout/page', () => ({
   default: () => <div>Logout page</div>,
 }))
-jest.mock('../setup/page', () => ({
-  __esModule: true,
+vi.mock('../setup/page', () => ({
   default: () => <div>Setup page</div>,
 }))
 
@@ -70,7 +64,7 @@ const renderGate = () =>
 
 describe('AuthGate', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockTakeReturnUrl.mockReturnValue(null)
   })
 

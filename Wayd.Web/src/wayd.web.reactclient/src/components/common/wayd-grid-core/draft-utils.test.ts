@@ -32,9 +32,7 @@ describe('draft-utils', () => {
 
     it('appends root-level draft', () => {
       const tree = [createNode('1', 'A'), createNode('2', 'B')]
-      const drafts: DraftItem[] = [
-        { id: 'draft-1', parentId: undefined },
-      ]
+      const drafts: DraftItem[] = [{ id: 'draft-1', parentId: undefined }]
 
       const result = mergeDraftsIntoTree(tree, drafts, createDraftNode)
 
@@ -49,9 +47,7 @@ describe('draft-utils', () => {
         createNode('1', 'A', [createNode('1-1', 'A.1')]),
         createNode('2', 'B'),
       ]
-      const drafts: DraftItem[] = [
-        { id: 'draft-1', parentId: '1' },
-      ]
+      const drafts: DraftItem[] = [{ id: 'draft-1', parentId: '1' }]
 
       const result = mergeDraftsIntoTree(tree, drafts, createDraftNode)
 
@@ -84,7 +80,7 @@ describe('draft-utils', () => {
         { id: 'draft-1', parentId: undefined },
         { id: 'draft-2', parentId: undefined },
       ]
-      const factory = jest.fn(createDraftNode)
+      const factory = vi.fn(createDraftNode)
 
       mergeDraftsIntoTree(tree, drafts, factory)
 
@@ -97,9 +93,7 @@ describe('draft-utils', () => {
       const child = createNode('1-1', 'A.1')
       const parent = createNode('1', 'A', [child])
       const tree = [parent]
-      const drafts: DraftItem[] = [
-        { id: 'draft-1', parentId: '1' },
-      ]
+      const drafts: DraftItem[] = [{ id: 'draft-1', parentId: '1' }]
 
       const result = mergeDraftsIntoTree(tree, drafts, createDraftNode)
 
@@ -144,11 +138,7 @@ describe('draft-utils', () => {
       const result = mergeDraftsIntoTree(tree, drafts, createDraftNode)
 
       // Assert
-      expect(result.map((node) => node.id)).toStrictEqual([
-        '1',
-        '2',
-        'draft-1',
-      ])
+      expect(result.map((node) => node.id)).toStrictEqual(['1', '2', 'draft-1'])
     })
   })
 })

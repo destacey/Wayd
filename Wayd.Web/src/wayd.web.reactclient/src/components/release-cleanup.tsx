@@ -58,7 +58,7 @@ const LEGACY_STORAGE_KEYS = [
 interface ReleaseCleanupProps {
   /**
    * Injection point for tests. Production path always uses `window.location.reload`;
-   * tests pass a jest.fn so the test environment doesn't need to mock jsdom's
+   * tests pass a vi.fn so the test environment doesn't need to mock jsdom's
    * non-configurable `location`.
    */
   onReload?: () => void
@@ -69,7 +69,8 @@ export default function ReleaseCleanup({ onReload }: ReleaseCleanupProps = {}) {
     if (typeof window === 'undefined') return
     // The marker flip happens before the reload, so any remount — StrictMode
     // double-invoke in dev, or a revisit later in the same tab — is a no-op.
-    if (localStorage.getItem(RELEASE_MARKER_KEY) === RELEASE_MARKER_VALUE) return
+    if (localStorage.getItem(RELEASE_MARKER_KEY) === RELEASE_MARKER_VALUE)
+      return
 
     const run = async () => {
       try {

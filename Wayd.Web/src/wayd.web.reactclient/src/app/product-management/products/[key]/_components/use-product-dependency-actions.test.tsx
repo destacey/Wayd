@@ -7,19 +7,23 @@ import useProductDependencyActions from './use-product-dependency-actions'
 
 let mockCanUpdate = true
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => mockCanUpdate }),
 }))
 
 // The dialogs are never opened here; only which ones are offered.
-jest.mock(
-  '../../_components/change-product-dependency-terms-form',
-  () => () => null,
-)
-jest.mock('../../_components/edit-product-dependency-form', () => () => null)
-jest.mock('../../_components/end-product-dependency-form', () => () => null)
-jest.mock('../../_components/remove-product-dependency-form', () => () => null)
+vi.mock('../../_components/change-product-dependency-terms-form', () => ({
+  default: () => null,
+}))
+vi.mock('../../_components/edit-product-dependency-form', () => ({
+  default: () => null,
+}))
+vi.mock('../../_components/end-product-dependency-form', () => ({
+  default: () => null,
+}))
+vi.mock('../../_components/remove-product-dependency-form', () => ({
+  default: () => null,
+}))
 
 const link = (
   overrides: Partial<ProductDependencyDto> = {},

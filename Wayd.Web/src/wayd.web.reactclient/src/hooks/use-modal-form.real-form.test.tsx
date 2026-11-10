@@ -5,12 +5,11 @@ import useModalForm from './use-modal-form'
 // use-modal-form.test.ts replaces antd with a stub, which cannot show how a real Form registers its fields
 // after the modal opens. That ordering is what these tests are about.
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ success: jest.fn(), error: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ success: vi.fn(), error: vi.fn() }),
 }))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => true }),
 }))
 

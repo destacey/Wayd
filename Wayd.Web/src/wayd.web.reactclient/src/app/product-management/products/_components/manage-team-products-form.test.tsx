@@ -3,11 +3,11 @@ import { ProductDto } from '@/src/services/wayd-api'
 import ManageTeamProductsForm, { toTreeData } from './manage-team-products-form'
 import { buildProductTree } from '../../_components'
 
-const setTeamProducts = jest.fn()
-const messageError = jest.fn()
+const setTeamProducts = vi.fn()
+const messageError = vi.fn()
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: messageError, success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: messageError, success: vi.fn() }),
 }))
 
 const product = (id: string, name: string, parentId?: string) =>
@@ -28,7 +28,7 @@ const PRODUCTS = [
   product('identity', 'Identity Service'),
 ]
 
-jest.mock('@/src/store/features/product-management/products-api', () => ({
+vi.mock('@/src/store/features/product-management/products-api', () => ({
   useGetProductsQuery: () => ({ data: PRODUCTS, isLoading: false }),
   useSetTeamProductsMutation: () => [setTeamProducts],
 }))
@@ -36,13 +36,13 @@ jest.mock('@/src/store/features/product-management/products-api', () => ({
 /** The save handler from the live dialog, so a test need not click through the modal. */
 let save: (() => Promise<void>) | undefined
 
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useConfirmModal: ({ onSubmit }: { onSubmit: () => Promise<boolean> }) => {
     const handleOk = async () => {
       await onSubmit()
     }
     save = handleOk
-    return { isOpen: true, isSaving: false, handleOk, handleCancel: jest.fn() }
+    return { isOpen: true, isSaving: false, handleOk, handleCancel: vi.fn() }
   },
 }))
 
@@ -68,7 +68,7 @@ const isChecked = (name: string) =>
   checkboxOf(name).classList.contains('ant-tree-checkbox-checked')
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   setTeamProducts.mockResolvedValue({ data: undefined })
 })
 

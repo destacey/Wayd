@@ -2,11 +2,11 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import DeleteEstimationScaleForm from './delete-estimation-scale-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useConfirmModal: ({
     onSubmit,
     onComplete,
@@ -19,12 +19,12 @@ jest.mock('@/src/hooks', () => ({
     handleOk: async () => {
       if (await onSubmit()) onComplete()
     },
-    handleCancel: jest.fn(),
+    handleCancel: vi.fn(),
   }),
 }))
 
-const mockDelete = jest.fn()
-jest.mock('@/src/store/features/planning/estimation-scales-api', () => ({
+const mockDelete = vi.fn()
+vi.mock('@/src/store/features/planning/estimation-scales-api', () => ({
   useDeleteEstimationScaleMutation: () => [mockDelete],
 }))
 
@@ -46,8 +46,8 @@ describe('DeleteEstimationScaleForm', () => {
       render(
         <DeleteEstimationScaleForm
           estimationScale={scale}
-          onFormComplete={jest.fn()}
-          onFormCancel={jest.fn()}
+          onFormComplete={vi.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
@@ -59,21 +59,19 @@ describe('DeleteEstimationScaleForm', () => {
 
   it('deletes the scale by its id', async () => {
     // Arrange
-    const onComplete = jest.fn()
+    const onComplete = vi.fn()
     await act(async () =>
       render(
         <DeleteEstimationScaleForm
           estimationScale={scale}
           onFormComplete={onComplete}
-          onFormCancel={jest.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Delete' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Delete' }))
 
     // Assert
     expect(mockDelete).toHaveBeenCalledWith(scale.id)

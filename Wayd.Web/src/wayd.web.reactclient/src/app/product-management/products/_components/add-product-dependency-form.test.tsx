@@ -2,17 +2,15 @@ import { act, render } from '@testing-library/react'
 import { DependencyStrength, ProductDto } from '@/src/services/wayd-api'
 import AddProductDependencyForm from './add-product-dependency-form'
 
-jest.unmock('dayjs')
-
-const addDependency = jest.fn()
+const addDependency = vi.fn()
 
 let mockPickerProps: Record<string, unknown> = {}
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/store/features/product-management/products-api', () => ({
+vi.mock('@/src/store/features/product-management/products-api', () => ({
   useAddProductDependencyMutation: () => [addDependency],
   useGetProductsQuery: () => ({
     data: [
@@ -29,8 +27,8 @@ jest.mock('@/src/store/features/product-management/products-api', () => ({
 }))
 
 // The picker is exercised by its own suite; here what the form hands it is what matters.
-jest.mock('../../_components', () => ({
-  ...jest.requireActual('../../_components/product-tree'),
+vi.mock('../../_components', async () => ({
+  ...(await vi.importActual<any>('../../_components/product-tree')),
   ProductTreeSelect: (props: Record<string, unknown>) => {
     mockPickerProps = props
     return null
@@ -48,8 +46,8 @@ let formInstance:
 
 // The form instance is real — antd's Form binds to it, and a stub breaks on render. See
 // complete-deployment-form.test.tsx for why the OK button's enabled state is not asserted.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -71,7 +69,7 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk,
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -91,7 +89,7 @@ const submit = async () => {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   addDependency.mockResolvedValue({ data: 'new-id' })
 })
 

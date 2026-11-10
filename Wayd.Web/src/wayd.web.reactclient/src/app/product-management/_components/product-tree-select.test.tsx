@@ -36,7 +36,7 @@ const catalog: ProductDto[] = [
   },
 ] as unknown as ProductDto[]
 
-jest.mock('@/src/store/features/product-management/products-api', () => ({
+vi.mock('@/src/store/features/product-management/products-api', () => ({
   useGetProductsQuery: () => ({ data: mockProducts, isLoading: false }),
 }))
 

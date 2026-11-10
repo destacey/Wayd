@@ -3,30 +3,26 @@ import { Dropdown } from 'antd'
 import { ExpenditureCategoryDetailsDto } from '@/src/services/wayd-api'
 import useExpenditureCategoryActions from './use-expenditure-category-actions'
 
-const mockHasPermissionClaim = jest.fn()
+const mockHasPermissionClaim = vi.fn()
 /** Captures which record the delete dialog was aimed at. */
-const mockDeleteTarget = jest.fn()
+const mockDeleteTarget = vi.fn()
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: mockHasPermissionClaim }),
 }))
 
 // The dialogs are covered by their own tests; here they only need to be
 // identifiable so we can assert which one an action opened.
-jest.mock('./edit-expenditure-category-form', () => ({
-  __esModule: true,
+vi.mock('./edit-expenditure-category-form', () => ({
   default: () => <div>edit dialog</div>,
 }))
-jest.mock('./delete-expenditure-category-form', () => ({
-  __esModule: true,
+vi.mock('./delete-expenditure-category-form', () => ({
   default: ({ expenditureCategory }: { expenditureCategory: unknown }) => {
     mockDeleteTarget(expenditureCategory)
     return <div>delete dialog</div>
   },
 }))
-jest.mock('./change-expenditure-category-state-form', () => ({
-  __esModule: true,
+vi.mock('./change-expenditure-category-state-form', () => ({
   default: ({ stateAction }: { stateAction: string }) => (
     <div>{stateAction} dialog</div>
   ),
@@ -50,8 +46,8 @@ const category = (
 /** Renders the hook's output so the menu can be opened and clicked. */
 const Harness = ({
   expenditureCategory,
-  onChanged = jest.fn(),
-  onDeleted = jest.fn(),
+  onChanged = vi.fn(),
+  onDeleted = vi.fn(),
 }: {
   expenditureCategory: ExpenditureCategoryDetailsDto | undefined
   onChanged?: () => void
@@ -97,7 +93,7 @@ const allowOnly = (...granted: string[]) =>
 
 describe('useExpenditureCategoryActions', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     allowAll()
   })
 
@@ -225,12 +221,12 @@ describe('useExpenditureCategoryActions', () => {
     it('targets the record whose menu was used, not a fixed one', () => {
       // Arrange — the grid builds a ⋯ per row from the same hook, so the
       // dialog has to open against whichever row was clicked.
-      const onDeleted = jest.fn()
+      const onDeleted = vi.fn()
       const rowA = category('Proposed', { id: 1, name: 'Capital' })
       const rowB = category('Proposed', { id: 2, name: 'Operating' })
       const Rows = () => {
         const { getActionItems, dialogs } = useExpenditureCategoryActions({
-          onChanged: jest.fn(),
+          onChanged: vi.fn(),
           onDeleted,
         })
         return (

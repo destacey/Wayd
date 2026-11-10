@@ -1,30 +1,30 @@
+// @vitest-environment jsdom
 import { renderHook, act } from '@testing-library/react'
 import useModalForm from './use-modal-form'
 
 // Mock dependencies
-const mockMessageSuccess = jest.fn()
-const mockMessageError = jest.fn()
-jest.mock('../components/contexts/messaging', () => ({
+const mockMessageSuccess = vi.fn()
+const mockMessageError = vi.fn()
+vi.mock('../components/contexts/messaging', () => ({
   useMessage: () => ({
     success: mockMessageSuccess,
     error: mockMessageError,
   }),
 }))
 
-const mockHasPermissionClaim = jest.fn()
-jest.mock('../components/contexts/auth', () => ({
-  __esModule: true,
+const mockHasPermissionClaim = vi.fn()
+vi.mock('../components/contexts/auth', () => ({
   default: () => ({
     hasPermissionClaim: mockHasPermissionClaim,
   }),
 }))
 
 // Mock Ant Design Form.useForm and Form.useWatch
-const mockValidateFields = jest.fn()
-const mockResetFields = jest.fn()
-const mockSetFields = jest.fn()
+const mockValidateFields = vi.fn()
+const mockResetFields = vi.fn()
+const mockSetFields = vi.fn()
 
-jest.mock('antd', () => ({
+vi.mock('antd', () => ({
   Form: {
     useForm: () => [
       {
@@ -43,9 +43,9 @@ interface TestFormValues {
 }
 
 const createDefaultOptions = (overrides = {}) => ({
-  onSubmit: jest.fn().mockResolvedValue(true),
-  onComplete: jest.fn(),
-  onCancel: jest.fn(),
+  onSubmit: vi.fn().mockResolvedValue(true),
+  onComplete: vi.fn(),
+  onCancel: vi.fn(),
   ...overrides,
 })
 
@@ -131,7 +131,7 @@ describe('useModalForm', () => {
 
     it('calls onCancel when permission is denied', () => {
       mockHasPermissionClaim.mockReturnValue(false)
-      const onCancel = jest.fn()
+      const onCancel = vi.fn()
 
       renderHook(() =>
         useModalForm<TestFormValues>(
@@ -161,7 +161,7 @@ describe('useModalForm', () => {
 
     it('only shows permission error once on re-renders', () => {
       mockHasPermissionClaim.mockReturnValue(false)
-      const onCancel = jest.fn()
+      const onCancel = vi.fn()
 
       const { rerender } = renderHook(() =>
         useModalForm<TestFormValues>(
@@ -180,7 +180,7 @@ describe('useModalForm', () => {
     })
 
     it('does not check permission when no permission string is provided', () => {
-      const onCancel = jest.fn()
+      const onCancel = vi.fn()
 
       renderHook(() =>
         useModalForm<TestFormValues>(createDefaultOptions({ onCancel })),
@@ -206,9 +206,7 @@ describe('useModalForm', () => {
     })
 
     it('sets isValid false when validation fails', async () => {
-      mockValidateFields.mockRejectedValue(
-        new Error('Validation failed'),
-      )
+      mockValidateFields.mockRejectedValue(new Error('Validation failed'))
 
       const { result } = renderHook(() =>
         useModalForm<TestFormValues>(createDefaultOptions()),
@@ -244,9 +242,7 @@ describe('useModalForm', () => {
     it('calls validateFields with validateOnly option', async () => {
       mockValidateFields.mockResolvedValue({})
 
-      renderHook(() =>
-        useModalForm<TestFormValues>(createDefaultOptions()),
-      )
+      renderHook(() => useModalForm<TestFormValues>(createDefaultOptions()))
 
       await act(async () => {})
 
@@ -260,7 +256,7 @@ describe('useModalForm', () => {
     it('validates the form before submitting', async () => {
       const values = { name: 'test', value: 42 }
       mockValidateFields.mockResolvedValue(values)
-      const onSubmit = jest.fn().mockResolvedValue(true)
+      const onSubmit = vi.fn().mockResolvedValue(true)
 
       const { result } = renderHook(() =>
         useModalForm<TestFormValues>(createDefaultOptions({ onSubmit })),
@@ -276,7 +272,7 @@ describe('useModalForm', () => {
     it('calls onSubmit with validated values and form instance', async () => {
       const values = { name: 'test', value: 42 }
       mockValidateFields.mockResolvedValue(values)
-      const onSubmit = jest.fn().mockResolvedValue(true)
+      const onSubmit = vi.fn().mockResolvedValue(true)
 
       const { result } = renderHook(() =>
         useModalForm<TestFormValues>(createDefaultOptions({ onSubmit })),
@@ -291,8 +287,8 @@ describe('useModalForm', () => {
 
     it('resets form and calls onComplete when onSubmit returns true', async () => {
       mockValidateFields.mockResolvedValue({ name: 'test', value: 1 })
-      const onSubmit = jest.fn().mockResolvedValue(true)
-      const onComplete = jest.fn()
+      const onSubmit = vi.fn().mockResolvedValue(true)
+      const onComplete = vi.fn()
 
       const { result } = renderHook(() =>
         useModalForm<TestFormValues>(
@@ -310,8 +306,8 @@ describe('useModalForm', () => {
 
     it('does not reset form or call onComplete when onSubmit returns false', async () => {
       mockValidateFields.mockResolvedValue({ name: 'test', value: 1 })
-      const onSubmit = jest.fn().mockResolvedValue(false)
-      const onComplete = jest.fn()
+      const onSubmit = vi.fn().mockResolvedValue(false)
+      const onComplete = vi.fn()
 
       const { result } = renderHook(() =>
         useModalForm<TestFormValues>(
@@ -333,7 +329,7 @@ describe('useModalForm', () => {
         resolveFn = resolve
       })
       mockValidateFields.mockResolvedValue({ name: 'test', value: 1 })
-      const onSubmit = jest.fn().mockReturnValue(submitPromise)
+      const onSubmit = vi.fn().mockReturnValue(submitPromise)
 
       const { result } = renderHook(() =>
         useModalForm<TestFormValues>(createDefaultOptions({ onSubmit })),
@@ -358,9 +354,9 @@ describe('useModalForm', () => {
     })
 
     it('sets isSaving back to false after submit failure', async () => {
-      jest.spyOn(console, 'error').mockImplementation()
+      vi.spyOn(console, 'error').mockImplementation(() => {})
       mockValidateFields.mockResolvedValue({ name: 'test', value: 1 })
-      const onSubmit = jest.fn().mockRejectedValue(new Error('API error'))
+      const onSubmit = vi.fn().mockRejectedValue(new Error('API error'))
 
       const { result } = renderHook(() =>
         useModalForm<TestFormValues>(createDefaultOptions({ onSubmit })),
@@ -374,9 +370,9 @@ describe('useModalForm', () => {
     })
 
     it('shows default error message when onSubmit throws', async () => {
-      jest.spyOn(console, 'error').mockImplementation()
+      vi.spyOn(console, 'error').mockImplementation(() => {})
       mockValidateFields.mockResolvedValue({ name: 'test', value: 1 })
-      const onSubmit = jest.fn().mockRejectedValue(new Error('API error'))
+      const onSubmit = vi.fn().mockRejectedValue(new Error('API error'))
 
       const { result } = renderHook(() =>
         useModalForm<TestFormValues>(createDefaultOptions({ onSubmit })),
@@ -392,9 +388,9 @@ describe('useModalForm', () => {
     })
 
     it('shows custom error message when provided and onSubmit throws', async () => {
-      jest.spyOn(console, 'error').mockImplementation()
+      vi.spyOn(console, 'error').mockImplementation(() => {})
       mockValidateFields.mockResolvedValue({ name: 'test', value: 1 })
-      const onSubmit = jest.fn().mockRejectedValue(new Error('API error'))
+      const onSubmit = vi.fn().mockRejectedValue(new Error('API error'))
 
       const { result } = renderHook(() =>
         useModalForm<TestFormValues>(
@@ -409,9 +405,7 @@ describe('useModalForm', () => {
         await result.current.handleOk()
       })
 
-      expect(mockMessageError).toHaveBeenCalledWith(
-        'Failed to save the item.',
-      )
+      expect(mockMessageError).toHaveBeenCalledWith('Failed to save the item.')
     })
 
     it('does not show error toast for client-side validation failures', async () => {
@@ -461,7 +455,7 @@ describe('useModalForm', () => {
     })
 
     it('calls onCancel callback', () => {
-      const onCancel = jest.fn()
+      const onCancel = vi.fn()
 
       const { result } = renderHook(() =>
         useModalForm<TestFormValues>(createDefaultOptions({ onCancel })),

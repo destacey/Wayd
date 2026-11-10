@@ -1,28 +1,29 @@
+import type { Mock } from 'vitest'
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import EmployeeWorkItems from './employee-work-items'
 import { useGetEmployeeWorkItemsQuery } from '@/src/store/features/organizations/employee-api'
 import { StatusCategory } from '@/src/services/wayd-api'
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
-  useGetEmployeeWorkItemsQuery: jest.fn(),
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
+  useGetEmployeeWorkItemsQuery: vi.fn(),
 }))
 
-jest.mock('@/src/components/common/work', () => ({
+vi.mock('@/src/components/common/work', () => ({
   WorkItemsGrid: ({ workItems }: { workItems: { key: string }[] }) => (
     <div data-testid="work-items-grid">{workItems.length} items</div>
   ),
 }))
 
-const mockQuery = useGetEmployeeWorkItemsQuery as unknown as jest.Mock
+const mockQuery = useGetEmployeeWorkItemsQuery as unknown as Mock
 
 describe('EmployeeWorkItems', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockQuery.mockReturnValue({
       data: [{ key: 'PLT-1' }, { key: 'PLT-2' }],
       isLoading: false,
-      refetch: jest.fn(),
+      refetch: vi.fn(),
     })
   })
 
@@ -42,10 +43,7 @@ describe('EmployeeWorkItems', () => {
     expect(mockQuery).toHaveBeenCalledWith(
       {
         employeeId: 'e1',
-        statusCategories: [
-          StatusCategory.Proposed,
-          StatusCategory.Active,
-        ],
+        statusCategories: [StatusCategory.Proposed, StatusCategory.Active],
       },
       { skip: false },
     )

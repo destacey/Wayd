@@ -10,19 +10,19 @@ global.ResizeObserver = class {
 
 const defaultProps = {
   groupBy: 'portfolio' as const,
-  onGroupByChange: jest.fn(),
+  onGroupByChange: vi.fn(),
   sortBy: 'attention' as const,
-  onSortByChange: jest.fn(),
+  onSortByChange: vi.fn(),
   search: '',
-  onSearchChange: jest.fn(),
+  onSearchChange: vi.fn(),
   view: 'List' as const,
-  onViewChange: jest.fn(),
+  onViewChange: vi.fn(),
   shownCount: 4,
   totalCount: 10,
 }
 
 describe('DashboardToolbar', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => vi.clearAllMocks())
 
   it('says how many projects are shown of the total', () => {
     // Arrange / Act

@@ -1,5 +1,4 @@
-jest.unmock('dayjs')
-
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import SprintCard from './sprint-card'
 import { IterationState } from '@/src/components/types'
@@ -10,19 +9,20 @@ import {
 } from '@/src/services/wayd-api'
 import { useGetSprintScopeQuery } from '@/src/store/features/work-management/sprints-api'
 
-jest.mock('@/src/store/features/work-management/sprints-api', () => ({
-  useGetSprintScopeQuery: jest.fn(),
+vi.mock('@/src/store/features/work-management/sprints-api', () => ({
+  useGetSprintScopeQuery: vi.fn(),
 }))
 
-jest.mock('@/src/components/contexts/theme', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/theme', () => ({
   default: () => ({ token: { colorSuccess: '#52c41a' } }),
 }))
 
 // Mock Metrics components; the figures stay real so what is shown can be asserted.
-jest.mock('@/src/components/common/metrics', () => ({
-  sprintOverviewFigures: jest.requireActual(
-    '@/src/components/common/metrics/sprint-overview-figures',
+vi.mock('@/src/components/common/metrics', async () => ({
+  sprintOverviewFigures: (
+    await vi.importActual<any>(
+      '@/src/components/common/metrics/sprint-overview-figures',
+    )
   ).sprintOverviewFigures,
   MetricCard: ({
     title,
@@ -63,7 +63,7 @@ jest.mock('@/src/components/common/metrics', () => ({
 }))
 
 // Mock Planning components
-jest.mock('@/src/components/common/planning', () => ({
+vi.mock('@/src/components/common/planning', () => ({
   IterationHealthIndicator: ({
     total,
     completed,
@@ -94,7 +94,7 @@ jest.mock('@/src/components/common/planning', () => ({
 describe('SprintCard', () => {
   beforeEach(() => {
     // No scope unless a test gives one: the card falls back to the sprint's current items.
-    ;(useGetSprintScopeQuery as jest.Mock).mockReturnValue({ data: undefined })
+    ;(useGetSprintScopeQuery as Mock).mockReturnValue({ data: undefined })
   })
 
   const mockSprint: SprintMetricsSummary = {
@@ -325,7 +325,7 @@ describe('SprintCard', () => {
     } as unknown as SprintScopeDto
 
     beforeEach(() =>
-      (useGetSprintScopeQuery as jest.Mock).mockReturnValue({ data: scope }),
+      (useGetSprintScopeQuery as Mock).mockReturnValue({ data: scope }),
     )
 
     it('shows predictability, velocity and say/do from the scope', () => {

@@ -3,9 +3,9 @@ import { JsonPatchOperationType } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { projectsApi } from './projects-api'
 
-const patchProjectStage = jest.fn()
+const patchProjectStage = vi.fn()
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   getProjectsClient: () => ({ patchProjectStage }),
 }))
 

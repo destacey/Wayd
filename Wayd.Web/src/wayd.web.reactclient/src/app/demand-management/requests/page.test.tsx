@@ -1,9 +1,9 @@
 import React from 'react'
-import { act, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import IntakeRequestsPage from './page'
 
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   PageTitle: ({
     title,
     actions,
@@ -20,35 +20,33 @@ jest.mock('@/src/components/common', () => ({
 }))
 
 let mockClaims = new Set<string>()
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     hasPermissionClaim: (claim: string) => mockClaims.has(claim),
   }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 let mockEmployeeId: string | null = 'e-1'
-jest.mock('@/src/hooks', () => ({
-  useDocumentTitle: jest.fn(),
+vi.mock('@/src/hooks', () => ({
+  useDocumentTitle: vi.fn(),
   useLinkedEmployee: () => ({
     employeeId: mockEmployeeId,
     hasLinkedEmployee: mockEmployeeId !== null,
   }),
 }))
 
-jest.mock('@/src/components/hoc', () => ({
+vi.mock('@/src/components/hoc', () => ({
   authorizePage: (Component: React.ComponentType<any>) => Component,
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
 
 // The grid has a suite of its own; here only what the page hands it matters: the rows, in order, and the
 // sort it opens on.
-jest.mock('../_components/intake-requests-grid', () => ({
-  __esModule: true,
+vi.mock('../_components/intake-requests-grid', () => ({
   default: ({
     rightSlot,
     requests,
@@ -73,8 +71,8 @@ jest.mock('../_components/intake-requests-grid', () => ({
 }))
 
 let mockSearch = new URLSearchParams()
-const mockReplace = jest.fn()
-jest.mock('next/navigation', () => ({
+const mockReplace = vi.fn()
+vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mockReplace }),
   usePathname: () => '/demand-management/requests',
   useSearchParams: () => mockSearch,
@@ -83,24 +81,21 @@ jest.mock('next/navigation', () => ({
 let mockDesks: any[] = []
 let mockScores: any[] = []
 let mockEstimates: any[] = []
-const mockRequestsQuery = jest.fn((_args?: unknown) => ({
+const mockRequestsQuery = vi.fn((_args?: unknown) => ({
   currentData: [],
   isFetching: false,
-  refetch: jest.fn(),
+  refetch: vi.fn(),
 }))
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetIntakeRequestsQuery: (args: unknown) => mockRequestsQuery(args),
-    useGetIntakeRequestScoresQuery: () => ({ currentData: mockScores }),
-    useGetIntakeRequestEstimatesQuery: () => ({ currentData: mockEstimates }),
-    useGetNeedByBasesQuery: () => ({ data: [] }),
-    useGetIntakeDesksQuery: () => ({ data: mockDesks }),
-    useGetIntakeChannelsQuery: () => ({ data: [] }),
-    useGetIntakeRequestTagCategoriesQuery: () => ({ data: [] }),
-    useSearchIntakeRequestTagsQuery: () => ({ data: undefined }),
-  }),
-)
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetIntakeRequestsQuery: (args: unknown) => mockRequestsQuery(args),
+  useGetIntakeRequestScoresQuery: () => ({ currentData: mockScores }),
+  useGetIntakeRequestEstimatesQuery: () => ({ currentData: mockEstimates }),
+  useGetNeedByBasesQuery: () => ({ data: [] }),
+  useGetIntakeDesksQuery: () => ({ data: mockDesks }),
+  useGetIntakeChannelsQuery: () => ({ data: [] }),
+  useGetIntakeRequestTagCategoriesQuery: () => ({ data: [] }),
+  useSearchIntakeRequestTagsQuery: () => ({ data: undefined }),
+}))
 
 describe('IntakeRequestsPage', () => {
   beforeEach(() => {
@@ -161,10 +156,8 @@ describe('IntakeRequestsPage', () => {
     render(<IntakeRequestsPage />)
 
     // Act — jsdom matches no breakpoint, so the filters are behind the phone layout's button
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: /Filters/ })),
-    )
-    await act(() => userEvent.click(screen.getByText('Everything')))
+    await userEvent.click(screen.getByRole('button', { name: /Filters/ }))
+    await userEvent.click(screen.getByText('Everything'))
 
     // Assert
     expect(mockReplace).toHaveBeenCalledWith(
@@ -178,7 +171,7 @@ describe('IntakeRequestsPage', () => {
     render(<IntakeRequestsPage />)
 
     // Act
-    await act(() => userEvent.click(screen.getByTitle('Board')))
+    await userEvent.click(screen.getByTitle('Board'))
 
     // Assert
     expect(mockReplace).toHaveBeenCalledWith(
@@ -194,9 +187,7 @@ describe('IntakeRequestsPage', () => {
     render(<IntakeRequestsPage />)
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: /Filters/ })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: /Filters/ }))
 
     // Assert
     expect(screen.getByText('Anyone assigned or not')).toBeInTheDocument()
@@ -206,14 +197,10 @@ describe('IntakeRequestsPage', () => {
     // Arrange
     mockSearch = new URLSearchParams('scope=all&assignee=unassigned')
     render(<IntakeRequestsPage />)
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: /Filters/ })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: /Filters/ }))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Reset filters' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Reset filters' }))
 
     // Assert
     expect(mockReplace).toHaveBeenLastCalledWith(
@@ -301,7 +288,7 @@ describe('IntakeRequestsPage', () => {
           request('high', 3),
         ] as any,
         isFetching: false,
-        refetch: jest.fn(),
+        refetch: vi.fn(),
       })
       mockScores = [score('low', 1.6), score('high', 3.3)]
     })
@@ -310,7 +297,7 @@ describe('IntakeRequestsPage', () => {
       mockRequestsQuery.mockReturnValue({
         currentData: [],
         isFetching: false,
-        refetch: jest.fn(),
+        refetch: vi.fn(),
       })
     })
 
@@ -384,7 +371,7 @@ describe('IntakeRequestsPage', () => {
           request('large', 3),
         ] as any,
         isFetching: false,
-        refetch: jest.fn(),
+        refetch: vi.fn(),
       })
       // XL sits after S on the scale, though it sorts before it as text.
       mockEstimates = [estimate('small', 'S', 2), estimate('large', 'XL', 4)]
@@ -394,7 +381,7 @@ describe('IntakeRequestsPage', () => {
       mockRequestsQuery.mockReturnValue({
         currentData: [],
         isFetching: false,
-        refetch: jest.fn(),
+        refetch: vi.fn(),
       })
     })
 

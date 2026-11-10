@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event'
 import { ProjectDeliverableDto, StatusCategory } from '@/src/services/wayd-api'
 import ProjectDeliverableSelect from './project-deliverable-select'
 
-const mockQuery = jest.fn()
-jest.mock('@/src/store/features/ppm/project-deliverables-api', () => ({
+const mockQuery = vi.fn()
+vi.mock('@/src/store/features/ppm/project-deliverables-api', () => ({
   useGetProjectDeliverablesQuery: (projectId: string) => mockQuery(projectId),
 }))
 

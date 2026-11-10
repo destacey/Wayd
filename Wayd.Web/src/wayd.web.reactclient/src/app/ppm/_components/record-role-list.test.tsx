@@ -3,9 +3,9 @@ import userEvent from '@testing-library/user-event'
 import { EmployeeNavigationDto } from '@/src/services/wayd-api'
 import RecordRoleList from './record-role-list'
 
-const mockEmployee = jest.fn()
+const mockEmployee = vi.fn()
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeeByIdQuery: (...args: unknown[]) => mockEmployee(...args),
 }))
 
@@ -20,7 +20,7 @@ const SAM = person('22222222-0000-4000-a000-000000000002', 1043, 'Sam Okafor')
 
 describe('RecordRoleList', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockEmployee.mockReturnValue({
       data: {
         id: DANA.id,
@@ -54,18 +54,22 @@ describe('RecordRoleList', () => {
 
   it('sorts people case-insensitively rather than by arrival order', () => {
     // Arrange
-    const zara = person('33333333-0000-4000-a000-000000000003', 1044, 'zara Ito')
-    const alex = person('44444444-0000-4000-a000-000000000004', 1045, 'Alex Bell')
-
-    // Act
-    render(
-      <RecordRoleList people={[zara, alex, DANA]} emptyText="None" />,
+    const zara = person(
+      '33333333-0000-4000-a000-000000000003',
+      1044,
+      'zara Ito',
+    )
+    const alex = person(
+      '44444444-0000-4000-a000-000000000004',
+      1045,
+      'Alex Bell',
     )
 
+    // Act
+    render(<RecordRoleList people={[zara, alex, DANA]} emptyText="None" />)
+
     // Assert
-    const names = screen
-      .getAllByRole('link')
-      .map((link) => link.textContent)
+    const names = screen.getAllByRole('link').map((link) => link.textContent)
     expect(names).toEqual(['Alex Bell', 'Dana Reid', 'zara Ito'])
   })
 

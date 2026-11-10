@@ -1,6 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import '@testing-library/jest-dom'
 import dayjs from 'dayjs'
 import {
   DependencyDto,
@@ -13,18 +12,16 @@ import {
   DependencyAnalysisReportView,
 } from './dependency-analysis-report'
 
-jest.unmock('dayjs')
-
-jest.mock('@/src/store/features/organizations/team-api', () => ({
-  useGetTeamDependencyAnalysisQuery: jest.fn(),
+vi.mock('@/src/store/features/organizations/team-api', () => ({
+  useGetTeamDependencyAnalysisQuery: vi.fn(),
 }))
 
-const mockWheelMounts = jest.fn()
+const mockWheelMounts = vi.fn()
 
 // What each explorer does with the dependencies is its own suite's concern; here, only which one is shown,
 // and when it is mounted afresh.
-jest.mock('@/src/components/common/dependency-wheel', () => {
-  const { useEffect } = jest.requireActual<typeof import('react')>('react')
+vi.mock('@/src/components/common/dependency-wheel', async () => {
+  const { useEffect } = await vi.importActual<typeof import('react')>('react')
   const MockWheel = (props: { dependencies: DependencyDto[] }) => {
     useEffect(() => {
       mockWheelMounts()
@@ -35,7 +32,7 @@ jest.mock('@/src/components/common/dependency-wheel', () => {
   }
   return { DependencyWheelExplorer: MockWheel }
 })
-jest.mock('@/src/components/common/work/dependency-partners', () => ({
+vi.mock('@/src/components/common/work/dependency-partners', () => ({
   DependencyPartnersExplorer: (props: {
     teamId: string
     dependencies: DependencyDto[]
@@ -45,8 +42,7 @@ jest.mock('@/src/components/common/work/dependency-partners', () => ({
     </div>
   ),
 }))
-jest.mock('./dependency-analysis-over-time', () => ({
-  __esModule: true,
+vi.mock('./dependency-analysis-over-time', () => ({
   default: (props: { periods: unknown[] }) => (
     <div aria-label="over time">{props.periods.length} periods</div>
   ),
@@ -121,7 +117,7 @@ const view = (
   isTeamOfTeams = true,
   error?: unknown,
   range = julyToSeptember,
-  refetch = jest.fn(),
+  refetch = vi.fn(),
 ) => (
   <DependencyAnalysisReportView
     analysis={analysis}
@@ -129,7 +125,7 @@ const view = (
     error={error}
     refetch={refetch}
     range={range}
-    onRangeChange={jest.fn()}
+    onRangeChange={vi.fn()}
     isTeamOfTeams={isTeamOfTeams}
   />
 )
@@ -376,7 +372,7 @@ describe('DependencyAnalysisReportView', () => {
   it('retries a failed request', async () => {
     // Arrange
     const user = userEvent.setup()
-    const refetch = jest.fn()
+    const refetch = vi.fn()
     render(view(undefined, true, { status: 500 }, julyToSeptember, refetch))
 
     // Act
@@ -408,12 +404,12 @@ describe('DependencyAnalysisReport', () => {
   it('asks for the last 90 days ending today in UTC without a zone, as the API counts it', () => {
     // Arrange
     const today = calendarDateInZone(new Date(), 'UTC')
-    const query = jest.mocked(useGetTeamDependencyAnalysisQuery)
+    const query = vi.mocked(useGetTeamDependencyAnalysisQuery)
     query.mockReturnValue({
       data: undefined,
       isFetching: true,
       error: undefined,
-      refetch: jest.fn(),
+      refetch: vi.fn(),
     } as unknown as ReturnType<typeof useGetTeamDependencyAnalysisQuery>)
 
     // Act
@@ -435,13 +431,13 @@ describe('DependencyAnalysisReport', () => {
     'ends the default range on today in the team time zone %s',
     (timeZone, from, to) => {
       // Arrange
-      jest.useFakeTimers({ now: new Date('2026-09-22T11:00:00Z') })
-      const query = jest.mocked(useGetTeamDependencyAnalysisQuery)
+      vi.useFakeTimers({ now: new Date('2026-09-22T11:00:00Z') })
+      const query = vi.mocked(useGetTeamDependencyAnalysisQuery)
       query.mockReturnValue({
         data: undefined,
         isFetching: true,
         error: undefined,
-        refetch: jest.fn(),
+        refetch: vi.fn(),
       } as unknown as ReturnType<typeof useGetTeamDependencyAnalysisQuery>)
 
       try {
@@ -462,7 +458,7 @@ describe('DependencyAnalysisReport', () => {
           to,
         })
       } finally {
-        jest.useRealTimers()
+        vi.useRealTimers()
       }
     },
   )

@@ -1,26 +1,26 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { SwapOutlined } from '@ant-design/icons'
 import IconMenu, { IconMenuProps } from './icon-menu'
 import useTheme from '../contexts/theme'
 
 // Mock the useTheme hook
-jest.mock('../contexts/theme', () => ({
-  __esModule: true,
-  default: jest.fn(),
+vi.mock('../contexts/theme', () => ({
+  default: vi.fn(),
 }))
 
 // Mock matchMedia for Ant Design components
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation((query) => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 })
 
@@ -40,12 +40,12 @@ describe('IconMenu', () => {
     icon: <SwapOutlined />,
     items: mockItems,
     tooltip: 'Switch sprint',
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   }
 
   beforeEach(() => {
-    ;(useTheme as jest.Mock).mockReturnValue({ token: mockToken })
-    jest.clearAllMocks()
+    ;(useTheme as Mock).mockReturnValue({ token: mockToken })
+    vi.clearAllMocks()
   })
 
   it('renders the icon button', () => {
@@ -91,7 +91,7 @@ describe('IconMenu', () => {
   })
 
   it('calls onChange with correct value when provided', () => {
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(<IconMenu {...defaultProps} onChange={onChange} />)
     const button = screen.getByRole('button')
     // onChange callback is passed to Ant Design Dropdown, which will handle calling it
@@ -131,7 +131,7 @@ describe('IconMenu', () => {
       { label: 'Item 1', value: 1 },
       { label: 'Item 2', value: '2' },
     ]
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <IconMenu {...defaultProps} items={mixedItems} onChange={onChange} />,
     )

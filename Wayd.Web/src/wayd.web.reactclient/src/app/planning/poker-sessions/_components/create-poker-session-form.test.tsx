@@ -1,30 +1,29 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import CreatePokerSessionForm from './create-poker-session-form'
 import useAuth from '@/src/components/contexts/auth'
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
-  default: jest.fn(),
+vi.mock('@/src/components/contexts/auth', () => ({
+  default: vi.fn(),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/components/contexts/theme', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/theme', () => ({
   default: () => ({ token: {} }),
 }))
 
-jest.mock('@/src/store/features/planning/poker-sessions-api', () => ({
-  useCreatePokerSessionMutation: () => [jest.fn()],
+vi.mock('@/src/store/features/planning/poker-sessions-api', () => ({
+  useCreatePokerSessionMutation: () => [vi.fn()],
 }))
 
-jest.mock('@/src/store/features/planning/estimation-scales-api', () => ({
+vi.mock('@/src/store/features/planning/estimation-scales-api', () => ({
   useGetEstimationScalesQuery: () => ({ data: [], isLoading: false }),
 }))
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeeOptionsQuery: () => ({
     data: [
       { value: 'me', label: 'Mia Me' },
@@ -33,22 +32,19 @@ jest.mock('@/src/store/features/organizations/employee-api', () => ({
   }),
 }))
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
+vi.mock('@/src/store/features/organizations/team-api', () => ({
   useGetTeamOptionsQuery: () => ({ data: [] }),
 }))
 
 const signInAs = (employeeId: string) =>
-  (useAuth as jest.Mock).mockReturnValue({
+  (useAuth as Mock).mockReturnValue({
     user: { employeeId },
     hasPermissionClaim: () => true,
   })
 
 const renderForm = () =>
   render(
-    <CreatePokerSessionForm
-      onFormCreate={jest.fn()}
-      onFormCancel={jest.fn()}
-    />,
+    <CreatePokerSessionForm onFormCreate={vi.fn()} onFormCancel={vi.fn()} />,
   )
 
 describe('CreatePokerSessionForm', () => {

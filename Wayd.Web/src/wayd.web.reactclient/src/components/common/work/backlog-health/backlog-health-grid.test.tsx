@@ -2,21 +2,21 @@ import { render } from '@testing-library/react'
 import { SizingMethod } from '@/src/services/wayd-api'
 
 // A stand-in that records the columns the grid is given.
-const mockWaydGrid = jest.fn(
+const mockWaydGrid = vi.fn(
   (_props: { columns: { id?: string; header?: unknown }[] }) => null,
 )
 
-jest.mock('@/src/components/common/wayd-grid', () => ({
+vi.mock('@/src/components/common/wayd-grid', () => ({
   WaydGrid: (props: { columns: { id?: string; header?: unknown }[] }) =>
     mockWaydGrid(props),
-  createCsvColumn: jest.fn(() => ({ id: 'csv' })),
-  renderAssignedToLink: jest.fn(),
-  renderProjectLink: jest.fn(),
-  renderSprintLink: jest.fn(),
-  renderWorkItemLink: jest.fn(),
-  renderWorkStatusTag: jest.fn(),
-  workItemKeySort: jest.fn(),
-  workStatusCategorySort: jest.fn(),
+  createCsvColumn: vi.fn(() => ({ id: 'csv' })),
+  renderAssignedToLink: vi.fn(),
+  renderProjectLink: vi.fn(),
+  renderSprintLink: vi.fn(),
+  renderWorkItemLink: vi.fn(),
+  renderWorkStatusTag: vi.fn(),
+  workItemKeySort: vi.fn(),
+  workStatusCategorySort: vi.fn(),
 }))
 
 import BacklogHealthGrid from './backlog-health-grid'
@@ -28,7 +28,7 @@ const columnsFor = (sizingMethod: SizingMethod) => {
       workItems={[]}
       sizingMethod={sizingMethod}
       isLoading={false}
-      refetch={jest.fn()}
+      refetch={vi.fn()}
     />,
   )
   return mockWaydGrid.mock.calls[0][0].columns

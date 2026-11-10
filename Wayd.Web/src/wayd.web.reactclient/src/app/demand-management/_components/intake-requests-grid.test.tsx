@@ -1,6 +1,3 @@
-// jest.setup stubs dayjs down to formatting; the grid's date filter needs the real module.
-jest.unmock('dayjs')
-
 import { render, screen } from '@testing-library/react'
 import {
   IntakeRequestSummaryDto,
@@ -12,8 +9,7 @@ import {
 import IntakeRequestsGrid from './intake-requests-grid'
 
 let mockClaims = new Set<string>()
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     hasPermissionClaim: (claim: string) => mockClaims.has(claim),
   }),

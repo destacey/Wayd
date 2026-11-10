@@ -3,8 +3,6 @@ import { TimeAwayReason } from '@/src/services/wayd-api'
 import { toFormErrors } from '@/src/utils'
 import { fieldForError, timeAwayRequestFor } from './time-away-form'
 
-jest.unmock('dayjs')
-
 describe('timeAwayRequestFor', () => {
   it('sends the days as calendar dates with the share and the reason', () => {
     const request = timeAwayRequestFor(

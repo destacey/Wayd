@@ -3,8 +3,7 @@ import VelocityMetric from './velocity-metric'
 import { SizingMethod } from '../../../services/wayd-api'
 
 // Mock useTheme
-jest.mock('../../contexts/theme', () => ({
-  __esModule: true,
+vi.mock('../../contexts/theme', () => ({
   default: () => ({
     token: {
       colorSuccess: '#52c41a',
@@ -70,4 +69,3 @@ describe('VelocityMetric', () => {
     expect(screen.getByText('50.0%')).toBeInTheDocument()
   })
 })
-

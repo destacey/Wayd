@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { ColumnDef } from './index'
 import type { TableState } from './index'
 

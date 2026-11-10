@@ -1,22 +1,10 @@
+// @vitest-environment jsdom
 import { storeReturnUrl, takeReturnUrl, toSafeReturnPath } from './return-url'
 
 const KEY = 'wayd.returnUrl'
 
-// jest.setup stubs sessionStorage with bare mocks; give them a backing store.
-const store = new Map<string, string>()
-
 describe('return-url', () => {
   beforeEach(() => {
-    store.clear()
-    jest
-      .mocked(sessionStorage.getItem)
-      .mockImplementation((key) => store.get(key) ?? null)
-    jest
-      .mocked(sessionStorage.setItem)
-      .mockImplementation((key, value) => void store.set(key, value))
-    jest
-      .mocked(sessionStorage.removeItem)
-      .mockImplementation((key) => void store.delete(key))
     window.history.replaceState(null, '', '/')
   })
 

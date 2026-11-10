@@ -3,7 +3,7 @@ import UnlinkedEmployeeAlert from './unlinked-employee-alert'
 
 const mockLink = { hasLinkedEmployee: true }
 
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useLinkedEmployee: () => ({
     employeeId: mockLink.hasLinkedEmployee ? 'emp-1' : null,
     hasLinkedEmployee: mockLink.hasLinkedEmployee,
@@ -43,7 +43,9 @@ describe('UnlinkedEmployeeAlert', () => {
     // `when` lets a page warn only the users for whom the link actually matters.
     mockLink.hasLinkedEmployee = false
 
-    render(<UnlinkedEmployeeAlert consequence="Nothing to show." when={false} />)
+    render(
+      <UnlinkedEmployeeAlert consequence="Nothing to show." when={false} />,
+    )
 
     expect(
       screen.queryByText("Your account isn't linked to an employee record"),

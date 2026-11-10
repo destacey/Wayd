@@ -10,28 +10,25 @@ import {
 } from '@/src/services/wayd-api'
 import EditIntakeRequestForm from './edit-intake-request-form'
 
-// jest.setup stubs dayjs down to formatting; the date pickers need the real module.
-jest.unmock('dayjs')
-
-// The markdown editor pulls in ESM-only packages Jest cannot parse.
-jest.mock('@/src/components/common/markdown', () => ({
+// The markdown renderer and editor have their own suites; plain stand-ins keep this one on the form.
+vi.mock('@/src/components/common/markdown', () => ({
   MarkdownEditor: ({ value }: { value?: string }) => (
     <textarea aria-label="markdown" readOnly value={value ?? ''} />
   ),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 const formHolder: { current?: FormInstance } = {}
 
-// In Jest, Form.useWatch does not refire after typing, so the real hook's validity never updates; as the
+// Under jsdom, Form.useWatch does not refire after typing, so the real hook's validity never updates; as the
 // other form suites do, keep the form instance real and submit through validateFields, which, like the real hook,
 // returns only the fields that are mounted.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
-  const { useEffect } = jest.requireActual('react')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
+  const { useEffect } = await vi.importActual<any>('react')
   return {
     useModalForm: ({
       onSubmit,
@@ -55,13 +52,13 @@ jest.mock('@/src/hooks', () => {
         handleOk: async () => {
           if (await onSubmit(await form.validateFields(), form)) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const mockUpdate = jest.fn()
+const mockUpdate = vi.fn()
 // What the request's desk offers; the request's own channel is looked up among every channel.
 let mockDeskChannels: {
   id: string
@@ -72,35 +69,32 @@ let mockDeskChannels: {
 // Every channel, archived ones included; undefined while it loads.
 let mockAllChannels:
   { id: string; name: string; order: number; isActive: boolean }[] | undefined
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useUpdateIntakeRequestMutation: () => [mockUpdate],
-    useGetNeedByBasesQuery: () => ({
-      data: [
-        {
-          id: 4,
-          code: 'Commitment',
-          name: 'Commitment',
-          description: 'A commitment someone here made.',
-          order: 4,
-          family: 'ChosenByUs',
-          recordsCommitment: true,
-        },
-      ],
-    }),
-    useGetNeedByBasisFamiliesQuery: () => ({
-      data: [{ id: 2, code: 'ChosenByUs', name: 'We chose it', order: 2 }],
-    }),
-    // Active employees only; the committer below has left.
-    useGetIntakeEmployeeOptionsQuery: () => ({
-      data: [{ id: 'e-1', key: 1, name: 'Avery Example' }],
-    }),
-    useGetIntakeChannelsQuery: (args?: { deskId?: string }) => ({
-      data: args?.deskId ? mockDeskChannels : mockAllChannels,
-    }),
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useUpdateIntakeRequestMutation: () => [mockUpdate],
+  useGetNeedByBasesQuery: () => ({
+    data: [
+      {
+        id: 4,
+        code: 'Commitment',
+        name: 'Commitment',
+        description: 'A commitment someone here made.',
+        order: 4,
+        family: 'ChosenByUs',
+        recordsCommitment: true,
+      },
+    ],
   }),
-)
+  useGetNeedByBasisFamiliesQuery: () => ({
+    data: [{ id: 2, code: 'ChosenByUs', name: 'We chose it', order: 2 }],
+  }),
+  // Active employees only; the committer below has left.
+  useGetIntakeEmployeeOptionsQuery: () => ({
+    data: [{ id: 'e-1', key: 1, name: 'Avery Example' }],
+  }),
+  useGetIntakeChannelsQuery: (args?: { deskId?: string }) => ({
+    data: args?.deskId ? mockDeskChannels : mockAllChannels,
+  }),
+}))
 
 const request = {
   summary: {
@@ -138,8 +132,8 @@ const renderForm = async (r: IntakeRequestDetailsDto = request) =>
       <EditIntakeRequestForm
         request={r}
         substance={substance}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -186,9 +180,7 @@ describe('EditIntakeRequestForm', () => {
     )
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockUpdate).toHaveBeenCalledWith(
@@ -208,9 +200,7 @@ describe('EditIntakeRequestForm', () => {
     await renderForm()
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(formHolder.current!.getFieldError(['needBy', 'reference'])).toEqual([
@@ -227,9 +217,7 @@ describe('EditIntakeRequestForm', () => {
     await renderForm()
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockUpdate).toHaveBeenCalledWith(
@@ -247,9 +235,7 @@ describe('EditIntakeRequestForm', () => {
     } as unknown as IntakeRequestDetailsDto)
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(
@@ -268,9 +254,7 @@ describe('EditIntakeRequestForm', () => {
     await renderForm()
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(screen.getByText('Where did this come from?')).toBeInTheDocument()
@@ -289,9 +273,7 @@ describe('EditIntakeRequestForm', () => {
     await act(async () =>
       formHolder.current!.setFieldValue('channelId', undefined),
     )
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Save' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 
     // Assert
     expect(mockUpdate).toHaveBeenCalledWith(

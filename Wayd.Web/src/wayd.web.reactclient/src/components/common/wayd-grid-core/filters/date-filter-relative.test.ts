@@ -1,8 +1,3 @@
-// The global dayjs mock in jest.setup.ts is a formatting-only shim without real
-// date math (subtract/startOf/quarter). The relative-filter builder needs the
-// real dayjs, so restore it for this suite.
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
 import dayjs from 'dayjs'
 
 import {

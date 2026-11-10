@@ -1,5 +1,3 @@
-// scale.ticks() uses REAL dayjs (.startOf/.add); the global mock only stubs format.
-jest.unmock('dayjs')
 import { createTimeScale } from './scale'
 import dayjs from 'dayjs'
 
@@ -156,7 +154,8 @@ describe('createTimeScale — weekends', () => {
 
   it('clamps weekend boxes to the domain boundaries', () => {
     // Arrange — domain starts mid-Saturday noon, ends mid-Sunday noon.
-    const satNoon = dayjs('2026-01-10').startOf('day').valueOf() + 12 * 3_600_000
+    const satNoon =
+      dayjs('2026-01-10').startOf('day').valueOf() + 12 * 3_600_000
     const sunNoon = satNoon + DAY
     const scale = createTimeScale(satNoon, sunNoon, 24 * 10) // 10px/hr
     // Act

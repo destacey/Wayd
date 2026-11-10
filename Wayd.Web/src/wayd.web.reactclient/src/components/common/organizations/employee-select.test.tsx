@@ -35,7 +35,7 @@ describe('EmployeeSelect', () => {
   })
 
   it('calls onChange when selection changes', () => {
-    const mockOnChange = jest.fn()
+    const mockOnChange = vi.fn()
     render(
       <EmployeeSelect
         employees={mockEmployees}

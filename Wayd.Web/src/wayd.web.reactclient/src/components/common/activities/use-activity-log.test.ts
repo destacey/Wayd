@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react'
 import {
   ActivityLogDto,
@@ -43,7 +44,7 @@ const optionsFor = (
 })
 
 const setup = (overrides: Partial<UseActivityLogOptions> = {}) => {
-  const fetchPage = overrides.fetchPage ?? jest.fn()
+  const fetchPage = overrides.fetchPage ?? vi.fn()
   const rendered = renderHook(
     (props: Partial<UseActivityLogOptions>) =>
       useActivityLog(optionsFor(props, fetchPage)),
@@ -55,7 +56,7 @@ const setup = (overrides: Partial<UseActivityLogOptions> = {}) => {
 
 /** A fetchPage stand-in: RTK's trigger returns an object carrying `unwrap`. */
 const resolving = (response: PagedResponseOfActivityLogDto) =>
-  jest.fn().mockReturnValue({ unwrap: () => Promise.resolve(response) })
+  vi.fn().mockReturnValue({ unwrap: () => Promise.resolve(response) })
 
 describe('useActivityLog', () => {
   it('seeds the timeline from the first page', () => {
@@ -117,7 +118,7 @@ describe('useActivityLog', () => {
 
   it('does not load more when everything is already loaded', async () => {
     // Arrange
-    const fetchPage = jest.fn()
+    const fetchPage = vi.fn()
     const { result } = setup({
       query: { currentData: pageOf([activity('a')], 1), isLoading: false },
       fetchPage,
@@ -195,7 +196,7 @@ describe('useActivityLog', () => {
 
   it('returns an empty export batch before the record has loaded', async () => {
     // Arrange
-    const fetchPage = jest.fn()
+    const fetchPage = vi.fn()
     const { result } = setup({
       idOrKey: undefined,
       query: { currentData: undefined, isLoading: true },

@@ -14,7 +14,11 @@ describe('CombinedFilterPanel', () => {
   it('renders the Text Filter expander and the set list', () => {
     // Arrange / Act
     render(
-      <CombinedFilterPanel allValues={ALL} value={undefined} onChange={jest.fn()} />,
+      <CombinedFilterPanel
+        allValues={ALL}
+        value={undefined}
+        onChange={vi.fn()}
+      />,
     )
 
     // Assert — Text Filter header + set values both present
@@ -26,7 +30,11 @@ describe('CombinedFilterPanel', () => {
   it('collapses the text section by default when unfiltered', () => {
     // Arrange / Act
     render(
-      <CombinedFilterPanel allValues={ALL} value={undefined} onChange={jest.fn()} />,
+      <CombinedFilterPanel
+        allValues={ALL}
+        value={undefined}
+        onChange={vi.fn()}
+      />,
     )
 
     // Assert — no text value input shown until the expander is opened
@@ -43,7 +51,7 @@ describe('CombinedFilterPanel', () => {
           conditions: [{ op: 'contains', value: 'core' }],
           join: 'AND',
         }}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
       />,
     )
 
@@ -53,9 +61,13 @@ describe('CombinedFilterPanel', () => {
 
   it('emits a text descriptor when the text section is edited', () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
-      <CombinedFilterPanel allValues={ALL} value={undefined} onChange={onChange} />,
+      <CombinedFilterPanel
+        allValues={ALL}
+        value={undefined}
+        onChange={onChange}
+      />,
     )
 
     // Act — expand Text Filter, type a value
@@ -74,7 +86,7 @@ describe('CombinedFilterPanel', () => {
 
   it('emits a set descriptor when set values are chosen (replacing text)', () => {
     // Arrange — start with a text filter active
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <CombinedFilterPanel
         allValues={ALL}
@@ -106,7 +118,7 @@ describe('CombinedFilterPanel', () => {
           conditions: [{ op: 'contains', value: 'core' }],
           join: 'AND',
         }}
-        onChange={jest.fn()}
+        onChange={vi.fn()}
       />,
     )
 

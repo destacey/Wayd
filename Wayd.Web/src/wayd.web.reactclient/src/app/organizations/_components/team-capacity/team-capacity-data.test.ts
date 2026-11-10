@@ -11,8 +11,6 @@ import {
   timeAwayLines,
 } from './team-capacity-data'
 
-jest.unmock('dayjs')
-
 describe('monthOf', () => {
   it.each([
     ['2027-02-14', '2027-02-01', '2027-02-28'],

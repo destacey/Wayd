@@ -10,14 +10,14 @@ import {
 } from '@/src/services/wayd-api'
 import WorkflowTransitionsEditor from './workflow-transitions-editor'
 
-const setTransitionMode = jest.fn()
-const setTransitions = jest.fn()
+const setTransitionMode = vi.fn()
+const setTransitions = vi.fn()
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ success: jest.fn(), error: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ success: vi.fn(), error: vi.fn() }),
 }))
 
-jest.mock('@/src/store/features/common/status-workflows-api', () => ({
+vi.mock('@/src/store/features/common/status-workflows-api', () => ({
   useSetWorkflowTransitionModeMutation: () => [
     setTransitionMode,
     { isLoading: false },
@@ -170,7 +170,7 @@ describe('WorkflowTransitionsEditor', () => {
     render(<WorkflowTransitionsEditor statusWorkflow={workflow()} canUpdate />)
 
     // Act
-    // Inside act: the revert lands after the awaited save, and jest.setup's
+    // Inside act: the revert lands after the awaited save, and vitest.setup.dom's
     // MessageChannel stub never flushes an update made outside it.
     await act(async () => {
       fireEvent.click(screen.getByLabelText('Active to Retired'))

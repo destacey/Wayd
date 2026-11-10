@@ -4,20 +4,19 @@ import SchedulingSettingsForm, {
   SchedulingSettingsFormProps,
 } from './scheduling-settings-form'
 
-const mockUpdate = jest.fn()
-const mockSuccess = jest.fn()
-const mockError = jest.fn()
+const mockUpdate = vi.fn()
+const mockSuccess = vi.fn()
+const mockError = vi.fn()
 
-jest.mock('@/src/store/features/admin/system-settings-api', () => ({
+vi.mock('@/src/store/features/admin/system-settings-api', () => ({
   useUpdateSchedulingSettingsMutation: () => [mockUpdate, { isLoading: false }],
 }))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => true }),
 }))
 
-jest.mock('@/src/store/features/organization/holiday-calendars-api', () => ({
+vi.mock('@/src/store/features/organization/holiday-calendars-api', () => ({
   useGetHolidayCalendarsQuery: () => ({
     data: [
       {
@@ -32,7 +31,7 @@ jest.mock('@/src/store/features/organization/holiday-calendars-api', () => ({
   }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ success: mockSuccess, error: mockError }),
 }))
 
@@ -65,7 +64,7 @@ const graceDaysInput = () =>
 
 describe('SchedulingSettingsForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('shows the saved values', () => {

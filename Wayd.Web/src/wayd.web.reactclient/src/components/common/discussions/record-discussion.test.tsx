@@ -11,32 +11,32 @@ import {
 } from '@/src/services/wayd-api'
 import RecordDiscussion from './record-discussion'
 
-const mockMessageError = jest.fn()
-const mockMessageInfo = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
+const mockMessageError = vi.fn()
+const mockMessageInfo = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: mockMessageError, info: mockMessageInfo }),
 }))
 
-jest.mock('@/src/components/common/markdown', () => ({
+vi.mock('@/src/components/common/markdown', () => ({
   MarkdownRenderer: ({ markdown }: { markdown?: string }) => (
     <div data-testid="markdown">{markdown}</div>
   ),
 }))
 
-const mockUseDiscussion = jest.fn()
-const mockUseEntries = jest.fn()
-const mockPost = jest.fn()
-jest.mock('@/src/store/features/common/discussions-api', () => ({
+const mockUseDiscussion = vi.fn()
+const mockUseEntries = vi.fn()
+const mockPost = vi.fn()
+vi.mock('@/src/store/features/common/discussions-api', () => ({
   useGetDiscussionQuery: (...args: unknown[]) => mockUseDiscussion(...args),
   useGetDiscussionEntriesInfiniteQuery: (...args: unknown[]) =>
     mockUseEntries(...args),
   useGetDiscussionRepliesQuery: () => ({ data: [], isLoading: false }),
   useGetDiscussionRevisionsQuery: () => ({ data: [], isLoading: false }),
   usePostDiscussionMessageMutation: () => [mockPost, { isLoading: false }],
-  useReplyToDiscussionMessageMutation: () => [jest.fn(), { isLoading: false }],
-  useEditDiscussionMessageMutation: () => [jest.fn(), { isLoading: false }],
-  useDeleteDiscussionMessageMutation: () => [jest.fn(), { isLoading: false }],
-  useSetDiscussionLockMutation: () => [jest.fn(), { isLoading: false }],
+  useReplyToDiscussionMessageMutation: () => [vi.fn(), { isLoading: false }],
+  useEditDiscussionMessageMutation: () => [vi.fn(), { isLoading: false }],
+  useDeleteDiscussionMessageMutation: () => [vi.fn(), { isLoading: false }],
+  useSetDiscussionLockMutation: () => [vi.fn(), { isLoading: false }],
 }))
 
 const author = { id: 'e-1', key: 1, name: 'Marcus Lee' }
@@ -89,7 +89,7 @@ const showEntries = (items: DiscussionEntryDto[]) =>
     isLoading: false,
     hasNextPage: false,
     isFetchingNextPage: false,
-    fetchNextPage: jest.fn(),
+    fetchNextPage: vi.fn(),
   })
 
 const renderDiscussion = () =>
@@ -106,7 +106,7 @@ const renderDiscussion = () =>
 
 describe('RecordDiscussion', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     window.localStorage.clear()
     mockUseDiscussion.mockReturnValue({ data: access(), isError: false })
     showEntries([])
@@ -274,8 +274,7 @@ describe('RecordDiscussion', () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
     // The order is the reader's own, kept in their browser.
-    expect(window.localStorage.setItem).toHaveBeenCalledWith(
-      'wayd.discussion.order:v1',
+    expect(window.localStorage.getItem('wayd.discussion.order:v1')).toBe(
       JSON.stringify('NewestFirst'),
     )
   })
@@ -314,7 +313,7 @@ describe('RecordDiscussion', () => {
     mockUseDiscussion.mockReturnValue({
       data: undefined,
       error: { status: 500 },
-      refetch: jest.fn(),
+      refetch: vi.fn(),
     })
 
     // Act
@@ -352,7 +351,7 @@ describe('RecordDiscussion', () => {
       isLoading: false,
       hasNextPage: true,
       isFetchingNextPage: false,
-      fetchNextPage: jest.fn(),
+      fetchNextPage: vi.fn(),
     })
     renderDiscussion()
     fireEvent.change(screen.getByLabelText('Message'), {

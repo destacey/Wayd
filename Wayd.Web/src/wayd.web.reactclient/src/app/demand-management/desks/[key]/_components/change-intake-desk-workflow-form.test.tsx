@@ -2,9 +2,9 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ChangeIntakeDeskWorkflowForm from './change-intake-desk-workflow-form'
 
-const mockSuccess = jest.fn()
-const mockError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
+const mockSuccess = vi.fn()
+const mockError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: mockError, success: mockSuccess }),
 }))
 
@@ -17,33 +17,30 @@ const status = (id: string, name: string, order: number) => ({
 })
 
 let mockPreview: any
-const mockChangeWorkflow = jest.fn()
-const mockRefetch = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useChangeIntakeDeskWorkflowMutation: () => [
-      mockChangeWorkflow,
-      { isLoading: false },
+const mockChangeWorkflow = vi.fn()
+const mockRefetch = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useChangeIntakeDeskWorkflowMutation: () => [
+    mockChangeWorkflow,
+    { isLoading: false },
+  ],
+  useGetIntakeWorkflowChoicesQuery: () => ({
+    data: [
+      { id: 'w-1', key: 3, name: 'Default Intake Workflow' },
+      { id: 'w-2', key: 4, name: 'Board Review' },
     ],
-    useGetIntakeWorkflowChoicesQuery: () => ({
-      data: [
-        { id: 'w-1', key: 3, name: 'Default Intake Workflow' },
-        { id: 'w-2', key: 4, name: 'Board Review' },
-      ],
-      isLoading: false,
-    }),
-    usePreviewIntakeDeskWorkflowChangeQuery: (
-      _args: unknown,
-      { skip }: { skip: boolean },
-    ) => ({
-      data: skip ? undefined : mockPreview,
-      isFetching: false,
-      error: undefined,
-      refetch: mockRefetch,
-    }),
+    isLoading: false,
   }),
-)
+  usePreviewIntakeDeskWorkflowChangeQuery: (
+    _args: unknown,
+    { skip }: { skip: boolean },
+  ) => ({
+    data: skip ? undefined : mockPreview,
+    isFetching: false,
+    error: undefined,
+    refetch: mockRefetch,
+  }),
+}))
 
 const preview = (unresolved: boolean) => ({
   remap: {
@@ -85,8 +82,8 @@ const renderForm = async () =>
             canChange: true,
           } as any
         }
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -157,9 +154,7 @@ describe('ChangeIntakeDeskWorkflowForm', () => {
     await next()
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Change' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Change' }))
 
     // Assert
     expect(mockChangeWorkflow).toHaveBeenCalledWith({
@@ -244,9 +239,7 @@ describe('ChangeIntakeDeskWorkflowForm', () => {
     await next()
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Change' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Change' }))
 
     // Assert
     expect(screen.getByText(refusal)).toBeInTheDocument()

@@ -1,10 +1,9 @@
-// Core math needs REAL dayjs (the global jest.setup mock only stubs `.format`).
-jest.unmock('dayjs')
 import { applyDrag, progressFromX, snapToDay } from './interaction'
 import dayjs from 'dayjs'
 
 const DAY = 86_400_000
-const day = (n: number) => dayjs('2026-01-01').startOf('day').add(n, 'day').valueOf()
+const day = (n: number) =>
+  dayjs('2026-01-01').startOf('day').add(n, 'day').valueOf()
 
 // 100px per day => pxPerMs.
 const pxPerMs = 100 / DAY
@@ -29,7 +28,12 @@ describe('snapToDay', () => {
 describe('applyDrag — move', () => {
   it('shifts both ends by the dragged days, preserving duration', () => {
     // Arrange — drag +200px = +2 days.
-    const ctx = { mode: 'move' as const, item: item(0, 3), pxPerMs, deltaPx: 200 }
+    const ctx = {
+      mode: 'move' as const,
+      item: item(0, 3),
+      pxPerMs,
+      deltaPx: 200,
+    }
     // Act
     const r = applyDrag(ctx)
     // Assert
@@ -39,7 +43,12 @@ describe('applyDrag — move', () => {
 
   it('snaps a fractional-day drag to the nearest day boundary', () => {
     // Arrange — +150px = +1.5 days; snaps start to a day boundary.
-    const ctx = { mode: 'move' as const, item: item(0, 3), pxPerMs, deltaPx: 150 }
+    const ctx = {
+      mode: 'move' as const,
+      item: item(0, 3),
+      pxPerMs,
+      deltaPx: 150,
+    }
     // Act
     const r = applyDrag(ctx)
     // Assert — start lands on a clean day start.

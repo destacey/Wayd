@@ -2,8 +2,7 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import RecordHeader from './record-header'
 
-jest.mock('../follow-button', () => ({
-  __esModule: true,
+vi.mock('../follow-button', () => ({
   default: ({ ownerId }: { ownerId: string }) => (
     <button aria-label="Follow" data-owner-id={ownerId} />
   ),
@@ -148,7 +147,7 @@ describe('RecordHeader', () => {
         name="Apollo"
         actions={<button>Actions</button>}
         follow={{ ownerType: 'ppm.project', ownerId: 'project-1' }}
-        factsToggle={{ open: false, onToggle: jest.fn() }}
+        factsToggle={{ open: false, onToggle: vi.fn() }}
       />,
     )
 

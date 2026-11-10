@@ -4,8 +4,6 @@ import userEvent from '@testing-library/user-event'
 import CapacityPlanGrid, { PlanUnit } from './capacity-plan-grid'
 import { PlanRow, PlanWeek, RowEdits } from './capacity-plan-data'
 
-jest.unmock('dayjs')
-
 // The antd Table measures its scrollbar with a pseudo-element, which jsdom does
 // not implement and reports as an error.
 Object.defineProperty(window, 'getComputedStyle', {
@@ -45,7 +43,7 @@ const ROW: PlanRow = {
   canManageTimeAway: true,
 }
 
-const mockEdits = jest.fn()
+const mockEdits = vi.fn()
 
 /** The grid in editing, holding its edits as the plan does. */
 const EditingGrid = ({
@@ -85,7 +83,7 @@ const toggle = (direction: 'Expand' | 'Collapse') =>
 
 describe('CapacityPlanGrid', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('shows a week edit on each of its days once the week is expanded', async () => {
@@ -195,7 +193,7 @@ describe('CapacityPlanGrid in view', () => {
         weeks={WEEKS}
         editing={false}
         edits={{}}
-        onEditRow={jest.fn()}
+        onEditRow={vi.fn()}
         workingDayHours={8}
         {...props}
       />,
@@ -256,7 +254,7 @@ describe('CapacityPlanGrid in view', () => {
   })
 
   it('offers to record time away for a person whose time away the caller may manage', async () => {
-    const onRecordTimeAway = jest.fn()
+    const onRecordTimeAway = vi.fn()
     renderView({ onRecordTimeAway })
 
     await userEvent.click(
@@ -274,7 +272,7 @@ describe('CapacityPlanGrid in view', () => {
   ])('offers no time away action for a person %s', (_, row) => {
     renderView({
       rows: [{ ...AWAY_ROW, ...row }],
-      onRecordTimeAway: jest.fn(),
+      onRecordTimeAway: vi.fn(),
     })
 
     expect(
@@ -291,7 +289,7 @@ describe('CapacityPlanGrid on a team day off', () => {
         weeks={WEEKS}
         editing={false}
         edits={{}}
-        onEditRow={jest.fn()}
+        onEditRow={vi.fn()}
         teamDaysOff={[{ date: '2027-02-04', percentOff: 100 }]}
       />,
     )
@@ -315,7 +313,7 @@ describe('CapacityPlanGrid on a team day off', () => {
         weeks={WEEKS}
         editing={false}
         edits={{}}
-        onEditRow={jest.fn()}
+        onEditRow={vi.fn()}
         workingDayHours={8}
         teamDaysOff={[
           { date: '2027-02-03', percentOff: 50 },

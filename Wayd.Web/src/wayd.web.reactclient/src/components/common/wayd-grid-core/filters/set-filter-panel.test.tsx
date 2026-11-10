@@ -15,7 +15,7 @@ describe('SetFilterPanel', () => {
     it('checks everything when there is no filter (undefined)', () => {
       // Arrange / Act
       render(
-        <SetFilterPanel allValues={ALL} value={undefined} onChange={jest.fn()} />,
+        <SetFilterPanel allValues={ALL} value={undefined} onChange={vi.fn()} />,
       )
 
       // Assert — every value + Select All checked
@@ -29,7 +29,7 @@ describe('SetFilterPanel', () => {
         <SetFilterPanel
           allValues={ALL}
           value={{ type: 'set', values: ['System'] }}
-          onChange={jest.fn()}
+          onChange={vi.fn()}
         />,
       )
 
@@ -41,7 +41,7 @@ describe('SetFilterPanel', () => {
 
     it('renders the blank sentinel as a checkable (Blanks) entry', () => {
       // Arrange / Act
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <SetFilterPanel
           allValues={[...ALL, SET_FILTER_BLANK]}
@@ -65,9 +65,13 @@ describe('SetFilterPanel', () => {
   describe('toggling values', () => {
     it('unchecking one value emits the remaining checked subset', () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
-        <SetFilterPanel allValues={ALL} value={undefined} onChange={onChange} />,
+        <SetFilterPanel
+          allValues={ALL}
+          value={undefined}
+          onChange={onChange}
+        />,
       )
 
       // Act — uncheck "User" (all were checked)
@@ -83,7 +87,7 @@ describe('SetFilterPanel', () => {
 
     it('re-checking the last value collapses back to no filter (undefined)', () => {
       // Arrange — start with only System checked
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <SetFilterPanel
           allValues={ALL}
@@ -103,9 +107,13 @@ describe('SetFilterPanel', () => {
   describe('Select All', () => {
     it('unchecking Select All emits an empty set (nothing passes)', () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
-        <SetFilterPanel allValues={ALL} value={undefined} onChange={onChange} />,
+        <SetFilterPanel
+          allValues={ALL}
+          value={undefined}
+          onChange={onChange}
+        />,
       )
 
       // Act
@@ -119,7 +127,7 @@ describe('SetFilterPanel', () => {
 
     it('checking Select All (from a subset) collapses to no filter', () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <SetFilterPanel
           allValues={ALL}
@@ -141,7 +149,7 @@ describe('SetFilterPanel', () => {
         <SetFilterPanel
           allValues={ALL}
           value={{ type: 'set', values: ['System'] }}
-          onChange={jest.fn()}
+          onChange={vi.fn()}
         />,
       )
 
@@ -157,7 +165,7 @@ describe('SetFilterPanel', () => {
     it('filters the visible values and hides Select All while searching', () => {
       // Arrange
       render(
-        <SetFilterPanel allValues={ALL} value={undefined} onChange={jest.fn()} />,
+        <SetFilterPanel allValues={ALL} value={undefined} onChange={vi.fn()} />,
       )
 
       // Act
@@ -181,7 +189,7 @@ describe('SetFilterPanel', () => {
             { value: '2', label: 'Disabled' },
           ]}
           value={undefined}
-          onChange={jest.fn()}
+          onChange={vi.fn()}
         />,
       )
 
@@ -200,7 +208,7 @@ describe('SetFilterPanel', () => {
     it('focuses the search box on mount so typing works immediately', () => {
       // Arrange / Act
       render(
-        <SetFilterPanel allValues={ALL} value={undefined} onChange={jest.fn()} />,
+        <SetFilterPanel allValues={ALL} value={undefined} onChange={vi.fn()} />,
       )
 
       // Assert — the host remounts this panel per open (destroyOnHidden), so
@@ -212,9 +220,13 @@ describe('SetFilterPanel', () => {
   describe('committing the search with Enter', () => {
     it('emits the visible matches as the selection and clears the search', () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
-        <SetFilterPanel allValues={ALL} value={undefined} onChange={onChange} />,
+        <SetFilterPanel
+          allValues={ALL}
+          value={undefined}
+          onChange={onChange}
+        />,
       )
       const input = screen.getByPlaceholderText('Search...')
       fireEvent.change(input, { target: { value: 'sys' } })
@@ -229,12 +241,12 @@ describe('SetFilterPanel', () => {
 
     it('signals the host to close the popup after committing', () => {
       // Arrange
-      const onCommit = jest.fn()
+      const onCommit = vi.fn()
       render(
         <SetFilterPanel
           allValues={ALL}
           value={undefined}
-          onChange={jest.fn()}
+          onChange={vi.fn()}
           onCommit={onCommit}
         />,
       )
@@ -250,12 +262,12 @@ describe('SetFilterPanel', () => {
 
     it('does not close the popup when Enter is a no-op', () => {
       // Arrange
-      const onCommit = jest.fn()
+      const onCommit = vi.fn()
       render(
         <SetFilterPanel
           allValues={ALL}
           value={undefined}
-          onChange={jest.fn()}
+          onChange={vi.fn()}
           onCommit={onCommit}
         />,
       )
@@ -271,7 +283,7 @@ describe('SetFilterPanel', () => {
 
     it('commits every match when the search hits more than one value', () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <SetFilterPanel
           allValues={['Approved', 'Approving', 'Rejected']}
@@ -294,9 +306,13 @@ describe('SetFilterPanel', () => {
 
     it('does nothing when the search is empty', () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
-        <SetFilterPanel allValues={ALL} value={undefined} onChange={onChange} />,
+        <SetFilterPanel
+          allValues={ALL}
+          value={undefined}
+          onChange={onChange}
+        />,
       )
       const input = screen.getByPlaceholderText('Search...')
 
@@ -309,9 +325,13 @@ describe('SetFilterPanel', () => {
 
     it('does nothing when the search matches no values', () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
-        <SetFilterPanel allValues={ALL} value={undefined} onChange={onChange} />,
+        <SetFilterPanel
+          allValues={ALL}
+          value={undefined}
+          onChange={onChange}
+        />,
       )
       const input = screen.getByPlaceholderText('Search...')
       fireEvent.change(input, { target: { value: 'zzz' } })
@@ -325,7 +345,7 @@ describe('SetFilterPanel', () => {
 
     it('collapses to no filter when the search matches everything', () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <SetFilterPanel
           allValues={['Alpha', 'Alpine']}
@@ -347,7 +367,7 @@ describe('SetFilterPanel', () => {
   describe('reset', () => {
     it('clears the filter (undefined) and is disabled when already unfiltered', () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       const { rerender } = render(
         <SetFilterPanel
           allValues={ALL}
@@ -364,7 +384,11 @@ describe('SetFilterPanel', () => {
 
       // And when unfiltered, Reset is disabled
       rerender(
-        <SetFilterPanel allValues={ALL} value={undefined} onChange={onChange} />,
+        <SetFilterPanel
+          allValues={ALL}
+          value={undefined}
+          onChange={onChange}
+        />,
       )
       expect(screen.getByRole('button', { name: 'Reset' })).toBeDisabled()
     })

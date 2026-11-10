@@ -1,15 +1,16 @@
+// @vitest-environment jsdom
 import { renderHook } from '@testing-library/react'
 import { homeContext } from './home-context-test-utils'
 import { useHomeContext } from './use-home-context'
 
 const mockLinked = { hasLinkedEmployee: true }
-const mockQuery = jest.fn()
+const mockQuery = vi.fn()
 
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useLinkedEmployee: () => mockLinked,
 }))
 
-jest.mock('@/src/store/features/user-management/me-api', () => ({
+vi.mock('@/src/store/features/user-management/me-api', () => ({
   useGetHomeContextQuery: (...args: unknown[]) => mockQuery(...args),
 }))
 

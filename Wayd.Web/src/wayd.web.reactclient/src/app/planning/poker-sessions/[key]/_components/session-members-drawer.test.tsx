@@ -1,11 +1,12 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { PokerSessionDetailsDto, Visibility } from '@/src/services/wayd-api'
 import SessionMembersDrawer from './session-members-drawer'
 import { useGetPokerSessionInvitedTeamMembersQuery } from '@/src/store/features/planning/poker-sessions-api'
 
-jest.mock('@/src/store/features/planning/poker-sessions-api', () => ({
-  useGetPokerSessionInvitedTeamMembersQuery: jest.fn(),
+vi.mock('@/src/store/features/planning/poker-sessions-api', () => ({
+  useGetPokerSessionInvitedTeamMembersQuery: vi.fn(),
 }))
 
 const employee = (id: string, name: string) => ({ id, key: 1, name })
@@ -35,14 +36,14 @@ const session = {
 
 describe('SessionMembersDrawer', () => {
   beforeEach(() => {
-    ;(useGetPokerSessionInvitedTeamMembersQuery as jest.Mock).mockReturnValue({
+    ;(useGetPokerSessionInvitedTeamMembersQuery as Mock).mockReturnValue({
       data: [employee('t-1', 'Tam Teammate')],
       isFetching: false,
     })
   })
 
   it('lists facilitators, and who joined with their tags', () => {
-    render(<SessionMembersDrawer session={session} open onClose={jest.fn()} />)
+    render(<SessionMembersDrawer session={session} open onClose={vi.fn()} />)
 
     expect(screen.getByText('Joined (2)')).toBeInTheDocument()
     expect(screen.getByText('Pat Product')).toBeInTheDocument()
@@ -52,7 +53,7 @@ describe('SessionMembersDrawer', () => {
   })
 
   it('expands an invited team into its members', async () => {
-    render(<SessionMembersDrawer session={session} open onClose={jest.fn()} />)
+    render(<SessionMembersDrawer session={session} open onClose={vi.fn()} />)
 
     expect(useGetPokerSessionInvitedTeamMembersQuery).toHaveBeenLastCalledWith(
       { sessionId: 'session-1', teamId: 'team-1' },
@@ -75,12 +76,12 @@ describe('SessionMembersDrawer', () => {
   })
 
   it('says so when a team’s members cannot be loaded', async () => {
-    ;(useGetPokerSessionInvitedTeamMembersQuery as jest.Mock).mockReturnValue({
+    ;(useGetPokerSessionInvitedTeamMembersQuery as Mock).mockReturnValue({
       data: undefined,
       isFetching: false,
       isError: true,
     })
-    render(<SessionMembersDrawer session={session} open onClose={jest.fn()} />)
+    render(<SessionMembersDrawer session={session} open onClose={vi.fn()} />)
 
     await userEvent.click(screen.getByRole('button', { name: /Platform/ }))
 
@@ -95,7 +96,7 @@ describe('SessionMembersDrawer', () => {
       <SessionMembersDrawer
         session={{ ...session, visibility: Visibility.Public }}
         open
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     )
 

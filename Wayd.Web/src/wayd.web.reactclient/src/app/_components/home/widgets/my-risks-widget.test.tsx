@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import MyRisksWidget, {
   countFollowUpsDue,
@@ -10,31 +11,30 @@ import { homeContext } from '../home-context-test-utils'
 
 const mockHome: { context?: HomeContextResponse } = {}
 
-jest.mock('../use-home-context', () => ({
+vi.mock('../use-home-context', () => ({
   useHomeContext: () => ({ context: mockHome.context, isLoading: false }),
 }))
 
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn() }),
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
 }))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ user: { username: 'alex@example.com' } }),
 }))
 
-jest.mock('@/src/store/features/planning/risks-api', () => ({
-  useGetMyRisksQuery: jest.fn(),
+vi.mock('@/src/store/features/planning/risks-api', () => ({
+  useGetMyRisksQuery: vi.fn(),
 }))
 
-jest.mock('@/src/utils', () => ({
-  ...jest.requireActual('@/src/utils'),
+vi.mock('@/src/utils', async () => ({
+  ...(await vi.importActual<any>('@/src/utils')),
   todayCalendarDate: () => '2026-11-08',
 }))
 
 import { useGetMyRisksQuery } from '@/src/store/features/planning/risks-api'
 
-const mockRisks = useGetMyRisksQuery as jest.Mock
+const mockRisks = useGetMyRisksQuery as Mock
 
 const risk = (
   key: number,
@@ -100,7 +100,7 @@ describe('sortByFollowUp', () => {
 
 describe('MyRisksWidget', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockHome.context = undefined
   })
 

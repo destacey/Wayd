@@ -13,30 +13,27 @@ interface CapturedProps {
   noteMentionCandidates: MentionCandidate[]
 }
 let captured: CapturedProps
-jest.mock('@/src/components/common/discussions', () => ({
+vi.mock('@/src/components/common/discussions', () => ({
   RecordDiscussion: (props: CapturedProps) => {
     captured = props
     return null
   },
 }))
 
-const mockUseSettings = jest.fn()
-jest.mock('@/src/store/features/common/discussions-api', () => ({
+const mockUseSettings = vi.fn()
+vi.mock('@/src/store/features/common/discussions-api', () => ({
   DiscussionChannelTypes: { IntakeRequest: 'demand.intake-request' },
   useGetDiscussionSettingsQuery: (...args: unknown[]) =>
     mockUseSettings(...args),
 }))
 
-const mockUseDesk = jest.fn()
-const mockUseEveryone = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetIntakeDeskQuery: (...args: unknown[]) => mockUseDesk(...args),
-    useGetIntakeEmployeeOptionsQuery: (...args: unknown[]) =>
-      mockUseEveryone(...args),
-  }),
-)
+const mockUseDesk = vi.fn()
+const mockUseEveryone = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetIntakeDeskQuery: (...args: unknown[]) => mockUseDesk(...args),
+  useGetIntakeEmployeeOptionsQuery: (...args: unknown[]) =>
+    mockUseEveryone(...args),
+}))
 
 const agent = { id: 'e-9', key: 9, name: 'Marcus Lee' }
 const requester = { id: 'e-1', key: 1, name: 'Priya Natarajan' }
@@ -61,7 +58,7 @@ const request = (overrides: Partial<IntakeRequestDetailsDto> = {}) =>
 
 describe('IntakeRequestDiscussion', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockUseDesk.mockReturnValue({
       data: {
         visibility: IntakeDeskVisibility.Private,

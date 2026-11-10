@@ -1,12 +1,12 @@
 // Mocks must precede the import of the component under test.
 
-const mockGet = jest.fn()
-const mockApprove = jest.fn()
-const mockDeny = jest.fn()
-const mockNavigate = jest.fn()
+const mockGet = vi.fn()
+const mockApprove = vi.fn()
+const mockDeny = vi.fn()
+const mockNavigate = vi.fn()
 let mockFlag = { isEnabled: true, isLoading: false }
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   getOAuthAuthorizationRequestsClient: () => ({
     get: mockGet,
     approve: mockApprove,
@@ -14,14 +14,14 @@ jest.mock('@/src/services/clients', () => ({
   }),
 }))
 
-jest.mock('@/src/hooks', () => ({
-  useDocumentTitle: jest.fn(),
+vi.mock('@/src/hooks', () => ({
+  useDocumentTitle: vi.fn(),
   useFeatureFlag: () => mockFlag,
 }))
 
 let mockFramed = false
 
-jest.mock('@/src/utils/window-utils', () => ({
+vi.mock('@/src/utils/window-utils', () => ({
   navigateWithFullReload: (url: string) => mockNavigate(url),
   isFramed: () => mockFramed,
 }))
@@ -53,11 +53,9 @@ const networkError = () =>
   Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' })
 
 const withRequestParam = (handle: string | null) => {
-  jest
-    .mocked(useSearchParams)
-    .mockReturnValue(
-      new URLSearchParams(handle ? { request: handle } : {}) as never,
-    )
+  vi.mocked(useSearchParams).mockReturnValue(
+    new URLSearchParams(handle ? { request: handle } : {}) as never,
+  )
 }
 
 // The page loads and decides through plain promises, whose state updates reach
@@ -76,7 +74,7 @@ const click = async (name: string) => {
 
 const advance = async (ms: number) => {
   await act(async () => {
-    jest.advanceTimersByTime(ms)
+    vi.advanceTimersByTime(ms)
   })
 }
 
@@ -96,16 +94,16 @@ const setVisibility = (state: DocumentVisibilityState) => {
 
 describe('ConsentPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockFlag = { isEnabled: true, isLoading: false }
     mockFramed = false
     withRequestParam(HANDLE)
     setVisibility('visible')
-    jest.useFakeTimers()
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   describe('showing the request', () => {

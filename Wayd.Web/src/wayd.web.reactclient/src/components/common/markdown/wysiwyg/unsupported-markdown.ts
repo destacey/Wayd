@@ -62,7 +62,7 @@ const unsupportedConstructs: {
       /^ {0,3}\[\^[^\]\s]+\]:/m.test(prose) ? 'footnotes' : null,
   },
   {
-    find: (prose) => (/<!--/.test(prose) ? 'HTML comments' : null),
+    find: (prose) => (prose.includes('<!--') ? 'HTML comments' : null),
   },
   {
     find: (prose) => {

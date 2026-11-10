@@ -1,20 +1,14 @@
 import { render, screen } from '@testing-library/react'
 import IntakeRequestScore, { deskRankText } from './intake-request-score'
 
-// jest.setup stubs dayjs down to formatting; the score dates need the real module.
-jest.unmock('dayjs')
-
 let mockScoring: any
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetIntakeRequestScoringQuery: () => ({
-      data: mockScoring,
-      isLoading: false,
-      isError: false,
-    }),
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetIntakeRequestScoringQuery: () => ({
+    data: mockScoring,
+    isLoading: false,
+    isError: false,
   }),
-)
+}))
 
 const model = { id: 'm-1', key: 1, name: 'WSJF' }
 const score = (scoringModel = { id: 'm-1', key: 1, name: 'WSJF' }) => ({

@@ -8,10 +8,8 @@ import WysiwygMarkdownEditor from './wysiwyg-markdown-editor'
 
 beforeAll(stubEditorLayout)
 
-// jest.setup.ts replaces localStorage with mocks; each test starts with nothing remembered.
-beforeEach(() => {
-  jest.mocked(window.localStorage.getItem).mockReset().mockReturnValue(null)
-  jest.mocked(window.localStorage.setItem).mockReset()
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 /** The editable element, once Tiptap has mounted it. */
@@ -62,7 +60,7 @@ describe('WysiwygMarkdownEditor', () => {
 
   it('does not call onChange when content loads', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
 
     // Act
     render(
@@ -80,7 +78,7 @@ describe('WysiwygMarkdownEditor', () => {
 
   it('loads a new value without calling onChange when the form resets or switches record', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     const { rerender } = render(
       <WysiwygMarkdownEditor
         value="First record"
@@ -106,7 +104,7 @@ describe('WysiwygMarkdownEditor', () => {
 
   it('reports the edited document as markdown', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <WysiwygMarkdownEditor value="one" onChange={onChange} maxLength={100} />,
     )
@@ -122,7 +120,7 @@ describe('WysiwygMarkdownEditor', () => {
   it('reports the original text, not a rewrite, when an edit is undone', async () => {
     // Arrange: `*` bullets, which the serializer would write as `-`.
     const original = '* one\n* two'
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     const { rerender } = render(
       <WysiwygMarkdownEditor
         value={original}
@@ -152,7 +150,7 @@ describe('WysiwygMarkdownEditor', () => {
 
   it('refuses an edit that would make the markdown longer than maxLength', async () => {
     // Arrange: a rule adds `\n\n---`, taking `abc` to 8 characters.
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <WysiwygMarkdownEditor value="abc" onChange={onChange} maxLength={5} />,
     )
@@ -171,7 +169,7 @@ describe('WysiwygMarkdownEditor', () => {
 
   it('allows shortening text that was loaded over maxLength', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <WysiwygMarkdownEditor
         value="abcdef"
@@ -192,7 +190,7 @@ describe('WysiwygMarkdownEditor', () => {
 
   it('allows the same edit within maxLength', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <WysiwygMarkdownEditor value="abc" onChange={onChange} maxLength={8} />,
     )
@@ -237,7 +235,7 @@ describe('WysiwygMarkdownEditor', () => {
   it('opens the markdown source from the warning, where the formatting is kept', async () => {
     // Arrange
     const original = 'Note[^1]\n\n[^1]: Source.'
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <WysiwygMarkdownEditor
         value={original}
@@ -283,7 +281,7 @@ describe('WysiwygMarkdownEditor', () => {
 
   it('points at the source view again once a source edit replaces an edited document', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <WysiwygMarkdownEditor
         value="Press <kbd>Esc</kbd>"
@@ -307,7 +305,7 @@ describe('WysiwygMarkdownEditor', () => {
 
   it('advises undoing, not the source view, once a document edit has removed the formatting', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <WysiwygMarkdownEditor
         value="Press <kbd>Esc</kbd>"
@@ -340,7 +338,7 @@ describe('WysiwygMarkdownEditor', () => {
 
   it('keeps the warning after an edit has removed what it warns about', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     const { rerender } = render(
       <WysiwygMarkdownEditor
         value="Press <kbd>Esc</kbd>"
@@ -370,7 +368,7 @@ describe('WysiwygMarkdownEditor', () => {
 
   it('loads the record again when the form resets after an edit', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     const { rerender } = render(
       <WysiwygMarkdownEditor value="one" onChange={onChange} maxLength={100} />,
     )
@@ -485,7 +483,7 @@ describe('WysiwygMarkdownEditor', () => {
 
   it('pastes Office HTML as clean markdown, keeping only what the sanitizer allows', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <WysiwygMarkdownEditor value="" onChange={onChange} maxLength={1000} />,
     )
@@ -515,7 +513,7 @@ describe('WysiwygMarkdownEditor', () => {
     it('shows the loaded text exactly and changes nothing when switched there and back', async () => {
       // Arrange: `*` bullets, which the serializer would write as `-`.
       const original = '* one\n* two'
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <WysiwygMarkdownEditor
           value={original}
@@ -542,7 +540,7 @@ describe('WysiwygMarkdownEditor', () => {
 
     it('shows the serialized text after an edit in the document view', async () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <WysiwygMarkdownEditor
           value="one"
@@ -564,7 +562,7 @@ describe('WysiwygMarkdownEditor', () => {
     it('keeps the document and its undo history when switched back without a source edit', async () => {
       // Arrange
       const original = '* one\n* two'
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <WysiwygMarkdownEditor
           value={original}
@@ -587,7 +585,7 @@ describe('WysiwygMarkdownEditor', () => {
     it('reports a source edit as typed and keeps it exactly after switching back', async () => {
       // Arrange
       const typed = '* first\n* second'
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <WysiwygMarkdownEditor
           value="one"
@@ -613,7 +611,7 @@ describe('WysiwygMarkdownEditor', () => {
     it('treats a source edit as the new loaded text, so undoing a later edit reports it unchanged', async () => {
       // Arrange
       const typed = '* first\n* second'
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <WysiwygMarkdownEditor
           value="one"
@@ -638,7 +636,7 @@ describe('WysiwygMarkdownEditor', () => {
 
     it('loads a new record while in the source view, without calling onChange', async () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       const { rerender } = render(
         <WysiwygMarkdownEditor
           value="First record"
@@ -675,7 +673,7 @@ describe('WysiwygMarkdownEditor', () => {
 
     it('refuses a source edit that would make the markdown longer than maxLength', async () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <WysiwygMarkdownEditor value="abc" onChange={onChange} maxLength={5} />,
       )
@@ -695,7 +693,7 @@ describe('WysiwygMarkdownEditor', () => {
 
     it('allows a source edit up to maxLength', async () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <WysiwygMarkdownEditor value="abc" onChange={onChange} maxLength={5} />,
       )
@@ -712,7 +710,7 @@ describe('WysiwygMarkdownEditor', () => {
 
     it('allows shortening source text that was loaded over maxLength', async () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <WysiwygMarkdownEditor
           value="abcdef"
@@ -802,6 +800,7 @@ describe('WysiwygMarkdownEditor', () => {
 
     it('remembers the chosen view for the next editor', async () => {
       // Arrange
+      const setItem = vi.spyOn(Storage.prototype, 'setItem')
       render(<WysiwygMarkdownEditor value="one" maxLength={100} />)
       await findEditable()
 
@@ -810,21 +809,14 @@ describe('WysiwygMarkdownEditor', () => {
       await toggleSource()
 
       // Assert
-      expect(window.localStorage.setItem).toHaveBeenNthCalledWith(
-        1,
-        MARKDOWN_VIEW_KEY,
-        'source',
-      )
-      expect(window.localStorage.setItem).toHaveBeenLastCalledWith(
-        MARKDOWN_VIEW_KEY,
-        'document',
-      )
+      expect(setItem).toHaveBeenNthCalledWith(1, MARKDOWN_VIEW_KEY, 'source')
+      expect(setItem).toHaveBeenLastCalledWith(MARKDOWN_VIEW_KEY, 'document')
     })
 
     it('opens in the source view when that was the last view chosen', async () => {
       // Arrange
-      jest.mocked(window.localStorage.getItem).mockReturnValue('source')
-      const onChange = jest.fn()
+      window.localStorage.setItem(MARKDOWN_VIEW_KEY, 'source')
+      const onChange = vi.fn()
 
       // Act
       render(
@@ -847,7 +839,7 @@ describe('WysiwygMarkdownEditor', () => {
 
     it('opens in the document view when browser storage cannot be read', async () => {
       // Arrange
-      jest.mocked(window.localStorage.getItem).mockImplementation(() => {
+      vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
         throw new Error('SecurityError')
       })
 
@@ -860,7 +852,7 @@ describe('WysiwygMarkdownEditor', () => {
 
     it('starts a new undo history when a source edit is switched back', async () => {
       // Arrange: deleting the first paragraph leaves an undo step that would survive the replace.
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <WysiwygMarkdownEditor
           value={'one\n\ntwo\n\nthree'}
@@ -890,7 +882,7 @@ describe('WysiwygMarkdownEditor', () => {
 
     it('starts a new undo history when the form loads another record', async () => {
       // Arrange
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       const { rerender } = render(
         <WysiwygMarkdownEditor
           value={'one\n\ntwo'}
@@ -918,7 +910,7 @@ describe('WysiwygMarkdownEditor', () => {
     it('reports text loaded with CRLF line endings unchanged when an edit is typed back out', async () => {
       // Arrange
       const original = 'a\r\nb'
-      const onChange = jest.fn()
+      const onChange = vi.fn()
       render(
         <WysiwygMarkdownEditor
           value={original}
@@ -961,7 +953,7 @@ describe('WysiwygMarkdownEditor', () => {
 
     it('gives the field id and label back to the document view after the source view', async () => {
       // Arrange: opens in the source view, so the document never had them.
-      jest.mocked(window.localStorage.getItem).mockReturnValue('source')
+      window.localStorage.setItem(MARKDOWN_VIEW_KEY, 'source')
       render(
         <Form name="form">
           <Form.Item name="description" label="Description">
@@ -984,7 +976,7 @@ describe('WysiwygMarkdownEditor', () => {
 
     it('switches views when browser storage cannot be written', async () => {
       // Arrange
-      jest.mocked(window.localStorage.setItem).mockImplementation(() => {
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
         throw new Error('QuotaExceededError')
       })
       render(<WysiwygMarkdownEditor value="one" maxLength={100} />)

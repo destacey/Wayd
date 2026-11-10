@@ -7,15 +7,15 @@ import {
 } from '@/src/services/wayd-api'
 import SprintTypeForm from './sprint-type-form'
 
-const setSprintType = jest.fn()
-const errorMessage = jest.fn()
-const successMessage = jest.fn()
+const setSprintType = vi.fn()
+const errorMessage = vi.fn()
+const successMessage = vi.fn()
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: errorMessage, success: successMessage }),
 }))
 
-jest.mock('@/src/store/features/work-management/sprints-api', () => ({
+vi.mock('@/src/store/features/work-management/sprints-api', () => ({
   useGetSprintTypesQuery: () => ({
     data: [
       { id: 1, code: 'Standard', name: 'Standard', order: 1 },
@@ -50,18 +50,18 @@ const sprint: SprintDetailsDto = {
 
 const renderForm = (
   overrides: Partial<SprintDetailsDto> = {},
-  onFormComplete = jest.fn(),
+  onFormComplete = vi.fn(),
 ) =>
   render(
     <SprintTypeForm
       sprint={{ ...sprint, ...overrides }}
       onFormComplete={onFormComplete}
-      onFormCancel={jest.fn()}
+      onFormCancel={vi.fn()}
     />,
   )
 
 describe('SprintTypeForm', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => vi.clearAllMocks())
 
   it('starts on following the planning interval when the team set no type', () => {
     // Arrange / Act
@@ -84,7 +84,7 @@ describe('SprintTypeForm', () => {
   it('saves the chosen type', async () => {
     // Arrange
     setSprintType.mockResolvedValue({ data: undefined })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     renderForm({}, onFormComplete)
 
     // Act
@@ -127,7 +127,7 @@ describe('SprintTypeForm', () => {
         detail: 'Only members of the sprint’s team can change its sprint type.',
       },
     })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     renderForm({}, onFormComplete)
 
     // Act

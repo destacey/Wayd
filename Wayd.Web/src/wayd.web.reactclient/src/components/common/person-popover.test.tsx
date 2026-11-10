@@ -2,9 +2,9 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PersonPopover from './person-popover'
 
-const mockEmployee = jest.fn()
+const mockEmployee = vi.fn()
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeeByIdQuery: (...args: unknown[]) => mockEmployee(...args),
 }))
 
@@ -22,7 +22,7 @@ const employee = {
 
 describe('PersonPopover', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockEmployee.mockReturnValue({
       data: employee,
       isLoading: false,
@@ -118,7 +118,7 @@ describe('PersonPopover', () => {
   it('does not trigger a clickable container it sits on', async () => {
     // Arrange — these avatars sit on project cards that navigate on click, so
     // opening the card must not also open the project.
-    const onContainerClick = jest.fn()
+    const onContainerClick = vi.fn()
     const user = userEvent.setup()
     render(
       <div onClick={onContainerClick}>

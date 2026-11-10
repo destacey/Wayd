@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
@@ -10,13 +11,13 @@ import {
   useSetPokerSessionVotingMutation,
 } from '@/src/store/features/planning/poker-sessions-api'
 
-jest.mock('@/src/store/features/planning/poker-sessions-api', () => ({
-  useJoinPokerSessionMutation: jest.fn(),
-  useSetPokerSessionVotingMutation: jest.fn(),
+vi.mock('@/src/store/features/planning/poker-sessions-api', () => ({
+  useJoinPokerSessionMutation: vi.fn(),
+  useSetPokerSessionVotingMutation: vi.fn(),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ success: jest.fn(), error: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ success: vi.fn(), error: vi.fn() }),
 }))
 
 const session = { id: 'session-1', key: 7 } as PokerSessionDetailsDto
@@ -28,16 +29,16 @@ const member = (isVoting: boolean): PokerSessionMemberDto => ({
 })
 
 describe('SessionMembershipBar', () => {
-  const mockJoin = jest.fn().mockResolvedValue({})
-  const mockSetVoting = jest.fn().mockResolvedValue({})
+  const mockJoin = vi.fn().mockResolvedValue({})
+  const mockSetVoting = vi.fn().mockResolvedValue({})
 
   beforeEach(() => {
-    jest.clearAllMocks()
-    ;(useJoinPokerSessionMutation as jest.Mock).mockReturnValue([
+    vi.clearAllMocks()
+    ;(useJoinPokerSessionMutation as Mock).mockReturnValue([
       mockJoin,
       { isLoading: false },
     ])
-    ;(useSetPokerSessionVotingMutation as jest.Mock).mockReturnValue([
+    ;(useSetPokerSessionVotingMutation as Mock).mockReturnValue([
       mockSetVoting,
       { isLoading: false },
     ])

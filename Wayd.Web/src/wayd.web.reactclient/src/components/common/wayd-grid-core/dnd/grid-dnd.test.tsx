@@ -2,11 +2,11 @@ import { render, screen } from '@testing-library/react'
 import { GridSortableRow, useGridDragHandle } from './grid-dnd'
 
 // Mock @dnd-kit/sortable
-jest.mock('@dnd-kit/sortable', () => ({
-  useSortable: jest.fn(() => ({
+vi.mock('@dnd-kit/sortable', () => ({
+  useSortable: vi.fn(() => ({
     attributes: { role: 'button', tabIndex: 0 },
-    listeners: { onMouseDown: jest.fn() },
-    setNodeRef: jest.fn(),
+    listeners: { onMouseDown: vi.fn() },
+    setNodeRef: vi.fn(),
     transform: null,
     transition: undefined,
     isDragging: false,
@@ -14,10 +14,10 @@ jest.mock('@dnd-kit/sortable', () => ({
 }))
 
 // Mock @dnd-kit/utilities
-jest.mock('@dnd-kit/utilities', () => ({
+vi.mock('@dnd-kit/utilities', () => ({
   CSS: {
     Transform: {
-      toString: jest.fn(() => undefined),
+      toString: vi.fn(() => undefined),
     },
   },
 }))
@@ -99,7 +99,7 @@ describe('useGridDragHandle', () => {
     }
 
     // Suppress React error boundary noise
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     expect(() => render(<TestComponent />)).toThrow(
       'useGridDragHandle must be used within GridSortableRow',

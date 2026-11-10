@@ -3,20 +3,19 @@ import userEvent from '@testing-library/user-event'
 import { IntakeDeskRole, IntakeDeskVisibility } from '@/src/services/wayd-api'
 import CreateIntakeDeskForm from './create-intake-desk-form'
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => true, hasClaim: () => true }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-// In Jest, Form.useWatch does not refire after typing, so the real hook's validity never updates; as the
+// Under jsdom, Form.useWatch does not refire after typing, so the real hook's validity never updates; as the
 // other form suites do, keep the form instance real and submit through validateFields, which, like the real hook,
 // returns only the fields that are mounted.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -39,7 +38,7 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields().catch(() => null)
           if (values && (await onSubmit(values, form))) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -48,7 +47,7 @@ jest.mock('@/src/hooks', () => {
 // The employee picker is an antd Select, which jsdom drives poorly; each stand-in picks the employees its
 // test names, keyed by the field it renders for.
 let mockPicks: Record<string, string[]> = {}
-jest.mock('@/src/components/common/organizations', () => ({
+vi.mock('@/src/components/common/organizations', () => ({
   EmployeeSelect: ({
     id,
     onChange,
@@ -66,40 +65,37 @@ jest.mock('@/src/components/common/organizations', () => ({
   },
 }))
 
-const mockCreate = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useCreateIntakeDeskMutation: () => [mockCreate],
-    useGetIntakeDeskVisibilitiesQuery: () => ({
-      data: [
-        {
-          id: 1,
-          code: 'Open',
-          name: 'Open',
-          description: 'Anyone who can view requests reads the whole request.',
-          order: 1,
-        },
-        {
-          id: 3,
-          code: 'Private',
-          name: 'Private',
-          description:
-            "Only the desk and the request's own people know the request exists.",
-          order: 3,
-        },
-      ],
-    }),
-    useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
+const mockCreate = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useCreateIntakeDeskMutation: () => [mockCreate],
+  useGetIntakeDeskVisibilitiesQuery: () => ({
+    data: [
+      {
+        id: 1,
+        code: 'Open',
+        name: 'Open',
+        description: 'Anyone who can view requests reads the whole request.',
+        order: 1,
+      },
+      {
+        id: 3,
+        code: 'Private',
+        name: 'Private',
+        description:
+          "Only the desk and the request's own people know the request exists.",
+        order: 3,
+      },
+    ],
   }),
-)
+  useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
+}))
 
-const renderForm = async (onFormComplete = jest.fn()) =>
+const renderForm = async (onFormComplete = vi.fn()) =>
   await act(async () =>
     render(
       <CreateIntakeDeskForm
         onFormComplete={onFormComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -116,7 +112,7 @@ describe('CreateIntakeDeskForm', () => {
       screen.getByLabelText('What to bring here'),
       'Laptops, access and software',
     )
-    await act(() => userEvent.click(screen.getByText('Open')))
+    await userEvent.click(screen.getByText('Open'))
   }
 
   it('offers the visibilities from the lookup, with what each exposes', async () => {
@@ -140,7 +136,7 @@ describe('CreateIntakeDeskForm', () => {
     ).not.toBeInTheDocument()
 
     // Act
-    await act(() => userEvent.click(screen.getByText('Private')))
+    await userEvent.click(screen.getByText('Private'))
 
     // Assert
     expect(
@@ -153,14 +149,12 @@ describe('CreateIntakeDeskForm', () => {
     mockCreate.mockReturnValue({
       unwrap: () => Promise.resolve({ id: 'd-1', key: 1 }),
     })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     await renderForm(onFormComplete)
     await fillRequired()
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Create' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }))
 
     // Assert
     expect(mockCreate).toHaveBeenCalledWith({
@@ -183,13 +177,11 @@ describe('CreateIntakeDeskForm', () => {
     mockPicks = { adminIds: ['e-1'], agentIds: ['e-2', 'e-3'] }
     await renderForm()
     await fillRequired()
-    await act(() => userEvent.click(screen.getByText('pick adminIds')))
-    await act(() => userEvent.click(screen.getByText('pick agentIds')))
+    await userEvent.click(screen.getByText('pick adminIds'))
+    await userEvent.click(screen.getByText('pick agentIds'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Create' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }))
 
     // Assert
     expect(mockCreate).toHaveBeenCalledWith(
@@ -208,13 +200,11 @@ describe('CreateIntakeDeskForm', () => {
     mockPicks = { adminIds: ['e-1'], agentIds: ['e-1'] }
     await renderForm()
     await fillRequired()
-    await act(() => userEvent.click(screen.getByText('pick adminIds')))
-    await act(() => userEvent.click(screen.getByText('pick agentIds')))
+    await userEvent.click(screen.getByText('pick adminIds'))
+    await userEvent.click(screen.getByText('pick agentIds'))
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Create' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }))
 
     // Assert
     expect(

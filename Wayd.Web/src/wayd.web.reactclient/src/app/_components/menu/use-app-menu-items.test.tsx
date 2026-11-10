@@ -12,15 +12,14 @@ const mockFlags: Record<string, boolean> = {}
  */
 const mockClaims: { held: Set<string> | null } = { held: null }
 
-jest.mock('../../../components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('../../../components/contexts/auth', () => ({
   default: () => ({
     hasClaim: (_type: string, value: string) =>
       mockClaims.held === null || mockClaims.held.has(value),
   }),
 }))
 
-jest.mock('../../../hooks', () => ({
+vi.mock('../../../hooks', () => ({
   useFeatureFlag: (flag: string) => ({
     isEnabled: mockFlags[flag] ?? false,
     isLoading: false,

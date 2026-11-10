@@ -7,20 +7,19 @@ import {
 } from '@/src/components/common/notifications/notification-test-data'
 import NotificationsPage from './page'
 
-jest.mock('@/src/components/hoc', () => ({
+vi.mock('@/src/components/hoc', () => ({
   requireFeatureFlag: (Page: React.ComponentType) => Page,
 }))
 
-const mockUseAuth = jest.fn()
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+const mockUseAuth = vi.fn()
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => mockUseAuth(),
 }))
 
-const mockUseList = jest.fn()
-const mockUseCount = jest.fn()
-const mockMarkAllRead = jest.fn()
-jest.mock('@/src/store/features/common/notifications-api', () => ({
+const mockUseList = vi.fn()
+const mockUseCount = vi.fn()
+const mockMarkAllRead = vi.fn()
+vi.mock('@/src/store/features/common/notifications-api', () => ({
   useGetMyNotificationsInfiniteQuery: (...args: unknown[]) =>
     mockUseList(...args),
   useGetUnreadNotificationCountQuery: (...args: unknown[]) =>
@@ -29,24 +28,23 @@ jest.mock('@/src/store/features/common/notifications-api', () => ({
     mockMarkAllRead,
     { isLoading: false },
   ],
-  useMarkRecordNotificationsReadMutation: () => [jest.fn(), {}],
+  useMarkRecordNotificationsReadMutation: () => [vi.fn(), {}],
 }))
 
-jest.mock('@/src/store/features/common/notification-mutes-api', () => ({
-  useMuteRecordMutation: () => [jest.fn(), {}],
-  useUnmuteRecordMutation: () => [jest.fn(), {}],
+vi.mock('@/src/store/features/common/notification-mutes-api', () => ({
+  useMuteRecordMutation: () => [vi.fn(), {}],
+  useUnmuteRecordMutation: () => [vi.fn(), {}],
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
-    success: jest.fn(),
-    error: jest.fn(),
-    destroy: jest.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+    destroy: vi.fn(),
   }),
 }))
 
-jest.mock('./_components/muted-notifications', () => ({
-  __esModule: true,
+vi.mock('./_components/muted-notifications', () => ({
   default: () => <div>Everything you muted</div>,
 }))
 
@@ -59,12 +57,12 @@ const list = (pages: NotificationDto[][], hasNextPage = false) => ({
   isError: false,
   hasNextPage,
   isFetchingNextPage: false,
-  fetchNextPage: jest.fn(),
+  fetchNextPage: vi.fn(),
 })
 
 describe('NotificationsPage', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockUseAuth.mockReturnValue({ user: { employeeId: 'emp-1' } })
     mockUseCount.mockReturnValue({ data: { count: 1, isCapped: false } })
   })

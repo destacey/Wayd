@@ -1,3 +1,4 @@
+import type { MockInstance } from 'vitest'
 import {
   DEFAULT_RATE_LIMIT_WAIT_MS,
   isNetworkError,
@@ -51,12 +52,12 @@ describe('isNetworkError', () => {
 
 describe('logFailedRequest', () => {
   const url = '/api/organization/teams/team-1/sprints/active'
-  let warn: jest.SpyInstance
-  let error: jest.SpyInstance
+  let warn: MockInstance
+  let error: MockInstance
 
   beforeEach(() => {
-    warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
-    error = jest.spyOn(console, 'error').mockImplementation(() => {})
+    warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    error = vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   afterEach(() => {

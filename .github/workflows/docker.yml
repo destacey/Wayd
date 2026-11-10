@@ -167,9 +167,9 @@ jobs:
                       exit 1
                   fi
 
-            # Coverage instrumentation costs roughly 4x the test run itself (v8 provider over the whole
-            # source tree), and a PR publishes no coverage report, so PRs run the tests without it. The
-            # main-branch build collects coverage and uploads it alongside the .NET report.
+            # A PR publishes no coverage report, so PRs run the tests without it; v8 coverage adds only
+            # about a tenth to the run, but nothing would read it. The main-branch build collects coverage
+            # and uploads it alongside the .NET report.
             - name: npm test
               if: github.event_name != 'push' || github.ref != 'refs/heads/main'
               run: npm run test:ci
@@ -178,9 +178,8 @@ jobs:
               if: github.event_name == 'push' && github.ref == 'refs/heads/main'
               run: npm run test:coverage
 
-            # Only lcov.info is uploaded: it is what coverage-report parses, and the sibling artefacts are
-            # large and redundant (coverage-final.json and clover.xml are several MB each, and lcov-report is
-            # a full HTML tree that coverage-report regenerates anyway).
+            # Only lcov.info is uploaded: it is what coverage-report parses, and lcov-report beside it is a
+            # full HTML tree that coverage-report regenerates anyway.
             #
             # if-no-files-found: error, not warn — this step only runs on the main-branch push where the
             # coverage step above also ran, so a missing file means that step silently produced nothing
@@ -214,7 +213,7 @@ jobs:
                   dotnet-version: 10.0.x
 
             # Every coverage artifact lands under coverage/, one subdirectory per uploading job:
-            # coverage-dotnet holds Cobertura from both .NET halves, coverage-client holds Jest's lcov.
+            # coverage-dotnet holds Cobertura from both .NET halves, coverage-client holds Vitest's lcov.
             - name: Download coverage artifacts
               uses: actions/download-artifact@v4
               with:
@@ -244,7 +243,7 @@ jobs:
             # the client lands in it as an unnamed "Default" assembly next to the real ones. Two labelled
             # numbers say more than one averaged one.
             #
-            # Jest writes lcov.info; ReportGenerator parses it directly, so nothing has to convert formats.
+            # Vitest writes lcov.info; ReportGenerator parses it directly, so nothing has to convert formats.
             - name: Generate client coverage summary
               run: >-
                   reportgenerator

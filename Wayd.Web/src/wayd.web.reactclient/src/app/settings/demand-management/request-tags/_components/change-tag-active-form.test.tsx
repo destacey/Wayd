@@ -2,12 +2,12 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ChangeTagActiveForm from './change-tag-active-form'
 
-const mockError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: mockError, success: jest.fn() }),
+const mockError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: mockError, success: vi.fn() }),
 }))
 
-jest.mock('@/src/hooks', () => ({
+vi.mock('@/src/hooks', () => ({
   useConfirmModal: ({
     onSubmit,
     onComplete,
@@ -20,17 +20,14 @@ jest.mock('@/src/hooks', () => ({
     handleOk: async () => {
       if (await onSubmit()) onComplete()
     },
-    handleCancel: jest.fn(),
+    handleCancel: vi.fn(),
   }),
 }))
 
-const mockSetActive = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useSetIntakeRequestTagActiveMutation: () => [mockSetActive],
-  }),
-)
+const mockSetActive = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useSetIntakeRequestTagActiveMutation: () => [mockSetActive],
+}))
 
 const tag = { id: 't-1', name: 'Payments', isActive: true, requestCount: 4 }
 
@@ -43,7 +40,7 @@ describe('ChangeTagActiveForm', () => {
 
   it('deactivates the tag, saying the requests carrying it keep it', async () => {
     // Arrange
-    const onComplete = jest.fn()
+    const onComplete = vi.fn()
     await act(async () =>
       render(
         <ChangeTagActiveForm
@@ -51,15 +48,13 @@ describe('ChangeTagActiveForm', () => {
           tag={tag}
           isActive={false}
           onFormComplete={onComplete}
-          onFormCancel={jest.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Deactivate' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Deactivate' }))
 
     // Assert
     expect(
@@ -81,16 +76,14 @@ describe('ChangeTagActiveForm', () => {
           categoryId="category-1"
           tag={{ ...tag, isActive: false }}
           isActive
-          onFormComplete={jest.fn()}
-          onFormCancel={jest.fn()}
+          onFormComplete={vi.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Activate' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Activate' }))
 
     // Assert
     expect(mockSetActive).toHaveBeenCalledWith({
@@ -109,7 +102,7 @@ describe('ChangeTagActiveForm', () => {
           detail: 'The category is platform-defined.',
         }),
     })
-    const onComplete = jest.fn()
+    const onComplete = vi.fn()
     await act(async () =>
       render(
         <ChangeTagActiveForm
@@ -117,15 +110,13 @@ describe('ChangeTagActiveForm', () => {
           tag={tag}
           isActive={false}
           onFormComplete={onComplete}
-          onFormCancel={jest.fn()}
+          onFormCancel={vi.fn()}
         />,
       ),
     )
 
     // Act
-    await act(() =>
-      userEvent.click(screen.getByRole('button', { name: 'Deactivate' })),
-    )
+    await userEvent.click(screen.getByRole('button', { name: 'Deactivate' }))
 
     // Assert
     expect(mockError).toHaveBeenCalledWith('The category is platform-defined.')

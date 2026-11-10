@@ -2,16 +2,13 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import dayjs from 'dayjs'
 import CreatePersonalAccessTokenForm from './create-personal-access-token-form'
 
-// jest.setup stubs dayjs down to formatting; the form's default expiry and DatePicker need the real module.
-jest.unmock('dayjs')
+const createToken = vi.fn()
 
-const createToken = jest.fn()
-
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock(
+vi.mock(
   '@/src/store/features/user-management/personal-access-tokens-api',
   () => ({
     useCreatePersonalAccessTokenMutation: () => [createToken],
@@ -28,8 +25,8 @@ let formInstance:
   | undefined
 
 // The form instance is real — antd's Form binds to it, and a stub breaks on render.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -51,7 +48,7 @@ jest.mock('@/src/hooks', () => {
         isValid: true,
         isSaving: false,
         handleOk,
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -72,7 +69,7 @@ const submit = async () => {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   createToken.mockResolvedValue({ data: { token: 'plain-token' } })
 })
 

@@ -1,51 +1,55 @@
+// @vitest-environment jsdom
+import type { MockInstance } from 'vitest'
 import { downloadJson, downloadJsonWithTimestamp } from './json-utils'
 
-jest.mock('dayjs', () => {
-  const originalDayjs = jest.requireActual('dayjs')
-  return jest.fn((date?: any) => {
-    const instance = originalDayjs(date)
-    return {
-      ...instance,
-      format: jest.fn((format: string) => {
-        if (format === 'YYYY-MM-DD') {
-          return '2026-09-06'
-        }
-        return instance.format(format)
-      }),
-    }
-  })
+vi.mock('dayjs', async () => {
+  const originalDayjs = (await vi.importActual<any>('dayjs')).default
+  return {
+    default: vi.fn((date?: any) => {
+      const instance = originalDayjs(date)
+      return {
+        ...instance,
+        format: vi.fn((format: string) => {
+          if (format === 'YYYY-MM-DD') {
+            return '2026-09-06'
+          }
+          return instance.format(format)
+        }),
+      }
+    }),
+  }
 })
 
 describe('json-utils', () => {
   let mockLink: any
-  let appendChildSpy: jest.SpyInstance
-  let removeChildSpy: jest.SpyInstance
+  let appendChildSpy: MockInstance
+  let removeChildSpy: MockInstance
 
   beforeEach(() => {
-    global.URL.createObjectURL = jest.fn(() => 'blob:mock-json-url')
-    global.URL.revokeObjectURL = jest.fn()
+    global.URL.createObjectURL = vi.fn(() => 'blob:mock-json-url')
+    global.URL.revokeObjectURL = vi.fn()
 
     mockLink = {
       href: '',
       download: '',
-      click: jest.fn(),
+      click: vi.fn(),
     }
-    jest.spyOn(document, 'createElement').mockReturnValue(mockLink as any)
-    appendChildSpy = jest
+    vi.spyOn(document, 'createElement').mockReturnValue(mockLink as any)
+    appendChildSpy = vi
       .spyOn(document.body, 'appendChild')
       .mockImplementation(() => mockLink as any)
-    removeChildSpy = jest
+    removeChildSpy = vi
       .spyOn(document.body, 'removeChild')
       .mockImplementation(() => mockLink as any)
   })
 
   afterEach(() => {
-    jest.restoreAllMocks()
+    vi.restoreAllMocks()
   })
 
   describe('downloadJson', () => {
     it('creates a blob with json content and triggers download', () => {
-      jest.useFakeTimers()
+      vi.useFakeTimers()
 
       const jsonContent = JSON.stringify({ name: 'Alpha Team' }, null, 2)
       downloadJson(jsonContent, 'team.json')
@@ -63,12 +67,12 @@ describe('json-utils', () => {
 
       // revokeObjectURL called after timeout
       expect(global.URL.revokeObjectURL).not.toHaveBeenCalled()
-      jest.advanceTimersByTime(100)
+      vi.advanceTimersByTime(100)
       expect(global.URL.revokeObjectURL).toHaveBeenCalledWith(
         'blob:mock-json-url',
       )
 
-      jest.useRealTimers()
+      vi.useRealTimers()
     })
   })
 
@@ -84,4 +88,3 @@ describe('json-utils', () => {
     })
   })
 })
-

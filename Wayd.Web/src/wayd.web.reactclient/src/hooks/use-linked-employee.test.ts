@@ -1,17 +1,18 @@
+// @vitest-environment jsdom
+import type { Mock } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useLinkedEmployee } from './use-linked-employee'
 import useAuth from '../components/contexts/auth'
 
-jest.mock('../components/contexts/auth', () => ({
-  __esModule: true,
-  default: jest.fn(),
+vi.mock('../components/contexts/auth', () => ({
+  default: vi.fn(),
 }))
 
-const mockUseAuth = useAuth as jest.Mock
+const mockUseAuth = useAuth as Mock
 
 describe('useLinkedEmployee', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('reports a linked employee when the user has an employee id', () => {

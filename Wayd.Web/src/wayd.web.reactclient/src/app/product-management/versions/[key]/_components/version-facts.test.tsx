@@ -2,8 +2,6 @@ import { VersionDto } from '@/src/services/wayd-api'
 import { render, screen } from '@testing-library/react'
 import VersionFacts from './version-facts'
 
-jest.unmock('dayjs')
-
 const version = (overrides: Partial<VersionDto> = {}): VersionDto =>
   ({
     id: 'version-1',

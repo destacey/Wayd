@@ -2,36 +2,34 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import MyIntakeRequestsPage from './page'
 
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   PageTitle: ({ title }: { title: string }) => <h1>{title}</h1>,
 }))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => true }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 let mockEmployeeId: string | null = 'e-1'
-jest.mock('@/src/hooks', () => ({
-  useDocumentTitle: jest.fn(),
+vi.mock('@/src/hooks', () => ({
+  useDocumentTitle: vi.fn(),
   useLinkedEmployee: () => ({
     employeeId: mockEmployeeId,
     hasLinkedEmployee: mockEmployeeId !== null,
   }),
 }))
 
-jest.mock('@/src/components/hoc', () => ({
+vi.mock('@/src/components/hoc', () => ({
   authorizePage: (Component: React.ComponentType<any>) => Component,
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
 
 // The grid has its own suite; here only what the page asks it to show matters.
-jest.mock('../_components/intake-requests-grid', () => ({
-  __esModule: true,
+vi.mock('../_components/intake-requests-grid', () => ({
   default: ({ requests }: { requests?: { title: string }[] }) => (
     <ul>
       {requests?.map((r) => (
@@ -41,15 +39,12 @@ jest.mock('../_components/intake-requests-grid', () => ({
   ),
 }))
 
-const mockUseGetIntakeRequestsQuery = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetIntakeRequestsQuery: (...args: unknown[]) =>
-      mockUseGetIntakeRequestsQuery(...args),
-    useGetNeedByBasesQuery: () => ({ data: [] }),
-  }),
-)
+const mockUseGetIntakeRequestsQuery = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetIntakeRequestsQuery: (...args: unknown[]) =>
+    mockUseGetIntakeRequestsQuery(...args),
+  useGetNeedByBasesQuery: () => ({ data: [] }),
+}))
 
 describe('MyIntakeRequestsPage', () => {
   beforeEach(() => {
@@ -58,7 +53,7 @@ describe('MyIntakeRequestsPage', () => {
     mockUseGetIntakeRequestsQuery.mockReturnValue({
       data: [{ title: 'New laptop' }],
       isLoading: false,
-      refetch: jest.fn(),
+      refetch: vi.fn(),
     })
   })
 

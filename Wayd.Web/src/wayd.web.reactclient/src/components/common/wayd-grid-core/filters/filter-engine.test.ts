@@ -1,8 +1,3 @@
-// The global dayjs mock in jest.setup.ts is a formatting-only shim that lacks
-// isValid() and full startOf/isSame/isBefore granularity. The filter engine
-// needs real date math, so restore the actual dayjs for these tests.
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
 import type { Row } from '../index'
 import {
   createMultiValueSetFilter,
@@ -53,13 +48,22 @@ describe('filter-engine', () => {
         evaluateFilterModel(model([{ op: 'equals', value: 'abc' }]), 'abcd'),
       ).toBe(false)
       expect(
-        evaluateFilterModel(model([{ op: 'startsWith', value: 'road' }]), 'roadmap'),
+        evaluateFilterModel(
+          model([{ op: 'startsWith', value: 'road' }]),
+          'roadmap',
+        ),
       ).toBe(true)
       expect(
-        evaluateFilterModel(model([{ op: 'endsWith', value: 'map' }]), 'roadmap'),
+        evaluateFilterModel(
+          model([{ op: 'endsWith', value: 'map' }]),
+          'roadmap',
+        ),
       ).toBe(true)
       expect(
-        evaluateFilterModel(model([{ op: 'notContains', value: 'x' }]), 'roadmap'),
+        evaluateFilterModel(
+          model([{ op: 'notContains', value: 'x' }]),
+          'roadmap',
+        ),
       ).toBe(true)
     })
 
@@ -68,9 +72,9 @@ describe('filter-engine', () => {
       expect(evaluateFilterModel(model([{ op: 'blank', value: '' }]), '')).toBe(
         true,
       )
-      expect(evaluateFilterModel(model([{ op: 'blank', value: '' }]), 'x')).toBe(
-        false,
-      )
+      expect(
+        evaluateFilterModel(model([{ op: 'blank', value: '' }]), 'x'),
+      ).toBe(false)
       expect(
         evaluateFilterModel(model([{ op: 'notBlank', value: '' }]), 'x'),
       ).toBe(true)
@@ -119,9 +123,9 @@ describe('filter-engine', () => {
       expect(evaluateFilterModel(model([{ op: 'equals', value: 5 }]), 5)).toBe(
         true,
       )
-      expect(evaluateFilterModel(model([{ op: 'notEqual', value: 5 }]), 6)).toBe(
-        true,
-      )
+      expect(
+        evaluateFilterModel(model([{ op: 'notEqual', value: 5 }]), 6),
+      ).toBe(true)
     })
 
     it('supports inRange inclusive of both ends and normalizes order', () => {
@@ -175,14 +179,22 @@ describe('filter-engine', () => {
     it('supports before / after / inRange', () => {
       // Arrange / Act / Assert
       expect(
-        evaluateFilterModel(model([{ op: 'before', value: '2024-03-15' }]), '2024-03-14'),
-      ).toBe(true)
-      expect(
-        evaluateFilterModel(model([{ op: 'after', value: '2024-03-15' }]), '2024-03-16'),
+        evaluateFilterModel(
+          model([{ op: 'before', value: '2024-03-15' }]),
+          '2024-03-14',
+        ),
       ).toBe(true)
       expect(
         evaluateFilterModel(
-          model([{ op: 'inRange', value: '2024-03-01', valueTo: '2024-03-31' }]),
+          model([{ op: 'after', value: '2024-03-15' }]),
+          '2024-03-16',
+        ),
+      ).toBe(true)
+      expect(
+        evaluateFilterModel(
+          model([
+            { op: 'inRange', value: '2024-03-01', valueTo: '2024-03-31' },
+          ]),
           '2024-03-15',
         ),
       ).toBe(true)
@@ -231,7 +243,10 @@ describe('filter-engine', () => {
   })
 
   describe('evaluateFilterModel — set', () => {
-    const model = (values: string[]): SetFilterModel => ({ type: 'set', values })
+    const model = (values: string[]): SetFilterModel => ({
+      type: 'set',
+      values,
+    })
 
     it('passes all rows when no values are selected', () => {
       // Arrange / Act / Assert

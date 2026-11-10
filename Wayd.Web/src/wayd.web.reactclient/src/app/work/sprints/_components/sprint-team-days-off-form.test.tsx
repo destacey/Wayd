@@ -1,6 +1,3 @@
-// The form lists and formats real days; the global mock only stubs format.
-jest.unmock('dayjs')
-
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
@@ -14,15 +11,15 @@ import SprintTeamDaysOffForm, {
   sprintPlannedDays,
 } from './sprint-team-days-off-form'
 
-const setTeamDaysOff = jest.fn()
-const errorMessage = jest.fn()
-const successMessage = jest.fn()
+const setTeamDaysOff = vi.fn()
+const errorMessage = vi.fn()
+const successMessage = vi.fn()
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: errorMessage, success: successMessage }),
 }))
 
-jest.mock('@/src/store/features/work-management/sprints-api', () => ({
+vi.mock('@/src/store/features/work-management/sprints-api', () => ({
   useSetSprintTeamDaysOffMutation: () => [setTeamDaysOff, { isLoading: false }],
 }))
 
@@ -66,17 +63,17 @@ describe('sprintPlannedDays', () => {
 })
 
 describe('SprintTeamDaysOffForm', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => vi.clearAllMocks())
 
   it('starts from the sprint’s days off and saves the chosen days in date order', async () => {
     // Arrange
     setTeamDaysOff.mockResolvedValue({ data: undefined })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     render(
       <SprintTeamDaysOffForm
         sprint={sprint}
         onFormComplete={onFormComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
     expect(
@@ -110,8 +107,8 @@ describe('SprintTeamDaysOffForm', () => {
           ...sprint,
           teamDaysOff: [{ date: '2026-09-02', percentOff: 25 }],
         }}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
     expect(screen.queryByText('Half day')).not.toBeInTheDocument()
@@ -139,8 +136,8 @@ describe('SprintTeamDaysOffForm', () => {
             teamDaysOff: [{ date: '2026-09-02', percentOff: 1 }],
           }}
           allowPartDays={allowPartDays}
-          onFormComplete={jest.fn()}
-          onFormCancel={jest.fn()}
+          onFormComplete={vi.fn()}
+          onFormCancel={vi.fn()}
         />,
       )
       const save = screen.getByRole('button', { name: 'Save' })
@@ -165,8 +162,8 @@ describe('SprintTeamDaysOffForm', () => {
       <SprintTeamDaysOffForm
         sprint={sprint}
         allowPartDays
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
     await userEvent.click(
@@ -211,12 +208,12 @@ describe('SprintTeamDaysOffForm', () => {
           'Only members of the sprint’s team can change its team days off.',
       },
     })
-    const onFormComplete = jest.fn()
+    const onFormComplete = vi.fn()
     render(
       <SprintTeamDaysOffForm
         sprint={sprint}
         onFormComplete={onFormComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
 
@@ -263,8 +260,8 @@ describe('alreadyOff', () => {
     render(
       <SprintTeamDaysOffForm
         sprint={{ ...withCalendar, teamDaysOff: [] }}
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
 

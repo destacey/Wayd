@@ -1,16 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import RiskFacts from './risk-facts'
 
-// The follow-up date is a calendar date and must render as written; the global
-// dayjs mock parses it as UTC midnight, which would hide a day shift.
-// Instants sit at midday UTC so they land on the same local day in any zone.
-jest.unmock('dayjs')
-
-jest.mock('@/src/components/common/links/links-card', () => {
+vi.mock('@/src/components/common/links/links-card', () => {
   const LinksCard = () => <div>Links Card</div>
-  return LinksCard
+  return { default: LinksCard }
 })
 
+// Instants sit at midday UTC so they land on the same local day in any zone.
 const risk = {
   id: 'risk-1',
   key: 214,
@@ -117,10 +113,9 @@ describe('RiskFacts', () => {
   describe('age', () => {
     // A relative label depends on today, so pin the clock rather than let the
     // expected value drift.
-    beforeAll(() => {
-      jest.useFakeTimers().setSystemTime(new Date('2026-06-06T12:00:00Z'))
+    beforeEach(() => {
+      vi.useFakeTimers().setSystemTime(new Date('2026-06-06T12:00:00Z'))
     })
-    afterAll(() => jest.useRealTimers())
 
     it('says how long an open risk has been open', () => {
       // Arrange / Act — reported 2026-03-04, so 94 days by the pinned date.
@@ -157,10 +152,9 @@ describe('RiskFacts', () => {
   })
 
   describe('follow-up', () => {
-    beforeAll(() => {
-      jest.useFakeTimers().setSystemTime(new Date('2026-06-06T12:00:00Z'))
+    beforeEach(() => {
+      vi.useFakeTimers().setSystemTime(new Date('2026-06-06T12:00:00Z'))
     })
-    afterAll(() => jest.useRealTimers())
 
     it('counts down to a follow-up still ahead', () => {
       // Arrange / Act

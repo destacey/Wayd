@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -9,32 +10,29 @@ import {
 import { useGetEmployeeTeamMembershipsQuery } from '@/src/store/features/organization/team-members-api'
 import { StatusCategory } from '@/src/services/wayd-api'
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
-  useGetDirectReportsQuery: jest.fn(),
-  useGetEmployeeWorkItemsQuery: jest.fn(),
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
+  useGetDirectReportsQuery: vi.fn(),
+  useGetEmployeeWorkItemsQuery: vi.fn(),
 }))
 
-jest.mock('@/src/store/features/organization/team-members-api', () => ({
-  useGetEmployeeTeamMembershipsQuery: jest.fn(),
+vi.mock('@/src/store/features/organization/team-members-api', () => ({
+  useGetEmployeeTeamMembershipsQuery: vi.fn(),
 }))
 
-const mockReports = useGetDirectReportsQuery as unknown as jest.Mock
-const mockWorkItems = useGetEmployeeWorkItemsQuery as unknown as jest.Mock
-const mockTeams = useGetEmployeeTeamMembershipsQuery as unknown as jest.Mock
+const mockReports = useGetDirectReportsQuery as unknown as Mock
+const mockWorkItems = useGetEmployeeWorkItemsQuery as unknown as Mock
+const mockTeams = useGetEmployeeTeamMembershipsQuery as unknown as Mock
 
 const employee = { id: 'e1', displayName: 'Ada Lovelace' } as any
 
-const navigate = jest.fn()
+const navigate = vi.fn()
 const renderOverview = () =>
   render(
     <EmployeeOverview employee={employee} onNavigateToSection={navigate} />,
   )
 
 /** Assigned and completed work come from the same hook, keyed by status filter. */
-const setWorkItems = ({
-  open = [] as any[],
-  completed = [] as any[],
-} = {}) => {
+const setWorkItems = ({ open = [] as any[], completed = [] as any[] } = {}) => {
   mockWorkItems.mockImplementation((args: any) =>
     args.statusCategories?.includes(StatusCategory.Done)
       ? { data: completed, isLoading: false }
@@ -44,7 +42,7 @@ const setWorkItems = ({
 
 describe('EmployeeOverview', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockTeams.mockReturnValue({ data: [], isLoading: false })
     mockReports.mockReturnValue({ data: [], isLoading: false })
     setWorkItems()
@@ -61,7 +59,9 @@ describe('EmployeeOverview', () => {
   it('shows direct reports when the employee has them', () => {
     // Arrange
     mockReports.mockReturnValue({
-      data: [{ id: 'r1', key: 7, displayName: 'Wei Chen', jobTitle: 'Engineer' }],
+      data: [
+        { id: 'r1', key: 7, displayName: 'Wei Chen', jobTitle: 'Engineer' },
+      ],
       isLoading: false,
     })
 
@@ -126,9 +126,10 @@ describe('EmployeeOverview', () => {
     renderOverview()
 
     // Assert
-    expect(
-      screen.getByRole('link', { name: 'Platform Core' }),
-    ).toHaveAttribute('href', '/organizations/teams/14')
+    expect(screen.getByRole('link', { name: 'Platform Core' })).toHaveAttribute(
+      'href',
+      '/organizations/teams/14',
+    )
     expect(screen.getByRole('link', { name: 'Platform' })).toHaveAttribute(
       'href',
       '/organizations/team-of-teams/3',
@@ -193,7 +194,9 @@ describe('EmployeeOverview', () => {
     renderOverview()
 
     // Act
-    await user.click(screen.getByRole('button', { name: 'Assigned Work Items' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Assigned Work Items' }),
+    )
 
     // Assert
     expect(navigate).toHaveBeenCalledWith('work-items')

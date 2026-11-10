@@ -1,17 +1,18 @@
+import type { Mock } from 'vitest'
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import ProjectStatusHistoryModal from './project-status-history-modal'
 import { useGetProjectStatusHistoryQuery } from '@/src/store/features/ppm/projects-api'
 
-jest.mock('@/src/store/features/ppm/projects-api', () => ({
-  useGetProjectStatusHistoryQuery: jest.fn(),
+vi.mock('@/src/store/features/ppm/projects-api', () => ({
+  useGetProjectStatusHistoryQuery: vi.fn(),
 }))
 
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   LifecycleStatusTag: ({ status }: any) => <span>{status.name}</span>,
 }))
 
-jest.mock('antd', () => {
+vi.mock('antd', () => {
   const MockModal = ({ title, open, children }: any) =>
     open ? (
       <div>
@@ -59,7 +60,7 @@ jest.mock('antd', () => {
   }
 })
 
-const mockUseQuery = useGetProjectStatusHistoryQuery as jest.Mock
+const mockUseQuery = useGetProjectStatusHistoryQuery as Mock
 
 const entry = (overrides: Record<string, unknown> = {}) => ({
   id: 'entry-1',
@@ -80,7 +81,7 @@ const entry = (overrides: Record<string, unknown> = {}) => ({
 
 describe('ProjectStatusHistoryModal', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('renders nothing when closed', () => {
@@ -90,7 +91,7 @@ describe('ProjectStatusHistoryModal', () => {
       <ProjectStatusHistoryModal
         projectId="project-1"
         isOpen={false}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     )
 
@@ -104,7 +105,7 @@ describe('ProjectStatusHistoryModal', () => {
       <ProjectStatusHistoryModal
         projectId="project-1"
         isOpen={false}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     )
 
@@ -118,7 +119,7 @@ describe('ProjectStatusHistoryModal', () => {
       <ProjectStatusHistoryModal
         projectId="project-1"
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     )
 
@@ -132,7 +133,7 @@ describe('ProjectStatusHistoryModal', () => {
       <ProjectStatusHistoryModal
         projectId="project-1"
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     )
 
@@ -150,7 +151,7 @@ describe('ProjectStatusHistoryModal', () => {
       <ProjectStatusHistoryModal
         projectId="project-1"
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     )
 
@@ -178,7 +179,7 @@ describe('ProjectStatusHistoryModal', () => {
       <ProjectStatusHistoryModal
         projectId="project-1"
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     )
 
@@ -196,7 +197,7 @@ describe('ProjectStatusHistoryModal', () => {
       <ProjectStatusHistoryModal
         projectId="project-1"
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     )
 
@@ -213,7 +214,7 @@ describe('ProjectStatusHistoryModal', () => {
       <ProjectStatusHistoryModal
         projectId="project-1"
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     )
 
@@ -236,7 +237,7 @@ describe('ProjectStatusHistoryModal', () => {
       <ProjectStatusHistoryModal
         projectId="project-1"
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     )
 
@@ -257,7 +258,7 @@ describe('ProjectStatusHistoryModal', () => {
       <ProjectStatusHistoryModal
         projectId="project-1"
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     )
 
@@ -276,7 +277,7 @@ describe('ProjectStatusHistoryModal', () => {
       <ProjectStatusHistoryModal
         projectId="project-1"
         isOpen={true}
-        onClose={jest.fn()}
+        onClose={vi.fn()}
       />,
     )
 

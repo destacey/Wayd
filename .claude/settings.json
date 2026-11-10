@@ -12,7 +12,7 @@
       "Bash(find:*)",
       "Bash(ls:*)",
       "Bash(npx tsc:*)",
-      "Bash(npx jest:*)",
+      "Bash(npx vitest:*)",
       "Bash(npx eslint:*)"
     ]
   }

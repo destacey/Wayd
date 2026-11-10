@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { getDrawerWidthPixels, isFramed } from './window-utils'
 
 describe('getDrawerWidthPixels', () => {

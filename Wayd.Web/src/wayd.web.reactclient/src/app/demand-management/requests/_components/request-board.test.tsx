@@ -1,6 +1,3 @@
-// jest.setup stubs dayjs down to formatting, which shifts calendar dates; the need-by tag needs the real one.
-jest.unmock('dayjs')
-
 import { render, screen } from '@testing-library/react'
 import {
   IntakeRequestSummaryDto,

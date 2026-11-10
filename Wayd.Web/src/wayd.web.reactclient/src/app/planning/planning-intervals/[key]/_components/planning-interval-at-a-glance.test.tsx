@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 
 global.ResizeObserver = class {
@@ -8,28 +9,28 @@ global.ResizeObserver = class {
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation((query) => ({
+  value: vi.fn().mockImplementation((query) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
   })),
 })
 
-jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
-  useGetPlanningIntervalPredictabilityQuery: jest.fn(),
-  useGetPlanningIntervalTeamsQuery: jest.fn(),
-  useGetPlanningIntervalMetricsQuery: jest.fn(),
-  useGetPlanningIntervalObjectivesQuery: jest.fn(),
+vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
+  useGetPlanningIntervalPredictabilityQuery: vi.fn(),
+  useGetPlanningIntervalTeamsQuery: vi.fn(),
+  useGetPlanningIntervalMetricsQuery: vi.fn(),
+  useGetPlanningIntervalObjectivesQuery: vi.fn(),
 }))
 
 // Heavy chart components are tested separately. We just want to assert that
 // they're rendered (or not) under the right conditions.
-jest.mock('../../_components', () => ({
+vi.mock('../../_components', () => ({
   TeamPredictabilityRadarChart: () => (
     <div data-testid="team-predictability-radar" />
   ),
@@ -39,8 +40,7 @@ jest.mock('../../_components', () => ({
 
 // TimelineProgress already has its own tests, avoid pulling dayjs / Antd Grid
 // dependencies into this suite.
-jest.mock('@/src/components/common/planning/timeline-progress', () => ({
-  __esModule: true,
+vi.mock('@/src/components/common/planning/timeline-progress', () => ({
   default: () => <div data-testid="timeline-progress" />,
 }))
 
@@ -53,11 +53,10 @@ import {
 import PlanningIntervalAtAGlance from './planning-interval-at-a-glance'
 
 const mockPredictability =
-  useGetPlanningIntervalPredictabilityQuery as unknown as jest.Mock
-const mockTeams = useGetPlanningIntervalTeamsQuery as unknown as jest.Mock
-const mockMetrics = useGetPlanningIntervalMetricsQuery as unknown as jest.Mock
-const mockObjectives =
-  useGetPlanningIntervalObjectivesQuery as unknown as jest.Mock
+  useGetPlanningIntervalPredictabilityQuery as unknown as Mock
+const mockTeams = useGetPlanningIntervalTeamsQuery as unknown as Mock
+const mockMetrics = useGetPlanningIntervalMetricsQuery as unknown as Mock
+const mockObjectives = useGetPlanningIntervalObjectivesQuery as unknown as Mock
 
 // IterationState enum values: Unknown=0, Completed=1, Active=2, Future=3
 const ACTIVE = 2
@@ -91,7 +90,7 @@ const mkObjective = (
 
 describe('PlanningIntervalAtAGlance', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockPredictability.mockReturnValue({ data: undefined, isLoading: false })
     mockTeams.mockReturnValue({ data: undefined })
     mockMetrics.mockReturnValue({ data: undefined })

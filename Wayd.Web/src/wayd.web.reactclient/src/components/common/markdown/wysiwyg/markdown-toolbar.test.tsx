@@ -21,7 +21,7 @@ describe('MarkdownToolbar', () => {
   const renderToolbar = (
     content: string,
     cursorOn: string,
-    { sourceView = false, onToggleSourceView = jest.fn() } = {},
+    { sourceView = false, onToggleSourceView = vi.fn() } = {},
   ) => {
     editor = createTestEditor(content)
     selectText(editor, cursorOn)
@@ -153,7 +153,7 @@ describe('MarkdownToolbar', () => {
 
   it('offers the markdown source as a toggle, not pressed in the document view', async () => {
     // Arrange
-    const onToggleSourceView = jest.fn()
+    const onToggleSourceView = vi.fn()
     renderToolbar('line', 'line', { onToggleSourceView })
     const toggle = screen.getByRole('button', { name: 'Markdown source' })
 
@@ -197,7 +197,7 @@ describe('MarkdownToolbar', () => {
       <MarkdownToolbar
         editor={editor}
         sourceView={sourceView}
-        onToggleSourceView={jest.fn()}
+        onToggleSourceView={vi.fn()}
       />
     )
     const { rerender } = render(toolbar(false))

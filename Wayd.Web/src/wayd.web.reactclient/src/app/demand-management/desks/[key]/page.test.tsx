@@ -4,16 +4,16 @@ import IntakeDeskDetailsPage from './page'
 
 let mockSearchParams = new URLSearchParams()
 
-jest.mock('next/navigation', () => ({
-  notFound: jest.fn(),
+vi.mock('next/navigation', () => ({
+  notFound: vi.fn(),
   usePathname: () => '/demand-management/desks/1',
-  useRouter: () => ({ replace: jest.fn(), push: jest.fn() }),
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
   useSearchParams: () => mockSearchParams,
 }))
 
 // jsdom has no matchMedia; pin a wide viewport so the rail renders.
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   return {
     ...actual,
     Grid: {
@@ -23,7 +23,7 @@ jest.mock('antd', () => {
   }
 })
 
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   PageActions: ({ actionItems }: { actionItems: any[] }) => (
     <div data-testid="page-actions">
       {actionItems.map((item) => (
@@ -35,57 +35,52 @@ jest.mock('@/src/components/common', () => ({
   ),
 }))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
-    hasClaim: jest.fn(() => true),
-    hasPermissionClaim: jest.fn(() => true),
+    hasClaim: vi.fn(() => true),
+    hasPermissionClaim: vi.fn(() => true),
   }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/hooks', () => ({
-  ...jest.requireActual('@/src/hooks'),
-  useDocumentTitle: jest.fn(),
+vi.mock('@/src/hooks', async () => ({
+  ...(await vi.importActual<any>('@/src/hooks')),
+  useDocumentTitle: vi.fn(),
 }))
 
-jest.mock('@/src/components/hoc', () => ({
+vi.mock('@/src/components/hoc', () => ({
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
 
 // Grids have suites of their own; here only which actions the page offers matters.
-jest.mock('../../_components/intake-requests-grid', () => ({
-  __esModule: true,
+vi.mock('../../_components/intake-requests-grid', () => ({
   default: () => <div data-testid="requests-grid" />,
 }))
-jest.mock('@/src/components/common/wayd-grid', () => ({
+vi.mock('@/src/components/common/wayd-grid', () => ({
   WaydGrid: () => <div data-testid="members-grid" />,
 }))
 
 let mockDesk: any
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetIntakeDeskQuery: () => ({
-      data: mockDesk,
-      error: undefined,
-      refetch: jest.fn(),
-    }),
-    useGetIntakeDeskVisibilitiesQuery: () => ({ data: [] }),
-    useGetIntakeRequestsQuery: () => ({
-      data: [],
-      isLoading: false,
-      refetch: jest.fn(),
-    }),
-    useGetNeedByBasesQuery: () => ({ data: [] }),
-    useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
-    useUpdateIntakeDeskMutation: () => [jest.fn()],
-    useDeleteIntakeDeskMutation: () => [jest.fn()],
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetIntakeDeskQuery: () => ({
+    data: mockDesk,
+    error: undefined,
+    refetch: vi.fn(),
   }),
-)
+  useGetIntakeDeskVisibilitiesQuery: () => ({ data: [] }),
+  useGetIntakeRequestsQuery: () => ({
+    data: [],
+    isLoading: false,
+    refetch: vi.fn(),
+  }),
+  useGetNeedByBasesQuery: () => ({ data: [] }),
+  useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
+  useUpdateIntakeDeskMutation: () => [vi.fn()],
+  useDeleteIntakeDeskMutation: () => [vi.fn()],
+}))
 
 const desk = (overrides: Record<string, unknown> = {}) => ({
   id: 'd-1',

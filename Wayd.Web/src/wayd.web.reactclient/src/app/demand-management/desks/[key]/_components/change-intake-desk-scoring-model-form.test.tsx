@@ -2,12 +2,12 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ChangeIntakeDeskScoringModelForm from './change-intake-desk-scoring-model-form'
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -29,26 +29,23 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields().catch(() => null)
           if (values && (await onSubmit(values, form))) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const mockChangeScoringModel = jest.fn()
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useChangeIntakeDeskScoringModelMutation: () => [mockChangeScoringModel],
-    useGetIntakeScoringModelChoicesQuery: () => ({
-      data: [
-        { id: 'm-1', key: 1, name: 'WSJF', description: '' },
-        { id: 'm-2', key: 2, name: 'Weighted Criteria', description: '' },
-      ],
-      isLoading: false,
-    }),
+const mockChangeScoringModel = vi.fn()
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useChangeIntakeDeskScoringModelMutation: () => [mockChangeScoringModel],
+  useGetIntakeScoringModelChoicesQuery: () => ({
+    data: [
+      { id: 'm-1', key: 1, name: 'WSJF', description: '' },
+      { id: 'm-2', key: 2, name: 'Weighted Criteria', description: '' },
+    ],
+    isLoading: false,
   }),
-)
+}))
 
 const renderForm = async (scoringModel?: { id: string; name: string }) =>
   await act(async () =>
@@ -61,16 +58,14 @@ const renderForm = async (scoringModel?: { id: string; name: string }) =>
             scoringModel: scoringModel && { ...scoringModel, key: 9 },
           } as any
         }
-        onFormComplete={jest.fn()}
-        onFormCancel={jest.fn()}
+        onFormComplete={vi.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
 
 const submit = async () => {
-  await act(() =>
-    userEvent.click(screen.getByRole('button', { name: 'Change' })),
-  )
+  await userEvent.click(screen.getByRole('button', { name: 'Change' }))
 }
 
 describe('ChangeIntakeDeskScoringModelForm', () => {

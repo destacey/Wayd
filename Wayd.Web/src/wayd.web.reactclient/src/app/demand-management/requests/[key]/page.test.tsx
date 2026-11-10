@@ -3,23 +3,20 @@ import { act, render, screen, within } from '@testing-library/react'
 import { notFound } from 'next/navigation'
 import IntakeRequestDetailsPage from './page'
 
-// jest.setup stubs dayjs down to formatting; the participant dates and pickers need the real module.
-jest.unmock('dayjs')
-
 let mockSearchParams = new URLSearchParams()
-const mockReplace = jest.fn()
-const mockRouter = { replace: mockReplace, push: jest.fn() }
+const mockReplace = vi.fn()
+const mockRouter = { replace: mockReplace, push: vi.fn() }
 
-jest.mock('next/navigation', () => ({
-  notFound: jest.fn(),
+vi.mock('next/navigation', () => ({
+  notFound: vi.fn(),
   usePathname: () => '/demand-management/requests/42',
   useRouter: () => mockRouter,
   useSearchParams: () => mockSearchParams,
 }))
 
 // jsdom has no matchMedia; pin a wide viewport so the rail renders.
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   return {
     ...actual,
     Grid: {
@@ -29,8 +26,8 @@ jest.mock('antd', () => {
   }
 })
 
-// The markdown editor pulls in ESM-only packages Jest cannot parse.
-jest.mock('@/src/components/common/markdown', () => ({
+// The markdown renderer and editor have their own suites; plain stand-ins keep this one on the form.
+vi.mock('@/src/components/common/markdown', () => ({
   MarkdownRenderer: ({ markdown }: { markdown: string }) => (
     <div data-testid="markdown">{markdown}</div>
   ),
@@ -38,8 +35,7 @@ jest.mock('@/src/components/common/markdown', () => ({
 }))
 
 // The record header renders the follow eye itself.
-jest.mock('@/src/components/common/follow-button', () => ({
-  __esModule: true,
+vi.mock('@/src/components/common/follow-button', () => ({
   default: ({ ownerType, ownerId }: { ownerType: string; ownerId: string }) => (
     <button
       type="button"
@@ -51,7 +47,7 @@ jest.mock('@/src/components/common/follow-button', () => ({
   ),
 }))
 
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   PageActions: ({ actionItems }: { actionItems: any[] }) => (
     <div data-testid="page-actions">
       {actionItems.map((item) => (
@@ -64,24 +60,23 @@ jest.mock('@/src/components/common', () => ({
 }))
 
 // The real auth context imports the hooks barrel back, which the barrel's mock below cannot survive.
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
-    hasClaim: jest.fn(() => true),
-    hasPermissionClaim: jest.fn(() => true),
+    hasClaim: vi.fn(() => true),
+    hasPermissionClaim: vi.fn(() => true),
   }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/hooks', () => ({
-  ...jest.requireActual('@/src/hooks'),
-  useDocumentTitle: jest.fn(),
+vi.mock('@/src/hooks', async () => ({
+  ...(await vi.importActual<any>('@/src/hooks')),
+  useDocumentTitle: vi.fn(),
 }))
 
-jest.mock('@/src/components/hoc', () => ({
+vi.mock('@/src/components/hoc', () => ({
   authorizePage: (Component: React.ComponentType<any>) => Component,
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
@@ -114,57 +109,45 @@ let mockRequest: any
 let mockError: any
 let mockScoring: any
 
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useGetIntakeRequestQuery: () => ({
-      data: mockRequest,
-      error: mockError,
-      refetch: jest.fn(),
-    }),
-    useGetNeedByBasesQuery: () => ({ data: [] }),
-    useGetNeedByBasisFamiliesQuery: () => ({ data: [] }),
-    useGetIntakeRequestActivitiesQuery: () => ({
-      currentData: undefined,
-      isLoading: false,
-    }),
-    useLazyGetIntakeRequestActivitiesQuery: () => [jest.fn()],
-    useGetIntakeRequestScoringQuery: () => ({
-      data: mockScoring,
-      isLoading: false,
-      isError: false,
-    }),
-    useScoreIntakeRequestMutation: () => [jest.fn(), { isLoading: false }],
-    usePreviewIntakeRequestScoreMutation: () => [
-      jest.fn(),
-      { isLoading: false },
-    ],
-    useRemoveIntakeRequestParticipantMutation: () => [
-      jest.fn(),
-      { isLoading: false },
-    ],
-    useAddIntakeRequestParticipantMutation: () => [jest.fn()],
-    useAddIntakeRequestOutcomeMutation: () => [jest.fn()],
-    useRemoveIntakeRequestOutcomeMutation: () => [
-      jest.fn(),
-      { isLoading: false },
-    ],
-    useUpdateIntakeRequestMutation: () => [jest.fn()],
-    useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
-    useGetIntakeChannelsQuery: () => ({ data: [] }),
-    useGetIntakeRequestTagCategoriesQuery: () => ({ data: [] }),
-    useTagIntakeRequestMutation: () => [jest.fn()],
-    useUntagIntakeRequestMutation: () => [jest.fn()],
-    useGetIntakeRequestStatusOptionsQuery: () => ({
-      data: [],
-      isFetching: false,
-    }),
-    useChangeIntakeRequestStatusMutation: () => [
-      jest.fn(),
-      { isLoading: false },
-    ],
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useGetIntakeRequestQuery: () => ({
+    data: mockRequest,
+    error: mockError,
+    refetch: vi.fn(),
   }),
-)
+  useGetNeedByBasesQuery: () => ({ data: [] }),
+  useGetNeedByBasisFamiliesQuery: () => ({ data: [] }),
+  useGetIntakeRequestActivitiesQuery: () => ({
+    currentData: undefined,
+    isLoading: false,
+  }),
+  useLazyGetIntakeRequestActivitiesQuery: () => [vi.fn()],
+  useGetIntakeRequestScoringQuery: () => ({
+    data: mockScoring,
+    isLoading: false,
+    isError: false,
+  }),
+  useScoreIntakeRequestMutation: () => [vi.fn(), { isLoading: false }],
+  usePreviewIntakeRequestScoreMutation: () => [vi.fn(), { isLoading: false }],
+  useRemoveIntakeRequestParticipantMutation: () => [
+    vi.fn(),
+    { isLoading: false },
+  ],
+  useAddIntakeRequestParticipantMutation: () => [vi.fn()],
+  useAddIntakeRequestOutcomeMutation: () => [vi.fn()],
+  useRemoveIntakeRequestOutcomeMutation: () => [vi.fn(), { isLoading: false }],
+  useUpdateIntakeRequestMutation: () => [vi.fn()],
+  useGetIntakeEmployeeOptionsQuery: () => ({ data: [] }),
+  useGetIntakeChannelsQuery: () => ({ data: [] }),
+  useGetIntakeRequestTagCategoriesQuery: () => ({ data: [] }),
+  useTagIntakeRequestMutation: () => [vi.fn()],
+  useUntagIntakeRequestMutation: () => [vi.fn()],
+  useGetIntakeRequestStatusOptionsQuery: () => ({
+    data: [],
+    isFetching: false,
+  }),
+  useChangeIntakeRequestStatusMutation: () => [vi.fn(), { isLoading: false }],
+}))
 
 // The page reads its params with use(), which suspends on first render.
 const renderPage = async () =>
@@ -199,7 +182,7 @@ describe('IntakeRequestDetailsPage', () => {
     mockSearchParams = new URLSearchParams()
     mockRequest = details()
     mockError = undefined
-    jest.mocked(notFound).mockClear()
+    vi.mocked(notFound).mockClear()
     mockReplace.mockClear()
   })
 

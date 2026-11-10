@@ -2,9 +2,9 @@ import { configureStore } from '@reduxjs/toolkit'
 import { apiSlice } from '../apiSlice'
 import { teamApi } from './team-api'
 
-const getActiveSprint = jest.fn()
+const getActiveSprint = vi.fn()
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   getTeamsClient: () => ({ getActiveSprint }),
 }))
 
@@ -17,11 +17,11 @@ const createStore = () =>
 describe('teamApi', () => {
   beforeEach(() => {
     getActiveSprint.mockReset()
-    jest.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   afterEach(() => {
-    jest.restoreAllMocks()
+    vi.restoreAllMocks()
   })
 
   describe('getActiveSprint', () => {

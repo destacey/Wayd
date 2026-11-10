@@ -1,17 +1,9 @@
-// The global dayjs shim can't strict-parse or format month names; use real dayjs.
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
 import { buildDateTree, dayKeysOf } from './date-tree'
 
 describe('buildDateTree', () => {
   it('groups day keys into ascending Year → Month → Day', () => {
     // Arrange — deliberately unsorted, spanning two years and months
-    const keys = [
-      '2026-07-04',
-      '2026-06-15',
-      '2026-06-01',
-      '2025-12-31',
-    ]
+    const keys = ['2026-07-04', '2026-06-15', '2026-06-01', '2025-12-31']
 
     // Act
     const tree = buildDateTree(keys)

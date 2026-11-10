@@ -7,27 +7,26 @@ import CreateConnectionForm, {
   getDiscriminator,
 } from './create-connection-form'
 
-const mockCreate = jest.fn()
-const mockVerify = jest.fn()
-const mockMessage = { error: jest.fn(), success: jest.fn() }
+const mockCreate = vi.fn()
+const mockVerify = vi.fn()
+const mockMessage = { error: vi.fn(), success: vi.fn() }
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => true, hasClaim: () => true }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => mockMessage,
 }))
 
-jest.mock('@/src/components/common/markdown', () => ({
+vi.mock('@/src/components/common/markdown', () => ({
   MarkdownEditor: () => null,
 }))
 
-// Form.useWatch does not refire after typing in Jest, so validity stays false and the
+// Form.useWatch does not refire after typing under jsdom, so validity stays false and the
 // footer buttons never enable. Keep the form instance real and submit through validateFields.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -47,15 +46,15 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields()
           await onSubmit(values, form)
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
     // WaydGrid in the Teams setup guide reads this tuple. The mock replaces the whole module.
-    useRemainingHeight: () => [jest.fn(), 600],
+    useRemainingHeight: () => [vi.fn(), 600],
   }
 })
 
-jest.mock('@/src/store/features/app-integration/connections-api', () => ({
+vi.mock('@/src/store/features/app-integration/connections-api', () => ({
   useCreateConnectionMutation: () => [mockCreate],
   useVerifyTeamsConnectionMutation: () => [mockVerify],
   useGetConnectorsQuery: () => ({
@@ -196,9 +195,7 @@ describe('create-connection-form helpers', () => {
 })
 
 const openVerifiedTeamsForm = async () => {
-  render(
-    <CreateConnectionForm onFormCreate={jest.fn()} onFormCancel={jest.fn()} />,
-  )
+  render(<CreateConnectionForm onFormCreate={vi.fn()} onFormCancel={vi.fn()} />)
   await userEvent.click(
     screen.getByRole('heading', { name: 'Microsoft Teams' }),
   )

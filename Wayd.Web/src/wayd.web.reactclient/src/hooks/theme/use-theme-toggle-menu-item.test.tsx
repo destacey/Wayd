@@ -1,15 +1,14 @@
 import useTheme, { ThemeContextType } from '../../components/contexts/theme'
 import useThemeToggleMenuItem from './use-theme-toggle-menu-item'
-import { Mock } from 'jest-mock'
+import type { Mock } from 'vitest'
 import {
   BgColorsOutlined,
   HighlightFilled,
   HighlightOutlined,
 } from '@ant-design/icons'
 
-jest.mock('../../components/contexts/theme', () => ({
-  __esModule: true,
-  default: jest.fn(),
+vi.mock('../../components/contexts/theme', () => ({
+  default: vi.fn(),
 }))
 
 const mockToken = {
@@ -28,13 +27,13 @@ const mockToken = {
   colorTextSecondary: '#666666',
 }
 
-const setCurrentMode = jest.fn()
+const setCurrentMode = vi.fn()
 
 const mockThemeContext: ThemeContextType = {
   currentTheme: 'wayd',
   currentMode: 'light',
   availableModes: ['light', 'dark', 'slate'],
-  setCurrentTheme: jest.fn(),
+  setCurrentTheme: vi.fn(),
   setCurrentMode,
   appBar: {
     backgroundColor: '#1890ff',
@@ -47,12 +46,12 @@ const mockThemeContext: ThemeContextType = {
   antDesignChartsTheme: 'classic',
   antvisG6ChartsTheme: 'light',
   userThemeConfig: null,
-  setUserThemeConfig: jest.fn(),
+  setUserThemeConfig: vi.fn(),
 }
 
 describe('useThemeToggleMenuItem', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     ;(useTheme as Mock).mockReturnValue(mockThemeContext)
   })
 

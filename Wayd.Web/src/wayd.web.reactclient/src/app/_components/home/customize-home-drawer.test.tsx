@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { useState } from 'react'
 import CustomizeHomeDrawer from './customize-home-drawer'
@@ -6,8 +7,8 @@ import { HomeWidget } from './widget-registry'
 
 // antd's Drawer reaches for Next's server-side AsyncLocalStorage, which jsdom
 // has no runtime for. Only the Drawer is stubbed, so the rows under test stay real.
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   const MockDrawer = ({
     title,
     open,
@@ -30,9 +31,9 @@ jest.mock('antd', () => {
 
 // jsdom has no layout, so no sensor can drive a drag. The real DndContext
 // renders; its handlers are captured so a test can fire the drag events.
-const mockDndRendered = jest.fn()
-jest.mock('@dnd-kit/core', () => {
-  const actual = jest.requireActual('@dnd-kit/core')
+const mockDndRendered = vi.fn()
+vi.mock('@dnd-kit/core', async () => {
+  const actual = await vi.importActual<any>('@dnd-kit/core')
   const CapturingDndContext = (props: any) => {
     mockDndRendered(props)
     return <actual.DndContext {...props} />
@@ -47,7 +48,7 @@ const drag = async (
 ) => {
   await act(async () => {
     // The latest render's handlers, which close over the current layout.
-    mockDndRendered.mock.lastCall[0][handler]({
+    mockDndRendered.mock.lastCall![0][handler]({
       active: { id: activeId },
       over: overId ? { id: overId } : null,
     })
@@ -86,12 +87,12 @@ const initialLayout: HomeLayout = {
 /** Holds the layout as the page would, so a change shows in the next render. */
 const Harness = ({
   onChange,
-  onReset = jest.fn(),
-  onClose = jest.fn(),
+  onReset = vi.fn(),
+  onClose = vi.fn(),
 }: {
-  onChange: jest.Mock
-  onReset?: jest.Mock
-  onClose?: jest.Mock
+  onChange: Mock
+  onReset?: Mock
+  onClose?: Mock
 }) => {
   const [layout, setLayout] = useState(initialLayout)
   return (
@@ -126,7 +127,7 @@ const chooseMove = async (title: string, action: RegExp) => {
 describe('CustomizeHomeDrawer', () => {
   it('lists each widget of the layout under its column, and nothing else', () => {
     // Act
-    render(<Harness onChange={jest.fn()} />)
+    render(<Harness onChange={vi.fn()} />)
 
     // Assert
     expect(columnTitles('Main')).toEqual(['Alpha', 'Bravo', 'Charlie'])
@@ -136,7 +137,7 @@ describe('CustomizeHomeDrawer', () => {
 
   it('reorders a widget within its column', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(<Harness onChange={onChange} />)
 
     // Act
@@ -156,7 +157,7 @@ describe('CustomizeHomeDrawer', () => {
 
   it('cannot move the first widget up or the last one down', async () => {
     // Arrange
-    render(<Harness onChange={jest.fn()} />)
+    render(<Harness onChange={vi.fn()} />)
 
     // Act
     fireEvent.click(screen.getByRole('button', { name: 'Move Alpha' }))
@@ -168,7 +169,7 @@ describe('CustomizeHomeDrawer', () => {
 
   it('moves a widget to the end of the other column', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(<Harness onChange={onChange} />)
 
     // Act
@@ -181,7 +182,7 @@ describe('CustomizeHomeDrawer', () => {
 
   it('offers an empty column as a place to drop into', async () => {
     // Arrange
-    render(<Harness onChange={jest.fn()} />)
+    render(<Harness onChange={vi.fn()} />)
 
     // Act
     await chooseMove('X-ray', /Move to main column/)
@@ -197,7 +198,7 @@ describe('CustomizeHomeDrawer', () => {
 
   it('switches a widget off, keeping its place', () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(<Harness onChange={onChange} />)
 
     // Act
@@ -219,8 +220,8 @@ describe('CustomizeHomeDrawer', () => {
 
   it('resets through Reset to default', () => {
     // Arrange
-    const onChange = jest.fn()
-    const onReset = jest.fn()
+    const onChange = vi.fn()
+    const onReset = vi.fn()
     render(<Harness onChange={onChange} onReset={onReset} />)
 
     // Act
@@ -233,8 +234,8 @@ describe('CustomizeHomeDrawer', () => {
 
   it('closes through Done', () => {
     // Arrange
-    const onClose = jest.fn()
-    render(<Harness onChange={jest.fn()} onClose={onClose} />)
+    const onClose = vi.fn()
+    render(<Harness onChange={vi.fn()} onClose={onClose} />)
 
     // Act
     fireEvent.click(screen.getByRole('button', { name: 'Done' }))
@@ -245,7 +246,7 @@ describe('CustomizeHomeDrawer', () => {
 
   it('reorders within a column when dropped on another row', async () => {
     // Arrange
-    render(<Harness onChange={jest.fn()} />)
+    render(<Harness onChange={vi.fn()} />)
 
     // Act
     await drag('onDragStart', 'a')
@@ -257,7 +258,7 @@ describe('CustomizeHomeDrawer', () => {
 
   it('moves into the other column as the drag crosses it', async () => {
     // Arrange
-    render(<Harness onChange={jest.fn()} />)
+    render(<Harness onChange={vi.fn()} />)
 
     // Act
     await drag('onDragStart', 'b')
@@ -271,7 +272,7 @@ describe('CustomizeHomeDrawer', () => {
 
   it('moves into the other column when the drop lands there unannounced', async () => {
     // Arrange
-    render(<Harness onChange={jest.fn()} />)
+    render(<Harness onChange={vi.fn()} />)
 
     // Act
     await drag('onDragStart', 'b')
@@ -283,7 +284,7 @@ describe('CustomizeHomeDrawer', () => {
 
   it('leaves a widget in place when dropped in its own column between rows', async () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(<Harness onChange={onChange} />)
 
     // Act
@@ -297,7 +298,7 @@ describe('CustomizeHomeDrawer', () => {
 
   it('undoes a move into the other column when the drag is cancelled', async () => {
     // Arrange
-    render(<Harness onChange={jest.fn()} />)
+    render(<Harness onChange={vi.fn()} />)
     await drag('onDragStart', 'b')
     await drag('onDragOver', 'b', 'x')
 
@@ -311,7 +312,7 @@ describe('CustomizeHomeDrawer', () => {
 
   it('keeps Escape from closing the drawer while a drag is in progress', async () => {
     // Arrange
-    render(<Harness onChange={jest.fn()} />)
+    render(<Harness onChange={vi.fn()} />)
     expect(screen.getByTestId('drawer')).toHaveAttribute(
       'data-keyboard',
       'true',
@@ -338,7 +339,7 @@ describe('CustomizeHomeDrawer', () => {
 
   it('gives every drag handle a name and keyboard focus', () => {
     // Act
-    render(<Harness onChange={jest.fn()} />)
+    render(<Harness onChange={vi.fn()} />)
 
     // Assert
     const handle = screen.getByRole('button', { name: 'Drag Alpha' })

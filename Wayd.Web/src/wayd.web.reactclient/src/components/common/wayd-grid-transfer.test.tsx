@@ -1,5 +1,3 @@
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import type { ColumnDef } from './wayd-grid-core'
 import WaydGridTransfer, { resolveDragItems } from './wayd-grid-transfer'
@@ -26,8 +24,8 @@ const columns: ColumnDef<Item, any>[] = [
 type TransferProps = Partial<Parameters<typeof WaydGridTransfer<Item>>[0]>
 
 const renderTransfer = (props: TransferProps = {}) => {
-  const onMove = jest.fn()
-  const onRemove = jest.fn()
+  const onMove = vi.fn()
+  const onRemove = vi.fn()
   const utils = render(
     <WaydGridTransfer<Item>
       leftData={LEFT_DATA}
@@ -193,7 +191,7 @@ describe('WaydGridTransfer', () => {
 
     it('scopes the header checkbox to the displayed rows when a filter is active', () => {
       // Arrange — filter the left grid's Name column down to 'Beta'
-      jest.useFakeTimers()
+      vi.useFakeTimers()
       try {
         const { leftHeader, leftTable, onMove } = renderTransfer()
         const floatingRow = leftHeader.querySelector(
@@ -206,7 +204,7 @@ describe('WaydGridTransfer', () => {
         // Act — type in the floating filter (debounced), then select all + move
         fireEvent.change(nameFilterInput, { target: { value: 'Beta' } })
         act(() => {
-          jest.advanceTimersByTime(500)
+          vi.advanceTimersByTime(500)
         })
         expect(bodyCells(leftTable, 'name')).toEqual(['Beta'])
         fireEvent.click(
@@ -217,7 +215,7 @@ describe('WaydGridTransfer', () => {
         // Assert — only the displayed (filtered) row moves
         expect(onMove).toHaveBeenCalledWith([LEFT_DATA[1]])
       } finally {
-        jest.useRealTimers()
+        vi.useRealTimers()
       }
     })
 
@@ -234,7 +232,7 @@ describe('WaydGridTransfer', () => {
           columns={columns}
           getRowId={(item) => item.id}
           onMove={onMove}
-          onRemove={jest.fn()}
+          onRemove={vi.fn()}
         />,
       )
 

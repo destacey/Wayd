@@ -2,19 +2,14 @@ import React, { Suspense } from 'react'
 import { act, render, screen } from '@testing-library/react'
 import ProductDetailsPage from './page'
 
-// The overview's version tile counts back from today, and the global setup mocks dayjs down to
-// formatting — without the real one the section throws while rendering and takes every tile with it.
-jest.unmock('dayjs')
-
 // The graph canvas measures itself and reads the theme provider, neither of which this page supplies.
 // What belongs here is that the Overview places it; the map's own tests cover what it draws.
-jest.mock('@/src/components/common/dependency-map/dependency-map', () => ({
-  __esModule: true,
+vi.mock('@/src/components/common/dependency-map/dependency-map', () => ({
   default: () => <div data-testid="dependency-map" />,
 }))
 
 // Subscribes to the store for expanded products, which this page's mocked API does not provide.
-jest.mock(
+vi.mock(
   '../../_components/dependency-map/use-expanded-product-dependencies',
   () => ({ useExpandedProductDependencies: () => ({}) }),
 )
@@ -82,14 +77,12 @@ const dependencies = {
 }
 
 // Its grid has a suite of its own; here only whether the page offers the section matters.
-jest.mock('./_components/product-dependencies', () => ({
-  __esModule: true,
+vi.mock('./_components/product-dependencies', () => ({
   default: () => <div data-testid="product-dependencies" />,
 }))
 
-jest.mock('../_components/product-teams', () => ({
-  __esModule: true,
-  ...jest.requireActual('../_components/product-teams'),
+vi.mock('../_components/product-teams', async () => ({
+  ...(await vi.importActual<any>('../_components/product-teams')),
   default: () => <div data-testid="product-team-links" />,
 }))
 
@@ -101,14 +94,14 @@ const teamLinks = [
 ]
 
 let mockSearchParams = new URLSearchParams()
-const mockReplace = jest.fn((url: string) => {
+const mockReplace = vi.fn((url: string) => {
   mockSearchParams = new URLSearchParams(url.split('?')[1] ?? '')
 })
 
 // jsdom has no matchMedia, so useBreakpoint reports nothing and RecordLayout
 // renders its compact form. Pin a wide viewport so the rail and facts are shown.
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   return {
     ...actual,
     Grid: {
@@ -118,36 +111,26 @@ jest.mock('antd', () => {
   }
 })
 
-// The markdown editor pulls in ESM-only packages Jest cannot parse; the page only
-// renders the read-only renderer, so the barrel is mocked as the other suites do.
-jest.mock('@/src/components/common/markdown', () => ({
+// The markdown renderer and editor have their own suites; plain stand-ins keep this one on the page.
+vi.mock('@/src/components/common/markdown', () => ({
   MarkdownRenderer: ({ markdown }: { markdown: string }) => (
     <div data-testid="markdown">{markdown}</div>
   ),
   MarkdownEditor: () => <textarea data-testid="markdown-editor" />,
 }))
 
-jest.mock('@/src/components/common/markdown/markdown-editor', () => ({
-  __esModule: true,
+vi.mock('@/src/components/common/markdown/markdown-editor', () => ({
   default: () => <textarea data-testid="markdown-editor" />,
 }))
 
-// The edit form imports antd's ESM TextArea path, as 26 other components do.
-// Jest cannot parse it, and changing the app to suit the test would break a
-// convention rather than fix anything.
-jest.mock('antd/es/input/TextArea', () => ({
-  __esModule: true,
-  default: (props: Record<string, unknown>) => <textarea {...props} />,
-}))
-
-jest.mock('next/navigation', () => ({
-  notFound: jest.fn(),
+vi.mock('next/navigation', () => ({
+  notFound: vi.fn(),
   usePathname: () => '/product-management/products/7',
-  useRouter: () => ({ replace: mockReplace, push: jest.fn() }),
+  useRouter: () => ({ replace: mockReplace, push: vi.fn() }),
   useSearchParams: () => mockSearchParams,
 }))
 
-jest.mock('@/src/components/common', () => ({
+vi.mock('@/src/components/common', () => ({
   // Dividers are rendered as marker elements rather than skipped, so a test can
   // assert how the menu is grouped and not just what it contains.
   PageActions: ({ actionItems }: { actionItems: any[] }) => (
@@ -168,89 +151,88 @@ jest.mock('@/src/components/common', () => ({
 /** Permissions the viewer lacks; every other permission is held. */
 let mockMissingPermissions: string[] = []
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
-    hasClaim: jest.fn(() => true),
-    hasPermissionClaim: jest.fn(
+    hasClaim: vi.fn(() => true),
+    hasPermissionClaim: vi.fn(
       (permission: string) => !mockMissingPermissions.includes(permission),
     ),
   }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 // Spread the real module: RecordLayout reaches for useLocalStorageState through
 // the same barrel, and replacing it wholesale takes that with it.
-jest.mock('@/src/hooks', () => ({
-  ...jest.requireActual('@/src/hooks'),
-  useDocumentTitle: jest.fn(),
+vi.mock('@/src/hooks', async () => ({
+  ...(await vi.importActual<any>('@/src/hooks')),
+  useDocumentTitle: vi.fn(),
   useModalForm: () => ({
-    form: { setFieldsValue: jest.fn(), getFieldValue: jest.fn() },
+    form: { setFieldsValue: vi.fn(), getFieldValue: vi.fn() },
     isOpen: false,
     isValid: true,
     isSaving: false,
-    handleOk: jest.fn(),
-    handleCancel: jest.fn(),
+    handleOk: vi.fn(),
+    handleCancel: vi.fn(),
   }),
 }))
 
-jest.mock('@/src/components/hoc', () => ({
+vi.mock('@/src/components/hoc', () => ({
   authorizePage: (Component: React.ComponentType<any>) => Component,
   requireFeatureFlag: (Component: React.ComponentType<any>) => Component,
 }))
 
-jest.mock('@/src/store/features/product-management/versions-api', () => ({
+vi.mock('@/src/store/features/product-management/versions-api', () => ({
   useGetVersionsQuery: () => ({
     data: [],
     isLoading: false,
-    refetch: jest.fn(),
+    refetch: vi.fn(),
   }),
-  usePlanVersionMutation: () => [jest.fn()],
-  useCutVersionMutation: () => [jest.fn()],
-  useMarkVersionReleasedMutation: () => [jest.fn()],
+  usePlanVersionMutation: () => [vi.fn()],
+  useCutVersionMutation: () => [vi.fn()],
+  useMarkVersionReleasedMutation: () => [vi.fn()],
 }))
 
-jest.mock('@/src/store/features/product-management/releases-api', () => ({
+vi.mock('@/src/store/features/product-management/releases-api', () => ({
   useGetReleasesQuery: () => ({
     data: [],
     isLoading: false,
-    refetch: jest.fn(),
+    refetch: vi.fn(),
   }),
-  usePlanReleaseMutation: () => [jest.fn()],
+  usePlanReleaseMutation: () => [vi.fn()],
 }))
 
-jest.mock('@/src/store/features/product-management/products-api', () => ({
+vi.mock('@/src/store/features/product-management/products-api', () => ({
   useGetProductQuery: () => ({
     data: product,
     error: undefined,
     isLoading: false,
-    refetch: jest.fn(),
+    refetch: vi.fn(),
   }),
   useGetProductsQuery: () => ({ data: components, isLoading: false }),
   useGetProductActivitiesQuery: () => ({ data: undefined, isLoading: false }),
   useGetProductDependenciesQuery: () => ({
     data: dependencies,
     isLoading: false,
-    refetch: jest.fn(),
+    refetch: vi.fn(),
   }),
-  useAddProductDependencyMutation: () => [jest.fn()],
+  useAddProductDependencyMutation: () => [vi.fn()],
   useGetProductTeamsQuery: () => ({
     data: teamLinks,
     isLoading: false,
-    refetch: jest.fn(),
+    refetch: vi.fn(),
   }),
-  useSetProductTeamsMutation: () => [jest.fn()],
-  useLazyGetProductActivitiesQuery: () => [jest.fn()],
+  useSetProductTeamsMutation: () => [vi.fn()],
+  useLazyGetProductActivitiesQuery: () => [vi.fn()],
   useGetProductStatusOptionsQuery: () => ({ data: [], isLoading: false }),
-  useChangeProductStatusMutation: () => [jest.fn()],
-  useRetypeProductMutation: () => [jest.fn()],
-  useReparentProductMutation: () => [jest.fn()],
-  useCreateProductMutation: () => [jest.fn()],
-  useUpdateProductMutation: () => [jest.fn()],
-  useDeleteProductMutation: () => [jest.fn()],
+  useChangeProductStatusMutation: () => [vi.fn()],
+  useRetypeProductMutation: () => [vi.fn()],
+  useReparentProductMutation: () => [vi.fn()],
+  useCreateProductMutation: () => [vi.fn()],
+  useUpdateProductMutation: () => [vi.fn()],
+  useDeleteProductMutation: () => [vi.fn()],
 }))
 
 // The page reads its params with use(), which suspends on first render — so the
@@ -348,8 +330,6 @@ describe('ProductDetailsPage', () => {
   })
 
   it('summarises recent versions on the overview', async () => {
-    // The tile counts back from today, so it renders only with the real dayjs — the global mock
-    // leaves it throwing mid-render and takes the whole section down with it.
     // Arrange / Act
     await renderPage()
 

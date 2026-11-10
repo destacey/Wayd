@@ -1,12 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import MarkdownRenderer from './markdown-renderer'
-
-// jest.setup.ts stubs these globally; this suite renders through the real pipeline so the plugin
-// order and sanitizer are what is under test.
-jest.unmock('react-markdown')
-jest.unmock('remark-gfm')
-jest.unmock('rehype-raw')
 
 describe('MarkdownRenderer', () => {
   it('renders nothing when there is no markdown', () => {

@@ -6,9 +6,6 @@
 // viewportWidth. Both feed the same projection, so the invariants below are
 // asserted over a grid of them rather than at one arbitrary size.
 
-// The axis calls scale.tiers(), which uses REAL dayjs (.startOf/.add).
-jest.unmock('dayjs')
-
 import { createExportScale } from './export-scale'
 import { renderTimelineSvg } from './render-svg'
 import { createTimeScale } from '../../core/scale'

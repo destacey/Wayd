@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { act, renderHook } from '@testing-library/react'
 import { useRoundFieldAutosave } from './use-round-field-autosave'
 
@@ -7,7 +8,7 @@ interface Props {
 }
 
 const setup = (initial: Props) => {
-  const save = jest.fn()
+  const save = vi.fn()
   const hook = renderHook(
     (props: Props) => useRoundFieldAutosave({ ...props, save }),
     { initialProps: initial },
@@ -17,11 +18,11 @@ const setup = (initial: Props) => {
 
 describe('useRoundFieldAutosave', () => {
   beforeEach(() => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    vi.useRealTimers()
   })
 
   it('saves the trimmed value once typing pauses', () => {
@@ -30,7 +31,7 @@ describe('useRoundFieldAutosave', () => {
 
     // Act
     act(() => result.current.onChange(' WI-1 '))
-    act(() => jest.advanceTimersByTime(600))
+    act(() => vi.advanceTimersByTime(600))
 
     // Assert
     expect(save).toHaveBeenCalledTimes(1)
@@ -44,7 +45,7 @@ describe('useRoundFieldAutosave', () => {
 
     // Act
     act(() => result.current.onBlur())
-    act(() => jest.advanceTimersByTime(600))
+    act(() => vi.advanceTimersByTime(600))
 
     // Assert
     expect(save).toHaveBeenCalledTimes(1)
@@ -77,7 +78,7 @@ describe('useRoundFieldAutosave', () => {
     // Arrange
     const { result, rerender } = setup({ roundId: 'r1', serverValue: '' })
     act(() => result.current.onChange('foo '))
-    act(() => jest.advanceTimersByTime(600))
+    act(() => vi.advanceTimersByTime(600))
 
     // Act
     rerender({ roundId: 'r1', serverValue: 'foo' })

@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { configureStore } from '@reduxjs/toolkit'
 import { waitFor } from '@testing-library/react'
 import { DiscussionMessageKind } from '@/src/services/wayd-api'
@@ -6,11 +7,11 @@ import { demandManagementApi } from '../demand-management/demand-management-api'
 import { projectsApi } from '../ppm/projects-api'
 import { DiscussionChannelTypes, discussionsApi } from './discussions-api'
 
-const postMessage = jest.fn()
-const getStatusOptions = jest.fn()
-const getProject = jest.fn()
+const postMessage = vi.fn()
+const getStatusOptions = vi.fn()
+const getProject = vi.fn()
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   getDiscussionsClient: () => ({ postMessage }),
   getIntakeRequestsClient: () => ({ getStatusOptions }),
   getProjectsClient: () => ({ getProject }),
@@ -24,7 +25,7 @@ const createStore = () =>
 
 describe('discussionsApi', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     postMessage.mockResolvedValue('m-1')
     getStatusOptions.mockResolvedValue([])
     getProject.mockResolvedValue({ id: 'p-1', key: 'APOLLO' })

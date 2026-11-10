@@ -1,11 +1,11 @@
+import type { Mock } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
-import '@testing-library/jest-dom'
 import { SizingMethod, TeamSprintMetricsDto } from '@/src/services/wayd-api'
 import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations/team-api'
 import TeamSprintMetricsSummary from './team-sprint-metrics-summary'
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
-  useGetTeamSprintMetricsQuery: jest.fn(),
+vi.mock('@/src/store/features/organizations/team-api', () => ({
+  useGetTeamSprintMetricsQuery: vi.fn(),
 }))
 
 const summary = (average: number, min: number, max: number) => ({
@@ -51,7 +51,7 @@ const createMetrics = (
 })
 
 const mockQuery = (data: TeamSprintMetricsDto | undefined, isLoading = false) =>
-  (useGetTeamSprintMetricsQuery as jest.Mock).mockReturnValue({
+  (useGetTeamSprintMetricsQuery as Mock).mockReturnValue({
     data,
     isLoading,
   })
@@ -60,7 +60,7 @@ const card = (title: string) =>
   screen.getByText(title).closest('.ant-card') as HTMLElement
 
 describe('TeamSprintMetricsSummary', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => vi.clearAllMocks())
 
   it("shows the averages and ranges in the team's sizing method", () => {
     // Arrange
@@ -144,7 +144,7 @@ describe('TeamSprintMetricsSummary', () => {
   it('opens the report from a card', () => {
     // Arrange
     mockQuery(createMetrics())
-    const onOpenReport = jest.fn()
+    const onOpenReport = vi.fn()
     render(
       <TeamSprintMetricsSummary teamId="team-1" onOpenReport={onOpenReport} />,
     )

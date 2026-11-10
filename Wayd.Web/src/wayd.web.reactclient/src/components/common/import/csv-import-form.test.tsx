@@ -9,36 +9,36 @@ import {
 import CsvImportForm from './csv-import-form'
 import { importTemplates } from './import-templates.generated'
 
-const push = jest.fn()
-const successMessage = jest.fn()
-const infoMessage = jest.fn()
-const submitImport = jest.fn()
-const downloadCsv = jest.fn()
+const push = vi.fn()
+const successMessage = vi.fn()
+const infoMessage = vi.fn()
+const submitImport = vi.fn()
+const downloadCsv = vi.fn()
 
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
 }))
 
-jest.mock('next/link', () => {
+vi.mock('next/link', () => {
   const MockLink = ({ href, children }: any) => <a href={href}>{children}</a>
   MockLink.displayName = 'MockLink'
-  return MockLink
+  return { default: MockLink }
 })
 
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({
     success: successMessage,
     info: infoMessage,
-    error: jest.fn(),
+    error: vi.fn(),
   }),
 }))
 
-jest.mock('@/src/store/features/admin/imports-api', () => ({
+vi.mock('@/src/store/features/admin/imports-api', () => ({
   useSubmitImportMutation: () => [submitImport],
 }))
 
-jest.mock('@/src/utils/csv-utils', () => ({
-  ...jest.requireActual('@/src/utils/csv-utils'),
+vi.mock('@/src/utils/csv-utils', async () => ({
+  ...(await vi.importActual<any>('@/src/utils/csv-utils')),
   downloadCsv: (...args: unknown[]) => downloadCsv(...args),
 }))
 
@@ -65,7 +65,9 @@ const definitions = [
   }),
   definition('employees', 'Employees', { canSubmit: false }),
   // Its area is switched off: its runs stay readable, but nothing new may be imported into it.
-  definition('demand-management.intake-requests', 'Intake Requests', { isEnabled: false }),
+  definition('demand-management.intake-requests', 'Intake Requests', {
+    isEnabled: false,
+  }),
   // Known to the server but not to this client: nothing to post it with, so it is not offered.
   definition('not-generated', 'Not Generated'),
 ]
@@ -94,14 +96,14 @@ const run = (
   canManage: true,
 })
 
-const onFormComplete = jest.fn()
+const onFormComplete = vi.fn()
 
 const renderForm = () =>
   render(
     <CsvImportForm
       definitions={definitions}
       onFormComplete={onFormComplete}
-      onFormCancel={jest.fn()}
+      onFormCancel={vi.fn()}
     />,
   )
 
@@ -132,7 +134,7 @@ const submitThemesFile = async (button: () => HTMLElement) => {
   await chooseImport('Strategic Themes')
   await userEvent.upload(fileInputs()[0], csv('themes.csv'))
 
-  // Inside act: the outcome is set after the import resolves, and jest.setup stubs the MessageChannel
+  // Inside act: the outcome is set after the import resolves, and vitest.setup.dom stubs the MessageChannel
   // React schedules with, so an update landing outside act is never rendered.
   await act(async () => {
     fireEvent.click(button())
@@ -355,7 +357,7 @@ describe('CsvImportForm', () => {
           }),
         ]}
         onFormComplete={onFormComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     )
 

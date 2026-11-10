@@ -2,21 +2,19 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import StartDeploymentForm from './start-deployment-form'
 
-jest.unmock('dayjs')
+const startDeployment = vi.fn()
+const errorMessage = vi.fn()
+const successMessage = vi.fn()
 
-const startDeployment = jest.fn()
-const errorMessage = jest.fn()
-const successMessage = jest.fn()
-
-jest.mock('@/src/components/contexts/messaging', () => ({
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: errorMessage, success: successMessage }),
 }))
 
-jest.mock('@/src/store/features/product-management/deployments-api', () => ({
+vi.mock('@/src/store/features/product-management/deployments-api', () => ({
   useStartDeploymentMutation: () => [startDeployment],
 }))
 
-jest.mock('@/src/store/features/product-management/versions-api', () => ({
+vi.mock('@/src/store/features/product-management/versions-api', () => ({
   useGetVersionsQuery: () => ({
     data: [
       {
@@ -30,17 +28,14 @@ jest.mock('@/src/store/features/product-management/versions-api', () => ({
   }),
 }))
 
-jest.mock(
-  '@/src/store/features/product-management/release-packages-api',
-  () => ({
-    useGetReleasePackagesQuery: () => ({
-      data: [{ id: 'package-1', key: 4, version: '2026.04' }],
-      isLoading: false,
-    }),
+vi.mock('@/src/store/features/product-management/release-packages-api', () => ({
+  useGetReleasePackagesQuery: () => ({
+    data: [{ id: 'package-1', key: 4, version: '2026.04' }],
+    isLoading: false,
   }),
-)
+}))
 
-const getEnvironments = jest.fn((_request?: { isActive?: boolean }) => ({
+const getEnvironments = vi.fn((_request?: { isActive?: boolean }) => ({
   data: [
     {
       id: 'environment-1',
@@ -55,7 +50,7 @@ const getEnvironments = jest.fn((_request?: { isActive?: boolean }) => ({
   isLoading: false,
 }))
 
-jest.mock(
+vi.mock(
   '@/src/store/features/product-management/deployment-environments-api',
   () => ({
     useGetDeploymentEnvironmentsQuery: (request?: { isActive?: boolean }) =>
@@ -72,8 +67,8 @@ let capturedForm: { setFieldsValue: (values: object) => void } | undefined
 // Not spread from the real barrel: it re-exports store-bound hooks, and pulling those in
 // initialises a store this form never touches. The form instance is real, though — antd's Form
 // binds to it, and a stub breaks on render.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -94,7 +89,7 @@ jest.mock('@/src/hooks', () => {
         // rendered ones, which would silently drop a stale value before the component's own guard
         // ever sees it — hiding exactly what the XOR test is there to check.
         handleOk: async () => await onSubmit(form.getFieldsValue(true), form),
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
@@ -142,7 +137,7 @@ const toggleTo = async (value: 'Version' | 'Package') => {
 }
 
 beforeEach(() => {
-  jest.clearAllMocks()
+  vi.clearAllMocks()
   startDeployment.mockResolvedValue({ data: { id: 'deployment-1', key: 9 } })
 })
 

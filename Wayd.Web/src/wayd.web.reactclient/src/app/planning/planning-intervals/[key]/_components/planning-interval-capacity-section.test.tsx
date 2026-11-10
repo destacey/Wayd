@@ -9,8 +9,6 @@ import PlanningIntervalCapacitySection, {
   teamHref,
 } from './planning-interval-capacity-section'
 
-jest.unmock('dayjs')
-
 // The antd Table measures its scrollbar with a pseudo-element, which jsdom does
 // not implement and reports as an error.
 Object.defineProperty(window, 'getComputedStyle', {
@@ -20,8 +18,7 @@ Object.defineProperty(window, 'getComputedStyle', {
 })
 
 let mockPermissions: string[] = []
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     hasPermissionClaim: (permission: string) =>
       mockPermissions.includes(permission),
@@ -29,7 +26,7 @@ jest.mock('@/src/components/contexts/auth', () => ({
 }))
 
 let mockCapacity: PlanningIntervalCapacityDto | undefined
-jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
+vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
   useGetPlanningIntervalCapacityQuery: () => ({
     data: mockCapacity,
     isFetching: false,
@@ -37,11 +34,10 @@ jest.mock('@/src/store/features/planning/planning-interval-api', () => ({
   }),
 }))
 
-const mockPlan = jest.fn()
-jest.mock(
+const mockPlan = vi.fn()
+vi.mock(
   '@/src/app/organizations/_components/capacity-plan/team-capacity-plan',
   () => ({
-    __esModule: true,
     default: (props: unknown) => {
       mockPlan(props)
       return <div data-testid="team-plan" />
@@ -119,7 +115,7 @@ describe('capacityText and teamHref', () => {
 
 describe('PlanningIntervalCapacitySection', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockPermissions = ['Permissions.Teams.View']
     mockCapacity = capacity
   })

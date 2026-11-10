@@ -4,12 +4,18 @@ import SprintLink from './sprint-link'
 import { WorkIterationNavigationDto } from '@/src/services/wayd-api'
 
 // Mock Next.js Link component
-jest.mock('next/link', () => {
-  const MockedLink = ({ children, href }: { children: React.ReactNode; href: string }) => {
+vi.mock('next/link', () => {
+  const MockedLink = ({
+    children,
+    href,
+  }: {
+    children: React.ReactNode
+    href: string
+  }) => {
     return <a href={href}>{children}</a>
   }
   MockedLink.displayName = 'Link'
-  return MockedLink
+  return { default: MockedLink }
 })
 
 describe('SprintLink', () => {

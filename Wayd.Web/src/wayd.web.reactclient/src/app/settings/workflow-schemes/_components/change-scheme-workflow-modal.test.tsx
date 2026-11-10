@@ -9,16 +9,16 @@ import ChangeSchemeWorkflowModal, {
   type SchemeWorkflowChange,
 } from './change-scheme-workflow-modal'
 
-const changeDefault = jest.fn()
-const setEntry = jest.fn()
+const changeDefault = vi.fn()
+const setEntry = vi.fn()
 let preview: WorkflowSchemeChangePreviewDto | undefined
 let entryPreviewArgs: unknown
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ success: jest.fn(), error: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ success: vi.fn(), error: vi.fn() }),
 }))
 
-jest.mock('@/src/store/features/common/status-workflows-api', () => ({
+vi.mock('@/src/store/features/common/status-workflows-api', () => ({
   useGetStatusWorkflowsQuery: () => ({
     data: [
       { id: 'standard', key: 1, name: 'Standard' },
@@ -28,7 +28,7 @@ jest.mock('@/src/store/features/common/status-workflows-api', () => ({
   useGetStatusWorkflowQuery: () => ({ data: { statuses: [] } }),
 }))
 
-jest.mock('@/src/store/features/common/workflow-schemes-api', () => ({
+vi.mock('@/src/store/features/common/workflow-schemes-api', () => ({
   usePreviewWorkflowSchemeDefaultQuery: (
     _: unknown,
     options: { skip: boolean },
@@ -95,8 +95,8 @@ const renderModal = (
       scheme={withScheme}
       change={change}
       recordTypes={[recordType('bug', 'Bug'), recordType('story', 'Story')]}
-      onFormComplete={jest.fn()}
-      onFormCancel={jest.fn()}
+      onFormComplete={vi.fn()}
+      onFormCancel={vi.fn()}
     />,
   )
 

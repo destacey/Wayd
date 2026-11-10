@@ -1,34 +1,34 @@
+// @vitest-environment jsdom
 import { renderHook, act } from '@testing-library/react'
 import useConfirmModal from './use-confirm-modal'
 
 // Mock dependencies
-const mockMessageSuccess = jest.fn()
-const mockMessageError = jest.fn()
-jest.mock('../components/contexts/messaging', () => ({
+const mockMessageSuccess = vi.fn()
+const mockMessageError = vi.fn()
+vi.mock('../components/contexts/messaging', () => ({
   useMessage: () => ({
     success: mockMessageSuccess,
     error: mockMessageError,
   }),
 }))
 
-const mockHasPermissionClaim = jest.fn()
-jest.mock('../components/contexts/auth', () => ({
-  __esModule: true,
+const mockHasPermissionClaim = vi.fn()
+vi.mock('../components/contexts/auth', () => ({
   default: () => ({
     hasPermissionClaim: mockHasPermissionClaim,
   }),
 }))
 
 const createDefaultOptions = (overrides = {}) => ({
-  onSubmit: jest.fn().mockResolvedValue(true),
-  onComplete: jest.fn(),
-  onCancel: jest.fn(),
+  onSubmit: vi.fn().mockResolvedValue(true),
+  onComplete: vi.fn(),
+  onCancel: vi.fn(),
   ...overrides,
 })
 
 describe('useConfirmModal', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockHasPermissionClaim.mockReturnValue(true)
   })
 
@@ -89,7 +89,7 @@ describe('useConfirmModal', () => {
 
     it('calls onCancel when permission is denied', () => {
       mockHasPermissionClaim.mockReturnValue(false)
-      const onCancel = jest.fn()
+      const onCancel = vi.fn()
 
       renderHook(() =>
         useConfirmModal(
@@ -119,7 +119,7 @@ describe('useConfirmModal', () => {
 
     it('only shows permission error once on re-renders', () => {
       mockHasPermissionClaim.mockReturnValue(false)
-      const onCancel = jest.fn()
+      const onCancel = vi.fn()
 
       const { rerender } = renderHook(() =>
         useConfirmModal(
@@ -138,11 +138,9 @@ describe('useConfirmModal', () => {
     })
 
     it('does not check permission when no permission string is provided', () => {
-      const onCancel = jest.fn()
+      const onCancel = vi.fn()
 
-      renderHook(() =>
-        useConfirmModal(createDefaultOptions({ onCancel })),
-      )
+      renderHook(() => useConfirmModal(createDefaultOptions({ onCancel })))
 
       expect(onCancel).not.toHaveBeenCalled()
       expect(mockMessageError).not.toHaveBeenCalled()
@@ -151,7 +149,7 @@ describe('useConfirmModal', () => {
 
   describe('handleOk', () => {
     it('calls onSubmit', async () => {
-      const onSubmit = jest.fn().mockResolvedValue(true)
+      const onSubmit = vi.fn().mockResolvedValue(true)
 
       const { result } = renderHook(() =>
         useConfirmModal(createDefaultOptions({ onSubmit })),
@@ -165,8 +163,8 @@ describe('useConfirmModal', () => {
     })
 
     it('calls onComplete when onSubmit returns true', async () => {
-      const onSubmit = jest.fn().mockResolvedValue(true)
-      const onComplete = jest.fn()
+      const onSubmit = vi.fn().mockResolvedValue(true)
+      const onComplete = vi.fn()
 
       const { result } = renderHook(() =>
         useConfirmModal(createDefaultOptions({ onSubmit, onComplete })),
@@ -180,8 +178,8 @@ describe('useConfirmModal', () => {
     })
 
     it('does not call onComplete when onSubmit returns false', async () => {
-      const onSubmit = jest.fn().mockResolvedValue(false)
-      const onComplete = jest.fn()
+      const onSubmit = vi.fn().mockResolvedValue(false)
+      const onComplete = vi.fn()
 
       const { result } = renderHook(() =>
         useConfirmModal(createDefaultOptions({ onSubmit, onComplete })),
@@ -199,7 +197,7 @@ describe('useConfirmModal', () => {
       const submitPromise = new Promise<boolean>((resolve) => {
         resolveFn = resolve
       })
-      const onSubmit = jest.fn().mockReturnValue(submitPromise)
+      const onSubmit = vi.fn().mockReturnValue(submitPromise)
 
       const { result } = renderHook(() =>
         useConfirmModal(createDefaultOptions({ onSubmit })),
@@ -221,8 +219,8 @@ describe('useConfirmModal', () => {
     })
 
     it('sets isSaving back to false after submit failure', async () => {
-      jest.spyOn(console, 'error').mockImplementation()
-      const onSubmit = jest.fn().mockRejectedValue(new Error('API error'))
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      const onSubmit = vi.fn().mockRejectedValue(new Error('API error'))
 
       const { result } = renderHook(() =>
         useConfirmModal(createDefaultOptions({ onSubmit })),
@@ -236,8 +234,8 @@ describe('useConfirmModal', () => {
     })
 
     it('shows default error message when onSubmit throws', async () => {
-      jest.spyOn(console, 'error').mockImplementation()
-      const onSubmit = jest.fn().mockRejectedValue(new Error('API error'))
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      const onSubmit = vi.fn().mockRejectedValue(new Error('API error'))
 
       const { result } = renderHook(() =>
         useConfirmModal(createDefaultOptions({ onSubmit })),
@@ -253,8 +251,8 @@ describe('useConfirmModal', () => {
     })
 
     it('shows custom error message when provided and onSubmit throws', async () => {
-      jest.spyOn(console, 'error').mockImplementation()
-      const onSubmit = jest.fn().mockRejectedValue(new Error('API error'))
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      const onSubmit = vi.fn().mockRejectedValue(new Error('API error'))
 
       const { result } = renderHook(() =>
         useConfirmModal(
@@ -277,7 +275,7 @@ describe('useConfirmModal', () => {
 
   describe('handleCancel', () => {
     it('calls onCancel callback', () => {
-      const onCancel = jest.fn()
+      const onCancel = vi.fn()
 
       const { result } = renderHook(() =>
         useConfirmModal(createDefaultOptions({ onCancel })),

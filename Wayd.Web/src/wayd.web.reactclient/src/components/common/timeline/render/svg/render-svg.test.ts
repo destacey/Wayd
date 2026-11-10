@@ -1,7 +1,3 @@
-// The axis calls scale.tiers(), which uses REAL dayjs (.startOf/.add); the
-// global mock only stubs format. Same opt-out as scale.test.ts.
-jest.unmock('dayjs')
-
 import { renderTimelineSvg, escapeXml, fitLabel, wrapLabel } from './render-svg'
 import { createTimeScale } from '../../core/scale'
 import type { GeometryConfig } from '../../core/geometry'

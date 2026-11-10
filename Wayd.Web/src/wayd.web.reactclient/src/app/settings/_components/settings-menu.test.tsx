@@ -1,20 +1,19 @@
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import SettingsMenu from './settings-menu'
 
-const mockHasClaim = jest.fn()
+const mockHasClaim = vi.fn()
 /** Flag name → enabled. The rail reads more than one flag, so the mock keys on
  *  the name rather than answering the same for all of them. */
 const mockFlags: Record<string, boolean> = {}
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasClaim: mockHasClaim }),
 }))
 
 // Keyed by flag: the rail gates two groups on two different flags, so a single shared return value
 // would tie them together and let one group's test silently decide the other's.
-jest.mock('@/src/hooks', () => {
-  const actual = jest.requireActual('@/src/hooks')
+vi.mock('@/src/hooks', async () => {
+  const actual = await vi.importActual<any>('@/src/hooks')
   return {
     ...actual,
     useFeatureFlag: (name: string) => ({ isEnabled: mockFlags[name] ?? false }),
@@ -25,18 +24,18 @@ jest.mock('@/src/hooks', () => {
 // see, which is the same condition under which the page has anything on it.
 let mockImportDefinitions: { key: string }[] = []
 
-jest.mock('@/src/store/features/admin/imports-api', () => ({
+vi.mock('@/src/store/features/admin/imports-api', () => ({
   useGetImportDefinitionsQuery: () => ({ data: mockImportDefinitions }),
 }))
 
 // Workflow Schemes appears only once some owner type has record types to send to workflows.
 let mockOwnerTypes: { key: string; hasRecordTypes: boolean }[] = []
 
-jest.mock('@/src/store/features/common/status-workflows-api', () => ({
+vi.mock('@/src/store/features/common/status-workflows-api', () => ({
   useGetWorkflowOwnerTypesQuery: () => ({ data: mockOwnerTypes }),
 }))
 
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   usePathname: () => '/settings/user-management/users',
 }))
 
@@ -70,7 +69,7 @@ const allGroups = [
 
 describe('SettingsMenu', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     allowAll()
     mockFlags['planning-poker'] = true
     mockFlags['product-management'] = true

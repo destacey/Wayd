@@ -4,22 +4,19 @@ import { HomeWidgets } from './home-widgets'
 import { arrangeWidgets, attentionTiles, WidgetAccess } from './widget-registry'
 
 // The widget modules load RTK Query hooks; these tests read only the registry entries.
-jest.mock('./widgets/following-widget', () => () => null)
-jest.mock('./widgets/my-projects-widget', () => ({
-  __esModule: true,
+vi.mock('./widgets/following-widget', () => ({ default: () => null }))
+vi.mock('./widgets/my-projects-widget', () => ({
   default: () => null,
   OverdueTasksTile: () => null,
   DueThisWeekTile: () => null,
 }))
-jest.mock('./widgets/my-risks-widget', () => ({
-  __esModule: true,
+vi.mock('./widgets/my-risks-widget', () => ({
   default: () => null,
   RiskFollowUpsTile: () => null,
 }))
-jest.mock('./widgets/my-team-sprints-widget', () => () => null)
-jest.mock('./widgets/planning-intervals-widget', () => () => null)
-jest.mock('./widgets/whats-changed-widget', () => ({
-  __esModule: true,
+vi.mock('./widgets/my-team-sprints-widget', () => ({ default: () => null }))
+vi.mock('./widgets/planning-intervals-widget', () => ({ default: () => null }))
+vi.mock('./widgets/whats-changed-widget', () => ({
   default: () => null,
   UnreadNotificationsTile: () => null,
 }))

@@ -6,14 +6,14 @@ import {
 import { DiscussionContext } from './discussion-context'
 import DiscussionRevisionsModal from './discussion-revisions-modal'
 
-jest.mock('@/src/components/common/markdown', () => ({
+vi.mock('@/src/components/common/markdown', () => ({
   MarkdownRenderer: ({ markdown }: { markdown?: string }) => (
     <div data-testid="version">{markdown}</div>
   ),
 }))
 
-const mockUseRevisions = jest.fn()
-jest.mock('@/src/store/features/common/discussions-api', () => ({
+const mockUseRevisions = vi.fn()
+vi.mock('@/src/store/features/common/discussions-api', () => ({
   useGetDiscussionRevisionsQuery: (...args: unknown[]) =>
     mockUseRevisions(...args),
 }))
@@ -51,7 +51,7 @@ describe('DiscussionRevisionsModal', () => {
           mentionCandidates: [],
         }}
       >
-        <DiscussionRevisionsModal message={message} onClose={jest.fn()} />
+        <DiscussionRevisionsModal message={message} onClose={vi.fn()} />
       </DiscussionContext.Provider>,
     )
 

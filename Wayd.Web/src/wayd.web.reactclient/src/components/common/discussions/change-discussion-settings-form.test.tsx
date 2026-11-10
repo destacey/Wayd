@@ -2,13 +2,13 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ChangeDiscussionSettingsForm from './change-discussion-settings-form'
 
-const mockMessage = { error: jest.fn(), success: jest.fn(), warning: jest.fn() }
-jest.mock('@/src/components/contexts/messaging', () => ({
+const mockMessage = { error: vi.fn(), success: vi.fn(), warning: vi.fn() }
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => mockMessage,
 }))
 
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: ({
       onSubmit,
@@ -30,14 +30,14 @@ jest.mock('@/src/hooks', () => {
           const values = await form.validateFields().catch(() => null)
           if (values && (await onSubmit(values, form))) onComplete()
         },
-        handleCancel: jest.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-const mockSaveSettings = jest.fn()
-jest.mock('@/src/store/features/common/discussions-api', () => ({
+const mockSaveSettings = vi.fn()
+vi.mock('@/src/store/features/common/discussions-api', () => ({
   useSaveDiscussionSettingsMutation: () => [mockSaveSettings],
 }))
 
@@ -52,7 +52,7 @@ const deskSettings = {
   canManage: true,
 }
 
-const mockOnFormComplete = jest.fn()
+const mockOnFormComplete = vi.fn()
 
 const renderForm = async (settings = deskSettings) =>
   await act(async () =>
@@ -61,7 +61,7 @@ const renderForm = async (settings = deskSettings) =>
         settings={settings as any}
         scopeName="IT Help Desk"
         onFormComplete={mockOnFormComplete}
-        onFormCancel={jest.fn()}
+        onFormCancel={vi.fn()}
       />,
     ),
   )
@@ -70,7 +70,7 @@ const failWith = (error: { status: number; detail?: string }) =>
   mockSaveSettings.mockReturnValue({ unwrap: () => Promise.reject(error) })
 
 const submit = async () => {
-  await act(() => userEvent.click(screen.getByRole('button', { name: 'Save' })))
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }))
 }
 
 describe('ChangeDiscussionSettingsForm', () => {
@@ -97,8 +97,8 @@ describe('ChangeDiscussionSettingsForm', () => {
   it('saves internal notes turned off', async () => {
     await renderForm()
 
-    await act(() =>
-      userEvent.click(screen.getByRole('switch', { name: 'Internal Notes' })),
+    await userEvent.click(
+      screen.getByRole('switch', { name: 'Internal Notes' }),
     )
     await submit()
 
@@ -133,10 +133,8 @@ describe('ChangeDiscussionSettingsForm', () => {
   it('saves mentions turned off', async () => {
     await renderForm()
 
-    await act(() =>
-      userEvent.click(
-        screen.getByRole('switch', { name: 'Mentions Give Access' }),
-      ),
+    await userEvent.click(
+      screen.getByRole('switch', { name: 'Mentions Give Access' }),
     )
     await submit()
 

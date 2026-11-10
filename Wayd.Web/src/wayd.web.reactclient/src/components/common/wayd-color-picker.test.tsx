@@ -3,7 +3,7 @@ import WaydColorPicker from './wayd-color-picker'
 
 const latestColorPickerProps: { current: any | null } = { current: null }
 
-jest.mock('antd', () => {
+vi.mock('antd', () => {
   return {
     ColorPicker: (props: any) => {
       latestColorPickerProps.current = props
@@ -51,8 +51,7 @@ jest.mock('antd', () => {
   }
 })
 
-jest.mock('../contexts/theme', () => ({
-  __esModule: true,
+vi.mock('../contexts/theme', () => ({
   default: () => ({
     token: {
       colorPrimary: '#1890ff',
@@ -63,20 +62,20 @@ jest.mock('../contexts/theme', () => ({
 describe('WaydColorPicker', () => {
   beforeEach(() => {
     latestColorPickerProps.current = null
-    jest
-      .spyOn(window, 'requestAnimationFrame')
-      .mockImplementation((cb: FrameRequestCallback) => {
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(
+      (cb: FrameRequestCallback) => {
         cb(0)
         return 1
-      })
+      },
+    )
   })
 
   afterEach(() => {
-    jest.restoreAllMocks()
+    vi.restoreAllMocks()
   })
 
   it('renders closed by default', () => {
-    render(<WaydColorPicker value="#abcdef" onChange={jest.fn()} />)
+    render(<WaydColorPicker value="#abcdef" onChange={vi.fn()} />)
 
     expect(screen.getByTestId('color-picker-trigger')).toBeInTheDocument()
     expect(screen.getByTestId('color-picker-open-state')).toHaveTextContent(
@@ -85,7 +84,7 @@ describe('WaydColorPicker', () => {
   })
 
   it('calls onChange with selected color when different from current value', () => {
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(<WaydColorPicker value="#000000" onChange={onChange} />)
 
     fireEvent.click(screen.getByTestId('color-picker-select'))
@@ -94,7 +93,7 @@ describe('WaydColorPicker', () => {
   })
 
   it('clears color when selecting same value', () => {
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(<WaydColorPicker value="#123456" onChange={onChange} />)
 
     fireEvent.click(screen.getByTestId('color-picker-select'))
@@ -111,10 +110,12 @@ describe('WaydColorPicker', () => {
   })
 
   it('closes after selection and refocuses trigger', async () => {
-    render(<WaydColorPicker value={undefined} onChange={jest.fn()} />)
+    render(<WaydColorPicker value={undefined} onChange={vi.fn()} />)
 
     fireEvent.click(screen.getByTestId('color-picker-open'))
-    expect(screen.getByTestId('color-picker-open-state')).toHaveTextContent('open')
+    expect(screen.getByTestId('color-picker-open-state')).toHaveTextContent(
+      'open',
+    )
 
     fireEvent.click(screen.getByTestId('color-picker-select'))
 
@@ -125,12 +126,14 @@ describe('WaydColorPicker', () => {
     })
 
     await waitFor(() => {
-      expect(document.activeElement).toBe(screen.getByTestId('color-picker-trigger'))
+      expect(document.activeElement).toBe(
+        screen.getByTestId('color-picker-trigger'),
+      )
     })
   })
 
   it('keeps open state controlled by WaydColorPicker', () => {
-    render(<WaydColorPicker value={undefined} onChange={jest.fn()} />)
+    render(<WaydColorPicker value={undefined} onChange={vi.fn()} />)
 
     expect(latestColorPickerProps.current).toBeTruthy()
     expect(latestColorPickerProps.current.open).toBe(false)

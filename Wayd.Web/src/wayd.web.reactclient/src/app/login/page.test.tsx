@@ -1,46 +1,47 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import '@testing-library/jest-dom'
 
 // --- Mocks ---
 
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: jest.fn() }),
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ replace: vi.fn() }),
 }))
 
-jest.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/clients', () => ({
   isAuthActive: () => false,
-  getAuthClient: jest.fn(),
-  setRememberMe: jest.fn(),
-  storeAuth: jest.fn(),
+  getAuthClient: vi.fn(),
+  setRememberMe: vi.fn(),
+  storeAuth: vi.fn(),
 }))
 
 // Mocked beneath the real oidc-client-registry, so a test can tell whether the
 // page builds a client for an identity provider.
-jest.mock('oidc-client-ts', () => ({
-  UserManager: jest.fn().mockImplementation(() => ({
-    signinRedirect: jest.fn(),
-    signinRedirectCallback: jest.fn(),
-    signinSilent: jest.fn(),
-    signoutRedirect: jest.fn(),
-  })),
-  WebStorageStateStore: jest.fn(),
+vi.mock('oidc-client-ts', () => ({
+  UserManager: vi.fn().mockImplementation(function () {
+    return {
+      signinRedirect: vi.fn(),
+      signinRedirectCallback: vi.fn(),
+      signinSilent: vi.fn(),
+      signoutRedirect: vi.fn(),
+    }
+  }),
+  WebStorageStateStore: vi.fn(),
 }))
 
-const mockNavigate = jest.fn()
-const mockTakeReturnUrl = jest.fn()
+const mockNavigate = vi.fn()
+const mockTakeReturnUrl = vi.fn()
 
-jest.mock('@/src/utils/window-utils', () => ({
+vi.mock('@/src/utils/window-utils', () => ({
   navigateWithFullReload: (url: string) => mockNavigate(url),
 }))
 
-jest.mock('@/src/utils/return-url', () => ({
+vi.mock('@/src/utils/return-url', () => ({
   takeReturnUrl: () => mockTakeReturnUrl(),
 }))
 
 // Controlled return for the auth providers hook
-const mockUseGetAuthProvidersQuery = jest.fn()
+const mockUseGetAuthProvidersQuery = vi.fn()
 
-jest.mock('@/src/store/features/common/auth-providers-api', () => ({
+vi.mock('@/src/store/features/common/auth-providers-api', () => ({
   useGetAuthProvidersQuery: () => mockUseGetAuthProvidersQuery(),
 }))
 
@@ -61,17 +62,11 @@ const entraProvider = {
 
 describe('LoginPage provider gating', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     // The login page reads window.location.href to detect a redirect callback
     // (?code= param). jsdom sets href to 'about:blank' by default which means
     // new URL(window.location.href).searchParams.has('code') === false — that's
     // exactly what we want for the "not a redirect" case.
-  })
-
-  afterEach(() => {
-    // jest.setup.ts replaces localStorage with jest.fn() stubs; clearAllMocks
-    // keeps a test's mockImplementation, so it would leak into the next test.
-    jest.mocked(localStorage.getItem).mockReset()
   })
 
   it('hides OIDC buttons and shows local form when no OIDC providers', async () => {
@@ -112,8 +107,12 @@ describe('LoginPage provider gating', () => {
     render(<LoginPage />)
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Email & Password' })).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Sign in' }),
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Email & Password' }),
+      ).toBeInTheDocument()
     })
   })
 
@@ -134,11 +133,7 @@ describe('LoginPage provider gating', () => {
 
   it('contacts no identity provider on load, even after an earlier SSO sign-in', async () => {
     // Arrange
-    jest
-      .mocked(localStorage.getItem)
-      .mockImplementation((key) =>
-        key === 'wayd.oidc.lastProvider' ? entraProvider.name : null,
-      )
+    localStorage.setItem('wayd.oidc.lastProvider', entraProvider.name)
     mockUseGetAuthProvidersQuery.mockReturnValue({
       data: { local: true, oidc: [entraProvider] },
       isLoading: false,
@@ -189,15 +184,16 @@ describe('LoginPage return to the requested page', () => {
   const RETURN_PATH = '/oauth/consent?request=handle-abc123'
 
   beforeEach(() => {
-    jest.clearAllMocks()
-    window.history.replaceState(null, '', '/oauth/consent?request=handle-abc123')
+    vi.clearAllMocks()
+    window.history.replaceState(
+      null,
+      '',
+      '/oauth/consent?request=handle-abc123',
+    )
   })
 
   afterEach(() => {
     window.history.replaceState(null, '', '/')
-    // jest.setup.ts replaces sessionStorage with jest.fn() stubs; clearAllMocks
-    // keeps a test's mockImplementation, so it would leak into the next test.
-    jest.mocked(sessionStorage.getItem).mockReset()
   })
 
   it.each([
@@ -211,8 +207,8 @@ describe('LoginPage return to the requested page', () => {
         data: { local: true, oidc: [] },
         isLoading: false,
       })
-      jest.mocked(getAuthClient).mockReturnValue({
-        login: jest.fn().mockResolvedValue({ token: 't' }),
+      vi.mocked(getAuthClient).mockReturnValue({
+        login: vi.fn().mockResolvedValue({ token: 't' }),
       } as never)
       mockTakeReturnUrl.mockReturnValue(stored)
       render(<LoginPage />)
@@ -239,21 +235,16 @@ describe('LoginPage return to the requested page', () => {
       data: { local: false, oidc: [entraProvider] },
       isLoading: false,
     })
-    jest
-      .mocked(sessionStorage.getItem)
-      .mockImplementation((key) =>
-        key === 'wayd.oidc.chosenProvider' ? entraProvider.name : null,
-      )
-    jest.mocked(UserManager).mockImplementationOnce(
-      () =>
-        ({
-          signinRedirectCallback: jest
-            .fn()
-            .mockResolvedValue({ access_token: 'entra-token' }),
-        }) as never,
-    )
-    jest.mocked(getAuthClient).mockReturnValue({
-      exchange: jest.fn().mockResolvedValue({ token: 't' }),
+    sessionStorage.setItem('wayd.oidc.chosenProvider', entraProvider.name)
+    vi.mocked(UserManager).mockImplementationOnce(function () {
+      return {
+        signinRedirectCallback: vi
+          .fn()
+          .mockResolvedValue({ access_token: 'entra-token' }),
+      } as never
+    })
+    vi.mocked(getAuthClient).mockReturnValue({
+      exchange: vi.fn().mockResolvedValue({ token: 't' }),
     } as never)
     mockTakeReturnUrl.mockReturnValue(RETURN_PATH)
 
@@ -268,7 +259,7 @@ describe('LoginPage return to the requested page', () => {
 
 describe('LoginPage rate-limited sign-in', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
   it('tells the user how long to wait, rather than reporting a server fault', async () => {
@@ -288,8 +279,8 @@ describe('LoginPage rate-limited sign-in', () => {
       { 'retry-after': '42' },
       null,
     )
-    jest.mocked(getAuthClient).mockReturnValue({
-      login: jest.fn().mockRejectedValue(refused),
+    vi.mocked(getAuthClient).mockReturnValue({
+      login: vi.fn().mockRejectedValue(refused),
     } as never)
     render(<LoginPage />)
 
@@ -300,7 +291,7 @@ describe('LoginPage rate-limited sign-in', () => {
     fireEvent.change(screen.getByPlaceholderText('Password'), {
       target: { value: 'correct horse' },
     })
-    // In act: jest.setup stubs MessageChannel, so React commits the handler's
+    // In act: vitest.setup.dom stubs MessageChannel, so React commits the handler's
     // state updates, made after the awaited sign-in, only inside act.
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'Sign in' }))
@@ -319,30 +310,24 @@ describe('LoginPage rate-limited sign-in', () => {
 describe('LoginPage rate-limited identity-provider sign-in', () => {
   afterEach(() => {
     window.history.replaceState(null, '', '/')
-    jest.mocked(sessionStorage.getItem).mockReset()
   })
 
   it('tells the user how long to wait when the exchange is refused', async () => {
     // Arrange — back from the provider, with the exchange refused by its limit
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     window.history.replaceState(null, '', '/login?code=c1&state=s1')
     mockUseGetAuthProvidersQuery.mockReturnValue({
       data: { local: false, oidc: [entraProvider] },
       isLoading: false,
     })
-    jest
-      .mocked(sessionStorage.getItem)
-      .mockImplementation((key) =>
-        key === 'wayd.oidc.chosenProvider' ? entraProvider.name : null,
-      )
-    jest.mocked(UserManager).mockImplementationOnce(
-      () =>
-        ({
-          signinRedirectCallback: jest
-            .fn()
-            .mockResolvedValue({ access_token: 'entra-token' }),
-        }) as never,
-    )
+    sessionStorage.setItem('wayd.oidc.chosenProvider', entraProvider.name)
+    vi.mocked(UserManager).mockImplementationOnce(function () {
+      return {
+        signinRedirectCallback: vi
+          .fn()
+          .mockResolvedValue({ access_token: 'entra-token' }),
+      } as never
+    })
     const refused = new ApiException(
       'An unexpected server error occurred.',
       429,
@@ -353,8 +338,8 @@ describe('LoginPage rate-limited identity-provider sign-in', () => {
       { 'retry-after': '17' },
       null,
     )
-    jest.mocked(getAuthClient).mockReturnValue({
-      exchange: jest.fn().mockRejectedValue(refused),
+    vi.mocked(getAuthClient).mockReturnValue({
+      exchange: vi.fn().mockRejectedValue(refused),
     } as never)
 
     // Act — in act, for the reason given on the password sign-in test

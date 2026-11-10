@@ -6,14 +6,14 @@ import type { ItemType } from 'antd/es/menu/interface'
 import { WorkItemListDto } from '@/src/services/wayd-api'
 import ProjectWorkItemsViewManager from './project-work-items-view-manager'
 
-const mockSuccess = jest.fn()
-const mockError = jest.fn()
-jest.mock('@/src/components/contexts/messaging', () => ({
+const mockSuccess = vi.fn()
+const mockError = vi.fn()
+vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: mockError, success: mockSuccess }),
 }))
 
-const mockRemove = jest.fn()
-jest.mock('@/src/store/features/ppm/projects-api', () => ({
+const mockRemove = vi.fn()
+vi.mock('@/src/store/features/ppm/projects-api', () => ({
   useRemoveProjectWorkItemsMutation: () => [mockRemove],
 }))
 
@@ -23,18 +23,17 @@ type GridProps = {
 
 // The grids themselves are covered elsewhere; these tests read what the manager hands them.
 let mockGridProps: GridProps = {}
-// A declaration, so it is hoisted with the jest.mock calls that use it.
+// A declaration, so it is hoisted with the vi.mock calls that use it.
 function mockGrid(name: string) {
   return {
-    __esModule: true,
     default: (props: GridProps) => {
       mockGridProps = props
       return <div data-testid={name} />
     },
   }
 }
-jest.mock('./project-work-items-tree-grid', () => mockGrid('tree-grid'))
-jest.mock('@/src/components/common/work/work-items-grid', () =>
+vi.mock('./project-work-items-tree-grid', () => mockGrid('tree-grid'))
+vi.mock('@/src/components/common/work/work-items-grid', () =>
   mockGrid('list-grid'),
 )
 
@@ -59,7 +58,7 @@ const renderManager = (
       <ProjectWorkItemsViewManager
         workItems={workItems}
         isLoading={false}
-        refetch={jest.fn()}
+        refetch={vi.fn()}
         projectId="p-1"
         canManageWorkItems={canManageWorkItems}
         defaultView={defaultView}
@@ -72,9 +71,7 @@ const removeEpic = async () => {
     onClick: () => void
   }[]
   await act(async () => remove.onClick())
-  await act(() =>
-    userEvent.click(screen.getByRole('button', { name: 'Remove' })),
-  )
+  await userEvent.click(screen.getByRole('button', { name: 'Remove' }))
 }
 
 describe('ProjectWorkItemsViewManager', () => {

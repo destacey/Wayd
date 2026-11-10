@@ -5,37 +5,34 @@ import ProjectsDashboardCards from './projects-dashboard-cards'
 import { ProjectGroup } from './dashboard-model'
 import { ProjectListDto } from '@/src/services/wayd-api'
 
-// The ending-soon highlight compares dates, which the global dayjs stub cannot do.
-jest.unmock('dayjs')
-
 global.ResizeObserver = class {
   observe() {}
   unobserve() {}
   disconnect() {}
 } as unknown as typeof ResizeObserver
 
-jest.mock('@/src/app/ppm/projects/_components/project-health-check-tag', () => {
+vi.mock('@/src/app/ppm/projects/_components/project-health-check-tag', () => {
   const MockTag = ({
     healthCheck,
   }: {
     healthCheck?: { status: { name: string } }
   }) => <span>{healthCheck?.status.name ?? 'No health'}</span>
   MockTag.displayName = 'MockProjectHealthCheckTag'
-  return MockTag
+  return { default: MockTag }
 })
 
-jest.mock('@/src/app/ppm/_components/stage-timeline', () => {
+vi.mock('@/src/app/ppm/_components/stage-timeline', () => {
   const MockStages = ({ stages }: { stages: { name: string }[] }) => (
     <span data-testid="stages">{stages.map((s) => s.name).join(',')}</span>
   )
   MockStages.displayName = 'MockStageTimeline'
-  return MockStages
+  return { default: MockStages }
 })
 
-jest.mock('./team-avatars', () => {
+vi.mock('./team-avatars', () => {
   const MockAvatars = () => <span data-testid="avatars" />
   MockAvatars.displayName = 'MockTeamAvatars'
-  return MockAvatars
+  return { default: MockAvatars }
 })
 
 const me = { id: 'me', key: 1, name: 'Me' }
@@ -94,13 +91,13 @@ const defaultProps = {
   },
   employeeId: 'me',
   selectedProjectKey: null,
-  onSelectProject: jest.fn(),
+  onSelectProject: vi.fn(),
   isLoading: false,
   today: dayjs('2026-09-24'),
 }
 
 describe('ProjectsDashboardCards', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => vi.clearAllMocks())
 
   it('renders a card per project under the group header', () => {
     // Arrange / Act

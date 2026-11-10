@@ -6,8 +6,8 @@ describe('GridToolbar', () => {
     displayedRowCount: 5,
     totalRowCount: 10,
     searchValue: '',
-    onSearchChange: jest.fn(),
-    onClearFilters: jest.fn(),
+    onSearchChange: vi.fn(),
+    onClearFilters: vi.fn(),
     hasActiveFilters: false,
     isLoading: false,
   }
@@ -52,7 +52,7 @@ describe('GridToolbar', () => {
     render(
       <GridToolbar
         {...defaultProps}
-        onExportCsv={jest.fn()}
+        onExportCsv={vi.fn()}
         rightSlot={<button>View</button>}
       />,
     )
@@ -107,7 +107,7 @@ describe('GridToolbar', () => {
 
   it('renders refresh button when onRefresh is provided', () => {
     // Arrange / Act
-    render(<GridToolbar {...defaultProps} onRefresh={jest.fn()} />)
+    render(<GridToolbar {...defaultProps} onRefresh={vi.fn()} />)
 
     // Assert
     expect(screen.getByLabelText('reload')).toBeInTheDocument()
@@ -123,7 +123,7 @@ describe('GridToolbar', () => {
 
   it('renders export button when onExportCsv is provided', () => {
     // Arrange / Act
-    render(<GridToolbar {...defaultProps} onExportCsv={jest.fn()} />)
+    render(<GridToolbar {...defaultProps} onExportCsv={vi.fn()} />)
 
     // Assert
     expect(screen.getByLabelText('download')).toBeInTheDocument()
@@ -132,7 +132,7 @@ describe('GridToolbar', () => {
   it('disables export button when loading', () => {
     // Arrange / Act
     render(
-      <GridToolbar {...defaultProps} onExportCsv={jest.fn()} isLoading={true} />,
+      <GridToolbar {...defaultProps} onExportCsv={vi.fn()} isLoading={true} />,
     )
 
     // Assert
@@ -145,7 +145,7 @@ describe('GridToolbar', () => {
     render(
       <GridToolbar
         {...defaultProps}
-        onExportCsv={jest.fn()}
+        onExportCsv={vi.fn()}
         displayedRowCount={0}
       />,
     )

@@ -1,5 +1,3 @@
-jest.mock('dayjs', () => jest.requireActual('dayjs'))
-
 import type { ProjectPlanNodeDto } from '@/src/services/wayd-api'
 import {
   DRAFT_TASK_DEFAULTS,

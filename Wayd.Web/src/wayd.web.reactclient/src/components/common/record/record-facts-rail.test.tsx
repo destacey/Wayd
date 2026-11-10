@@ -3,9 +3,11 @@ import userEvent from '@testing-library/user-event'
 import RecordFactsRail from './record-facts-rail'
 import { RecordLayoutConstants } from '@/src/config/theme/theme-constants'
 
-const renderRail = (props?: Partial<React.ComponentProps<typeof RecordFactsRail>>) => {
-  const onWidthChange = jest.fn()
-  const onOpenChange = jest.fn()
+const renderRail = (
+  props?: Partial<React.ComponentProps<typeof RecordFactsRail>>,
+) => {
+  const onWidthChange = vi.fn()
+  const onOpenChange = vi.fn()
   render(
     <RecordFactsRail
       open

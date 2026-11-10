@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import StageSignInTenantForm from './stage-sign-in-tenant-form'
 
@@ -9,19 +9,18 @@ Object.defineProperty(window, 'getComputedStyle', {
   }),
 })
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ success: jest.fn(), error: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ success: vi.fn(), error: vi.fn() }),
 }))
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => true }),
 }))
 
-// isValid is set from an async validation this Jest setup never delivers; the submit
+// isValid is set from an async validation this test setup never delivers; the submit
 // itself still runs the real validateFields and onSubmit.
-jest.mock('@/src/hooks', () => {
-  const actual = jest.requireActual('@/src/hooks')
+vi.mock('@/src/hooks', async () => {
+  const actual = await vi.importActual<any>('@/src/hooks')
   return {
     ...actual,
     useModalForm: (options: Parameters<typeof actual.useModalForm>[0]) => ({
@@ -31,9 +30,9 @@ jest.mock('@/src/hooks', () => {
   }
 })
 
-const mockStageSignInTenant = jest.fn()
-const mockUseGetEntraTenantIdsQuery = jest.fn()
-jest.mock('@/src/store/features/user-management/users-api', () => ({
+const mockStageSignInTenant = vi.fn()
+const mockUseGetEntraTenantIdsQuery = vi.fn()
+vi.mock('@/src/store/features/user-management/users-api', () => ({
   useStageSignInTenantMutation: () => [
     mockStageSignInTenant,
     { isLoading: false },
@@ -47,8 +46,8 @@ const renderForm = (currentTenantId?: string) =>
       userId="user-1"
       userName="Morgan Lee"
       currentTenantId={currentTenantId}
-      onFormComplete={jest.fn()}
-      onFormCancel={jest.fn()}
+      onFormComplete={vi.fn()}
+      onFormCancel={vi.fn()}
     />,
   )
 
@@ -60,7 +59,7 @@ const arrangeTenants = (tenantIds: string[]) =>
 
 describe('StageSignInTenantForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockStageSignInTenant.mockResolvedValue({ data: undefined })
   })
 
@@ -73,9 +72,7 @@ describe('StageSignInTenantForm', () => {
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
 
     // Act
-    await act(async () => {
-      await user.click(screen.getByRole('button', { name: 'Set Tenant' }))
-    })
+    await user.click(screen.getByRole('button', { name: 'Set Tenant' }))
 
     // Assert
     await waitFor(() =>
@@ -105,9 +102,7 @@ describe('StageSignInTenantForm', () => {
     await screen.findByRole('combobox')
 
     // Act
-    await act(async () => {
-      await user.click(screen.getByRole('button', { name: 'Set Tenant' }))
-    })
+    await user.click(screen.getByRole('button', { name: 'Set Tenant' }))
 
     // Assert
     await waitFor(() =>

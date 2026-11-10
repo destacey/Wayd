@@ -1,17 +1,17 @@
+import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import ContainerCard from './container-card'
 import useTheme from '../contexts/theme'
 
 // Mock the useTheme hook
-jest.mock('../contexts/theme', () => ({
-  __esModule: true,
-  default: jest.fn(),
+vi.mock('../contexts/theme', () => ({
+  default: vi.fn(),
 }))
 
 describe('ContainerCard', () => {
   beforeEach(() => {
     // Mock the theme context
-    ;(useTheme as jest.Mock).mockReturnValue({ badgeColor: '#2196f3' })
+    ;(useTheme as Mock).mockReturnValue({ badgeColor: '#2196f3' })
   })
 
   it('renders the title and children', () => {

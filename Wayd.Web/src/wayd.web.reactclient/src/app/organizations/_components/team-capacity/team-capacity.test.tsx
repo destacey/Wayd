@@ -3,11 +3,8 @@ import userEvent from '@testing-library/user-event'
 import { calendarDaysBetween, todayCalendarDate } from '@/src/utils'
 import TeamCapacity from './team-capacity'
 
-jest.unmock('dayjs')
-
 let mockPermissions: string[] = []
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({
     hasPermissionClaim: (permission: string) =>
       mockPermissions.includes(permission),
@@ -19,11 +16,11 @@ let mockCapacity: Record<string, unknown> | undefined
 let mockStaleCapacity: Record<string, unknown> | undefined
 let mockIsFetching = false
 let mockError: unknown
-const mockCapacityArgs = jest.fn()
+const mockCapacityArgs = vi.fn()
 let mockRollup: Record<string, unknown> | undefined
 let mockRollupError: unknown
-const mockRollupArgs = jest.fn()
-jest.mock('@/src/store/features/organization/team-capacity-api', () => ({
+const mockRollupArgs = vi.fn()
+vi.mock('@/src/store/features/organization/team-capacity-api', () => ({
   useGetTeamCapacityQuery: (arg: unknown) => {
     mockCapacityArgs(arg)
     return {
@@ -32,7 +29,7 @@ jest.mock('@/src/store/features/organization/team-capacity-api', () => ({
       isLoading: false,
       isFetching: mockIsFetching,
       error: mockError,
-      refetch: jest.fn(),
+      refetch: vi.fn(),
     }
   },
   useGetTeamOfTeamsCapacityRollupQuery: (arg: unknown, options: unknown) => {
@@ -41,23 +38,22 @@ jest.mock('@/src/store/features/organization/team-capacity-api', () => ({
       currentData: mockRollup,
       isFetching: false,
       error: mockRollupError,
-      refetch: jest.fn(),
+      refetch: vi.fn(),
     }
   },
 }))
 
 let mockMembers: unknown[] | undefined
 
-jest.mock('@/src/store/features/organization/team-members-api', () => ({
+vi.mock('@/src/store/features/organization/team-members-api', () => ({
   useGetTeamMembersQuery: () => ({ data: mockMembers }),
   useGetTeamOfTeamsMembersQuery: () => ({ data: undefined }),
 }))
 
-const mockChangeForm = jest.fn()
-jest.mock(
+const mockChangeForm = vi.fn()
+vi.mock(
   '@/src/app/organizations/_components/allocations/change-allocation-form',
   () => ({
-    __esModule: true,
     default: (props: unknown) => {
       mockChangeForm(props)
       return <div data-testid="change-form" />
@@ -65,11 +61,10 @@ jest.mock(
   }),
 )
 
-const mockMoveForm = jest.fn()
-jest.mock(
+const mockMoveForm = vi.fn()
+vi.mock(
   '@/src/app/organizations/_components/allocations/move-allocation-form',
   () => ({
-    __esModule: true,
     default: (props: unknown) => {
       mockMoveForm(props)
       return <div data-testid="move-form" />
@@ -77,18 +72,16 @@ jest.mock(
   }),
 )
 
-const mockInitializeForm = jest.fn()
-jest.mock('./initialize-allocations-form', () => ({
-  __esModule: true,
+const mockInitializeForm = vi.fn()
+vi.mock('./initialize-allocations-form', () => ({
   default: (props: unknown) => {
     mockInitializeForm(props)
     return <div data-testid="initialize-form" />
   },
 }))
 
-const mockRollupGrid = jest.fn()
-jest.mock('./team-capacity-rollup', () => ({
-  __esModule: true,
+const mockRollupGrid = vi.fn()
+vi.mock('./team-capacity-rollup', () => ({
   default: (props: unknown) => {
     mockRollupGrid(props)
     return <div data-testid="rollup-grid" />
@@ -208,7 +201,7 @@ const statistic = (title: string) =>
 
 describe('TeamCapacity', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockPermissions = ['Permissions.Teams.Update']
     mockCapacity = capacity()
     mockStaleCapacity = undefined
@@ -251,8 +244,8 @@ describe('TeamCapacity', () => {
   it("takes today in the team's zone, not the viewer's", () => {
     // Arrange — noon UTC on Sunday 18 October is already Monday 19 October in
     // Auckland, ahead of any viewer zone in the Americas or UTC
-    jest.useFakeTimers({ advanceTimers: true })
-    jest.setSystemTime(new Date('2026-10-18T12:00:00Z'))
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date('2026-10-18T12:00:00Z'))
 
     try {
       // Act
@@ -271,7 +264,7 @@ describe('TeamCapacity', () => {
         to: '2026-11-01',
       })
     } finally {
-      jest.useRealTimers()
+      vi.useRealTimers()
     }
   })
 

@@ -6,20 +6,17 @@ import {
 } from '@/src/services/wayd-api'
 import FollowedRecordHealth from './followed-record-health'
 
-const mockProjectHealthCheckQuery = jest.fn()
-jest.mock('@/src/store/features/ppm/project-health-checks-api', () => ({
+const mockProjectHealthCheckQuery = vi.fn()
+vi.mock('@/src/store/features/ppm/project-health-checks-api', () => ({
   useGetProjectHealthCheckQuery: (...args: unknown[]) =>
     mockProjectHealthCheckQuery(...args),
 }))
 
-const mockObjectiveHealthCheckQuery = jest.fn()
-jest.mock(
-  '@/src/store/features/planning/pi-objective-health-checks-api',
-  () => ({
-    useGetObjectiveHealthCheckQuery: (...args: unknown[]) =>
-      mockObjectiveHealthCheckQuery(...args),
-  }),
-)
+const mockObjectiveHealthCheckQuery = vi.fn()
+vi.mock('@/src/store/features/planning/pi-objective-health-checks-api', () => ({
+  useGetObjectiveHealthCheckQuery: (...args: unknown[]) =>
+    mockObjectiveHealthCheckQuery(...args),
+}))
 
 const record = (overrides: Partial<FollowedRecordDto>): FollowedRecordDto => ({
   ownerType: 'ppm.project',

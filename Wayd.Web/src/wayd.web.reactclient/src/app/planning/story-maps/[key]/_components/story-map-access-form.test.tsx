@@ -1,3 +1,4 @@
+import type { Mock } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
@@ -14,32 +15,31 @@ import {
   useSetStoryMapVisibilityMutation,
 } from '@/src/store/features/planning/story-maps-api'
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
-  default: jest.fn(),
+vi.mock('@/src/components/contexts/auth', () => ({
+  default: vi.fn(),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
-jest.mock('@/src/store/features/planning/story-maps-api', () => ({
-  useSetStoryMapOwnersMutation: jest.fn(),
-  useSetStoryMapEditorsMutation: jest.fn(),
-  useSetStoryMapVisibilityMutation: jest.fn(),
-  useSetStoryMapEditAccessMutation: jest.fn(),
+vi.mock('@/src/store/features/planning/story-maps-api', () => ({
+  useSetStoryMapOwnersMutation: vi.fn(),
+  useSetStoryMapEditorsMutation: vi.fn(),
+  useSetStoryMapVisibilityMutation: vi.fn(),
+  useSetStoryMapEditAccessMutation: vi.fn(),
 }))
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeeOptionsQuery: () => ({ data: [] }),
 }))
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
+vi.mock('@/src/store/features/organizations/team-api', () => ({
   useGetTeamOptionsQuery: () => ({ data: [] }),
 }))
 
 // A button that adds one employee, so a test can change a list without driving a real select.
-jest.mock('@/src/components/common/organizations', () => ({
+vi.mock('@/src/components/common/organizations', () => ({
   EmployeeSelect: ({
     value,
     onChange,
@@ -67,7 +67,7 @@ const map = {
 
 const calls: string[] = []
 const mutation = (name: string) => {
-  const trigger = jest.fn(async () => {
+  const trigger = vi.fn(async () => {
     calls.push(name)
     return { data: null }
   })
@@ -78,8 +78,8 @@ const renderForm = () =>
   render(
     <StoryMapAccessForm
       map={map}
-      onFormUpdate={jest.fn()}
-      onFormCancel={jest.fn()}
+      onFormUpdate={vi.fn()}
+      onFormCancel={vi.fn()}
     />,
   )
 
@@ -92,20 +92,18 @@ const save = async () => {
 describe('StoryMapAccessForm', () => {
   beforeEach(() => {
     calls.length = 0
-    ;(useAuth as jest.Mock).mockReturnValue({
+    ;(useAuth as Mock).mockReturnValue({
       user: { employeeId: 'me' },
       hasPermissionClaim: () => true,
     })
-    ;(useSetStoryMapOwnersMutation as jest.Mock).mockReturnValue(
-      mutation('owners'),
-    )
-    ;(useSetStoryMapEditorsMutation as jest.Mock).mockReturnValue(
+    ;(useSetStoryMapOwnersMutation as Mock).mockReturnValue(mutation('owners'))
+    ;(useSetStoryMapEditorsMutation as Mock).mockReturnValue(
       mutation('editors'),
     )
-    ;(useSetStoryMapVisibilityMutation as jest.Mock).mockReturnValue(
+    ;(useSetStoryMapVisibilityMutation as Mock).mockReturnValue(
       mutation('visibility'),
     )
-    ;(useSetStoryMapEditAccessMutation as jest.Mock).mockReturnValue(
+    ;(useSetStoryMapEditAccessMutation as Mock).mockReturnValue(
       mutation('editAccess'),
     )
   })

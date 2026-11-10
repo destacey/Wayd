@@ -9,15 +9,13 @@ import TaskDrawer from './task-drawer'
  * the description is the bug the split exists to prevent.
  */
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 // The checklist and work-item controls each own a mutation; none are exercised here.
-const noopMutation = () => [
-  jest.fn(() => ({ unwrap: () => Promise.resolve() })),
-]
-jest.mock('@/src/store/features/planning/story-maps-api', () => ({
+const noopMutation = () => [vi.fn(() => ({ unwrap: () => Promise.resolve() }))]
+vi.mock('@/src/store/features/planning/story-maps-api', () => ({
   useAddChecklistItemMutation: () => noopMutation(),
   useRenameChecklistItemMutation: () => noopMutation(),
   useSetChecklistItemCheckedMutation: () => noopMutation(),
@@ -54,9 +52,9 @@ const buildMap = (
     swimLanes: [{ id: 'lane-1', name: 'Tasks', order: 0, isDefault: true }],
   }) as unknown as StoryMapDetailsDto
 
-const mockOnRenameTask = jest.fn()
-const mockOnSetTaskDescription = jest.fn()
-const mockOnClose = jest.fn()
+const mockOnRenameTask = vi.fn()
+const mockOnSetTaskDescription = vi.fn()
+const mockOnClose = vi.fn()
 
 const renderDrawer = (
   task: StoryMapTaskDto = buildTask(),
@@ -71,13 +69,13 @@ const renderDrawer = (
       onClose={mockOnClose}
       onRenameTask={mockOnRenameTask}
       onSetTaskDescription={mockOnSetTaskDescription}
-      onDeleteTask={jest.fn()}
-      onToggleTaskPersona={jest.fn()}
-      onMoveTaskToLane={jest.fn()}
+      onDeleteTask={vi.fn()}
+      onToggleTaskPersona={vi.fn()}
+      onMoveTaskToLane={vi.fn()}
     />,
   )
 
-beforeEach(() => jest.clearAllMocks())
+beforeEach(() => vi.clearAllMocks())
 
 describe('TaskDrawer', () => {
   it('saves the description without sending the title', async () => {

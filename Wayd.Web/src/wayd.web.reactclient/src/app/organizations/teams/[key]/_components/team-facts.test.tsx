@@ -1,16 +1,16 @@
 import { render, screen } from '@testing-library/react'
 import TeamFacts from './team-facts'
 
-const mockMemberships = jest.fn()
+const mockMemberships = vi.fn()
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
+vi.mock('@/src/store/features/organizations/team-api', () => ({
   useGetTeamOfTeamsMembershipsQuery: (...args: unknown[]) =>
     mockMemberships(...args),
 }))
 
-jest.mock('@/src/components/common/links/links-card', () => {
+vi.mock('@/src/components/common/links/links-card', () => {
   const LinksCard = () => <div>Links Card</div>
-  return LinksCard
+  return { default: LinksCard }
 })
 
 const team = {
@@ -31,7 +31,7 @@ const childOf = (id: string, name: string) => ({
 
 describe('TeamFacts', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockMemberships.mockReturnValue({ data: [], isLoading: false })
   })
 
@@ -48,15 +48,17 @@ describe('TeamFacts', () => {
     // Arrange / Act
     render(
       <TeamFacts
-        team={{ ...team, teamOfTeams: { id: 'tot-1', key: 3, name: 'Platform Tribe' } }}
+        team={{
+          ...team,
+          teamOfTeams: { id: 'tot-1', key: 3, name: 'Platform Tribe' },
+        }}
       />,
     )
 
     // Assert
-    expect(screen.getByRole('link', { name: 'Platform Tribe' })).toHaveAttribute(
-      'href',
-      '/organizations/team-of-teams/3',
-    )
+    expect(
+      screen.getByRole('link', { name: 'Platform Tribe' }),
+    ).toHaveAttribute('href', '/organizations/team-of-teams/3')
   })
 
   it('does not query for child teams on a plain team', () => {
@@ -83,13 +85,17 @@ describe('TeamFacts', () => {
     // Assert — sorted, not in the order the API returned them
     const links = screen.getAllByRole('link')
     const names = links.map((l) => l.textContent)
-    expect(names.indexOf('Alpha Squad')).toBeLessThan(names.indexOf('Zeta Squad'))
+    expect(names.indexOf('Alpha Squad')).toBeLessThan(
+      names.indexOf('Zeta Squad'),
+    )
   })
 
   it('omits ended memberships, which are not live teams', () => {
     // Arrange
     mockMemberships.mockReturnValue({
-      data: [{ ...childOf('c1', 'Disbanded Squad'), end: new Date('2025-01-01') }],
+      data: [
+        { ...childOf('c1', 'Disbanded Squad'), end: new Date('2025-01-01') },
+      ],
       isLoading: false,
     })
 

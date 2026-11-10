@@ -46,12 +46,12 @@ const pointerMove = (
 
 describe('ChartCanvas', () => {
   beforeEach(() => {
-    jest.useFakeTimers()
+    vi.useFakeTimers()
   })
 
   afterEach(() => {
-    jest.runOnlyPendingTimers()
-    jest.useRealTimers()
+    vi.runOnlyPendingTimers()
+    vi.useRealTimers()
   })
 
   it('renders custom background tooltips on hover', () => {
@@ -77,8 +77,8 @@ describe('ChartCanvas', () => {
       />,
     )
     const canvas = container.firstElementChild as HTMLElement
-    canvas.getBoundingClientRect = jest.fn(() => rect(0, 0, 500, 120))
-    container.getBoundingClientRect = jest.fn(() => rect(0, 0, 500, 120))
+    canvas.getBoundingClientRect = vi.fn(() => rect(0, 0, 500, 120))
+    container.getBoundingClientRect = vi.fn(() => rect(0, 0, 500, 120))
 
     // Assert
     const label = screen.getByText('Planning Timebox')
@@ -91,7 +91,7 @@ describe('ChartCanvas', () => {
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
 
     act(() => {
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
     })
 
     expect(screen.getByRole('tooltip')).toHaveTextContent('Planning Timebox')
@@ -122,8 +122,8 @@ describe('ChartCanvas', () => {
       />,
     )
     const canvas = container.firstElementChild as HTMLElement
-    canvas.getBoundingClientRect = jest.fn(() => rect(0, 0, 500, 160))
-    container.getBoundingClientRect = jest.fn(() => rect(0, 0, 500, 160))
+    canvas.getBoundingClientRect = vi.fn(() => rect(0, 0, 500, 160))
+    container.getBoundingClientRect = vi.fn(() => rect(0, 0, 500, 160))
 
     // Act
     pointerMove(screen.getByText('Long Timebox'), {
@@ -132,7 +132,7 @@ describe('ChartCanvas', () => {
     })
 
     act(() => {
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
     })
 
     // Assert
@@ -163,8 +163,8 @@ describe('ChartCanvas', () => {
       />,
     )
     const canvas = container.firstElementChild as HTMLElement
-    canvas.getBoundingClientRect = jest.fn(() => rect(0, 0, 500, 120))
-    container.getBoundingClientRect = jest.fn(() => rect(0, 0, 500, 120))
+    canvas.getBoundingClientRect = vi.fn(() => rect(0, 0, 500, 120))
+    container.getBoundingClientRect = vi.fn(() => rect(0, 0, 500, 120))
 
     // Act
     pointerMove(screen.getByText('Planning Timebox'), {
@@ -173,7 +173,7 @@ describe('ChartCanvas', () => {
     })
     fireEvent.pointerLeave(canvas)
     act(() => {
-      jest.advanceTimersByTime(500)
+      vi.advanceTimersByTime(500)
     })
 
     // Assert

@@ -7,8 +7,6 @@ import {
   periodDates,
 } from './dependency-analysis-over-time-data'
 
-jest.unmock('dayjs')
-
 const period = (
   start: string,
   end: string,

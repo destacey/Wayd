@@ -2,32 +2,29 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import RequestFilterBar from './request-filter-bar'
 import { DEFAULT_REQUEST_FILTERS } from './request-filters'
 
-const mockSearch = jest.fn()
+const mockSearch = vi.fn()
 
 // The wide layout, where the filters show inline rather than folded into a drawer.
-jest.mock('antd', () => {
-  const antd = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const antd = await vi.importActual<any>('antd')
   return {
     ...antd,
     Grid: { ...antd.Grid, useBreakpoint: () => ({ md: true }) },
   }
 })
 
-jest.mock(
-  '@/src/store/features/demand-management/demand-management-api',
-  () => ({
-    useSearchIntakeRequestTagsQuery: (
-      args: unknown,
-      options: { skip: boolean },
-    ) => mockSearch(args, options),
-  }),
-)
+vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
+  useSearchIntakeRequestTagsQuery: (
+    args: unknown,
+    options: { skip: boolean },
+  ) => mockSearch(args, options),
+}))
 
 const renderBar = (tagIds: string[]) =>
   render(
     <RequestFilterBar
       filters={{ ...DEFAULT_REQUEST_FILTERS, tagIds }}
-      onChange={jest.fn()}
+      onChange={vi.fn()}
       requests={[]}
       desks={[]}
       channels={[]}

@@ -2,9 +2,9 @@ import { render, screen } from '@testing-library/react'
 import { UserIdentityDto } from '@/src/services/wayd-api'
 import UserIdentityHistory from './user-identity-history'
 
-const mockHistoryQuery = jest.fn()
+const mockHistoryQuery = vi.fn()
 
-jest.mock('@/src/store/features/user-management/users-api', () => ({
+vi.mock('@/src/store/features/user-management/users-api', () => ({
   useGetUserIdentityHistoryQuery: (...args: unknown[]) =>
     mockHistoryQuery(...args),
 }))
@@ -24,7 +24,7 @@ const USER_ID = 'e1a7b300-0000-0000-0000-000000000001'
 
 describe('UserIdentityHistory', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockHistoryQuery.mockReturnValue({
       data: [identity()],
       isLoading: false,

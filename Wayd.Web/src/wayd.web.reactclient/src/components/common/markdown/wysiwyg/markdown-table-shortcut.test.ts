@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { Editor } from '@tiptap/core'
 import {
   createTestEditor,

@@ -2,17 +2,17 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { ProjectDetailsDto } from '@/src/services/wayd-api'
 import ProjectDrawer from './project-drawer'
 
-jest.mock('next/link', () => {
+vi.mock('next/link', () => {
   const MockLink = ({ href, children }: any) => <a href={href}>{children}</a>
   MockLink.displayName = 'MockLink'
-  return MockLink
+  return { default: MockLink }
 })
 
 // antd's Drawer reaches for Next's server-side AsyncLocalStorage, which jsdom
 // has no runtime for — a bare <Drawer> fails to render on its own. Only the
 // Drawer is stubbed, so the facts markup under test stays real.
-jest.mock('antd', () => {
-  const actual = jest.requireActual('antd')
+vi.mock('antd', async () => {
+  const actual = await vi.importActual<any>('antd')
   const MockDrawer = ({ title, extra, open, children }: any) =>
     open ? (
       <div>
@@ -25,47 +25,43 @@ jest.mock('antd', () => {
   return { ...actual, Drawer: MockDrawer }
 })
 
-const mockProject = jest.fn()
+const mockProject = vi.fn()
 
-jest.mock('@/src/store/features/ppm/projects-api', () => ({
+vi.mock('@/src/store/features/ppm/projects-api', () => ({
   useGetProjectQuery: (...args: unknown[]) => mockProject(...args),
 }))
 
 const mockClaims = { granted: true }
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: () => mockClaims.granted }),
 }))
 
-jest.mock(
+vi.mock(
   '@/src/app/ppm/projects/_components/create-project-health-check-form',
   () => ({
-    __esModule: true,
     default: ({ projectId }: { projectId: string }) => (
       <div data-testid="health-check-form">{projectId}</div>
     ),
   }),
 )
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn() }),
 }))
 
-jest.mock('@/src/components/common/links/links-card', () => ({
-  __esModule: true,
+vi.mock('@/src/components/common/links/links-card', () => ({
   default: () => <div data-testid="links-card" />,
 }))
 
-jest.mock(
+vi.mock(
   '@/src/app/ppm/projects/_components/scoring/project-score-card',
   () => ({
-    __esModule: true,
     default: () => <div data-testid="score-card" />,
   }),
 )
 
-jest.mock('@/src/store/features/organizations/employee-api', () => ({
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeeByIdQuery: () => ({
     data: undefined,
     isLoading: false,
@@ -105,13 +101,13 @@ const renderDrawer = (overrides: Partial<ProjectDetailsDto> = {}) => {
   })
 
   return render(
-    <ProjectDrawer projectKey="PRJ-1" drawerOpen onDrawerClose={jest.fn()} />,
+    <ProjectDrawer projectKey="PRJ-1" drawerOpen onDrawerClose={vi.fn()} />,
   )
 }
 
 describe('ProjectDrawer', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     mockClaims.granted = true
   })
 

@@ -4,16 +4,15 @@ import { render, screen } from '@testing-library/react'
 import TeamOfTeamsDependenciesSection from './team-of-teams-dependencies-section'
 
 let mockDependencies: DependencyDto[] = []
-const mockQuery = jest.fn()
-jest.mock('@/src/store/features/organizations/team-api', () => ({
+const mockQuery = vi.fn()
+vi.mock('@/src/store/features/organizations/team-api', () => ({
   useGetTeamOfTeamsDependenciesQuery: (id: string) => {
     mockQuery(id)
-    return { data: mockDependencies, isLoading: false, refetch: jest.fn() }
+    return { data: mockDependencies, isLoading: false, refetch: vi.fn() }
   },
 }))
 
-jest.mock('@/src/components/common/work/dependencies-grid', () => ({
-  __esModule: true,
+vi.mock('@/src/components/common/work/dependencies-grid', () => ({
   default: (props: { dependencies: DependencyDto[] }) => (
     <ul aria-label="rows">
       {props.dependencies.map((d) => (

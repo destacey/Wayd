@@ -1,25 +1,25 @@
 import { render, screen, fireEvent } from '@testing-library/react'
+import type { MockInstance } from 'vitest'
 import { RoleDto } from '@/src/services/wayd-api'
 import Permissions from './permissions'
 
-const mockHasPermissionClaim = jest.fn()
-const mockPermissionsQuery = jest.fn()
+const mockHasPermissionClaim = vi.fn()
+const mockPermissionsQuery = vi.fn()
 
-jest.mock('@/src/components/contexts/auth', () => ({
-  __esModule: true,
+vi.mock('@/src/components/contexts/auth', () => ({
   default: () => ({ hasPermissionClaim: mockHasPermissionClaim }),
 }))
 
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ success: jest.fn(), error: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ success: vi.fn(), error: vi.fn() }),
 }))
 
-jest.mock('@/src/store/features/user-management/permissions-api', () => ({
+vi.mock('@/src/store/features/user-management/permissions-api', () => ({
   useGetPermissionsQuery: () => mockPermissionsQuery(),
 }))
 
-jest.mock('@/src/store/features/user-management/roles-api', () => ({
-  useUpdatePermissionsMutation: () => [jest.fn()],
+vi.mock('@/src/store/features/user-management/roles-api', () => ({
+  useUpdatePermissionsMutation: () => [vi.fn()],
 }))
 
 const role = { id: 'r1', name: 'Delivery Lead' } as RoleDto
@@ -72,20 +72,15 @@ const makeDirty = () => {
 }
 
 describe('Permissions', () => {
-  const confirmSpy = jest.spyOn(window, 'confirm')
+  let confirmSpy: MockInstance<typeof window.confirm>
 
   beforeEach(() => {
-    jest.clearAllMocks()
     mockHasPermissionClaim.mockReturnValue(true)
     mockPermissionsQuery.mockReturnValue({
       data: PERMISSIONS,
       isLoading: false,
     })
-    confirmSpy.mockReturnValue(true)
-  })
-
-  afterAll(() => {
-    confirmSpy.mockRestore()
+    confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
   })
 
   describe('unsaved-changes guard', () => {

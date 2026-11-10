@@ -15,7 +15,7 @@ const counts: FollowCountsDto = {
 describe('FollowingFilterBar', () => {
   it('combines a view with the chosen type', () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <FollowingFilterBar
         counts={counts}
@@ -36,7 +36,7 @@ describe('FollowingFilterBar', () => {
 
   it('clears a view when its chip is unchecked, keeping the type', () => {
     // Arrange
-    const onChange = jest.fn()
+    const onChange = vi.fn()
     render(
       <FollowingFilterBar
         counts={counts}
@@ -58,7 +58,7 @@ describe('FollowingFilterBar', () => {
   it('shows the type select with counts', () => {
     // Arrange & Act
     render(
-      <FollowingFilterBar counts={counts} filter={{}} onChange={jest.fn()} />,
+      <FollowingFilterBar counts={counts} filter={{}} onChange={vi.fn()} />,
     )
 
     // Assert

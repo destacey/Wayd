@@ -3,17 +3,15 @@ import type { FormInstance } from 'antd'
 import dayjs from 'dayjs'
 import MoveAllocationForm, { fieldForError } from './move-allocation-form'
 
-jest.unmock('dayjs')
-
-jest.mock('@/src/components/contexts/messaging', () => ({
-  useMessage: () => ({ error: jest.fn(), success: jest.fn() }),
+vi.mock('@/src/components/contexts/messaging', () => ({
+  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
 let formInstance: FormInstance | undefined
 
 // The form instance is real — antd's Form binds to it, and a stub breaks on render.
-jest.mock('@/src/hooks', () => {
-  const { Form } = jest.requireActual('antd')
+vi.mock('@/src/hooks', async () => {
+  const { Form } = await vi.importActual<any>('antd')
   return {
     useModalForm: () => {
       const [form] = Form.useForm()
@@ -23,23 +21,23 @@ jest.mock('@/src/hooks', () => {
         isOpen: true,
         isValid: true,
         isSaving: false,
-        handleOk: jest.fn(),
-        handleCancel: jest.fn(),
+        handleOk: vi.fn(),
+        handleCancel: vi.fn(),
       }
     },
   }
 })
 
-jest.mock('@/src/store/features/organizations/team-api', () => ({
+vi.mock('@/src/store/features/organizations/team-api', () => ({
   useGetTeamOptionsQuery: () => ({ data: [] }),
 }))
 
-jest.mock('@/src/store/features/organization/team-member-roles-api', () => ({
+vi.mock('@/src/store/features/organization/team-member-roles-api', () => ({
   useGetTeamMemberRolesQuery: () => ({ data: [] }),
 }))
 
-jest.mock('@/src/store/features/organization/employee-allocations-api', () => ({
-  useMoveEmployeeAllocationMutation: () => [jest.fn()],
+vi.mock('@/src/store/features/organization/employee-allocations-api', () => ({
+  useMoveEmployeeAllocationMutation: () => [vi.fn()],
 }))
 
 /** The End field's errors once the given values are validated. */

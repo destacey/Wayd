@@ -60,7 +60,7 @@ public sealed class GetTeamCadenceMetricsQueryHandler(
         var now = _dateTimeProvider.Now;
 
         var schedule = await _dispatcher.Send(new GetTeamScheduleHistoryQuery(request.TeamId), cancellationToken);
-        var current = schedule.FirstOrDefault(p => p.IncludesDate(now.InZone(DateTimeZoneProviders.Tzdb[p.TimeZone]).Date));
+        var current = schedule.InEffectAt(now);
 
         var periods = CadencePeriod.Recent(
             schedule

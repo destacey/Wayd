@@ -270,7 +270,7 @@ describe('HomePage', () => {
       screen.getByText(/isn't linked to an employee record/),
     ).toBeInTheDocument()
     expect(
-      screen.getByText(/projects, risks, tasks and team sprints/),
+      screen.getByText(/projects, risks, tasks and teams/),
     ).toBeInTheDocument()
     expect(screen.queryByText(/Personal widget/)).not.toBeInTheDocument()
     expect(screen.queryByText('Personal tile')).not.toBeInTheDocument()

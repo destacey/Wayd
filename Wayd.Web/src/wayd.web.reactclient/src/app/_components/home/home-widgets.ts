@@ -13,11 +13,24 @@ import WhatsChangedWidget, {
   UnreadNotificationsTile,
 } from './widgets/whats-changed-widget'
 
+import { DependenciesAtRiskTile } from './widgets/my-teams-tile'
+
 // Loaded after the page: each sprint draws a burn-up chart, and the charting
 // library is the heaviest code the home page would otherwise carry up front.
-const MyTeamSprintsWidget = lazy(
-  () => import('./widgets/my-team-sprints-widget'),
-)
+const MyTeamsWidget = lazy(() => import('./widgets/my-teams-widget'))
+
+/**
+ * How urgent each attention tile is when above zero: the strip shows the
+ * highest first. Work already late outranks work coming due, and both outrank
+ * news, which waits until read.
+ */
+export const TilePriority = {
+  OverdueTasks: 100,
+  RiskFollowUps: 80,
+  DependenciesAtRisk: 70,
+  TasksDueThisWeek: 60,
+  UnreadNotifications: 40,
+} as const
 
 /** Leading a project (sponsor, owner or manager) outranks working on one. */
 const projectInvolvement = ({ projects }: HomeContextResponse) => {
@@ -43,7 +56,13 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 10,
     requires: { featureFlag: 'following', linkedEmployee: true },
     Component: WhatsChangedWidget,
-    tiles: [{ id: 'unread-notifications', Tile: UnreadNotificationsTile }],
+    tiles: [
+      {
+        id: 'unread-notifications',
+        priority: TilePriority.UnreadNotifications,
+        Tile: UnreadNotificationsTile,
+      },
+    ],
   },
   {
     id: 'my-projects',
@@ -59,8 +78,16 @@ export const HomeWidgets: HomeWidget[] = [
     Component: MyProjectsWidget,
     involvement: projectInvolvement,
     tiles: [
-      { id: 'overdue-tasks', Tile: OverdueTasksTile },
-      { id: 'tasks-due-this-week', Tile: DueThisWeekTile },
+      {
+        id: 'overdue-tasks',
+        priority: TilePriority.OverdueTasks,
+        Tile: OverdueTasksTile,
+      },
+      {
+        id: 'tasks-due-this-week',
+        priority: TilePriority.TasksDueThisWeek,
+        Tile: DueThisWeekTile,
+      },
     ],
   },
   {
@@ -73,7 +100,13 @@ export const HomeWidgets: HomeWidget[] = [
     Component: MyRisksWidget,
     involvement: (context) =>
       context.assignedRiskCount > 0 ? Involvement.Involved : Involvement.None,
-    tiles: [{ id: 'risk-follow-ups', Tile: RiskFollowUpsTile }],
+    tiles: [
+      {
+        id: 'risk-follow-ups',
+        priority: TilePriority.RiskFollowUps,
+        Tile: RiskFollowUpsTile,
+      },
+    ],
   },
   {
     id: 'planning-intervals',
@@ -90,22 +123,24 @@ export const HomeWidgets: HomeWidget[] = [
       teamCount(context) > 0 ? Involvement.Involved : Involvement.None,
   },
   {
-    id: 'my-team-sprints',
-    title: 'My team sprints',
-    description: 'The active sprint of each team you are a member of.',
+    id: 'my-teams',
+    title: 'My teams',
+    description:
+      "Each team you are a member of: a Scrum team's active sprint or a Kanban team's flow, with its dependencies and risks.",
     defaultColumn: 'side',
     defaultOrder: 20,
-    requires: {
-      permissions: [
-        'Permissions.Employees.View',
-        'Permissions.Iterations.View',
-      ],
-      linkedEmployee: true,
-    },
-    Component: MyTeamSprintsWidget,
-    // A team member's sprint is their day-to-day work.
+    requires: { linkedEmployee: true },
+    Component: MyTeamsWidget,
+    // A team member's team is their day-to-day work.
     involvement: (context) =>
       context.teams.teamCount > 0 ? Involvement.Leads : Involvement.None,
+    tiles: [
+      {
+        id: 'dependencies-at-risk',
+        priority: TilePriority.DependenciesAtRisk,
+        Tile: DependenciesAtRiskTile,
+      },
+    ],
   },
   {
     id: 'following',

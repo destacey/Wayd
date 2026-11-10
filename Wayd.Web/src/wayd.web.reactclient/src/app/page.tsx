@@ -16,7 +16,7 @@ import { HomeWidget, widgetAnchorId } from './_components/home/widget-registry'
 
 /** What an unlinked account is missing, so the page explains its gaps rather than looking broken. */
 const UNLINKED_CONSEQUENCE =
-  'Your projects, risks, tasks and team sprints, your notifications and the records you follow appear here once it is.'
+  'Your projects, risks, tasks and teams, your notifications and the records you follow appear here once it is.'
 
 const WidgetColumn = ({
   widgets,

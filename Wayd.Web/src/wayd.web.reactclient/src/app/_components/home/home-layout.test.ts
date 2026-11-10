@@ -36,7 +36,7 @@ const widget = (
   ...overrides,
 })
 
-const tile = (id: string) => ({ id, Tile: Nothing })
+const tile = (id: string) => ({ id, priority: 0, Tile: Nothing })
 
 const access = (overrides: Partial<WidgetAccess> = {}): WidgetAccess => ({
   hasPermissionClaim: () => true,
@@ -231,8 +231,8 @@ describe('arrangeFromLayout', () => {
     // Act
     const tiles = attentionTiles(arrangeFromLayout(widgets, access(), layout))
 
-    // Assert
-    expect(tiles.map((t) => t.id)).toEqual(['y1', 'y2', 'x1', 'b1'])
+    // Assert — all equal in priority, so page order decides; the strip caps them later
+    expect(tiles.map((t) => t.id)).toEqual(['y1', 'y2', 'x1', 'b1', 'b2'])
   })
 })
 
@@ -407,5 +407,22 @@ describe('saved widget mapping', () => {
     // Assert
     expect(entries).toEqual([saved('a', 'main'), saved('x', 'side', false)])
     expect(toSavedWidgets(entries)).toEqual(response)
+  })
+
+  it('keeps a replaced widget’s place and visibility for its replacement', () => {
+    // Arrange
+    const response = [
+      {
+        widgetId: 'my-team-sprints',
+        column: HomeLayoutColumn.Main,
+        visible: false,
+      },
+    ]
+
+    // Act
+    const entries = fromSavedWidgets(response)
+
+    // Assert
+    expect(entries).toEqual([saved('my-teams', 'main', false)])
   })
 })

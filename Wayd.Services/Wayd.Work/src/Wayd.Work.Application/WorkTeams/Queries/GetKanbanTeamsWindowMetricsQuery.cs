@@ -84,6 +84,7 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandler(
         var completedEstimates = completed.Select(c => WorkItemEstimate.Of(window.SizingMethod, c.StoryPoints, c.Effort, c.Size)).ToList();
         var activeEstimates = active.Select(a => WorkItemEstimate.Of(window.SizingMethod, a.StoryPoints, a.Effort, a.Size)).ToList();
         var cycled = completed.Where(c => c.Activated.HasValue && c.Done > c.Activated.Value).ToList();
+        var cycleDays = cycled.Select(c => (c.Done - c.Activated!.Value).ToTimeSpan().TotalDays).ToList();
 
         return new KanbanTeamWindowMetricsDto
         {
@@ -101,10 +102,22 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandler(
             CycleTime = new CycleTimeSummary
             {
                 WorkItemsCount = cycled.Count,
-                TotalCycleTimeDays = cycled.Sum(c => (c.Done - c.Activated!.Value).ToTimeSpan().TotalDays),
+                TotalCycleTimeDays = cycleDays.Sum(),
             },
+            MedianCycleTimeDays = Median(cycleDays),
             IsHistoryIncomplete = isHistoryIncomplete,
         };
+    }
+
+    /// <summary>The middle value, or the mean of the middle two; null for no values.</summary>
+    private static double? Median(List<double> values)
+    {
+        if (values.Count == 0)
+            return null;
+
+        var sorted = values.Order().ToList();
+        var middle = sorted.Count / 2;
+        return sorted.Count % 2 == 1 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
     }
 
     /// <summary>The teams' Requirement-tier items that reached a Done-category status inside any of the windows.</summary>
@@ -195,8 +208,8 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandler(
             var endZone = (atEnd ?? model).TimeZone;
             return new TeamWindow(
                 team,
-                start.AtStartOfDayInZone(DateTimeZoneProviders.Tzdb[model.TimeZone]).ToInstant(),
-                end.PlusDays(1).AtStartOfDayInZone(DateTimeZoneProviders.Tzdb[endZone]).ToInstant(),
+                start.AtStartOfDayInZone(model.Zone()).ToInstant(),
+                end.PlusDays(1).AtStartOfDayInZone((atEnd ?? model).Zone()).ToInstant(),
                 endZone,
                 model.SizingMethod);
         }

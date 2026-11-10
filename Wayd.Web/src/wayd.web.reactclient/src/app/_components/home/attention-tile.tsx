@@ -3,7 +3,8 @@
 import { MetricCard } from '@/src/components/common/metrics'
 import { Typography } from 'antd'
 import { useRouter } from 'next/navigation'
-import { FC } from 'react'
+import { FC, useContext, useEffect } from 'react'
+import { AttentionSlotContext } from './attention-strip'
 
 const { Text } = Typography
 
@@ -55,7 +56,13 @@ const AttentionTile: FC<AttentionTileProps> = ({
   context,
 }) => {
   const router = useRouter()
+  const slot = useContext(AttentionSlotContext)
+  const report = slot?.report
   const color = attentionColor(value, alert)
+
+  useEffect(() => {
+    report?.({ value, loading })
+  }, [report, value, loading])
 
   const open = () => {
     if (href.startsWith('#')) {
@@ -66,6 +73,8 @@ const AttentionTile: FC<AttentionTileProps> = ({
     }
     router.push(href)
   }
+
+  if (slot && !slot.visible) return null
 
   return (
     <MetricCard

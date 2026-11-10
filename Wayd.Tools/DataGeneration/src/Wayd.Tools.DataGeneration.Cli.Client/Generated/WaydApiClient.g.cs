@@ -2942,6 +2942,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<HomeContextResponse> GetHomeContextAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get a summary of each team you are a member of, for how that team works today.
+        /// </summary>
+        /// <remarks>
+        /// One entry per active team you are a member of (teams of teams are left out), by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health and its `openRiskCount`. A team with no operating model today has neither `sprint` nor `flow`. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount`. Returns 404 when your account is not linked to an employee.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<MyTeamsSummaryResponse> GetTeamsSummaryAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NSwag", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -3410,6 +3421,93 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get a summary of each team you are a member of, for how that team works today.
+        /// </summary>
+        /// <remarks>
+        /// One entry per active team you are a member of (teams of teams are left out), by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health and its `openRiskCount`. A team with no operating model today has neither `sprint` nor `flow`. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount`. Returns 404 when your account is not linked to an employee.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<MyTeamsSummaryResponse> GetTeamsSummaryAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/me/teams/summary"
+                    urlBuilder_.Append("api/me/teams/summary");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<MyTeamsSummaryResponse>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -126036,6 +126134,50 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// A work item in progress, with when it started.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class InProgressWorkItemDto
+    {
+
+        /// <summary>
+        /// The work item's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The work item's key, such as `WAYD-123`, which its page is addressed by.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Key { get; set; } = default!;
+
+        /// <summary>
+        /// The key of the workspace the work item is in, which its page is addressed under.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workspaceKey")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string WorkspaceKey { get; set; } = default!;
+
+        /// <summary>
+        /// The work item's title.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Title { get; set; } = default!;
+
+        /// <summary>
+        /// When the work item first entered an In Progress-category status.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activatedOn")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset ActivatedOn { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// The moments from `earliest` to `latest`, both included. A null
     /// <br/>`latest` means the window runs up to now, whenever the caller acts.
     /// </summary>
@@ -129193,6 +129335,173 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("assigneeCount")]
         public int AssigneeCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A Kanban team's flow: what it has in progress, and what it finished lately.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyTeamFlowSummaryResponse
+    {
+
+        /// <summary>
+        /// The team's current reporting period, or null when the team has no reporting cadence.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("currentPeriod")]
+        public MyTeamReportingPeriodResponse? CurrentPeriod { get; set; } = default!;
+
+        /// <summary>
+        /// Requirement-tier work items in an In Progress-category status now.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inProgressCount")]
+        public int InProgressCount { get; set; } = default!;
+
+        /// <summary>
+        /// The first day `completedCount` counts from, in the team's time zone: 13 days before today, or
+        /// <br/>the day the team became Kanban when that is later.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("completedSince")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset CompletedSince { get; set; } = default!;
+
+        /// <summary>
+        /// Requirement-tier work items finished from `completedSince` through today.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("completedCount")]
+        public int CompletedCount { get; set; } = default!;
+
+        /// <summary>
+        /// The median cycle time in days of the items `completedCount` counts; null when none has one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("medianCycleTimeDays")]
+        public double? MedianCycleTimeDays { get; set; } = default!;
+
+        /// <summary>
+        /// The work item in progress longest, or null when nothing in progress has a start time.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("oldestInProgress")]
+        public InProgressWorkItemDto? OldestInProgress { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A reporting period of a Kanban team's cadence.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyTeamReportingPeriodResponse
+    {
+
+        /// <summary>
+        /// The period's first day.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset Start { get; set; } = default!;
+
+        /// <summary>
+        /// The period's last day, included in it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset End { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A Scrum team's sprint today.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyTeamSprintSummaryResponse
+    {
+
+        /// <summary>
+        /// The sprint the team is running now, or null between sprints.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeSprint")]
+        public NavigationDto? ActiveSprint { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The active teams the caller is a member of, each summarised for how it works today. Teams of teams are not
+    /// <br/>included. A section is null when the caller lacks the permission the team page needs to show it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyTeamsSummaryResponse
+    {
+
+        /// <summary>
+        /// One entry per team, by team name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<MyTeamSummaryResponse> Teams { get; set; } = new System.Collections.ObjectModel.Collection<MyTeamSummaryResponse>();
+
+        /// <summary>
+        /// The open dependencies at risk or unhealthy across the teams, each counted once even when it joins two of them.
+        /// <br/>Null without the View Work Items permission.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dependenciesAtRiskCount")]
+        public int? DependenciesAtRiskCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One of the caller's teams, summarised for the methodology it follows today.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyTeamSummaryResponse
+    {
+
+        /// <summary>
+        /// The team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        public TeamNavigationDto Team { get; set; } = default!;
+
+        /// <summary>
+        /// How the team works today, read from the operating model that covers today's date in the team's own time
+        /// <br/>zone. Null when no operating model covers today, in which case neither `sprint` nor
+        /// <br/>`flow` is returned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("methodology")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Methodology>))]
+        public Methodology? Methodology { get; set; } = default!;
+
+        /// <summary>
+        /// The IANA time zone of today's operating model, which the team's dates are counted in; null with no model.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("timeZone")]
+        public string? TimeZone { get; set; } = default!;
+
+        /// <summary>
+        /// A Scrum team's sprint. Null for any other team, or without the View Iterations permission.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sprint")]
+        public MyTeamSprintSummaryResponse? Sprint { get; set; } = default!;
+
+        /// <summary>
+        /// A Kanban team's flow. Null for any other team, or without the View Work Items permission.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("flow")]
+        public MyTeamFlowSummaryResponse? Flow { get; set; } = default!;
+
+        /// <summary>
+        /// The team's open dependencies by planning health, counted as its Dependencies section lists them, including
+        /// <br/>those within the team. Null without the View Work Items permission.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dependencies")]
+        public TeamDependencyHealthDto? Dependencies { get; set; } = default!;
+
+        /// <summary>
+        /// How many open risks the team has. Null without the View Risks permission.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("openRiskCount")]
+        public int? OpenRiskCount { get; set; } = default!;
 
     }
 
@@ -142524,6 +142833,33 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("dependencies")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<DependencyDto> Dependencies { get; set; } = new System.Collections.ObjectModel.Collection<DependencyDto>();
+
+    }
+
+    /// <summary>
+    /// One team's open dependencies, as predecessor or successor, counted by planning health.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamDependencyHealthDto
+    {
+
+        /// <summary>
+        /// The open dependencies with an end on the team, including those with both ends on it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("openCount")]
+        public int OpenCount { get; set; } = default!;
+
+        /// <summary>
+        /// The open dependencies whose ends are both unplanned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("atRiskCount")]
+        public int AtRiskCount { get; set; } = default!;
+
+        /// <summary>
+        /// The open dependencies planned to finish after they are needed, or whose successor started first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unhealthyCount")]
+        public int UnhealthyCount { get; set; } = default!;
 
     }
 

@@ -295,6 +295,20 @@ describe('ActiveTeamSprint', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
+  it('draws the fallback, when given one, if no active sprint', () => {
+    // Arrange
+    ;(useGetActiveSprintQuery as Mock).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+    })
+
+    // Act
+    render(<ActiveTeamSprint teamId="team-1" fallback={<p>Team header</p>} />)
+
+    // Assert
+    expect(screen.getByText('Team header')).toBeInTheDocument()
+  })
+
   it('displays link to sprint details page', () => {
     // Arrange / Act
     render(<ActiveTeamSprint teamId="team-1" />)

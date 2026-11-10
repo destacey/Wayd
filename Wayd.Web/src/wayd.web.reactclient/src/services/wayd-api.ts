@@ -1708,6 +1708,65 @@ export class MeClient {
         }
         return Promise.resolve<HomeContextResponse>(null as any);
     }
+
+    /**
+     * Get a summary of each team you are a member of, for how that team works today.
+     * @return OK
+     */
+    getTeamsSummary( cancelToken?: CancelToken): Promise<MyTeamsSummaryResponse> {
+        let url_ = this.baseUrl + "/api/me/teams/summary";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetTeamsSummary(_response);
+        });
+    }
+
+    protected processGetTeamsSummary(response: AxiosResponse): Promise<MyTeamsSummaryResponse> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<MyTeamsSummaryResponse>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MyTeamsSummaryResponse>(null as any);
+    }
 }
 
 export class MyFollowsClient {
@@ -66640,6 +66699,20 @@ export interface InitWorkspaceIntegrationRequest {
     externalViewWorkItemUrlTemplate?: string | undefined;
 }
 
+/** A work item in progress, with when it started. */
+export interface InProgressWorkItemDto {
+    /** The work item's id. */
+    id: string;
+    /** The work item's key, such as `WAYD-123`, which its page is addressed by. */
+    key: string;
+    /** The key of the workspace the work item is in, which its page is addressed under. */
+    workspaceKey: string;
+    /** The work item's title. */
+    title: string;
+    /** When the work item first entered an In Progress-category status. */
+    activatedOn: Date;
+}
+
 /** The moments from `earliest` to `latest`, both included. A null `latest` means the window runs up to now, whenever the caller acts. */
 export interface InstantWindowDto {
     earliest: Date;
@@ -67747,6 +67820,67 @@ export interface MyProjectsSummaryDto {
     managerCount: number;
     memberCount: number;
     assigneeCount: number;
+}
+
+/** A Kanban team's flow: what it has in progress, and what it finished lately. */
+export interface MyTeamFlowSummaryResponse {
+    /** The team's current reporting period, or null when the team has no reporting cadence. */
+    currentPeriod?: MyTeamReportingPeriodResponse | undefined;
+    /** Requirement-tier work items in an In Progress-category status now. */
+    inProgressCount: number;
+    /** The first day `completedCount` counts from, in the team's time zone: 13 days before today, or
+the day the team became Kanban when that is later. */
+    completedSince: string;
+    /** Requirement-tier work items finished from `completedSince` through today. */
+    completedCount: number;
+    /** The median cycle time in days of the items `completedCount` counts; null when none has one. */
+    medianCycleTimeDays?: number | undefined;
+    /** The work item in progress longest, or null when nothing in progress has a start time. */
+    oldestInProgress?: InProgressWorkItemDto | undefined;
+}
+
+/** A reporting period of a Kanban team's cadence. */
+export interface MyTeamReportingPeriodResponse {
+    /** The period's first day. */
+    start: string;
+    /** The period's last day, included in it. */
+    end: string;
+}
+
+/** A Scrum team's sprint today. */
+export interface MyTeamSprintSummaryResponse {
+    /** The sprint the team is running now, or null between sprints. */
+    activeSprint?: NavigationDto | undefined;
+}
+
+/** The active teams the caller is a member of, each summarised for how it works today. Teams of teams are not included. A section is null when the caller lacks the permission the team page needs to show it. */
+export interface MyTeamsSummaryResponse {
+    /** One entry per team, by team name. */
+    teams: MyTeamSummaryResponse[];
+    /** The open dependencies at risk or unhealthy across the teams, each counted once even when it joins two of them.
+Null without the View Work Items permission. */
+    dependenciesAtRiskCount?: number | undefined;
+}
+
+/** One of the caller's teams, summarised for the methodology it follows today. */
+export interface MyTeamSummaryResponse {
+    /** The team. */
+    team: TeamNavigationDto;
+    /** How the team works today, read from the operating model that covers today's date in the team's own time
+zone. Null when no operating model covers today, in which case neither `sprint` nor
+`flow` is returned. */
+    methodology?: Methodology | undefined;
+    /** The IANA time zone of today's operating model, which the team's dates are counted in; null with no model. */
+    timeZone?: string | undefined;
+    /** A Scrum team's sprint. Null for any other team, or without the View Iterations permission. */
+    sprint?: MyTeamSprintSummaryResponse | undefined;
+    /** A Kanban team's flow. Null for any other team, or without the View Work Items permission. */
+    flow?: MyTeamFlowSummaryResponse | undefined;
+    /** The team's open dependencies by planning health, counted as its Dependencies section lists them, including
+those within the team. Null without the View Work Items permission. */
+    dependencies?: TeamDependencyHealthDto | undefined;
+    /** How many open risks the team has. Null without the View Risks permission. */
+    openRiskCount?: number | undefined;
 }
 
 export interface NavigationDtoOfGuidAndString {
@@ -72259,6 +72393,16 @@ one's health reads Closed once it has been recalculated, which each sync does: p
 while a dependency is open. One whose predecessor is
 Removed carries that in its source's status category. */
     dependencies: DependencyDto[];
+}
+
+/** One team's open dependencies, as predecessor or successor, counted by planning health. */
+export interface TeamDependencyHealthDto {
+    /** The open dependencies with an end on the team, including those with both ends on it. */
+    openCount: number;
+    /** The open dependencies whose ends are both unplanned. */
+    atRiskCount: number;
+    /** The open dependencies planned to finish after they are needed, or whose successor started first. */
+    unhealthyCount: number;
 }
 
 export interface TeamDetailsDto {

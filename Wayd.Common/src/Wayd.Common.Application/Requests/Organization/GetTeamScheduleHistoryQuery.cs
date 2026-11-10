@@ -46,3 +46,40 @@ public sealed record TeamSchedulePeriodDto(LocalDate Start, LocalDate? End, stri
     /// <summary>Whether <paramref name="date"/> falls in this period.</summary>
     public bool IncludesDate(LocalDate date) => Start <= date && (End is null || date <= End);
 }
+
+/// <summary>Reading a team's schedule history.</summary>
+public static class TeamSchedulePeriodExtensions
+{
+    /// <summary>
+    /// The operating model in effect at <paramref name="now"/>: the latest one to have started by today's date in its
+    /// own time zone, so a model that starts tomorrow in UTC but today in the team's zone already applies. Where a
+    /// change of zone leaves two models both claiming today, the newer one wins; where a move west leaves neither
+    /// claiming it, the older one holds until the newer one starts. Null when none covers today.
+    /// </summary>
+    /// <param name="periods">The team's operating models, in date order.</param>
+    public static TeamSchedulePeriodDto? InEffectAt(this IReadOnlyList<TeamSchedulePeriodDto> periods, Instant now)
+    {
+        for (var i = periods.Count - 1; i >= 0; i--)
+        {
+            var period = periods[i];
+            var today = now.InZone(period.Zone()).Date;
+            if (period.Start > today)
+                continue;
+            if (period.IncludesDate(today))
+                return period;
+
+            // Ended in its own zone, while the model that follows it, from the next day, has not begun in its own.
+            var next = i + 1 < periods.Count ? periods[i + 1] : null;
+            return next is not null && period.End is { } end && next.Start == end.PlusDays(1) ? period : null;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// The zone the period's days are counted in. Zones are validated when saved; an id the tz database later
+    /// drops reads as UTC rather than failing every read of the team.
+    /// </summary>
+    public static DateTimeZone Zone(this TeamSchedulePeriodDto period) =>
+        DateTimeZoneProviders.Tzdb.GetZoneOrNull(period.TimeZone) ?? DateTimeZone.Utc;
+}

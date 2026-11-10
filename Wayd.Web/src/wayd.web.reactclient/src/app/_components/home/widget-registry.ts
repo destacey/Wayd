@@ -17,8 +17,21 @@ export interface WidgetRequirements {
 /** A count in the attention strip, contributed by the widget whose data it comes from. */
 export interface AttentionTileDefinition {
   id: string
-  /** Renders the tile, loading its own count. */
+  /**
+   * How urgent the count is when above zero; the strip shows the highest
+   * first, ties in page order, so where a user placed a widget never decides
+   * which tiles make the cut.
+   */
+  priority: number
+  /** Renders the tile through `AttentionTile`, loading its own count. */
   Tile: FC
+}
+
+/** What a tile last reported to the strip about its count. */
+export interface AttentionTileReport {
+  /** The count, or undefined when it could not be loaded. */
+  value: number | undefined
+  loading: boolean
 }
 
 /** What the page hands every widget it renders. */
@@ -112,10 +125,40 @@ export const arrangeWidgets = (
   return { main: inColumn('main'), side: inColumn('side') }
 }
 
-/** The strip's tiles: those of the shown widgets, main column first, capped at the maximum. */
+/**
+ * Every tile the shown widgets offer, highest priority first, ties in page
+ * order (main column first). All of them load their counts; which ones take a
+ * slot is `visibleAttentionTiles`'s decision once the counts are known.
+ */
 export const attentionTiles = (
   columns: Record<WidgetColumn, HomeWidget[]>,
 ): AttentionTileDefinition[] =>
   [...columns.main, ...columns.side]
     .flatMap((w) => w.tiles ?? [])
-    .slice(0, MAX_ATTENTION_TILES)
+    .map((tile, pageOrder) => ({ tile, pageOrder }))
+    .sort(
+      (a, b) => b.tile.priority - a.tile.priority || a.pageOrder - b.pageOrder,
+    )
+    .map(({ tile }) => tile)
+
+/**
+ * The ids of the tiles that take a slot: in the given order, leaving out each
+ * one known to read zero, up to the maximum. A tile still loading, or one that
+ * has not reported yet, holds its place until its count says otherwise; one
+ * whose count failed keeps it, since a dash is not news that all is well.
+ */
+export const visibleAttentionTiles = (
+  tiles: AttentionTileDefinition[],
+  reports: Record<string, AttentionTileReport | undefined>,
+): Set<string> => {
+  const isZero = (id: string) => {
+    const report = reports[id]
+    return !!report && !report.loading && report.value === 0
+  }
+  return new Set(
+    tiles
+      .filter((t) => !isZero(t.id))
+      .slice(0, MAX_ATTENTION_TILES)
+      .map((t) => t.id),
+  )
+}

@@ -42,12 +42,21 @@ const toColumn = (column: HomeLayoutColumn): WidgetColumn =>
 const fromColumn = (column: WidgetColumn): HomeLayoutColumn =>
   column === 'side' ? HomeLayoutColumn.Side : HomeLayoutColumn.Main
 
-/** The saved layout as the API returned it. */
+/**
+ * Widgets replaced by another, by old id. A saved layout keeps the old
+ * widget's place and visibility for its replacement, so a user who hid or
+ * moved it does not find the new one back at its default.
+ */
+export const REPLACED_WIDGETS: Readonly<Record<string, string>> = {
+  'my-team-sprints': 'my-teams',
+}
+
+/** The saved layout as the API returned it, with replaced widgets under their new ids. */
 export const fromSavedWidgets = (
   widgets: HomeLayoutWidgetResponse[],
 ): SavedWidget[] =>
   widgets.map((w) => ({
-    widgetId: w.widgetId,
+    widgetId: REPLACED_WIDGETS[w.widgetId] ?? w.widgetId,
     column: toColumn(w.column),
     visible: w.visible,
   }))

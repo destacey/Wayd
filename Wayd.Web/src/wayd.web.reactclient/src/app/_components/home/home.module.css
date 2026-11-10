@@ -9,6 +9,13 @@
   margin-bottom: 16px;
 }
 
+/* Its display would otherwise outrank the hidden attribute: the strip keeps
+   its tiles mounted while every count is zero. */
+.attentionStrip[hidden],
+.attentionTile[hidden] {
+  display: none;
+}
+
 .greeting {
   display: flex;
   flex-direction: column;
@@ -211,4 +218,28 @@
   display: flex;
   justify-content: space-between;
   gap: 8px;
+}
+
+/* One team in the My teams widget; teams after the first are ruled off. */
+.teamSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.teamSection + .teamSection {
+  border-top: 1px solid var(--ant-color-border-secondary);
+  padding-top: 16px;
+}
+
+.teamFlowMetrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+/* Lets a long title shrink to an ellipsis instead of pushing its age onto a new line. */
+.teamOldestTitle {
+  min-width: 0;
+  flex: 1 1 120px;
 }

@@ -61,6 +61,13 @@ public sealed record KanbanTeamWindowMetricsDto
     public required CycleTimeSummary CycleTime { get; init; }
 
     /// <summary>
+    /// The median cycle time in days of the completed items <see cref="CycleTime"/> counts, or null when it counts
+    /// none. A median, unlike the mean, is not thrown by one item that sat for months; it cannot be combined across
+    /// windows.
+    /// </summary>
+    public double? MedianCycleTimeDays { get; init; }
+
+    /// <summary>
     /// Whether in progress at the end of a past window may be short, because a workspace holding the team's work
     /// has not had its history read through to the end.
     /// </summary>

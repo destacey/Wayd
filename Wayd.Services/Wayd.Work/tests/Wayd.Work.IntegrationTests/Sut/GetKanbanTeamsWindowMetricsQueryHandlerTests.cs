@@ -79,6 +79,31 @@ public sealed class GetKanbanTeamsWindowMetricsQueryHandlerTests(SqlServerDbCont
     }
 
     [Fact]
+    public async Task Handle_ReportsTheMedianCycleTimeOfTheCompletedItems()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var seeder = new ForecastSeeder(_fixture);
+        await seeder.Reset(cancellationToken);
+        var (teamId, _) = await seeder.AddTeam(cancellationToken);
+        var done = Instant.FromUtc(2026, 9, 15, 12, 0);
+
+        foreach (var days in new[] { 1, 2, 4, 20 })
+            await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: done, activated: done.Minus(Duration.FromDays(days)));
+        await seeder.AddItem(teamId, cancellationToken, StatusCategory.Done, done: done);
+
+        var handler = Handler(new() { [teamId] = Kanban() });
+
+        // Act
+        var result = await handler.Handle(new GetKanbanTeamsWindowMetricsQuery([teamId], PastStart, PastEnd), cancellationToken);
+
+        // Assert
+        var team = result.Should().ContainSingle().Subject;
+        team.CycleTime.WorkItemsCount.Should().Be(4);
+        team.MedianCycleTimeDays.Should().Be(3);
+    }
+
+    [Fact]
     public async Task Handle_LeavesOutScrumTeamsAndTeamsOfTeams()
     {
         // Arrange

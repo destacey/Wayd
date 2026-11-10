@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.FeatureManagement.Mvc;
+using Wayd.Common.Application.Dtos;
 using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Requests.Organization;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.IntakeDesks.Dtos;
@@ -17,8 +20,13 @@ using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Me;
+using Wayd.Work.Application.Iterations.Queries;
+using Wayd.Work.Application.WorkItemDependencies.Dtos;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Queries;
+using Wayd.Work.Application.WorkTeams.Dtos;
+using Wayd.Work.Application.WorkTeams.Queries;
+using Wayd.Work.Domain.Models.CadenceMetrics;
 
 namespace Wayd.Web.Api.Controllers;
 
@@ -32,8 +40,11 @@ namespace Wayd.Web.Api.Controllers;
 [ApiController]
 [Authorize]
 [McpTools("wayd-users")]
-public class MeController(IDispatcher dispatcher, IUserService userService, ICurrentUser currentUser, ICurrentPrincipal currentPrincipal, IFeatureFlags featureFlags) : ControllerBase
+public class MeController(IDispatcher dispatcher, IUserService userService, ICurrentUser currentUser, ICurrentPrincipal currentPrincipal, IFeatureFlags featureFlags, IDateTimeProvider dateTimeProvider) : ControllerBase
 {
+    /// <summary>How many days, today included, a Kanban team's recent completions are counted over.</summary>
+    private const int RecentFlowDays = 14;
+
     private const string NoLinkedEmployee = "Your account is not linked to an employee, so nothing in Wayd is recorded against you as a person. An administrator links an account to an employee on its user record in Settings.";
 
     private readonly IDispatcher _dispatcher = dispatcher;
@@ -41,6 +52,7 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IFeatureFlags _featureFlags = featureFlags;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     [HttpGet]
     [EndpointSummary("Get who you are: your user account and the employee it is linked to.")]
@@ -162,6 +174,146 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
             AssignedRiskCount = riskCount,
             TeamProductCount = productCount,
         });
+    }
+
+    [HttpGet("teams/summary")]
+    [EndpointSummary("Get a summary of each team you are a member of, for how that team works today.")]
+    [EndpointDescription(
+        "One entry per active team you are a member of (teams of teams are left out), by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health and its `openRiskCount`. A team with no operating model today has neither `sprint` nor `flow`. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount`. Returns 404 when your account is not linked to an employee.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<MyTeamsSummaryResponse>> GetTeamsSummary(CancellationToken cancellationToken)
+    {
+        if (await _currentPrincipal.GetEmployeeId(cancellationToken) is not { } employeeId)
+            return NotLinked();
+
+        var canViewIterations = await _currentPrincipal.HasPermission(ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Iterations), cancellationToken);
+        var canViewWorkItems = await _currentPrincipal.HasPermission(ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.WorkItems), cancellationToken);
+        var canViewRisks = await _currentPrincipal.HasPermission(ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Risks), cancellationToken);
+
+        var teams = await _dispatcher.Send(new GetEmployeeActiveTeamsQuery(employeeId), cancellationToken);
+        if (teams.Count == 0)
+            return Ok(new MyTeamsSummaryResponse { DependenciesAtRiskCount = canViewWorkItems ? 0 : null });
+
+        var now = _dateTimeProvider.Now;
+        var teamIds = teams.Select(t => t.Id).ToList();
+        var schedules = await _dispatcher.Send(new GetTeamsScheduleHistoryQuery(teamIds), cancellationToken);
+        var models = teams.ToDictionary(t => t.Id, t => (schedules.GetValueOrDefault(t.Id) ?? []).InEffectAt(now));
+
+        List<Guid> TeamsFollowing(Methodology methodology) =>
+            [.. teams.Where(t => models[t.Id]?.Methodology == methodology).Select(t => t.Id)];
+
+        var scrumTeamIds = TeamsFollowing(Methodology.Scrum);
+        var activeSprints = canViewIterations && scrumTeamIds.Count > 0
+            ? await _dispatcher.Send(new GetTeamsActiveSprintQuery(scrumTeamIds), cancellationToken)
+            : (IReadOnlyDictionary<Guid, NavigationDto>)new Dictionary<Guid, NavigationDto>();
+
+        var kanbanTeamIds = TeamsFollowing(Methodology.Kanban);
+        var flows = canViewWorkItems && kanbanTeamIds.Count > 0
+            ? await LoadFlows(kanbanTeamIds, schedules, models, now, cancellationToken)
+            : new Dictionary<Guid, MyTeamFlowSummaryResponse>();
+
+        var dependencies = canViewWorkItems
+            ? await _dispatcher.Send(new GetTeamsDependencyHealthQuery(teamIds), cancellationToken)
+            : null;
+
+        var riskCounts = canViewRisks
+            ? await _dispatcher.Send(new GetTeamsOpenRiskCountQuery(teamIds), cancellationToken)
+            : null;
+
+        return Ok(new MyTeamsSummaryResponse
+        {
+            Teams = [.. teams.Select(team =>
+            {
+                var model = models[team.Id];
+                return new MyTeamSummaryResponse
+                {
+                    Team = team,
+                    Methodology = model?.Methodology,
+                    TimeZone = model?.TimeZone,
+                    Sprint = canViewIterations && model?.Methodology == Methodology.Scrum
+                        ? new MyTeamSprintSummaryResponse { ActiveSprint = activeSprints.GetValueOrDefault(team.Id) }
+                        : null,
+                    Flow = flows.GetValueOrDefault(team.Id),
+                    Dependencies = dependencies is null ? null : dependencies.Teams.GetValueOrDefault(team.Id) ?? new TeamDependencyHealthDto(),
+                    OpenRiskCount = riskCounts?.GetValueOrDefault(team.Id),
+                };
+            })],
+            DependenciesAtRiskCount = dependencies?.AtRiskOrUnhealthyCount,
+        });
+    }
+
+    /// <summary>
+    /// The flow of each Kanban team: completions over the last <see cref="RecentFlowDays"/> days in the team's own
+    /// zone, counted only from the day it became Kanban, so teams that share those dates are measured in one query.
+    /// </summary>
+    private async Task<Dictionary<Guid, MyTeamFlowSummaryResponse>> LoadFlows(
+        List<Guid> kanbanTeamIds,
+        IReadOnlyDictionary<Guid, IReadOnlyList<TeamSchedulePeriodDto>> schedules,
+        Dictionary<Guid, TeamSchedulePeriodDto?> models,
+        Instant now,
+        CancellationToken cancellationToken)
+    {
+        var windows = kanbanTeamIds.Select(teamId =>
+        {
+            var model = models[teamId]!;
+            var today = now.InZone(model.Zone()).Date;
+            var start = today.PlusDays(1 - RecentFlowDays);
+            var kanbanSince = KanbanSince(schedules.GetValueOrDefault(teamId) ?? [], model);
+            return (TeamId: teamId, Start: kanbanSince > start ? kanbanSince : start, End: today);
+        }).ToList();
+
+        var metrics = new List<KanbanTeamWindowMetricsDto>();
+        foreach (var group in windows.GroupBy(w => (w.Start, w.End)))
+            metrics.AddRange(await _dispatcher.Send(new GetKanbanTeamsWindowMetricsQuery([.. group.Select(w => w.TeamId)], group.Key.Start, group.Key.End), cancellationToken));
+
+        var oldest = await _dispatcher.Send(new GetTeamsOldestInProgressWorkItemQuery(kanbanTeamIds), cancellationToken);
+
+        return windows.ToDictionary(w => w.TeamId, w =>
+        {
+            var measured = metrics.FirstOrDefault(m => m.Team.Id == w.TeamId);
+            return new MyTeamFlowSummaryResponse
+            {
+                CurrentPeriod = CurrentPeriod(schedules.GetValueOrDefault(w.TeamId) ?? [], now),
+                InProgressCount = measured?.InProgressWorkItems ?? 0,
+                CompletedSince = w.Start,
+                CompletedCount = measured?.CompletedWorkItems ?? 0,
+                MedianCycleTimeDays = measured?.MedianCycleTimeDays,
+                OldestInProgress = oldest.GetValueOrDefault(w.TeamId),
+            };
+        });
+    }
+
+    /// <summary>
+    /// The day the team became Kanban: the start of the unbroken run of Kanban models that ends with
+    /// <paramref name="current"/>. Any edit to a team's operating model starts a new model, so the current one's
+    /// start alone would cut the window short at, say, a change of sizing method.
+    /// </summary>
+    private static LocalDate KanbanSince(IReadOnlyList<TeamSchedulePeriodDto> schedule, TeamSchedulePeriodDto current)
+    {
+        var since = current.Start;
+        foreach (var period in schedule.Where(p => p.Start < current.Start).OrderByDescending(p => p.Start))
+        {
+            if (period.Methodology != Methodology.Kanban || period.End != since.PlusDays(-1))
+                break;
+            since = period.Start;
+        }
+
+        return since;
+    }
+
+    /// <summary>The reporting period running now, as the team's Velocity report counts it; null without a cadence.</summary>
+    private static MyTeamReportingPeriodResponse? CurrentPeriod(IReadOnlyList<TeamSchedulePeriodDto> schedule, Instant now)
+    {
+        var current = CadencePeriod.Recent(
+                schedule
+                    .Where(p => p.Cadence is not null)
+                    .Select(p => new CadenceSchedulePeriod(p.Start, p.End, p.TimeZone, p.SizingMethod, p.Cadence!)),
+                now,
+                window: 1)
+            .FirstOrDefault(p => p.IsCurrent);
+
+        return current is null ? null : new MyTeamReportingPeriodResponse { Start = current.Start, End = current.End };
     }
 
     private NotFoundObjectResult NotLinked() =>

@@ -7,7 +7,7 @@ audience: [user, agent]
 
 # Home
 
-The home page is a briefing on your work: what needs your attention today, what has changed on the records you follow or work on, and the projects, risks, planning intervals and team sprints you are part of.
+The home page is a briefing on your work: what needs your attention today, what has changed on the records you follow or work on, and the projects, risks, planning intervals and teams you are part of.
 
 It opens with a greeting and today's date, then a row of counts across the top, then the widgets in two columns: a wider main column and a narrower side column. On a tablet the side column's widgets sit two abreast below the main column; on a phone everything is one column, with the side column's widgets last.
 
@@ -19,15 +19,17 @@ You see only the widgets that apply to you. A widget needs some or all of:
 
 - **A permission.** My projects needs permission to view projects, for example. Without it the widget is not shown.
 - **A feature flag.** What's changed and Following need the **Following** feature flag, which an administrator turns on in **Settings → System → Feature Flags**.
-- **An account linked to an employee.** Anything about "my" work — projects, risks, tasks, team sprints, notifications, the records you follow — comes from the employee record your account is linked to.
+- **An account linked to an employee.** Anything about "my" work — projects, risks, tasks, teams, notifications, the records you follow — comes from the employee record your account is linked to.
 
-If your account is not linked to an employee, a banner at the top says so. Your projects, risks, tasks, team sprints, notifications and the records you follow appear once an administrator links your account in **Settings → Access → Users**.
+If your account is not linked to an employee, a banner at the top says so. Your projects, risks, tasks, teams, notifications and the records you follow appear once an administrator links your account in **Settings → Access → Users**.
 
 Every widget is a card with its title at the top left and, where there is a full list behind it, **View all** at the top right. A widget that applies to you but has nothing to show says, in one line, how it fills — it does not disappear.
 
 ## Needs attention
 
-The row of counts across the top shows up to four numbers that may need you today. Each one links to the list behind it, and its number turns orange or red only when it is above zero, so a row of plain numbers means nothing is waiting.
+The row of counts across the top shows up to four numbers that need you today. Each one links to the list behind it, and its number turns orange or red. A count at zero gives up its place to the next one, and when every count is zero the row is not shown at all, so an empty row means nothing is waiting.
+
+When more counts are above zero than fit, the most urgent four show, in this order: overdue tasks, risk follow-ups, dependencies at risk, tasks due this week, unread notifications. Where you placed the widgets makes no difference to which counts show.
 
 | Count | What it counts | Where it goes |
 |-------|----------------|---------------|
@@ -35,8 +37,9 @@ The row of counts across the top shows up to four numbers that may need you toda
 | Overdue tasks (on your projects) | Open tasks on your approved and active projects whose planned end has passed | The [Projects Dashboard](./ppm/my-projects.mdx) |
 | Due this week (on your projects) | Open tasks on those projects due by the end of this week (Saturday) | The Projects Dashboard |
 | Risk follow-ups | Open risks assigned to you whose follow-up date is today or past | The My risks widget below |
+| Dependencies at risk (on your teams) | Open [dependencies](./work-management/work-items.mdx#work-item-dependencies) of your teams that are at risk (neither end planned) or unhealthy (planned to finish after they are needed); a dependency between two of your teams counts once | The My teams widget below |
 
-A count shows only when its widget does: without the Following flag there is no unread count, and without permission to view risks there are no risk follow-ups. A count that fails to load shows a dash rather than a zero.
+A count shows only when its widget does: without the Following flag there is no unread count, without permission to view risks there are no risk follow-ups, and without permission to view work items there are no dependencies at risk. A count that fails to load keeps its place and shows a dash rather than a zero.
 
 ## Widgets
 
@@ -50,19 +53,25 @@ This is each widget's usual place. Until you [customize](#customizing) the page,
 ### Side column
 
 - **Planning intervals** — the [planning intervals](./planning/planning-intervals.mdx) running now and those starting in the next two weeks, with their dates, how many days are left (today included) or until they start, and links to Plan Review and the current iteration.
-- **My team sprints** — the active sprint of each team you are a member of, one section per team.
+- **My teams** — a section for each active team you are a member of, built for how that team works today: the methodology of the operating model in effect on today's date in the team's own time zone. The team's name links to its page.
+  - A **Scrum** team running a sprint shows its sprint: health, predictability, velocity, work in progress, say/do and the burn-up. Between sprints it says so; the sprint appears while it runs.
+  - A **Kanban** team shows its flow: the items in progress, the items finished over the last 14 days (or since the team became Kanban, if later) with their median cycle time, its current reporting period when it has a [cadence](./organizations/index.mdx#operating-model), and the item that has been in progress longest, with how many days.
+  - Every team shows its open dependencies, with how many are at risk or unhealthy, and its open risks, each linking to that section of the team page. The dependency count includes dependencies within the team, so it matches the team page.
+  - A team with no operating model shows only its dependencies and risks.
+
+  Each part needs the permission the team page needs for it: viewing iterations for the sprint, viewing work items for flow and dependencies, and viewing risks for risks. Teams of teams are not listed.
 - **Following** — the records you [follow](./following.mdx), most recently changed first. **View all** opens your Following list.
 
 ## How the default is chosen
 
 The columns above are the starting point. Until you customize the page, Wayd reorders them around what you are involved in, so you land on your own work without setting anything up. It works this out from your records each time you open the page — your team memberships, the roles you hold and tasks assigned to you on approved and active projects, the risks assigned to you — and never asks or stores what your job is.
 
-- **What you lead or do every day comes first.** If you sponsor, own or manage a project, My projects moves to the top of the main column. If you are a member of a team, My team sprints moves to the top of the main column too.
+- **What you lead or do every day comes first.** If you sponsor, own or manage a project, My projects moves to the top of the main column. If you are a member of a team, My teams moves to the top of the main column too.
 - **Areas you work in come next.** My projects for a project member or task assignee, My risks when risks are assigned to you, and Planning intervals when you are on a team or a team of teams.
 - **Shared widgets follow** — What's changed and Following.
 - **Areas you are not part of go last.** They still show, with a line saying how they fill.
 
-Someone involved in several areas gets them interleaved in that order; widgets that rank the same keep their usual order. The **Needs attention** counts follow the widgets, so a project manager's row leads with overdue and due-this-week tasks.
+Someone involved in several areas gets them interleaved in that order; widgets that rank the same keep their usual order. The **Needs attention** counts do not follow this order: they always go most urgent first.
 
 Once you save a layout it wins: involvement no longer moves anything you placed. A widget that becomes available to you afterwards still joins where the default would put it, and **Reset to default** returns to the involvement-based order.
 
@@ -79,6 +88,6 @@ Each widget also has a menu (**⋯**) with **Move up**, **Move down** and **Move
 
 The page behind the panel changes as you go. Your layout is saved when you close the panel, with **Done** or the close button; if it cannot be saved, a message says so and the page keeps showing it until you leave. The layout is saved to your account, not the browser, so it follows you to every device you sign in on.
 
-The **Needs attention** row is not in the panel: it always stays at the top. Its counts follow the widgets they come from — switch off My projects and its overdue and due-this-week counts leave the row — and they appear in the order of your widgets, main column first, up to four.
+The **Needs attention** row is not in the panel: it always stays at the top. Its counts follow the widgets they come from — switch off My projects and its overdue and due-this-week counts leave the row — but not their order: the row always shows the most urgent counts above zero, up to four.
 
 What the panel offers follows what you can see. A widget you gain access to after customizing (say a feature flag is turned on) appears at its usual position. One you lose access to disappears from the page and the panel, but your layout remembers it, so it comes back where you left it if your access returns.

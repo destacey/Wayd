@@ -5,6 +5,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { CreateIncidentRequest } from '@/src/services/wayd-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
+import { useGetReleasesQuery } from '@/src/store/features/product-management/releases-api'
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
 import { useCreateIncidentMutation } from '@/src/store/features/product-management/incidents-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
@@ -29,6 +30,7 @@ interface CreateIncidentFormValues {
   startedAt?: Dayjs
   recoveredAt?: Dayjs
   productIds?: string[]
+  releaseIds?: string[]
 }
 
 export function CreateIncidentForm({
@@ -40,6 +42,7 @@ export function CreateIncidentForm({
   const [createIncident] = useCreateIncidentMutation()
   const { data: severitySets } = useGetIncidentSeveritySetsQuery(false)
   const { data: products } = useGetProductsQuery(undefined)
+  const { data: releases } = useGetReleasesQuery(undefined)
 
   const selectedSet = severitySets?.find((set) => set.isSelected)
   const severityOptions = (selectedSet?.levels ?? [])
@@ -48,6 +51,15 @@ export function CreateIncidentForm({
 
   const productOptions = (products ?? [])
     .map((product) => ({ value: product.id, label: product.name }))
+    .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
+
+  const releaseOptions = (releases ?? [])
+    .map((release) => ({
+      value: release.id,
+      label: release.name
+        ? `${release.version} — ${release.name}`
+        : release.version,
+    }))
     .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
@@ -62,6 +74,7 @@ export function CreateIncidentForm({
             startedAt: values.startedAt?.toDate(),
             recoveredAt: values.recoveredAt?.toDate(),
             productIds: values.productIds ?? [],
+            releaseIds: values.releaseIds ?? [],
           }
           const response = await createIncident(request)
           if (response.error) throw response.error
@@ -126,6 +139,15 @@ export function CreateIncidentForm({
           <Select
             mode="multiple"
             options={productOptions}
+            allowClear
+            showSearch
+            optionFilterProp="label"
+          />
+        </Item>
+        <Item name="releaseIds" label="Releases">
+          <Select
+            mode="multiple"
+            options={releaseOptions}
             allowClear
             showSearch
             optionFilterProp="label"

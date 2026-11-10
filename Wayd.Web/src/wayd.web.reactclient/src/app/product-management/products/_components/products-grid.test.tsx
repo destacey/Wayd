@@ -313,4 +313,45 @@ describe('ProductsGrid', () => {
     // Assert
     expect(screen.getAllByText('Application').length).toBeGreaterThan(0)
   })
+
+  it('tints every cell from the highest active incident and names it', () => {
+    // Arrange
+    const withIncident = {
+      ...product('a1', 1, 'Storefront Suite'),
+      activeIncidentSeverityName: 'SEV-1',
+      activeIncidentSeverityColor: '#E07A4C',
+    } as ProductDto
+    const quiet = product('b2', 2, 'Storefront Web')
+
+    // Act
+    render(
+      <ProductsGrid
+        products={[withIncident, quiet]}
+        isLoading={false}
+        refetch={() => {}}
+        asTree={false}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByRole('columnheader', { name: /Incident/ }),
+    ).toBeInTheDocument()
+    const hot = screen.getByText('Storefront Suite').closest('tr')!
+    expect(hot).toHaveTextContent('SEV-1')
+    const hotCells = hot.querySelectorAll('td')
+    expect(hotCells.length).toBeGreaterThan(1)
+    for (const cell of hotCells) {
+      expect(cellBackground(cell as HTMLElement)).toBe('rgb(224, 122, 76)')
+    }
+
+    const cool = screen.getByText('Storefront Web').closest('tr')!
+    expect(cool).not.toHaveTextContent('SEV-1')
+    for (const cell of cool.querySelectorAll('td')) {
+      expect(cellBackground(cell as HTMLElement)).toBe('')
+    }
+  })
 })
+
+const cellBackground = (cell: HTMLElement) =>
+  cell.style.backgroundColor || cell.style.background

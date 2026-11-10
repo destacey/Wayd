@@ -5635,6 +5635,41 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.ToTable("IncidentProductLinks", "ProductManagement");
                 });
 
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentReleaseLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ReleaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReleaseId");
+
+                    b.HasIndex("IncidentId", "ReleaseId")
+                        .IsUnique();
+
+                    b.ToTable("IncidentReleaseLinks", "ProductManagement");
+                });
+
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentSeverityLevel", b =>
                 {
                     b.Property<Guid>("Id")
@@ -11168,6 +11203,23 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentReleaseLink", b =>
+                {
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Incident", null)
+                        .WithMany("ReleaseLinks")
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.ProductManagement.Domain.Models.Release", "Release")
+                        .WithMany()
+                        .HasForeignKey("ReleaseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Release");
+                });
+
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentSeverityLevel", b =>
                 {
                     b.HasOne("Wayd.ProductManagement.Domain.Models.IncidentSeveritySet", null)
@@ -12575,6 +12627,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Incident", b =>
                 {
                     b.Navigation("ProductLinks");
+
+                    b.Navigation("ReleaseLinks");
 
                     b.Navigation("TimelineLinkEntries");
 

@@ -99,6 +99,13 @@ const buildColumns = <T extends ProductDto>(
     size: 130,
     meta: { filterType: 'set' },
   },
+  {
+    id: 'activeIncident',
+    accessorFn: (row) => row.activeIncidentSeverityName ?? '',
+    header: 'Incident',
+    size: 140,
+    meta: { filterType: 'set' },
+  },
   // The tree already shows the parent by position, so repeating it as a column is noise there.
   ...(asTree
     ? []
@@ -183,6 +190,7 @@ const ProductsGrid: React.FC<ProductsGridProps> = (
         rightSlot={props.viewSelector}
         persistStateKey={props.persistStateKey}
         emptyMessage="No products found."
+        getRowBackground={(row) => row.activeIncidentSeverityColor || undefined}
       />
     )
   }
@@ -197,6 +205,7 @@ const ProductsGrid: React.FC<ProductsGridProps> = (
       rightSlot={props.viewSelector}
       persistStateKey={props.persistStateKey}
       emptyMessage="No products found."
+      getRowBackground={(row) => row.activeIncidentSeverityColor || undefined}
     />
   )
 }

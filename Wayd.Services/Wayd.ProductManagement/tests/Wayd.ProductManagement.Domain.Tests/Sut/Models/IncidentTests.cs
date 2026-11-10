@@ -184,7 +184,98 @@ public sealed class IncidentTests
             .Which.Should().BeOfType<IncidentTimelineChangedEvent>();
     }
 
-    private static Incident OpenIncident(Instant noticedAt, Instant? startedAt) =>
+    [Fact]
+    public void Create_ShouldLinkSeveralReleasesAndDeferTheChange()
+    {
+        // Arrange
+        var first = Guid.CreateVersion7();
+        var second = Guid.CreateVersion7();
+
+        // Act
+        var incident = Incident.Create(
+            "Checkout unavailable",
+            null,
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [],
+            StatusRefFactory.Open(),
+            EventActor.System,
+            Timestamp,
+            [second, first, Guid.Empty]).Value;
+
+        // Assert
+        incident.ReleaseLinks.Select(link => link.ReleaseId).Should().BeEquivalentTo([first, second]);
+        incident.DomainEvents.Should().BeEmpty();
+
+        incident.ExecutePostPersistenceActions();
+
+        var changed = incident.DomainEvents.OfType<IncidentReleasesChangedEvent>().Should().ContainSingle().Subject;
+        changed.AddedReleaseIds.Should().BeEquivalentTo([first, second]);
+        changed.RemovedReleaseIds.Should().BeEmpty();
+        changed.ReleaseIds.Should().BeEquivalentTo([first, second]);
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldRaiseReleaseChanges_WhenTheSetChanges()
+    {
+        // Arrange
+        var kept = Guid.CreateVersion7();
+        var removed = Guid.CreateVersion7();
+        var added = Guid.CreateVersion7();
+        var incident = OpenIncident(Timestamp, startedAt: null, [kept, removed]);
+
+        // Act
+        var result = incident.UpdateDetails(
+            "Checkout unavailable",
+            "Payments failing in production.",
+            incident.SeverityLevelId,
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [],
+            EventActor.System,
+            Timestamp,
+            [kept, added]);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.ReleaseLinks.Select(link => link.ReleaseId).Should().BeEquivalentTo([kept, added]);
+        var changed = incident.DomainEvents.OfType<IncidentReleasesChangedEvent>().Should().ContainSingle().Subject;
+        changed.AddedReleaseIds.Should().BeEquivalentTo([added]);
+        changed.RemovedReleaseIds.Should().BeEquivalentTo([removed]);
+        changed.ReleaseIds.Should().BeEquivalentTo([kept, added]);
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldNotRaiseReleaseChanges_WhenTheSetIsUnchanged()
+    {
+        // Arrange
+        var releaseId = Guid.CreateVersion7();
+        var incident = OpenIncident(Timestamp, startedAt: null, [releaseId]);
+
+        // Act
+        var result = incident.UpdateDetails(
+            "Checkout unavailable",
+            "Payments failing in production.",
+            incident.SeverityLevelId,
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [],
+            EventActor.System,
+            Timestamp,
+            [releaseId, releaseId]);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.ReleaseLinks.Should().ContainSingle().Which.ReleaseId.Should().Be(releaseId);
+        incident.DomainEvents.Should().BeEmpty();
+    }
+
+    private static Incident OpenIncident(Instant noticedAt, Instant? startedAt, IReadOnlyCollection<Guid>? releaseIds = null) =>
         Incident.Create(
             "Checkout unavailable",
             "Payments failing in production.",
@@ -196,5 +287,6 @@ public sealed class IncidentTests
             [],
             StatusRefFactory.Open(),
             EventActor.System,
-            Timestamp).Value;
+            Timestamp,
+            releaseIds).Value;
 }

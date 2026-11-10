@@ -15,6 +15,7 @@ import {
 } from '@/src/store/features/product-management/incidents-api'
 import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
+import { useGetReleasesQuery } from '@/src/store/features/product-management/releases-api'
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
 import { formatInstantInZone } from '@/src/utils'
 import { Button, DatePicker, Flex, Form, Modal, Select } from 'antd'
@@ -66,6 +67,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   } = useGetIncidentWorkflowActionsQuery(key, { skip: !canUpdate })
   const { data: severitySets } = useGetIncidentSeveritySetsQuery(false)
   const { data: products } = useGetProductsQuery(undefined)
+  const { data: releases } = useGetReleasesQuery(undefined)
 
   useDocumentTitle(incident ? `Incident ${incident.key}` : 'Incident')
 
@@ -91,6 +93,14 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const productOptions = (products ?? [])
     .map((product) => ({ value: product.id, label: product.name }))
     .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
+  const releaseOptions = (releases ?? [])
+    .map((release) => ({
+      value: release.id,
+      label: release.name
+        ? `${release.version} — ${release.name}`
+        : release.version,
+    }))
+    .sort((a, b) => caseInsensitiveCompare(a.label, b.label))
 
   const startEditing = () => {
     form.setFieldsValue({
@@ -103,6 +113,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         ? dayjs(incident.recoveredAt)
         : undefined,
       productIds: incident.products.map((p) => p.id),
+      releaseIds: incident.releases.map((release) => release.id),
     })
     setEditing(true)
   }
@@ -123,6 +134,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           ? (values.recoveredAt as Dayjs).toDate()
           : undefined,
         productIds: values.productIds ?? [],
+        releaseIds: values.releaseIds ?? [],
       }).unwrap()
       messageApi.success('Incident updated.')
       setEditing(false)
@@ -328,6 +340,9 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             <Form.Item name="productIds" label="Products">
               <Select mode="multiple" options={productOptions} allowClear />
             </Form.Item>
+            <Form.Item name="releaseIds" label="Releases">
+              <Select mode="multiple" options={releaseOptions} allowClear />
+            </Form.Item>
             <Form.Item
               name="noticedAt"
               label="Noticed at"
@@ -366,6 +381,22 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                         href={`/product-management/products/${product.key}`}
                       >
                         {product.name}
+                      </Link>
+                    </li>
+                  ))
+                ) : (
+                  <li>—</li>
+                )}
+              </ul>
+              <h2 className={styles.asideHeading}>Releases</h2>
+              <ul className={styles.asideList}>
+                {incident.releases.length > 0 ? (
+                  incident.releases.map((release) => (
+                    <li key={release.id}>
+                      <Link
+                        href={`/product-management/releases/${release.key}`}
+                      >
+                        {release.name}
                       </Link>
                     </li>
                   ))

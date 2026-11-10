@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using Wayd.Common.Application.Models;
+using Wayd.ProductManagement.Application.Incidents;
 using Wayd.ProductManagement.Application.Releases.Dtos;
 using Wayd.ProductManagement.Domain.Models;
 
@@ -29,9 +30,23 @@ public sealed class GetReleaseQueryHandler(IProductManagementDbContext productMa
 
     public async Task<ReleaseDto?> Handle(GetReleaseQuery query, CancellationToken cancellationToken)
     {
-        return await _productManagementDbContext.Releases
+        var release = await _productManagementDbContext.Releases
             .Where(query.IdOrKeyFilter)
             .ProjectToType<ReleaseDto>(ReleaseDto.CreateTypeAdapterConfig(_productManagementDbContext))
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (release is null)
+        {
+            return null;
+        }
+
+        var severity = await IncidentActivity.ForReleases(
+            _productManagementDbContext,
+            [release.Id],
+            cancellationToken);
+
+        return severity.TryGetValue(release.Id, out var top)
+            ? release with { ActiveIncidentSeverityName = top.Name, ActiveIncidentSeverityColor = top.Color }
+            : release;
     }
 }

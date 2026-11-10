@@ -40,4 +40,21 @@ internal static class IncidentReferenceValidation
             ? Result.Success()
             : Result.Failure("One or more products were not found.");
     }
+
+    internal static async Task<Result> ValidateReleasesExist(
+        IProductManagementDbContext context,
+        IReadOnlyCollection<Guid> releaseIds,
+        CancellationToken cancellationToken)
+    {
+        var distinct = releaseIds.Where(id => id != Guid.Empty).Distinct().ToList();
+        if (distinct.Count == 0)
+        {
+            return Result.Success();
+        }
+
+        var found = await context.Releases.CountAsync(r => distinct.Contains(r.Id), cancellationToken);
+        return found == distinct.Count
+            ? Result.Success()
+            : Result.Failure("One or more releases were not found.");
+    }
 }

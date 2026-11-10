@@ -13,8 +13,11 @@ public sealed class CreateIncidentRequest
     public Instant? RecoveredAt { get; set; }
     public List<Guid> ProductIds { get; set; } = [];
 
+    /// <summary>Releases this incident points at. One incident may point at several.</summary>
+    public List<Guid> ReleaseIds { get; set; } = [];
+
     public CreateIncidentCommand ToCommand() =>
-        new(Title, Description, SeverityLevelId, NoticedAt, StartedAt, RecoveredAt, ProductIds);
+        new(Title, Description, SeverityLevelId, NoticedAt, StartedAt, RecoveredAt, ProductIds, ReleaseIds);
 }
 
 public sealed class CreateIncidentRequestValidator : CustomValidator<CreateIncidentRequest>
@@ -38,8 +41,11 @@ public sealed class UpdateIncidentDetailsRequest
     public Instant? RecoveredAt { get; set; }
     public List<Guid> ProductIds { get; set; } = [];
 
+    /// <summary>Releases this incident points at. One incident may point at several.</summary>
+    public List<Guid> ReleaseIds { get; set; } = [];
+
     public UpdateIncidentDetailsCommand ToCommand() =>
-        new(Id, Title, Description, SeverityLevelId, NoticedAt, StartedAt, RecoveredAt, ProductIds);
+        new(Id, Title, Description, SeverityLevelId, NoticedAt, StartedAt, RecoveredAt, ProductIds, ReleaseIds);
 }
 
 public sealed class UpdateIncidentDetailsRequestValidator : CustomValidator<UpdateIncidentDetailsRequest>

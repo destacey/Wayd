@@ -58851,7 +58851,8 @@
         "required": [
           "title",
           "severityLevelId",
-          "productIds"
+          "productIds",
+          "releaseIds"
         ],
         "type": "object",
         "properties": {
@@ -58891,6 +58892,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "releaseIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Releases this incident points at. One incident may point at several."
           }
         },
         "additionalProperties": false
@@ -67037,6 +67046,7 @@
           "severityLevel",
           "noticedAt",
           "products",
+          "releases",
           "status",
           "statusAlias"
         ],
@@ -67082,6 +67092,13 @@
             "items": {
               "$ref": "#/components/schemas/NavigationDto"
             }
+          },
+          "releases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            },
+            "description": "Releases this incident points at. One incident may point at several."
           },
           "status": {
             "$ref": "#/components/schemas/StatusNavigationDto"
@@ -74461,6 +74478,16 @@
               "$ref": "#/components/schemas/ProductTeamNavigationDto"
             },
             "description": "The teams and teams of teams linked to this product, by name."
+          },
+          "activeIncidentSeverityName": {
+            "type": "string",
+            "description": "Name of the highest-severity incident that is still active on this product.",
+            "nullable": true
+          },
+          "activeIncidentSeverityColor": {
+            "type": "string",
+            "description": "Color of string? ProductDto.ActiveIncidentSeverityName, from the severity level.",
+            "nullable": true
           }
         },
         "additionalProperties": false,
@@ -77598,6 +77625,16 @@
               "$ref": "#/components/schemas/ReleasePackageSummaryDto"
             },
             "description": "The packages this release shipped."
+          },
+          "activeIncidentSeverityName": {
+            "type": "string",
+            "description": "Name of the highest-severity incident that is still active on this release.",
+            "nullable": true
+          },
+          "activeIncidentSeverityColor": {
+            "type": "string",
+            "description": "Color of string? ReleaseDto.ActiveIncidentSeverityName, from the severity level.",
+            "nullable": true
           }
         },
         "additionalProperties": false,
@@ -87302,7 +87339,8 @@
           "title",
           "severityLevelId",
           "noticedAt",
-          "productIds"
+          "productIds",
+          "releaseIds"
         ],
         "type": "object",
         "properties": {
@@ -87346,6 +87384,14 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "releaseIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Releases this incident points at. One incident may point at several."
           }
         },
         "additionalProperties": false

@@ -16,6 +16,7 @@ namespace Wayd.ProductManagement.Domain.Models;
 public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 {
     private readonly List<IncidentProductLink> _productLinks = [];
+    private readonly List<IncidentReleaseLink> _releaseLinks = [];
     private readonly List<IncidentTimelineNote> _timelineNotes = [];
     private readonly List<IncidentTimelineLinkEntry> _timelineLinkEntries = [];
 
@@ -77,6 +78,9 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     /// <summary>The products implicated in the incident.</summary>
     public IReadOnlyCollection<IncidentProductLink> ProductLinks => _productLinks.AsReadOnly();
 
+    /// <summary>The releases this incident points at. One incident may point at several.</summary>
+    public IReadOnlyCollection<IncidentReleaseLink> ReleaseLinks => _releaseLinks.AsReadOnly();
+
     /// <summary>Commander-authored timeline entries.</summary>
     public IReadOnlyCollection<IncidentTimelineNote> TimelineNotes => _timelineNotes.AsReadOnly();
 
@@ -101,7 +105,8 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         IReadOnlyCollection<Guid> productIds,
         StatusRef openStatus,
         EventActor actor,
-        Instant timestamp)
+        Instant timestamp,
+        IReadOnlyCollection<Guid>? releaseIds = null)
     {
         Guard.Against.Null(openStatus, nameof(openStatus));
 
@@ -142,18 +147,41 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure<Incident>(products.Error);
         }
 
-        incident.AddPostPersistenceAction(() => incident.AddDomainEvent(new IncidentCreatedEvent(
-            incident.Id,
-            incident.Key,
-            incident.Title,
-            incident.CommanderEmployeeId,
-            incident.SeverityLevelId,
-            incident.NoticedAt,
-            incident.StartedAt,
-            incident.RecoveredAt,
-            incident.StatusAlias,
-            actor,
-            timestamp)));
+        var releases = ReplaceReleaseLinks(incident, releaseIds);
+        if (releases.IsFailure)
+        {
+            return Result.Failure<Incident>(releases.Error);
+        }
+
+        var createdReleaseIds = incident.ReleaseLinks.Select(link => link.ReleaseId).Order().ToArray();
+
+        incident.AddPostPersistenceAction(() =>
+        {
+            incident.AddDomainEvent(new IncidentCreatedEvent(
+                incident.Id,
+                incident.Key,
+                incident.Title,
+                incident.CommanderEmployeeId,
+                incident.SeverityLevelId,
+                incident.NoticedAt,
+                incident.StartedAt,
+                incident.RecoveredAt,
+                incident.StatusAlias,
+                actor,
+                timestamp));
+
+            if (createdReleaseIds.Length > 0)
+            {
+                incident.AddDomainEvent(new IncidentReleasesChangedEvent(
+                    incident.Id,
+                    incident.Key,
+                    createdReleaseIds,
+                    [],
+                    createdReleaseIds,
+                    actor,
+                    timestamp));
+            }
+        });
 
         return Result.Success(incident);
     }
@@ -170,7 +198,8 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         Instant? recoveredAt,
         IReadOnlyCollection<Guid> productIds,
         EventActor actor,
-        Instant timestamp)
+        Instant timestamp,
+        IReadOnlyCollection<Guid>? releaseIds = null)
     {
         if (severityLevelId == Guid.Empty)
         {
@@ -201,6 +230,27 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         if (products.IsFailure)
         {
             return products;
+        }
+
+        if (releaseIds is not null)
+        {
+            var releases = ReplaceReleaseLinks(this, releaseIds);
+            if (releases.IsFailure)
+            {
+                return releases;
+            }
+
+            if (releases.Value.Changed)
+            {
+                AddDomainEvent(new IncidentReleasesChangedEvent(
+                    Id,
+                    Key,
+                    releases.Value.Added,
+                    releases.Value.Removed,
+                    ReleaseLinks.Select(link => link.ReleaseId).Order().ToArray(),
+                    actor,
+                    timestamp));
+            }
         }
 
         var detailsChanged =
@@ -456,6 +506,32 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         }
 
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Replaces the release set. A null list leaves it unchanged so callers that do not mention
+    /// releases keep whatever is already linked. An empty list clears it.
+    /// </summary>
+    private static Result<(bool Changed, Guid[] Added, Guid[] Removed)> ReplaceReleaseLinks(
+        Incident incident,
+        IReadOnlyCollection<Guid>? releaseIds)
+    {
+        var next = (releaseIds ?? []).Where(id => id != Guid.Empty).Distinct().ToHashSet();
+        var current = incident._releaseLinks.Select(link => link.ReleaseId).ToHashSet();
+        var added = next.Except(current).Order().ToArray();
+        var removed = current.Except(next).Order().ToArray();
+        if (added.Length == 0 && removed.Length == 0)
+        {
+            return Result.Success((false, added, removed));
+        }
+
+        incident._releaseLinks.Clear();
+        foreach (var releaseId in next.Order())
+        {
+            incident._releaseLinks.Add(new IncidentReleaseLink(incident.Id, releaseId));
+        }
+
+        return Result.Success((true, added, removed));
     }
 
     private static Result ReplaceProductLinks(Incident incident, IReadOnlyCollection<Guid> productIds)

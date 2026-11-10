@@ -110,6 +110,13 @@ export const buildReleaseColumns = (
     ),
   },
   {
+    id: 'activeIncident',
+    accessorFn: (row) => row.activeIncidentSeverityName ?? '',
+    header: 'Incident',
+    size: 140,
+    meta: { filterType: 'set' },
+  },
+  {
     id: 'targetDate',
     accessorKey: 'targetDate',
     header: 'Target',
@@ -149,6 +156,7 @@ const ReleasesGrid: React.FC<ReleasesGridProps> = ({
     csvFileName="releases"
     persistStateKey={persistStateKey}
     emptyMessage={emptyMessage}
+    getRowBackground={(row) => row.activeIncidentSeverityColor || undefined}
   />
 )
 

@@ -64989,6 +64989,8 @@ export interface CreateIncidentRequest {
     startedAt?: Date | undefined;
     recoveredAt?: Date | undefined;
     productIds: string[];
+    /** Releases this incident points at. One incident may point at several. */
+    releaseIds: string[];
 }
 
 export interface CreateIncidentSeveritySetRequest {
@@ -67746,6 +67748,8 @@ export interface IncidentDto {
     startedAt?: Date | undefined;
     recoveredAt?: Date | undefined;
     products: NavigationDto[];
+    /** Releases this incident points at. One incident may point at several. */
+    releases: NavigationDto[];
     status: StatusNavigationDto;
     statusAlias: ProductStatusAlias;
 }
@@ -70248,6 +70252,10 @@ export interface ProductDto {
     tags: ProductTagDto[];
     /** The teams and teams of teams linked to this product, by name. */
     teams: ProductTeamNavigationDto[];
+    /** Name of the highest-severity incident that is still active on this product. */
+    activeIncidentSeverityName?: string | undefined;
+    /** Color of string? ProductDto.ActiveIncidentSeverityName, from the severity level. */
+    activeIncidentSeverityColor?: string | undefined;
 }
 
 export enum ProductStatusAlias {
@@ -71228,6 +71236,10 @@ export interface ReleaseDto {
     versions: ReleaseVersionDto[];
     /** The packages this release shipped. */
     packages: ReleasePackageSummaryDto[];
+    /** Name of the highest-severity incident that is still active on this release. */
+    activeIncidentSeverityName?: string | undefined;
+    /** Color of string? ReleaseDto.ActiveIncidentSeverityName, from the severity level. */
+    activeIncidentSeverityColor?: string | undefined;
 }
 
 /** How often versions shipped. */
@@ -74394,6 +74406,8 @@ export interface UpdateIncidentDetailsRequest {
     startedAt?: Date | undefined;
     recoveredAt?: Date | undefined;
     productIds: string[];
+    /** Releases this incident points at. One incident may point at several. */
+    releaseIds: string[];
 }
 
 export interface UpdateIncidentSeveritySetRequest {

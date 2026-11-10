@@ -13,7 +13,8 @@ public sealed record UpdateIncidentDetailsCommand(
     Instant NoticedAt,
     Instant? StartedAt,
     Instant? RecoveredAt,
-    IReadOnlyList<Guid> ProductIds) : ICommand;
+    IReadOnlyList<Guid> ProductIds,
+    IReadOnlyList<Guid>? ReleaseIds = null) : ICommand;
 
 public sealed class UpdateIncidentDetailsCommandValidator : AbstractValidator<UpdateIncidentDetailsCommand>
 {
@@ -44,6 +45,7 @@ public sealed class UpdateIncidentDetailsCommandHandler(
     {
         var incident = await _productManagementDbContext.Incidents
             .Include(i => i.ProductLinks)
+            .Include(i => i.ReleaseLinks)
             .FirstOrDefaultAsync(i => i.Id == request.Id, cancellationToken);
 
         if (incident is null)
@@ -66,6 +68,13 @@ public sealed class UpdateIncidentDetailsCommandHandler(
             return products;
         }
 
+        var releases = await IncidentReferenceValidation.ValidateReleasesExist(
+            _productManagementDbContext, request.ReleaseIds ?? [], cancellationToken);
+        if (releases.IsFailure)
+        {
+            return releases;
+        }
+
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (employeeId is null)
         {
@@ -84,7 +93,8 @@ public sealed class UpdateIncidentDetailsCommandHandler(
             request.RecoveredAt,
             request.ProductIds,
             actor,
-            timestamp);
+            timestamp,
+            request.ReleaseIds);
 
         if (updated.IsFailure)
         {

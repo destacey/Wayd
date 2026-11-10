@@ -93,6 +93,7 @@ public sealed class GetIncidentQueryHandler(IProductManagementDbContext context)
         var incident = await _context.Incidents
             .AsNoTracking()
             .Include(i => i.ProductLinks)
+            .Include(i => i.ReleaseLinks)
             .Where(query.IdOrKeyFilter)
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -114,6 +115,11 @@ public sealed class GetIncidentQueryHandler(IProductManagementDbContext context)
             ? []
             : await _context.Products.AsNoTracking().Where(p => productIds.Contains(p.Id)).ToListAsync(cancellationToken);
 
-        return IncidentProjections.Details(incident, commander, level, products);
+        var releaseIds = incident.ReleaseLinks.Select(l => l.ReleaseId).ToList();
+        var releases = releaseIds.Count == 0
+            ? []
+            : await _context.Releases.AsNoTracking().Where(r => releaseIds.Contains(r.Id)).ToListAsync(cancellationToken);
+
+        return IncidentProjections.Details(incident, commander, level, products, releases);
     }
 }

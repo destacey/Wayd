@@ -2,6 +2,7 @@
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.ProductManagement.Application.Incidents;
 using Wayd.ProductManagement.Application.Products.Dtos;
 using Wayd.ProductManagement.Domain.Models;
 
@@ -54,12 +55,28 @@ public sealed class GetProductsQueryHandler(IProductManagementDbContext productM
             }
         }
 
-        return await products
+        var list = await products
             .ProjectToType<ProductDto>(
                 ProductDto.CreateTypeAdapterConfig(_productManagementDbContext))
             .OrderBy(p => p.Name)
             // Key last, so an MCP caller's offset slices the same list on every call.
             .ThenBy(p => p.Key)
             .ToListAsync(cancellationToken);
+
+        var severity = await IncidentActivity.ForProducts(
+            _productManagementDbContext,
+            list.Select(product => product.Id).ToList(),
+            cancellationToken);
+        IncidentActivity.Apply(
+            list,
+            severity,
+            product => product.Id,
+            (product, name, color) => product with
+            {
+                ActiveIncidentSeverityName = name,
+                ActiveIncidentSeverityColor = color,
+            });
+
+        return list;
     }
 }

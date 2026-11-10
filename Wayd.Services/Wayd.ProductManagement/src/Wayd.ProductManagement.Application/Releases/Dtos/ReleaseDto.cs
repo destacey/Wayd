@@ -47,6 +47,15 @@ public sealed record ReleaseDto
     public IReadOnlyCollection<ReleasePackageSummaryDto> Packages { get; init; } = [];
 
     /// <summary>
+    /// Name of the highest-severity incident that is still active on this release.
+    /// </summary>
+    /// <remarks>Null when the release has no active incident.</remarks>
+    public string? ActiveIncidentSeverityName { get; init; }
+
+    /// <summary>Color of <see cref="ActiveIncidentSeverityName"/>, from the severity level.</summary>
+    public string? ActiveIncidentSeverityColor { get; init; }
+
+    /// <summary>
     /// Maps a release and its contents, for <c>ProjectToType</c>.
     /// </summary>
     /// <remarks>
@@ -104,7 +113,10 @@ public sealed record ReleaseDto
                 Category = r.StatusCategory,
                 CategoryLabel = WorkflowOwners.CategoryLabel(ProductWorkflowOwners.Release.Key, r.StatusCategory),
                 Alias = r.StatusAliasValue,
-            });
+            })
+            // Filled after the projection from the release's active incidents.
+            .Ignore(dto => dto.ActiveIncidentSeverityName!)
+            .Ignore(dto => dto.ActiveIncidentSeverityColor!);
 
         return config;
     }

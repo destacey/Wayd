@@ -14,7 +14,8 @@ public sealed record CreateIncidentCommand(
     Instant? NoticedAt,
     Instant? StartedAt,
     Instant? RecoveredAt,
-    IReadOnlyList<Guid> ProductIds) : ICommand<ObjectIdAndKey>, IRequireLinkedEmployee;
+    IReadOnlyList<Guid> ProductIds,
+    IReadOnlyList<Guid>? ReleaseIds = null) : ICommand<ObjectIdAndKey>, IRequireLinkedEmployee;
 
 public sealed class CreateIncidentCommandValidator : AbstractValidator<CreateIncidentCommand>
 {
@@ -68,6 +69,13 @@ public sealed class CreateIncidentCommandHandler(
                 return Result.Failure<ObjectIdAndKey>(products.Error);
             }
 
+            var releases = await IncidentReferenceValidation.ValidateReleasesExist(
+                _productManagementDbContext, request.ReleaseIds ?? [], cancellationToken);
+            if (releases.IsFailure)
+            {
+                return Result.Failure<ObjectIdAndKey>(releases.Error);
+            }
+
             var openStatus = await _statusResolver.ForAlias(
                 ProductWorkflowOwners.Incident.Key,
                 scopeId: null,
@@ -94,7 +102,8 @@ public sealed class CreateIncidentCommandHandler(
                 request.ProductIds,
                 openStatus.Value,
                 actor,
-                _dateTimeProvider.Now);
+                _dateTimeProvider.Now,
+                request.ReleaseIds);
 
             if (incident.IsFailure)
             {

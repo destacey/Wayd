@@ -119901,6 +119901,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.Guid> ProductIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
+        /// <summary>
+        /// Releases this incident points at. One incident may point at several.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("releaseIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> ReleaseIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -127961,6 +127968,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<NavigationDto> Products { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
 
+        /// <summary>
+        /// Releases this incident points at. One incident may point at several.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("releases")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<NavigationDto> Releases { get; set; } = new System.Collections.ObjectModel.Collection<NavigationDto>();
+
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
@@ -135288,6 +135302,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ProductTeamNavigationDto> Teams { get; set; } = new System.Collections.ObjectModel.Collection<ProductTeamNavigationDto>();
 
+        /// <summary>
+        /// Name of the highest-severity incident that is still active on this product.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeIncidentSeverityName")]
+        public string? ActiveIncidentSeverityName { get; set; } = default!;
+
+        /// <summary>
+        /// Color of string? ProductDto.ActiveIncidentSeverityName, from the severity level.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeIncidentSeverityColor")]
+        public string? ActiveIncidentSeverityColor { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -138217,6 +138243,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("packages")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ReleasePackageSummaryDto> Packages { get; set; } = new System.Collections.ObjectModel.Collection<ReleasePackageSummaryDto>();
+
+        /// <summary>
+        /// Name of the highest-severity incident that is still active on this release.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeIncidentSeverityName")]
+        public string? ActiveIncidentSeverityName { get; set; } = default!;
+
+        /// <summary>
+        /// Color of string? ReleaseDto.ActiveIncidentSeverityName, from the severity level.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeIncidentSeverityColor")]
+        public string? ActiveIncidentSeverityColor { get; set; } = default!;
 
     }
 
@@ -147472,6 +147510,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("productIds")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<System.Guid> ProductIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+        /// <summary>
+        /// Releases this incident points at. One incident may point at several.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("releaseIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> ReleaseIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
 
     }
 

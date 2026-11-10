@@ -774,6 +774,13 @@ public class IncidentConfiguration : IEntityTypeConfiguration<Incident>
 
         builder.Navigation(i => i.ProductLinks).HasField("_productLinks").UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        builder.HasMany(i => i.ReleaseLinks)
+            .WithOne()
+            .HasForeignKey(l => l.IncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(i => i.ReleaseLinks).HasField("_releaseLinks").UsePropertyAccessMode(PropertyAccessMode.Field);
+
         builder.HasMany<IncidentTimelineNote>()
             .WithOne()
             .HasForeignKey(n => n.IncidentId)
@@ -815,6 +822,26 @@ public class IncidentProductLinkConfiguration : IEntityTypeConfiguration<Inciden
         builder.HasOne(l => l.Product)
             .WithMany()
             .HasForeignKey(l => l.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class IncidentReleaseLinkConfiguration : IEntityTypeConfiguration<IncidentReleaseLink>
+{
+    public void Configure(EntityTypeBuilder<IncidentReleaseLink> builder)
+    {
+        builder.ToTable("IncidentReleaseLinks", SchemaNames.ProductManagement);
+
+        builder.HasKey(l => l.Id);
+        builder.HasIndex(l => new { l.IncidentId, l.ReleaseId }).IsUnique();
+
+        builder.Property(l => l.Id).ValueGeneratedNever();
+        builder.Property(l => l.IncidentId).IsRequired();
+        builder.Property(l => l.ReleaseId).IsRequired();
+
+        builder.HasOne(l => l.Release)
+            .WithMany()
+            .HasForeignKey(l => l.ReleaseId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

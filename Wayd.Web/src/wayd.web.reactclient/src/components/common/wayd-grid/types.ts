@@ -220,6 +220,11 @@ export interface WaydGridProps<T extends RowData> {
    */
   onRowActivate?: (row: T) => void
   /**
+   * Background for the whole row. Painted on every body cell, including the
+   * filler, so zebra, hover, and pinned cells do not cover it.
+   */
+  getRowBackground?: (row: T) => string | undefined
+  /**
    * The activated row's id, matched against {@link getRowId}. Drives the
    * highlight; the grid does not track it, so the consumer owns the value and
    * can keep it in the URL.

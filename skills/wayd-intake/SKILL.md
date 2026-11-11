@@ -54,7 +54,9 @@ More filters narrow it, each combining with the rest: `assignedToMe: true` for r
 
 For a desk's queue, pass its `deskId` and `openOnly: true`, then filter the result: no `assignee` is what still needs triage; `needBy` with a fixed basis is what cannot move. `IntakeDesks_GetList` gives each desk the caller works a `waiting` count, with `unassignedCount`, and `unscoredCount` and `unestimatedCount` on a desk that scores or estimates (null on one that does not).
 
-To say what requests became without reading each one, `IntakeRequests_GetOutcomes` takes the same filters as the list and returns each request's outcomes (absent when it has none), as `IntakeRequests_GetIntakeRequest` gives them, with `deliverablesMet`.
+To say what requests became without reading each one, `IntakeRequests_GetOutcomes` takes the same filters as the list and returns each request's outcomes (absent when it has none), as `IntakeRequests_GetIntakeRequest` gives them, with `deliverablesMet` and `deliveryState`.
+
+To say how a request's delivery is going, read `deliveryState` on `IntakeRequests_GetIntakeRequest` or `IntakeRequests_GetOutcomes`: `NotStarted`, `InProgress`, `Blocked`, `Done` or `Cancelled`, rolled up from each outcome's `deliverySignal` — any blocked, else any in progress, else any not started, else any done, else cancelled — and null when no outcome reports one (none recorded, or every target deleted). A new project's signal follows its status, a work item's its status category, and existing project scope's the deliverables it maps that are still on the project. Scope with none still on the project follows the project's status and has `isScopeUndefined` true: tell the user its scope is not yet defined, and offer to map its deliverables. Nothing reports `Blocked` yet. The state is derived, never a status: `Done` does not finish the request, which stays the desk's decision.
 
 ## Where a request stands
 

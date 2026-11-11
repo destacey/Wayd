@@ -292,6 +292,20 @@ When every deliverable the request's outcomes name has been accepted, an accepte
 
 A deliverable's status reaches the request a moment after it changes in PPM. Changing which deliverables an outcome names, like changing outcomes at all, is allowed only while the request is accepted.
 
+#### Delivery
+
+Each outcome shows how far its delivery has got, in one vocabulary whatever the project or work item calls its own status: **Not Started**, **In Progress**, **Blocked**, **Done** or **Cancelled**.
+
+| Outcome | Its delivery comes from |
+|---|---|
+| New project | The project's status: Proposed and Approved are Not Started, Active is In Progress, Completed is Done, Canceled is Cancelled |
+| Existing project scope | The deliverables it names that are still on the project: Not Started, In Progress, Accepted (Done) and Descoped (Cancelled), or for a status your company added, that status's category. They combine as the request's outcomes do, below |
+| Work item | The work item's status category: Proposed is Not Started, Active is In Progress, Done is Done, Removed is Cancelled |
+
+Existing project scope that names no deliverable still on the project follows the project's status instead, and says **Scope not yet defined**, beside **No deliverables mapped**: until its deliverables are mapped, the project as a whole is the only measure of it. An outcome whose project or work item has been deleted shows no delivery.
+
+The request's **Delivery**, in its facts and on the **My Requests** home widget, combines its outcomes: Blocked if any is blocked; otherwise In Progress if any is in progress; otherwise Not Started if any has not started; otherwise Done if any is done; otherwise Cancelled. A request with no outcome, or whose every outcome's target has been deleted, shows none, and so does one that was declined, withdrawn or marked a duplicate. Delivery is read whenever the request is opened and is never stored; reaching Done never moves the request. No project or work item reports Blocked yet, so a request does not read Blocked today.
+
 #### From the project or work item
 
 With Demand Management on, a project's page has a **Requests** section listing the requests it came from or absorbed, with each request's status, what the project took on, and the deliverables it waits on. In the project's **Deliverables** section, each deliverable shows how many requests it serves, and opening it lists them. A work item's page has the same **Requests** section, listing the requests the work item delivers. Each request is listed only to people who can see it, by its desk's rules: a request on a private desk you are not part of does not appear, and nothing says it is there.

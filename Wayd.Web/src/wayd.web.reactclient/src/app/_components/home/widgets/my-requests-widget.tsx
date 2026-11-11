@@ -1,5 +1,8 @@
 'use client'
 
+import DeliverySignalTag, {
+  shownDeliveryState,
+} from '@/src/app/demand-management/_components/delivery-signal-tag'
 import { WaydList } from '@/src/components/common'
 import EntityLink from '@/src/components/common/entity-link'
 import { WorkflowStatusTag } from '@/src/components/common/status-workflows'
@@ -106,29 +109,36 @@ const OutcomeLine: FC<{ outcome: IntakeRequestOutcomeDto }> = ({ outcome }) => {
 const RequestRow: FC<{
   request: IntakeRequestSummaryDto
   outcomes: IntakeRequestOutcomesDto | undefined
-}> = ({ request, outcomes }) => (
-  <WaydList.Item className={styles.listItem}>
-    <div className={styles.listItemBody}>
-      <EntityLink href={`/demand-management/requests/${request.key}`}>
-        {request.key} · {request.title}
-      </EntityLink>
-      <span className={styles.listItemMeta}>
-        <WorkflowStatusTag
-          name={request.status.name}
-          category={request.status.category}
-        />
-        <Text type="secondary">{request.desk.name}</Text>
-      </span>
-      {outcomes ? (
-        <Flex vertical gap={2}>
-          {outcomes.outcomes.map((o) => (
-            <OutcomeLine key={o.targetId} outcome={o} />
-          ))}
-        </Flex>
-      ) : null}
-    </div>
-  </WaydList.Item>
-)
+}> = ({ request, outcomes }) => {
+  const deliveryState = shownDeliveryState(
+    request.status.category,
+    outcomes?.deliveryState,
+  )
+  return (
+    <WaydList.Item className={styles.listItem}>
+      <div className={styles.listItemBody}>
+        <EntityLink href={`/demand-management/requests/${request.key}`}>
+          {request.key} · {request.title}
+        </EntityLink>
+        <span className={styles.listItemMeta}>
+          <WorkflowStatusTag
+            name={request.status.name}
+            category={request.status.category}
+          />
+          <Text type="secondary">{request.desk.name}</Text>
+          {deliveryState && <DeliverySignalTag signal={deliveryState} />}
+        </span>
+        {outcomes ? (
+          <Flex vertical gap={2}>
+            {outcomes.outcomes.map((o) => (
+              <OutcomeLine key={o.targetId} outcome={o} />
+            ))}
+          </Flex>
+        ) : null}
+      </div>
+    </WaydList.Item>
+  )
+}
 
 /**
  * The requests the caller asked for or submitted that are open or closed in

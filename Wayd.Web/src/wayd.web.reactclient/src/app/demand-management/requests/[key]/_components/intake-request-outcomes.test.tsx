@@ -2,6 +2,7 @@ import React from 'react'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {
+  DeliverySignal,
   IntakeRequestDetailsDto,
   IntakeRequestOutcomeDto,
   IntakeRequestOutcomeKind,
@@ -39,6 +40,7 @@ const request = (
       project: { id: 'p-1', key: 'ATLAS', name: 'Atlas' },
       note: 'The export screen',
       deliverables: [],
+      isScopeUndefined: false,
       addedBy: agent,
       addedOn: new Date('2026-10-01T09:00:00Z'),
     },
@@ -47,6 +49,7 @@ const request = (
       targetId: 'p-gone',
       project: undefined,
       deliverables: [],
+      isScopeUndefined: false,
       addedBy: agent,
       addedOn: new Date('2026-10-02T09:00:00Z'),
     },
@@ -97,6 +100,7 @@ describe('IntakeRequestOutcomes', () => {
               statusCategory: StatusCategory.Active,
             },
             deliverables: [],
+            isScopeUndefined: false,
             addedBy: agent,
             addedOn: new Date('2026-10-01T09:00:00Z'),
           },
@@ -105,6 +109,7 @@ describe('IntakeRequestOutcomes', () => {
             targetId: 'w-gone',
             workItem: undefined,
             deliverables: [],
+            isScopeUndefined: false,
             addedBy: agent,
             addedOn: new Date('2026-10-02T09:00:00Z'),
           },
@@ -133,6 +138,31 @@ describe('IntakeRequestOutcomes', () => {
 
     // Assert
     expect(screen.getAllByText('No deliverables mapped')).toHaveLength(1)
+  })
+
+  it('shows each outcome’s delivery signal, and says when scope is not yet defined', () => {
+    // Arrange
+    const outcomes = request(false).outcomes
+    const withSignals = request(false, [
+      {
+        ...outcomes[0],
+        deliverySignal: DeliverySignal.InProgress,
+        isScopeUndefined: true,
+      },
+      { ...outcomes[1], deliverySignal: undefined, isScopeUndefined: false },
+    ])
+
+    // Act
+    render(<IntakeRequestOutcomes request={withSignals} />)
+
+    // Assert
+    const [scope, gone] = screen.getAllByRole('listitem')
+    expect(within(scope).getByText('In Progress')).toBeInTheDocument()
+    expect(within(scope).getByText(/Scope not yet defined/)).toBeInTheDocument()
+    expect(within(gone).queryByText('In Progress')).not.toBeInTheDocument()
+    expect(
+      within(gone).queryByText(/Scope not yet defined/),
+    ).not.toBeInTheDocument()
   })
 
   it('counts existing project scope whose deliverables were all deleted from the project as mapping none', () => {

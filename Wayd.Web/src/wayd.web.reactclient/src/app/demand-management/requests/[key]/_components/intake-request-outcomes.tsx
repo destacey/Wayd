@@ -16,6 +16,7 @@ import { Alert, Button, Flex, Popconfirm, Tag, Typography } from 'antd'
 import dayjs from 'dayjs'
 import NextLink from 'next/link'
 import { FC, useState } from 'react'
+import DeliverySignalTag from '../../../_components/delivery-signal-tag'
 import OutcomeDeliverableStatus from '../../../_components/outcome-deliverable-status'
 import { outcomeKindLabel } from '../../../_components/outcome-kind'
 import SetOutcomeDeliverablesForm from './set-outcome-deliverables-form'
@@ -197,11 +198,20 @@ const IntakeRequestOutcomes: FC<IntakeRequestOutcomesProps> = ({ request }) => {
                 <Flex gap={8} align="center" wrap>
                   <OutcomeTarget outcome={outcome} />
                   <Tag>{outcomeKindLabel[outcome.kind]}</Tag>
+                  {outcome.deliverySignal && (
+                    <DeliverySignalTag signal={outcome.deliverySignal} />
+                  )}
                   <MetTag outcome={outcome} />
                 </Flex>
               }
               description={
                 <Flex vertical gap={4}>
+                  {outcome.isScopeUndefined && (
+                    <Text type="warning">
+                      Scope not yet defined: delivery follows the project as a
+                      whole until a deliverable is mapped.
+                    </Text>
+                  )}
                   {outcome.note && <Text>{outcome.note}</Text>}
                   {outcome.deliverables.length > 0 && (
                     <OutcomeDeliverables outcome={outcome} />

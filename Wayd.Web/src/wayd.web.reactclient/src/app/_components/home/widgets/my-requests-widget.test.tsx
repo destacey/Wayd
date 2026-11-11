@@ -6,6 +6,7 @@ import MyRequestsWidget, {
   sortMyRequests,
 } from './my-requests-widget'
 import {
+  DeliverySignal,
   IntakeRequestOutcomeDto,
   IntakeRequestOutcomeKind,
   IntakeRequestOutcomesDto,
@@ -253,5 +254,57 @@ describe('MyRequestsWidget', () => {
     // Assert
     expect(screen.getByText('Met')).toBeInTheDocument()
     expect(screen.queryByText(/deliverables accepted/)).not.toBeInTheDocument()
+  })
+
+  it('shows each request’s delivery state, and none for a request without one', () => {
+    // Arrange
+    mockRequests.mockReturnValue(
+      loaded([
+        request(42, 'Export invoices', StatusCategory.Active, '2026-11-02'),
+        request(43, 'Import ledgers', StatusCategory.Active, '2026-11-01'),
+      ]),
+    )
+    mockOutcomes.mockReturnValue(
+      loaded([
+        {
+          requestId: 'request-42',
+          outcomes: [projectOutcome({ deliverySignal: DeliverySignal.Done })],
+          deliveryState: DeliverySignal.InProgress,
+        },
+      ]),
+    )
+
+    // Act
+    render(<MyRequestsWidget title="My requests" />)
+
+    // Assert
+    const [withState, without] = screen.getAllByRole('listitem')
+    expect(within(withState).getByText('In Progress')).toBeInTheDocument()
+    expect(within(without).queryByText('In Progress')).not.toBeInTheDocument()
+  })
+
+  it('leaves the delivery state off a request that was declined or withdrawn', () => {
+    // Arrange
+    mockRequests.mockReturnValue(
+      loaded([
+        request(42, 'Export invoices', StatusCategory.Removed, '2026-11-02'),
+      ]),
+    )
+    mockOutcomes.mockReturnValue(
+      loaded([
+        {
+          requestId: 'request-42',
+          outcomes: [projectOutcome()],
+          deliveryState: DeliverySignal.InProgress,
+        },
+      ]),
+    )
+
+    // Act
+    render(<MyRequestsWidget title="My requests" />)
+
+    // Assert
+    expect(screen.getByRole('listitem')).toBeInTheDocument()
+    expect(screen.queryByText('In Progress')).not.toBeInTheDocument()
   })
 })

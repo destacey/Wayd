@@ -20,7 +20,7 @@ import {
   restrictedMenuSection,
   restrictedPermissionMenuItem,
 } from './menu-helper'
-import { ItemType, MenuItemType } from 'antd/es/menu/interface'
+import type { ItemType, MenuItemType } from 'antd/es/menu/interface'
 import useAuth from '../../../components/contexts/auth'
 import { useFeatureFlag, useLinkedEmployee } from '../../../hooks'
 

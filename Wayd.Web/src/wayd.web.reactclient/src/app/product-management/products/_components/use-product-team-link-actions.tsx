@@ -2,7 +2,7 @@
 
 import useAuth from '@/src/components/contexts/auth'
 import { ProductTeamLinkDto } from '@/src/services/wayd-api'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { ReactNode, useState } from 'react'
 import UnlinkProductTeamForm from './unlink-product-team-form'
 

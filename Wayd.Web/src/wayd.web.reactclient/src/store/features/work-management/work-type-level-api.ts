@@ -10,7 +10,7 @@ import {
   UpdateWorkTypeLevelRequest,
   WorkTypeLevelDto,
 } from '@/src/services/wayd-api'
-import { BaseOptionType } from 'antd/es/select'
+import type { BaseOptionType } from 'antd/es/select'
 
 export const workTypeLevelApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({

@@ -26,7 +26,7 @@ import {
 import { QueryTags } from '../query-tags'
 import { projectLinkTags } from '../work-management/workspace-api'
 import { projectActivityTags } from './ppm-activity-tags'
-import { BaseOptionType } from 'antd/es/select'
+import type { BaseOptionType } from 'antd/es/select'
 import { StatusOptionModel } from '@/src/components/types'
 import { chunk } from '@/src/utils'
 

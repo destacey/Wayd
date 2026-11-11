@@ -15,7 +15,7 @@ import {
   useReorderWorkflowStatusesMutation,
 } from '@/src/store/features/common/status-workflows-api'
 import { App, Button, Space } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useMemo, useState } from 'react'
 import AddWorkflowStatusForm from './add-workflow-status-form'

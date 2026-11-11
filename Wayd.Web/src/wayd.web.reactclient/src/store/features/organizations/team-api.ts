@@ -32,7 +32,7 @@ import {
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import { getTeamsClient, getTeamsOfTeamsClient } from '@/src/services/clients'
-import { BaseOptionType } from 'antd/es/select'
+import type { BaseOptionType } from 'antd/es/select'
 import {
   BacklogHealthThresholds,
   DependencyDto,

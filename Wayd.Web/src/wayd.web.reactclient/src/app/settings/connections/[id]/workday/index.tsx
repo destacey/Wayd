@@ -10,7 +10,7 @@ import {
 import { useInitConnectionMutation } from '@/src/store/features/app-integration/connections-api'
 import { Alert, Col, Descriptions, Row, Typography } from 'antd'
 import dayjs from 'dayjs'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { useEffect, useMemo } from 'react'
 import {
   ConnectionActionContext,

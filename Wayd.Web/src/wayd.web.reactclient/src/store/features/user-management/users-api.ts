@@ -13,7 +13,7 @@ import {
 } from '@/src/services/wayd-api'
 import { authenticatedFetch, getUsersClient } from '@/src/services/clients'
 import { QueryTags } from '../query-tags'
-import { BaseOptionType } from 'antd/es/select'
+import type { BaseOptionType } from 'antd/es/select'
 
 export const usersApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({

@@ -11,7 +11,7 @@ import {
 } from '@/src/store/features/organizations/team-api'
 import { TeamOfTeamsOperatingModelDetailsDto } from '@/src/services/wayd-api'
 import { Tag } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import EditTeamOfTeamsOperatingModelForm from './edit-team-of-teams-operating-model-form'
 import DeleteOperatingModelForm, {
   findReinstatedModel,

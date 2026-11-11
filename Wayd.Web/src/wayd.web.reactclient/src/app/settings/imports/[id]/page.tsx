@@ -9,7 +9,7 @@ import {
   useGetImportProcessByIdQuery,
 } from '@/src/store/features/admin/imports-api'
 import { apiSlice } from '@/src/store/features/apiSlice'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { notFound } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import ImportDetails from '../_components/import-details'

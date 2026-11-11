@@ -1,5 +1,5 @@
 import { Select } from 'antd'
-import { BaseOptionType } from 'antd/es/select'
+import type { BaseOptionType } from 'antd/es/select'
 
 interface EmployeeSelectProps {
   employees: BaseOptionType[]

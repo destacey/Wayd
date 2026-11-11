@@ -19,7 +19,7 @@ import {
 } from '@/src/components/common/activities'
 import { isApiError } from '@/src/utils'
 import { Skeleton } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import dynamic from 'next/dynamic'
 import { notFound, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'

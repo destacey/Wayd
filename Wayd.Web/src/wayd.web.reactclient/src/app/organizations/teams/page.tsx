@@ -6,7 +6,7 @@ import {
   renderTeamLink,
 } from '@/src/components/common/wayd-grid'
 import { useMemo, useState } from 'react'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { Button } from 'antd'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'

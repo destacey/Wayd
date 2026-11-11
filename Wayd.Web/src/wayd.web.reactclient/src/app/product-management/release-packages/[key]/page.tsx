@@ -23,7 +23,7 @@ import {
 } from '@/src/components/common/activities'
 import { useGetDeploymentsQuery } from '@/src/store/features/product-management/deployments-api'
 import { Button, MenuProps, Result } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import { DeploymentsGrid } from '../../deployments/_components'

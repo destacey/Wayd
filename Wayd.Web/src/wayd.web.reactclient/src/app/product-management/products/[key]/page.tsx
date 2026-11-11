@@ -26,7 +26,7 @@ import { useGetVersionsQuery } from '@/src/store/features/product-management/ver
 import { useGetReleasesQuery } from '@/src/store/features/product-management/releases-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { Button, Flex, MenuProps, Result } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 // Imported directly rather than through the barrel: the barrel also pulls in the

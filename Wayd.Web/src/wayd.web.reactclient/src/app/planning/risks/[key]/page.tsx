@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, use, useState } from 'react'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import useAuth from '@/src/components/contexts/auth'
 import { PageActions } from '@/src/components/common'

@@ -14,7 +14,7 @@ import { isApiError } from '@/src/utils'
 import { MoreOutlined } from '@ant-design/icons'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { Button, Dropdown, Flex, MenuProps } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { FC, useState, useMemo } from 'react'
 import {
   AddStrategicInitiativeKpiMeasurementForm,

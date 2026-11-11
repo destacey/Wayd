@@ -42,7 +42,7 @@ import { useGetTeamSprintsQuery } from '@/src/store/features/organizations/team-
 import { SwapOutlined } from '@ant-design/icons'
 import { SprintType } from '@/src/services/wayd-api'
 import { Alert, Segmented, Space, Tag } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { RecordLayout } from '@/src/components/common/record'
 import SprintFacts from './_components/sprint-facts'
 import { SprintSections, sprintSections } from './_components/sprint-sections'

@@ -22,7 +22,7 @@ import {
 } from '@/src/components/common/activities'
 import { ExportOutlined } from '@ant-design/icons'
 import { Alert, Tag } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useMemo, useState } from 'react'

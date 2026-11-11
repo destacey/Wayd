@@ -11,7 +11,7 @@ import {
 import { getStrategicThemesClient } from '@/src/services/clients'
 import { QueryTags } from '../query-tags'
 import { OptionModel } from '@/src/components/types'
-import { BaseOptionType } from 'antd/es/select'
+import type { BaseOptionType } from 'antd/es/select'
 
 export const strategicThemesApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({

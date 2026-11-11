@@ -1,5 +1,5 @@
 import { Space, Switch } from 'antd'
-import { SwitchChangeEventHandler, SwitchProps } from 'antd/es/switch'
+import type { SwitchChangeEventHandler, SwitchProps } from 'antd/es/switch'
 
 export interface ControlItemSwitchProps extends SwitchProps {
   label: string

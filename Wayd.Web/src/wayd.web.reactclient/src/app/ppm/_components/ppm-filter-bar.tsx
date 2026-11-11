@@ -3,7 +3,7 @@
 import { ClearOutlined } from '@ant-design/icons'
 import { Button, Card, Flex, Select, Skeleton, Space, theme } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
-import { BaseOptionType } from 'antd/es/select'
+import type { BaseOptionType } from 'antd/es/select'
 import { StatusOptionModel } from '@/src/components/types'
 import { ProjectMemberRole } from '@/src/services/wayd-api'
 import {

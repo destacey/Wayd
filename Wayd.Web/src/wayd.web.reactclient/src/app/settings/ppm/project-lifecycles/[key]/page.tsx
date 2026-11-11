@@ -8,7 +8,7 @@ import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import { useGetProjectLifecycleQuery } from '@/src/store/features/ppm/project-lifecycles-api'
 import { isApiError } from '@/src/utils'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import ChangeProjectLifecycleStateForm, {

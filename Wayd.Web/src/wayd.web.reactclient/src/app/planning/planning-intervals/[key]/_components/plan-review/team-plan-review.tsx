@@ -10,7 +10,7 @@ import TeamObjectivesListCard from './team-objectives-list-card'
 import TeamRisksListCard from './team-risks-list-card'
 import Link from 'next/link'
 import { BarsOutlined, BuildOutlined } from '@ant-design/icons'
-import { SegmentedLabeledOption } from 'antd/es/segmented'
+import type { SegmentedLabeledOption } from 'antd/es/segmented'
 import { PlanningIntervalObjectiveDetailsDrawer } from '@/src/app/planning/planning-intervals/_components'
 import {
   useGetPlanningIntervalCalendarQuery,

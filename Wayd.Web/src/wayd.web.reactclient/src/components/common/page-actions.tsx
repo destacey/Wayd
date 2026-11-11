@@ -1,6 +1,6 @@
 import { DownOutlined } from '@ant-design/icons'
 import { Button, Dropdown, MenuProps, Space } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 
 export interface PageActionsProps {
   actionItems: MenuProps['items'] | ItemType[]

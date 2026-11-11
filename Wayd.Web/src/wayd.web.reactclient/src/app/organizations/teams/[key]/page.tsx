@@ -25,7 +25,7 @@ import {
   useSearchParams,
 } from 'next/navigation'
 import TeamDependencyManagement from '@/src/app/organizations/teams/_components/team-dependency-management'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { InactiveTag, PageActions } from '@/src/components/common'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
 import DeactivateTeamForm from '@/src/app/organizations/_components/deactivate-team-form'

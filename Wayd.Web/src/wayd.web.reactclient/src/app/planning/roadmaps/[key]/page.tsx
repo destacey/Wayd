@@ -14,7 +14,7 @@ import RoadmapDetailsLoading from './loading'
 import { use, useState } from 'react'
 import { LockOutlined, UnlockOutlined } from '@ant-design/icons'
 import { MenuProps, Space, Tag } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import {
   ChangeRoadmapStateForm,
   ConfigureRoadmapColorsForm,

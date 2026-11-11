@@ -17,7 +17,7 @@ import {
   useActivityLog,
 } from '@/src/components/common/activities'
 import { Tag } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import {

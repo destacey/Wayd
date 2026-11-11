@@ -33,7 +33,7 @@ import {
 } from '@/src/store/features/planning/story-maps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { Button, Dropdown, Flex, Grid, Tag, Tour } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { PresenceAvatars, WaydTooltip } from '@/src/components/common'
 import {
   EyeOutlined,

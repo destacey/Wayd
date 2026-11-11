@@ -109,6 +109,18 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
         return sprint.Id;
     }
 
+    /// <summary>Records when the team started and, when given, completed one of its sprints.</summary>
+    public async Task RecordSprintDates(Guid sprintId, Instant started, Instant? completed, CancellationToken cancellationToken)
+    {
+        var startedAt = started.ToDateTimeUtc();
+        var completedAt = completed?.ToDateTimeUtc();
+
+        await using var context = _fixture.CreateContext();
+        await context.Database.ExecuteSqlInterpolatedAsync(
+            $"UPDATE [Work].[Iterations] SET [Started] = {startedAt}, [Completed] = {completedAt} WHERE [Id] = {sprintId};",
+            cancellationToken);
+    }
+
     public async Task<Guid> AddProject(CancellationToken cancellationToken)
     {
         var project = new WorkProject(new SourceProject(Guid.NewGuid(), new ProjectKey($"FP{UniqueKeys.Next()}"), "Forecast Project", "A project to forecast."), Now);
@@ -174,7 +186,8 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
     }
 
     /// <summary>One history period of a seeded item, as a "Forecast Story" in <paramref name="statusCategory"/>.</summary>
-    public async Task AddPeriod(Guid workItemId, int revision, Instant from, Instant? to, StatusCategory statusCategory, CancellationToken cancellationToken, double? storyPoints = null)
+    /// <param name="iterationId">The sprint the item was in over the period; none when not given.</param>
+    public async Task AddPeriod(Guid workItemId, int revision, Instant from, Instant? to, StatusCategory statusCategory, CancellationToken cancellationToken, double? storyPoints = null, Guid? iterationId = null)
     {
         var validFrom = from.ToDateTimeUtc();
         var validTo = to?.ToDateTimeUtc();
@@ -185,9 +198,9 @@ public sealed class ForecastSeeder(SqlServerDbContextFixture fixture)
             $"""
             INSERT INTO [Work].[WorkItemStateHistory]
                 ([WorkItemId], [WorkspaceId], [Revision], [ValidFrom], [ValidTo],
-                 [StatusName], [StatusCategory], [WorkTypeId], [WorkTypeName], [StoryPoints])
+                 [StatusName], [StatusCategory], [WorkTypeId], [WorkTypeName], [StoryPoints], [IterationId])
             SELECT {workItemId}, {_workspaceId}, {revision}, {validFrom}, {validTo},
-                   {category}, {category}, [Id], [Name], {storyPoints}
+                   {category}, {category}, [Id], [Name], {storyPoints}, {iterationId}
             FROM [Work].[WorkTypes] WHERE [Name] = 'Forecast Story';
             """,
             cancellationToken);

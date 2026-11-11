@@ -13,7 +13,11 @@ import WhatsChangedWidget, {
   UnreadNotificationsTile,
 } from './widgets/whats-changed-widget'
 
-import { DependenciesAtRiskTile } from './widgets/my-teams-tile'
+import {
+  CrossTeamDependenciesTile,
+  DependenciesAtRiskTile,
+  SprintsToCompleteTile,
+} from './widgets/my-teams-tile'
 
 // Loaded after the page: each sprint draws a burn-up chart, and the charting
 // library is the heaviest code the home page would otherwise carry up front.
@@ -26,7 +30,9 @@ const MyTeamsWidget = lazy(() => import('./widgets/my-teams-widget'))
  */
 export const TilePriority = {
   OverdueTasks: 100,
+  SprintsToComplete: 90,
   RiskFollowUps: 80,
+  CrossTeamDependencies: 75,
   DependenciesAtRisk: 70,
   TasksDueThisWeek: 60,
   UnreadNotifications: 40,
@@ -126,15 +132,25 @@ export const HomeWidgets: HomeWidget[] = [
     id: 'my-teams',
     title: 'My teams',
     description:
-      "Each team you are a member of: a Scrum team's active sprint or a Kanban team's flow, with its dependencies and risks.",
+      "Each team you are a member of: a Scrum team's active sprint or a Kanban team's flow, with its dependencies and risks. Each team of teams you belong to directly is one card, its teams needing attention first.",
     defaultColumn: 'side',
     defaultOrder: 20,
     requires: { linkedEmployee: true },
     Component: MyTeamsWidget,
-    // A team member's team is their day-to-day work.
+    // A team member's team, or a team of teams they answer for, is their day-to-day work.
     involvement: (context) =>
-      context.teams.teamCount > 0 ? Involvement.Leads : Involvement.None,
+      teamCount(context) > 0 ? Involvement.Leads : Involvement.None,
     tiles: [
+      {
+        id: 'sprints-to-complete',
+        priority: TilePriority.SprintsToComplete,
+        Tile: SprintsToCompleteTile,
+      },
+      {
+        id: 'cross-team-dependencies',
+        priority: TilePriority.CrossTeamDependencies,
+        Tile: CrossTeamDependenciesTile,
+      },
       {
         id: 'dependencies-at-risk',
         priority: TilePriority.DependenciesAtRisk,

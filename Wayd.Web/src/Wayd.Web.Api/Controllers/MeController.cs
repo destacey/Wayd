@@ -5,14 +5,19 @@ using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.Common.Extensions;
 using Wayd.DemandManagement.Application.IntakeDesks.Dtos;
 using Wayd.DemandManagement.Application.IntakeDesks.Queries;
 using Wayd.Organization.Application.EmployeeCapacities.Dtos;
 using Wayd.Organization.Application.EmployeeCapacities.Queries;
+using Wayd.Organization.Application.Models;
 using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Teams.Queries;
+using Wayd.Planning.Application.PlanningIntervals.Dtos;
+using Wayd.Planning.Application.PlanningIntervals.Queries;
 using Wayd.Planning.Application.Risks.Queries;
 using Wayd.ProductManagement.Application.Products.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
@@ -20,6 +25,7 @@ using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.Me;
+using Wayd.Work.Application.Iterations.Dtos;
 using Wayd.Work.Application.Iterations.Queries;
 using Wayd.Work.Application.WorkItemDependencies.Dtos;
 using Wayd.Work.Application.WorkItems.Dtos;
@@ -27,6 +33,7 @@ using Wayd.Work.Application.WorkItems.Queries;
 using Wayd.Work.Application.WorkTeams.Dtos;
 using Wayd.Work.Application.WorkTeams.Queries;
 using Wayd.Work.Domain.Models.CadenceMetrics;
+using Wayd.Work.Domain.Models.Flow;
 
 namespace Wayd.Web.Api.Controllers;
 
@@ -177,9 +184,11 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
     }
 
     [HttpGet("teams/summary")]
-    [EndpointSummary("Get a summary of each team you are a member of, for how that team works today.")]
+    [EndpointSummary("Get a summary of each team and team of teams you are a member of, for how it works today.")]
     [EndpointDescription(
-        "One entry per active team you are a member of (teams of teams are left out), by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health and its `openRiskCount`. A team with no operating model today has neither `sprint` nor `flow`. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount`. Returns 404 when your account is not linked to an employee.")]
+        "`teams` has one entry per active team you are a member of, by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health, its `openRiskCount`, and `partOf`, the team of teams it belongs to today. A team with no operating model today has neither `sprint` nor `flow`. "
+        + "`teamsOfTeams` has one rollup per active team of teams you are a member of directly (being on one of its teams does not count), by name: the planning interval running today with its objectives at risk, and one row per team or team of teams in it today, needing attention first. A Scrum row's `sprint` is a sprint started and left open past its end, or its running sprint's share done against the share its burn-down expects; a Kanban row's `flow` is its items in progress and when the oldest started; a nested team of teams counts the teams beneath it by status and takes the worst. Each row's `status` (OnTrack, Watch, NeedsAttention) is worked out here. Its `dependencies` are the open cross-team dependencies of every team beneath it, and its `risks` its own open risks and those of the teams beneath it. "
+        + "Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount` and `risks`, View Planning Intervals for `planningInterval` and View Planning Interval Objectives for its at-risk count. Returns 404 when your account is not linked to an employee.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<MyTeamsSummaryResponse>> GetTeamsSummary(CancellationToken cancellationToken)
@@ -187,39 +196,94 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
         if (await _currentPrincipal.GetEmployeeId(cancellationToken) is not { } employeeId)
             return NotLinked();
 
-        var canViewIterations = await _currentPrincipal.HasPermission(ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Iterations), cancellationToken);
-        var canViewWorkItems = await _currentPrincipal.HasPermission(ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.WorkItems), cancellationToken);
-        var canViewRisks = await _currentPrincipal.HasPermission(ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Risks), cancellationToken);
+        var access = new SummaryAccess(
+            Iterations: await CanView(ApplicationResource.Iterations, cancellationToken),
+            WorkItems: await CanView(ApplicationResource.WorkItems, cancellationToken),
+            Risks: await CanView(ApplicationResource.Risks, cancellationToken),
+            PlanningIntervals: await CanView(ApplicationResource.PlanningIntervals, cancellationToken),
+            Objectives: await CanView(ApplicationResource.PlanningIntervalObjectives, cancellationToken));
 
         var teams = await _dispatcher.Send(new GetEmployeeActiveTeamsQuery(employeeId), cancellationToken);
-        if (teams.Count == 0)
-            return Ok(new MyTeamsSummaryResponse { DependenciesAtRiskCount = canViewWorkItems ? 0 : null });
+        var teamsOfTeams = await _dispatcher.Send(new GetEmployeeActiveTeamsQuery(employeeId, TeamType.TeamOfTeams), cancellationToken);
+        if (teams.Count == 0 && teamsOfTeams.Count == 0)
+        {
+            return Ok(new MyTeamsSummaryResponse
+            {
+                DependenciesAtRiskCount = access.WorkItems ? 0 : null,
+                UnhealthyCrossTeamDependencyCount = access.WorkItems ? 0 : null,
+                SprintsEndedNotCompletedCount = access.Iterations ? 0 : null,
+            });
+        }
 
         var now = _dateTimeProvider.Now;
+        var today = _dateTimeProvider.Today;
+
+        var structures = new List<TeamStructure>();
+        foreach (var teamOfTeams in teamsOfTeams)
+        {
+            if (await _dispatcher.Send(new GetTeamStructureQuery(teamOfTeams.Id, today, today), cancellationToken) is { } structure)
+                structures.Add(structure);
+        }
+
+        // Every team read for a signal: the caller's own, and those beneath their teams of teams.
         var teamIds = teams.Select(t => t.Id).ToList();
-        var schedules = await _dispatcher.Send(new GetTeamsScheduleHistoryQuery(teamIds), cancellationToken);
-        var models = teams.ToDictionary(t => t.Id, t => (schedules.GetValueOrDefault(t.Id) ?? []).InEffectAt(now));
+        var rollupTeamIds = structures
+            .SelectMany(s => s.Teams.Where(t => t.Type == TeamType.Team).Select(t => t.Id))
+            .Distinct()
+            .ToList();
+        var signalTeamIds = teamIds.Union(rollupTeamIds).ToList();
 
-        List<Guid> TeamsFollowing(Methodology methodology) =>
-            [.. teams.Where(t => models[t.Id]?.Methodology == methodology).Select(t => t.Id)];
+        var schedules = await _dispatcher.Send(new GetTeamsScheduleHistoryQuery(signalTeamIds), cancellationToken);
+        var models = signalTeamIds.ToDictionary(id => id, id => (schedules.GetValueOrDefault(id) ?? []).InEffectAt(now));
 
-        var scrumTeamIds = TeamsFollowing(Methodology.Scrum);
-        var activeSprints = canViewIterations && scrumTeamIds.Count > 0
+        List<Guid> Following(IEnumerable<Guid> ids, Methodology methodology) =>
+            [.. ids.Where(id => models[id]?.Methodology == methodology)];
+
+        var scrumTeamIds = Following(teamIds, Methodology.Scrum);
+        var activeSprints = access.Iterations && scrumTeamIds.Count > 0
             ? await _dispatcher.Send(new GetTeamsActiveSprintQuery(scrumTeamIds), cancellationToken)
             : (IReadOnlyDictionary<Guid, NavigationDto>)new Dictionary<Guid, NavigationDto>();
 
-        var kanbanTeamIds = TeamsFollowing(Methodology.Kanban);
-        var flows = canViewWorkItems && kanbanTeamIds.Count > 0
+        var rollupScrumTeamIds = Following(rollupTeamIds, Methodology.Scrum);
+        var sprintSignals = access.Iterations && rollupScrumTeamIds.Count > 0
+            ? await _dispatcher.Send(new GetTeamsSprintSignalQuery(rollupScrumTeamIds), cancellationToken)
+            : (IReadOnlyDictionary<Guid, TeamSprintSignalDto>)new Dictionary<Guid, TeamSprintSignalDto>();
+
+        var kanbanTeamIds = Following(signalTeamIds, Methodology.Kanban);
+        var flows = access.WorkItems && kanbanTeamIds.Count > 0
             ? await LoadFlows(kanbanTeamIds, schedules, models, now, cancellationToken)
             : new Dictionary<Guid, MyTeamFlowSummaryResponse>();
 
-        var dependencies = canViewWorkItems
+        var dependencies = access.WorkItems && teamIds.Count > 0
             ? await _dispatcher.Send(new GetTeamsDependencyHealthQuery(teamIds), cancellationToken)
             : null;
 
-        var riskCounts = canViewRisks
-            ? await _dispatcher.Send(new GetTeamsOpenRiskCountQuery(teamIds), cancellationToken)
+        var riskTeamIds = teamIds.Union(structures.SelectMany(s => s.Teams.Select(t => t.Id))).ToList();
+        var riskCounts = access.Risks
+            ? await _dispatcher.Send(new GetTeamsOpenRiskCountQuery(riskTeamIds), cancellationToken)
             : null;
+
+        var parents = teamIds.Count > 0
+            ? await _dispatcher.Send(new GetTeamsParentQuery(teamIds, today), cancellationToken)
+            : new Dictionary<Guid, TeamNavigationDto>();
+
+        var signals = new TeamSignals(models, sprintSignals, flows, now);
+        var rollups = new List<MyTeamOfTeamsSummaryResponse>();
+        var crossTeamDependencies = new Dictionary<Guid, DependencyDto>();
+        foreach (var (teamOfTeams, structure) in teamsOfTeams.Join(structures, t => t.Id, s => s.RootId, (t, s) => (t, s)))
+        {
+            var openDependencies = access.WorkItems
+                ? await LoadCrossTeamDependencies(structure, cancellationToken)
+                : null;
+            foreach (var dependency in openDependencies ?? [])
+                crossTeamDependencies.TryAdd(dependency.Id, dependency);
+
+            var planningInterval = access.PlanningIntervals
+                ? await _dispatcher.Send(new GetCurrentPlanningIntervalForTeamsQuery(structure.RootId, [.. structure.Teams.Select(t => t.Id)], today, access.Objectives), cancellationToken)
+                : null;
+
+            rollups.Add(BuildRollup(teamOfTeams, structure, [.. teamIds, .. teamsOfTeams.Select(t => t.Id)], signals, openDependencies, riskCounts, planningInterval, access));
+        }
 
         return Ok(new MyTeamsSummaryResponse
         {
@@ -229,19 +293,173 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
                 return new MyTeamSummaryResponse
                 {
                     Team = team,
+                    PartOf = parents.GetValueOrDefault(team.Id),
                     Methodology = model?.Methodology,
                     TimeZone = model?.TimeZone,
-                    Sprint = canViewIterations && model?.Methodology == Methodology.Scrum
+                    Sprint = access.Iterations && model?.Methodology == Methodology.Scrum
                         ? new MyTeamSprintSummaryResponse { ActiveSprint = activeSprints.GetValueOrDefault(team.Id) }
                         : null,
                     Flow = flows.GetValueOrDefault(team.Id),
                     Dependencies = dependencies is null ? null : dependencies.Teams.GetValueOrDefault(team.Id) ?? new TeamDependencyHealthDto(),
-                    OpenRiskCount = riskCounts?.GetValueOrDefault(team.Id),
+                    OpenRiskCount = riskCounts is null ? null : riskCounts.GetValueOrDefault(team.Id),
                 };
             })],
-            DependenciesAtRiskCount = dependencies?.AtRiskOrUnhealthyCount,
+            TeamsOfTeams = rollups,
+            DependenciesAtRiskCount = access.WorkItems ? dependencies?.AtRiskOrUnhealthyCount ?? 0 : null,
+            UnhealthyCrossTeamDependencyCount = access.WorkItems
+                ? crossTeamDependencies.Values.Count(d => d.Health.Id == (int)DependencyPlanningHealth.Unhealthy)
+                : null,
+            SprintsEndedNotCompletedCount = access.Iterations
+                ? sprintSignals.Values.Where(s => s.EndedNotCompleted).Select(s => s.Sprint.Id).Distinct().Count()
+                : null,
         });
     }
+
+    /// <summary>The summary sections the caller may see, each needing the permission its own page needs.</summary>
+    private sealed record SummaryAccess(bool Iterations, bool WorkItems, bool Risks, bool PlanningIntervals, bool Objectives);
+
+    /// <summary>What each team's row in a rollup is read from.</summary>
+    private sealed record TeamSignals(
+        IReadOnlyDictionary<Guid, TeamSchedulePeriodDto?> Models,
+        IReadOnlyDictionary<Guid, TeamSprintSignalDto> Sprints,
+        IReadOnlyDictionary<Guid, MyTeamFlowSummaryResponse> Flows,
+        Instant Now);
+
+    /// <summary>Whether the caller holds the View permission on <paramref name="resource"/>.</summary>
+    private async Task<bool> CanView(string resource, CancellationToken cancellationToken) =>
+        await _currentPrincipal.HasPermission(ApplicationPermission.NameFor(ApplicationAction.View, resource), cancellationToken);
+
+    /// <summary>
+    /// The open cross-team dependencies of every team beneath a team of teams, as its Dependencies section reads
+    /// them (TeamsOfTeams_GetDependencies).
+    /// </summary>
+    private async Task<List<DependencyDto>> LoadCrossTeamDependencies(TeamStructure structure, CancellationToken cancellationToken)
+    {
+        var teamIds = structure.Teams.Where(t => t.Type == TeamType.Team).Select(t => t.Id).ToList();
+        return teamIds.Count == 0
+            ? []
+            : await _dispatcher.Send(new GetTeamsDependenciesQuery(teamIds, [DependencyState.ToDo, DependencyState.InProgress]), cancellationToken);
+    }
+
+    /// <summary>
+    /// A team of teams' rollup: one row per team or team of teams in it today, a nested one carrying the worst
+    /// status of the teams beneath it at any depth.
+    /// </summary>
+    private static MyTeamOfTeamsSummaryResponse BuildRollup(
+        TeamNavigationDto teamOfTeams,
+        TeamStructure structure,
+        HashSet<Guid> callerTeamIds,
+        TeamSignals signals,
+        List<DependencyDto>? dependencies,
+        IReadOnlyDictionary<Guid, int>? riskCounts,
+        CurrentPlanningIntervalDto? planningInterval,
+        SummaryAccess access)
+    {
+        var teamsById = structure.Teams.ToDictionary(t => t.Id);
+        var childIdsByParent = structure.Memberships.ToLookup(m => m.ParentId, m => m.ChildId);
+
+        List<Guid> TeamsBeneath(Guid parentId)
+        {
+            var found = new List<Guid>();
+            var visited = new HashSet<Guid> { parentId };
+            var pending = new Queue<Guid>([parentId]);
+            while (pending.TryDequeue(out var id))
+            {
+                foreach (var childId in childIdsByParent[id].Where(visited.Add))
+                {
+                    pending.Enqueue(childId);
+                    if (teamsById.TryGetValue(childId, out var child) && child.Type == TeamType.Team)
+                        found.Add(childId);
+                }
+            }
+            return found;
+        }
+
+        var rows = childIdsByParent[structure.RootId]
+            .Distinct()
+            .Where(teamsById.ContainsKey)
+            .Select(childId =>
+            {
+                var child = teamsById[childId];
+                var navigation = new TeamNavigationDto { Id = child.Id, Key = child.Key, Name = child.Name, Code = child.Code, Type = child.Type.GetDisplayName() };
+
+                if (child.Type == TeamType.TeamOfTeams)
+                {
+                    var statuses = TeamsBeneath(child.Id).Select(id => TeamStatus(id, signals)).ToList();
+                    return new MyTeamOfTeamsRowResponse
+                    {
+                        Team = navigation,
+                        IsMine = callerTeamIds.Contains(child.Id),
+                        Nested = new MyTeamOfTeamsNestedResponse
+                        {
+                            TeamCount = statuses.Count,
+                            NeedsAttentionCount = statuses.Count(s => s == AttentionStatus.NeedsAttention),
+                            WatchCount = statuses.Count(s => s == AttentionStatus.Watch),
+                        },
+                        Status = statuses.Count == 0 ? AttentionStatus.OnTrack : statuses.Max(),
+                    };
+                }
+
+                var methodology = signals.Models.GetValueOrDefault(child.Id)?.Methodology;
+                var flow = methodology == Methodology.Kanban ? signals.Flows.GetValueOrDefault(child.Id) : null;
+                return new MyTeamOfTeamsRowResponse
+                {
+                    Team = navigation,
+                    IsMine = callerTeamIds.Contains(child.Id),
+                    Methodology = methodology,
+                    Sprint = methodology == Methodology.Scrum ? signals.Sprints.GetValueOrDefault(child.Id) : null,
+                    Flow = flow is null ? null : new MyTeamOfTeamsFlowResponse
+                    {
+                        InProgressCount = flow.InProgressCount,
+                        OldestInProgressSince = flow.OldestInProgress?.ActivatedOn,
+                        MedianCycleTimeDays = flow.MedianCycleTimeDays,
+                    },
+                    Status = TeamStatus(child.Id, signals),
+                };
+            })
+            .OrderByDescending(r => r.Status)
+            .ThenBy(r => r.Team.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(r => r.Team.Id)
+            .ToList();
+
+        return new MyTeamOfTeamsSummaryResponse
+        {
+            Team = teamOfTeams,
+            ScrumTeamCount = rows.Count(r => r.Methodology == Methodology.Scrum),
+            KanbanTeamCount = rows.Count(r => r.Methodology == Methodology.Kanban),
+            PlanningInterval = planningInterval is null ? null : new MyTeamOfTeamsPlanningIntervalResponse
+            {
+                PlanningInterval = planningInterval.PlanningInterval,
+                ObjectivesAtRiskCount = planningInterval.ObjectivesAtRiskCount,
+            },
+            Rows = rows,
+            Dependencies = dependencies is null ? null : new MyTeamOfTeamsDependenciesResponse
+            {
+                OpenCount = dependencies.Count,
+                AtRiskCount = dependencies.Count(d => d.Health.Id == (int)DependencyPlanningHealth.AtRisk),
+                UnhealthyCount = dependencies.Count(d => d.Health.Id == (int)DependencyPlanningHealth.Unhealthy),
+            },
+            Risks = riskCounts is null ? null : new MyTeamOfTeamsRisksResponse
+            {
+                OwnOpenCount = riskCounts.GetValueOrDefault(structure.RootId),
+                TeamsOpenCount = structure.Teams.Where(t => t.Id != structure.RootId).Sum(t => riskCounts.GetValueOrDefault(t.Id)),
+            },
+        };
+    }
+
+    /// <summary>
+    /// A team's status from the signal of the methodology it follows today: its sprint for Scrum, the age of its
+    /// oldest item in progress for Kanban. On Track with no signal to read, or without the permission to read it.
+    /// </summary>
+    private static AttentionStatus TeamStatus(Guid teamId, TeamSignals signals) =>
+        signals.Models.GetValueOrDefault(teamId)?.Methodology switch
+        {
+            Methodology.Scrum => signals.Sprints.GetValueOrDefault(teamId)?.Status ?? AttentionStatus.OnTrack,
+            Methodology.Kanban when signals.Flows.GetValueOrDefault(teamId) is { } flow => FlowAging.Assess(
+                flow.OldestInProgress is { } oldest ? (signals.Now - oldest.ActivatedOn).TotalDays : null,
+                flow.MedianCycleTimeDays),
+            _ => AttentionStatus.OnTrack,
+        };
 
     /// <summary>
     /// The flow of each Kanban team: completions over the last <see cref="RecentFlowDays"/> days in the team's own

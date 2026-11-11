@@ -1,6 +1,10 @@
 import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { DependenciesAtRiskTile } from './my-teams-tile'
+import {
+  CrossTeamDependenciesTile,
+  DependenciesAtRiskTile,
+  SprintsToCompleteTile,
+} from './my-teams-tile'
 import {
   HomeContextResponse,
   MyTeamsSummaryResponse,
@@ -26,7 +30,7 @@ import { useGetMyTeamsSummaryQuery } from '@/src/store/features/user-management/
 const mockSummary = useGetMyTeamsSummaryQuery as Mock
 
 const loaded = (summary: Partial<MyTeamsSummaryResponse>) => ({
-  data: { teams: [], dependenciesAtRiskCount: 0, ...summary },
+  data: { teams: [], teamsOfTeams: [], dependenciesAtRiskCount: 0, ...summary },
   isLoading: false,
   isError: false,
 })
@@ -102,6 +106,62 @@ describe('DependenciesAtRiskTile', () => {
     expect(
       screen.getByRole('button', {
         name: 'Dependencies at risk on your teams: unavailable',
+      }),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('team of teams tiles', () => {
+  beforeEach(() => {
+    mockHome.context = homeContext({ teams: { teamOfTeamsCount: 1 } })
+  })
+
+  it('asks for the summary for a member of a team of teams only', () => {
+    // Arrange
+    mockSummary.mockReturnValue(loaded({ sprintsEndedNotCompletedCount: 2 }))
+
+    // Act
+    render(<SprintsToCompleteTile />)
+
+    // Assert
+    expect(mockSummary).toHaveBeenCalledWith(undefined, { skip: false })
+    expect(
+      screen.getByRole('button', {
+        name: 'Sprints to complete in your teams of teams: 2',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('counts the unhealthy cross-team dependencies', () => {
+    // Arrange
+    mockSummary.mockReturnValue(
+      loaded({ unhealthyCrossTeamDependencyCount: 4 }),
+    )
+
+    // Act
+    render(<CrossTeamDependenciesTile />)
+
+    // Assert
+    expect(
+      screen.getByRole('button', {
+        name: 'Unhealthy dependencies across your teams of teams: 4',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('reads zero when the caller may not see the count', () => {
+    // Arrange
+    mockSummary.mockReturnValue(
+      loaded({ unhealthyCrossTeamDependencyCount: undefined }),
+    )
+
+    // Act
+    render(<CrossTeamDependenciesTile />)
+
+    // Assert
+    expect(
+      screen.getByRole('button', {
+        name: 'Unhealthy dependencies across your teams of teams: 0',
       }),
     ).toBeInTheDocument()
   })

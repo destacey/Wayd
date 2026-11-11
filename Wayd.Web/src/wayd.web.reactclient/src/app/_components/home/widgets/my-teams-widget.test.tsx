@@ -15,6 +15,10 @@ vi.mock('../use-home-context', () => ({
   useHomeContext: () => ({ context: mockHome.context, isLoading: false }),
 }))
 
+vi.mock('@/src/components/contexts/auth', () => ({
+  default: () => ({ hasPermissionClaim: () => true }),
+}))
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }))
@@ -51,7 +55,7 @@ const team = (
 })
 
 const loaded = (summary: Partial<MyTeamsSummaryResponse>) => ({
-  data: { teams: [], dependenciesAtRiskCount: 0, ...summary },
+  data: { teams: [], teamsOfTeams: [], dependenciesAtRiskCount: 0, ...summary },
   isLoading: false,
   isError: false,
 })
@@ -232,5 +236,91 @@ describe('MyTeamsWidget', () => {
 
     // Assert
     expect(screen.getByText('Could not load your teams.')).toBeInTheDocument()
+  })
+})
+
+describe('MyTeamsWidget teams of teams', () => {
+  beforeEach(() => {
+    mockHome.context = homeContext({
+      teams: { teamCount: 1, teamOfTeamsCount: 1 },
+    })
+  })
+
+  it('puts the rollup card before the team cards, and says which team of teams a team is part of', () => {
+    // Arrange
+    mockSummary.mockReturnValue(
+      loaded({
+        teams: [
+          team('pay', {
+            partOf: {
+              id: 'art',
+              key: 3,
+              name: 'Release Train',
+              code: 'ART',
+              type: 'Team of Teams',
+            },
+          }),
+        ],
+        teamsOfTeams: [
+          {
+            team: {
+              id: 'art',
+              key: 3,
+              name: 'Release Train',
+              code: 'ART',
+              type: 'Team of Teams',
+            },
+            scrumTeamCount: 0,
+            kanbanTeamCount: 0,
+            rows: [],
+          },
+        ],
+      }),
+    )
+
+    // Act
+    render(<MyTeamsWidget title="My teams" />)
+
+    // Assert
+    const names = screen
+      .getAllByRole('link')
+      .map((link) => link.textContent)
+      .filter((name) => name === 'Release Train' || name === 'Team pay')
+    expect(names).toEqual(['Release Train', 'Team pay', 'Release Train'])
+    expect(screen.getByText(/Part of/)).toHaveTextContent(
+      'Part of Release Train',
+    )
+  })
+
+  it('shows the rollup to a member of a team of teams only', () => {
+    // Arrange
+    mockHome.context = homeContext({ teams: { teamOfTeamsCount: 1 } })
+    mockSummary.mockReturnValue(
+      loaded({
+        teamsOfTeams: [
+          {
+            team: {
+              id: 'art',
+              key: 3,
+              name: 'Release Train',
+              code: 'ART',
+              type: 'Team of Teams',
+            },
+            scrumTeamCount: 0,
+            kanbanTeamCount: 0,
+            rows: [],
+          },
+        ],
+      }),
+    )
+
+    // Act
+    render(<MyTeamsWidget title="My teams" />)
+
+    // Assert
+    expect(
+      screen.getByRole('link', { name: 'Release Train' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/not a member of a team/)).not.toBeInTheDocument()
   })
 })

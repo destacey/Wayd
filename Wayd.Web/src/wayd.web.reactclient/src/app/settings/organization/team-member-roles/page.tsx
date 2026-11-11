@@ -21,7 +21,7 @@ import {
   ControlItemsMenu,
   ControlItemSwitch,
 } from '@/src/components/common/control-items-menu'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError } from '@/src/utils'
 import CreateTeamMemberRoleForm from './_components/create-team-member-role-form'

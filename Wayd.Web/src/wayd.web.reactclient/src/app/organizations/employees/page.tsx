@@ -3,7 +3,7 @@
 import PageTitle from '@/src/components/common/page-title'
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import { useEffect, useState, useMemo } from 'react'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'

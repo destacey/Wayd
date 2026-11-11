@@ -8,7 +8,7 @@ import {
 import { useTestCommunicationConnectionMutation } from '@/src/store/features/app-integration/connections-api'
 import { toApiError } from '@/src/utils'
 import { Collapse } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { useEffect, useMemo } from 'react'
 import {
   DetailEntry,

@@ -16,7 +16,7 @@ import {
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useMessage } from '@/src/components/contexts/messaging'
 import useAuth from '@/src/components/contexts/auth'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 
 const { Text } = Typography
 

@@ -8,7 +8,7 @@ import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/e
 import { Button, Flex, Segmented, Select, Skeleton, theme } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
 import { EmployeeSelect } from '@/src/components/common/organizations'
-import { BaseOptionType } from 'antd/es/select'
+import type { BaseOptionType } from 'antd/es/select'
 import { FC, RefObject } from 'react'
 import { LifecycleCategory } from '@/src/components/types'
 import { ProjectMemberRole, ProjectStatus } from '@/src/services/wayd-api'

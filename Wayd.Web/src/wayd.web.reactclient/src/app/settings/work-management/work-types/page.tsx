@@ -15,7 +15,7 @@ import { useGetWorkTypesQuery } from '@/src/store/features/work-management/work-
 import useAuth from '@/src/components/contexts/auth'
 import EditWorkTypeForm from './_components/edit-work-type-form'
 import Link from 'next/link'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import {
   ControlItemsMenu,
   ControlItemSwitch,

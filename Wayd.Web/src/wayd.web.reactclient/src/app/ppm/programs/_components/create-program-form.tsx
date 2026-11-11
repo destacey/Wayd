@@ -10,10 +10,10 @@ import { useGetPortfolioOptionsQuery } from '@/src/store/features/ppm/portfolios
 import { useCreateProgramMutation } from '@/src/store/features/ppm/programs-api'
 import { useGetStrategicThemeOptionsQuery } from '@/src/store/features/strategic-management/strategic-themes-api'
 import { toFormErrors, rangeErrorsOn, toApiError } from '@/src/utils'
-import { DatePicker, Form, Modal, Select } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
+import { DatePicker, Form, Input, Modal, Select } from 'antd'
 import dayjs from 'dayjs'
 
+const { TextArea } = Input
 const { Item } = Form
 const { RangePicker } = DatePicker
 

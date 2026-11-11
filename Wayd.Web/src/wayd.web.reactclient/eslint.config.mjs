@@ -27,6 +27,16 @@ const restrictedAntdList = {
     'antd 6 deprecated List. Use WaydList (@/src/components/common/wayd-list). Form.List is unaffected.',
 }
 
+// antd hands form-wide settings (Form `disabled` and `size`, ConfigProvider) to its components through
+// React contexts. A deep path can load a second copy of those contexts, and a component imported that
+// way ignores the form around it. A type has no runtime module, so `import type` stays allowed.
+const restrictedAntdDeepImports = {
+  regex: '^antd/(es|lib)(/|$)',
+  allowTypeImports: true,
+  message:
+    "Import the component from 'antd' (const { TextArea } = Input). A deep path can load a second copy of antd's contexts, so the component ignores <Form disabled>, size and ConfigProvider. Only `import type` may use a deep path.",
+}
+
 /**
  * Tables written before the WaydGrid rule was enforced. Migrate a file to WaydGrid and remove it here;
  * never add one.
@@ -75,12 +85,13 @@ const eslintConfig = [
     rules: { 'react-compiler/react-compiler': 'warn' },
   },
   {
+    // A later block replaces these options whole, so each one repeats every restriction it keeps.
     rules: {
       'no-restricted-imports': [
         'error',
         {
           paths: [restrictedAntdTable, restrictedAntdList],
-          patterns: [restrictedAntdTableTypes],
+          patterns: [restrictedAntdTableTypes, restrictedAntdDeepImports],
         },
       ],
     },
@@ -88,7 +99,13 @@ const eslintConfig = [
   {
     files: legacyAntdTableFiles,
     rules: {
-      'no-restricted-imports': ['error', { paths: [restrictedAntdList] }],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [restrictedAntdList],
+          patterns: [restrictedAntdDeepImports],
+        },
+      ],
     },
   },
   {
@@ -99,7 +116,7 @@ const eslintConfig = [
         'error',
         {
           paths: [restrictedAntdTable],
-          patterns: [restrictedAntdTableTypes],
+          patterns: [restrictedAntdTableTypes, restrictedAntdDeepImports],
         },
       ],
     },

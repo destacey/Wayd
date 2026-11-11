@@ -4,7 +4,7 @@ import {
   AzureDevOpsConnectionDetailsDto,
   ConnectionDetailsDto,
 } from '@/src/services/wayd-api'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { useSyncAzdoConnectionOrganizationMutation } from '@/src/store/features/app-integration/azdo-integration-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError, type ApiError } from '@/src/utils'

@@ -2,7 +2,7 @@
 
 import { ConnectionDetailsDto } from '@/src/services/wayd-api'
 import { ConnectorType } from '@/src/types/connectors'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { ComponentType, ReactNode } from 'react'
 import { azureDevOpsDetailEntry } from '../azure-devops'
 import { azureOpenAIDetailEntry } from '../azure-openai'

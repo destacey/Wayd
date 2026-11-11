@@ -10,7 +10,7 @@ import {
   ProductTagOptionDto,
 } from '@/src/services/wayd-api'
 import { Button } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useMemo, useState } from 'react'
 import AddProductTagForm from './add-product-tag-form'

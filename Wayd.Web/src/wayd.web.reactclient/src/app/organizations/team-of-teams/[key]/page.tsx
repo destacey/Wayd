@@ -44,7 +44,7 @@ import TeamFacts from '@/src/app/organizations/teams/[key]/_components/team-fact
 import { CreateTeamMembershipForm } from '@/src/app/organizations/_components'
 import { InactiveTag, PageActions } from '@/src/components/common'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import DeactivateTeamOfTeamsForm from '@/src/app/organizations/_components/deactivate-team-of-teams-form'
 import TeamOfTeamsOperatingModelsGrid from './_components/team-of-teams-operating-models-grid'
 import SetTeamOfTeamsOperatingModelForm from './_components/set-team-of-teams-operating-model-form'

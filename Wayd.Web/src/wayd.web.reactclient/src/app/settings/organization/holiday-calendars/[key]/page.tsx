@@ -20,7 +20,7 @@ import {
 } from '@/src/store/features/organization/holiday-calendars-api'
 import { isApiError } from '@/src/utils'
 import { Button, Flex, Tag } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import DeleteHolidayCalendarForm from '../_components/delete-holiday-calendar-form'

@@ -12,7 +12,7 @@ import { WorkProcessListDto } from '@/src/services/wayd-api'
 import { useGetWorkProcessesQuery } from '@/src/store/features/work-management/work-process-api'
 import { setIncludeInactive } from '@/src/store/features/work-management/work-process-slice'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'
 import { useEffect, useMemo } from 'react'
 

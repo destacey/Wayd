@@ -64,6 +64,8 @@ The grid has its own guide: [WaydGrid](./wayd-grid.mdx). If a table needs someth
 
 Files written before the rule existed are listed in `legacyAntdTableFiles` in the same config. That list only shrinks: migrate a file to `WaydGrid` and remove it from the list. Never add a file to it.
 
+Lint also rejects a component imported from inside antd (`antd/es/input/TextArea`, `antd/lib/statistic/Number`). Import it from `antd` — `const { TextArea } = Input` — because antd passes form-wide settings to its components through React contexts, and a deep path can load a second copy of them: the component then ignores `<Form disabled>`, `size` and `ConfigProvider`. Under Vitest it always does, because the suites load `antd` as one pre-bundled module and a deep path is a separate one; in the Next.js bundle an `antd/lib` path is the CommonJS build and can be a separate copy too. A type has no runtime module, so `import type` from a deep path is allowed; where `antd` exports the type, import it from there.
+
 When a rule on this page can be checked by a tool, add it to lint. A rule in lint reaches every developer and every agent, whichever editor or tool they use; a rule only in prose reaches the ones who read it.
 
 ## Library reference

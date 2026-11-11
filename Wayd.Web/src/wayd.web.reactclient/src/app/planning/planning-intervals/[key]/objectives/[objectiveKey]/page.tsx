@@ -30,7 +30,7 @@ import {
   useActivityLog,
   type ActivityLogQueryArg,
 } from '@/src/components/common/activities'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, use, useState } from 'react'
 import PlanningIntervalObjectiveLoading from './loading'

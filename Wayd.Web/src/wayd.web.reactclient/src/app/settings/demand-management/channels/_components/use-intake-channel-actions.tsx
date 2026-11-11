@@ -2,7 +2,7 @@
 
 import useAuth from '@/src/components/contexts/auth'
 import { IntakeChannelDto } from '@/src/services/wayd-api'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { ReactNode, useState } from 'react'
 import ChangeIntakeChannelStateForm from './change-intake-channel-state-form'
 import IntakeChannelForm from './intake-channel-form'

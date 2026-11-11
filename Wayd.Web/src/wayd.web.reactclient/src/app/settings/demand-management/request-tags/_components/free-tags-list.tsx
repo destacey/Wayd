@@ -9,7 +9,7 @@ import { IntakeRequestTagListItemDto } from '@/src/services/wayd-api'
 import { useSearchIntakeRequestTagsQuery } from '@/src/store/features/demand-management/demand-management-api'
 import { Alert } from 'antd'
 
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { useState } from 'react'
 import DeleteFreeTagForm from './delete-free-tag-form'
 import EditFreeTagForm from './edit-free-tag-form'

@@ -1,4 +1,4 @@
-import { ItemType, MenuItemType } from 'antd/es/menu/interface'
+import type { ItemType, MenuItemType } from 'antd/es/menu/interface'
 import { firstSettingsRoute } from './use-settings-menu-items'
 
 /** A leaf item, as `filterAndTransformMenuItem` produces one. */

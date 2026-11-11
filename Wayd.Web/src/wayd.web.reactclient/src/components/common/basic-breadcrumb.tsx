@@ -1,5 +1,5 @@
 import { Breadcrumb, Typography } from 'antd'
-import {
+import type {
   BreadcrumbItemType,
   BreadcrumbSeparatorType,
   ItemType,

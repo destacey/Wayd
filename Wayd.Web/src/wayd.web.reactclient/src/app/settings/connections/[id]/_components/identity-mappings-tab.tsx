@@ -31,7 +31,7 @@ import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { isApiError, type ApiError } from '@/src/utils'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import styles from './identity-mappings-tab.module.css'
 
 const { Text } = Typography

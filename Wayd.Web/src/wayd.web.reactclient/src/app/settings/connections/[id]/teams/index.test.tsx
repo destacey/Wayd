@@ -1,6 +1,6 @@
 import type { Mock } from 'vitest'
 import { render, waitFor } from '@testing-library/react'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { teamsDetailEntry } from './index'
 
 const mockTest = vi.fn()

@@ -13,7 +13,7 @@ import {
 } from '@/src/store/features/product-management/product-tags-api'
 import { FreeTagsHeading } from '@/src/components/common/tags'
 import { Alert, Button, Typography } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { useState } from 'react'
 import DeleteFreeProductTagForm from './delete-free-product-tag-form'
 import EditFreeProductTagForm from './edit-free-product-tag-form'

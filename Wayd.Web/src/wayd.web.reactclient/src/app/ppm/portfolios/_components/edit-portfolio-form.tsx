@@ -12,7 +12,7 @@ import {
 } from '@/src/store/features/ppm/portfolios-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
-import { BaseOptionType } from 'antd/es/select'
+import type { BaseOptionType } from 'antd/es/select'
 import { useEffect } from 'react'
 
 const { Item } = Form

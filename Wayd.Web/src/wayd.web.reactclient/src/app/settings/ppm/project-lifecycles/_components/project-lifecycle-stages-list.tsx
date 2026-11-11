@@ -14,7 +14,7 @@ import {
   useReorderProjectLifecycleStagesMutation,
 } from '@/src/store/features/ppm/project-lifecycles-api'
 import { App, Button } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useMemo, useState } from 'react'
 import AddProjectLifecycleStageForm from './add-project-lifecycle-stage-form'

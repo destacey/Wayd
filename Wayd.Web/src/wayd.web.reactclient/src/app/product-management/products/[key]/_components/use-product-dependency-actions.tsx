@@ -2,7 +2,7 @@
 
 import useAuth from '@/src/components/contexts/auth'
 import { ProductDependencyDto } from '@/src/services/wayd-api'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { ReactNode, useState } from 'react'
 import ChangeProductDependencyTermsForm from '../../_components/change-product-dependency-terms-form'
 import EditProductDependencyForm from '../../_components/edit-product-dependency-form'

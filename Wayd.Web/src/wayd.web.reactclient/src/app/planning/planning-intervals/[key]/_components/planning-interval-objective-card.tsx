@@ -19,7 +19,7 @@ import { CSSProperties, HTMLAttributes, ReactNode, useState } from 'react'
 import { MoreOutlined } from '@ant-design/icons'
 import PiObjectiveHealthCheckTag from '@/src/app/planning/planning-intervals/_components/pi-objective-health-check-tag'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import {
   CreatePlanningIntervalObjectiveHealthCheckForm,
   EditPlanningIntervalObjectiveForm,

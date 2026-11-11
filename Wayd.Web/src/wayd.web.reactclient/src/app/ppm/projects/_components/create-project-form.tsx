@@ -37,10 +37,10 @@ import {
   Timeline,
   Typography,
 } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
 import dayjs from 'dayjs'
 import { useEffect } from 'react'
 
+const { TextArea } = Input
 const { Item } = Form
 const { RangePicker } = DatePicker
 const { Text } = Typography

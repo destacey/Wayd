@@ -1,6 +1,6 @@
 'use client'
 
-import { ItemType, MenuItemType } from 'antd/es/menu/interface'
+import type { ItemType, MenuItemType } from 'antd/es/menu/interface'
 import useAuth from '@/src/components/contexts/auth'
 import { useFeatureFlag } from '@/src/hooks'
 import { useGetImportDefinitionsQuery } from '@/src/store/features/admin/imports-api'

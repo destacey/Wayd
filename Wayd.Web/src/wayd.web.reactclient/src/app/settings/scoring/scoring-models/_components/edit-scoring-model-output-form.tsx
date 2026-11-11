@@ -8,10 +8,10 @@ import {
 import { useUpdateScoringModelOutputMutation } from '@/src/store/features/scoring/scoring-models-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Checkbox, Form, Input, Modal, Typography } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
 import { useEffect } from 'react'
 import { useModalForm } from '@/src/hooks'
 
+const { TextArea } = Input
 const { Item } = Form
 const { Text } = Typography
 

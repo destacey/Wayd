@@ -11,7 +11,7 @@ import Link from 'next/link'
 import { ConnectionListDto } from '@/src/services/wayd-api'
 import { getCapabilityNames } from '@/src/types/connectors'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { useGetConnectionsQuery } from '@/src/store/features/app-integration/connections-api'
 import {
   ControlItemsMenu,

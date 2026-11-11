@@ -19,7 +19,7 @@ import {
 } from '@/src/services/wayd-api'
 import { QueryTags } from '../query-tags'
 import { ppmActivityTag } from './ppm-activity-tags'
-import { BaseOptionType } from 'antd/es/select'
+import type { BaseOptionType } from 'antd/es/select'
 import { OptionModel } from '@/src/components/types'
 
 export const portfoliosApi = apiSlice.injectEndpoints({

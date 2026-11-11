@@ -14,11 +14,11 @@ import {
   rangeErrorsOn,
   toApiError,
 } from '@/src/utils'
-import { DatePicker, Form, Modal, Select } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
+import { DatePicker, Form, Input, Modal, Select } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect } from 'react'
 
+const { TextArea } = Input
 const { Item } = Form
 const { RangePicker } = DatePicker
 

@@ -1,4 +1,4 @@
-import { ItemType, MenuItemType } from 'antd/es/menu/interface'
+import type { ItemType, MenuItemType } from 'antd/es/menu/interface'
 import { settingsLocation } from './use-settings-menu-items'
 
 /** A leaf item, whose label is a `<Link>` wrapping its text. */

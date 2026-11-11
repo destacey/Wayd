@@ -26,7 +26,7 @@ import {
   ResetPasswordForm,
   useUserAccountActions,
 } from './_components'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 
 const UsersListPage = () => {
   useDocumentTitle('Users')

@@ -4,7 +4,7 @@ import { Divider, Image, Typography } from 'antd'
 import useTheme from '../../contexts/theme'
 import React from 'react'
 import { Components } from 'react-markdown'
-import { LinkProps } from 'antd/es/typography/Link'
+import type { LinkProps } from 'antd/es/typography/Link'
 import {
   MarkdownBlockquote,
   MarkdownBlockquoteProps,

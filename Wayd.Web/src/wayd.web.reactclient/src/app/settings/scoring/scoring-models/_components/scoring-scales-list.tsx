@@ -16,7 +16,7 @@ import {
   useReorderScoringScaleLevelsMutation,
 } from '@/src/store/features/scoring/scoring-models-api'
 import { App, Button, Card, Empty, Flex, Space, Typography } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useMemo, useState } from 'react'
 import AddScoringScaleForm from './add-scoring-scale-form'

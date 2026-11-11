@@ -15,7 +15,7 @@ import { useEffect } from 'react'
 import { UpdatePlanningIntervalObjectiveRequest } from '@/src/services/wayd-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import dayjs, { type Dayjs } from 'dayjs'
-import { RangePickerProps } from 'antd/es/date-picker'
+import type { RangePickerProps } from 'antd/es/date-picker'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {

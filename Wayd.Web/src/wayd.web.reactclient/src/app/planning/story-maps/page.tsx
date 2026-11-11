@@ -13,7 +13,7 @@ import useAuth from '@/src/components/contexts/auth'
 import { Button } from 'antd'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { ControlItemSwitch } from '@/src/components/common/control-items-menu'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { StoryMapListDto } from '@/src/services/wayd-api'
 import { useGetStoryMapsQuery } from '@/src/store/features/planning/story-maps-api'
 

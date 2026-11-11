@@ -1,7 +1,7 @@
 'use client'
 
 import { Input, Menu } from 'antd'
-import { ItemType, MenuItemType } from 'antd/es/menu/interface'
+import type { ItemType, MenuItemType } from 'antd/es/menu/interface'
 import { usePathname } from 'next/navigation'
 import { useMemo, useState } from 'react'
 import { findMenuKeysByPathname } from '@/src/app/_components/menu/menu-helper'

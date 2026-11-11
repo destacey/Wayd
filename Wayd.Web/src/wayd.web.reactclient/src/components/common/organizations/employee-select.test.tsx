@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import EmployeeSelect from './employee-select'
-import { BaseOptionType } from 'antd/es/select'
+import type { BaseOptionType } from 'antd/es/select'
 
 const mockEmployees: BaseOptionType[] = [
   { value: '1', label: 'John Doe' },

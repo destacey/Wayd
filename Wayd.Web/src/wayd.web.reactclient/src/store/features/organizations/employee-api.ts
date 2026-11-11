@@ -1,4 +1,4 @@
-import { BaseOptionType } from 'antd/es/select'
+import type { BaseOptionType } from 'antd/es/select'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import { getEmployeesClient } from '@/src/services/clients'

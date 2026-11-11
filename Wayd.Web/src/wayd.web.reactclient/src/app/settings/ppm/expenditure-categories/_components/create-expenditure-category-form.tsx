@@ -5,9 +5,9 @@ import { CreateExpenditureCategoryRequest } from '@/src/services/wayd-api'
 import { useCreateExpenditureCategoryMutation } from '@/src/store/features/ppm/expenditure-categories-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal, Switch } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
 import { useModalForm } from '@/src/hooks'
 
+const { TextArea } = Input
 const { Item } = Form
 
 export interface CreateExpenditureCategoryFormProps {

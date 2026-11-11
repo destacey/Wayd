@@ -21,7 +21,7 @@ import {
   PersonalAccessTokenCreatedModal,
 } from './_components'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 
 const { Text } = Typography
 

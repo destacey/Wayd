@@ -8,7 +8,7 @@ import {
   createMultiValueSetFilter,
 } from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { Flex, Tag, Tooltip } from 'antd'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import Link from 'next/link'

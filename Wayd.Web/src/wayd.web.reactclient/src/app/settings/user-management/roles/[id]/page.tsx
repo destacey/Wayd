@@ -10,7 +10,7 @@ import {
   useGetRoleUsersCountQuery,
 } from '@/src/store/features/user-management/roles-api'
 import { Tag } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter } from 'next/navigation'
 import { use, useState } from 'react'
 import {

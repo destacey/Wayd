@@ -21,7 +21,7 @@ import { MenuProps, Tag } from 'antd'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import StrategicThemeDetailsLoading from './loading'
 import { use, useEffect, useState } from 'react'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import {
   ChangeStrategicThemeStateForm,
   DeleteStrategicThemeForm,

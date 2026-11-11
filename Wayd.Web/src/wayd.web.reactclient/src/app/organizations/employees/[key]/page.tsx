@@ -13,7 +13,7 @@ import { useGetEmployeeQuery } from '@/src/store/features/organizations/employee
 import EmployeeDetailsLoading from './loading'
 import { useMessage } from '@/src/components/contexts/messaging'
 import useAuth from '@/src/components/contexts/auth'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import DeleteEmployeeForm from '@/src/app/organizations/employees/_components/delete-employee-form'
 import EmployeeOverview from './_components/employee-overview'
 import EmployeeFacts from './_components/employee-facts'

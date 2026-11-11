@@ -5,8 +5,8 @@ import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
 import { useGetPortfoliosQuery } from '@/src/store/features/ppm/portfolios-api'
 import { AppstoreOutlined, MenuOutlined } from '@ant-design/icons'
-import { Button } from 'antd'
-import Segmented, { SegmentedLabeledOption } from 'antd/es/segmented'
+import { Button, Segmented } from 'antd'
+import type { SegmentedLabeledOption } from 'antd/es/segmented'
 import { FC, useEffect, useState } from 'react'
 import {
   CreatePortfolioForm,

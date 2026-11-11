@@ -9,7 +9,7 @@ import { CalendarDate } from '@/src/utils/calendar-date'
 import { Badge } from 'antd'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
 import { FC } from 'react'
-import { PresetStatusColorType } from 'antd/es/_util/colors'
+import type { PresetStatusColorType } from 'antd/es/_util/colors'
 
 const commitmentHealthTooltip = (
   <div>

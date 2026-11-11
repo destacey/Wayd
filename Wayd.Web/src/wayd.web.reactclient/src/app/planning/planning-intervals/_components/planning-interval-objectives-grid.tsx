@@ -11,7 +11,7 @@ import {
 } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { Progress } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import useAuth from '@/src/components/contexts/auth'
 import EditPlanningIntervalObjectiveForm from '@/src/app/planning/planning-intervals/_components/edit-planning-interval-objective-form'
 import CreateHealthCheckForm from './create-pi-objective-health-check-form'

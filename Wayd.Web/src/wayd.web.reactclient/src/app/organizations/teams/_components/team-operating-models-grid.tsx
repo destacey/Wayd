@@ -16,7 +16,7 @@ import {
   formatWorkingDays,
 } from '@/src/components/common/scheduling'
 import { Tag } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import EditTeamOperatingModelForm from './edit-team-operating-model-form'
 import DeleteOperatingModelForm, {
   findReinstatedModel,

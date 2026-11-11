@@ -2,7 +2,7 @@
 
 import { createContext, FC, ReactNode, useContext } from 'react'
 import { message } from 'antd'
-import { MessageInstance } from 'antd/es/message/interface'
+import type { MessageInstance } from 'antd/es/message/interface'
 
 const MessageContext = createContext<MessageInstance | null>(null)
 

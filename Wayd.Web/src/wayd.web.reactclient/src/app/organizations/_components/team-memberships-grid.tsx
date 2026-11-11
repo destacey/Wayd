@@ -8,7 +8,7 @@ import {
 } from '@/src/components/common/wayd-grid'
 import { TeamMembershipDto } from '@/src/services/wayd-api'
 import useAuth from '@/src/components/contexts/auth'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import EditTeamMembershipForm from './edit-team-membership-form'
 import { TeamTypeName } from '../types'
 import DeleteTeamMembershipForm from './delete-team-membership-form'

@@ -26,7 +26,7 @@ import { useGetReleasePackagesQuery } from '@/src/store/features/product-managem
 import { DeploymentsGrid } from '../../deployments/_components'
 import { ReleasePackagesGrid } from '../../release-packages/_components'
 import { Button, MenuProps, Result } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
+import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useEffect, useState } from 'react'
 import CorrectVersionDatesForm from '../_components/correct-version-dates-form'

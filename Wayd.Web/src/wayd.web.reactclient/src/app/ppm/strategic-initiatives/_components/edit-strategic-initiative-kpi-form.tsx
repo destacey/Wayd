@@ -14,8 +14,9 @@ import {
 } from '@/src/store/features/ppm/strategic-initiatives-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, InputNumber, Modal, Select } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
 import { useEffect } from 'react'
+
+const { TextArea } = Input
 
 export interface EditStrategicInitiativeKpiFormProps {
   strategicInitiativeId: string

@@ -231,7 +231,7 @@ public sealed class IntakeRequestOutcomeImportDefinitionTests
     }
 
     [Fact]
-    public void Validate_AScopeRowWithoutANote_IsRefused()
+    public void Validate_AScopeRowWithNeitherANoteNorDeliverables_IsRefused()
     {
         // Arrange
         var validator = new ImportIntakeRequestOutcomeDtoValidator();
@@ -242,5 +242,18 @@ public sealed class IntakeRequestOutcomeImportDefinitionTests
         // Assert
         result.IsValid.Should().BeFalse();
         result.Errors.Should().ContainSingle(e => e.PropertyName == nameof(ImportIntakeRequestOutcomeDto.Note));
+    }
+
+    [Fact]
+    public void Validate_AScopeRowWithDeliverablesAndNoNote_IsAccepted()
+    {
+        // Arrange
+        var validator = new ImportIntakeRequestOutcomeDtoValidator();
+
+        // Act
+        var result = validator.Validate(ScopeRow(Guid.NewGuid(), Guid.NewGuid()) with { Note = null });
+
+        // Assert
+        result.IsValid.Should().BeTrue();
     }
 }

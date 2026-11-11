@@ -35,7 +35,7 @@ public sealed class ImportIntakeRequestOutcomeRequest
     /// <summary>The work item, by id, for <c>WorkItem</c>; blank for the project kinds.</summary>
     public Guid? WorkItemId { get; set; }
 
-    /// <summary>What the outcome covers. Required for <c>ExistingProjectScope</c>, saying what the project absorbed. Max 1024 chars.</summary>
+    /// <summary>What the outcome covers. Required for <c>ExistingProjectScope</c> with no <c>DeliverableIds</c>, saying what the project absorbed. Max 1024 chars.</summary>
     public string? Note { get; set; }
 
     /// <summary>

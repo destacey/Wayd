@@ -25,13 +25,15 @@ public sealed record AddIntakeRequestOutcomeRequest
     public Guid? WorkItemId { get; set; }
 
     /// <summary>
-    /// What the outcome covers. Required for existing project scope, where it says what the project absorbed.
+    /// What the outcome covers. For existing project scope it says what the project absorbed, and is required
+    /// when the outcome names no deliverables.
     /// </summary>
     public string? Note { get; set; }
 
     /// <summary>
     /// For `ExistingProjectScope` only, deliverables of the project that meet the request; the request counts as
-    /// met once every one is Accepted. Leave it out for the other kinds. Mapping them does not change the project.
+    /// met once every one is Accepted. The preferred way to say what the project absorbed; without them a note is
+    /// required. Leave it out for the other kinds. Mapping them does not change the project.
     /// </summary>
     public List<Guid>? DeliverableIds { get; set; }
 }

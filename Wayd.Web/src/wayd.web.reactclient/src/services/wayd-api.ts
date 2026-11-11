@@ -63113,10 +63113,12 @@ does not change it. */
     projectId?: string | undefined;
     /** The work item, for `WorkItem`; leave it out for the project kinds. Recording the outcome does not change it. */
     workItemId?: string | undefined;
-    /** What the outcome covers. Required for existing project scope, where it says what the project absorbed. */
+    /** What the outcome covers. For existing project scope it says what the project absorbed, and is required
+when the outcome names no deliverables. */
     note?: string | undefined;
     /** For `ExistingProjectScope` only, deliverables of the project that meet the request; the request counts as
-met once every one is Accepted. Leave it out for the other kinds. Mapping them does not change the project. */
+met once every one is Accepted. The preferred way to say what the project absorbed; without them a note is
+required. Leave it out for the other kinds. Mapping them does not change the project. */
     deliverableIds?: string[] | undefined;
 }
 
@@ -66042,7 +66044,7 @@ column itself must be in the file. */
     projectId?: string | undefined;
     /** The work item, by id, for `WorkItem`; blank for the project kinds. */
     workItemId?: string | undefined;
-    /** What the outcome covers. Required for `ExistingProjectScope`, saying what the project absorbed. Max 1024 chars. */
+    /** What the outcome covers. Required for `ExistingProjectScope` with no `DeliverableIds`, saying what the project absorbed. Max 1024 chars. */
     note?: string | undefined;
     /** For `ExistingProjectScope` only: semicolon-separated ids of the project's deliverables that meet the
 request. The request counts as met once every one is Accepted. Blank maps none. */

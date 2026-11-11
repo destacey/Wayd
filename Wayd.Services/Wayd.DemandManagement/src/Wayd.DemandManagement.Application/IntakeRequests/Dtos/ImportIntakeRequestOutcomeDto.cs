@@ -13,7 +13,7 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 /// <param name="Kind">What the request became.</param>
 /// <param name="ProjectId">The project, for the project kinds; null for a work item.</param>
 /// <param name="WorkItemId">The work item, for a work item outcome; null for the project kinds.</param>
-/// <param name="Note">What the outcome covers; required for existing project scope.</param>
+/// <param name="Note">What the outcome covers; required for existing project scope that names no deliverables.</param>
 /// <param name="DeliverableIds">For existing project scope, deliverables of the project that meet the request.</param>
 /// <param name="AddedById">Who recorded the outcome; null for the request's assignee.</param>
 /// <param name="AddedOn">When it was recorded; null for the moment it is imported.</param>
@@ -49,8 +49,9 @@ public sealed class ImportIntakeRequestOutcomeDtoValidator : CustomValidator<Imp
         });
         RuleFor(o => o.Note)
             .NotEmpty()
-                .When(o => o.Kind == IntakeRequestOutcomeKind.ExistingProjectScope, ApplyConditionTo.CurrentValidator)
-                .WithMessage("An ExistingProjectScope outcome needs a Note saying what the project absorbed.")
+                .When(o => o.Kind == IntakeRequestOutcomeKind.ExistingProjectScope && o.DeliverableIds.Count == 0,
+                    ApplyConditionTo.CurrentValidator)
+                .WithMessage("An ExistingProjectScope outcome needs DeliverableIds or a Note saying what the project absorbed.")
             .MaximumLength(1024);
         RuleFor(o => o.DeliverableIds)
             .Must(ids => ids.Count == 0)

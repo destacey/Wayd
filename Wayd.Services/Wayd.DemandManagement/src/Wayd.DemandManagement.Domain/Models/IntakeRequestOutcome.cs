@@ -43,8 +43,9 @@ public sealed class IntakeRequestOutcome
     public Guid TargetId { get; private init; }
 
     /// <summary>
-    /// What the outcome covers, in the agent's words. Always present for existing project scope, where it
-    /// says what the project absorbed, since the project's own definition is not changed.
+    /// What the outcome covers, in the agent's words. For existing project scope it says what the project
+    /// absorbed, since the project's own definition is not changed, and is always present when the outcome maps
+    /// no deliverables.
     /// </summary>
     public string? Note { get; private init; }
 

@@ -21,7 +21,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     Body = table.Column<string>(type: "nvarchar(max)", maxLength: 4096, nullable: false),
                     AuthorEmployeeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     RecordedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IncidentId1 = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
                     SystemCreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
                     SystemLastModified = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -37,12 +36,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         principalTable: "Incidents",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_IncidentTimelineNotes_Incidents_IncidentId1",
-                        column: x => x.IncidentId1,
-                        principalSchema: "ProductManagement",
-                        principalTable: "Incidents",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateIndex(
@@ -50,12 +43,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 schema: "ProductManagement",
                 table: "IncidentTimelineNotes",
                 columns: new[] { "IncidentId", "RecordedAt" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_IncidentTimelineNotes_IncidentId1",
-                schema: "ProductManagement",
-                table: "IncidentTimelineNotes",
-                column: "IncidentId1");
         }
 
         /// <inheritdoc />

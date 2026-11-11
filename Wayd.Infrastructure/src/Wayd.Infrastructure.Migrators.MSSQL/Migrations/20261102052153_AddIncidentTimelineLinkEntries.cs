@@ -23,7 +23,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     Label = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
                     ActorEmployeeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     RecordedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    IncidentId1 = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    TargetId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    FromTargetId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     SystemCreated = table.Column<DateTime>(type: "datetime2", nullable: false),
                     SystemCreatedBy = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: true),
                     SystemLastModified = table.Column<DateTime>(type: "datetime2", nullable: false),
@@ -39,12 +40,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         principalTable: "Incidents",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_IncidentTimelineLinkEntries_Incidents_IncidentId1",
-                        column: x => x.IncidentId1,
-                        principalSchema: "ProductManagement",
-                        principalTable: "Incidents",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateIndex(
@@ -52,12 +47,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                 schema: "ProductManagement",
                 table: "IncidentTimelineLinkEntries",
                 columns: new[] { "IncidentId", "RecordedAt" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_IncidentTimelineLinkEntries_IncidentId1",
-                schema: "ProductManagement",
-                table: "IncidentTimelineLinkEntries",
-                column: "IncidentId1");
         }
 
         /// <inheritdoc />

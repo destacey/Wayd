@@ -159,6 +159,21 @@ export function usePokerSessionConnection(
           emitPresence()
         })
 
+        // A reconnect gets a new connection id and the server drops the old one from the group, so
+        // without re-joining the session looks live while receiving nothing. Refetch to catch up.
+        connection.onreconnected(() => {
+          if (cancelled) return
+          connection
+            .invoke('JoinSession', sessionId)
+            .then(invalidateSession)
+            .catch((error) => {
+              console.warn(
+                'Planning Poker rejoin after reconnect failed:',
+                error,
+              )
+            })
+        })
+
         await connection.start()
 
         if (cancelled) {

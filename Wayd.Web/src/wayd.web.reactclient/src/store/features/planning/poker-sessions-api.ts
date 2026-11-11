@@ -1,3 +1,4 @@
+import type { ThunkDispatch, UnknownAction } from '@reduxjs/toolkit'
 import { getPokerSessionsClient } from '@/src/services/clients'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
@@ -337,6 +338,50 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    focusPokerRound: builder.mutation<
+      void,
+      {
+        sessionId: string
+        sessionKey: number
+        /** The round to show followers, or undefined for the round in play. */
+        roundId: string | undefined
+      }
+    >({
+      queryFn: async ({ sessionId, roundId }) => {
+        try {
+          const data = await getPokerSessionsClient().focusRound(sessionId, {
+            roundId,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // The facilitator's own screen moves at once. The refetch that follows
+      // settles it against any older read of the session still in flight,
+      // which would otherwise put the previous round back.
+      onQueryStarted: async (
+        { sessionKey, roundId },
+        { dispatch, getState, queryFulfilled },
+      ) => {
+        const patches = setCachedFocusedRound(
+          dispatch,
+          getState(),
+          sessionKey,
+          roundId,
+        )
+        try {
+          await queryFulfilled
+        } catch {
+          patches.forEach((patch) => patch.undo())
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: QueryTags.PokerSessionRound, id: arg.sessionKey },
+      ],
+    }),
+
     getPokerSessionInvitedTeamMembers: builder.query<
       EmployeeNavigationDto[],
       { sessionId: string; teamId: string }
@@ -463,6 +508,39 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
   }),
 })
 
+type PokerSessionsApiState = Parameters<
+  typeof pokerSessionsApi.util.selectInvalidatedBy
+>[0]
+
+/**
+ * Writes the focused round into every cached copy of a session, so a screen
+ * following the facilitator moves without waiting for a refetch.
+ *
+ * @returns The patches made, each of which can be undone.
+ */
+export const setCachedFocusedRound = (
+  dispatch: ThunkDispatch<PokerSessionsApiState, unknown, UnknownAction>,
+  state: PokerSessionsApiState,
+  sessionKey: number,
+  roundId: string | undefined,
+): { undo: () => void }[] =>
+  pokerSessionsApi.util
+    .selectInvalidatedBy(state, [
+      { type: QueryTags.PokerSessionRound, id: sessionKey },
+    ])
+    .filter((entry) => entry.endpointName === 'getPokerSession')
+    .map((entry) =>
+      dispatch(
+        pokerSessionsApi.util.updateQueryData(
+          'getPokerSession',
+          entry.originalArgs,
+          (draft) => {
+            draft.focusedRoundId = roundId
+          },
+        ),
+      ),
+    )
+
 export const {
   useGetPokerSessionsQuery,
   useGetPokerSessionQuery,
@@ -479,6 +557,7 @@ export const {
   useWithdrawPokerVoteMutation,
   useUpdatePokerRoundLabelMutation,
   useUpdatePokerRoundDescriptionMutation,
+  useFocusPokerRoundMutation,
   useGetPokerSessionInvitedTeamMembersQuery,
   useSetPokerSessionVisibilityMutation,
   useSetPokerSessionFacilitatorsMutation,

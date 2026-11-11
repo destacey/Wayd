@@ -100,6 +100,14 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     public Instant? CompletedOn { get; private set; }
 
     /// <summary>
+    /// The round a facilitator last pointed the session at, which everyone following the facilitator is shown.
+    /// Null when no round is pointed at, where followers see the round in play. Cleared when that round's
+    /// estimate is accepted, when it is removed, and when the session completes. It is not a foreign key, so
+    /// a reader treats an id that matches none of <see cref="Rounds"/> as null.
+    /// </summary>
+    public Guid? FocusedRoundId { get; private set; }
+
+    /// <summary>
     /// The rounds in this poker session.
     /// </summary>
     public IReadOnlyCollection<PokerRound> Rounds => _rounds.AsReadOnly();
@@ -319,6 +327,7 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("Session can only be completed from Active status.");
 
         _rounds.RemoveAll(r => r.IsEmpty);
+        FocusedRoundId = null;
 
         Status = PokerSessionStatus.Completed;
         CompletedOn = timestamp;
@@ -368,6 +377,29 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
             return Result.Failure("Round not found.");
 
         _rounds.Remove(round);
+        if (FocusedRoundId == roundId)
+            FocusedRoundId = null;
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Point the session at a round, so everyone following the facilitator is shown it. Null points at no round,
+    /// returning followers to the round in play. The last facilitator to focus a round wins.
+    /// </summary>
+    public Result FocusRound(Guid? roundId, PokerSessionActor actor)
+    {
+        var canManage = EnsureCanManage(actor);
+        if (canManage.IsFailure)
+            return canManage;
+
+        if (Status != PokerSessionStatus.Active)
+            return Result.Failure("Cannot focus a round when the session is not active.");
+
+        if (roundId is not null && _rounds.All(r => r.Id != roundId))
+            return Result.Failure("Round not found.");
+
+        FocusedRoundId = roundId;
         return Result.Success();
     }
 
@@ -385,20 +417,26 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
 
     /// <summary>
     /// Set the consensus estimate for a round. The estimate must be a value on the session's scale version; a
-    /// card such as "?" is allowed, since a team settling on it is a real outcome.
+    /// card such as "?" is allowed, since a team settling on it is a real outcome. An estimated round stops
+    /// being the focused one, so everyone following the facilitator moves on to the round in play.
     /// </summary>
     /// <param name="estimationScaleVersion">The session's own scale version, which the estimate is checked against.</param>
     public Result<PokerRound> SetConsensus(Guid roundId, string estimate, EstimationScaleVersion estimationScaleVersion, PokerSessionActor actor)
     {
         EnsureSessionVersion(estimationScaleVersion);
 
-        return ChangeRound(roundId, actor, "Cannot set consensus when the session is not active.", round =>
+        var result = ChangeRound(roundId, actor, "Cannot set consensus when the session is not active.", round =>
         {
             var value = estimationScaleVersion.Find(estimate);
             return value is null
                 ? Result.Failure($"'{estimate}' is not a value on the session's estimation scale.")
                 : round.SetConsensus(value.Value);
         });
+
+        if (result.IsSuccess && FocusedRoundId == roundId)
+            FocusedRoundId = null;
+
+        return result;
     }
 
     /// <summary>

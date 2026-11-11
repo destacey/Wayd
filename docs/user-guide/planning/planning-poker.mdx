@@ -57,7 +57,7 @@ Joining needs an account linked to an employee. Without one you can watch an act
 
 The session page has a real-time, multi-column layout:
 
-**Presence row** — The people connected to the session. While the session is active, it also shows your **Voting** switch.
+**Presence row** — The people connected to the session. While the session is active, it also shows your **Voting** switch and, unless you facilitate the session, [**Follow facilitator**](#following-the-facilitator).
 
 **Center Column** — Changes based on round status:
 - **Lobby** (no rounds yet) — **Ready to estimate**, with a box for the first round's label and **Start**. Those who do not facilitate the session see **Waiting for the facilitator to start a round.**
@@ -77,6 +77,15 @@ The header shows a **Private** tag on a private session, and offers:
 - **Copy Invite Link** — while the session is active
 
 **Export CSV**, in the header once the session has a round with a label, a description or votes, downloads one row per such round (empty rounds are left out) with its number, label, description, status, consensus estimate, vote count and votes (each voter's name and card). It is available for active and completed sessions. Votes are written only for revealed or accepted rounds; a round still voting shows its vote count but not the votes, which are hidden until reveal.
+
+### Following the Facilitator
+
+While a session is active, the round a facilitator selects in the timeline is shown to everyone following them. **Follow facilitator**, in the presence row, is on when you open the session:
+
+- **On** — your screen moves to whichever round a facilitator selects. Until one is selected, and again once an estimate is accepted, you see the round in play: the first round still voting or revealed
+- **Off** — you stay on the round you are looking at and choose your own from the timeline. Selecting a round yourself turns it off; turn it back on to return to the facilitator's round
+
+Facilitators have no switch. The round one facilitator selects is shown to the other facilitators too, and the latest selection wins. Your choice lasts for the visit: opening the session again follows the facilitator. A completed session has no round selected for it, so everyone browses its rounds on their own.
 
 ### Round Workflow
 
@@ -98,6 +107,7 @@ stateDiagram-v2
 
 - Live participant presence indicators
 - Real-time vote, participant and voting updates via SignalR
+- Screens that [follow the facilitator](#following-the-facilitator) to the round they select
 - Copy invite link to share session
 
 ### Business Rules
@@ -109,7 +119,7 @@ stateDiagram-v2
 - A session stays on its version when the scale publishes a new one or is deactivated
 - Only active sessions can be completed. Completing a session deletes its empty rounds — those with no label, no description and no votes, such as the round started automatically after the last estimate was accepted
 - A session always has at least one facilitator. A facilitator can remove themselves while others remain
-- Only facilitators run a session: starting, revealing, re-voting and accepting rounds, editing it, changing its facilitators, visibility and invites, completing it and deleting it. The **Administer Poker Sessions** permission lets its holder do the same in every session, private ones included
+- Only facilitators run a session: starting, revealing, re-voting and accepting rounds, selecting the round shown to those following them, editing it, changing its facilitators, visibility and invites, completing it and deleting it. The **Administer Poker Sessions** permission lets its holder do the same in every session, private ones included
 - Only voting participants vote; a participant who is not voting must turn voting on first
 - Everything but creating a session needs only the **View Poker Sessions** permission; creating one needs **Create Poker Sessions** and an account linked to an employee, since the creator becomes its first facilitator. **Create Session** is not shown without both. See [Permissions](../settings/permissions.mdx#planning-poker-facilitators-and-invites)
 

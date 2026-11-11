@@ -1446,8 +1446,8 @@
         "tags": [
           "Me"
         ],
-        "summary": "Get a summary of each team you are a member of, for how that team works today.",
-        "description": "One entry per active team you are a member of (teams of teams are left out), by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health and its `openRiskCount`. A team with no operating model today has neither `sprint` nor `flow`. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount`. Returns 404 when your account is not linked to an employee.",
+        "summary": "Get a summary of each team and team of teams you are a member of, for how it works today.",
+        "description": "`teams` has one entry per active team you are a member of, by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health, its `openRiskCount`, and `partOf`, the team of teams it belongs to today. A team with no operating model today has neither `sprint` nor `flow`. `teamsOfTeams` has one rollup per active team of teams you are a member of directly (being on one of its teams does not count), by name: the planning interval running today with its objectives at risk, and one row per team or team of teams in it today, needing attention first. A Scrum row's `sprint` is a sprint started and left open past its end, or its running sprint's share done against the share its burn-down expects; a Kanban row's `flow` is its items in progress and when the oldest started; a nested team of teams counts the teams beneath it by status and takes the worst. Each row's `status` (OnTrack, Watch, NeedsAttention) is worked out here. Its `dependencies` are the open cross-team dependencies of every team beneath it, and its `risks` its own open risks and those of the teams beneath it. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount` and `risks`, View Planning Intervals for `planningInterval` and View Planning Interval Objectives for its at-risk count. Returns 404 when your account is not linked to an employee.",
         "operationId": "Me_GetTeamsSummary",
         "responses": {
           "200": {
@@ -30233,7 +30233,7 @@
           "PokerSessions"
         ],
         "summary": "Get poker session details using the Id or key.",
-        "description": "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
+        "description": "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
         "operationId": "PokerSessions_GetSession",
         "parameters": [
           {
@@ -30564,6 +30564,60 @@
             "x-position": 2
           }
         ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/focused-round": {
+      "put": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Point a poker session at a round.",
+        "description": "Sets the round everyone following the facilitator is shown on the session page, returned as the session's `focusedRoundId`. `roundId` is one of the session's rounds; an omitted or null `roundId` points at no round, returning followers to the round in play. The last facilitator to point the session wins. Accepting the round's estimate, removing the round and completing the session each clear it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
+        "operationId": "PokerSessions_FocusRound",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FocusPokerRoundRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
         "responses": {
           "204": {
             "description": "No Content"
@@ -55579,6 +55633,14 @@
         "additionalProperties": false,
         "description": "A request to point a scope at another workflow scheme and move the records whose workflow changes."
       },
+      "AttentionStatus": {
+        "enum": [
+          "OnTrack",
+          "Watch",
+          "NeedsAttention"
+        ],
+        "type": "string"
+      },
       "AuditDto": {
         "required": [
           "userId",
@@ -62603,6 +62665,18 @@
         ],
         "description": "An area of the app that feature flags are grouped under, with its name, description and display order."
       },
+      "FocusPokerRoundRequest": {
+        "type": "object",
+        "properties": {
+          "roundId": {
+            "type": "string",
+            "description": "The round to show everyone following the facilitator, or null to return them to the round in play.",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "FollowCountsDto": {
         "required": [
           "total",
@@ -69238,6 +69312,265 @@
         "additionalProperties": false,
         "description": "A Kanban team's flow: what it has in progress, and what it finished lately."
       },
+      "MyTeamOfTeamsDependenciesResponse": {
+        "required": [
+          "openCount",
+          "atRiskCount",
+          "unhealthyCount"
+        ],
+        "type": "object",
+        "properties": {
+          "openCount": {
+            "type": "integer",
+            "description": "The open cross-team dependencies.",
+            "format": "int32"
+          },
+          "atRiskCount": {
+            "type": "integer",
+            "description": "Those whose ends are both unplanned.",
+            "format": "int32"
+          },
+          "unhealthyCount": {
+            "type": "integer",
+            "description": "Those planned to finish after they are needed, or whose successor started first.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A team of teams' open cross-team dependencies, by planning health."
+      },
+      "MyTeamOfTeamsFlowResponse": {
+        "required": [
+          "inProgressCount"
+        ],
+        "type": "object",
+        "properties": {
+          "inProgressCount": {
+            "type": "integer",
+            "description": "Requirement-tier work items in an In Progress-category status now.",
+            "format": "int32"
+          },
+          "oldestInProgressSince": {
+            "type": "string",
+            "description": "When the item in progress longest started; null when nothing in progress has a start time.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "medianCycleTimeDays": {
+            "type": "number",
+            "description": "The team's median cycle time in days over the last 14 days, which the oldest item's age is weighed against;\nnull when it finished nothing in that time.",
+            "format": "double",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A Kanban team's work in progress, and whether it is getting stuck."
+      },
+      "MyTeamOfTeamsNestedResponse": {
+        "required": [
+          "teamCount",
+          "needsAttentionCount",
+          "watchCount"
+        ],
+        "type": "object",
+        "properties": {
+          "teamCount": {
+            "type": "integer",
+            "description": "How many teams are beneath it today, at any depth.",
+            "format": "int32"
+          },
+          "needsAttentionCount": {
+            "type": "integer",
+            "description": "How many of them need attention.",
+            "format": "int32"
+          },
+          "watchCount": {
+            "type": "integer",
+            "description": "How many of them are on watch.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The teams beneath a nested team of teams, counted by status."
+      },
+      "MyTeamOfTeamsPlanningIntervalResponse": {
+        "required": [
+          "planningInterval"
+        ],
+        "type": "object",
+        "properties": {
+          "planningInterval": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The planning interval."
+          },
+          "objectivesAtRiskCount": {
+            "type": "integer",
+            "description": "Open objectives of the team of teams and every team beneath it whose current health check is At Risk or\nUnhealthy. Null without the View Planning Interval Objectives permission.",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The planning interval a team of teams is in today."
+      },
+      "MyTeamOfTeamsRisksResponse": {
+        "required": [
+          "ownOpenCount",
+          "teamsOpenCount"
+        ],
+        "type": "object",
+        "properties": {
+          "ownOpenCount": {
+            "type": "integer",
+            "description": "Open risks raised on the team of teams itself, which its Risks section lists.",
+            "format": "int32"
+          },
+          "teamsOpenCount": {
+            "type": "integer",
+            "description": "Open risks raised on the teams and teams of teams beneath it today, at any depth.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A team of teams' open risks."
+      },
+      "MyTeamOfTeamsRowResponse": {
+        "required": [
+          "team",
+          "isMine",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "team": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TeamNavigationDto"
+              }
+            ],
+            "description": "The team or team of teams."
+          },
+          "isMine": {
+            "type": "boolean",
+            "description": "Whether the caller is a member of this team or team of teams directly."
+          },
+          "methodology": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Methodology"
+              }
+            ],
+            "description": "A team's methodology today; null for a team of teams, or a team with no operating model today.",
+            "nullable": true
+          },
+          "sprint": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TeamSprintSignalDto"
+              }
+            ],
+            "description": "A Scrum team's sprint signal: a sprint left open past its end, or its running sprint's progress. Null\nbetween sprints, for any other row, or without the View Iterations permission.",
+            "nullable": true
+          },
+          "flow": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MyTeamOfTeamsFlowResponse"
+              }
+            ],
+            "description": "A Kanban team's work in progress. Null for any other row, or without the View Work Items permission.",
+            "nullable": true
+          },
+          "nested": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MyTeamOfTeamsNestedResponse"
+              }
+            ],
+            "description": "A nested team of teams' teams, at any depth, counted by status; its own status is the worst of them. Null\nfor a team.",
+            "nullable": true
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AttentionStatus"
+              }
+            ],
+            "description": "How much the row calls for attention: from its sprint or flow for a team, the worst beneath it for a team of\nteams. On Track when there is no signal to read — including when the caller may not view the sprint or flow\nit would come from, so it is no signal on its own then."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A team, or a nested team of teams, in a team of teams' rollup, with one signal for how it is doing today."
+      },
+      "MyTeamOfTeamsSummaryResponse": {
+        "required": [
+          "team",
+          "scrumTeamCount",
+          "kanbanTeamCount",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "team": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TeamNavigationDto"
+              }
+            ],
+            "description": "The team of teams."
+          },
+          "scrumTeamCount": {
+            "type": "integer",
+            "description": "How many of the rows are teams following Scrum today.",
+            "format": "int32"
+          },
+          "kanbanTeamCount": {
+            "type": "integer",
+            "description": "How many of the rows are teams following Kanban today.",
+            "format": "int32"
+          },
+          "planningInterval": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MyTeamOfTeamsPlanningIntervalResponse"
+              }
+            ],
+            "description": "The planning interval running today that the team of teams, or a team beneath it, takes part in. Null when\nnone is running, or without the View Planning Intervals permission.",
+            "nullable": true
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyTeamOfTeamsRowResponse"
+            },
+            "description": "One row for each team and team of teams in it today, by membership: needing attention first, then watch,\nthen on track, each by name."
+          },
+          "dependencies": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MyTeamOfTeamsDependenciesResponse"
+              }
+            ],
+            "description": "Its open cross-team dependencies, as its Dependencies section lists them: those of every team beneath it, at\nany depth, whose predecessor is not done. Null without the View Work Items permission.",
+            "nullable": true
+          },
+          "risks": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MyTeamOfTeamsRisksResponse"
+              }
+            ],
+            "description": "Its open risks and those of the teams beneath it. Null without the View Risks permission.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "A team of teams the caller belongs to directly, rolled up from the teams beneath it: one row for each team or\nteam of teams in it today, with the ones needing attention first."
+      },
       "MyTeamReportingPeriodResponse": {
         "required": [
           "start",
@@ -69277,7 +69610,8 @@
       },
       "MyTeamsSummaryResponse": {
         "required": [
-          "teams"
+          "teams",
+          "teamsOfTeams"
         ],
         "type": "object",
         "properties": {
@@ -69288,6 +69622,25 @@
             },
             "description": "One entry per team, by team name."
           },
+          "teamsOfTeams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyTeamOfTeamsSummaryResponse"
+            },
+            "description": "One rollup per team of teams the caller is a member of directly, by name. Being on one of its teams does not\nmake the caller a member of it."
+          },
+          "unhealthyCrossTeamDependencyCount": {
+            "type": "integer",
+            "description": "The open cross-team dependencies that are unhealthy across the caller's teams of teams, each counted once\neven when two of them share it. Null without the View Work Items permission.",
+            "format": "int32",
+            "nullable": true
+          },
+          "sprintsEndedNotCompletedCount": {
+            "type": "integer",
+            "description": "The sprints of the teams in the caller's teams of teams that were started and are past their end without\nbeing completed. Null without the View Iterations permission.",
+            "format": "int32",
+            "nullable": true
+          },
           "dependenciesAtRiskCount": {
             "type": "integer",
             "description": "The open dependencies at risk or unhealthy across the teams, each counted once even when it joins two of them.\nNull without the View Work Items permission.",
@@ -69296,7 +69649,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "The active teams the caller is a member of, each summarised for how it works today. Teams of teams are not\nincluded. A section is null when the caller lacks the permission the team page needs to show it."
+        "description": "The active teams and teams of teams the caller is a member of directly, each summarised for how it works today.\nA section is null when the caller lacks the permission the team or team of teams page needs to show it."
       },
       "MyTeamSummaryResponse": {
         "required": [
@@ -69311,6 +69664,15 @@
               }
             ],
             "description": "The team."
+          },
+          "partOf": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TeamNavigationDto"
+              }
+            ],
+            "description": "The team of teams the team belongs to today; null when it belongs to none.",
+            "nullable": true
           },
           "methodology": {
             "oneOf": [
@@ -72161,6 +72523,12 @@
           "completedOn": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "focusedRoundId": {
+            "type": "string",
+            "description": "The round a facilitator last pointed the session at, which everyone following the facilitator is shown.\nNull when no round is pointed at, where followers see the round in play.",
+            "format": "uuid",
             "nullable": true
           },
           "rounds": {
@@ -84362,6 +84730,50 @@
         },
         "additionalProperties": false,
         "description": "A sprint counted in its team's sprint metrics, with its own values."
+      },
+      "TeamSprintSignalDto": {
+        "required": [
+          "sprint",
+          "endedNotCompleted",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "sprint": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The sprint the signal is about: the one left open when `endedNotCompleted` is true, else the running one."
+          },
+          "endedNotCompleted": {
+            "type": "boolean",
+            "description": "Whether the team started the sprint and its end has passed without anyone completing it. A sprint the team\nnever started follows its planned dates and is never left open."
+          },
+          "expectedShare": {
+            "type": "number",
+            "description": "The share of the sprint's work expected done by now, from 0 to 1: along its ideal burn-down once it has a\ncommitment, or else the share of its days gone. Null for a sprint left open, or one with nothing to measure:\non its first day, or with no work in it.",
+            "format": "double",
+            "nullable": true
+          },
+          "doneShare": {
+            "type": "number",
+            "description": "The work completed as a share of what it is measured against — the commitment, or else the sprint's work —\nin the team's sizing method; above 1 when more than was committed is done. Null whenever `expectedShare` is.",
+            "format": "double",
+            "nullable": true
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/AttentionStatus"
+              }
+            ],
+            "description": "Needs Attention for a sprint left open; otherwise the sprint's health as the sprint card shows it, and On Track\nwhile there is nothing to measure."
+          }
+        },
+        "additionalProperties": false,
+        "description": "The one thing worth knowing about a Scrum team's sprint today: a sprint the team started and left open past its\nend, or else how its running sprint is tracking against its commitment."
       },
       "TeamThroughputForecastDto": {
         "required": [

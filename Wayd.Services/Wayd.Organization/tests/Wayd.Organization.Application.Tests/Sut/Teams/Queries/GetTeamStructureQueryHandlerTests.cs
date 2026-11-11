@@ -99,6 +99,24 @@ public class GetTeamStructureQueryHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Handle_MembershipStartingAfterTheWindow_IsLeftOut()
+    {
+        // Arrange
+        var root = NewTeamOfTeams();
+        var joining = NewTeam();
+        var current = NewTeam();
+        Join(joining, root, To.PlusDays(1));
+        Join(current, root, ActiveDate);
+
+        // Act
+        var result = await _handler.Handle(new GetTeamStructureQuery(root.Id, From, To), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Teams.Select(t => t.Id).Should().BeEquivalentTo([root.Id, current.Id]);
+        result.Memberships.Select(m => m.ChildId).Should().Equal(current.Id);
+    }
+
+    [Fact]
     public async Task Handle_TeamThatMovedWithinTheRoot_IsListedOnceWithBothEdges()
     {
         // Arrange

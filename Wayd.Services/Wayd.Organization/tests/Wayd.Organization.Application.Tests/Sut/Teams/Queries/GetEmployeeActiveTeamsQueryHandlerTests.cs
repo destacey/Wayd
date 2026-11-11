@@ -1,5 +1,6 @@
 using NodaTime;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Tests.Data;
 using Wayd.Organization.Application.Teams.Queries;
@@ -53,6 +54,27 @@ public sealed class GetEmployeeActiveTeamsQueryHandlerTests
         result.Select(t => t.Id).Should().Equal(checkout.Id, payments.Id);
         result[1].Code.Should().Be(payments.Code.Value);
         result[1].Type.Should().Be("Team");
+    }
+
+    [Fact]
+    public async Task Handle_ForTeamsOfTeams_ListsOnlyThoseTheEmployeeBelongsToDirectly()
+    {
+        // Arrange
+        var employee = new EmployeeFaker().Generate();
+        var train = new TeamOfTeamsFaker().WithName("Train").Generate();
+        var parent = new TeamOfTeamsFaker().WithName("Parent").Generate();
+        var team = new TeamFaker().Generate();
+        Join(train, employee, _lead);
+        Join(team, employee, _developer);
+        Join(parent, new EmployeeFaker().Generate(), _lead);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new GetEmployeeActiveTeamsQuery(employee.Id, TeamType.TeamOfTeams), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Select(t => t.Id).Should().Equal(train.Id);
+        result[0].Type.Should().Be("Team of Teams");
     }
 
     [Fact]

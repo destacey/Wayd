@@ -21,6 +21,12 @@ public interface IPokerSessionNotifier
     Task NotifyRoundDescriptionUpdated(Guid sessionId, Guid roundId);
 
     /// <summary>
+    /// Tells the session's participants which round a facilitator pointed it at, so those following the
+    /// facilitator show it. A null <paramref name="roundId"/> means no round is pointed at.
+    /// </summary>
+    Task NotifyRoundFocused(Guid sessionId, Guid? roundId);
+
+    /// <summary>
     /// Tells the session someone joined, left or changed mode.
     /// </summary>
     Task NotifyMemberUpdated(Guid sessionId, PokerSessionMemberDto member);

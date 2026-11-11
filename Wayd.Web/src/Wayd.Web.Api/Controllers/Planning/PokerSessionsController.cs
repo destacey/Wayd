@@ -40,7 +40,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Get poker session details using the Id or key.")]
     [EndpointDescription(
-        "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.")]
+        "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.")]
     [McpTool("PokerSessions_GetSession", "Get poker session")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -158,6 +158,21 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult> RemoveRound(Guid id, Guid roundId, CancellationToken cancellationToken)
     {
         var result = await _dispatcher.Send(new RemovePokerRoundCommand(id, roundId), cancellationToken);
+        return result.IsSuccess
+            ? NoContent()
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPut("{id}/focused-round")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
+    [EndpointSummary("Point a poker session at a round.")]
+    [EndpointDescription(
+        "Sets the round everyone following the facilitator is shown on the session page, returned as the session's `focusedRoundId`. `roundId` is one of the session's rounds; an omitted or null `roundId` points at no round, returning followers to the round in play. The last facilitator to point the session wins. Accepting the round's estimate, removing the round and completing the session each clear it. The session must be Active." + OnlyFacilitators + " Takes the session's UUID.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> FocusRound(Guid id, [FromBody] FocusPokerRoundRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToFocusPokerRoundCommand(id), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));

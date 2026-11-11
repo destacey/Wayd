@@ -58,6 +58,10 @@ internal sealed class PlanningPokerNotifier(
         await _hubContext.Clients.Group(sessionId.ToString())
             .SendAsync("RoundDescriptionUpdated", sessionId, roundId);
 
+    public async Task NotifyRoundFocused(Guid sessionId, Guid? roundId) =>
+        await _hubContext.Clients.Group(sessionId.ToString())
+            .SendAsync("RoundFocused", sessionId, roundId);
+
     public async Task NotifyMemberUpdated(Guid sessionId, PokerSessionMemberDto member) =>
         await _hubContext.Clients.Group(sessionId.ToString())
             .SendAsync("MemberUpdated", sessionId, member);

@@ -80,6 +80,33 @@ public static class SprintScopeHistoryLoader
     }
 
     /// <summary>
+    /// Loads what one of <paramref name="timeline"/>'s sprints is measured from, working days included, for a reader
+    /// that already holds the team's timeline. Null when the sprint has no planned dates.
+    /// </summary>
+    public static async Task<SprintScopeHistory?> LoadSprintScopeHistory(
+        this IWorkDbContext workDbContext,
+        IDispatcher dispatcher,
+        TeamSprintTimeline timeline,
+        Iteration sprint,
+        CancellationToken cancellationToken)
+    {
+        if (sprint.DateRange.Start is null || sprint.DateRange.End is null)
+            return null;
+
+        var window = SprintScopeWindow.For(timeline, sprint);
+        var schedule = timeline.ScheduleFor(sprint);
+        var scope = await LoadSprintScopePeriods(workDbContext, window, schedule.SizingMethod, cancellationToken);
+
+        return new SprintScopeHistory(
+            sprint,
+            window,
+            schedule,
+            await LoadWorkingDays(dispatcher, sprint, window, schedule, cancellationToken),
+            scope.Periods,
+            scope.HistoryIncomplete);
+    }
+
+    /// <summary>
     /// Loads the history of one of <paramref name="timeline"/>'s sprints for a reader that goes through several
     /// of them, so the team's sprints and schedules are read once. It leaves out the working days, which only
     /// the ideal burn-down needs.

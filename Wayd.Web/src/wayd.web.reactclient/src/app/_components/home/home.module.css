@@ -243,3 +243,30 @@
   min-width: 0;
   flex: 1 1 120px;
 }
+
+/* A team of teams' rows in the My teams widget: status, name, then its signal. */
+.rollupRows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rollupRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+.rollupToggle {
+  align-self: flex-start;
+  padding-inline: 0;
+}
+
+/* Typography sets its own size; inside a team's meta line it takes the line's small size, like the links beside it. */
+.teamSection .listItemMeta :global(.ant-typography) {
+  font-size: inherit;
+}

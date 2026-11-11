@@ -10,6 +10,7 @@ import {
   useGetPokerSessionQuery,
   useCompletePokerSessionMutation,
   useAddPokerRoundMutation,
+  useFocusPokerRoundMutation,
   useRemovePokerRoundMutation,
   useSubmitPokerVoteMutation,
   useWithdrawPokerVoteMutation,
@@ -34,6 +35,7 @@ import styles from './_components/poker-session.module.css'
 import {
   EditPokerSessionForm,
   EstimationCardDeck,
+  FollowFacilitatorSwitch,
   LobbyParticipants,
   ParticipantCards,
   PokerLobbyState,
@@ -46,6 +48,7 @@ import {
   VotingActions,
 } from './_components'
 import { buildExportRows, EXPORT_HEADERS } from './_components/session-export'
+import { shownRound } from './_components/shown-round'
 import PokerSessionDetailsLoading from './loading'
 
 const { useBreakpoint } = Grid
@@ -103,12 +106,17 @@ const PokerSessionDetailPage: FC = () => {
   const [completeSession, { isLoading: isCompleting }] =
     useCompletePokerSessionMutation()
   const [addRound] = useAddPokerRoundMutation()
+  const [focusRound] = useFocusPokerRoundMutation()
   const [removeRound] = useRemovePokerRoundMutation()
   const [submitVote, { isLoading: isSubmitting }] = useSubmitPokerVoteMutation()
   const [withdrawVote, { isLoading: isWithdrawing }] =
     useWithdrawPokerVoteMutation()
 
   const [selectedRoundId, setSelectedRoundId] = useState<string | undefined>()
+  // A participant's own choice, for this visit. Whoever runs the session always
+  // follows it, so several facilitators stay on the same round.
+  const [following, setFollowing] = useState(true)
+  const isFollowing = isSessionActive && (canManage || following)
   const [openEditForm, setOpenEditForm] = useState(false)
   const [openMembers, setOpenMembers] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
@@ -150,10 +158,31 @@ const PokerSessionDetailPage: FC = () => {
   }
 
   const rounds = session?.rounds ?? []
-  const activeRound = selectedRoundId
-    ? rounds.find((r) => r.id === selectedRoundId)
-    : (rounds.find((r) => r.status === 'Voting' || r.status === 'Revealed') ??
-      rounds[0])
+  const activeRound = shownRound(rounds, {
+    following: isFollowing,
+    focusedRoundId: session?.focusedRoundId,
+    selectedRoundId,
+  })
+
+  // Whoever runs an active session selects for everyone following; anyone else
+  // selects for themselves, which stops them following.
+  const handleSelectRound = async (roundId: string) => {
+    if (!session) return
+    if (!isSessionActive || !canManage) {
+      setSelectedRoundId(roundId)
+      setFollowing(false)
+      return
+    }
+    if (roundId === session.focusedRoundId) return
+    const response = await focusRound({
+      sessionId: session.id,
+      sessionKey: session.key,
+      roundId,
+    })
+    if (response.error) {
+      messageApi.error('Failed to show the round to the session.')
+    }
+  }
 
   const handleConsensusSet = async () => {
     if (!session) return
@@ -172,6 +201,13 @@ const PokerSessionDetailPage: FC = () => {
       }
     }
     setSelectedRoundId(undefined)
+  }
+
+  // Stopping keeps the round on screen rather than jumping to an earlier pick;
+  // starting again forgets that pick.
+  const handleFollowingChange = (follow: boolean) => {
+    setSelectedRoundId(follow ? undefined : activeRound?.id)
+    setFollowing(follow)
   }
 
   // Determine center column view mode
@@ -340,11 +376,19 @@ const PokerSessionDetailPage: FC = () => {
         <div className={styles.presenceRow}>
           <Flex align="center" justify="space-between" gap={12} wrap>
             {isActive ? (
-              <SessionMembershipBar
-                session={session}
-                member={myMember}
-                canJoin={!!currentEmployeeId}
-              />
+              <Flex align="center" gap={16} wrap>
+                <SessionMembershipBar
+                  session={session}
+                  member={myMember}
+                  canJoin={!!currentEmployeeId}
+                />
+                {!canManage && (
+                  <FollowFacilitatorSwitch
+                    following={following}
+                    onChange={handleFollowingChange}
+                  />
+                )}
+              </Flex>
             ) : (
               <span />
             )}
@@ -483,7 +527,7 @@ const PokerSessionDetailPage: FC = () => {
                   session={session}
                   selectedRoundId={activeRound?.id}
                   onSelectRound={(roundId) => {
-                    setSelectedRoundId(roundId)
+                    handleSelectRound(roundId)
                     setMobileSidebarOpen(false)
                   }}
                   onRemoveRound={handleRemoveRound}
@@ -511,7 +555,7 @@ const PokerSessionDetailPage: FC = () => {
                 <SessionSidebar
                   session={session}
                   selectedRoundId={activeRound?.id}
-                  onSelectRound={setSelectedRoundId}
+                  onSelectRound={handleSelectRound}
                   onRemoveRound={handleRemoveRound}
                   onComplete={handleComplete}
                   isCompleting={isCompleting}

@@ -123,6 +123,23 @@ public class PokerSessionTests
     }
 
     [Fact]
+    public void Complete_ShouldClearTheFocus()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1", null, PokerSessionActors.Facilitator).Value;
+        session.FocusRound(round.Id, PokerSessionActors.Facilitator);
+
+        // Act
+        var result = session.Complete(PokerSessionActors.Facilitator, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.Rounds.Should().ContainSingle();
+        session.FocusedRoundId.Should().BeNull();
+    }
+
+    [Fact]
     public void Complete_FromCompleted_ShouldReturnFailure()
     {
         // Arrange
@@ -311,6 +328,158 @@ public class PokerSessionTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("not found");
+    }
+
+    [Fact]
+    public void RemoveRound_TheFocusedRound_ShouldClearTheFocus()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1", null, PokerSessionActors.Facilitator).Value;
+        session.FocusRound(round.Id, PokerSessionActors.Facilitator);
+
+        // Act
+        var result = session.RemoveRound(round.Id, PokerSessionActors.Facilitator);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.FocusedRoundId.Should().BeNull();
+    }
+
+    [Fact]
+    public void RemoveRound_AnotherRound_ShouldKeepTheFocus()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var focused = session.AddRound("WI-1", null, PokerSessionActors.Facilitator).Value;
+        var other = session.AddRound("WI-2", null, PokerSessionActors.Facilitator).Value;
+        session.FocusRound(focused.Id, PokerSessionActors.Facilitator);
+
+        // Act
+        var result = session.RemoveRound(other.Id, PokerSessionActors.Facilitator);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.FocusedRoundId.Should().Be(focused.Id);
+    }
+
+    #endregion
+
+    #region FocusRound
+
+    [Fact]
+    public void FocusRound_ARoundOfTheSession_ShouldPointTheSessionAtIt()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        session.AddRound("WI-1", null, PokerSessionActors.Facilitator);
+        var round = session.AddRound("WI-2", null, PokerSessionActors.Facilitator).Value;
+
+        // Act
+        var result = session.FocusRound(round.Id, PokerSessionActors.Facilitator);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.FocusedRoundId.Should().Be(round.Id);
+    }
+
+    [Fact]
+    public void FocusRound_AnotherRound_ShouldReplaceTheFocus()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var first = session.AddRound("WI-1", null, PokerSessionActors.Facilitator).Value;
+        var second = session.AddRound("WI-2", null, PokerSessionActors.Facilitator).Value;
+        session.FocusRound(first.Id, PokerSessionActors.Facilitator);
+
+        // Act
+        var result = session.FocusRound(second.Id, PokerSessionActors.Administrator);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.FocusedRoundId.Should().Be(second.Id);
+    }
+
+    [Fact]
+    public void FocusRound_Null_ShouldClearTheFocus()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1", null, PokerSessionActors.Facilitator).Value;
+        session.FocusRound(round.Id, PokerSessionActors.Facilitator);
+
+        // Act
+        var result = session.FocusRound(null, PokerSessionActors.Facilitator);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.FocusedRoundId.Should().BeNull();
+    }
+
+    [Fact]
+    public void FocusRound_UnknownRound_ShouldReturnFailureAndKeepTheFocus()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1", null, PokerSessionActors.Facilitator).Value;
+        session.FocusRound(round.Id, PokerSessionActors.Facilitator);
+
+        // Act
+        var result = session.FocusRound(Guid.NewGuid(), PokerSessionActors.Facilitator);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Round not found.");
+        session.FocusedRoundId.Should().Be(round.Id);
+    }
+
+    [Fact]
+    public void FocusRound_ByNonFacilitator_ShouldReturnNotAFacilitator()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1", null, PokerSessionActors.Facilitator).Value;
+
+        // Act
+        var result = session.FocusRound(round.Id, PokerSessionActors.Voter("someone"));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PokerSession.NotAFacilitatorError);
+        session.FocusedRoundId.Should().BeNull();
+    }
+
+    [Fact]
+    public void FocusRound_ByOutsiderOnPrivateSession_ShouldReadAsNotFound()
+    {
+        // Arrange
+        var session = CreatePrivateSession();
+        var round = session.AddRound("WI-1", null, PokerSessionActors.Facilitator).Value;
+
+        // Act
+        var result = session.FocusRound(round.Id, PokerSessionActors.Voter("someone"));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PokerSession.NotFoundError);
+        session.FocusedRoundId.Should().BeNull();
+    }
+
+    [Fact]
+    public void FocusRound_CompletedSession_ShouldReturnFailure()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1", null, PokerSessionActors.Facilitator).Value;
+        session.Complete(PokerSessionActors.Facilitator, Now);
+
+        // Act
+        var result = session.FocusRound(round.Id, PokerSessionActors.Facilitator);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Cannot focus a round when the session is not active.");
+        session.FocusedRoundId.Should().BeNull();
     }
 
     #endregion
@@ -643,6 +812,59 @@ public class PokerSessionTests
         result.IsSuccess.Should().BeTrue();
         result.Value.ConsensusEstimate.Should().Be("5");
         result.Value.Status.Should().Be(PokerRoundStatus.Accepted);
+    }
+
+    [Fact]
+    public void SetConsensus_OnTheFocusedRound_ShouldClearTheFocus()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1", null, PokerSessionActors.Facilitator).Value;
+        session.FocusRound(round.Id, PokerSessionActors.Facilitator);
+        session.SubmitVote(round.Id, "5", Scale.CurrentVersion, PokerSessionActors.Voter("user-1"), Now);
+        session.RevealRound(round.Id, PokerSessionActors.Facilitator);
+
+        // Act
+        var result = session.SetConsensus(round.Id, "5", Scale.CurrentVersion, PokerSessionActors.Facilitator);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.FocusedRoundId.Should().BeNull();
+    }
+
+    [Fact]
+    public void SetConsensus_OnAnotherRound_ShouldKeepTheFocus()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var focused = session.AddRound("WI-1", null, PokerSessionActors.Facilitator).Value;
+        var estimated = session.AddRound("WI-2", null, PokerSessionActors.Facilitator).Value;
+        session.FocusRound(focused.Id, PokerSessionActors.Facilitator);
+        session.SubmitVote(estimated.Id, "5", Scale.CurrentVersion, PokerSessionActors.Voter("user-1"), Now);
+        session.RevealRound(estimated.Id, PokerSessionActors.Facilitator);
+
+        // Act
+        var result = session.SetConsensus(estimated.Id, "5", Scale.CurrentVersion, PokerSessionActors.Facilitator);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        session.FocusedRoundId.Should().Be(focused.Id);
+    }
+
+    [Fact]
+    public void SetConsensus_Refused_ShouldKeepTheFocus()
+    {
+        // Arrange
+        var session = CreateActiveSession();
+        var round = session.AddRound("WI-1", null, PokerSessionActors.Facilitator).Value;
+        session.FocusRound(round.Id, PokerSessionActors.Facilitator);
+
+        // Act
+        var result = session.SetConsensus(round.Id, "5", Scale.CurrentVersion, PokerSessionActors.Facilitator);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        session.FocusedRoundId.Should().Be(round.Id);
     }
 
     [Theory]

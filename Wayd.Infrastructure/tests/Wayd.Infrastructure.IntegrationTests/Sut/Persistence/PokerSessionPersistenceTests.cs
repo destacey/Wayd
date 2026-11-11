@@ -90,6 +90,33 @@ public sealed class PokerSessionPersistenceTests(SqlServerDbContextFixture fixtu
     }
 
     [Fact]
+    public async Task GetPokerSession_ReturnsTheFocusedRound()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        _ = PlanningMappings.Value;
+        var facilitator = await PlanningTestData.SeedEmployee(_fixture, ct);
+        Guid focusedRoundId = default;
+        var session = await SaveSession(Visibility.Public, facilitator.Id, (s, actor) =>
+        {
+            s.AddRound("First", null, actor).IsSuccess.Should().BeTrue();
+            focusedRoundId = s.AddRound("Second", null, actor).Value.Id;
+            s.FocusRound(focusedRoundId, actor).IsSuccess.Should().BeTrue();
+        }, ct);
+
+        await using var read = _fixture.CreateContext();
+        var handler = new GetPokerSessionQueryHandler(read, ReaderOf(new(facilitator.Id, false, [], false)).Object, Mock.Of<ICurrentUser>());
+
+        // Act
+        var dto = await handler.Handle(new GetPokerSessionQuery(session.Key.ToString()), ct);
+
+        // Assert
+        dto.Should().NotBeNull();
+        dto!.Rounds.Should().HaveCount(2);
+        dto.FocusedRoundId.Should().Be(focusedRoundId);
+    }
+
+    [Fact]
     public async Task GetPokerSessions_FiltersPrivateSessionsToThePeopleOnThem()
     {
         // Arrange

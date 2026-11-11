@@ -22001,6 +22001,80 @@
         ]
       }
     },
+    "/api/ppm/projects/my-tasks": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get the open project tasks and milestones assigned to the current user, across projects, soonest due first.",
+        "description": "Scoped to the caller — no user parameter. Open means Not Started or In Progress. `dueDate` is a task's planned end or a milestone's planned date; past-due items come first, then the rest by due date, those with no date last. Only tasks on Approved and Active projects unless `status` names others: completing or canceling a project leaves its open tasks open, so pass Completed or Canceled only to find those. Only tasks the caller is an assignee of: leading a project does not add its tasks — Projects_GetMyProjectsTaskMetrics counts those.",
+        "operationId": "Projects_GetMyProjectTasks",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ProjectStatus"
+              },
+              "nullable": true
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyProjectTaskDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/ppm/projects/my-deliverables": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Get the open project deliverables the current user owns, across projects, by target date.",
+        "description": "Scoped to the caller — no user parameter. Open means a status in the Proposed or Active category, whatever the workflow calls it. Past-target deliverables come first, then the rest by target date, those with no target date last. For one project's deliverables, whoever owns them, use Projects_GetDeliverables.",
+        "operationId": "Projects_GetMyProjectDeliverables",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MyProjectDeliverableDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/ppm/projects/task-metrics": {
       "get": {
         "tags": [
@@ -69482,6 +69556,50 @@
         "additionalProperties": false,
         "description": "What muting a record did."
       },
+      "MyProjectDeliverableDto": {
+        "required": [
+          "name",
+          "status",
+          "project",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The deliverable's id.",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "description": "What the deliverable is called."
+          },
+          "targetDate": {
+            "type": "string",
+            "description": "When the deliverable is due, if a date has been committed to.",
+            "format": "date",
+            "nullable": true
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StatusNavigationDto"
+              }
+            ],
+            "description": "A status in the Proposed or Active category: the list holds open deliverables only."
+          },
+          "project": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectNavigationDto"
+              }
+            ],
+            "description": "The project the deliverable belongs to."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An open deliverable the caller is the owner of, with the project it belongs to."
+      },
       "MyProjectsSummaryDto": {
         "required": [
           "totalCount",
@@ -69520,6 +69638,73 @@
         },
         "additionalProperties": false,
         "description": "Summary of the current user's project involvement, with counts per role."
+      },
+      "MyProjectTaskDto": {
+        "required": [
+          "key",
+          "name",
+          "type",
+          "status",
+          "priority",
+          "project",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The task's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "description": "The task's key, such as GEMINI-12: its project's key and its number in the project."
+          },
+          "name": {
+            "type": "string",
+            "description": "The task's name."
+          },
+          "type": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SimpleNavigationDto"
+              }
+            ],
+            "description": "Task or Milestone."
+          },
+          "status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SimpleNavigationDto"
+              }
+            ],
+            "description": "Not Started or In Progress: the list holds open tasks only."
+          },
+          "priority": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/SimpleNavigationDto"
+              }
+            ],
+            "description": "How urgent the task is: Low, Medium, High or Critical."
+          },
+          "dueDate": {
+            "type": "string",
+            "description": "When the task is due: a task's planned end, or a milestone's planned date. Null when none is planned.",
+            "format": "date",
+            "nullable": true
+          },
+          "project": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ProjectNavigationDto"
+              }
+            ],
+            "description": "The project the task belongs to."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An open project task assigned to the caller, with the project it belongs to."
       },
       "MyTeamFlowSummaryResponse": {
         "required": [
@@ -74307,7 +74492,8 @@
       "ProjectHealthCheckSummaryDto": {
         "required": [
           "status",
-          "id"
+          "id",
+          "expiration"
         ],
         "type": "object",
         "properties": {
@@ -74317,9 +74503,15 @@
           },
           "status": {
             "$ref": "#/components/schemas/SimpleNavigationDto"
+          },
+          "expiration": {
+            "type": "string",
+            "description": "When the health check stops being current, after which the project has none until another is reported.",
+            "format": "date-time"
           }
         },
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "A project's current health check, as a list shows it."
       },
       "ProjectIntakeRequestDto": {
         "required": [
@@ -74662,6 +74854,31 @@
           "Assignee"
         ],
         "type": "string"
+      },
+      "ProjectNavigationDto": {
+        "required": [
+          "key",
+          "name",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The project's id.",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "string",
+            "description": "The project's key, such as GEMINI, which its page is addressed by."
+          },
+          "name": {
+            "type": "string",
+            "description": "The project's name."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A project as a link: enough to name it and open it by key."
       },
       "ProjectPlanNodeDto": {
         "required": [

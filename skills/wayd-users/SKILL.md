@@ -42,7 +42,9 @@ The `Me_*` tools act for the caller and take no id:
 | How is my time split across teams? | `Me_GetAllocations` (team-capacity-management flag) |
 | What are my tickets? | `Me_GetWorkItems` — pass `statusCategories` `Proposed` and `Active` for open work |
 | Where am I the project manager (or sponsor, owner, member)? | `Projects_GetProjects` with `role` and no `employeeId`: a role filter defaults to the caller |
-| My projects at a glance, my project tasks | `Projects_GetMyProjectsSummary`, `Projects_GetMyProjectsTaskMetrics` |
+| My projects at a glance, how many of my tasks are late | `Projects_GetMyProjectsSummary`, `Projects_GetMyProjectsTaskMetrics` |
+| What are my project tasks? Which are overdue? | `Projects_GetMyTasks` — open tasks and milestones assigned to you on Approved and Active projects, soonest due first |
+| Which project deliverables do I own? | `Projects_GetMyDeliverables` — open deliverables you own, past target first |
 | Risks assigned to me | `Risks_GetMyRisks` |
 | What do I follow? What needs a look? Follow or unfollow this project | `Me_GetFollows` (with `view`), `Me_GetFollowCounts`, `Me_GetFollowedRecord`; `Me_Follow` / `Me_Unfollow` (following feature flag) |
 | What changed on the things I care about? Do I have anything unread? | `Me_GetNotifications` (with `unreadOnly`), `Me_GetUnreadNotificationCount`; mark read with `Me_MarkRecordNotificationsRead` or `Me_MarkAllNotificationsRead` (following feature flag) |

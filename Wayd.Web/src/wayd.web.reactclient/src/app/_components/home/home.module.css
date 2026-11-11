@@ -139,6 +139,11 @@
   font-size: var(--ant-font-size-sm);
 }
 
+/* Typography sets its own size; inside a meta line it takes the line's small size, like the links beside it. */
+.listItemMeta :global(.ant-typography) {
+  font-size: inherit;
+}
+
 /* Customize drawer */
 
 .customizeIntro {
@@ -264,9 +269,4 @@
 .rollupToggle {
   align-self: flex-start;
   padding-inline: 0;
-}
-
-/* Typography sets its own size; inside a team's meta line it takes the line's small size, like the links beside it. */
-.teamSection .listItemMeta :global(.ant-typography) {
-  font-size: inherit;
 }

@@ -18,7 +18,7 @@ import { createCsvColumn } from '@/src/components/common/wayd-grid'
 import WaydGridTransfer from '@/src/components/common/wayd-grid-transfer'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { workItemKeyComparator } from '@/src/components/common/work'
-import { isApiError, type ApiError } from '@/src/utils'
+import { toApiError } from '@/src/utils'
 
 const { Text } = Typography
 
@@ -115,7 +115,7 @@ const ManageIncidentWorkItemsForm = ({
         messageApi.success('Successfully updated incident work items.')
         return true
       } catch (error) {
-        const apiError: ApiError = isApiError(error) ? error : {}
+        const apiError = toApiError(error)
         messageApi.error(
           `Failed to update incident work items. Error: ${apiError.detail}`,
         )

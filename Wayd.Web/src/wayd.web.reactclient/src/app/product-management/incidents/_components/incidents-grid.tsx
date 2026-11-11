@@ -1,5 +1,6 @@
 'use client'
 
+import EntityLink from '@/src/components/common/entity-link'
 import {
   WaydGrid,
   createMultiValueSetFilter,
@@ -14,10 +15,11 @@ import {
   WorkflowStatusTag,
 } from '@/src/components/common/status-workflows'
 import { IncidentSummaryDto } from '@/src/services/wayd-api'
+import { ReactNode } from 'react'
 import { Tooltip } from 'antd'
 import Link from 'next/link'
 import { Fragment } from 'react'
-import { formatIncidentAge } from './incident-format'
+import { formatIncidentAge, instantToEpochMs } from './incident-format'
 import { IncidentSeverityRank } from './incident-severity-rank'
 import styles from './incidents.module.css'
 
@@ -28,6 +30,17 @@ const releaseNames = (row: IncidentSummaryDto) =>
   (row.releases ?? []).map((release) => release.name)
 
 const columns: ColumnDef<IncidentSummaryDto, any>[] = [
+  {
+    id: 'key',
+    accessorKey: 'key',
+    header: 'Number',
+    size: 100,
+    cell: ({ row }) => (
+      <Link href={`/product-management/incidents/${row.original.key}`}>
+        {row.original.key}
+      </Link>
+    ),
+  },
   {
     id: 'severity',
     accessorFn: (row) => row.severityLevel?.name ?? '',
@@ -49,9 +62,9 @@ const columns: ColumnDef<IncidentSummaryDto, any>[] = [
     size: 280,
     meta: { filterEnableSet: true },
     cell: ({ row }) => (
-      <Link href={`/product-management/incidents/${row.original.key}`}>
+      <EntityLink href={`/product-management/incidents/${row.original.key}`}>
         {row.original.title}
-      </Link>
+      </EntityLink>
     ),
   },
   {
@@ -104,9 +117,13 @@ const columns: ColumnDef<IncidentSummaryDto, any>[] = [
   },
   {
     id: 'age',
-    accessorFn: (row) => formatIncidentAge(row.noticedAt),
+    accessorFn: (row) => {
+      const noticed = instantToEpochMs(row.noticedAt)
+      return Number.isNaN(noticed) ? 0 : Date.now() - noticed
+    },
     header: 'Age',
     size: 90,
+    cell: ({ row }) => formatIncidentAge(row.original.noticedAt),
   },
   {
     id: 'commander',
@@ -121,12 +138,14 @@ export interface IncidentsGridProps {
   incidents: IncidentSummaryDto[]
   isLoading: boolean
   refetch?: () => void
+  rightSlot?: ReactNode
 }
 
 const IncidentsGrid = ({
   incidents,
   isLoading,
   refetch,
+  rightSlot,
 }: IncidentsGridProps) => (
   <WaydGrid
     columns={columns}
@@ -136,6 +155,7 @@ const IncidentsGrid = ({
     csvFileName="incidents"
     persistStateKey="product-management-incidents"
     emptyMessage="No incidents yet."
+    rightSlot={rightSlot}
   />
 )
 

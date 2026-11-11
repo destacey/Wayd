@@ -1,7 +1,7 @@
 'use client'
 
 import { PageActions } from '@/src/components/common'
-import { RecordShell } from '@/src/components/common/record'
+import { RecordLayout, RecordLoading } from '@/src/components/common/record'
 import { WorkflowStatusTag } from '@/src/components/common/status-workflows'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -17,20 +17,22 @@ import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { useGetReleasesQuery } from '@/src/store/features/product-management/releases-api'
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
-import { formatInstantInZone } from '@/src/utils'
-import { Button, DatePicker, Flex, Form, Modal, Select } from 'antd'
+import { Button, DatePicker, Flex, Form, Modal, Result, Select } from 'antd'
 import type { MenuProps } from 'antd'
 import { ItemType } from 'antd/es/menu/interface'
 import TextArea from 'antd/es/input/TextArea'
 import dayjs, { Dayjs } from 'dayjs'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { use, useEffect, useMemo, useState } from 'react'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { MarkdownEditor } from '@/src/components/common/markdown'
+import {
+  MarkdownEditor,
+  MarkdownRenderer,
+} from '@/src/components/common/markdown'
 import IncidentLinks from '@/src/app/product-management/incidents/_components/incident-links'
 import IncidentDiscussion from '@/src/app/product-management/incidents/_components/incident-discussion'
 import { IncidentSeverityRank } from '@/src/app/product-management/incidents/_components/incident-severity-rank'
+import IncidentFacts from '@/src/app/product-management/incidents/_components/incident-facts'
 import CancelIncidentForm from '@/src/app/product-management/incidents/_components/cancel-incident-form'
 import { incidentWorkflowActionAvailability } from '@/src/app/product-management/incidents/_components/incident-workflow-actions'
 import styles from '@/src/app/product-management/incidents/_components/incidents.module.css'
@@ -38,7 +40,9 @@ import {
   IncidentWorkflowAction,
   ApplyIncidentWorkflowActionRequest,
 } from '@/src/services/wayd-api'
-import { isApiError } from '@/src/utils'
+import { toApiError, toFormErrors } from '@/src/utils'
+
+const incidentSections = [{ id: 'overview', label: 'Overview' }]
 
 const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { key } = use(props.params)
@@ -71,19 +75,36 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   useDocumentTitle(incident ? `Incident ${incident.key}` : 'Incident')
 
+  const isNotFound = (error as { status?: number })?.status === 404
+
   useEffect(() => {
-    if (error) {
+    if (error && !isNotFound) {
       console.error(error)
       messageApi.error('Failed to load incident.')
     }
-  }, [error, messageApi])
+  }, [error, isNotFound, messageApi])
 
-  if (!isLoading && !incident && error) {
+  if (isNotFound) {
     notFound()
   }
 
-  if (!incident) {
-    return null
+  if (error) {
+    return (
+      <Result
+        status="error"
+        title="Failed to load the incident"
+        subTitle="Something went wrong fetching this incident."
+        extra={
+          <Button type="primary" onClick={() => refetch()}>
+            Retry
+          </Button>
+        }
+      />
+    )
+  }
+
+  if (isLoading || !incident) {
+    return <RecordLoading title="Incident" />
   }
 
   const selectedSet = severitySets?.find((set) => set.isSelected)
@@ -141,8 +162,12 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       messageApi.success('Incident updated.')
       setEditing(false)
       refetch()
-    } catch {
-      messageApi.error('Failed to update incident.')
+    } catch (error) {
+      const apiError = toApiError(error)
+      if (apiError.errors) {
+        form.setFields(toFormErrors(apiError.errors))
+      }
+      messageApi.error(apiError.detail ?? 'Failed to update incident.')
     }
   }
 
@@ -169,9 +194,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       refetch()
     } catch (err) {
       messageApi.error(
-        isApiError(err)
-          ? (err.detail ?? 'Could not update incident status.')
-          : 'Could not update incident status.',
+        toApiError(err).detail ?? 'Could not update incident status.',
       )
       throw err
     }
@@ -294,7 +317,9 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   return (
     <>
-      <RecordShell
+      <RecordLayout
+        sections={incidentSections}
+        defaultSection="overview"
         record={{
           name: incident.title,
           recordKey: String(incident.key),
@@ -323,8 +348,11 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             ownerId: incident.id,
           },
         }}
+        facts={
+          <IncidentFacts incident={incident} viewerZone={viewerZone} />
+        }
       >
-        {editing ? (
+        {() => editing ? (
           <Form form={form} layout="vertical">
             <Form.Item name="title" label="Title" rules={[{ required: true }]}>
               <TextArea rows={2} />
@@ -363,88 +391,30 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             </Form.Item>
           </Form>
         ) : (
-          <article className={styles.detail}>
-            <div className={styles.detailMain}>
-              {incident.symptoms ? (
-                <>
-                  <h2 className={styles.fieldHeading}>Symptoms</h2>
-                  <p className={styles.desc}>{incident.symptoms}</p>
-                </>
-              ) : null}
-              {incident.rootCause ? (
-                <>
-                  <h2 className={styles.fieldHeading}>Root cause</h2>
-                  <p className={styles.desc}>{incident.rootCause}</p>
-                </>
-              ) : null}
-              <div className={styles.discussionSection}>
-                <IncidentDiscussion incident={incident} />
-              </div>
+          <div className={styles.detailMain}>
+            {incident.symptoms ? (
+              <>
+                <h2 className={styles.fieldHeading}>Symptoms</h2>
+                <MarkdownRenderer markdown={incident.symptoms} />
+              </>
+            ) : null}
+            {incident.rootCause ? (
+              <>
+                <h2 className={styles.fieldHeading}>Root cause</h2>
+                <MarkdownRenderer markdown={incident.rootCause} />
+              </>
+            ) : null}
+            <div className={styles.discussionSection}>
+              <IncidentDiscussion incident={incident} />
             </div>
-            <aside className={styles.detailAside}>
-              <h2 className={styles.asideHeading}>Commander</h2>
-              <ul className={styles.asideList}>
-                <li>{incident.commander?.name ?? '—'}</li>
-              </ul>
-              <h2 className={styles.asideHeading}>Products</h2>
-              <ul className={styles.asideList}>
-                {incident.products.length > 0 ? (
-                  incident.products.map((product) => (
-                    <li key={product.id}>
-                      <Link
-                        href={`/product-management/products/${product.key}`}
-                      >
-                        {product.name}
-                      </Link>
-                    </li>
-                  ))
-                ) : (
-                  <li>—</li>
-                )}
-              </ul>
-              <h2 className={styles.asideHeading}>Releases</h2>
-              <ul className={styles.asideList}>
-                {incident.releases.length > 0 ? (
-                  incident.releases.map((release) => (
-                    <li key={release.id}>
-                      <Link
-                        href={`/product-management/releases/${release.key}`}
-                      >
-                        {release.name}
-                      </Link>
-                    </li>
-                  ))
-                ) : (
-                  <li>—</li>
-                )}
-              </ul>
-              <h2 className={styles.asideHeading}>Timeline</h2>
-              <ul className={styles.asideList}>
-                <li>
-                  Noticed {formatInstantInZone(incident.noticedAt, viewerZone)}
-                </li>
-                <li>
-                  Response started{' '}
-                  {incident.startedAt
-                    ? formatInstantInZone(incident.startedAt, viewerZone)
-                    : '—'}
-                </li>
-                <li>
-                  Recovered{' '}
-                  {incident.recoveredAt
-                    ? formatInstantInZone(incident.recoveredAt, viewerZone)
-                    : '—'}
-                </li>
-              </ul>
-              <IncidentLinks
-                incidentId={incident.id}
-                idOrKey={key}
-                canManageIncident={canUpdate}
-              />
-            </aside>
-          </article>
+            <IncidentLinks
+              incidentId={incident.id}
+              idOrKey={key}
+              canManageIncident={canUpdate}
+            />
+          </div>
         )}
-      </RecordShell>
+      </RecordLayout>
       {cancelOpen ? (
         <CancelIncidentForm
           incident={incident}

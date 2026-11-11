@@ -14,7 +14,7 @@ import { LoadingOutlined, SearchOutlined } from '@ant-design/icons'
 import { Flex, Input, Modal, Radio, Typography } from 'antd'
 import { ChangeEvent, useState } from 'react'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { isApiError, type ApiError } from '@/src/utils'
+import { toApiError } from '@/src/utils'
 
 const { Text } = Typography
 
@@ -80,7 +80,7 @@ const ReplaceIncidentWorkItemForm = ({
         messageApi.success('Work item link updated.')
         return true
       } catch (error) {
-        const apiError: ApiError = isApiError(error) ? error : {}
+        const apiError = toApiError(error)
         messageApi.error(
           `Failed to update work item link. Error: ${apiError.detail ?? ''}`,
         )

@@ -9,7 +9,7 @@ import { useGetReleasesQuery } from '@/src/store/features/product-management/rel
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
 import { useCreateIncidentMutation } from '@/src/store/features/product-management/incidents-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { isApiError, toFormErrors, type ApiError } from '@/src/utils'
+import { toApiError, toFormErrors } from '@/src/utils'
 import { DatePicker, Form, Modal, Select } from 'antd'
 import TextArea from 'antd/es/input/TextArea'
 import { Dayjs } from 'dayjs'
@@ -87,7 +87,7 @@ export function CreateIncidentForm({
           router.push(`/product-management/incidents/${response.data!.key}`)
           return true
         } catch (error) {
-          const apiError: ApiError = isApiError(error) ? error : {}
+          const apiError = toApiError(error)
           if (apiError.status === 422 && apiError.errors) {
             form.setFields(toFormErrors(apiError.errors))
             messageApi.error('Correct the validation error(s) to continue.')

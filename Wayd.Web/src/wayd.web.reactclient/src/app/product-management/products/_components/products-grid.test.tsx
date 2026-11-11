@@ -375,6 +375,55 @@ describe('ProductsGrid', () => {
     expect(cool).not.toHaveTextContent('SEV-1')
     expect(screen.queryByLabelText('1 active incident')).not.toBeInTheDocument()
   })
+
+  it('filters the incident column by the count the cell shows', async () => {
+    // The cell is a count. A filter that lists severity names cannot match it.
+    // Arrange
+    const withIncident = {
+      ...product('a1', 1, 'Storefront Suite'),
+      activeIncidentSeverityName: 'SEV-1',
+      activeIncidentSeverityColor: '#E07A4C',
+      activeIncidents: [
+        {
+          key: 7,
+          title: 'Checkout down',
+          severityName: 'SEV-1',
+          severityColor: '#E07A4C',
+          statusName: 'Open',
+        },
+        {
+          key: 8,
+          title: 'A warning',
+          severityName: 'SEV-3',
+          severityColor: '#7FA3BF',
+          statusName: 'Responding',
+        },
+        {
+          key: 9,
+          title: 'A third',
+          severityName: 'SEV-2',
+          severityColor: '#D4A017',
+          statusName: 'Open',
+        },
+      ],
+    } as ProductDto
+
+    // Act
+    render(
+      <ProductsGrid
+        products={[withIncident]}
+        isLoading={false}
+        refetch={() => {}}
+        asTree={false}
+      />,
+    )
+    await userEvent.click(filterToggleOf('Incident'))
+
+    // Assert — the count is in the cell and the checkbox; the severity names are not options
+    expect(await screen.findAllByText('3')).toHaveLength(2)
+    expect(screen.queryByText('SEV-1')).not.toBeInTheDocument()
+    expect(screen.queryByText('SEV-2')).not.toBeInTheDocument()
+  })
 })
 
 const cellBackground = (cell: HTMLElement) =>

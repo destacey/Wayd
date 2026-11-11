@@ -323,8 +323,6 @@ interface GridBodyProps<T extends RowData> {
   flatRowId: (row: Row<T>) => string
   /** Flat-mode row activation; see WaydGridProps.onRowActivate. */
   onRowActivate?: (row: T) => void
-  /** See WaydGridProps.getRowBackground. */
-  getRowBackground?: (row: T) => string | undefined
   activatedRowId?: string | null
   getRowActivateLabel?: (row: T) => string
   /** Cell editing, when the grid has `onCommit`. */
@@ -384,7 +382,6 @@ function GridBody<T extends RowData>({
   onRowActivate,
   activatedRowId,
   getRowActivateLabel,
-  getRowBackground,
   cellEditing,
   runRowAction,
   rowActionSupport,
@@ -694,8 +691,6 @@ function GridBody<T extends RowData>({
                     </tr>
                   ) : null
 
-                const rowBackground = getRowBackground?.(row.original)
-
                 if (isTree) {
                   const nodeId = (row.original as { id: string }).id
                   return [
@@ -707,7 +702,6 @@ function GridBody<T extends RowData>({
                       {...navigationProps}
                       classes={treeRowClasses}
                       numericColumnIds={numericColumnIds}
-                      rowBackground={rowBackground}
                       nodeId={nodeId}
                       isExpanded={row.getIsExpanded()}
                       isDragging={draggedNodeId === nodeId}
@@ -765,7 +759,6 @@ function GridBody<T extends RowData>({
                       {...navigationProps}
                       classes={rowClasses}
                       numericColumnIds={numericColumnIds}
-                      rowBackground={rowBackground}
                       nodeId={nodeId}
                       isDragging={draggedNodeId === nodeId}
                       isDragEnabled={isDragEnabled}
@@ -784,7 +777,6 @@ function GridBody<T extends RowData>({
                     {...navigationProps}
                     classes={rowClasses}
                     numericColumnIds={numericColumnIds}
-                    rowBackground={rowBackground}
                     {...activation}
                     {...editProps}
                   />,
@@ -969,7 +961,6 @@ function WaydGridInner<T extends RowData>(
     onRowActivate,
     activatedRowId,
     getRowActivateLabel,
-    getRowBackground,
     onRowReorder,
     grouping,
     renderGroupHeader,
@@ -2531,7 +2522,6 @@ function WaydGridInner<T extends RowData>(
         onRowActivate={isTree ? undefined : onRowActivate}
         activatedRowId={activatedRowId}
         getRowActivateLabel={getRowActivateLabel}
-        getRowBackground={getRowBackground}
         cellEditing={cellEditingEnabled ? cellEditing : undefined}
         runRowAction={hasRowActions ? runRowAction : undefined}
         rowActionSupport={rowActionSupport}

@@ -286,19 +286,11 @@ export interface FlatGridRowProps<T extends RowData>
   /** Column ids whose cells right-align (numeric columns); resolved once at
    *  the grid level — see the grid's numericColumnIds. */
   numericColumnIds?: ReadonlySet<string>
-  /**
-   * Painted on every body cell, including the filler, so zebra, hover, and
-   * pinned-cell backgrounds do not cover it.
-   */
-  rowBackground?: string
 }
 
-/** Inline background wins over the row's class backgrounds. */
-const cellStyle = (
-  pinned: { style?: CSSProperties },
-  rowBackground?: string,
-): CSSProperties | undefined =>
-  rowBackground ? { ...pinned.style, background: rowBackground } : pinned.style
+const cellStyle = (pinned: {
+  style?: CSSProperties
+}): CSSProperties | undefined => pinned.style
 
 /**
  * The FLAT form of the row-renderer seam: a plain `<tr>` of the row's visible
@@ -317,7 +309,6 @@ export function FlatGridRow<T extends RowData>({
   index,
   classes,
   numericColumnIds,
-  rowBackground,
   onActivate,
   isActivated,
   activateLabel,
@@ -342,7 +333,7 @@ export function FlatGridRow<T extends RowData>({
             key={cell.id}
             data-column-id={cell.column.id}
             className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}${editState.className}`}
-            style={cellStyle(pinned, rowBackground)}
+            style={cellStyle(pinned)}
             {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
             {...editState.attrs}
           >
@@ -354,7 +345,6 @@ export function FlatGridRow<T extends RowData>({
       <td
         aria-hidden="true"
         className={classes.td}
-        style={rowBackground ? { background: rowBackground } : undefined}
       />
     </tr>
   )
@@ -383,7 +373,6 @@ export function SortableFlatGridRow<T extends RowData>({
   index,
   classes,
   numericColumnIds,
-  rowBackground,
   nodeId,
   isDragging,
   isDragEnabled,
@@ -414,7 +403,7 @@ export function SortableFlatGridRow<T extends RowData>({
             key={cell.id}
             data-column-id={cell.column.id}
             className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}${editState.className}`}
-            style={cellStyle(pinned, rowBackground)}
+            style={cellStyle(pinned)}
             {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
             {...editState.attrs}
           >
@@ -426,7 +415,6 @@ export function SortableFlatGridRow<T extends RowData>({
       <td
         aria-hidden="true"
         className={classes.td}
-        style={rowBackground ? { background: rowBackground } : undefined}
       />
     </GridSortableRow>
   )
@@ -459,8 +447,6 @@ export interface TreeGridRowProps<T extends RowData>
   isDragging: boolean
   /** Whether DnD is enabled for this row. */
   isDragEnabled: boolean
-  /** See {@link FlatGridRowProps.rowBackground}. */
-  rowBackground?: string
 }
 
 /**
@@ -474,7 +460,6 @@ export function TreeGridRow<T extends RowData>({
   index,
   classes,
   numericColumnIds,
-  rowBackground,
   nodeId,
   isExpanded,
   isDragging,
@@ -502,7 +487,7 @@ export function TreeGridRow<T extends RowData>({
             key={cell.id}
             data-column-id={cell.column.id}
             className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}${editState.className}`}
-            style={cellStyle(pinned, rowBackground)}
+            style={cellStyle(pinned)}
             {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
             {...editState.attrs}
           >
@@ -520,7 +505,6 @@ export function TreeGridRow<T extends RowData>({
       <td
         aria-hidden="true"
         className={classes.td}
-        style={rowBackground ? { background: rowBackground } : undefined}
       />
     </GridSortableRow>
   )

@@ -1,9 +1,9 @@
 'use client'
 
+import EntityLink from '@/src/components/common/entity-link'
 import { createMultiValueSetFilter } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { Popover, Tag } from 'antd'
-import Link from 'next/link'
 import styles from './active-incident-links.module.css'
 
 /** One active incident a product or release row can open. */
@@ -21,12 +21,10 @@ type IncidentRow = {
   activeIncidentSeverityColor?: string | null
 }
 
-const severityNames = (row: IncidentRow): string[] => {
-  const names = (row.activeIncidents ?? [])
-    .map((incident) => incident.severityName)
-    .filter((name): name is string => !!name)
-  if (names.length > 0) return names
-  return row.activeIncidentSeverityName ? [row.activeIncidentSeverityName] : []
+/** The count the cell shows, so the set filter offers counts rather than severity names. */
+const incidentCounts = (row: IncidentRow): string[] => {
+  const count = row.activeIncidents?.length ?? 0
+  return count > 0 ? [String(count)] : []
 }
 
 /**
@@ -56,7 +54,7 @@ export function ActiveIncidentPill({
         <ul className={styles.list}>
           {links.map((incident) => (
             <li key={incident.key}>
-              <Link
+              <EntityLink
                 href={`/product-management/incidents/${incident.key}`}
                 className={styles.item}
               >
@@ -68,7 +66,7 @@ export function ActiveIncidentPill({
                 </span>
                 <span className={styles.name}>{incident.title}</span>
                 <span className={styles.status}>{incident.statusName}</span>
-              </Link>
+              </EntityLink>
             </li>
           ))}
         </ul>
@@ -87,11 +85,11 @@ export function activeIncidentColumn<T extends IncidentRow>(): ColumnDef<
 > {
   return {
     id: 'activeIncident',
-    accessorFn: (row) => severityNames(row).join(', '),
+    accessorFn: (row) => row.activeIncidents?.length ?? 0,
     header: 'Incident',
     size: 110,
-    filterFn: createMultiValueSetFilter<T>(severityNames),
-    meta: { filterType: 'set', multiValues: severityNames },
+    filterFn: createMultiValueSetFilter<T>(incidentCounts),
+    meta: { filterType: 'set', multiValues: incidentCounts },
     cell: ({ row }) => (
       <ActiveIncidentPill
         incidents={row.original.activeIncidents}

@@ -14,11 +14,14 @@ import type {
   IncidentTimelineLinkEntryDto,
   IncidentWorkflowActionDto,
   ApplyIncidentWorkflowActionRequest,
+  ProductStatusAlias,
 } from '@/src/services/wayd-api'
 
 export interface GetIncidentsRequest {
   page?: number
   pageSize?: number
+  statuses?: ProductStatusAlias[]
+  severityLevelIds?: string[]
 }
 
 export const incidentsApi = apiSlice.injectEndpoints({
@@ -32,6 +35,8 @@ export const incidentsApi = apiSlice.injectEndpoints({
           const data = await getIncidentsClient().getIncidents(
             args?.page,
             args?.pageSize,
+            args?.statuses,
+            args?.severityLevelIds,
           )
           return { data }
         } catch (error) {
@@ -60,7 +65,10 @@ export const incidentsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      providesTags: (_result, _error, idOrKey) => [
+      // Tag by both the resolved id and the route key. Mutations invalidate the
+      // id, and a key-only tag never refetches the page that loaded by key.
+      providesTags: (result, _error, idOrKey) => [
+        ...(result ? [{ type: QueryTags.Incident, id: result.id }] : []),
         { type: QueryTags.Incident, id: idOrKey },
       ],
     }),

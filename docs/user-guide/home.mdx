@@ -29,7 +29,7 @@ Every widget is a card with its title at the top left and, where there is a full
 
 The row of counts across the top shows up to four numbers that need you today. Each one links to the list behind it, and its number turns orange or red. A count at zero gives up its place to the next one, and when every count is zero the row is not shown at all, so an empty row means nothing is waiting.
 
-When more counts are above zero than fit, the most urgent four show, in this order: overdue tasks, risk follow-ups, dependencies at risk, tasks due this week, unread notifications. Where you placed the widgets makes no difference to which counts show.
+When more counts are above zero than fit, the most urgent four show, in this order: overdue tasks, sprints to complete, risk follow-ups, unhealthy dependencies, dependencies at risk, tasks due this week, unread notifications. Where you placed the widgets makes no difference to which counts show.
 
 | Count | What it counts | Where it goes |
 |-------|----------------|---------------|
@@ -38,8 +38,10 @@ When more counts are above zero than fit, the most urgent four show, in this ord
 | Due this week (on your projects) | Open tasks on those projects due by the end of this week (Saturday) | The Projects Dashboard |
 | Risk follow-ups | Open risks assigned to you whose follow-up date is today or past | The My risks widget below |
 | Dependencies at risk (on your teams) | Open [dependencies](./work-management/work-items.mdx#work-item-dependencies) of your teams that are at risk (neither end planned) or unhealthy (planned to finish after they are needed); a dependency between two of your teams counts once | The My teams widget below |
+| Sprints to complete (in your teams of teams) | Sprints that a team in one of your teams of teams started and that are past their end without being completed | The My teams widget below |
+| Unhealthy dependencies (across your teams of teams) | Open cross-team dependencies of your teams of teams that are unhealthy; a dependency two of them share counts once | The My teams widget below |
 
-A count shows only when its widget does: without the Following flag there is no unread count, without permission to view risks there are no risk follow-ups, and without permission to view work items there are no dependencies at risk. A count that fails to load keeps its place and shows a dash rather than a zero.
+A count shows only when its widget does: without the Following flag there is no unread count, without permission to view risks there are no risk follow-ups, without permission to view work items there are no dependencies at risk or unhealthy dependencies, and without permission to view iterations there are no sprints to complete. A count that fails to load keeps its place and shows a dash rather than a zero.
 
 ## Widgets
 
@@ -59,14 +61,27 @@ This is each widget's usual place. Until you [customize](#customizing) the page,
   - Every team shows its open dependencies, with how many are at risk or unhealthy, and its open risks, each linking to that section of the team page. The dependency count includes dependencies within the team, so it matches the team page.
   - A team with no operating model shows only its dependencies and risks.
 
-  Each part needs the permission the team page needs for it: viewing iterations for the sprint, viewing work items for flow and dependencies, and viewing risks for risks. Teams of teams are not listed.
+  - A team in a team of teams says which one it is **Part of**, linking to it.
+
+  Each part needs the permission the team page needs for it: viewing iterations for the sprint, viewing work items for flow and dependencies, and viewing risks for risks.
+
+  Each team of teams you are a member of directly — as a release train engineer, product manager or architect, say — is one card, above your team cards. Being on one of its teams does not make you a member of it, so that only gets you the team's own card.
+  - The header gives its name, linking to its page, how many teams (and teams of teams) are in it today and their methodologies ("6 teams · 4 Scrum, 2 Kanban"), and the [planning interval](./planning/planning-intervals.mdx) running now that it or one of its teams takes part in, with how many open objectives of theirs have a current health check of At Risk or Unhealthy.
+  - Each team or team of teams in it today has a row: a status, its name linking to its page, **Your team** when you are on it, and one signal. Teams needing attention come first, then those to watch; those on track are collapsed into **+ N on track**, which shows them until you choose **Hide on track**. Hover a row's status dot to read its status.
+    - A **Scrum** team shows its running sprint with the share done against the share expected done by now, the same comparison as the sprint's health: its commitment against its burn-down once the commitment point has passed and its history is read in full, and otherwise its work against the share of its days gone. On track within 10 points, watch up to 25 points behind, needs attention beyond. Between sprints the row says **No active sprint**. A sprint the team started that is past its end and not completed shows as **ended, not completed** and needs attention; the sprint links to its page, where it can be completed.
+    - A **Kanban** team shows its items in progress and how old the oldest is. It needs watching when the oldest has been in progress more than twice the team's median cycle time over the last 14 days (counted as at least a day), and attention past three times. A team that finished nothing in those 14 days has no median to compare with and shows as on track.
+    - A team with no operating model shows only its name.
+    - A team of teams inside it shows how many teams are beneath it, at any depth, and how many need attention or watching, and takes the worst status among them. The card goes one level down: its teams are not rows of their own.
+  - The footer gives its open cross-team dependencies — those of every team beneath it whose predecessor is not done, as its Dependencies section lists them — with how many are at risk or unhealthy, and its own open risks with those of the teams beneath it. Each links to that section of the team of teams page.
+
+  The card's parts need the same permissions as the team of teams page's: viewing iterations for sprints, viewing work items for flow and dependencies, viewing risks for risks, and viewing planning intervals for the planning interval, with viewing planning interval objectives for its at-risk count. Without permission to view a team's sprint or flow, its row shows only its name and counts as on track.
 - **Following** — the records you [follow](./following.mdx), most recently changed first. **View all** opens your Following list.
 
 ## How the default is chosen
 
 The columns above are the starting point. Until you customize the page, Wayd reorders them around what you are involved in, so you land on your own work without setting anything up. It works this out from your records each time you open the page — your team memberships, the roles you hold and tasks assigned to you on approved and active projects, the risks assigned to you — and never asks or stores what your job is.
 
-- **What you lead or do every day comes first.** If you sponsor, own or manage a project, My projects moves to the top of the main column. If you are a member of a team, My teams moves to the top of the main column too.
+- **What you lead or do every day comes first.** If you sponsor, own or manage a project, My projects moves to the top of the main column. If you are a member of a team or a team of teams, My teams moves to the top of the main column too.
 - **Areas you work in come next.** My projects for a project member or task assignee, My risks when risks are assigned to you, and Planning intervals when you are on a team or a team of teams.
 - **Shared widgets follow** — What's changed and Following.
 - **Areas you are not part of go last.** They still show, with a line saying how they fill.

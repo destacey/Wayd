@@ -13,6 +13,7 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
 using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Enums.Organization;
+using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -24,6 +25,8 @@ using Wayd.Organization.Application.EmployeeCapacities.Queries;
 using Wayd.Organization.Application.Models;
 using Wayd.Organization.Application.Teams.Dtos;
 using Wayd.Organization.Application.Teams.Queries;
+using Wayd.Planning.Application.PlanningIntervals.Dtos;
+using Wayd.Planning.Application.PlanningIntervals.Queries;
 using Wayd.Planning.Application.Risks.Queries;
 using Wayd.ProductManagement.Application.Products.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
@@ -32,6 +35,7 @@ using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.Web.Api.Controllers;
 using Wayd.Web.Api.Mcp;
 using Wayd.Web.Api.Models.Me;
+using Wayd.Work.Application.Iterations.Dtos;
 using Wayd.Work.Application.Iterations.Queries;
 using Wayd.Work.Application.WorkItemDependencies.Dtos;
 using Wayd.Work.Application.WorkItems.Dtos;
@@ -352,6 +356,7 @@ public sealed class MeControllerTests
     {
         LinkedTo(Guid.NewGuid());
         _mocker.GetMock<IDateTimeProvider>().Setup(p => p.Now).Returns(now);
+        _mocker.GetMock<IDateTimeProvider>().Setup(p => p.Today).Returns(now.InUtc().Date);
         _mocker
             .GetMock<ICurrentPrincipal>()
             .Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -359,8 +364,23 @@ public sealed class MeControllerTests
 
         var dispatcher = _mocker.GetMock<IDispatcher>();
         dispatcher
-            .Setup(d => d.Send(It.IsAny<GetEmployeeActiveTeamsQuery>(), It.IsAny<CancellationToken>()))
+            .Setup(d => d.Send(It.Is<GetEmployeeActiveTeamsQuery>(q => q.Type == TeamType.Team), It.IsAny<CancellationToken>()))
             .ReturnsAsync(teams);
+        dispatcher
+            .Setup(d => d.Send(It.Is<GetEmployeeActiveTeamsQuery>(q => q.Type == TeamType.TeamOfTeams), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsParentQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, TeamNavigationDto>());
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsSprintSignalQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, TeamSprintSignalDto>());
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsDependenciesQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetCurrentPlanningIntervalForTeamsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((CurrentPlanningIntervalDto?)null);
         dispatcher
             .Setup(d => d.Send(It.IsAny<GetTeamsScheduleHistoryQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(schedules.ToDictionary(e => e.Key, e => e.Value));
@@ -711,6 +731,363 @@ public sealed class MeControllerTests
         summary.Teams.Should().BeEmpty();
         summary.DependenciesAtRiskCount.Should().Be(0);
         dispatcher.Verify(d => d.Send(It.IsAny<GetTeamsScheduleHistoryQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    private static readonly LocalDate SummaryToday = SummaryNow.InUtc().Date;
+
+    private static TeamNavigationDto SummaryTeamOfTeams(string name) =>
+        new() { Id = Guid.NewGuid(), Key = Random.Shared.Next(1, 10_000), Name = name, Code = name.ToUpperInvariant(), Type = "Team of Teams" };
+
+    private static TeamStructureTeam Node(TeamNavigationDto team) =>
+        new(team.Id, team.Key, team.Code, team.Name, team.Type == "Team" ? TeamType.Team : TeamType.TeamOfTeams);
+
+    /// <summary>A structure for <paramref name="root"/> with each (child, parent) edge open since the start of the year.</summary>
+    private static TeamStructure Structure(TeamNavigationDto root, params (TeamNavigationDto Child, TeamNavigationDto Parent)[] edges) =>
+        new(
+            root.Id,
+            [Node(root), .. edges.Select(e => Node(e.Child))],
+            [.. edges.Select(e => new TeamStructureMembership(e.Child.Id, e.Parent.Id, new LocalDate(2026, 1, 1), null))],
+            []);
+
+    /// <summary>Makes the caller a direct member of <paramref name="structures"/>' roots.</summary>
+    private static void TeamsOfTeamsAre(Mock<IDispatcher> dispatcher, params (TeamNavigationDto Root, TeamStructure Structure)[] structures)
+    {
+        dispatcher
+            .Setup(d => d.Send(It.Is<GetEmployeeActiveTeamsQuery>(q => q.Type == TeamType.TeamOfTeams), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([.. structures.Select(s => s.Root)]);
+        foreach (var (root, structure) in structures)
+        {
+            dispatcher
+                .Setup(d => d.Send(It.Is<GetTeamStructureQuery>(q => q.TeamId == root.Id), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(structure);
+        }
+    }
+
+    private static TeamSprintSignalDto Signal(AttentionStatus status, bool endedNotCompleted = false) =>
+        new()
+        {
+            Sprint = new NavigationDto { Id = Guid.NewGuid(), Key = Random.Shared.Next(1, 10_000), Name = "Sprint" },
+            EndedNotCompleted = endedNotCompleted,
+            ExpectedShare = endedNotCompleted ? null : 0.5,
+            DoneShare = endedNotCompleted ? null : 0.4,
+            Status = status,
+        };
+
+    private static KanbanTeamWindowMetricsDto Metrics(TeamNavigationDto team, double medianDays, int inProgress = 3) =>
+        new() { Team = team, TimeZone = "Etc/UTC", InProgressWorkItems = inProgress, MedianCycleTimeDays = medianDays, CycleTime = CycleTimeSummary.Empty };
+
+    private static InProgressWorkItemDto OldestFor(double days) =>
+        new() { Id = Guid.NewGuid(), Key = "WAYD-1", WorkspaceKey = "WAYD", Title = "Oldest", ActivatedOn = SummaryNow.Minus(Duration.FromHours(days * 24)) };
+
+    private static DependencyDto Dependency(DependencyPlanningHealth health, Guid? id = null)
+    {
+        WorkItemDetailsNavigationDto Item() => new()
+        {
+            Id = Guid.NewGuid(),
+            Key = "WAYD-1",
+            Title = "Item",
+            WorkspaceKey = "WAYD",
+            Type = "Story",
+            Status = "Active",
+            StatusCategory = SimpleNavigationDto.FromEnum(StatusCategory.Active),
+        };
+
+        return new DependencyDto
+        {
+            Id = id ?? Guid.NewGuid(),
+            Source = Item(),
+            Target = Item(),
+            LinkType = SimpleNavigationDto.Create(2, "Dependency"),
+            State = SimpleNavigationDto.FromEnum(DependencyState.InProgress),
+            Health = SimpleNavigationDto.FromEnum(health),
+        };
+    }
+
+    private static readonly string[] _allRollupPermissions =
+    [
+        .. _allSummaryPermissions,
+        ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.PlanningIntervals),
+        ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.PlanningIntervalObjectives),
+    ];
+
+    [Fact]
+    public async Task GetTeamsSummary_TeamOfTeamsOfScrumAndKanbanTeams_RowsEachTeamNeedingAttentionFirst()
+    {
+        // Arrange
+        var train = SummaryTeamOfTeams("Train");
+        var behind = SummaryTeam("Behind");
+        var steady = SummaryTeam("Steady");
+        var stuck = SummaryTeam("Stuck");
+        var slowing = SummaryTeam("Slowing");
+        var flowing = SummaryTeam("Flowing");
+        var unmodelled = SummaryTeam("Unmodelled");
+        var dispatcher = SummaryOf(SummaryNow, [steady], new()
+        {
+            [behind.Id] = [Model(new LocalDate(2026, 1, 1), null, Methodology.Scrum)],
+            [steady.Id] = [Model(new LocalDate(2026, 1, 1), null, Methodology.Scrum)],
+            [stuck.Id] = [Model(new LocalDate(2026, 1, 1), null, Methodology.Kanban)],
+            [slowing.Id] = [Model(new LocalDate(2026, 1, 1), null, Methodology.Kanban)],
+            [flowing.Id] = [Model(new LocalDate(2026, 1, 1), null, Methodology.Kanban)],
+        }, _allRollupPermissions);
+        TeamsOfTeamsAre(dispatcher, (train, Structure(train,
+            (behind, train), (steady, train), (stuck, train), (slowing, train), (flowing, train), (unmodelled, train))));
+        var behindSignal = Signal(AttentionStatus.Watch);
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsSprintSignalQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, TeamSprintSignalDto> { [behind.Id] = behindSignal });
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetKanbanTeamsWindowMetricsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Metrics(stuck, 2), Metrics(slowing, 2), Metrics(flowing, 2)]);
+        var stuckOldest = OldestFor(7);
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsOldestInProgressWorkItemQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, InProgressWorkItemDto>
+            {
+                [stuck.Id] = stuckOldest,
+                [slowing.Id] = OldestFor(5),
+                [flowing.Id] = OldestFor(3),
+            });
+
+        // Act
+        var summary = await GetSummary();
+
+        // Assert
+        var rollup = summary.TeamsOfTeams.Single();
+        rollup.Team.Should().Be(train);
+        rollup.ScrumTeamCount.Should().Be(2);
+        rollup.KanbanTeamCount.Should().Be(3);
+        rollup.Rows.Select(r => (r.Team.Name, r.Status)).Should().Equal(
+            ("Stuck", AttentionStatus.NeedsAttention),
+            ("Behind", AttentionStatus.Watch),
+            ("Slowing", AttentionStatus.Watch),
+            ("Flowing", AttentionStatus.OnTrack),
+            ("Steady", AttentionStatus.OnTrack),
+            ("Unmodelled", AttentionStatus.OnTrack));
+
+        rollup.Rows.Single(r => r.Team.Id == behind.Id).Sprint.Should().Be(behindSignal);
+        var stuckFlow = rollup.Rows.Single(r => r.Team.Id == stuck.Id).Flow!;
+        stuckFlow.InProgressCount.Should().Be(3);
+        stuckFlow.OldestInProgressSince.Should().Be(stuckOldest.ActivatedOn);
+        stuckFlow.MedianCycleTimeDays.Should().Be(2);
+        rollup.Rows.Where(r => r.IsMine).Select(r => r.Team.Id).Should().Equal(steady.Id);
+
+        dispatcher.Verify(d => d.Send(
+            It.Is<GetTeamsSprintSignalQuery>(q => q.TeamIds.Order().SequenceEqual(new[] { behind.Id, steady.Id }.Order())),
+            It.IsAny<CancellationToken>()), Times.Once);
+        dispatcher.Verify(d => d.Send(
+            It.Is<GetTeamStructureQuery>(q => q.TeamId == train.Id && q.From == SummaryToday && q.To == SummaryToday),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetTeamsSummary_TeamWithNoOperatingModelInARollup_ShowsOnlyItsName()
+    {
+        // Arrange
+        var train = SummaryTeamOfTeams("Train");
+        var unmodelled = SummaryTeam("Unmodelled");
+        var dispatcher = SummaryOf(SummaryNow, [], [], _allRollupPermissions);
+        TeamsOfTeamsAre(dispatcher, (train, Structure(train, (unmodelled, train))));
+
+        // Act
+        var summary = await GetSummary();
+
+        // Assert
+        var row = summary.TeamsOfTeams.Single().Rows.Single();
+        row.Team.Id.Should().Be(unmodelled.Id);
+        row.Team.Type.Should().Be("Team");
+        row.Methodology.Should().BeNull();
+        row.Sprint.Should().BeNull();
+        row.Flow.Should().BeNull();
+        row.Nested.Should().BeNull();
+        row.Status.Should().Be(AttentionStatus.OnTrack);
+        summary.TeamsOfTeams.Single().ScrumTeamCount.Should().Be(0);
+        dispatcher.Verify(d => d.Send(It.IsAny<GetTeamsSprintSignalQuery>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetTeamsSummary_NestedTeamOfTeams_IsOneRowCarryingTheWorstStatusBeneathIt()
+    {
+        // Arrange — Train holds Direct and Platform; Platform holds Api and Core, which holds Data. The caller is on
+        // both Train and Platform.
+        var train = SummaryTeamOfTeams("Train");
+        var direct = SummaryTeam("Direct");
+        var platform = SummaryTeamOfTeams("Platform");
+        var api = SummaryTeam("Api");
+        var core = SummaryTeamOfTeams("Core");
+        var data = SummaryTeam("Data");
+        var scrum = new LocalDate(2026, 1, 1);
+        var dispatcher = SummaryOf(SummaryNow, [], new()
+        {
+            [direct.Id] = [Model(scrum, null, Methodology.Scrum)],
+            [api.Id] = [Model(scrum, null, Methodology.Scrum)],
+            [data.Id] = [Model(scrum, null, Methodology.Scrum)],
+        }, _allRollupPermissions);
+        TeamsOfTeamsAre(dispatcher,
+            (platform, Structure(platform, (api, platform), (core, platform), (data, core))),
+            (train, Structure(train, (direct, train), (platform, train), (api, platform), (core, platform), (data, core))));
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsSprintSignalQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, TeamSprintSignalDto>
+            {
+                [direct.Id] = Signal(AttentionStatus.OnTrack),
+                [api.Id] = Signal(AttentionStatus.Watch),
+                [data.Id] = Signal(AttentionStatus.NeedsAttention, endedNotCompleted: true),
+            });
+
+        // Act
+        var summary = await GetSummary();
+
+        // Assert
+        var rows = summary.TeamsOfTeams.Single(r => r.Team.Id == train.Id).Rows;
+        rows.Select(r => r.Team.Id).Should().Equal(platform.Id, direct.Id);
+        var nested = rows[0];
+        nested.IsMine.Should().BeTrue("the caller is a member of the nested team of teams directly");
+        nested.Team.Type.Should().Be("Team of Teams");
+        nested.Status.Should().Be(AttentionStatus.NeedsAttention);
+        nested.Nested.Should().Be(new MyTeamOfTeamsNestedResponse { TeamCount = 2, NeedsAttentionCount = 1, WatchCount = 1 });
+        nested.Methodology.Should().BeNull();
+        nested.Sprint.Should().BeNull();
+        summary.SprintsEndedNotCompletedCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetTeamsSummary_ChildSprintEndedButNotCompleted_NeedsAttentionAndIsCountedOnce()
+    {
+        // Arrange — the caller is on two teams of teams that share the team left with a sprint open
+        var train = SummaryTeamOfTeams("Train");
+        var guild = SummaryTeamOfTeams("Guild");
+        var shared = SummaryTeam("Shared");
+        var dispatcher = SummaryOf(SummaryNow, [], new()
+        {
+            [shared.Id] = [Model(new LocalDate(2026, 1, 1), null, Methodology.Scrum)],
+        }, _allRollupPermissions);
+        TeamsOfTeamsAre(dispatcher, (guild, Structure(guild, (shared, guild))), (train, Structure(train, (shared, train))));
+        var leftOpen = Signal(AttentionStatus.NeedsAttention, endedNotCompleted: true);
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsSprintSignalQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, TeamSprintSignalDto> { [shared.Id] = leftOpen });
+
+        // Act
+        var summary = await GetSummary();
+
+        // Assert
+        summary.TeamsOfTeams.Should().HaveCount(2);
+        summary.TeamsOfTeams.Should().AllSatisfy(r =>
+        {
+            r.Rows.Single().Sprint.Should().Be(leftOpen);
+            r.Rows.Single().Status.Should().Be(AttentionStatus.NeedsAttention);
+        });
+        summary.SprintsEndedNotCompletedCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetTeamsSummary_RollupFooter_CountsCrossTeamDependenciesRisksAndThePlanningInterval()
+    {
+        // Arrange
+        var train = SummaryTeamOfTeams("Train");
+        var guild = SummaryTeamOfTeams("Guild");
+        var payments = SummaryTeam("Payments");
+        var checkout = SummaryTeam("Checkout");
+        var dispatcher = SummaryOf(SummaryNow, [], [], _allRollupPermissions);
+        TeamsOfTeamsAre(dispatcher, (train, Structure(train, (payments, train), (checkout, train))), (guild, Structure(guild, (checkout, guild))));
+        var sharedUnhealthy = Guid.NewGuid();
+        dispatcher
+            .Setup(d => d.Send(It.Is<GetTeamsDependenciesQuery>(q => q.TeamIds.Contains(payments.Id)), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([
+                Dependency(DependencyPlanningHealth.Healthy),
+                Dependency(DependencyPlanningHealth.AtRisk),
+                Dependency(DependencyPlanningHealth.Unhealthy, sharedUnhealthy),
+                Dependency(DependencyPlanningHealth.Unhealthy),
+            ]);
+        dispatcher
+            .Setup(d => d.Send(It.Is<GetTeamsDependenciesQuery>(q => !q.TeamIds.Contains(payments.Id)), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Dependency(DependencyPlanningHealth.Unhealthy, sharedUnhealthy)]);
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsOpenRiskCountQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, int> { [train.Id] = 2, [payments.Id] = 3, [checkout.Id] = 4 });
+        var pi = new NavigationDto { Id = Guid.NewGuid(), Key = 8, Name = "PI 26.4" };
+        dispatcher
+            .Setup(d => d.Send(It.Is<GetCurrentPlanningIntervalForTeamsQuery>(q => q.PreferredTeamId == train.Id), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CurrentPlanningIntervalDto { PlanningInterval = pi, ObjectivesAtRiskCount = 5 });
+
+        // Act
+        var summary = await GetSummary();
+
+        // Assert
+        var rollup = summary.TeamsOfTeams.Single(r => r.Team.Id == train.Id);
+        rollup.Dependencies.Should().Be(new MyTeamOfTeamsDependenciesResponse { OpenCount = 4, AtRiskCount = 1, UnhealthyCount = 2 });
+        rollup.Risks.Should().Be(new MyTeamOfTeamsRisksResponse { OwnOpenCount = 2, TeamsOpenCount = 7 });
+        rollup.PlanningInterval.Should().Be(new MyTeamOfTeamsPlanningIntervalResponse { PlanningInterval = pi, ObjectivesAtRiskCount = 5 });
+        summary.TeamsOfTeams.Single(r => r.Team.Id == guild.Id).PlanningInterval.Should().BeNull();
+        summary.UnhealthyCrossTeamDependencyCount.Should().Be(2);
+        dispatcher.Verify(d => d.Send(
+            It.Is<GetCurrentPlanningIntervalForTeamsQuery>(q => q.PreferredTeamId == train.Id && q.Today == SummaryToday
+                && q.TeamIds.Order().SequenceEqual(new[] { train.Id, payments.Id, checkout.Id }.Order())),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(ApplicationResource.WorkItems)]
+    [InlineData(ApplicationResource.Risks)]
+    [InlineData(ApplicationResource.PlanningIntervals)]
+    [InlineData(ApplicationResource.PlanningIntervalObjectives)]
+    public async Task GetTeamsSummary_WithoutAFooterSectionsPermission_LeavesThatSectionOutOfTheRollup(string missing)
+    {
+        // Arrange
+        var train = SummaryTeamOfTeams("Train");
+        var payments = SummaryTeam("Payments");
+        var granted = _allRollupPermissions.Where(p => p != ApplicationPermission.NameFor(ApplicationAction.View, missing)).ToArray();
+        var dispatcher = SummaryOf(SummaryNow, [], [], granted);
+        TeamsOfTeamsAre(dispatcher, (train, Structure(train, (payments, train))));
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetCurrentPlanningIntervalForTeamsQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GetCurrentPlanningIntervalForTeamsQuery q, CancellationToken _) => new CurrentPlanningIntervalDto
+            {
+                PlanningInterval = new NavigationDto { Id = Guid.NewGuid(), Key = 1, Name = "PI" },
+                ObjectivesAtRiskCount = q.IncludeObjectives ? 3 : null,
+            });
+
+        // Act
+        var summary = await GetSummary();
+
+        // Assert
+        var rollup = summary.TeamsOfTeams.Single();
+        (rollup.Dependencies is null).Should().Be(missing == ApplicationResource.WorkItems);
+        (summary.UnhealthyCrossTeamDependencyCount is null).Should().Be(missing == ApplicationResource.WorkItems);
+        (rollup.Risks is null).Should().Be(missing == ApplicationResource.Risks);
+        (rollup.PlanningInterval is null).Should().Be(missing == ApplicationResource.PlanningIntervals);
+        (rollup.PlanningInterval?.ObjectivesAtRiskCount is null).Should().Be(missing is ApplicationResource.PlanningIntervals or ApplicationResource.PlanningIntervalObjectives);
+
+        var sends = missing switch
+        {
+            ApplicationResource.WorkItems => dispatcher.Invocations.Count(i => i.Arguments[0] is GetTeamsDependenciesQuery),
+            ApplicationResource.Risks => dispatcher.Invocations.Count(i => i.Arguments[0] is GetTeamsOpenRiskCountQuery),
+            ApplicationResource.PlanningIntervals => dispatcher.Invocations.Count(i => i.Arguments[0] is GetCurrentPlanningIntervalForTeamsQuery),
+            _ => dispatcher.Invocations.Count(i => i.Arguments[0] is GetCurrentPlanningIntervalForTeamsQuery { IncludeObjectives: true }),
+        };
+        sends.Should().Be(0, "a section the caller cannot see is never read");
+    }
+
+    [Fact]
+    public async Task GetTeamsSummary_TeamInATeamOfTeams_SaysWhichItIsPartOf()
+    {
+        // Arrange
+        var payments = SummaryTeam("Payments");
+        var loner = SummaryTeam("Loner");
+        var train = SummaryTeamOfTeams("Train");
+        var dispatcher = SummaryOf(SummaryNow, [loner, payments], [], _allSummaryPermissions);
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsParentQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, TeamNavigationDto> { [payments.Id] = train });
+
+        // Act
+        var summary = await GetSummary();
+
+        // Assert
+        summary.Teams.Single(t => t.Team.Id == payments.Id).PartOf.Should().Be(train);
+        summary.Teams.Single(t => t.Team.Id == loner.Id).PartOf.Should().BeNull();
+        summary.TeamsOfTeams.Should().BeEmpty();
+        dispatcher.Verify(d => d.Send(It.Is<GetTeamsParentQuery>(q => q.Date == SummaryToday), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Theory]

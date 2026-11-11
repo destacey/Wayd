@@ -14,18 +14,13 @@ import { FC } from 'react'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
 import { HomeWidgetProps } from '../widget-registry'
 import { useMyTeamsSummary } from './my-teams-tile'
+import { daysSince, plural } from './team-figures'
+import TeamOfTeamsRollup from './team-of-teams-rollup'
 import styles from '../home.module.css'
 
 const { Text } = Typography
 
-const DAY_MS = 24 * 60 * 60 * 1000
-
-const plural = (count: number, one: string, many = `${one}s`) =>
-  `${count} ${count === 1 ? one : many}`
-
-/** Whole days since `since`, at least zero. */
-export const daysSince = (since: Date, now: Date = new Date()): number =>
-  Math.max(0, Math.floor((now.getTime() - new Date(since).getTime()) / DAY_MS))
+export { daysSince } from './team-figures'
 
 const TeamHeader: FC<{ summary: MyTeamSummaryResponse }> = ({ summary }) => (
   <Flex justify="space-between" align="baseline" gap="small" wrap>
@@ -37,6 +32,17 @@ const TeamHeader: FC<{ summary: MyTeamSummaryResponse }> = ({ summary }) => (
     ) : null}
   </Flex>
 )
+
+/** The team of teams a team belongs to today, under its card. */
+const PartOf: FC<{ summary: MyTeamSummaryResponse }> = ({ summary }) =>
+  summary.partOf ? (
+    <span className={styles.listItemMeta}>
+      <Text type="secondary">
+        Part of{' '}
+        <Link href={teamUrl(summary.partOf)}>{summary.partOf.name}</Link>
+      </Text>
+    </span>
+  ) : null
 
 const Flow: FC<{ flow: MyTeamFlowSummaryResponse }> = ({ flow }) => {
   const oldest = flow.oldestInProgress
@@ -143,23 +149,34 @@ const TeamSection: FC<{ summary: MyTeamSummaryResponse }> = ({ summary }) => {
         </>
       )}
       <TeamFooter summary={summary} />
+      <PartOf summary={summary} />
     </div>
   )
 }
 
-/** A card for each team the caller is a member of, built for how that team works today. */
+/**
+ * A card for each team of teams and team the caller is a member of: teams of
+ * teams first, as the rollup over teams the caller may also be on.
+ */
 const MyTeamsWidget: FC<HomeWidgetProps> = ({ title }) => {
   const { data, isLoading, isError, isOnNoTeam } = useMyTeamsSummary()
 
   const body = () => {
     if (isError) return <WidgetError message="Could not load your teams." />
-    if (isOnNoTeam || !data || data.teams.length === 0) {
+    if (
+      isOnNoTeam ||
+      !data ||
+      (data.teams.length === 0 && data.teamsOfTeams.length === 0)
+    ) {
       return (
         <WidgetEmpty message="You are not a member of a team. Your teams appear here once you join one." />
       )
     }
     return (
       <Flex vertical gap="middle">
+        {data.teamsOfTeams.map((rollup) => (
+          <TeamOfTeamsRollup key={rollup.team.id} rollup={rollup} />
+        ))}
         {data.teams.map((summary) => (
           <TeamSection key={summary.team.id} summary={summary} />
         ))}

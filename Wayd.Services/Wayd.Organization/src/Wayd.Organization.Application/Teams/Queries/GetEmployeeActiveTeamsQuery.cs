@@ -4,10 +4,11 @@ using Wayd.Organization.Application.Models;
 namespace Wayd.Organization.Application.Teams.Queries;
 
 /// <summary>
-/// The active teams an employee is a member of, by name; teams of teams are left out. Empty for an employee on
-/// none, or one that does not exist.
+/// The active teams of one type an employee is a member of directly, by name. Empty for an employee on none, or
+/// one that does not exist.
 /// </summary>
-public sealed record GetEmployeeActiveTeamsQuery(Guid EmployeeId) : IQuery<IReadOnlyList<TeamNavigationDto>>;
+/// <param name="Type">Teams, or teams of teams; membership of a team does not make anyone a member of its team of teams.</param>
+public sealed record GetEmployeeActiveTeamsQuery(Guid EmployeeId, TeamType Type = TeamType.Team) : IQuery<IReadOnlyList<TeamNavigationDto>>;
 
 /// <summary>Handles <see cref="GetEmployeeActiveTeamsQuery"/>.</summary>
 public sealed class GetEmployeeActiveTeamsQueryHandler(IOrganizationDbContext organizationDbContext)
@@ -20,7 +21,7 @@ public sealed class GetEmployeeActiveTeamsQueryHandler(IOrganizationDbContext or
     {
         // One membership row per role held, so a member with two roles would list the team twice.
         var teams = await _organizationDbContext.TeamMembers
-            .Where(m => m.EmployeeId == request.EmployeeId && m.Team.IsActive && m.Team.Type == TeamType.Team)
+            .Where(m => m.EmployeeId == request.EmployeeId && m.Team.IsActive && m.Team.Type == request.Type)
             .Select(m => new { m.Team.Id, m.Team.Key, m.Team.Name, m.Team.Code, m.Team.Type })
             .Distinct()
             .ToListAsync(cancellationToken);

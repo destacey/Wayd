@@ -16,7 +16,9 @@ vi.mock('./widgets/my-risks-widget', () => ({
 }))
 vi.mock('./widgets/my-teams-widget', () => ({ default: () => null }))
 vi.mock('./widgets/my-teams-tile', () => ({
+  CrossTeamDependenciesTile: () => null,
   DependenciesAtRiskTile: () => null,
+  SprintsToCompleteTile: () => null,
 }))
 vi.mock('./widgets/planning-intervals-widget', () => ({ default: () => null }))
 vi.mock('./widgets/whats-changed-widget', () => ({
@@ -63,7 +65,9 @@ describe('HomeWidgets', () => {
     // Assert
     expect(tiles.map((t) => t.id)).toEqual([
       'overdue-tasks',
+      'sprints-to-complete',
       'risk-follow-ups',
+      'cross-team-dependencies',
       'dependencies-at-risk',
       'tasks-due-this-week',
       'unread-notifications',
@@ -134,7 +138,9 @@ describe('HomeWidgets involvement rules', () => {
       // Assert
       expect(layout.tiles).toEqual([
         'overdue-tasks',
+        'sprints-to-complete',
         'risk-follow-ups',
+        'cross-team-dependencies',
         'dependencies-at-risk',
         'tasks-due-this-week',
         'unread-notifications',
@@ -168,11 +174,12 @@ describe('HomeWidgets involvement rules', () => {
     expect(layout.side).toEqual(['planning-intervals', 'following'])
   })
 
-  it('keeps My teams in the side column for a member of a team of teams only', () => {
+  it('puts My teams first for a member of a team of teams only, whose rollup it shows', () => {
     // Arrange / Act
     const layout = defaultFor({ teams: { teamOfTeamsCount: 1 } })
 
     // Assert
-    expect(layout.side).toEqual(['planning-intervals', 'following', 'my-teams'])
+    expect(layout.main[0]).toBe('my-teams')
+    expect(layout.side).toEqual(['planning-intervals', 'following'])
   })
 })

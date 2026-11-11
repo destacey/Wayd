@@ -2944,10 +2944,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a summary of each team you are a member of, for how that team works today.
+        /// Get a summary of each team and team of teams you are a member of, for how it works today.
         /// </summary>
         /// <remarks>
-        /// One entry per active team you are a member of (teams of teams are left out), by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health and its `openRiskCount`. A team with no operating model today has neither `sprint` nor `flow`. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount`. Returns 404 when your account is not linked to an employee.
+        /// `teams` has one entry per active team you are a member of, by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health, its `openRiskCount`, and `partOf`, the team of teams it belongs to today. A team with no operating model today has neither `sprint` nor `flow`. `teamsOfTeams` has one rollup per active team of teams you are a member of directly (being on one of its teams does not count), by name: the planning interval running today with its objectives at risk, and one row per team or team of teams in it today, needing attention first. A Scrum row's `sprint` is a sprint started and left open past its end, or its running sprint's share done against the share its burn-down expects; a Kanban row's `flow` is its items in progress and when the oldest started; a nested team of teams counts the teams beneath it by status and takes the worst. Each row's `status` (OnTrack, Watch, NeedsAttention) is worked out here. Its `dependencies` are the open cross-team dependencies of every team beneath it, and its `risks` its own open risks and those of the teams beneath it. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount` and `risks`, View Planning Intervals for `planningInterval` and View Planning Interval Objectives for its at-risk count. Returns 404 when your account is not linked to an employee.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3444,10 +3444,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get a summary of each team you are a member of, for how that team works today.
+        /// Get a summary of each team and team of teams you are a member of, for how it works today.
         /// </summary>
         /// <remarks>
-        /// One entry per active team you are a member of (teams of teams are left out), by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health and its `openRiskCount`. A team with no operating model today has neither `sprint` nor `flow`. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount`. Returns 404 when your account is not linked to an employee.
+        /// `teams` has one entry per active team you are a member of, by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health, its `openRiskCount`, and `partOf`, the team of teams it belongs to today. A team with no operating model today has neither `sprint` nor `flow`. `teamsOfTeams` has one rollup per active team of teams you are a member of directly (being on one of its teams does not count), by name: the planning interval running today with its objectives at risk, and one row per team or team of teams in it today, needing attention first. A Scrum row's `sprint` is a sprint started and left open past its end, or its running sprint's share done against the share its burn-down expects; a Kanban row's `flow` is its items in progress and when the oldest started; a nested team of teams counts the teams beneath it by status and takes the worst. Each row's `status` (OnTrack, Watch, NeedsAttention) is worked out here. Its `dependencies` are the open cross-team dependencies of every team beneath it, and its `risks` its own open risks and those of the teams beneath it. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount` and `risks`, View Planning Intervals for `planningInterval` and View Planning Interval Objectives for its at-risk count. Returns 404 when your account is not linked to an employee.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -115980,6 +115980,21 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum AttentionStatus
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"OnTrack")]
+        OnTrack = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Watch")]
+        Watch = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"NeedsAttention")]
+        NeedsAttention = 2,
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class AuditDto
     {
 
@@ -129387,6 +129402,245 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// A team of teams' open cross-team dependencies, by planning health.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyTeamOfTeamsDependenciesResponse
+    {
+
+        /// <summary>
+        /// The open cross-team dependencies.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("openCount")]
+        public int OpenCount { get; set; } = default!;
+
+        /// <summary>
+        /// Those whose ends are both unplanned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("atRiskCount")]
+        public int AtRiskCount { get; set; } = default!;
+
+        /// <summary>
+        /// Those planned to finish after they are needed, or whose successor started first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unhealthyCount")]
+        public int UnhealthyCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A Kanban team's work in progress, and whether it is getting stuck.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyTeamOfTeamsFlowResponse
+    {
+
+        /// <summary>
+        /// Requirement-tier work items in an In Progress-category status now.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inProgressCount")]
+        public int InProgressCount { get; set; } = default!;
+
+        /// <summary>
+        /// When the item in progress longest started; null when nothing in progress has a start time.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("oldestInProgressSince")]
+        public System.DateTimeOffset? OldestInProgressSince { get; set; } = default!;
+
+        /// <summary>
+        /// The team's median cycle time in days over the last 14 days, which the oldest item's age is weighed against;
+        /// <br/>null when it finished nothing in that time.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("medianCycleTimeDays")]
+        public double? MedianCycleTimeDays { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The teams beneath a nested team of teams, counted by status.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyTeamOfTeamsNestedResponse
+    {
+
+        /// <summary>
+        /// How many teams are beneath it today, at any depth.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamCount")]
+        public int TeamCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many of them need attention.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needsAttentionCount")]
+        public int NeedsAttentionCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many of them are on watch.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("watchCount")]
+        public int WatchCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The planning interval a team of teams is in today.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyTeamOfTeamsPlanningIntervalResponse
+    {
+
+        /// <summary>
+        /// The planning interval.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("planningInterval")]
+        public NavigationDto PlanningInterval { get; set; } = default!;
+
+        /// <summary>
+        /// Open objectives of the team of teams and every team beneath it whose current health check is At Risk or
+        /// <br/>Unhealthy. Null without the View Planning Interval Objectives permission.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("objectivesAtRiskCount")]
+        public int? ObjectivesAtRiskCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A team of teams' open risks.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyTeamOfTeamsRisksResponse
+    {
+
+        /// <summary>
+        /// Open risks raised on the team of teams itself, which its Risks section lists.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownOpenCount")]
+        public int OwnOpenCount { get; set; } = default!;
+
+        /// <summary>
+        /// Open risks raised on the teams and teams of teams beneath it today, at any depth.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamsOpenCount")]
+        public int TeamsOpenCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A team, or a nested team of teams, in a team of teams' rollup, with one signal for how it is doing today.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyTeamOfTeamsRowResponse
+    {
+
+        /// <summary>
+        /// The team or team of teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        public TeamNavigationDto Team { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the caller is a member of this team or team of teams directly.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isMine")]
+        public bool IsMine { get; set; } = default!;
+
+        /// <summary>
+        /// A team's methodology today; null for a team of teams, or a team with no operating model today.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("methodology")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Methodology>))]
+        public Methodology? Methodology { get; set; } = default!;
+
+        /// <summary>
+        /// A Scrum team's sprint signal: a sprint left open past its end, or its running sprint's progress. Null
+        /// <br/>between sprints, for any other row, or without the View Iterations permission.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sprint")]
+        public TeamSprintSignalDto? Sprint { get; set; } = default!;
+
+        /// <summary>
+        /// A Kanban team's work in progress. Null for any other row, or without the View Work Items permission.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("flow")]
+        public MyTeamOfTeamsFlowResponse? Flow { get; set; } = default!;
+
+        /// <summary>
+        /// A nested team of teams' teams, at any depth, counted by status; its own status is the worst of them. Null
+        /// <br/>for a team.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("nested")]
+        public MyTeamOfTeamsNestedResponse? Nested { get; set; } = default!;
+
+        /// <summary>
+        /// How much the row calls for attention: from its sprint or flow for a team, the worst beneath it for a team of
+        /// <br/>teams. On Track when there is no signal to read — including when the caller may not view the sprint or flow
+        /// <br/>it would come from, so it is no signal on its own then.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<AttentionStatus>))]
+        public AttentionStatus Status { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A team of teams the caller belongs to directly, rolled up from the teams beneath it: one row for each team or
+    /// <br/>team of teams in it today, with the ones needing attention first.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyTeamOfTeamsSummaryResponse
+    {
+
+        /// <summary>
+        /// The team of teams.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("team")]
+        public TeamNavigationDto Team { get; set; } = default!;
+
+        /// <summary>
+        /// How many of the rows are teams following Scrum today.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scrumTeamCount")]
+        public int ScrumTeamCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many of the rows are teams following Kanban today.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kanbanTeamCount")]
+        public int KanbanTeamCount { get; set; } = default!;
+
+        /// <summary>
+        /// The planning interval running today that the team of teams, or a team beneath it, takes part in. Null when
+        /// <br/>none is running, or without the View Planning Intervals permission.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("planningInterval")]
+        public MyTeamOfTeamsPlanningIntervalResponse? PlanningInterval { get; set; } = default!;
+
+        /// <summary>
+        /// One row for each team and team of teams in it today, by membership: needing attention first, then watch,
+        /// <br/>then on track, each by name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rows")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<MyTeamOfTeamsRowResponse> Rows { get; set; } = new System.Collections.ObjectModel.Collection<MyTeamOfTeamsRowResponse>();
+
+        /// <summary>
+        /// Its open cross-team dependencies, as its Dependencies section lists them: those of every team beneath it, at
+        /// <br/>any depth, whose predecessor is not done. Null without the View Work Items permission.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dependencies")]
+        public MyTeamOfTeamsDependenciesResponse? Dependencies { get; set; } = default!;
+
+        /// <summary>
+        /// Its open risks and those of the teams beneath it. Null without the View Risks permission.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("risks")]
+        public MyTeamOfTeamsRisksResponse? Risks { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// A reporting period of a Kanban team's cadence.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -129427,8 +129681,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// The active teams the caller is a member of, each summarised for how it works today. Teams of teams are not
-    /// <br/>included. A section is null when the caller lacks the permission the team page needs to show it.
+    /// The active teams and teams of teams the caller is a member of directly, each summarised for how it works today.
+    /// <br/>A section is null when the caller lacks the permission the team or team of teams page needs to show it.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class MyTeamsSummaryResponse
@@ -129440,6 +129694,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("teams")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<MyTeamSummaryResponse> Teams { get; set; } = new System.Collections.ObjectModel.Collection<MyTeamSummaryResponse>();
+
+        /// <summary>
+        /// One rollup per team of teams the caller is a member of directly, by name. Being on one of its teams does not
+        /// <br/>make the caller a member of it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamsOfTeams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<MyTeamOfTeamsSummaryResponse> TeamsOfTeams { get; set; } = new System.Collections.ObjectModel.Collection<MyTeamOfTeamsSummaryResponse>();
+
+        /// <summary>
+        /// The open cross-team dependencies that are unhealthy across the caller's teams of teams, each counted once
+        /// <br/>even when two of them share it. Null without the View Work Items permission.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unhealthyCrossTeamDependencyCount")]
+        public int? UnhealthyCrossTeamDependencyCount { get; set; } = default!;
+
+        /// <summary>
+        /// The sprints of the teams in the caller's teams of teams that were started and are past their end without
+        /// <br/>being completed. Null without the View Iterations permission.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sprintsEndedNotCompletedCount")]
+        public int? SprintsEndedNotCompletedCount { get; set; } = default!;
 
         /// <summary>
         /// The open dependencies at risk or unhealthy across the teams, each counted once even when it joins two of them.
@@ -129462,6 +129738,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("team")]
         public TeamNavigationDto Team { get; set; } = default!;
+
+        /// <summary>
+        /// The team of teams the team belongs to today; null when it belongs to none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("partOf")]
+        public TeamNavigationDto? PartOf { get; set; } = default!;
 
         /// <summary>
         /// How the team works today, read from the operating model that covers today's date in the team's own time
@@ -143651,6 +143933,53 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("byEstimate")]
         [System.ComponentModel.DataAnnotations.Required]
         public SprintMetricFiguresDto ByEstimate { get; set; } = new SprintMetricFiguresDto();
+
+    }
+
+    /// <summary>
+    /// The one thing worth knowing about a Scrum team's sprint today: a sprint the team started and left open past its
+    /// <br/>end, or else how its running sprint is tracking against its commitment.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TeamSprintSignalDto
+    {
+
+        /// <summary>
+        /// The sprint the signal is about: the one left open when `endedNotCompleted` is true, else the running one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sprint")]
+        public NavigationDto Sprint { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the team started the sprint and its end has passed without anyone completing it. A sprint the team
+        /// <br/>never started follows its planned dates and is never left open.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("endedNotCompleted")]
+        public bool EndedNotCompleted { get; set; } = default!;
+
+        /// <summary>
+        /// The share of the sprint's work expected done by now, from 0 to 1: along its ideal burn-down once it has a
+        /// <br/>commitment, or else the share of its days gone. Null for a sprint left open, or one with nothing to measure:
+        /// <br/>on its first day, or with no work in it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("expectedShare")]
+        public double? ExpectedShare { get; set; } = default!;
+
+        /// <summary>
+        /// The work completed as a share of what it is measured against — the commitment, or else the sprint's work —
+        /// <br/>in the team's sizing method; above 1 when more than was committed is done. Null whenever `expectedShare` is.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("doneShare")]
+        public double? DoneShare { get; set; } = default!;
+
+        /// <summary>
+        /// Needs Attention for a sprint left open; otherwise the sprint's health as the sprint card shows it, and On Track
+        /// <br/>while there is nothing to measure.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<AttentionStatus>))]
+        public AttentionStatus Status { get; set; } = default!;
 
     }
 

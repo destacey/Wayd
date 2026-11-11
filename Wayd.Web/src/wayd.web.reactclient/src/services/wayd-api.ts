@@ -1710,7 +1710,7 @@ export class MeClient {
     }
 
     /**
-     * Get a summary of each team you are a member of, for how that team works today.
+     * Get a summary of each team and team of teams you are a member of, for how it works today.
      * @return OK
      */
     getTeamsSummary( cancelToken?: CancelToken): Promise<MyTeamsSummaryResponse> {
@@ -63221,6 +63221,12 @@ export interface AssignWorkflowSchemeRequest {
     decisions: StatusRemapDecisionRequest[];
 }
 
+export enum AttentionStatus {
+    OnTrack = "OnTrack",
+    Watch = "Watch",
+    NeedsAttention = "NeedsAttention",
+}
+
 export interface AuditDto {
     id: string;
     userId: string;
@@ -67839,6 +67845,97 @@ the day the team became Kanban when that is later. */
     oldestInProgress?: InProgressWorkItemDto | undefined;
 }
 
+/** A team of teams' open cross-team dependencies, by planning health. */
+export interface MyTeamOfTeamsDependenciesResponse {
+    /** The open cross-team dependencies. */
+    openCount: number;
+    /** Those whose ends are both unplanned. */
+    atRiskCount: number;
+    /** Those planned to finish after they are needed, or whose successor started first. */
+    unhealthyCount: number;
+}
+
+/** A Kanban team's work in progress, and whether it is getting stuck. */
+export interface MyTeamOfTeamsFlowResponse {
+    /** Requirement-tier work items in an In Progress-category status now. */
+    inProgressCount: number;
+    /** When the item in progress longest started; null when nothing in progress has a start time. */
+    oldestInProgressSince?: Date | undefined;
+    /** The team's median cycle time in days over the last 14 days, which the oldest item's age is weighed against;
+null when it finished nothing in that time. */
+    medianCycleTimeDays?: number | undefined;
+}
+
+/** The teams beneath a nested team of teams, counted by status. */
+export interface MyTeamOfTeamsNestedResponse {
+    /** How many teams are beneath it today, at any depth. */
+    teamCount: number;
+    /** How many of them need attention. */
+    needsAttentionCount: number;
+    /** How many of them are on watch. */
+    watchCount: number;
+}
+
+/** The planning interval a team of teams is in today. */
+export interface MyTeamOfTeamsPlanningIntervalResponse {
+    /** The planning interval. */
+    planningInterval: NavigationDto;
+    /** Open objectives of the team of teams and every team beneath it whose current health check is At Risk or
+Unhealthy. Null without the View Planning Interval Objectives permission. */
+    objectivesAtRiskCount?: number | undefined;
+}
+
+/** A team of teams' open risks. */
+export interface MyTeamOfTeamsRisksResponse {
+    /** Open risks raised on the team of teams itself, which its Risks section lists. */
+    ownOpenCount: number;
+    /** Open risks raised on the teams and teams of teams beneath it today, at any depth. */
+    teamsOpenCount: number;
+}
+
+/** A team, or a nested team of teams, in a team of teams' rollup, with one signal for how it is doing today. */
+export interface MyTeamOfTeamsRowResponse {
+    /** The team or team of teams. */
+    team: TeamNavigationDto;
+    /** Whether the caller is a member of this team or team of teams directly. */
+    isMine: boolean;
+    /** A team's methodology today; null for a team of teams, or a team with no operating model today. */
+    methodology?: Methodology | undefined;
+    /** A Scrum team's sprint signal: a sprint left open past its end, or its running sprint's progress. Null
+between sprints, for any other row, or without the View Iterations permission. */
+    sprint?: TeamSprintSignalDto | undefined;
+    /** A Kanban team's work in progress. Null for any other row, or without the View Work Items permission. */
+    flow?: MyTeamOfTeamsFlowResponse | undefined;
+    /** A nested team of teams' teams, at any depth, counted by status; its own status is the worst of them. Null
+for a team. */
+    nested?: MyTeamOfTeamsNestedResponse | undefined;
+    /** How much the row calls for attention: from its sprint or flow for a team, the worst beneath it for a team of
+teams. On Track when there is no signal to read — including when the caller may not view the sprint or flow
+it would come from, so it is no signal on its own then. */
+    status: AttentionStatus;
+}
+
+/** A team of teams the caller belongs to directly, rolled up from the teams beneath it: one row for each team or team of teams in it today, with the ones needing attention first. */
+export interface MyTeamOfTeamsSummaryResponse {
+    /** The team of teams. */
+    team: TeamNavigationDto;
+    /** How many of the rows are teams following Scrum today. */
+    scrumTeamCount: number;
+    /** How many of the rows are teams following Kanban today. */
+    kanbanTeamCount: number;
+    /** The planning interval running today that the team of teams, or a team beneath it, takes part in. Null when
+none is running, or without the View Planning Intervals permission. */
+    planningInterval?: MyTeamOfTeamsPlanningIntervalResponse | undefined;
+    /** One row for each team and team of teams in it today, by membership: needing attention first, then watch,
+then on track, each by name. */
+    rows: MyTeamOfTeamsRowResponse[];
+    /** Its open cross-team dependencies, as its Dependencies section lists them: those of every team beneath it, at
+any depth, whose predecessor is not done. Null without the View Work Items permission. */
+    dependencies?: MyTeamOfTeamsDependenciesResponse | undefined;
+    /** Its open risks and those of the teams beneath it. Null without the View Risks permission. */
+    risks?: MyTeamOfTeamsRisksResponse | undefined;
+}
+
 /** A reporting period of a Kanban team's cadence. */
 export interface MyTeamReportingPeriodResponse {
     /** The period's first day. */
@@ -67853,10 +67950,19 @@ export interface MyTeamSprintSummaryResponse {
     activeSprint?: NavigationDto | undefined;
 }
 
-/** The active teams the caller is a member of, each summarised for how it works today. Teams of teams are not included. A section is null when the caller lacks the permission the team page needs to show it. */
+/** The active teams and teams of teams the caller is a member of directly, each summarised for how it works today. A section is null when the caller lacks the permission the team or team of teams page needs to show it. */
 export interface MyTeamsSummaryResponse {
     /** One entry per team, by team name. */
     teams: MyTeamSummaryResponse[];
+    /** One rollup per team of teams the caller is a member of directly, by name. Being on one of its teams does not
+make the caller a member of it. */
+    teamsOfTeams: MyTeamOfTeamsSummaryResponse[];
+    /** The open cross-team dependencies that are unhealthy across the caller's teams of teams, each counted once
+even when two of them share it. Null without the View Work Items permission. */
+    unhealthyCrossTeamDependencyCount?: number | undefined;
+    /** The sprints of the teams in the caller's teams of teams that were started and are past their end without
+being completed. Null without the View Iterations permission. */
+    sprintsEndedNotCompletedCount?: number | undefined;
     /** The open dependencies at risk or unhealthy across the teams, each counted once even when it joins two of them.
 Null without the View Work Items permission. */
     dependenciesAtRiskCount?: number | undefined;
@@ -67866,6 +67972,8 @@ Null without the View Work Items permission. */
 export interface MyTeamSummaryResponse {
     /** The team. */
     team: TeamNavigationDto;
+    /** The team of teams the team belongs to today; null when it belongs to none. */
+    partOf?: TeamNavigationDto | undefined;
     /** How the team works today, read from the operating model that covers today's date in the team's own time
 zone. Null when no operating model covers today, in which case neither `sprint` nor
 `flow` is returned. */
@@ -72657,6 +72765,25 @@ since changed its sizing method, so this sprint's estimates are in another unit.
     byCount: SprintMetricFiguresDto;
     /** The sprint's values in its own `sizingMethod`. */
     byEstimate: SprintMetricFiguresDto;
+}
+
+/** The one thing worth knowing about a Scrum team's sprint today: a sprint the team started and left open past its end, or else how its running sprint is tracking against its commitment. */
+export interface TeamSprintSignalDto {
+    /** The sprint the signal is about: the one left open when `endedNotCompleted` is true, else the running one. */
+    sprint: NavigationDto;
+    /** Whether the team started the sprint and its end has passed without anyone completing it. A sprint the team
+never started follows its planned dates and is never left open. */
+    endedNotCompleted: boolean;
+    /** The share of the sprint's work expected done by now, from 0 to 1: along its ideal burn-down once it has a
+commitment, or else the share of its days gone. Null for a sprint left open, or one with nothing to measure:
+on its first day, or with no work in it. */
+    expectedShare?: number | undefined;
+    /** The work completed as a share of what it is measured against — the commitment, or else the sprint's work —
+in the team's sizing method; above 1 when more than was committed is done. Null whenever `expectedShare` is. */
+    doneShare?: number | undefined;
+    /** Needs Attention for a sprint left open; otherwise the sprint's health as the sprint card shows it, and On Track
+while there is nothing to measure. */
+    status: AttentionStatus;
 }
 
 /** How many backlog work items a team will finish from `forecastStart` through `targetDate`. */

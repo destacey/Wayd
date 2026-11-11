@@ -131,7 +131,7 @@ const Row: FC<{
       </span>
     </WaydTooltip>
     <Link href={teamUrl(row.team)}>{row.team.name}</Link>
-    {row.isMine ? <Tag bordered={false}>Your team</Tag> : null}
+    {row.isMine ? <Tag variant="filled">Your team</Tag> : null}
     <RowSignal row={row} now={now} canViewSprints={canViewSprints} />
   </li>
 )

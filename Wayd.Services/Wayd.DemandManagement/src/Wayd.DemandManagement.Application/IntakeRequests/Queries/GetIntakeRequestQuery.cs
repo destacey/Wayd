@@ -98,6 +98,7 @@ public sealed class GetIntakeRequestQueryHandler(
             CanChangeTags = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id),
             Outcomes = outcomes,
             DeliverablesMet = IntakeRequestOutcomeReader.DeliverablesMet(outcomes),
+            DeliveryState = IntakeRequestDelivery.StateOf(outcomes),
             CanChangeOutcomes = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id)
                 && record.StatusCategory == StatusCategory.Active,
             CanChangeEstimate = canChangeEstimate,

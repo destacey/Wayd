@@ -2,19 +2,20 @@
 
 namespace Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
 
-public sealed record GetSimpleProjectsQuery() : IQuery<List<ISimpleProject>>;
+/// <summary>Every PPM project, for the job that brings each module's copies in line with them.</summary>
+public sealed record GetSimpleProjectsQuery() : IQuery<List<ISimpleProjectWithLifecycle>>;
 
 public sealed class GetSimpleProjectsQueryHandler(IProjectPortfolioManagementDbContext projectPortfolioManagementDbContext)
-    : IQueryHandler<GetSimpleProjectsQuery, List<ISimpleProject>>
+    : IQueryHandler<GetSimpleProjectsQuery, List<ISimpleProjectWithLifecycle>>
 {
     private readonly IProjectPortfolioManagementDbContext _projectPortfolioManagementDbContext = projectPortfolioManagementDbContext;
 
-    public async Task<List<ISimpleProject>> Handle(GetSimpleProjectsQuery request, CancellationToken cancellationToken)
+    public async Task<List<ISimpleProjectWithLifecycle>> Handle(GetSimpleProjectsQuery request, CancellationToken cancellationToken)
     {
         var projects = await _projectPortfolioManagementDbContext.Projects
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        return [.. projects.OfType<ISimpleProject>()];
+        return [.. projects.OfType<ISimpleProjectWithLifecycle>()];
     }
 }

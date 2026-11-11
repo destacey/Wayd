@@ -17,6 +17,7 @@ using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Scoring;
 using Wayd.Common.Models;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.DemandManagement.Application.IntakeDesks.Queries;
@@ -918,7 +919,8 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         choicesForSomeoneElse.Should().BeNull("only an agent on the request's desk is offered the choice");
     }
 
-    private sealed record Source(Guid Id, ProjectKey Key, string Name, string Description = "desc") : ISimpleProject;
+    private sealed record Source(Guid Id, ProjectKey Key, string Name, string Description = "desc",
+        LifecycleCategory LifecycleCategory = LifecycleCategory.NotStarted) : ISimpleProjectWithLifecycle;
 
     private sealed record DeliverableSource(Guid Id, Guid ProjectId, string Name, StatusCategory StatusCategory,
         ProjectDeliverableStatusAlias StatusAlias) : ISimpleProjectDeliverable;

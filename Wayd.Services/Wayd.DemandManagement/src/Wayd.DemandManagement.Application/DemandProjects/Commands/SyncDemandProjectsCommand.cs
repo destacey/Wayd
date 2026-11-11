@@ -11,7 +11,7 @@ namespace Wayd.DemandManagement.Application.DemandProjects.Commands;
 /// </summary>
 /// <param name="Projects">Every PPM project, as read from the source.</param>
 /// <param name="AsOf">When the source was read, taken before the read began.</param>
-public sealed record SyncDemandProjectsCommand(IEnumerable<ISimpleProject> Projects, Instant AsOf) : ICommand, ILongRunningRequest;
+public sealed record SyncDemandProjectsCommand(IEnumerable<ISimpleProjectWithLifecycle> Projects, Instant AsOf) : ICommand, ILongRunningRequest;
 
 public sealed class SyncDemandProjectsCommandHandler(
     IDemandManagementDbContext dbContext,

@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events;
@@ -159,6 +160,68 @@ public sealed class DemandProjectSyncHandlerTests
     }
 
     [Fact]
+    public async Task Handle_Created_CopiesTheProjectsLifecycle()
+    {
+        // Arrange
+        var source = SourceProject.Any(lifecycle: LifecycleCategory.Active);
+        SourceReturns(source);
+
+        // Act
+        await _handler.Handle(CreatedEvent(source.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        _dbContext.DemandProjects.Should().ContainSingle().Which.LifecycleCategory.Should().Be(LifecycleCategory.Active);
+    }
+
+    [Fact]
+    public async Task Handle_StatusChanged_WhenNewerThanTheCopy_MovesTheLifecycleAndSaves()
+    {
+        // Arrange
+        var source = SourceProject.Any(lifecycle: LifecycleCategory.NotStarted);
+        _dbContext.AddProjects(new DemandProject(source, Created));
+
+        // Act
+        await _handler.Handle(StatusChangedEvent(source.Id, LifecycleCategory.Active, Edited), TestContext.Current.CancellationToken);
+
+        // Assert
+        var copy = _dbContext.DemandProjects.Single();
+        copy.LifecycleCategory.Should().Be(LifecycleCategory.Active);
+        copy.Watermarks.Lifecycle.Should().Be(Edited);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_StatusChanged_WhenOlderThanTheCopy_IsSkipped()
+    {
+        // Arrange — completed at Rekeyed; the activation from Edited arrives after it.
+        var source = SourceProject.Any(lifecycle: LifecycleCategory.NotStarted);
+        _dbContext.AddProjects(new DemandProject(source, Created));
+        await _handler.Handle(StatusChangedEvent(source.Id, LifecycleCategory.Completed, Rekeyed), TestContext.Current.CancellationToken);
+
+        // Act
+        await _handler.Handle(StatusChangedEvent(source.Id, LifecycleCategory.Active, Edited), TestContext.Current.CancellationToken);
+
+        // Assert
+        _dbContext.DemandProjects.Single().LifecycleCategory.Should().Be(LifecycleCategory.Completed);
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_StatusChanged_WhenTheCreateHasNotArrived_CreatesTheCopyFromTheSource()
+    {
+        // Arrange — the create is still in flight, and the source already holds the move.
+        var source = SourceProject.Any(lifecycle: LifecycleCategory.Active);
+        SourceReturns(source);
+
+        // Act
+        await _handler.Handle(StatusChangedEvent(source.Id, LifecycleCategory.Active, Edited), TestContext.Current.CancellationToken);
+
+        // Assert
+        _dbContext.DemandProjects.Should().ContainSingle(p => p.Id == source.Id)
+            .Which.LifecycleCategory.Should().Be(LifecycleCategory.Active);
+    }
+
+    [Fact]
     public async Task Handle_Deleted_WhenRedelivered_IsNoOp()
     {
         // Arrange
@@ -170,9 +233,9 @@ public sealed class DemandProjectSyncHandlerTests
         _dbContext.SaveChangesCallCount.Should().Be(0);
     }
 
-    private void SourceReturns(ISimpleProject? project) =>
+    private void SourceReturns(ISimpleProjectWithLifecycle? project) =>
         _dispatcher
-            .Setup(d => d.Send(It.IsAny<GetSimpleProjectQuery>(), It.IsAny<CancellationToken>()))
+            .Setup(d => d.Send(It.IsAny<GetSimpleProjectWithLifecycleQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(project);
 
     private static ProjectCreatedEvent CreatedEvent(Guid id) =>
@@ -203,6 +266,21 @@ public sealed class DemandProjectSyncHandlerTests
             businessCase: null,
             expectedBenefits: null,
             previous: null,
+            actor: EventActor.System,
+            timestamp: timestamp);
+
+    private static ProjectStatusChangedEventV2 StatusChangedEvent(Guid id, LifecycleCategory toCategory, Instant timestamp) =>
+        new(
+            eventId: Guid.CreateVersion7(),
+            id: id,
+            key: new ProjectKey("ATLAS"),
+            fromStatus: "Approved",
+            fromCategory: LifecycleCategory.NotStarted,
+            toStatus: "Active",
+            toCategory: toCategory,
+            isBackward: false,
+            reason: null,
+            sequence: 2,
             actor: EventActor.System,
             timestamp: timestamp);
 

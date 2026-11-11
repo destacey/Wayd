@@ -115,7 +115,7 @@ public sealed class DemandProjectDeliverableSyncHandler(
 
         if (!await _dbContext.DemandProjects.AnyAsync(p => p.Id == source.ProjectId, cancellationToken))
         {
-            var project = await _dispatcher.Send(new GetSimpleProjectQuery(source.ProjectId), cancellationToken);
+            var project = await _dispatcher.Send(new GetSimpleProjectWithLifecycleQuery(source.ProjectId), cancellationToken);
             if (project is null)
             {
                 _logger.LogInformation("Demand Management {SystemActionType} copy not created: the Project {ProjectId} of Deliverable {DeliverableId} no longer exists.", SystemActionType.ServiceDataReplication, source.ProjectId, deliverableId);

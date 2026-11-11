@@ -97,4 +97,42 @@ public sealed class IntakeRequestOutcome
         var copies = mapped.ToList();
         return copies.Count == 0 ? null : copies.All(d => d.IsAccepted);
     }
+
+    /// <summary>
+    /// The delivery a project outcome reports, or null once the project has been deleted. Existing project scope
+    /// rolls up the mapped deliverables still on the project; with none, it falls back to the project's
+    /// lifecycle, as a new project always does.
+    /// </summary>
+    /// <remarks>
+    /// Derived when read, never stored. A work item outcome reports <see cref="DeliverySignals.Of(StatusCategory)"/>
+    /// of the work item's status category, which Demand Management does not keep.
+    /// </remarks>
+    /// <param name="kind">What the request became; never <see cref="IntakeRequestOutcomeKind.WorkItem"/>.</param>
+    /// <param name="project">The copy of the project the outcome points at, or null when it has gone.</param>
+    /// <param name="mapped">The copies of the mapped deliverables that still exist.</param>
+    public static DeliverySignal? ProjectDeliverySignal(IntakeRequestOutcomeKind kind, DemandProject? project,
+        IEnumerable<DemandProjectDeliverable> mapped)
+    {
+        if (kind == IntakeRequestOutcomeKind.WorkItem)
+            throw new ArgumentException("A work item outcome reports its work item's status category.", nameof(kind));
+        if (project is null)
+            return null;
+
+        var copies = kind == IntakeRequestOutcomeKind.ExistingProjectScope ? mapped.ToList() : [];
+        return copies.Count == 0
+            ? project.DeliverySignal
+            : DeliverySignals.Rollup(copies.Select(d => d.DeliverySignal));
+    }
+
+    /// <summary>
+    /// Whether an existing project scope outcome still has to say which of the project's deliverables meet the
+    /// request: none mapped is still on the project, so its delivery is read from the project as a whole. False
+    /// for the other kinds, and once the project has been deleted.
+    /// </summary>
+    /// <param name="kind">What the request became.</param>
+    /// <param name="project">The copy of the project the outcome points at, or null when it has gone.</param>
+    /// <param name="mapped">The copies of the mapped deliverables that still exist.</param>
+    public static bool IsScopeUndefined(IntakeRequestOutcomeKind kind, DemandProject? project,
+        IEnumerable<DemandProjectDeliverable> mapped) =>
+        kind == IntakeRequestOutcomeKind.ExistingProjectScope && project is not null && !mapped.Any();
 }

@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Moq;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
@@ -46,7 +47,39 @@ public sealed class GetIntakeRequestOutcomesQueryHandlerTests
         scope.Project!.Name.Should().Be("Atlas");
         scope.IsMet.Should().BeFalse();
         scope.Deliverables.Select(d => d.Name).Should().Equal("Export", "Import");
-        outcomes.Outcomes.Single(o => o.Kind == IntakeRequestOutcomeKind.WorkItem).TargetId.Should().Be(workItemId);
+        scope.DeliverySignal.Should().Be(DeliverySignal.InProgress);
+        scope.IsScopeUndefined.Should().BeFalse();
+        var workItem = outcomes.Outcomes.Single(o => o.Kind == IntakeRequestOutcomeKind.WorkItem);
+        workItem.TargetId.Should().Be(workItemId);
+        workItem.DeliverySignal.Should().BeNull("Work's status reaches the outcome only in the API layer");
+        outcomes.DeliveryState.Should().Be(DeliverySignal.InProgress);
+    }
+
+    [Fact]
+    public async Task Handle_ReportsEachProjectOutcomesSignalAndRollsThemUp()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var desk = _scenario.Desk(IntakeDeskVisibility.Open, agentIds: agent.Id);
+        var completed = _scenario.Project("DONE", "Finished", LifecycleCategory.Completed);
+        var active = _scenario.Project("ACTIVE", "Underway", LifecycleCategory.Active);
+        var request = _scenario.RequestInStatus(desk, _scenario.Employee(), "Accepted");
+        _scenario.Outcome(request, completed.Id, agent, IntakeRequestOutcomeKind.NewProject);
+        _scenario.Outcome(request, active.Id, agent, IntakeRequestOutcomeKind.ExistingProjectScope, "Absorbed reporting");
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestOutcomesQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var outcomes = result.Should().ContainSingle().Subject;
+        var newProject = outcomes.Outcomes.Single(o => o.Kind == IntakeRequestOutcomeKind.NewProject);
+        newProject.DeliverySignal.Should().Be(DeliverySignal.Done);
+        newProject.IsScopeUndefined.Should().BeFalse();
+        var scope = outcomes.Outcomes.Single(o => o.Kind == IntakeRequestOutcomeKind.ExistingProjectScope);
+        scope.DeliverySignal.Should().Be(DeliverySignal.InProgress);
+        scope.IsScopeUndefined.Should().BeTrue();
+        outcomes.DeliveryState.Should().Be(DeliverySignal.InProgress);
     }
 
     [Fact]

@@ -95521,7 +95521,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get what the intake requests you can see became.
         /// </summary>
         /// <remarks>
-        /// Takes the same filters as the list and answers beside it, so a list can show each request's projects and work items without reading every request. A request with no outcome is absent. Each outcome is as `IntakeRequests_GetIntakeRequest` returns it, with the work item's current status and the mapped deliverables' statuses. `deliverablesMet` is true when every mapped deliverable still on its project is Accepted, false while any is not, and null when no outcome maps one.
+        /// Takes the same filters as the list and answers beside it, so a list can show each request's projects and work items without reading every request. A request with no outcome is absent. Each outcome is as `IntakeRequests_GetIntakeRequest` returns it, with the work item's current status and the mapped deliverables' statuses. `deliverablesMet` is true when every mapped deliverable still on its project is Accepted, false while any is not, and null when no outcome maps one. Each outcome's `deliverySignal` (`NotStarted`, `InProgress`, `Blocked`, `Done`, `Cancelled`) comes from a new project's status, a work item's status category, or existing project scope's mapped deliverables still on the project — from the project's status, with `isScopeUndefined` true, when none is. `deliveryState` rolls them up: any blocked, else any in progress, else any not started, else any done, else cancelled; null when no outcome reports a signal.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -95532,7 +95532,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get an intake request in the tiers you can read.
         /// </summary>
         /// <remarks>
-        /// The summary is always returned; the substance is null when you may not read it. The outcome is the summary's status and its category, with the substance's `statusReason` saying why the desk declined, deferred, finished or marked it a duplicate, or why its requester withdrew it, and `duplicateOf` naming the request it gave way to when you can see that one.
+        /// The summary is always returned; the substance is null when you may not read it. The outcome is the summary's status and its category, with the substance's `statusReason` saying why the desk declined, deferred, finished or marked it a duplicate, or why its requester withdrew it, and `duplicateOf` naming the request it gave way to when you can see that one. Each outcome's `deliverySignal` says how far its delivery has got, and `deliveryState` rolls them up, as `IntakeRequests_GetOutcomes` describes.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -96321,7 +96321,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get what the intake requests you can see became.
         /// </summary>
         /// <remarks>
-        /// Takes the same filters as the list and answers beside it, so a list can show each request's projects and work items without reading every request. A request with no outcome is absent. Each outcome is as `IntakeRequests_GetIntakeRequest` returns it, with the work item's current status and the mapped deliverables' statuses. `deliverablesMet` is true when every mapped deliverable still on its project is Accepted, false while any is not, and null when no outcome maps one.
+        /// Takes the same filters as the list and answers beside it, so a list can show each request's projects and work items without reading every request. A request with no outcome is absent. Each outcome is as `IntakeRequests_GetIntakeRequest` returns it, with the work item's current status and the mapped deliverables' statuses. `deliverablesMet` is true when every mapped deliverable still on its project is Accepted, false while any is not, and null when no outcome maps one. Each outcome's `deliverySignal` (`NotStarted`, `InProgress`, `Blocked`, `Done`, `Cancelled`) comes from a new project's status, a work item's status category, or existing project scope's mapped deliverables still on the project — from the project's status, with `isScopeUndefined` true, when none is. `deliveryState` rolls them up: any blocked, else any in progress, else any not started, else any done, else cancelled; null when no outcome reports a signal.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -96424,7 +96424,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get an intake request in the tiers you can read.
         /// </summary>
         /// <remarks>
-        /// The summary is always returned; the substance is null when you may not read it. The outcome is the summary's status and its category, with the substance's `statusReason` saying why the desk declined, deferred, finished or marked it a duplicate, or why its requester withdrew it, and `duplicateOf` naming the request it gave way to when you can see that one.
+        /// The summary is always returned; the substance is null when you may not read it. The outcome is the summary's status and its category, with the substance's `statusReason` saying why the desk declined, deferred, finished or marked it a duplicate, or why its requester withdrew it, and `duplicateOf` naming the request it gave way to when you can see that one. Each outcome's `deliverySignal` says how far its delivery has got, and `deliveryState` rolls them up, as `IntakeRequests_GetOutcomes` describes.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -120860,6 +120860,27 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum DeliverySignal
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"NotStarted")]
+        NotStarted = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"InProgress")]
+        InProgress = 1,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Blocked")]
+        Blocked = 2,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Done")]
+        Done = 3,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Cancelled")]
+        Cancelled = 4,
+
+    }
+
     /// <summary>
     /// A lifecycle action whose move a record's workflow allows from the status the record holds.
     /// </summary>
@@ -127140,6 +127161,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool? DeliverablesMet { get; set; } = default!;
 
         /// <summary>
+        /// How far delivery of the request has got, rolled up from its outcomes' signals: any blocked is blocked; else
+        /// <br/>any in progress is in progress; else any not started is not started; else any done is done; else cancelled.
+        /// <br/>Null when no outcome reports a signal — the request has none yet, or every target has been deleted. Derived
+        /// <br/>when read.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliveryState")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DeliverySignal>))]
+        public DeliverySignal? DeliveryState { get; set; } = default!;
+
+        /// <summary>
         /// Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canChangeOutcomes")]
@@ -127477,6 +127508,24 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool? IsMet { get; set; } = default!;
 
         /// <summary>
+        /// How far delivery of the outcome has got. A new project reports its lifecycle; a work item its status
+        /// <br/>category; existing project scope rolls up the mapped deliverables still on the project, or reports the
+        /// <br/>project's lifecycle when none is (see `isScopeUndefined`). Null once the project or work item
+        /// <br/>has been deleted. Derived when read.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverySignal")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DeliverySignal>))]
+        public DeliverySignal? DeliverySignal { get; set; } = default!;
+
+        /// <summary>
+        /// Whether existing project scope has yet to say which of the project's deliverables meet the request: none
+        /// <br/>mapped is still on the project, so `deliverySignal` follows the project as a whole. False for
+        /// <br/>the other kinds and once the project has been deleted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isScopeUndefined")]
+        public bool IsScopeUndefined { get; set; } = default!;
+
+        /// <summary>
         /// The employee who recorded the outcome.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("addedBy")]
@@ -127533,6 +127582,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("deliverablesMet")]
         public bool? DeliverablesMet { get; set; } = default!;
+
+        /// <summary>
+        /// How far delivery of the request has got, rolled up from its outcomes' signals: any blocked is blocked; else
+        /// <br/>any in progress is in progress; else any not started is not started; else any done is done; else cancelled.
+        /// <br/>Null when no outcome reports a signal — the request has none yet, or every target has been deleted. Derived
+        /// <br/>when read.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliveryState")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<DeliverySignal>))]
+        public DeliverySignal? DeliveryState { get; set; } = default!;
 
     }
 

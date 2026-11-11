@@ -11,8 +11,9 @@ namespace Wayd.DemandManagement.Application.IntakeRequests;
 /// </summary>
 /// <remarks>
 /// Outcomes are summary tier, so the requests given need only be narrowed to those the reader can see. A work item
-/// outcome's <see cref="IntakeRequestOutcomeDto.WorkItem"/> is left null: Demand Management keeps no copy of work
-/// items, so the API layer fills it in from Work.
+/// outcome's <see cref="IntakeRequestOutcomeDto.WorkItem"/> and <see cref="IntakeRequestOutcomeDto.DeliverySignal"/>
+/// are left null: Demand Management keeps no copy of work items, so the API layer fills them in from Work through
+/// <see cref="IntakeRequestDelivery.WithWorkItems"/>.
 /// </remarks>
 internal static class IntakeRequestOutcomeReader
 {
@@ -72,28 +73,43 @@ internal static class IntakeRequestOutcomeReader
                     g.Key,
                     (IReadOnlyList<IntakeRequestOutcomeDto>)
                     [
-                        .. g.Select(o => new IntakeRequestOutcomeDto
-                        {
-                            Kind = o.Kind,
-                            TargetId = o.TargetId,
-                            Project = projects.TryGetValue(o.TargetId, out var p)
-                                ? new DemandProjectNavigationDto { Id = p.Id, Key = p.Key.Value, Name = p.Name }
-                                : null,
-                            Note = o.Note,
-                            Deliverables =
-                            [
-                                .. o.DeliverableIds
-                                    .Select(id => IntakeRequestOutcomeDeliverableDto.From(id, deliverables.GetValueOrDefault(id)))
-                                    .OrderBy(d => d.IsOnProject ? 0 : 1)
-                                    .ThenBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
-                                    .ThenBy(d => d.Id),
-                            ],
-                            IsMet = IntakeRequestOutcome.IsMet(o.DeliverableIds.Select(deliverables.GetValueOrDefault).OfType<DemandProjectDeliverable>()),
-                            AddedBy = o.AddedBy,
-                            AddedOn = o.AddedOn,
-                        }),
+                        .. g.Select(o => ToDto(o.Kind, o.TargetId, o.Note, o.AddedBy, o.AddedOn, o.DeliverableIds, projects, deliverables)),
                     ])),
         ];
+    }
+
+    /// <summary>One outcome as a request's page shows it, read against the copies of its project and deliverables.</summary>
+    private static IntakeRequestOutcomeDto ToDto(IntakeRequestOutcomeKind kind, Guid targetId, string? note,
+        EmployeeNavigationDto addedBy, Instant addedOn, List<Guid> deliverableIds,
+        Dictionary<Guid, DemandProject> projects, Dictionary<Guid, DemandProjectDeliverable> deliverables)
+    {
+        var project = kind == IntakeRequestOutcomeKind.WorkItem ? null : projects.GetValueOrDefault(targetId);
+        var mapped = deliverableIds.Select(deliverables.GetValueOrDefault).OfType<DemandProjectDeliverable>().ToList();
+
+        return new IntakeRequestOutcomeDto
+        {
+            Kind = kind,
+            TargetId = targetId,
+            Project = project is null
+                ? null
+                : new DemandProjectNavigationDto { Id = project.Id, Key = project.Key.Value, Name = project.Name },
+            Note = note,
+            Deliverables =
+            [
+                .. deliverableIds
+                    .Select(id => IntakeRequestOutcomeDeliverableDto.From(id, deliverables.GetValueOrDefault(id)))
+                    .OrderBy(d => d.IsOnProject ? 0 : 1)
+                    .ThenBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(d => d.Id),
+            ],
+            IsMet = IntakeRequestOutcome.IsMet(mapped),
+            DeliverySignal = kind == IntakeRequestOutcomeKind.WorkItem
+                ? null
+                : IntakeRequestOutcome.ProjectDeliverySignal(kind, project, mapped),
+            IsScopeUndefined = IntakeRequestOutcome.IsScopeUndefined(kind, project, mapped),
+            AddedBy = addedBy,
+            AddedOn = addedOn,
+        };
     }
 
     /// <summary>

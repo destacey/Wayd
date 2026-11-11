@@ -42,6 +42,21 @@ public sealed record IntakeRequestOutcomeDto
     /// </summary>
     public bool? IsMet { get; init; }
 
+    /// <summary>
+    /// How far delivery of the outcome has got. A new project reports its lifecycle; a work item its status
+    /// category; existing project scope rolls up the mapped deliverables still on the project, or reports the
+    /// project's lifecycle when none is (see <c>isScopeUndefined</c>). Null once the project or work item
+    /// has been deleted. Derived when read.
+    /// </summary>
+    public DeliverySignal? DeliverySignal { get; init; }
+
+    /// <summary>
+    /// Whether existing project scope has yet to say which of the project's deliverables meet the request: none
+    /// mapped is still on the project, so <c>deliverySignal</c> follows the project as a whole. False for
+    /// the other kinds and once the project has been deleted.
+    /// </summary>
+    public bool IsScopeUndefined { get; init; }
+
     /// <summary>The employee who recorded the outcome.</summary>
     public required EmployeeNavigationDto AddedBy { get; init; }
 

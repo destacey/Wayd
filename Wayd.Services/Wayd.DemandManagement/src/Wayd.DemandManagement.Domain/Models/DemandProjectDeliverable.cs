@@ -1,4 +1,5 @@
 using NodaTime;
+using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Replication;
@@ -53,6 +54,9 @@ public sealed class DemandProjectDeliverable
 
     /// <summary>Whether the deliverable has been accepted: what an outcome mapped to it waits for.</summary>
     public bool IsAccepted => StatusAlias == ProjectDeliverableStatusAlias.Accepted;
+
+    /// <summary>The delivery the deliverable's status reports, for an outcome mapped to it.</summary>
+    public DeliverySignal DeliverySignal => DeliverySignals.Of(StatusAlias, StatusCategory);
 
     /// <summary>When each group of fields last took a change.</summary>
     public DemandProjectDeliverableWatermarks Watermarks { get; private set; } = DemandProjectDeliverableWatermarks.None;

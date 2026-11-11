@@ -265,9 +265,9 @@ public sealed class DemandProjectDeliverableSyncHandlerTests
             .Setup(d => d.Send(It.IsAny<GetSimpleProjectDeliverableQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(deliverable);
 
-    private void ProjectSourceReturns(ISimpleProject? project) =>
+    private void ProjectSourceReturns(ISimpleProjectWithLifecycle? project) =>
         _dispatcher
-            .Setup(d => d.Send(It.IsAny<GetSimpleProjectQuery>(), It.IsAny<CancellationToken>()))
+            .Setup(d => d.Send(It.IsAny<GetSimpleProjectWithLifecycleQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(project);
 
     private static ProjectDeliverableAddedEvent AddedEvent(SourceProjectDeliverable d, Instant timestamp) =>

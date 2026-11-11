@@ -46,6 +46,11 @@ public sealed class DemandProjectSyncHandler(
         await Apply(@event.Id, @event.Timestamp, p => p.ApplyKey(@event.Key, @event.Timestamp), "key", cancellationToken);
     }
 
+    public async Task Handle(ProjectStatusChangedEventV2 @event, CancellationToken cancellationToken)
+    {
+        await Apply(@event.Id, @event.Timestamp, p => p.ApplyLifecycle(@event.ToCategory, @event.Timestamp), "lifecycle", cancellationToken);
+    }
+
     public async Task Handle(ProjectDeletedEvent @event, CancellationToken cancellationToken)
     {
         var existing = await _dbContext.DemandProjects.FirstOrDefaultAsync(x => x.Id == @event.Id, cancellationToken);
@@ -83,7 +88,7 @@ public sealed class DemandProjectSyncHandler(
 
     private async Task CreateFromSource(Guid projectId, Instant timestamp, CancellationToken cancellationToken)
     {
-        var source = await _dispatcher.Send(new GetSimpleProjectQuery(projectId), cancellationToken);
+        var source = await _dispatcher.Send(new GetSimpleProjectWithLifecycleQuery(projectId), cancellationToken);
         if (source is null)
         {
             _logger.LogInformation("Demand Management {SystemActionType} copy not created: Project {ProjectId} no longer exists.", SystemActionType.ServiceDataReplication, projectId);

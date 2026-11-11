@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Scoring;
@@ -481,6 +482,10 @@ public class DemandProjectConfiguration : IEntityTypeConfiguration<DemandProject
             .HasColumnType("varchar")
             .HasMaxLength(20);
         builder.Property(p => p.Name).IsRequired().HasMaxLength(128);
+        builder.Property(p => p.LifecycleCategory).IsRequired()
+            .HasConversion<EnumConverter<LifecycleCategory>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
 
         builder.ConfigureReplicaTracking(p => p.Watermarks);
     }

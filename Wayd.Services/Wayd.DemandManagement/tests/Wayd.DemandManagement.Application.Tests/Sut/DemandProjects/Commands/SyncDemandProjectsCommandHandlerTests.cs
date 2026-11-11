@@ -2,6 +2,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NodaTime;
+using Wayd.Common.Domain.Enums;
 using Wayd.DemandManagement.Application.DemandProjects.Commands;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
 using Wayd.DemandManagement.Domain.Models;
@@ -80,5 +81,37 @@ public sealed class SyncDemandProjectsCommandHandlerTests
 
         // Assert
         _dbContext.DemandProjects.Single().Name.Should().Be("Borealis");
+    }
+
+    [Fact]
+    public async Task Handle_WhenACopyMissedALifecycleMove_RepairsIt()
+    {
+        // Arrange — the status event never arrived, so the copy still reads not started
+        var source = SourceProject.Any(lifecycle: LifecycleCategory.NotStarted);
+        _dbContext.AddProjects(new DemandProject(source, Created));
+
+        // Act
+        await _handler.Handle(new SyncDemandProjectsCommand([source with { LifecycleCategory = LifecycleCategory.Active }], Read), TestContext.Current.CancellationToken);
+
+        // Assert
+        var copy = _dbContext.DemandProjects.Single();
+        copy.LifecycleCategory.Should().Be(LifecycleCategory.Active);
+        copy.Watermarks.Should().Be(new DemandProjectWatermarks(Created, Created, Read));
+        _dbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_WhenACopyMissingFromTheReadOnlyMovedItsLifecycleAfterIt_KeepsTheCopy()
+    {
+        // Arrange — created before the read, but its lifecycle moved after it, so the read predates the project
+        var copy = new DemandProject(SourceProject.Any(), Created);
+        copy.ApplyLifecycle(LifecycleCategory.Active, AfterTheRead);
+        _dbContext.AddProjects(copy);
+
+        // Act
+        await _handler.Handle(new SyncDemandProjectsCommand([], Read), TestContext.Current.CancellationToken);
+
+        // Assert
+        _dbContext.DemandProjects.Should().ContainSingle();
     }
 }

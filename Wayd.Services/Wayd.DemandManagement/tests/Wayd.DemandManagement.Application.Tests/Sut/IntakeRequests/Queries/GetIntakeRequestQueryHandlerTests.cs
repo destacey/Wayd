@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -440,6 +441,9 @@ public sealed class GetIntakeRequestQueryHandlerTests
             (deleted, null, null, false));
         outcome.IsMet.Should().BeFalse("the descoped deliverable was never accepted");
         result.DeliverablesMet.Should().BeFalse();
+        outcome.DeliverySignal.Should().Be(DeliverySignal.Done, "the descoped one is cancelled, the accepted one done, and the deleted one does not count");
+        outcome.IsScopeUndefined.Should().BeFalse();
+        result.DeliveryState.Should().Be(DeliverySignal.Done);
     }
 
     [Fact]
@@ -504,6 +508,44 @@ public sealed class GetIntakeRequestQueryHandlerTests
         result!.Outcomes.Single().IsMet.Should().BeNull();
         result.Outcomes.Single().Deliverables.Should().BeEmpty();
         result.DeliverablesMet.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ForScopeWithNoDeliverableOnTheProject_FollowsTheProjectAndFlagsTheScope()
+    {
+        // Arrange — the one mapped deliverable has since been deleted from the project
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var project = _scenario.Project(lifecycle: LifecycleCategory.Active);
+        _scenario.Outcome(request, project.Id, agent, IntakeRequestOutcomeKind.ExistingProjectScope, "Export", [Guid.NewGuid()]);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        var outcome = result!.Outcomes.Single();
+        outcome.DeliverySignal.Should().Be(DeliverySignal.InProgress);
+        outcome.IsScopeUndefined.Should().BeTrue();
+        result.DeliveryState.Should().Be(DeliverySignal.InProgress);
+    }
+
+    [Fact]
+    public async Task Handle_WhenEveryOutcomesProjectIsDeleted_HasNoDeliveryState()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        _scenario.Outcome(request, Guid.NewGuid(), agent, IntakeRequestOutcomeKind.NewProject);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestQuery(new IdOrKey(request.Id)), TestContext.Current.CancellationToken);
+
+        // Assert
+        result!.Outcomes.Single().DeliverySignal.Should().BeNull();
+        result.Outcomes.Single().IsScopeUndefined.Should().BeFalse();
+        result.DeliveryState.Should().BeNull();
     }
 
     [Fact]

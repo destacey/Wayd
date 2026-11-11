@@ -8,6 +8,7 @@ using CSharpFunctionalExtensions;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.StatusWorkflows;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events;
@@ -216,9 +217,10 @@ public sealed class IntakeScenario
     }
 
     /// <summary>Demand Management's copy of a PPM project.</summary>
-    public DemandProject Project(string key = "ATLAS", string name = "Atlas")
+    public DemandProject Project(string key = "ATLAS", string name = "Atlas",
+        LifecycleCategory lifecycle = LifecycleCategory.NotStarted)
     {
-        var project = new DemandProject(SourceProject.Any(key, name), Clock.Now);
+        var project = new DemandProject(SourceProject.Any(key, name, lifecycle), Clock.Now);
         DbContext.AddProjects(project);
         return project;
     }

@@ -58,6 +58,7 @@ public sealed class GetIntakeRequestOutcomesQueryHandler(
                 RequestId = r.RequestId,
                 Outcomes = r.Outcomes,
                 DeliverablesMet = IntakeRequestOutcomeReader.DeliverablesMet(r.Outcomes),
+                DeliveryState = IntakeRequestDelivery.StateOf(r.Outcomes),
             }),
         ];
     }

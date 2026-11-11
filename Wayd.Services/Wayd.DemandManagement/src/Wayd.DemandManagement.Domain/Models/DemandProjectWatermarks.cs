@@ -8,14 +8,15 @@ namespace Wayd.DemandManagement.Domain.Models;
 /// </summary>
 /// <param name="Name">The name.</param>
 /// <param name="Key">The key.</param>
-public sealed record DemandProjectWatermarks(Instant? Name, Instant? Key)
+/// <param name="Lifecycle">The lifecycle category.</param>
+public sealed record DemandProjectWatermarks(Instant? Name, Instant? Key, Instant? Lifecycle)
 {
     /// <summary>No group has taken a change yet.</summary>
-    public static DemandProjectWatermarks None { get; } = new(null, null);
+    public static DemandProjectWatermarks None { get; } = new(null, null, null);
 
     /// <summary>Every group stamped at <paramref name="timestamp"/>, for a copy made whole from its source.</summary>
-    public static DemandProjectWatermarks At(Instant timestamp) => new(timestamp, timestamp);
+    public static DemandProjectWatermarks At(Instant timestamp) => new(timestamp, timestamp, timestamp);
 
     /// <summary>Whether any group took a change later than <paramref name="instant"/>.</summary>
-    public bool AnyAfter(Instant instant) => Name > instant || Key > instant;
+    public bool AnyAfter(Instant instant) => Name > instant || Key > instant || Lifecycle > instant;
 }

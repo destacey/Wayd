@@ -19,6 +19,7 @@ using Wayd.Common.Domain.Events.StatusWorkflows;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.StatusWorkflows;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Models;
 using Wayd.DemandManagement.Application.IntakeDesks;
@@ -1059,7 +1060,8 @@ public sealed class DemandManagementCommandTests(SqlServerDbContextFixture fixtu
         added.IsSuccess.Should().BeTrue();
     }
 
-    private sealed record SourceProject(Guid Id, ProjectKey Key, string Name, string Description = "desc") : ISimpleProject;
+    private sealed record SourceProject(Guid Id, ProjectKey Key, string Name, string Description = "desc",
+        LifecycleCategory LifecycleCategory = LifecycleCategory.NotStarted) : ISimpleProjectWithLifecycle;
 
     private static ICurrentPrincipal Principal(Guid employeeId, params string[] permissions)
     {

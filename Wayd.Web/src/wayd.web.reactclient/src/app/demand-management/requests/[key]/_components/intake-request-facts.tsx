@@ -7,6 +7,9 @@ import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
 import { Typography } from 'antd'
 import NextLink from 'next/link'
 import { FC } from 'react'
+import DeliverySignalTag, {
+  shownDeliveryState,
+} from '../../../_components/delivery-signal-tag'
 import { deskHref } from '../../../_components/desk-status'
 import EmployeeName from '../../../_components/employee-name'
 import { EstimateValue } from '../../../_components/estimate-value'
@@ -23,6 +26,10 @@ export interface IntakeRequestFactsProps {
  */
 const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
   const { summary, substance } = request
+  const deliveryState = shownDeliveryState(
+    summary.status.category,
+    request.deliveryState,
+  )
 
   return (
     <>
@@ -35,6 +42,11 @@ const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
         <LabeledContent label="Channel">
           {summary.channel?.name ?? NOT_RECORDED_CHANNEL_LABEL}
         </LabeledContent>
+        {deliveryState && (
+          <LabeledContent label="Delivery">
+            <DeliverySignalTag signal={deliveryState} />
+          </LabeledContent>
+        )}
         {/* Shown once there is an estimate, or to the team that can give one; a desk that does not
             estimate would otherwise read "Not estimated" on every request. */}
         {substance &&

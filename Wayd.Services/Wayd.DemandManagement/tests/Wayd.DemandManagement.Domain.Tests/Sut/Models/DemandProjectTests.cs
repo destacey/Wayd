@@ -1,5 +1,7 @@
 using FluentAssertions;
 using NodaTime;
+using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.DemandManagement.Domain.Tests.Data;
@@ -16,7 +18,7 @@ public sealed class DemandProjectTests
     public void Constructor_CopiesTheSourceAndStampsEveryGroup()
     {
         // Arrange
-        var source = SourceProject.Any("ATLAS", "Atlas");
+        var source = SourceProject.Any("ATLAS", "Atlas", LifecycleCategory.Active);
 
         // Act
         var sut = new DemandProject(source, Created);
@@ -25,6 +27,7 @@ public sealed class DemandProjectTests
         sut.Id.Should().Be(source.Id);
         sut.Key.Value.Should().Be("ATLAS");
         sut.Name.Should().Be("Atlas");
+        sut.LifecycleCategory.Should().Be(LifecycleCategory.Active);
         sut.Watermarks.Should().Be(DemandProjectWatermarks.At(Created));
     }
 
@@ -41,7 +44,7 @@ public sealed class DemandProjectTests
         applied.Should().BeTrue();
         sut.Name.Should().Be("Borealis");
         sut.Key.Value.Should().Be("ATLAS");
-        sut.Watermarks.Should().Be(new DemandProjectWatermarks(Later, Created));
+        sut.Watermarks.Should().Be(new DemandProjectWatermarks(Later, Created, Created));
     }
 
     [Fact]
@@ -100,7 +103,100 @@ public sealed class DemandProjectTests
         // Assert
         changed.Should().BeTrue();
         sut.Key.Value.Should().Be("NEWKEY");
-        sut.Watermarks.Should().Be(new DemandProjectWatermarks(Created, Later));
+        sut.Watermarks.Should().Be(new DemandProjectWatermarks(Created, Later, Created));
+    }
+
+    [Fact]
+    public void ApplyLifecycle_WhenNewer_MovesOnlyTheLifecycleGroup()
+    {
+        // Arrange
+        var sut = new DemandProject(SourceProject.Any(name: "Atlas"), Created);
+
+        // Act
+        var applied = sut.ApplyLifecycle(LifecycleCategory.Completed, Later);
+
+        // Assert
+        applied.Should().BeTrue();
+        sut.LifecycleCategory.Should().Be(LifecycleCategory.Completed);
+        sut.Watermarks.Should().Be(new DemandProjectWatermarks(Created, Created, Later));
+    }
+
+    [Fact]
+    public void ApplyLifecycle_WhenOlderThanTheLastChange_IsSkipped()
+    {
+        // Arrange
+        var sut = new DemandProject(SourceProject.Any(), Created);
+        sut.ApplyLifecycle(LifecycleCategory.Completed, Later);
+
+        // Act
+        var applied = sut.ApplyLifecycle(LifecycleCategory.Active, Created);
+
+        // Assert
+        applied.Should().BeFalse();
+        sut.LifecycleCategory.Should().Be(LifecycleCategory.Completed);
+    }
+
+    [Fact]
+    public void ApplyLifecycle_WhenRedelivered_HasNothingToApply()
+    {
+        // Arrange
+        var sut = new DemandProject(SourceProject.Any(), Created);
+        sut.ApplyLifecycle(LifecycleCategory.Active, Later);
+
+        // Act
+        var applied = sut.ApplyLifecycle(LifecycleCategory.Active, Later);
+
+        // Assert
+        applied.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Resync_WhenOnlyTheLifecycleDiffers_StampsOnlyTheLifecycleGroup()
+    {
+        // Arrange
+        var source = SourceProject.Any(lifecycle: LifecycleCategory.NotStarted);
+        var sut = new DemandProject(source, Created);
+
+        // Act
+        var changed = sut.Resync(source with { LifecycleCategory = LifecycleCategory.Canceled }, Later);
+
+        // Assert
+        changed.Should().BeTrue();
+        sut.LifecycleCategory.Should().Be(LifecycleCategory.Canceled);
+        sut.Watermarks.Should().Be(new DemandProjectWatermarks(Created, Created, Later));
+    }
+
+    [Fact]
+    public void Resync_WhenTheCopyHoldsANewerLifecycle_KeepsIt()
+    {
+        // Arrange
+        var source = SourceProject.Any(lifecycle: LifecycleCategory.NotStarted);
+        var sut = new DemandProject(source, Earlier);
+        sut.ApplyLifecycle(LifecycleCategory.Active, Later);
+
+        // Act
+        var changed = sut.Resync(source, Created);
+
+        // Assert
+        changed.Should().BeFalse();
+        sut.LifecycleCategory.Should().Be(LifecycleCategory.Active);
+    }
+
+    [Theory]
+    [InlineData(LifecycleCategory.NotStarted, DeliverySignal.NotStarted)]
+    [InlineData(LifecycleCategory.Active, DeliverySignal.InProgress)]
+    [InlineData(LifecycleCategory.Completed, DeliverySignal.Done)]
+    [InlineData(LifecycleCategory.Canceled, DeliverySignal.Cancelled)]
+    public void DeliverySignal_FollowsTheLifecycle(LifecycleCategory lifecycle, DeliverySignal expected)
+    {
+        // Arrange
+        var sut = new DemandProject(SourceProject.Any(lifecycle: lifecycle), Created);
+
+        // Act
+        var signal = sut.DeliverySignal;
+
+        // Assert
+        signal.Should().Be(expected);
     }
 
     [Fact]

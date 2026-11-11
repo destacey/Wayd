@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.ProjectPortfolioManagement;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProjectPortfolioManagement;
@@ -91,8 +92,9 @@ public sealed class DemandProjectDeliverableReplicationTests
 
         // Assert
         await using var verify = _fixture.CreateContext();
-        verify.DemandProjects.Should().ContainSingle(p => p.Id == seed.ProjectId)
-            .Which.Watermarks.Should().Be(DemandProjectWatermarks.At(SqlServerDbContextFixture.FixedNow));
+        var projectCopy = verify.DemandProjects.Should().ContainSingle(p => p.Id == seed.ProjectId).Subject;
+        projectCopy.Watermarks.Should().Be(DemandProjectWatermarks.At(SqlServerDbContextFixture.FixedNow));
+        projectCopy.LifecycleCategory.Should().Be(LifecycleCategory.Active);
         var copy = await verify.DemandProjectDeliverables.SingleAsync(d => d.Id == seed.DeliverableId, ct);
         copy.ProjectId.Should().Be(seed.ProjectId);
         copy.Name.Should().Be("Customer portal");
@@ -214,8 +216,46 @@ public sealed class DemandProjectDeliverableReplicationTests
         copy.Watermarks.Status.Should().Be(copy.Watermarks.Name);
     }
 
-    private static async Task<ISimpleProject> SourceProject(Wayd.Infrastructure.Persistence.Context.WaydDbContext context, Guid projectId, CancellationToken ct) =>
-        (await new GetSimpleProjectQueryHandler(context).Handle(new GetSimpleProjectQuery(projectId), ct))!;
+    [Fact]
+    public async Task LifecycleBackfill_GivesEachCopyItsProjectsLifecycle_WithAWatermarkEfCanRead()
+    {
+        // Arrange — a copy made before copies held a lifecycle reads the column's default
+        var ct = TestContext.Current.CancellationToken;
+        var seed = await ActiveProjectWithDeliverable.Seed(_fixture, acceptTheDeliverable: false, ct);
+        await using (var copying = _fixture.CreateContext())
+        {
+            var source = await SourceProject(copying, seed.ProjectId, ct);
+            copying.DemandProjects.Add(new DemandProject(new PredatingSource(source), SqlServerDbContextFixture.FixedNow));
+            await copying.SaveChangesAsync(ct);
+        }
+        var backfill = new AddDemandProjectLifecycleCategory().UpOperations.OfType<SqlOperation>().Single().Sql;
+
+        // Act
+        await using (var migrating = _fixture.CreateContext())
+        {
+            await migrating.Database.ExecuteSqlRawAsync(backfill, ct);
+        }
+
+        // Assert
+        await using var verify = _fixture.CreateContext();
+        var copy = await verify.DemandProjects.SingleAsync(p => p.Id == seed.ProjectId, ct);
+        copy.LifecycleCategory.Should().Be(LifecycleCategory.Active);
+        copy.Watermarks.Lifecycle.Should().NotBeNull();
+        copy.Watermarks.Name.Should().Be(SqlServerDbContextFixture.FixedNow, "the backfill stamps only the lifecycle group");
+    }
+
+    /// <summary>A project as a copy made before copies held a lifecycle saw it: at the column's default.</summary>
+    private sealed record PredatingSource(ISimpleProjectWithLifecycle Source) : ISimpleProjectWithLifecycle
+    {
+        public Guid Id => Source.Id;
+        public ProjectKey Key => Source.Key;
+        public string Name => Source.Name;
+        public string Description => Source.Description;
+        public LifecycleCategory LifecycleCategory => LifecycleCategory.NotStarted;
+    }
+
+    private static async Task<ISimpleProjectWithLifecycle> SourceProject(Wayd.Infrastructure.Persistence.Context.WaydDbContext context, Guid projectId, CancellationToken ct) =>
+        (await new GetSimpleProjectWithLifecycleQueryHandler(context).Handle(new GetSimpleProjectWithLifecycleQuery(projectId), ct))!;
 
     /// <summary>A handler whose source reads go to PPM's real query handlers over the same database.</summary>
     private static DemandProjectDeliverableSyncHandler Handler(Wayd.Infrastructure.Persistence.Context.WaydDbContext context)
@@ -225,8 +265,8 @@ public sealed class DemandProjectDeliverableReplicationTests
             .Setup(d => d.Send(It.IsAny<GetSimpleProjectDeliverableQuery>(), It.IsAny<CancellationToken>()))
             .Returns((GetSimpleProjectDeliverableQuery q, CancellationToken ct) => new GetSimpleProjectDeliverableQueryHandler(context).Handle(q, ct));
         dispatcher
-            .Setup(d => d.Send(It.IsAny<GetSimpleProjectQuery>(), It.IsAny<CancellationToken>()))
-            .Returns((GetSimpleProjectQuery q, CancellationToken ct) => new GetSimpleProjectQueryHandler(context).Handle(q, ct));
+            .Setup(d => d.Send(It.IsAny<GetSimpleProjectWithLifecycleQuery>(), It.IsAny<CancellationToken>()))
+            .Returns((GetSimpleProjectWithLifecycleQuery q, CancellationToken ct) => new GetSimpleProjectWithLifecycleQueryHandler(context).Handle(q, ct));
 
         return new DemandProjectDeliverableSyncHandler(context, dispatcher.Object, NullLogger<DemandProjectDeliverableSyncHandler>.Instance);
     }

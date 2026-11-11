@@ -21,7 +21,7 @@ namespace Wayd.ProjectPortfolioManagement.Domain.Models;
 /// <summary>
 /// Represents an individual project within a portfolio or program.
 /// </summary>
-public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISimpleProject
+public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISimpleProjectWithLifecycle
 {
     private const string UnauthorizedManageActorError =
         "You are not authorized to manage this project. Project, program, or portfolio Owners and Managers may.";
@@ -117,6 +117,9 @@ public sealed class Project : BaseAuditableEntity, IHasIdAndKey<ProjectKey>, ISi
     /// Indicates if the project is in a closed state.
     /// </summary>
     public bool IsClosed => Status is ProjectStatus.Completed or ProjectStatus.Canceled;
+
+    /// <summary>Where <see cref="Status"/> stands in the project's lifecycle.</summary>
+    public LifecycleCategory LifecycleCategory => ProjectStatusLifecycle.CategoryOf(Status);
 
     /// <summary>
     /// The roles associated with the project.

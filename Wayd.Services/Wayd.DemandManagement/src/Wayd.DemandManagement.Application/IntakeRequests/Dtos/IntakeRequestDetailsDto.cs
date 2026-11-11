@@ -1,3 +1,5 @@
+using Wayd.Common.Domain.Enums.DemandManagement;
+
 namespace Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 
 /// <summary>
@@ -67,6 +69,14 @@ public sealed record IntakeRequestDetailsDto
     /// work item outcomes play no part. Derived when read; reaching it changes nothing on the request.
     /// </summary>
     public bool? DeliverablesMet { get; init; }
+
+    /// <summary>
+    /// How far delivery of the request has got, rolled up from its outcomes' signals: any blocked is blocked; else
+    /// any in progress is in progress; else any not started is not started; else any done is done; else cancelled.
+    /// Null when no outcome reports a signal — the request has none yet, or every target has been deleted. Derived
+    /// when read.
+    /// </summary>
+    public DeliverySignal? DeliveryState { get; init; }
 
     /// <summary>
     /// Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted.

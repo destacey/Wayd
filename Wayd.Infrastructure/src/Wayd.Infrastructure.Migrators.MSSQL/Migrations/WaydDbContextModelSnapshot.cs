@@ -2148,6 +2148,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar");
 
+                    b.Property<string>("LifecycleCategory")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(128)

@@ -1,4 +1,6 @@
 using NodaTime;
+using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Replication;
@@ -10,8 +12,9 @@ namespace Wayd.DemandManagement.Domain.Models;
 /// by. Kept by the <c>Project*</c> events (see <see cref="ReplicaWatermark"/> for how it orders them).
 /// </summary>
 /// <remarks>
-/// Holds only what the module shows: the key and name. Nothing here decides who may see the project; the
-/// request an outcome belongs to decides who may see that the project came from it.
+/// Holds only what the module shows: the key and name, and the lifecycle category its outcomes report their
+/// delivery from. Nothing here decides who may see the project; the request an outcome belongs to decides who
+/// may see that the project came from it.
 /// </remarks>
 public sealed class DemandProject
 {
@@ -22,11 +25,12 @@ public sealed class DemandProject
     /// The timestamp of the change that led to the copy being created. Every group is stamped with it, so an
     /// older event still in flight is skipped rather than rolling back state the source already moved past.
     /// </param>
-    public DemandProject(ISimpleProject project, Instant asOf)
+    public DemandProject(ISimpleProjectWithLifecycle project, Instant asOf)
     {
         Id = project.Id;
         Key = project.Key;
         Name = project.Name;
+        LifecycleCategory = project.LifecycleCategory;
         Watermarks = DemandProjectWatermarks.At(asOf);
     }
 
@@ -38,6 +42,15 @@ public sealed class DemandProject
 
     /// <summary>The project's name.</summary>
     public string Name { get; private set; } = default!;
+
+    /// <summary>
+    /// Where the project's status stands in its lifecycle: the category, never the status, since statuses are
+    /// on their way to being workflow-configurable.
+    /// </summary>
+    public LifecycleCategory LifecycleCategory { get; private set; }
+
+    /// <summary>The delivery the project's lifecycle reports, for an outcome that follows the project as a whole.</summary>
+    public DeliverySignal DeliverySignal => DeliverySignals.Of(LifecycleCategory);
 
     /// <summary>When each group of fields last took a change.</summary>
     public DemandProjectWatermarks Watermarks { get; private set; } = DemandProjectWatermarks.None;
@@ -81,6 +94,23 @@ public sealed class DemandProject
     }
 
     /// <summary>
+    /// Applies a move to a status in <paramref name="category"/> made at <paramref name="timestamp"/>.
+    /// </summary>
+    /// <returns>False when a newer change already applied, or when the copy already holds this one.</returns>
+    public bool ApplyLifecycle(LifecycleCategory category, Instant timestamp)
+    {
+        if (ReplicaWatermark.IsStale(Watermarks.Lifecycle, timestamp)
+            || (LifecycleCategory == category && Watermarks.Lifecycle == timestamp))
+        {
+            return false;
+        }
+
+        LifecycleCategory = category;
+        Watermarks = Watermarks with { Lifecycle = timestamp };
+        return true;
+    }
+
+    /// <summary>
     /// Brings the copy in line with the source as read at <paramref name="asOf"/>, one group at a time.
     /// </summary>
     /// <remarks>
@@ -89,7 +119,7 @@ public sealed class DemandProject
     /// newer than the read is left alone too, because the read is the older of the two.
     /// </remarks>
     /// <returns>Whether anything changed.</returns>
-    public bool Resync(ISimpleProject project, Instant asOf)
+    public bool Resync(ISimpleProjectWithLifecycle project, Instant asOf)
     {
         if (project.Id != Id)
             throw new InvalidOperationException("Cannot resync a DemandProject with a different Id.");
@@ -107,6 +137,13 @@ public sealed class DemandProject
         {
             Key = project.Key;
             Watermarks = Watermarks with { Key = asOf };
+            changed = true;
+        }
+
+        if (LifecycleCategory != project.LifecycleCategory && !ReplicaWatermark.IsStale(Watermarks.Lifecycle, asOf))
+        {
+            LifecycleCategory = project.LifecycleCategory;
+            Watermarks = Watermarks with { Lifecycle = asOf };
             changed = true;
         }
 

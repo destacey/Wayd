@@ -82,20 +82,20 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     [Authorize]
     [McpTool("IntakeRequests_GetOutcomes", "List intake request outcomes")]
     [EndpointSummary("Get what the intake requests you can see became.")]
-    [EndpointDescription("Takes the same filters as the list and answers beside it, so a list can show each request's projects and work items without reading every request. A request with no outcome is absent. Each outcome is as `IntakeRequests_GetIntakeRequest` returns it, with the work item's current status and the mapped deliverables' statuses. `deliverablesMet` is true when every mapped deliverable still on its project is Accepted, false while any is not, and null when no outcome maps one.")]
+    [EndpointDescription("Takes the same filters as the list and answers beside it, so a list can show each request's projects and work items without reading every request. A request with no outcome is absent. Each outcome is as `IntakeRequests_GetIntakeRequest` returns it, with the work item's current status and the mapped deliverables' statuses. `deliverablesMet` is true when every mapped deliverable still on its project is Accepted, false while any is not, and null when no outcome maps one. Each outcome's `deliverySignal` (`NotStarted`, `InProgress`, `Blocked`, `Done`, `Cancelled`) comes from a new project's status, a work item's status category, or existing project scope's mapped deliverables still on the project — from the project's status, with `isScopeUndefined` true, when none is. `deliveryState` rolls them up: any blocked, else any in progress, else any not started, else any done, else cancelled; null when no outcome reports a signal.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<IntakeRequestOutcomesDto>>> GetIntakeRequestOutcomes([FromQuery] Guid? deskId, [FromQuery] bool mine = false, [FromQuery] bool openOnly = false, [FromQuery] bool assignedToMe = false, [FromQuery] bool participating = false, [FromQuery] Instant? closedSince = null, CancellationToken cancellationToken = default)
     {
         var requests = await _dispatcher.Send(new GetIntakeRequestOutcomesQuery(deskId, mine, openOnly, assignedToMe, participating, closedSince), cancellationToken);
         var workItems = await WorkItemsOf(requests.SelectMany(r => r.Outcomes), cancellationToken);
-        return Ok(requests.Select(r => r with { Outcomes = WithWorkItems(r.Outcomes, workItems) }));
+        return Ok(requests.Select(r => r.WithWorkItems(workItems)));
     }
 
     [HttpGet("{idOrKey}")]
     [Authorize]
     [McpTool("IntakeRequests_GetIntakeRequest", "Get intake request")]
     [EndpointSummary("Get an intake request in the tiers you can read.")]
-    [EndpointDescription("The summary is always returned; the substance is null when you may not read it. The outcome is the summary's status and its category, with the substance's `statusReason` saying why the desk declined, deferred, finished or marked it a duplicate, or why its requester withdrew it, and `duplicateOf` naming the request it gave way to when you can see that one.")]
+    [EndpointDescription("The summary is always returned; the substance is null when you may not read it. The outcome is the summary's status and its category, with the substance's `statusReason` saying why the desk declined, deferred, finished or marked it a duplicate, or why its requester withdrew it, and `duplicateOf` naming the request it gave way to when you can see that one. Each outcome's `deliverySignal` says how far its delivery has got, and `deliveryState` rolls them up, as `IntakeRequests_GetOutcomes` describes.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<IntakeRequestDetailsDto>> GetIntakeRequest(string idOrKey, CancellationToken cancellationToken)
@@ -107,11 +107,12 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     }
 
     /// <summary>
-    /// Fills in each work item outcome's current key, title and status from Work. Demand Management keeps no copy
-    /// of work items; a work item Work no longer has keeps its outcome, with no work item.
+    /// Fills in each work item outcome's current key, title, status and delivery signal from Work, and rolls the
+    /// request's delivery state up from them. Demand Management keeps no copy of work items; a work item Work no
+    /// longer has keeps its outcome, with no work item.
     /// </summary>
     private async Task<IntakeRequestDetailsDto> WithWorkItems(IntakeRequestDetailsDto request, CancellationToken cancellationToken) =>
-        request with { Outcomes = WithWorkItems(request.Outcomes, await WorkItemsOf(request.Outcomes, cancellationToken)) };
+        request.WithWorkItems(await WorkItemsOf(request.Outcomes, cancellationToken));
 
     /// <summary>The work items the outcomes point at, by id, in one call to Work.</summary>
     private async Task<Dictionary<Guid, IntakeRequestOutcomeWorkItemDto>> WorkItemsOf(IEnumerable<IntakeRequestOutcomeDto> outcomes, CancellationToken cancellationToken)
@@ -127,19 +128,6 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
         return (await _dispatcher.Send(new GetWorkItemsByIdsQuery(workItemIds), cancellationToken))
             .ToDictionary(w => w.Id, ToOutcomeWorkItem);
     }
-
-    /// <summary>The outcomes, each work item outcome with its work item when Work still has it.</summary>
-    private static IReadOnlyList<IntakeRequestOutcomeDto> WithWorkItems(
-        IReadOnlyList<IntakeRequestOutcomeDto> outcomes,
-        Dictionary<Guid, IntakeRequestOutcomeWorkItemDto> workItems) =>
-        workItems.Count == 0
-            ? outcomes
-            :
-            [
-                .. outcomes.Select(o => o.Kind == IntakeRequestOutcomeKind.WorkItem && workItems.TryGetValue(o.TargetId, out var workItem)
-                    ? o with { WorkItem = workItem }
-                    : o),
-            ];
 
     /// <summary>A work item as Work reports it, in the shape Demand Management takes it.</summary>
     private static IntakeRequestOutcomeWorkItemDto ToOutcomeWorkItem(WorkItemDetailsNavigationDto workItem) => new()

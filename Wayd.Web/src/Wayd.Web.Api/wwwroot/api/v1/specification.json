@@ -45786,7 +45786,7 @@
           "IntakeRequests"
         ],
         "summary": "Get what the intake requests you can see became.",
-        "description": "Takes the same filters as the list and answers beside it, so a list can show each request's projects and work items without reading every request. A request with no outcome is absent. Each outcome is as `IntakeRequests_GetIntakeRequest` returns it, with the work item's current status and the mapped deliverables' statuses. `deliverablesMet` is true when every mapped deliverable still on its project is Accepted, false while any is not, and null when no outcome maps one.",
+        "description": "Takes the same filters as the list and answers beside it, so a list can show each request's projects and work items without reading every request. A request with no outcome is absent. Each outcome is as `IntakeRequests_GetIntakeRequest` returns it, with the work item's current status and the mapped deliverables' statuses. `deliverablesMet` is true when every mapped deliverable still on its project is Accepted, false while any is not, and null when no outcome maps one. Each outcome's `deliverySignal` (`NotStarted`, `InProgress`, `Blocked`, `Done`, `Cancelled`) comes from a new project's status, a work item's status category, or existing project scope's mapped deliverables still on the project — from the project's status, with `isScopeUndefined` true, when none is. `deliveryState` rolls them up: any blocked, else any in progress, else any not started, else any done, else cancelled; null when no outcome reports a signal.",
         "operationId": "IntakeRequests_GetIntakeRequestOutcomes",
         "parameters": [
           {
@@ -45874,7 +45874,7 @@
           "IntakeRequests"
         ],
         "summary": "Get an intake request in the tiers you can read.",
-        "description": "The summary is always returned; the substance is null when you may not read it. The outcome is the summary's status and its category, with the substance's `statusReason` saying why the desk declined, deferred, finished or marked it a duplicate, or why its requester withdrew it, and `duplicateOf` naming the request it gave way to when you can see that one.",
+        "description": "The summary is always returned; the substance is null when you may not read it. The outcome is the summary's status and its category, with the substance's `statusReason` saying why the desk declined, deferred, finished or marked it a duplicate, or why its requester withdrew it, and `duplicateOf` naming the request it gave way to when you can see that one. Each outcome's `deliverySignal` says how far its delivery has got, and `deliveryState` rolls them up, as `IntakeRequests_GetOutcomes` describes.",
         "operationId": "IntakeRequests_GetIntakeRequest",
         "parameters": [
           {
@@ -60892,6 +60892,16 @@
         "additionalProperties": false,
         "description": "What the figures cover."
       },
+      "DeliverySignal": {
+        "enum": [
+          "NotStarted",
+          "InProgress",
+          "Blocked",
+          "Done",
+          "Cancelled"
+        ],
+        "type": "string"
+      },
       "DeliveryWorkflowActionDto": {
         "required": [
           "action"
@@ -67109,6 +67119,15 @@
             "description": "Whether the request is met by the deliverables its outcomes are mapped to: true when every mapped deliverable\nstill on its project is Accepted, false while any is not, and null when no outcome maps one. New project and\nwork item outcomes play no part. Derived when read; reaching it changes nothing on the request.",
             "nullable": true
           },
+          "deliveryState": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DeliverySignal"
+              }
+            ],
+            "description": "How far delivery of the request has got, rolled up from its outcomes' signals: any blocked is blocked; else\nany in progress is in progress; else any not started is not started; else any done is done; else cancelled.\nNull when no outcome reports a signal — the request has none yet, or every target has been deleted. Derived\nwhen read.",
+            "nullable": true
+          },
           "canChangeOutcomes": {
             "type": "boolean",
             "description": "Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted."
@@ -67371,6 +67390,7 @@
           "kind",
           "targetId",
           "deliverables",
+          "isScopeUndefined",
           "addedOn"
         ],
         "type": "object",
@@ -67423,6 +67443,19 @@
             "description": "Whether the mapped deliverables meet the request: true when every one still on the project is Accepted,\nfalse while any is not (a descoped one included), and null when none is mapped. Derived when read.",
             "nullable": true
           },
+          "deliverySignal": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DeliverySignal"
+              }
+            ],
+            "description": "How far delivery of the outcome has got. A new project reports its lifecycle; a work item its status\ncategory; existing project scope rolls up the mapped deliverables still on the project, or reports the\nproject's lifecycle when none is (see `isScopeUndefined`). Null once the project or work item\nhas been deleted. Derived when read.",
+            "nullable": true
+          },
+          "isScopeUndefined": {
+            "type": "boolean",
+            "description": "Whether existing project scope has yet to say which of the project's deliverables meet the request: none\nmapped is still on the project, so `deliverySignal` follows the project as a whole. False for\nthe other kinds and once the project has been deleted."
+          },
           "addedBy": {
             "oneOf": [
               {
@@ -67470,6 +67503,15 @@
           "deliverablesMet": {
             "type": "boolean",
             "description": "Whether the request is met by the deliverables its outcomes are mapped to: true when every mapped deliverable\nstill on its project is Accepted, false while any is not, and null when no outcome maps one.",
+            "nullable": true
+          },
+          "deliveryState": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DeliverySignal"
+              }
+            ],
+            "description": "How far delivery of the request has got, rolled up from its outcomes' signals: any blocked is blocked; else\nany in progress is in progress; else any not started is not started; else any done is done; else cancelled.\nNull when no outcome reports a signal — the request has none yet, or every target has been deleted. Derived\nwhen read.",
             "nullable": true
           }
         },

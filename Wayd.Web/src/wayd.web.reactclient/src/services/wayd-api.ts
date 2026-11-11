@@ -65072,6 +65072,14 @@ export interface DeliveryScopeDto {
     releasableNodeCount: number;
 }
 
+export enum DeliverySignal {
+    NotStarted = "NotStarted",
+    InProgress = "InProgress",
+    Blocked = "Blocked",
+    Done = "Done",
+    Cancelled = "Cancelled",
+}
+
 /** A lifecycle action whose move a record's workflow allows from the status the record holds. */
 export interface DeliveryWorkflowActionDto {
     /** The action. */
@@ -67258,6 +67266,11 @@ request sees its tags. */
 still on its project is Accepted, false while any is not, and null when no outcome maps one. New project and
 work item outcomes play no part. Derived when read; reaching it changes nothing on the request. */
     deliverablesMet?: boolean | undefined;
+    /** How far delivery of the request has got, rolled up from its outcomes' signals: any blocked is blocked; else
+any in progress is in progress; else any not started is not started; else any done is done; else cancelled.
+Null when no outcome reports a signal — the request has none yet, or every target has been deleted. Derived
+when read. */
+    deliveryState?: DeliverySignal | undefined;
     /** Whether the reader may add and remove outcomes: an agent on its desk, while the request is accepted. */
     canChangeOutcomes: boolean;
     /** Whether the reader may set, change or clear the request's estimate: an agent on its desk, while the request
@@ -67378,6 +67391,15 @@ kinds. */
     /** Whether the mapped deliverables meet the request: true when every one still on the project is Accepted,
 false while any is not (a descoped one included), and null when none is mapped. Derived when read. */
     isMet?: boolean | undefined;
+    /** How far delivery of the outcome has got. A new project reports its lifecycle; a work item its status
+category; existing project scope rolls up the mapped deliverables still on the project, or reports the
+project's lifecycle when none is (see `isScopeUndefined`). Null once the project or work item
+has been deleted. Derived when read. */
+    deliverySignal?: DeliverySignal | undefined;
+    /** Whether existing project scope has yet to say which of the project's deliverables meet the request: none
+mapped is still on the project, so `deliverySignal` follows the project as a whole. False for
+the other kinds and once the project has been deleted. */
+    isScopeUndefined: boolean;
     /** The employee who recorded the outcome. */
     addedBy: EmployeeNavigationDto;
     /** When the outcome was recorded. */
@@ -67399,6 +67421,11 @@ export interface IntakeRequestOutcomesDto {
     /** Whether the request is met by the deliverables its outcomes are mapped to: true when every mapped deliverable
 still on its project is Accepted, false while any is not, and null when no outcome maps one. */
     deliverablesMet?: boolean | undefined;
+    /** How far delivery of the request has got, rolled up from its outcomes' signals: any blocked is blocked; else
+any in progress is in progress; else any not started is not started; else any done is done; else cancelled.
+Null when no outcome reports a signal — the request has none yet, or every target has been deleted. Derived
+when read. */
+    deliveryState?: DeliverySignal | undefined;
 }
 
 /** A work item an intake request's outcome points at, as Work reports it now. */

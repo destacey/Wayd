@@ -4,7 +4,13 @@ import { HomeWidgets } from './home-widgets'
 import { arrangeWidgets, attentionTiles, WidgetAccess } from './widget-registry'
 
 // The widget modules load RTK Query hooks; these tests read only the registry entries.
+vi.mock('./widgets/desk-queue-widget', () => ({
+  default: () => null,
+  RequestsAssignedToMeTile: () => null,
+  UnassignedRequestsTile: () => null,
+}))
 vi.mock('./widgets/following-widget', () => ({ default: () => null }))
+vi.mock('./widgets/my-requests-widget', () => ({ default: () => null }))
 vi.mock('./widgets/my-projects-widget', () => ({
   default: () => null,
   OverdueTasksTile: () => null,
@@ -69,7 +75,9 @@ describe('HomeWidgets', () => {
       'risk-follow-ups',
       'cross-team-dependencies',
       'dependencies-at-risk',
+      'unassigned-requests',
       'tasks-due-this-week',
+      'requests-assigned-to-me',
       'unread-notifications',
     ])
   })
@@ -113,8 +121,13 @@ describe('HomeWidgets involvement rules', () => {
       'whats-changed',
       'my-projects',
       'my-risks',
+      'desk-queue',
     ])
-    expect(layout.side).toEqual(['planning-intervals', 'following'])
+    expect(layout.side).toEqual([
+      'planning-intervals',
+      'following',
+      'my-requests',
+    ])
   })
 
   it('puts a project leader’s projects first', () => {
@@ -142,7 +155,9 @@ describe('HomeWidgets involvement rules', () => {
         'risk-follow-ups',
         'cross-team-dependencies',
         'dependencies-at-risk',
+        'unassigned-requests',
         'tasks-due-this-week',
+        'requests-assigned-to-me',
         'unread-notifications',
       ])
     },
@@ -153,7 +168,12 @@ describe('HomeWidgets involvement rules', () => {
     const layout = defaultFor({ projects: { totalCount: 1, memberCount: 1 } })
 
     // Assert
-    expect(layout.main).toEqual(['my-projects', 'whats-changed', 'my-risks'])
+    expect(layout.main).toEqual([
+      'my-projects',
+      'whats-changed',
+      'my-risks',
+      'desk-queue',
+    ])
   })
 
   it('interleaves a leader who is also on a team and holds risks', () => {
@@ -170,8 +190,13 @@ describe('HomeWidgets involvement rules', () => {
       'my-teams',
       'my-risks',
       'whats-changed',
+      'desk-queue',
     ])
-    expect(layout.side).toEqual(['planning-intervals', 'following'])
+    expect(layout.side).toEqual([
+      'planning-intervals',
+      'following',
+      'my-requests',
+    ])
   })
 
   it('puts My teams first for a member of a team of teams only, whose rollup it shows', () => {
@@ -180,6 +205,26 @@ describe('HomeWidgets involvement rules', () => {
 
     // Assert
     expect(layout.main[0]).toBe('my-teams')
-    expect(layout.side).toEqual(['planning-intervals', 'following'])
+    expect(layout.side).toEqual([
+      'planning-intervals',
+      'following',
+      'my-requests',
+    ])
+  })
+
+  it('puts the desk queue first for someone who works an intake desk', () => {
+    // Arrange / Act
+    const layout = defaultFor({ intake: { deskCount: 1, agentDeskCount: 1 } })
+
+    // Assert
+    expect(layout.main[0]).toBe('desk-queue')
+  })
+
+  it('puts My requests first in the side column for someone with an open request', () => {
+    // Arrange / Act
+    const layout = defaultFor({ intake: { openRequestsRaisedCount: 2 } })
+
+    // Assert
+    expect(layout.side[0]).toBe('my-requests')
   })
 })

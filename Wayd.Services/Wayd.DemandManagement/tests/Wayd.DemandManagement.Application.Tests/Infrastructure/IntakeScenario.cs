@@ -345,13 +345,15 @@ public sealed class IntakeScenario
 
     /// <summary>
     /// Records that the request moved into the named status of <see cref="Workflow"/> at the instant, as the next
-    /// entry in its history. The request's own status fields are not changed.
+    /// entry in its history, from <paramref name="fromStatusName"/> when given. The request's own status fields are
+    /// not changed.
     /// </summary>
-    public void RecordMove(IntakeRequest request, string statusName, Instant changedOn)
+    public void RecordMove(IntakeRequest request, string statusName, Instant changedOn, string? fromStatusName = null)
     {
         var sequence = DbContext.IntakeRequestStatusTransitions.Count(t => t.RecordId == request.Id) + 1;
         DbContext.AddStatusTransitions(new StatusTransition(DemandManagementWorkflowOwners.IntakeRequest.Key, request.Id,
-            from: null, Workflow.Ref(statusName), EventActor.System, changedOn, sequence));
+            fromStatusName is null ? null : Workflow.Ref(fromStatusName), Workflow.Ref(statusName), EventActor.System,
+            changedOn, sequence));
     }
 
     /// <summary>

@@ -45401,7 +45401,7 @@
           "IntakeRequests"
         ],
         "summary": "Get the intake requests you can see, as summaries.",
-        "description": "Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status.",
+        "description": "Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status. With `assignedToMe`, only requests assigned to you; with `participating`, only requests you were added to as a participant. With `closedSince`, closed requests (Done or Removed) only when they closed at or after that instant, open requests unaffected — `mine` with `closedSince` 30 days ago is what you asked for that is open or recently finished. Filters combine, each narrowing the list.",
         "operationId": "IntakeRequests_GetIntakeRequests",
         "parameters": [
           {
@@ -45431,6 +45431,34 @@
               "default": false
             },
             "x-position": 3
+          },
+          {
+            "name": "assignedToMe",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 4
+          },
+          {
+            "name": "participating",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 5
+          },
+          {
+            "name": "closedSince",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            },
+            "x-position": 6
           }
         ],
         "responses": {
@@ -45538,6 +45566,34 @@
               "default": false
             },
             "x-position": 3
+          },
+          {
+            "name": "assignedToMe",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 4
+          },
+          {
+            "name": "participating",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 5
+          },
+          {
+            "name": "closedSince",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            },
+            "x-position": 6
           }
         ],
         "responses": {
@@ -45598,6 +45654,34 @@
               "default": false
             },
             "x-position": 3
+          },
+          {
+            "name": "assignedToMe",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 4
+          },
+          {
+            "name": "participating",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 5
+          },
+          {
+            "name": "closedSince",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            },
+            "x-position": 6
           }
         ],
         "responses": {
@@ -45609,6 +45693,94 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/IntakeRequestCurrentEstimateDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/demand-management/intake-requests/outcomes": {
+      "get": {
+        "tags": [
+          "IntakeRequests"
+        ],
+        "summary": "Get what the intake requests you can see became.",
+        "description": "Takes the same filters as the list and answers beside it, so a list can show each request's projects and work items without reading every request. A request with no outcome is absent. Each outcome is as `IntakeRequests_GetIntakeRequest` returns it, with the work item's current status and the mapped deliverables' statuses. `deliverablesMet` is true when every mapped deliverable still on its project is Accepted, false while any is not, and null when no outcome maps one.",
+        "operationId": "IntakeRequests_GetIntakeRequestOutcomes",
+        "parameters": [
+          {
+            "name": "deskId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "mine",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 2
+          },
+          {
+            "name": "openOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 3
+          },
+          {
+            "name": "assignedToMe",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 4
+          },
+          {
+            "name": "participating",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 5
+          },
+          {
+            "name": "closedSince",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "nullable": true
+            },
+            "x-position": 6
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntakeRequestOutcomesDto"
                   }
                 }
               }
@@ -66529,7 +66701,8 @@
       },
       "IntakeDeskWaitingDto": {
         "required": [
-          "count"
+          "count",
+          "unassignedCount"
         ],
         "type": "object",
         "properties": {
@@ -66542,6 +66715,23 @@
             "type": "string",
             "description": "When the oldest waiting request was submitted, or null when none is waiting.",
             "format": "date-time",
+            "nullable": true
+          },
+          "unassignedCount": {
+            "type": "integer",
+            "description": "How many of the waiting requests no one is assigned to: what still needs triage.",
+            "format": "int32"
+          },
+          "unscoredCount": {
+            "type": "integer",
+            "description": "How many of the waiting requests have no score from the desk's scoring model, a score from a model the desk\nno longer uses included; null when the desk scores with no model.",
+            "format": "int32",
+            "nullable": true
+          },
+          "unestimatedCount": {
+            "type": "integer",
+            "description": "How many of the waiting requests have no estimate; null when the desk estimates on no scale.",
+            "format": "int32",
             "nullable": true
           }
         },
@@ -67183,6 +67373,34 @@
           "WorkItem"
         ],
         "type": "string"
+      },
+      "IntakeRequestOutcomesDto": {
+        "required": [
+          "requestId",
+          "outcomes"
+        ],
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string",
+            "description": "The request the outcomes belong to.",
+            "format": "uuid"
+          },
+          "outcomes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntakeRequestOutcomeDto"
+            },
+            "description": "The projects and work items the request became, oldest first. Never empty."
+          },
+          "deliverablesMet": {
+            "type": "boolean",
+            "description": "Whether the request is met by the deliverables its outcomes are mapped to: true when every mapped deliverable\nstill on its project is Accepted, false while any is not, and null when no outcome maps one.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "What one intake request became, answered beside the requests list. Summary tier, like the outcomes."
       },
       "IntakeRequestOutcomeWorkItemDto": {
         "required": [

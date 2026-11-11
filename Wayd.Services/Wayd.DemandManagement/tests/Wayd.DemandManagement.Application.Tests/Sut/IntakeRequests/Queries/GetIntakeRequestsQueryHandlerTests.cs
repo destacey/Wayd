@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using NodaTime;
 using Wayd.Common.Domain.Enums.DemandManagement;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
@@ -57,6 +58,101 @@ public sealed class GetIntakeRequestsQueryHandlerTests
 
         // Act
         var result = await CreateHandler().Handle(new GetIntakeRequestsQuery(Mine: true), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_AssignedToMe_ReturnsOnlyWhatIsAssignedToTheCaller()
+    {
+        // Arrange
+        var caller = _scenario.Employee();
+        var desk = _scenario.Desk(IntakeDeskVisibility.Private, agentIds: caller.Id);
+        var assigned = _scenario.Request(desk, _scenario.Employee());
+        assigned.ChangeAssignee(caller.Id, EventActor.System, _scenario.Clock.Now).IsSuccess.Should().BeTrue();
+        var toSomeoneElse = _scenario.Request(desk, _scenario.Employee());
+        toSomeoneElse.ChangeAssignee(_scenario.Employee().Id, EventActor.System, _scenario.Clock.Now).IsSuccess.Should().BeTrue();
+        _scenario.Request(desk, _scenario.Employee());
+        _scenario.SignedInAs(caller);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestsQuery(AssignedToMe: true), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Select(r => r.Id).Should().Equal(assigned.Id);
+    }
+
+    [Fact]
+    public async Task Handle_Participating_ReturnsAPrivateDesksRequestToAParticipantWhoIsNotOnTheDesk()
+    {
+        // Arrange — taking part is what grants the participant the request, desk membership or not
+        var caller = _scenario.Employee();
+        var desk = _scenario.Desk(IntakeDeskVisibility.Private);
+        var participating = _scenario.Request(desk, _scenario.Employee(), caller.Id);
+        _scenario.Request(desk, _scenario.Employee());
+        _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), caller);
+        _scenario.SignedInAs(caller, IntakeScenario.View);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestsQuery(Participating: true), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Select(r => r.Id).Should().Equal(participating.Id);
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task Handle_AssignedToMeOrParticipatingWithNoLinkedEmployee_ReturnsNothing(bool assignedToMe, bool participating)
+    {
+        // Arrange
+        _scenario.Request(_scenario.Desk(IntakeDeskVisibility.Open), _scenario.Employee());
+        _scenario.Principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync((Guid?)null);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new GetIntakeRequestsQuery(AssignedToMe: assignedToMe, Participating: participating), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ClosedSince_KeepsOpenRequestsAndThoseClosedSinceButNotThoseClosedBefore()
+    {
+        // Arrange — a closed request's latest move is the one that closed it
+        var caller = _scenario.Employee();
+        var desk = _scenario.Desk(IntakeDeskVisibility.Open);
+        var since = _scenario.Clock.Now + Duration.FromDays(10);
+        var open = _scenario.Request(desk, caller);
+        var closedLately = _scenario.RequestIn(desk, caller, StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled);
+        _scenario.RecordMove(closedLately, "Fulfilled", since + Duration.FromHours(1));
+        var closedLongAgo = _scenario.RequestIn(desk, caller, StatusCategory.Removed);
+        _scenario.RecordMove(closedLongAgo, "Declined", since - Duration.FromDays(1));
+        _scenario.SignedInAs(caller);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestsQuery(Mine: true, ClosedSince: since), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Select(r => r.Id).Should().BeEquivalentTo([open.Id, closedLately.Id]);
+    }
+
+    [Fact]
+    public async Task Handle_ClosedSince_ReadsWhenARequestClosedNotWhenItLastMovedBetweenClosedStatuses()
+    {
+        // Arrange — a desk's workflow change moves closed requests between closed statuses long after they closed
+        var caller = _scenario.Employee();
+        var desk = _scenario.Desk(IntakeDeskVisibility.Open);
+        var since = _scenario.Clock.Now + Duration.FromDays(10);
+        var closedLongAgo = _scenario.RequestIn(desk, caller, StatusCategory.Removed);
+        _scenario.RecordMove(closedLongAgo, "Declined", since - Duration.FromDays(5), fromStatusName: "Submitted");
+        _scenario.RecordMove(closedLongAgo, "Withdrawn", since + Duration.FromDays(1), fromStatusName: "Declined");
+        _scenario.SignedInAs(caller);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetIntakeRequestsQuery(Mine: true, ClosedSince: since), TestContext.Current.CancellationToken);
 
         // Assert
         result.Should().BeEmpty();

@@ -11,6 +11,8 @@ using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Enums.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
+using Wayd.Common.Domain.Events.Planning.EstimationScales;
+using Wayd.Common.Domain.Models.Planning.EstimationScales;
 using Wayd.Common.Domain.Interfaces.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Models.ProjectPortfolioManagement;
 using Wayd.Common.Domain.Scoring;
@@ -24,6 +26,7 @@ using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
 using Wayd.DemandManagement.Application.IntakeRequestTagCategories.Queries;
 using Wayd.DemandManagement.Domain.Models;
+using Wayd.DemandManagement.Domain.Models.Estimation;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
 
@@ -184,6 +187,95 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         asSubmitter.Select(r => r.Id).Should().Equal(onBehalf);
         asRequester.Select(r => r.Id).Should().BeEquivalentTo(
             [scenario.OnOpen.Id, scenario.OnSummaryOnly.Id, scenario.OnPrivate.Id]);
+    }
+
+    [Fact]
+    public async Task GetIntakeRequests_AssignedToMeParticipatingAndClosedSince_TranslateAndNarrowTheList()
+    {
+        // Arrange — the agent is assigned the private request; the participant takes part in the open one; a closed
+        // request of the requester's closed before the cut-off
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        var closedOn = Now.Plus(Duration.FromDays(2));
+        Guid closedId;
+        await using (var arrange = _fixture.CreateContext())
+        {
+            var onPrivate = await arrange.IntakeRequests.SingleAsync(r => r.Id == scenario.OnPrivate.Id, ct);
+            onPrivate.ChangeAssignee(scenario.Agent.Id, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            var desk = await arrange.IntakeDesks.SingleAsync(d => d.Id == scenario.Open.Id, ct);
+            var closed = IntakeRequest.Create(UniqueName("Ask"), "Already decided", null, scenario.Requester.Id,
+                scenario.Requester.Id, desk, await arrange.IntakeChannels.FirstAsync(ct), null, null, IntakeStatuses.Submitted(),
+                EventActor.System, Now).Value;
+            var declined = new StatusRef(closed.StatusWorkflowId, Guid.CreateVersion7(), "Declined", StatusCategory.Removed,
+                StatusWorkflow.NoAlias);
+            closed.ChangeStatus(declined, "Not this year", null, EventActor.System, closedOn).IsSuccess.Should().BeTrue();
+            // A later move between closed statuses, as a desk's workflow change makes, does not reopen the window
+            var withdrawn = new StatusRef(closed.StatusWorkflowId, Guid.CreateVersion7(), "Withdrawn", StatusCategory.Removed,
+                StatusWorkflow.NoAlias);
+            closed.ChangeStatus(withdrawn, "Moved onto the new workflow", null, EventActor.System, closedOn.Plus(Duration.FromDays(5)))
+                .IsSuccess.Should().BeTrue();
+            arrange.IntakeRequests.Add(closed);
+            await arrange.SaveChangesAsync(ct);
+            closedId = closed.Id;
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var assigned = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Agent.Id, holdsView: false))
+            .Handle(new GetIntakeRequestsQuery(AssignedToMe: true), ct);
+        var participating = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Participant.Id, holdsView: false))
+            .Handle(new GetIntakeRequestsQuery(Participating: true), ct);
+        var closedBefore = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Requester.Id))
+            .Handle(new GetIntakeRequestsQuery(Mine: true, ClosedSince: closedOn.Plus(Duration.FromSeconds(1))), ct);
+        var closedAfter = await new GetIntakeRequestsQueryHandler(context, Principal(scenario.Requester.Id))
+            .Handle(new GetIntakeRequestsQuery(Mine: true, ClosedSince: closedOn), ct);
+
+        // Assert
+        assigned.Select(r => r.Id).Should().Equal(scenario.OnPrivate.Id);
+        participating.Select(r => r.Id).Should().Equal(scenario.OnOpen.Id);
+        closedBefore.Select(r => r.Id).Should().BeEquivalentTo([scenario.OnOpen.Id, scenario.OnSummaryOnly.Id, scenario.OnPrivate.Id]);
+        closedAfter.Select(r => r.Id).Should().Contain(closedId);
+    }
+
+    [Fact]
+    public async Task GetIntakeRequestOutcomes_Mine_TranslatesAndReadsEachRequestsOutcomesUnderTheDesksVisibility()
+    {
+        // Arrange — the same project absorbed the open request and the private one
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        var projectId = Guid.CreateVersion7();
+        await using (var arrange = _fixture.CreateContext())
+        {
+            arrange.DemandProjects.Add(new DemandProject(new Source(projectId, new ProjectKey("P" + Guid.NewGuid().ToString("N")[..10]), "Atlas"), Now));
+            var requests = await arrange.IntakeRequests.Include(r => r.Outcomes)
+                .Where(r => r.Id == scenario.OnOpen.Id || r.Id == scenario.OnPrivate.Id)
+                .ToListAsync(ct);
+            foreach (var request in requests)
+            {
+                var accepted = new StatusRef(request.StatusWorkflowId, Guid.CreateVersion7(), "Accepted", StatusCategory.Active,
+                    (int)IntakeRequestStatusAlias.Accepted);
+                request.ChangeStatus(accepted, null, null, EventActor.System, Now).IsSuccess.Should().BeTrue();
+                request.AddOutcome(IntakeRequestOutcomeKind.NewProject, projectId, null, [], scenario.Agent.Id,
+                    EventActor.System, Now).IsSuccess.Should().BeTrue();
+            }
+            await arrange.SaveChangesAsync(ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var mine = await new GetIntakeRequestOutcomesQueryHandler(context, Principal(scenario.Requester.Id))
+            .Handle(new GetIntakeRequestOutcomesQuery(Mine: true, OpenOnly: true), ct);
+        var asParticipant = await new GetIntakeRequestOutcomesQueryHandler(context, Principal(scenario.Participant.Id, holdsView: false))
+            .Handle(new GetIntakeRequestOutcomesQuery(Participating: true), ct);
+
+        // Assert
+        mine.Select(r => r.RequestId).Should().BeEquivalentTo([scenario.OnOpen.Id, scenario.OnPrivate.Id]);
+        mine.Should().AllSatisfy(r =>
+        {
+            r.Outcomes.Should().ContainSingle().Which.Project!.Name.Should().Be("Atlas");
+            r.DeliverablesMet.Should().BeNull();
+        });
+        asParticipant.Select(r => r.RequestId).Should().Equal(scenario.OnOpen.Id);
     }
 
     [Fact]
@@ -348,6 +440,44 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         worked.CanManage.Should().BeFalse();
         asAgent.Single(d => d.Id == scenario.Open.Id).Waiting.Should().BeNull();
         asOutsider.Single(d => d.Id == scenario.Private.Id).Waiting.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetIntakeDesks_CountWhatAwaitsTriageOnTheDesksTheReaderWorks()
+    {
+        // Arrange — the private desk scores and estimates; of its two open requests one is assigned, scored and
+        // estimated, the other none of these
+        var ct = TestContext.Current.CancellationToken;
+        var scenario = await Seed(ct);
+        await ScorePrivateDesk(scenario, ct);
+        await using (var arrange = _fixture.CreateContext())
+        {
+            var version = new EstimationScaleVersionValues(Guid.NewGuid(), 1, [new("S", true), new("M", true), new("?", false)]);
+            var scale = new DemandEstimationScale(new EstimationScaleSnapshot(Guid.NewGuid(), 3, UniqueName("Sizes"), true, [version]), Now);
+            arrange.DemandEstimationScales.Add(scale);
+            var desk = await arrange.IntakeDesks.SingleAsync(d => d.Id == scenario.Private.Id, ct);
+            desk.ChangeEstimationScale(scale, null, hasEstimatedOpenRequests: false, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            var request = await arrange.IntakeRequests.SingleAsync(r => r.Id == scenario.OnPrivate.Id, ct);
+            request.ChangeAssignee(scenario.Agent.Id, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            request.ChangeEstimate("S", desk, scale, IntakeRequestEstimateSource.Manual, IntakeRequestEditor.System, Now)
+                .IsSuccess.Should().BeTrue();
+            arrange.IntakeRequests.Add(IntakeRequest.Create(UniqueName("Ask"), "Not yet triaged", null, scenario.Requester.Id,
+                scenario.Requester.Id, desk, await arrange.IntakeChannels.FirstAsync(ct), null, null, IntakeStatuses.Submitted(),
+                EventActor.System, Now).Value);
+            await arrange.SaveChangesAsync(ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var result = await new GetIntakeDesksQueryHandler(context, Principal(scenario.Agent.Id, holdsView: false))
+            .Handle(new GetIntakeDesksQuery(), ct);
+
+        // Assert — ScorePrivateDesk scored two of the three requests
+        var waiting = result.Single(d => d.Id == scenario.Private.Id).Waiting!;
+        waiting.Count.Should().Be(3);
+        waiting.UnassignedCount.Should().Be(2);
+        waiting.UnscoredCount.Should().Be(1);
+        waiting.UnestimatedCount.Should().Be(2);
     }
 
     [Theory]
@@ -588,11 +718,15 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
             .Handle(new GetIntakeRequestScoresQuery(scenario.Private.Id), ct);
         var mine = await new GetIntakeRequestScoresQueryHandler(context, Principal(scenario.Requester.Id))
             .Handle(new GetIntakeRequestScoresQuery(Mine: true, OpenOnly: true), ct);
+        var desks = await new GetIntakeDesksQueryHandler(context, Principal(scenario.Agent.Id, holdsView: false))
+            .Handle(new GetIntakeDesksQuery(), ct);
 
         // Assert
         scores.Should().HaveCount(2).And.OnlyContain(s => !s.IsDeskModel && s.ScoringModel.Id == modelId && s.ScoringModel.Key > 0);
         scores.Select(s => s.RequestId).Should().BeEquivalentTo([scenario.OnPrivate.Id, second]);
         mine.Select(s => s.RequestId).Should().BeEquivalentTo([scenario.OnPrivate.Id, second]);
+        // A score from the model the desk left leaves its request unscored, beside the one never scored
+        desks.Single(d => d.Id == scenario.Private.Id).Waiting!.UnscoredCount.Should().Be(3);
     }
 
     /// <summary>

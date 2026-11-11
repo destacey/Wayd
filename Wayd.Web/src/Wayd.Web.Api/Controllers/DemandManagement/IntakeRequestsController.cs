@@ -46,11 +46,11 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     [Authorize]
     [McpTool("IntakeRequests_GetList", "List intake requests")]
     [EndpointSummary("Get the intake requests you can see, as summaries.")]
-    [EndpointDescription("Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status.")]
+    [EndpointDescription("Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status. With `assignedToMe`, only requests assigned to you; with `participating`, only requests you were added to as a participant. With `closedSince`, closed requests (Done or Removed) only when they closed at or after that instant, open requests unaffected — `mine` with `closedSince` 30 days ago is what you asked for that is open or recently finished. Filters combine, each narrowing the list.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<IntakeRequestSummaryDto>>> GetIntakeRequests([FromQuery] Guid? deskId, [FromQuery] bool mine = false, [FromQuery] bool openOnly = false, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<IEnumerable<IntakeRequestSummaryDto>>> GetIntakeRequests([FromQuery] Guid? deskId, [FromQuery] bool mine = false, [FromQuery] bool openOnly = false, [FromQuery] bool assignedToMe = false, [FromQuery] bool participating = false, [FromQuery] Instant? closedSince = null, CancellationToken cancellationToken = default)
     {
-        var requests = await _dispatcher.Send(new GetIntakeRequestsQuery(deskId, mine, openOnly), cancellationToken);
+        var requests = await _dispatcher.Send(new GetIntakeRequestsQuery(deskId, mine, openOnly, assignedToMe, participating, closedSince), cancellationToken);
         return Ok(requests);
     }
 
@@ -60,9 +60,9 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     [EndpointSummary("Get the current scores of the intake requests you can see.")]
     [EndpointDescription("Takes the same filters as the list and answers beside it, for the requests whose score you may read: a score is substance, so a request whose substance is withheld from you is absent, as is one never scored. `isDeskModel` is false for a score from a model the request's desk no longer scores with, which does not rank with the rest.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<IntakeRequestCurrentScoreDto>>> GetIntakeRequestScores([FromQuery] Guid? deskId, [FromQuery] bool mine = false, [FromQuery] bool openOnly = false, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<IEnumerable<IntakeRequestCurrentScoreDto>>> GetIntakeRequestScores([FromQuery] Guid? deskId, [FromQuery] bool mine = false, [FromQuery] bool openOnly = false, [FromQuery] bool assignedToMe = false, [FromQuery] bool participating = false, [FromQuery] Instant? closedSince = null, CancellationToken cancellationToken = default)
     {
-        var scores = await _dispatcher.Send(new GetIntakeRequestScoresQuery(deskId, mine, openOnly), cancellationToken);
+        var scores = await _dispatcher.Send(new GetIntakeRequestScoresQuery(deskId, mine, openOnly, assignedToMe, participating, closedSince), cancellationToken);
         return Ok(scores);
     }
 
@@ -72,10 +72,23 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     [EndpointSummary("Get the estimates of the intake requests you can see.")]
     [EndpointDescription("Takes the same filters as the list and answers beside it, for the requests whose estimate you may read: an estimate is substance, so a request whose substance is withheld from you is absent, as is one never estimated. Sort on `position`, the value's place on its scale version, rather than on the text; positions compare only between estimates on the same version (`scale.versionId`).")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<IntakeRequestCurrentEstimateDto>>> GetIntakeRequestEstimates([FromQuery] Guid? deskId, [FromQuery] bool mine = false, [FromQuery] bool openOnly = false, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<IEnumerable<IntakeRequestCurrentEstimateDto>>> GetIntakeRequestEstimates([FromQuery] Guid? deskId, [FromQuery] bool mine = false, [FromQuery] bool openOnly = false, [FromQuery] bool assignedToMe = false, [FromQuery] bool participating = false, [FromQuery] Instant? closedSince = null, CancellationToken cancellationToken = default)
     {
-        var estimates = await _dispatcher.Send(new GetIntakeRequestEstimatesQuery(deskId, mine, openOnly), cancellationToken);
+        var estimates = await _dispatcher.Send(new GetIntakeRequestEstimatesQuery(deskId, mine, openOnly, assignedToMe, participating, closedSince), cancellationToken);
         return Ok(estimates);
+    }
+
+    [HttpGet("outcomes")]
+    [Authorize]
+    [McpTool("IntakeRequests_GetOutcomes", "List intake request outcomes")]
+    [EndpointSummary("Get what the intake requests you can see became.")]
+    [EndpointDescription("Takes the same filters as the list and answers beside it, so a list can show each request's projects and work items without reading every request. A request with no outcome is absent. Each outcome is as `IntakeRequests_GetIntakeRequest` returns it, with the work item's current status and the mapped deliverables' statuses. `deliverablesMet` is true when every mapped deliverable still on its project is Accepted, false while any is not, and null when no outcome maps one.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<IntakeRequestOutcomesDto>>> GetIntakeRequestOutcomes([FromQuery] Guid? deskId, [FromQuery] bool mine = false, [FromQuery] bool openOnly = false, [FromQuery] bool assignedToMe = false, [FromQuery] bool participating = false, [FromQuery] Instant? closedSince = null, CancellationToken cancellationToken = default)
+    {
+        var requests = await _dispatcher.Send(new GetIntakeRequestOutcomesQuery(deskId, mine, openOnly, assignedToMe, participating, closedSince), cancellationToken);
+        var workItems = await WorkItemsOf(requests.SelectMany(r => r.Outcomes), cancellationToken);
+        return Ok(requests.Select(r => r with { Outcomes = WithWorkItems(r.Outcomes, workItems) }));
     }
 
     [HttpGet("{idOrKey}")]
@@ -94,31 +107,39 @@ public class IntakeRequestsController(IDispatcher dispatcher, ICsvService csvSer
     }
 
     /// <summary>
-    /// Fills in each work item outcome's current key, title and status from Work, in one call. Demand Management
-    /// keeps no copy of work items; a work item Work no longer has keeps its outcome, with no work item.
+    /// Fills in each work item outcome's current key, title and status from Work. Demand Management keeps no copy
+    /// of work items; a work item Work no longer has keeps its outcome, with no work item.
     /// </summary>
-    private async Task<IntakeRequestDetailsDto> WithWorkItems(IntakeRequestDetailsDto request, CancellationToken cancellationToken)
+    private async Task<IntakeRequestDetailsDto> WithWorkItems(IntakeRequestDetailsDto request, CancellationToken cancellationToken) =>
+        request with { Outcomes = WithWorkItems(request.Outcomes, await WorkItemsOf(request.Outcomes, cancellationToken)) };
+
+    /// <summary>The work items the outcomes point at, by id, in one call to Work.</summary>
+    private async Task<Dictionary<Guid, IntakeRequestOutcomeWorkItemDto>> WorkItemsOf(IEnumerable<IntakeRequestOutcomeDto> outcomes, CancellationToken cancellationToken)
     {
-        var workItemIds = request.Outcomes
+        var workItemIds = outcomes
             .Where(o => o.Kind == IntakeRequestOutcomeKind.WorkItem)
             .Select(o => o.TargetId)
+            .Distinct()
             .ToList();
         if (workItemIds.Count == 0)
-            return request;
+            return [];
 
-        var workItems = (await _dispatcher.Send(new GetWorkItemsByIdsQuery(workItemIds), cancellationToken))
+        return (await _dispatcher.Send(new GetWorkItemsByIdsQuery(workItemIds), cancellationToken))
             .ToDictionary(w => w.Id, ToOutcomeWorkItem);
+    }
 
-        return request with
-        {
-            Outcomes =
+    /// <summary>The outcomes, each work item outcome with its work item when Work still has it.</summary>
+    private static IReadOnlyList<IntakeRequestOutcomeDto> WithWorkItems(
+        IReadOnlyList<IntakeRequestOutcomeDto> outcomes,
+        Dictionary<Guid, IntakeRequestOutcomeWorkItemDto> workItems) =>
+        workItems.Count == 0
+            ? outcomes
+            :
             [
-                .. request.Outcomes.Select(o => o.Kind == IntakeRequestOutcomeKind.WorkItem && workItems.TryGetValue(o.TargetId, out var workItem)
+                .. outcomes.Select(o => o.Kind == IntakeRequestOutcomeKind.WorkItem && workItems.TryGetValue(o.TargetId, out var workItem)
                     ? o with { WorkItem = workItem }
                     : o),
-            ],
-        };
-    }
+            ];
 
     /// <summary>A work item as Work reports it, in the shape Demand Management takes it.</summary>
     private static IntakeRequestOutcomeWorkItemDto ToOutcomeWorkItem(WorkItemDetailsNavigationDto workItem) => new()

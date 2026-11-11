@@ -7,7 +7,7 @@ audience: [user, agent]
 
 # Home
 
-The home page is a briefing on your work: what needs your attention today, what has changed on the records you follow or work on, and the projects, risks, planning intervals and teams you are part of.
+The home page is a briefing on your work: what needs your attention today, what has changed on the records you follow or work on, and the projects, risks, planning intervals, teams, intake desks and requests you are part of.
 
 It opens with a greeting and today's date, then a row of counts across the top, then the widgets in two columns: a wider main column and a narrower side column. On a tablet the side column's widgets sit two abreast below the main column; on a phone everything is one column, with the side column's widgets last.
 
@@ -18,7 +18,7 @@ The page appears straight away. Each widget loads on its own and shows a placeho
 You see only the widgets that apply to you. A widget needs some or all of:
 
 - **A permission.** My projects needs permission to view projects, for example. Without it the widget is not shown.
-- **A feature flag.** What's changed and Following need the **Following** feature flag, which an administrator turns on in **Settings → System → Feature Flags**.
+- **A feature flag.** What's changed and Following need the **Following** feature flag, and Desk queue and My requests the **Demand Management** flag, which an administrator turns on in **Settings → System → Feature Flags**.
 - **An account linked to an employee.** Anything about "my" work — projects, risks, tasks, teams, notifications, the records you follow — comes from the employee record your account is linked to.
 
 If your account is not linked to an employee, a banner at the top says so. Your projects, risks, tasks, teams, notifications and the records you follow appear once an administrator links your account in **Settings → Access → Users**.
@@ -29,7 +29,7 @@ Every widget is a card with its title at the top left and, where there is a full
 
 The row of counts across the top shows up to four numbers that need you today. Each one links to the list behind it, and its number turns orange or red. A count at zero gives up its place to the next one, and when every count is zero the row is not shown at all, so an empty row means nothing is waiting.
 
-When more counts are above zero than fit, the most urgent four show, in this order: overdue tasks, sprints to complete, risk follow-ups, unhealthy dependencies, dependencies at risk, tasks due this week, unread notifications. Where you placed the widgets makes no difference to which counts show.
+When more counts are above zero than fit, the most urgent four show, in this order: overdue tasks, sprints to complete, risk follow-ups, unhealthy dependencies, dependencies at risk, unassigned requests, tasks due this week, requests assigned to you, unread notifications. Where you placed the widgets makes no difference to which counts show.
 
 | Count | What it counts | Where it goes |
 |-------|----------------|---------------|
@@ -40,8 +40,10 @@ When more counts are above zero than fit, the most urgent four show, in this ord
 | Dependencies at risk (on your teams) | Open [dependencies](./work-management/work-items.mdx#work-item-dependencies) of your teams that are at risk (neither end planned) or unhealthy (planned to finish after they are needed); a dependency between two of your teams counts once | The My teams widget below |
 | Sprints to complete (in your teams of teams) | Sprints that a team in one of your teams of teams started and that are past their end without being completed | The My teams widget below |
 | Unhealthy dependencies (across your teams of teams) | Open cross-team dependencies of your teams of teams that are unhealthy; a dependency two of them share counts once | The My teams widget below |
+| Unassigned requests (on your desks) | Open [intake requests](./demand-management/index.mdx) on the desks you are a Desk Admin or Agent on that no one is assigned to | Requests, filtered to your desks and Unassigned |
+| Requests assigned (to you) | Open intake requests assigned to you | Requests, filtered to Assigned to me |
 
-A count shows only when its widget does: without the Following flag there is no unread count, without permission to view risks there are no risk follow-ups, without permission to view work items there are no dependencies at risk or unhealthy dependencies, and without permission to view iterations there are no sprints to complete. A count that fails to load keeps its place and shows a dash rather than a zero.
+A count shows only when its widget does: without the Following flag there is no unread count, without permission to view risks there are no risk follow-ups, without permission to view work items there are no dependencies at risk or unhealthy dependencies, without permission to view iterations there are no sprints to complete, and without the Demand Management flag there are no request counts. A count that fails to load keeps its place and shows a dash rather than a zero.
 
 ## Widgets
 
@@ -52,6 +54,8 @@ This is each widget's usual place. Until you [customize](#customizing) the page,
 - **What's changed** — your five latest [notifications](./notifications.mdx): what changed, on which record, and why you were told. Opening one goes to the record and marks it read. **View all** opens the full list.
 - **My projects** — how many approved and active projects you hold a role on, broken down by role (Sponsor, Owner, PM, Member, Task Assignee). **View all** opens the Projects Dashboard.
 - **My risks** — the open [risks](./planning/risks.mdx) assigned to you, with their exposure and follow-up date, soonest follow-up first. A follow-up that is today or past is highlighted.
+- **Desk queue** — what waits on the [intake desks](./demand-management/index.mdx) you are a Desk Admin or Agent on. Each desk shows your role and its open requests, with how many no one is assigned to and, on a desk that scores or estimates, how many have no score from the desk's model or no estimate. Below the desks are the open requests **Assigned to me** and those you are **Participating** in, five of each, with a link to the rest of those assigned to you. Being the Demand Management Admin does not put every desk here: only the desks you are a member of. **View all** opens Requests filtered to your desks.
+
 ### Side column
 
 - **Planning intervals** — the [planning intervals](./planning/planning-intervals.mdx) running now and those starting in the next two weeks, with their dates, how many days are left (today included) or until they start, and links to Plan Review and the current iteration.
@@ -75,14 +79,15 @@ This is each widget's usual place. Until you [customize](#customizing) the page,
   - The footer gives its open cross-team dependencies — those of every team beneath it whose predecessor is not done, as its Dependencies section lists them — with how many are at risk or unhealthy, and its own open risks with those of the teams beneath it. Each links to that section of the team of teams page.
 
   The card's parts need the same permissions as the team of teams page's: viewing iterations for sprints, viewing work items for flow and dependencies, viewing risks for risks, and viewing planning intervals for the planning interval, with viewing planning interval objectives for its at-risk count. Without permission to view a team's sprint or flow, its row shows only its name and counts as on track.
+- **My requests** — the intake requests you asked for or submitted for someone else that are open, or that closed in the last 30 days: open ones first, each with its status, its desk and what it became. A project shows how many of the deliverables mapped to it are accepted, or **Met** once all are; a work item shows its status. **View all** opens My Requests, which lists all of them.
 - **Following** — the records you [follow](./following.mdx), most recently changed first. **View all** opens your Following list.
 
 ## How the default is chosen
 
-The columns above are the starting point. Until you customize the page, Wayd reorders them around what you are involved in, so you land on your own work without setting anything up. It works this out from your records each time you open the page — your team memberships, the roles you hold and tasks assigned to you on approved and active projects, the risks assigned to you — and never asks or stores what your job is.
+The columns above are the starting point. Until you customize the page, Wayd reorders them around what you are involved in, so you land on your own work without setting anything up. It works this out from your records each time you open the page — your team memberships, the roles you hold and tasks assigned to you on approved and active projects, the risks assigned to you, the intake desks you work and the open requests you raised — and never asks or stores what your job is.
 
-- **What you lead or do every day comes first.** If you sponsor, own or manage a project, My projects moves to the top of the main column. If you are a member of a team or a team of teams, My teams moves to the top of the main column too.
-- **Areas you work in come next.** My projects for a project member or task assignee, My risks when risks are assigned to you, and Planning intervals when you are on a team or a team of teams.
+- **What you lead or do every day comes first.** If you sponsor, own or manage a project, My projects moves to the top of the main column. If you are a member of a team or a team of teams, My teams moves to the top of the main column too, and if you work an intake desk, so does Desk queue.
+- **Areas you work in come next.** My projects for a project member or task assignee, My risks when risks are assigned to you, My requests when you have an open request, and Planning intervals when you are on a team or a team of teams.
 - **Shared widgets follow** — What's changed and Following.
 - **Areas you are not part of go last.** They still show, with a line saying how they fill.
 

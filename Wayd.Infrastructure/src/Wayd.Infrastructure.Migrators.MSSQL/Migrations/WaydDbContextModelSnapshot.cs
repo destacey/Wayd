@@ -4492,6 +4492,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("EstimationScaleVersionId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("FocusedRoundId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Key")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");

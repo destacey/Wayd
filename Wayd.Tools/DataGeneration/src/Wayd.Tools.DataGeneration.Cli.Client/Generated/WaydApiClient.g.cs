@@ -65088,7 +65088,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -65159,6 +65159,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task RemoveRoundAsync(System.Guid id, System.Guid roundId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Point a poker session at a round.
+        /// </summary>
+        /// <remarks>
+        /// Sets the round everyone following the facilitator is shown on the session page, returned as the session's `focusedRoundId`. `roundId` is one of the session's rounds; an omitted or null `roundId` points at no round, returning followers to the round in play. The last facilitator to point the session wins. Accepting the round's estimate, removing the round and completing the session each clear it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task FocusRoundAsync(System.Guid id, FocusPokerRoundRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -65534,7 +65545,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -66112,6 +66123,99 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
                     urlBuilder_.Append("/rounds/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(roundId, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Point a poker session at a round.
+        /// </summary>
+        /// <remarks>
+        /// Sets the round everyone following the facilitator is shown on the session page, returned as the session's `focusedRoundId`. `roundId` is one of the session's rounds; an omitted or null `roundId` points at no round, returning followers to the round in play. The last facilitator to point the session wins. Accepting the round's estimate, removing the round and completing the session each clear it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task FocusRoundAsync(System.Guid id, FocusPokerRoundRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/focused-round"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/focused-round");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -122699,6 +122803,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class FocusPokerRoundRequest
+    {
+
+        /// <summary>
+        /// The round to show everyone following the facilitator, or null to return them to the round in play.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("roundId")]
+        public System.Guid? RoundId { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// How many records the caller follows and can still read, by owner type and by "needs a look" view.
     /// </summary>
@@ -132193,6 +132309,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("completedOn")]
         public System.DateTimeOffset? CompletedOn { get; set; } = default!;
+
+        /// <summary>
+        /// The round a facilitator last pointed the session at, which everyone following the facilitator is shown.
+        /// <br/>Null when no round is pointed at, where followers see the round in play.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("focusedRoundId")]
+        public System.Guid? FocusedRoundId { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("rounds")]
         [System.ComponentModel.DataAnnotations.Required]

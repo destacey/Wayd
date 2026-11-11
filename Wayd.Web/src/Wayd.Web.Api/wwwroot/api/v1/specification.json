@@ -30233,7 +30233,7 @@
           "PokerSessions"
         ],
         "summary": "Get poker session details using the Id or key.",
-        "description": "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
+        "description": "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
         "operationId": "PokerSessions_GetSession",
         "parameters": [
           {
@@ -30564,6 +30564,60 @@
             "x-position": 2
           }
         ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/planning/poker-sessions/{id}/focused-round": {
+      "put": {
+        "tags": [
+          "PokerSessions"
+        ],
+        "summary": "Point a poker session at a round.",
+        "description": "Sets the round everyone following the facilitator is shown on the session page, returned as the session's `focusedRoundId`. `roundId` is one of the session's rounds; an omitted or null `roundId` points at no round, returning followers to the round in play. The last facilitator to point the session wins. Accepting the round's estimate, removing the round and completing the session each clear it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.",
+        "operationId": "PokerSessions_FocusRound",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FocusPokerRoundRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
         "responses": {
           "204": {
             "description": "No Content"
@@ -62603,6 +62657,18 @@
         ],
         "description": "An area of the app that feature flags are grouped under, with its name, description and display order."
       },
+      "FocusPokerRoundRequest": {
+        "type": "object",
+        "properties": {
+          "roundId": {
+            "type": "string",
+            "description": "The round to show everyone following the facilitator, or null to return them to the round in play.",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "FollowCountsDto": {
         "required": [
           "total",
@@ -72161,6 +72227,12 @@
           "completedOn": {
             "type": "string",
             "format": "date-time",
+            "nullable": true
+          },
+          "focusedRoundId": {
+            "type": "string",
+            "description": "The round a facilitator last pointed the session at, which everyone following the facilitator is shown.\nNull when no round is pointed at, where followers see the round in play.",
+            "format": "uuid",
             "nullable": true
           },
           "rounds": {

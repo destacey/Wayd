@@ -60,6 +60,12 @@ public sealed record PokerSessionDetailsDto : IMapFrom<PokerSession>
     public EstimationScaleVersionDto? EstimationScaleVersion { get; set; }
     public Instant? ActivatedOn { get; set; }
     public Instant? CompletedOn { get; set; }
+
+    /// <summary>
+    /// The round a facilitator last pointed the session at, which everyone following the facilitator is shown.
+    /// Null when no round is pointed at, where followers see the round in play.
+    /// </summary>
+    public Guid? FocusedRoundId { get; set; }
     public List<PokerRoundDto> Rounds { get; set; } = [];
 
     public void ConfigureMapping(TypeAdapterConfig config)

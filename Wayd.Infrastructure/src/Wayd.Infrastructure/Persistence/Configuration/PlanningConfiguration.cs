@@ -682,6 +682,11 @@ public class PokerSessionConfig : IEntityTypeConfiguration<PokerSession>
         builder.Property(s => s.ActivatedOn);
         builder.Property(s => s.CompletedOn);
 
+        // Deliberately not a foreign key: the rounds cascade from this row, and a key from it back to one of
+        // them would make every round delete depend on the order of the writes. The session clears it when
+        // the round goes, and a reader treats an id that matches no round as none.
+        builder.Property(s => s.FocusedRoundId);
+
         // Relationships
         builder.HasOne(s => s.EstimationScale)
             .WithMany()

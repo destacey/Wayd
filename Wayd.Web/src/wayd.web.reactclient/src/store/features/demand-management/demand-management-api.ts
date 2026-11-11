@@ -29,6 +29,7 @@ import {
   CreateIntakeRequestRequest,
   IntakeDeskWorkflowDto,
   IntakeRequestCurrentEstimateDto,
+  IntakeRequestOutcomesDto,
   IntakeRequestCurrentScoreDto,
   IntakeEstimationScaleChoiceDto,
   IntakeRequestScoringDto,
@@ -70,7 +71,27 @@ export interface IntakeRequestListArgs {
   mine?: boolean
   /** Only requests still open: in the Proposed or Active status category. */
   openOnly?: boolean
+  /** Only requests assigned to the caller. */
+  assignedToMe?: boolean
+  /** Only requests the caller was added to as a participant. */
+  participating?: boolean
+  /**
+   * Closed requests only when they closed at or after this instant, as an ISO
+   * string so the cache key stays serializable; open requests are unaffected.
+   */
+  closedSince?: string
 }
+
+/** The list's filters in the generated client's argument order. */
+const listFilters = (args: IntakeRequestListArgs | void) =>
+  [
+    args?.deskId,
+    args?.mine,
+    args?.openOnly,
+    args?.assignedToMe,
+    args?.participating,
+    args?.closedSince ? new Date(args.closedSince) : undefined,
+  ] as const
 
 export interface IntakeRequestParticipantArgs {
   requestId: string
@@ -143,6 +164,12 @@ const statusMoveTags = (requestId: string) => [
 ]
 
 const listTag = { type: QueryTags.IntakeRequest, id: 'LIST' } as const
+
+/** Every outcomes read beside the list: a request's first outcome is not yet among the ids it provides. */
+const outcomesListTag = {
+  type: QueryTags.IntakeRequest,
+  id: 'OUTCOMES',
+} as const
 
 const deskListTag = { type: QueryTags.IntakeDesk, id: 'LIST' } as const
 
@@ -241,9 +268,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       queryFn: async (args) => {
         try {
           const data = await getIntakeRequestsClient().getIntakeRequests(
-            args?.deskId,
-            args?.mine,
-            args?.openOnly,
+            ...listFilters(args),
           )
           return { data }
         } catch (error) {
@@ -264,9 +289,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       queryFn: async (args) => {
         try {
           const data = await getIntakeRequestsClient().getIntakeRequestScores(
-            args?.deskId,
-            args?.mine,
-            args?.openOnly,
+            ...listFilters(args),
           )
           return { data }
         } catch (error) {
@@ -286,9 +309,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
         try {
           const data =
             await getIntakeRequestsClient().getIntakeRequestEstimates(
-              args?.deskId,
-              args?.mine,
-              args?.openOnly,
+              ...listFilters(args),
             )
           return { data }
         } catch (error) {
@@ -298,6 +319,31 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       providesTags: [
         { type: QueryTags.IntakeRequestEstimate, id: 'LIST' },
         listTag,
+      ],
+    }),
+
+    // Answered beside the list, so a list can show what each request became without reading every request.
+    getIntakeRequestOutcomes: builder.query<
+      IntakeRequestOutcomesDto[],
+      IntakeRequestListArgs | void
+    >({
+      queryFn: async (args) => {
+        try {
+          const data = await getIntakeRequestsClient().getIntakeRequestOutcomes(
+            ...listFilters(args),
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      providesTags: (result = []) => [
+        listTag,
+        outcomesListTag,
+        ...result.map(({ requestId }) => ({
+          type: QueryTags.IntakeRequest,
+          id: requestId,
+        })),
       ],
     }),
 
@@ -316,9 +362,11 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
+      // The desk's unestimated count changes with it.
       invalidatesTags: (_result, _error, { requestId }) => [
         ...requestTags(requestId),
         QueryTags.IntakeRequestEstimate,
+        QueryTags.IntakeDesk,
       ],
     }),
 
@@ -346,9 +394,11 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
+      // The desk's unscored count changes with it.
       invalidatesTags: (_result, _error, { requestId }) => [
         { type: QueryTags.ActivityLog, id: requestId },
         QueryTags.IntakeRequestScore,
+        QueryTags.IntakeDesk,
       ],
     }),
 
@@ -459,8 +509,11 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
-      invalidatesTags: (_result, _error, { requestId }) =>
-        requestTags(requestId),
+      // A request the new participant was not in is not among the ids a Participating list provides.
+      invalidatesTags: (_result, _error, { requestId }) => [
+        ...requestTags(requestId),
+        listTag,
+      ],
     }),
 
     // The assignee shows in every list the request appears in, so lists refetch too.
@@ -479,9 +532,11 @@ export const demandManagementApi = apiSlice.injectEndpoints({
           return toError(error)
         }
       },
+      // The desk's unassigned count changes with it.
       invalidatesTags: (_result, _error, { requestId }) => [
         ...requestTags(requestId),
         listTag,
+        QueryTags.IntakeDesk,
       ],
     }),
 
@@ -660,6 +715,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       invalidatesTags: (_result, _error, { requestId, request }) => [
         ...requestTags(requestId),
         ...outcomeTargetTags(request.projectId ?? request.workItemId),
+        outcomesListTag,
       ],
     }),
 
@@ -1570,6 +1626,7 @@ export const {
   useGetIntakeScoringModelChoicesQuery,
   useChangeIntakeDeskScoringModelMutation,
   useGetIntakeRequestEstimatesQuery,
+  useGetIntakeRequestOutcomesQuery,
   useChangeIntakeRequestEstimateMutation,
   useGetIntakeEstimationScaleChoicesQuery,
   useChangeIntakeDeskEstimationScaleMutation,

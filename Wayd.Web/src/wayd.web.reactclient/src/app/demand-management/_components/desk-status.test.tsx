@@ -28,7 +28,7 @@ const desk = (overrides: Partial<IntakeDeskDto> = {}) =>
 describe('describeWaiting', () => {
   it('says nothing is waiting when the count is zero', () => {
     // Act
-    const text = describeWaiting({ count: 0 })
+    const text = describeWaiting({ count: 0, unassignedCount: 0 })
 
     // Assert
     expect(text).toBe('Nothing waiting')
@@ -39,7 +39,11 @@ describe('describeWaiting', () => {
     const twoWeeksAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
 
     // Act
-    const text = describeWaiting({ count: 3, oldestSubmittedOn: twoWeeksAgo })
+    const text = describeWaiting({
+      count: 3,
+      unassignedCount: 0,
+      oldestSubmittedOn: twoWeeksAgo,
+    })
 
     // Assert
     expect(text).toBe('3 waiting, the oldest submitted 2 weeks ago')
@@ -49,7 +53,11 @@ describe('describeWaiting', () => {
 describe('UnownedDeskAlert', () => {
   it('warns about a desk with no members and says what is waiting where the server sent it', () => {
     // Arrange / Act
-    render(<UnownedDeskAlert desk={desk({ waiting: { count: 4 } })} />)
+    render(
+      <UnownedDeskAlert
+        desk={desk({ waiting: { count: 4, unassignedCount: 0 } })}
+      />,
+    )
 
     // Assert
     expect(screen.getByText('Nobody works this desk')).toBeInTheDocument()

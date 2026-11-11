@@ -65,7 +65,14 @@ describe('demandManagementApi', () => {
       )
 
       // Assert
-      expect(getIntakeRequests).toHaveBeenCalledWith(undefined, true, undefined)
+      expect(getIntakeRequests).toHaveBeenCalledWith(
+        undefined,
+        true,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+      )
     })
 
     it('asks the server for open requests only, rather than filtering the summaries', async () => {
@@ -81,7 +88,39 @@ describe('demandManagementApi', () => {
       )
 
       // Assert
-      expect(getIntakeRequests).toHaveBeenCalledWith(undefined, undefined, true)
+      expect(getIntakeRequests).toHaveBeenCalledWith(
+        undefined,
+        undefined,
+        true,
+        undefined,
+        undefined,
+        undefined,
+      )
+    })
+
+    it('passes the assignee, participant and closed-since filters to the server', async () => {
+      // Arrange
+      getIntakeRequests.mockResolvedValue([])
+      const store = createStore()
+
+      // Act
+      await store.dispatch(
+        demandManagementApi.endpoints.getIntakeRequests.initiate({
+          assignedToMe: true,
+          participating: true,
+          closedSince: '2026-10-11T00:00:00.000Z',
+        }),
+      )
+
+      // Assert
+      expect(getIntakeRequests).toHaveBeenCalledWith(
+        undefined,
+        undefined,
+        undefined,
+        true,
+        true,
+        new Date('2026-10-11T00:00:00.000Z'),
+      )
     })
   })
 

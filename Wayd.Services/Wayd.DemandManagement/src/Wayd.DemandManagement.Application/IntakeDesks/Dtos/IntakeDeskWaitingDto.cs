@@ -16,4 +16,16 @@ public sealed record IntakeDeskWaitingDto
 
     /// <summary>When the oldest waiting request was submitted, or null when none is waiting.</summary>
     public Instant? OldestSubmittedOn { get; init; }
+
+    /// <summary>How many of the waiting requests no one is assigned to: what still needs triage.</summary>
+    public int UnassignedCount { get; init; }
+
+    /// <summary>
+    /// How many of the waiting requests have no score from the desk's scoring model, a score from a model the desk
+    /// no longer uses included; null when the desk scores with no model.
+    /// </summary>
+    public int? UnscoredCount { get; init; }
+
+    /// <summary>How many of the waiting requests have no estimate; null when the desk estimates on no scale.</summary>
+    public int? UnestimatedCount { get; init; }
 }

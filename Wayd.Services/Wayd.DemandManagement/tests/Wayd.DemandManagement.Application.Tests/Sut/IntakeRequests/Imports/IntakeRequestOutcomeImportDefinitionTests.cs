@@ -95,6 +95,25 @@ public sealed class IntakeRequestOutcomeImportDefinitionTests
     }
 
     [Fact]
+    public async Task RecordOutcomes_AScopeRowWithDeliverablesAndNoNote_RecordsItWithoutANote()
+    {
+        // Arrange
+        var request = _scenario.RequestInStatus(_desk, _scenario.Employee(), "Fulfilled");
+        var portal = _scenario.Deliverable(_project, "Portal");
+
+        // Act
+        var result = await Run(ScopeRow(request.Id, portal.Id) with { Note = null });
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var row = result.Value.Rows.Should().ContainSingle().Subject;
+        row.Failed.Should().BeFalse(row.Error);
+        var outcome = request.Outcomes.Should().ContainSingle().Subject;
+        outcome.Note.Should().BeNull();
+        outcome.DeliverableIds().Should().Equal(portal.Id);
+    }
+
+    [Fact]
     public async Task RecordOutcomes_WithoutAddedBy_RecordsItAsTheAssigneesAndFailsWithoutOne()
     {
         // Arrange

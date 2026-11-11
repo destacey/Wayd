@@ -127,6 +127,20 @@ describe('SetOutcomeDeliverablesForm', () => {
     ).toBeInTheDocument()
   })
 
+  it('refuses to leave an outcome with no note mapped only to deliverables deleted from the project', async () => {
+    // Arrange
+    await renderForm(vi.fn(), { ...outcome, note: undefined })
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    // Assert
+    expect(mockSet).not.toHaveBeenCalled()
+    expect(
+      await screen.findByText(/This outcome has no note/),
+    ).toBeInTheDocument()
+  })
+
   it('clears the mapping of an outcome with a note', async () => {
     // Arrange
     mockSet.mockReturnValue({ unwrap: () => Promise.resolve(null) })
@@ -152,7 +166,7 @@ describe('SetOutcomeDeliverablesForm', () => {
         Promise.reject({ status: 409, detail: 'The deliverables changed.' }),
     })
     const onFormComplete = vi.fn()
-    await renderForm(onFormComplete)
+    await renderForm(onFormComplete, { ...outcome, note: 'Export' })
 
     // Act
     await userEvent.click(screen.getByRole('button', { name: 'Save' }))

@@ -51,7 +51,9 @@ vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
   ],
 }))
 
-const request = { summary: { id: 'r-42' } } as any
+const request = {
+  summary: { id: 'r-42', status: { category: 'Active' } },
+} as any
 
 const pick = async (name: string) => {
   await userEvent.click(screen.getByRole('button', { name: /Move to/ }))

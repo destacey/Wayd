@@ -87,8 +87,8 @@ const OutcomeDeliverables: FC<{ outcome: IntakeRequestOutcomeDto }> = ({
 )
 
 /**
- * Whether the outcome's deliverables meet the request. Existing project scope that maps none says so, since
- * nothing then tells when the request is met.
+ * Whether the outcome's deliverables meet the request. Existing project scope that maps none still on the
+ * project says so, since nothing then tells when the request is met.
  */
 const MetTag: FC<{ outcome: IntakeRequestOutcomeDto }> = ({ outcome }) => {
   if (outcome.isMet === true) return <Tag color="success">Met</Tag>
@@ -96,7 +96,7 @@ const MetTag: FC<{ outcome: IntakeRequestOutcomeDto }> = ({ outcome }) => {
     return <Tag color="processing">Waiting on deliverables</Tag>
   if (
     outcome.kind === IntakeRequestOutcomeKind.ExistingProjectScope &&
-    outcome.deliverables.length === 0
+    !outcome.deliverables.some((d) => d.isOnProject)
   )
     return <Tag color="warning">No deliverables mapped</Tag>
   return null

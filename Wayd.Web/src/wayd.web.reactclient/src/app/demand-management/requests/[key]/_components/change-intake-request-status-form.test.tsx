@@ -129,9 +129,41 @@ describe('ChangeIntakeRequestStatusForm', () => {
     ).toBeInTheDocument()
   })
 
-  it('does not warn when the mapped deliverables are met, or when another status is chosen', async () => {
+  it.each([
+    ['the mapped deliverables are met', true],
+    ['no deliverables are mapped', undefined],
+  ])('does not warn before finishing when %s', async (_, deliverablesMet) => {
     // Arrange
-    await renderForm({ ...request, deliverablesMet: true })
+    await renderForm({ ...request, deliverablesMet })
+
+    // Act
+    await choose(0, 'Fulfilled')
+
+    // Assert
+    expect(screen.queryByText(/Not every mapped deliverable/)).toBeNull()
+  })
+
+  it('does not warn on a move that does not finish the request', async () => {
+    // Arrange
+    await renderForm({ ...request, deliverablesMet: false })
+
+    // Act
+    await choose(0, 'Declined')
+
+    // Assert
+    expect(screen.queryByText(/Not every mapped deliverable/)).toBeNull()
+  })
+
+  it('does not warn when the request is already finished', async () => {
+    // Arrange
+    await renderForm({
+      ...request,
+      summary: {
+        ...request.summary,
+        status: { ...request.summary.status, category: StatusCategory.Done },
+      },
+      deliverablesMet: false,
+    })
 
     // Act
     await choose(0, 'Fulfilled')

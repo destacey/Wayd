@@ -135,6 +135,26 @@ describe('IntakeRequestOutcomes', () => {
     expect(screen.getAllByText('No deliverables mapped')).toHaveLength(1)
   })
 
+  it('counts existing project scope whose deliverables were all deleted from the project as mapping none', () => {
+    // Arrange
+    const [scope] = request(false).outcomes
+
+    // Act
+    render(
+      <IntakeRequestOutcomes
+        request={request(false, [
+          {
+            ...scope,
+            deliverables: [{ id: 'd-gone', isOnProject: false }],
+          } as unknown as IntakeRequestOutcomeDto,
+        ])}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByText('No deliverables mapped')).toBeInTheDocument()
+  })
+
   const mapped = (
     deliverables: IntakeRequestOutcomeDto['deliverables'],
     isMet: boolean | undefined,

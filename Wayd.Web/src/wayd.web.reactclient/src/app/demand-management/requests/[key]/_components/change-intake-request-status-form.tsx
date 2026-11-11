@@ -30,14 +30,16 @@ export const asksTheRequester = (status: { alias: number } | undefined) =>
   status?.alias === WAITING_ON_REQUESTER
 
 /**
- * Whether a move to the status would finish the request while a deliverable it was mapped to has not been
- * accepted, so the form warns first. The server allows it: closing stays the desk's decision.
+ * Whether a move to the status would finish an unfinished request while a deliverable it was mapped to has not
+ * been accepted, so the form warns first. The server allows it: closing stays the desk's decision.
  */
 export const finishesBeforeDeliverablesMet = (
   request: IntakeRequestDetailsDto,
   status: { category: StatusCategory } | undefined,
 ) =>
-  status?.category === StatusCategory.Done && request.deliverablesMet === false
+  status?.category === StatusCategory.Done &&
+  request.summary.status.category !== StatusCategory.Done &&
+  request.deliverablesMet === false
 
 export interface ChangeIntakeRequestStatusFormProps {
   request: IntakeRequestDetailsDto

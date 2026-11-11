@@ -6,6 +6,7 @@ using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Commands;
 using Wayd.DemandManagement.Application.IntakeRequests.Dtos;
 using Wayd.DemandManagement.Application.Tests.Infrastructure;
+using Wayd.DemandManagement.Domain.Models;
 
 namespace Wayd.DemandManagement.Application.Tests.Sut.IntakeRequests.Commands;
 
@@ -63,6 +64,53 @@ public sealed class AddIntakeRequestOutcomeCommandHandlerTests
         result.IsSuccess.Should().BeTrue();
         request.Outcomes.Single().DeliverableIds().Should().BeEquivalentTo([portal.Id, reports.Id]);
         _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ExistingProjectScopeWithDeliverablesAndNoNote_RecordsIt()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var project = _scenario.Project();
+        var portal = _scenario.Deliverable(project, "Portal");
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new AddIntakeRequestOutcomeCommand(request.Id, IntakeRequestOutcomeKind.ExistingProjectScope, project.Id, null)
+            {
+                DeliverableIds = [portal.Id],
+            },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var outcome = request.Outcomes.Should().ContainSingle().Subject;
+        outcome.Note.Should().BeNull();
+        outcome.DeliverableIds().Should().Equal(portal.Id);
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ExistingProjectScopeWithNeitherDeliverablesNorANote_FailsAndSavesNothing()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var project = _scenario.Project();
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new AddIntakeRequestOutcomeCommand(request.Id, IntakeRequestOutcomeKind.ExistingProjectScope, project.Id, null),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ExistingProjectScopeNeedsNoteOrDeliverablesError);
+        request.Outcomes.Should().BeEmpty();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
 
     [Fact]

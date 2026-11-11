@@ -42,6 +42,28 @@ public sealed class SetIntakeRequestOutcomeDeliverablesCommandHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ClearingAnOutcomeWithoutANote_FailsAndSavesNothing()
+    {
+        // Arrange
+        var agent = _scenario.Employee();
+        var request = _scenario.RequestInStatus(_scenario.Desk(agentIds: agent.Id), _scenario.Employee(), "Accepted");
+        var project = _scenario.Project();
+        var only = _scenario.Deliverable(project);
+        _scenario.Outcome(request, project.Id, agent, IntakeRequestOutcomeKind.ExistingProjectScope, null, [only.Id]);
+        _scenario.SignedInAs(agent);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new SetIntakeRequestOutcomeDeliverablesCommand(request.Id, project.Id, [], [only.Id]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ExistingProjectScopeNeedsDeliverablesError);
+        request.Outcomes.Single().DeliverableIds().Should().Equal(only.Id);
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Handle_KeepingADeliverableDeletedFromTheProject_IsAllowed()
     {
         // Arrange — mapped before it was deleted, so it has no copy but stays mapped.

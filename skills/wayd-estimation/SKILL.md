@@ -73,7 +73,7 @@ A round has an optional `label` (at most 512 characters) naming what is estimate
 | Goal | Tool | Notes |
 | --- | --- | --- |
 | List sessions | `PokerSessions_GetSessions` | Optional `status`: `Active` or `Completed`. Only the sessions the user can see. Each entry has `roundCount`, `visibility`, `facilitators`, `participants` (everyone who joined) and `canManage`. |
-| Read a session and its rounds | `PokerSessions_GetSession` | `idOrKey`. Includes the scale, the `estimationScaleVersion` it votes on with its values, each round's status, votes and `consensusEstimate`, and `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` and `canManage`. |
+| Read a session and its rounds | `PokerSessions_GetSession` | `idOrKey`. Includes the scale, the `estimationScaleVersion` it votes on with its values, each round's status, votes and `consensusEstimate`, and `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members`, `canManage` and `focusedRoundId` (the round a facilitator has the session page showing, or null). |
 | Who an invited team reaches | `PokerSessions_GetInvitedTeamMembers` | Session `id` and `teamId` of a team in `invitedTeams`. Its active direct members; members of its team of teams are admitted too but not listed. |
 | List scales | `EstimationScales_GetScales` | Active only, unless `includeInactive: true`. Each has its `currentVersion`. |
 | Read a scale | `EstimationScales_GetScale` | `idOrKey`; works for inactive scales too. Adds `versions`, every published version newest first. |

@@ -59,7 +59,11 @@ const projects = [
     name: 'Alpha',
     projectManagers: [me],
     projectLifecycle: { id: 'lc', key: 1, name: 'Standard' },
-    healthCheck: { id: 'hc', status: { id: 3, name: 'Unhealthy' } },
+    healthCheck: {
+      id: 'hc',
+      status: { id: 3, name: 'Unhealthy' },
+      expiration: new Date('2027-01-01T00:00:00Z'),
+    },
     stages: [
       {
         id: 's1',
@@ -76,7 +80,11 @@ const projects = [
     key: 'P3',
     name: 'Gamma',
     portfolio: { id: 'port-2', key: 2, name: 'Internal Ops' },
-    healthCheck: { id: 'hc2', status: { id: 1, name: 'Healthy' } },
+    healthCheck: {
+      id: 'hc2',
+      status: { id: 1, name: 'Healthy' },
+      expiration: new Date('2027-01-01T00:00:00Z'),
+    },
   }),
 ]
 

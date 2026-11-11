@@ -66,7 +66,11 @@ const groups: ProjectGroup[] = [
         name: 'Project Alpha',
         projectManagers: [me],
         projectLifecycle: { id: 'lc', key: 1, name: 'Standard' },
-        healthCheck: { id: 'hc', status: { id: 3, name: 'Unhealthy' } },
+        healthCheck: {
+          id: 'hc',
+          status: { id: 3, name: 'Unhealthy' },
+          expiration: new Date('2027-01-01T00:00:00Z'),
+        },
         stages: [
           {
             id: 's1',

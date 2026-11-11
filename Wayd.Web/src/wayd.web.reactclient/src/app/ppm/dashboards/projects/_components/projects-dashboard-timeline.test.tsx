@@ -92,7 +92,11 @@ const groups: ProjectGroup[] = [
       project({
         key: 'P1',
         name: 'Alpha',
-        healthCheck: { id: 'hc', status: { id: 3, name: 'Unhealthy' } },
+        healthCheck: {
+          id: 'hc',
+          status: { id: 3, name: 'Unhealthy' },
+          expiration: new Date('2027-01-01T00:00:00Z'),
+        },
         start: '2026-05-01',
         end: '2026-12-18',
         stages: [

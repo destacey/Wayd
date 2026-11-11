@@ -7,6 +7,8 @@ using Wayd.Common.Application.Activities.Dtos;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Commands;
+using Wayd.ProjectPortfolioManagement.Application.Projects.Deliverables.Dtos;
+using Wayd.ProjectPortfolioManagement.Application.Projects.Deliverables.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Imports;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Models;
@@ -85,6 +87,30 @@ public class ProjectsController(ILogger<ProjectsController> logger, IDispatcher 
     public async Task<ActionResult<ProjectsTaskMetricsDto>> GetMyProjectsTaskMetrics([FromQuery] ProjectStatus[]? status, [FromQuery] ProjectMemberRole[]? role, CancellationToken cancellationToken)
     {
         return Ok(await _dispatcher.Send(new GetProjectsTaskMetricsQuery(StatusFilter: status, RoleFilter: role), cancellationToken));
+    }
+
+    [HttpGet("my-tasks")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
+    [EndpointSummary("Get the open project tasks and milestones assigned to the current user, across projects, soonest due first.")]
+    [EndpointDescription(
+        "Scoped to the caller — no user parameter. Open means Not Started or In Progress. `dueDate` is a task's planned end or a milestone's planned date; past-due items come first, then the rest by due date, those with no date last. Only tasks on Approved and Active projects unless `status` names others: completing or canceling a project leaves its open tasks open, so pass Completed or Canceled only to find those. Only tasks the caller is an assignee of: leading a project does not add its tasks — Projects_GetMyProjectsTaskMetrics counts those.")]
+    [McpTool("Projects_GetMyTasks", "List my open project tasks")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<MyProjectTaskDto>>> GetMyProjectTasks([FromQuery] ProjectStatus[]? status, CancellationToken cancellationToken)
+    {
+        return Ok(await _dispatcher.Send(new GetMyProjectTasksQuery(StatusFilter: status), cancellationToken));
+    }
+
+    [HttpGet("my-deliverables")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Projects)]
+    [EndpointSummary("Get the open project deliverables the current user owns, across projects, by target date.")]
+    [EndpointDescription(
+        "Scoped to the caller — no user parameter. Open means a status in the Proposed or Active category, whatever the workflow calls it. Past-target deliverables come first, then the rest by target date, those with no target date last. For one project's deliverables, whoever owns them, use Projects_GetDeliverables.")]
+    [McpTool("Projects_GetMyDeliverables", "List my open project deliverables")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<MyProjectDeliverableDto>>> GetMyProjectDeliverables(CancellationToken cancellationToken)
+    {
+        return Ok(await _dispatcher.Send(new GetMyProjectDeliverablesQuery(), cancellationToken));
     }
 
     [HttpGet("task-metrics")]

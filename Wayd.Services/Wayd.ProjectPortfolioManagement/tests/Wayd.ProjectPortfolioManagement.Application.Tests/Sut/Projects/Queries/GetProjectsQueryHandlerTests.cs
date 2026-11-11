@@ -10,6 +10,8 @@ using Wayd.ProjectPortfolioManagement.Domain.Enums;
 using Wayd.ProjectPortfolioManagement.Domain.Models;
 using Wayd.ProjectPortfolioManagement.Domain.Tests.Data;
 using Wayd.Tests.Shared;
+using Wayd.ProjectPortfolioManagement.Domain.Models.Authorization;
+using Wayd.Common.Domain.Enums;
 
 namespace Wayd.ProjectPortfolioManagement.Application.Tests.Sut.Projects.Queries;
 
@@ -159,5 +161,25 @@ public class GetProjectsQueryHandlerTests : IDisposable
     public void Dispose()
     {
         _dbContext.Dispose();
+    }
+
+    [Fact]
+    public async Task Handle_MapsTheCurrentHealthChecksExpiration()
+    {
+        // Arrange
+        var now = new LocalDate(2026, 3, 18).AtStartOfDayInZone(DateTimeZone.Utc).ToInstant();
+        var expiration = now.Plus(Duration.FromDays(5));
+        var project = AddProject("Apollo", new() { [ProjectRole.Owner] = [_employeeId] });
+        project.AddHealthCheck(HealthStatus.AtRisk, new PpmActor(_employeeId, IsPpmAdministrator: false, Guid.NewGuid().ToString()),
+            ProjectAncestryRoles.None, expiration, null, now.Minus(Duration.FromHours(1))).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = await _handler.Handle(new GetProjectsQuery(), TestContext.Current.CancellationToken);
+
+        // Assert
+        var healthCheck = result!.Should().ContainSingle().Which.HealthCheck;
+        healthCheck.Should().NotBeNull();
+        healthCheck!.Expiration.Should().Be(expiration);
+        healthCheck.Status.Id.Should().Be((int)HealthStatus.AtRisk);
     }
 }

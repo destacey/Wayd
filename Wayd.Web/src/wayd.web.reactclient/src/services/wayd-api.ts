@@ -26092,6 +26092,113 @@ export class ProjectsClient {
     }
 
     /**
+     * Get the open project tasks and milestones assigned to the current user, across projects, soonest due first.
+     * @param status (optional) 
+     * @return OK
+     */
+    getMyProjectTasks(status?: ProjectStatus[] | null | undefined, cancelToken?: CancelToken): Promise<MyProjectTaskDto[]> {
+        let url_ = this.baseUrl + "/api/ppm/projects/my-tasks?";
+        if (status !== undefined && status !== null)
+            status && status.forEach(item => { url_ += "status=" + encodeURIComponent("" + item) + "&"; });
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMyProjectTasks(_response);
+        });
+    }
+
+    protected processGetMyProjectTasks(response: AxiosResponse): Promise<MyProjectTaskDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<MyProjectTaskDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MyProjectTaskDto[]>(null as any);
+    }
+
+    /**
+     * Get the open project deliverables the current user owns, across projects, by target date.
+     * @return OK
+     */
+    getMyProjectDeliverables( cancelToken?: CancelToken): Promise<MyProjectDeliverableDto[]> {
+        let url_ = this.baseUrl + "/api/ppm/projects/my-deliverables";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetMyProjectDeliverables(_response);
+        });
+    }
+
+    protected processGetMyProjectDeliverables(response: AxiosResponse): Promise<MyProjectDeliverableDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<MyProjectDeliverableDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<MyProjectDeliverableDto[]>(null as any);
+    }
+
+    /**
      * Get aggregated open-task counts across the projects an employee is involved in: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday).
      * @param status (optional) 
      * @param role (optional) 
@@ -68022,6 +68129,20 @@ must not unmute a record that was muted already. */
     wasAlreadyMuted: boolean;
 }
 
+/** An open deliverable the caller is the owner of, with the project it belongs to. */
+export interface MyProjectDeliverableDto {
+    /** The deliverable's id. */
+    id: string;
+    /** What the deliverable is called. */
+    name: string;
+    /** When the deliverable is due, if a date has been committed to. */
+    targetDate?: string | undefined;
+    /** A status in the Proposed or Active category: the list holds open deliverables only. */
+    status: StatusNavigationDto;
+    /** The project the deliverable belongs to. */
+    project: ProjectNavigationDto;
+}
+
 /** Summary of the current user's project involvement, with counts per role. */
 export interface MyProjectsSummaryDto {
     totalCount: number;
@@ -68030,6 +68151,26 @@ export interface MyProjectsSummaryDto {
     managerCount: number;
     memberCount: number;
     assigneeCount: number;
+}
+
+/** An open project task assigned to the caller, with the project it belongs to. */
+export interface MyProjectTaskDto {
+    /** The task's id. */
+    id: string;
+    /** The task's key, such as GEMINI-12: its project's key and its number in the project. */
+    key: string;
+    /** The task's name. */
+    name: string;
+    /** Task or Milestone. */
+    type: SimpleNavigationDto;
+    /** Not Started or In Progress: the list holds open tasks only. */
+    status: SimpleNavigationDto;
+    /** How urgent the task is: Low, Medium, High or Critical. */
+    priority: SimpleNavigationDto;
+    /** When the task is due: a task's planned end, or a milestone's planned date. Null when none is planned. */
+    dueDate?: string | undefined;
+    /** The project the task belongs to. */
+    project: ProjectNavigationDto;
 }
 
 /** A Kanban team's flow: what it has in progress, and what it finished lately. */
@@ -69567,9 +69708,12 @@ export interface ProjectHealthCheckEvidenceStageDto {
     pastEndNotComplete: boolean;
 }
 
+/** A project's current health check, as a list shows it. */
 export interface ProjectHealthCheckSummaryDto {
     id: string;
     status: SimpleNavigationDto;
+    /** When the health check stops being current, after which the project has none until another is reported. */
+    expiration: Date;
 }
 
 /** An intake request a project came from or absorbed, as listed on the project's page. Summary tier only. */
@@ -69679,6 +69823,16 @@ export enum ProjectMemberRole {
     Manager = "Manager",
     Member = "Member",
     Assignee = "Assignee",
+}
+
+/** A project as a link: enough to name it and open it by key. */
+export interface ProjectNavigationDto {
+    /** The project's id. */
+    id: string;
+    /** The project's key, such as GEMINI, which its page is addressed by. */
+    key: string;
+    /** The project's name. */
+    name: string;
 }
 
 /** Unified DTO for the project plan tree that includes both stages and tasks as nodes. */

@@ -7,6 +7,8 @@ import {
   WidgetAccess,
 } from './widget-registry'
 
+import { homeContext } from './home-context-test-utils'
+
 const Nothing = () => null
 
 const widget = (overrides: Partial<HomeWidget>): HomeWidget => ({
@@ -66,6 +68,31 @@ describe('isWidgetAvailable', () => {
     // Assert
     expect(withOne).toBe(false)
     expect(withBoth).toBe(true)
+  })
+
+  it('needs the involvement the widget names, read from the home context', () => {
+    // Arrange
+    const subject = widget({
+      requires: {
+        involved: ({ projects }) => projects.managerCount > 0,
+      },
+    })
+
+    // Act
+    const asManager = isWidgetAvailable(
+      subject,
+      access({ context: homeContext({ projects: { managerCount: 1 } }) }),
+    )
+    const asMember = isWidgetAvailable(
+      subject,
+      access({ context: homeContext({ projects: { memberCount: 1 } }) }),
+    )
+    const unknown = isWidgetAvailable(subject, access())
+
+    // Assert
+    expect(asManager).toBe(true)
+    expect(asMember).toBe(false)
+    expect(unknown).toBe(false)
   })
 
   it('needs the feature flag the widget names to be on', () => {

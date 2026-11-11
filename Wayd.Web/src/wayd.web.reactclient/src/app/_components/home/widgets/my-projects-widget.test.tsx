@@ -1,16 +1,11 @@
 import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import MyProjectsWidget, {
-  DueThisWeekTile,
-  OverdueTasksTile,
-  roleCounts,
-} from './my-projects-widget'
+import MyProjectsWidget, { roleCounts } from './my-projects-widget'
 import {
   HomeContextResponse,
   MyProjectsSummaryDto,
   ProjectStatus,
 } from '@/src/services/wayd-api'
-import { tileValueStyle } from '../attention-tile-test-utils'
 import { homeContext } from '../home-context-test-utils'
 
 const mockHome: { context?: HomeContextResponse } = {}
@@ -25,16 +20,11 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/src/store/features/ppm/projects-api', () => ({
   useGetMyProjectsSummaryQuery: vi.fn(),
-  useGetMyProjectsTaskMetricsQuery: vi.fn(),
 }))
 
-import {
-  useGetMyProjectsSummaryQuery,
-  useGetMyProjectsTaskMetricsQuery,
-} from '@/src/store/features/ppm/projects-api'
+import { useGetMyProjectsSummaryQuery } from '@/src/store/features/ppm/projects-api'
 
 const mockSummary = useGetMyProjectsSummaryQuery as Mock
-const mockMetrics = useGetMyProjectsTaskMetricsQuery as Mock
 
 const summary = (
   overrides: Partial<MyProjectsSummaryDto> = {},
@@ -52,12 +42,6 @@ const loaded = (data: MyProjectsSummaryDto) => ({
   data,
   isLoading: false,
   isError: false,
-})
-
-const metrics = (overdue: number, dueThisWeek: number, isError = false) => ({
-  data: { overdue, dueThisWeek, upcoming: 1 },
-  isLoading: false,
-  isError,
 })
 
 describe('roleCounts', () => {
@@ -188,114 +172,5 @@ describe('MyProjectsWidget', () => {
       screen.getByText('Could not load your projects.'),
     ).toBeInTheDocument()
     expect(screen.queryByText(/You have no/)).not.toBeInTheDocument()
-  })
-})
-
-describe('OverdueTasksTile', () => {
-  it('counts zero without asking when the home context says there are no projects', () => {
-    // Arrange
-    mockHome.context = homeContext()
-    mockMetrics.mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      isError: false,
-    })
-
-    // Act
-    render(<OverdueTasksTile />)
-
-    // Assert
-    expect(mockMetrics).toHaveBeenCalledWith(expect.anything(), { skip: true })
-    expect(
-      screen.getByRole('button', { name: 'Overdue tasks on your projects: 0' }),
-    ).toBeInTheDocument()
-  })
-
-  it('counts overdue tasks in the error colour', () => {
-    // Arrange
-    mockMetrics.mockReturnValue(metrics(7, 2))
-
-    // Act
-    const { container } = render(<OverdueTasksTile />)
-
-    // Assert
-    expect(
-      screen.getByRole('button', { name: 'Overdue tasks on your projects: 7' }),
-    ).toBeInTheDocument()
-    expect(tileValueStyle(container)).toContain('var(--ant-color-error)')
-  })
-
-  it('leaves no overdue tasks uncoloured', () => {
-    // Arrange
-    mockMetrics.mockReturnValue(metrics(0, 2))
-
-    // Act
-    const { container } = render(<OverdueTasksTile />)
-
-    // Assert
-    expect(
-      screen.getByRole('button', { name: 'Overdue tasks on your projects: 0' }),
-    ).toBeInTheDocument()
-    expect(tileValueStyle(container)).not.toContain('var(--ant-color')
-  })
-
-  it('shows a dash, not the last good count, after a failed refetch', () => {
-    // Arrange
-    mockMetrics.mockReturnValue(metrics(7, 2, true))
-
-    // Act
-    render(<OverdueTasksTile />)
-
-    // Assert
-    expect(
-      screen.getByRole('button', {
-        name: 'Overdue tasks on your projects: unavailable',
-      }),
-    ).toBeInTheDocument()
-  })
-})
-
-describe('DueThisWeekTile', () => {
-  it('counts tasks due this week in the warning colour', () => {
-    // Arrange
-    mockMetrics.mockReturnValue(metrics(7, 2))
-
-    // Act
-    const { container } = render(<DueThisWeekTile />)
-
-    // Assert
-    expect(
-      screen.getByRole('button', { name: 'Due this week on your projects: 2' }),
-    ).toBeInTheDocument()
-    expect(tileValueStyle(container)).toContain('var(--ant-color-warning)')
-  })
-
-  it('leaves nothing due uncoloured', () => {
-    // Arrange
-    mockMetrics.mockReturnValue(metrics(7, 0))
-
-    // Act
-    const { container } = render(<DueThisWeekTile />)
-
-    // Assert
-    expect(
-      screen.getByRole('button', { name: 'Due this week on your projects: 0' }),
-    ).toBeInTheDocument()
-    expect(tileValueStyle(container)).not.toContain('var(--ant-color')
-  })
-
-  it('shows a dash, not the last good count, after a failed refetch', () => {
-    // Arrange
-    mockMetrics.mockReturnValue(metrics(7, 2, true))
-
-    // Act
-    render(<DueThisWeekTile />)
-
-    // Assert
-    expect(
-      screen.getByRole('button', {
-        name: 'Due this week on your projects: unavailable',
-      }),
-    ).toBeInTheDocument()
   })
 })

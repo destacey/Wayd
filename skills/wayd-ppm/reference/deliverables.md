@@ -7,6 +7,7 @@ A deliverable is something a project has committed to produce for it to count as
 | Goal                                      | Tool                                   |
 | ----------------------------------------- | -------------------------------------- |
 | A project's deliverables, in order        | `Projects_GetDeliverables`             |
+| The open deliverables you own, across projects | `Projects_GetMyDeliverables`     |
 | One deliverable                           | `Projects_GetDeliverable`              |
 | Add a deliverable                         | `Projects_CreateDeliverable`           |
 | Change name, criteria, owner, target date | `Projects_UpdateDeliverable`           |

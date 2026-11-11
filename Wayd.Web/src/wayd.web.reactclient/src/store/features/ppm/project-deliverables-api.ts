@@ -1,7 +1,11 @@
-import { getProjectDeliverablesClient } from '@/src/services/clients'
+import {
+  getProjectDeliverablesClient,
+  getProjectsClient,
+} from '@/src/services/clients'
 import {
   ChangeProjectDeliverableStatusRequest,
   CreateProjectDeliverableRequest,
+  MyProjectDeliverableDto,
   ProjectDeliverableDto,
   StatusOptionDto,
   StatusTransitionDto,
@@ -10,6 +14,9 @@ import {
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import { projectActivityTags } from './ppm-activity-tags'
+
+/** The tag id of the caller's own open deliverables, across projects. */
+export const MY_DELIVERABLES = 'MY'
 
 export interface ProjectDeliverableRef {
   projectId: string
@@ -23,6 +30,8 @@ export interface ProjectDeliverableRef {
  */
 const afterChange = (projectId: string) => [
   { type: QueryTags.ProjectDeliverable, id: projectId },
+  // A change of owner, target date or status can move a deliverable on or off the caller's list.
+  { type: QueryTags.ProjectDeliverable, id: MY_DELIVERABLES },
   { type: QueryTags.Project, id: projectId },
   ...projectActivityTags(projectId),
 ]
@@ -42,6 +51,20 @@ const afterLinkChange = (projectId: string) => [
 
 export const projectDeliverablesApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    getMyProjectDeliverables: builder.query<MyProjectDeliverableDto[], void>({
+      queryFn: async () => {
+        try {
+          const data = await getProjectsClient().getMyProjectDeliverables()
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: () => [
+        { type: QueryTags.ProjectDeliverable, id: MY_DELIVERABLES },
+      ],
+    }),
     getProjectDeliverables: builder.query<ProjectDeliverableDto[], string>({
       queryFn: async (projectId) => {
         try {
@@ -232,6 +255,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
 })
 
 export const {
+  useGetMyProjectDeliverablesQuery,
   useGetProjectDeliverablesQuery,
   useGetProjectDeliverableStatusOptionsQuery,
   useGetProjectDeliverableStatusHistoryQuery,

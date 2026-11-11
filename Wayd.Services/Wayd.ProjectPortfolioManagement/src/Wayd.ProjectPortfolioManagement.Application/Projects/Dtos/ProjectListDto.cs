@@ -153,7 +153,8 @@ public sealed record ProjectListDto
                 .Select(h => new ProjectHealthCheckSummaryDto
                 {
                     Id = h.Id,
-                    Status = SimpleNavigationDto.FromEnum(h.Status)
+                    Status = SimpleNavigationDto.FromEnum(h.Status),
+                    Expiration = h.Expiration,
                 })
                 .FirstOrDefault())
             // ScoredBy resolves through the owned navigation so the name is always current (not frozen).

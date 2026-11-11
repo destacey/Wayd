@@ -49446,6 +49446,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Get the open project tasks and milestones assigned to the current user, across projects, soonest due first.
+        /// </summary>
+        /// <remarks>
+        /// Scoped to the caller — no user parameter. Open means Not Started or In Progress. `dueDate` is a task's planned end or a milestone's planned date; past-due items come first, then the rest by due date, those with no date last. Only tasks on Approved and Active projects unless `status` names others: completing or canceling a project leaves its open tasks open, so pass Completed or Canceled only to find those. Only tasks the caller is an assignee of: leading a project does not add its tasks — Projects_GetMyProjectsTaskMetrics counts those.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<MyProjectTaskDto>> GetMyProjectTasksAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the open project deliverables the current user owns, across projects, by target date.
+        /// </summary>
+        /// <remarks>
+        /// Scoped to the caller — no user parameter. Open means a status in the Proposed or Active category, whatever the workflow calls it. Past-target deliverables come first, then the rest by target date, those with no target date last. For one project's deliverables, whoever owns them, use Projects_GetDeliverables.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<MyProjectDeliverableDto>> GetMyProjectDeliverablesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get aggregated open-task counts across the projects an employee is involved in: overdue, due this week (through Saturday), and upcoming (next Sunday through Saturday).
         /// </summary>
         /// <remarks>
@@ -50189,6 +50211,166 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<ProjectsTaskMetricsDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the open project tasks and milestones assigned to the current user, across projects, soonest due first.
+        /// </summary>
+        /// <remarks>
+        /// Scoped to the caller — no user parameter. Open means Not Started or In Progress. `dueDate` is a task's planned end or a milestone's planned date; past-due items come first, then the rest by due date, those with no date last. Only tasks on Approved and Active projects unless `status` names others: completing or canceling a project leaves its open tasks open, so pass Completed or Canceled only to find those. Only tasks the caller is an assignee of: leading a project does not add its tasks — Projects_GetMyProjectsTaskMetrics counts those.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<MyProjectTaskDto>> GetMyProjectTasksAsync(System.Collections.Generic.IEnumerable<ProjectStatus>? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/ppm/projects/my-tasks"
+                    urlBuilder_.Append("api/ppm/projects/my-tasks");
+                    urlBuilder_.Append('?');
+                    if (status != null)
+                    {
+                            foreach (var item_ in status) { urlBuilder_.Append(System.Uri.EscapeDataString("status")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<MyProjectTaskDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the open project deliverables the current user owns, across projects, by target date.
+        /// </summary>
+        /// <remarks>
+        /// Scoped to the caller — no user parameter. Open means a status in the Proposed or Active category, whatever the workflow calls it. Past-target deliverables come first, then the rest by target date, those with no target date last. For one project's deliverables, whoever owns them, use Projects_GetDeliverables.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<MyProjectDeliverableDto>> GetMyProjectDeliverablesAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/ppm/projects/my-deliverables"
+                    urlBuilder_.Append("api/ppm/projects/my-deliverables");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<MyProjectDeliverableDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -129642,6 +129824,50 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// An open deliverable the caller is the owner of, with the project it belongs to.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyProjectDeliverableDto
+    {
+
+        /// <summary>
+        /// The deliverable's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// What the deliverable is called.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// When the deliverable is due, if a date has been committed to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("targetDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? TargetDate { get; set; } = default!;
+
+        /// <summary>
+        /// A status in the Proposed or Active category: the list holds open deliverables only.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public StatusNavigationDto Status { get; set; } = new StatusNavigationDto();
+
+        /// <summary>
+        /// The project the deliverable belongs to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("project")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ProjectNavigationDto Project { get; set; } = new ProjectNavigationDto();
+
+    }
+
+    /// <summary>
     /// Summary of the current user's project involvement, with counts per role.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -129665,6 +129891,71 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("assigneeCount")]
         public int AssigneeCount { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// An open project task assigned to the caller, with the project it belongs to.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class MyProjectTaskDto
+    {
+
+        /// <summary>
+        /// The task's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The task's key, such as GEMINI-12: its project's key and its number in the project.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Key { get; set; } = default!;
+
+        /// <summary>
+        /// The task's name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// Task or Milestone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SimpleNavigationDto Type { get; set; } = new SimpleNavigationDto();
+
+        /// <summary>
+        /// Not Started or In Progress: the list holds open tasks only.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SimpleNavigationDto Status { get; set; } = new SimpleNavigationDto();
+
+        /// <summary>
+        /// How urgent the task is: Low, Medium, High or Critical.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("priority")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public SimpleNavigationDto Priority { get; set; } = new SimpleNavigationDto();
+
+        /// <summary>
+        /// When the task is due: a task's planned end, or a milestone's planned date. Null when none is planned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("dueDate")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(DateFormatConverter))]
+        public System.DateTimeOffset? DueDate { get; set; } = default!;
+
+        /// <summary>
+        /// The project the task belongs to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("project")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public ProjectNavigationDto Project { get; set; } = new ProjectNavigationDto();
 
     }
 
@@ -134256,6 +134547,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// A project's current health check, as a list shows it.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class ProjectHealthCheckSummaryDto
     {
@@ -134267,6 +134561,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.ComponentModel.DataAnnotations.Required]
         public SimpleNavigationDto Status { get; set; } = new SimpleNavigationDto();
+
+        /// <summary>
+        /// When the health check stops being current, after which the project has none until another is reported.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("expiration")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset Expiration { get; set; } = default!;
 
     }
 
@@ -134589,6 +134890,36 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"Assignee")]
         Assignee = 4,
+
+    }
+
+    /// <summary>
+    /// A project as a link: enough to name it and open it by key.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class ProjectNavigationDto
+    {
+
+        /// <summary>
+        /// The project's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The project's key, such as GEMINI, which its page is addressed by.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Key { get; set; } = default!;
+
+        /// <summary>
+        /// The project's name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
 
     }
 

@@ -82,11 +82,11 @@ Use activity history for "what changed?", "who moved this date?", or "when did t
 
 ## Someone's work
 
-For the **caller**, use `Projects_GetMyProjectsSummary` (project counts per role) and `Projects_GetMyProjectsTaskMetrics` (overdue, due this week, upcoming task counts). Neither takes a user parameter.
+For the **caller**, use `Projects_GetMyProjectsSummary` (project counts per role) and `Projects_GetMyProjectsTaskMetrics` (overdue, due this week, upcoming task counts). For the items themselves, `Projects_GetMyTasks` lists the open tasks and milestones assigned to the caller, soonest due first, on Approved and Active projects unless `status` names others, and `Projects_GetMyDeliverables` lists the open deliverables they own, past target first. None takes a user parameter. The task metrics count every task on a project the caller leads; `Projects_GetMyTasks` holds only the tasks assigned to them.
 
 For a **colleague**, get their employee id (see Common patterns), then use `Projects_GetTaskMetrics` with `employeeId` for task counts, and `Projects_GetProjects` with `employeeId` (plus a `role` filter to narrow it) for the projects themselves.
 
-The metrics tools return counts only; follow up with `Projects_GetProjects` when the user wants the list.
+The metrics tools return counts only; follow up with `Projects_GetMyTasks` for the caller's own tasks, or `Projects_GetProjects` for the projects.
 
 ## A project's plan and team
 

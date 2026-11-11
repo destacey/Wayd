@@ -43,7 +43,11 @@ const project = (
     ...overrides,
   }) as ProjectListDto
 
-const health = (name: string) => ({ id: 'hc', status: { id: 1, name } })
+const health = (name: string) => ({
+  id: 'hc',
+  status: { id: 1, name },
+  expiration: new Date('2027-01-01T00:00:00Z'),
+})
 
 const summary = (overdue: number) => ({
   overdue,

@@ -2,11 +2,16 @@ import { HomeContextResponse } from '@/src/services/wayd-api'
 import { lazy } from 'react'
 import { Involvement } from './home-involvement'
 import { HomeWidget } from './widget-registry'
+import DeskQueueWidget, {
+  RequestsAssignedToMeTile,
+  UnassignedRequestsTile,
+} from './widgets/desk-queue-widget'
 import FollowingWidget from './widgets/following-widget'
 import MyProjectsWidget, {
   DueThisWeekTile,
   OverdueTasksTile,
 } from './widgets/my-projects-widget'
+import MyRequestsWidget from './widgets/my-requests-widget'
 import MyRisksWidget, { RiskFollowUpsTile } from './widgets/my-risks-widget'
 import PlanningIntervalsWidget from './widgets/planning-intervals-widget'
 import WhatsChangedWidget, {
@@ -34,7 +39,9 @@ export const TilePriority = {
   RiskFollowUps: 80,
   CrossTeamDependencies: 75,
   DependenciesAtRisk: 70,
+  UnassignedRequests: 65,
   TasksDueThisWeek: 60,
+  RequestsAssignedToMe: 50,
   UnreadNotifications: 40,
 } as const
 
@@ -157,6 +164,45 @@ export const HomeWidgets: HomeWidget[] = [
         Tile: DependenciesAtRiskTile,
       },
     ],
+  },
+  {
+    id: 'desk-queue',
+    title: 'Desk queue',
+    description:
+      'What waits on the intake desks you work: open and untriaged requests on each desk, the requests assigned to you, and those you take part in.',
+    defaultColumn: 'main',
+    defaultOrder: 40,
+    requires: { featureFlag: 'demand-management', linkedEmployee: true },
+    Component: DeskQueueWidget,
+    // Working a desk is day-to-day work.
+    involvement: ({ intake }) =>
+      intake.deskCount > 0 ? Involvement.Leads : Involvement.None,
+    tiles: [
+      {
+        id: 'unassigned-requests',
+        priority: TilePriority.UnassignedRequests,
+        Tile: UnassignedRequestsTile,
+      },
+      {
+        id: 'requests-assigned-to-me',
+        priority: TilePriority.RequestsAssignedToMe,
+        Tile: RequestsAssignedToMeTile,
+      },
+    ],
+  },
+  {
+    id: 'my-requests',
+    title: 'My requests',
+    description:
+      'The intake requests you raised that are open or closed in the last 30 days, with their status and the projects and work items they became.',
+    defaultColumn: 'side',
+    defaultOrder: 25,
+    requires: { featureFlag: 'demand-management', linkedEmployee: true },
+    Component: MyRequestsWidget,
+    involvement: ({ intake }) =>
+      intake.openRequestsRaisedCount > 0
+        ? Involvement.Involved
+        : Involvement.None,
   },
   {
     id: 'following',

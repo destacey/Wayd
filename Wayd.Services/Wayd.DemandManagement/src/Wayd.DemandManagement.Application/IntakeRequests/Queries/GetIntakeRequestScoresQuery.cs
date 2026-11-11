@@ -15,8 +15,23 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Queries;
 /// <param name="DeskId">Only requests on this desk, when given.</param>
 /// <param name="Mine">Only requests the current user is the requester of or submitted.</param>
 /// <param name="OpenOnly">Only requests in the Proposed or Active status category.</param>
-public sealed record GetIntakeRequestScoresQuery(Guid? DeskId = null, bool Mine = false, bool OpenOnly = false)
-    : IQuery<List<IntakeRequestCurrentScoreDto>>;
+/// <param name="AssignedToMe">Only requests assigned to the current user.</param>
+/// <param name="Participating">
+/// Only requests the current user was added to as a participant. Filtered here because participants are substance.
+/// </param>
+/// <param name="ClosedSince">Closed requests only when they closed at or after this instant; open ones are unaffected.</param>
+public sealed record GetIntakeRequestScoresQuery(
+    Guid? DeskId = null,
+    bool Mine = false,
+    bool OpenOnly = false,
+    bool AssignedToMe = false,
+    bool Participating = false,
+    Instant? ClosedSince = null)
+    : IQuery<List<IntakeRequestCurrentScoreDto>>
+{
+    /// <summary>The filters, as every query answering beside the list applies them.</summary>
+    public IntakeRequestListFilters Filters => new(DeskId, Mine, OpenOnly, AssignedToMe, Participating, ClosedSince);
+}
 
 public sealed class GetIntakeRequestScoresQueryHandler(
     IDemandManagementDbContext dbContext,
@@ -36,7 +51,7 @@ public sealed class GetIntakeRequestScoresQueryHandler(
                 .Where(reader.CanSeeSummary(desks))
                 .Where(reader.CanSeeSubstance(desks))
                 .Where(r => r.CurrentScore != null),
-            reader, request.DeskId, request.Mine, request.OpenOnly);
+            reader, request.Filters, _dbContext);
         if (query is null)
             return [];
 

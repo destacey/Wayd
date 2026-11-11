@@ -41,8 +41,28 @@ internal static class IntakeDeskReaderView
                     OldestWaiting = g
                         .Where(r => r.StatusCategory == StatusCategory.Proposed || r.StatusCategory == StatusCategory.Active)
                         .Min(r => (Instant?)EF.Property<Instant>(r, "SystemCreated")),
+                    Unassigned = g.Count(r => (r.StatusCategory == StatusCategory.Proposed || r.StatusCategory == StatusCategory.Active)
+                        && r.AssigneeId == null),
                 })
                 .ToDictionaryAsync(w => w.DeskId, cancellationToken);
+
+        // Counted apart from the rest: EF Core cannot translate a null test on an owned value inside a grouped count.
+        var open = dbContext.IntakeRequests
+            .Where(r => workedDeskIds.Contains(r.DeskId))
+            .Where(r => r.StatusCategory == StatusCategory.Proposed || r.StatusCategory == StatusCategory.Active);
+        var unestimated = workedDeskIds.Length == 0
+            ? []
+            : await CountByDesk(open.Where(r => r.Estimate == null).Select(r => r.DeskId), cancellationToken);
+
+        // A score from a model the desk no longer uses does not rank with the rest, so it leaves a request unscored.
+        var unscored = workedDeskIds.Length == 0
+            ? []
+            : await CountByDesk(
+                open.Join(dbContext.IntakeDesks, r => r.DeskId, d => d.Id, (r, d) => new { r, d })
+                    .Where(x => x.d.ScoringModelId != null
+                        && (x.r.CurrentScore == null || x.r.CurrentScore.ScoringModelId != x.d.ScoringModelId))
+                    .Select(x => x.r.DeskId),
+                cancellationToken);
 
         return [.. desks.Select(d =>
         {
@@ -51,7 +71,14 @@ internal static class IntakeDeskReaderView
             return d with
             {
                 Waiting = worked
-                    ? new IntakeDeskWaitingDto { Count = stats?.Waiting ?? 0, OldestSubmittedOn = stats?.OldestWaiting }
+                    ? new IntakeDeskWaitingDto
+                    {
+                        Count = stats?.Waiting ?? 0,
+                        OldestSubmittedOn = stats?.OldestWaiting,
+                        UnassignedCount = stats?.Unassigned ?? 0,
+                        UnscoredCount = d.ScoringModel is null ? null : unscored.GetValueOrDefault(d.Id),
+                        UnestimatedCount = d.EstimationScale is null ? null : unestimated.GetValueOrDefault(d.Id),
+                    }
                     : null,
                 CanManage = !isReadOnly && reader.IsDeskAdminOn(d.Id),
                 CanAdminister = !isReadOnly && reader.IsDemandManagementAdmin,
@@ -59,4 +86,11 @@ internal static class IntakeDeskReaderView
             };
         })];
     }
+
+    /// <summary>How many of the desk ids fall on each desk.</summary>
+    private static Task<Dictionary<Guid, int>> CountByDesk(IQueryable<Guid> deskIds, CancellationToken cancellationToken) =>
+        deskIds
+            .GroupBy(id => id)
+            .Select(g => new { DeskId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.DeskId, x => x.Count, cancellationToken);
 }

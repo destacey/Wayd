@@ -51957,9 +51957,12 @@ export class IntakeRequestsClient {
      * @param deskId (optional) 
      * @param mine (optional) 
      * @param openOnly (optional) 
+     * @param assignedToMe (optional) 
+     * @param participating (optional) 
+     * @param closedSince (optional) 
      * @return OK
      */
-    getIntakeRequests(deskId?: string | null | undefined, mine?: boolean | undefined, openOnly?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeRequestSummaryDto[]> {
+    getIntakeRequests(deskId?: string | null | undefined, mine?: boolean | undefined, openOnly?: boolean | undefined, assignedToMe?: boolean | undefined, participating?: boolean | undefined, closedSince?: Date | null | undefined, cancelToken?: CancelToken): Promise<IntakeRequestSummaryDto[]> {
         let url_ = this.baseUrl + "/api/demand-management/intake-requests?";
         if (deskId !== undefined && deskId !== null)
             url_ += "deskId=" + encodeURIComponent("" + deskId) + "&";
@@ -51971,6 +51974,16 @@ export class IntakeRequestsClient {
             throw new globalThis.Error("The parameter 'openOnly' cannot be null.");
         else if (openOnly !== undefined)
             url_ += "openOnly=" + encodeURIComponent("" + openOnly) + "&";
+        if (assignedToMe === null)
+            throw new globalThis.Error("The parameter 'assignedToMe' cannot be null.");
+        else if (assignedToMe !== undefined)
+            url_ += "assignedToMe=" + encodeURIComponent("" + assignedToMe) + "&";
+        if (participating === null)
+            throw new globalThis.Error("The parameter 'participating' cannot be null.");
+        else if (participating !== undefined)
+            url_ += "participating=" + encodeURIComponent("" + participating) + "&";
+        if (closedSince !== undefined && closedSince !== null)
+            url_ += "closedSince=" + encodeURIComponent(closedSince ? "" + closedSince.toISOString() : "") + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -52085,9 +52098,12 @@ export class IntakeRequestsClient {
      * @param deskId (optional) 
      * @param mine (optional) 
      * @param openOnly (optional) 
+     * @param assignedToMe (optional) 
+     * @param participating (optional) 
+     * @param closedSince (optional) 
      * @return OK
      */
-    getIntakeRequestScores(deskId?: string | null | undefined, mine?: boolean | undefined, openOnly?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeRequestCurrentScoreDto[]> {
+    getIntakeRequestScores(deskId?: string | null | undefined, mine?: boolean | undefined, openOnly?: boolean | undefined, assignedToMe?: boolean | undefined, participating?: boolean | undefined, closedSince?: Date | null | undefined, cancelToken?: CancelToken): Promise<IntakeRequestCurrentScoreDto[]> {
         let url_ = this.baseUrl + "/api/demand-management/intake-requests/scores?";
         if (deskId !== undefined && deskId !== null)
             url_ += "deskId=" + encodeURIComponent("" + deskId) + "&";
@@ -52099,6 +52115,16 @@ export class IntakeRequestsClient {
             throw new globalThis.Error("The parameter 'openOnly' cannot be null.");
         else if (openOnly !== undefined)
             url_ += "openOnly=" + encodeURIComponent("" + openOnly) + "&";
+        if (assignedToMe === null)
+            throw new globalThis.Error("The parameter 'assignedToMe' cannot be null.");
+        else if (assignedToMe !== undefined)
+            url_ += "assignedToMe=" + encodeURIComponent("" + assignedToMe) + "&";
+        if (participating === null)
+            throw new globalThis.Error("The parameter 'participating' cannot be null.");
+        else if (participating !== undefined)
+            url_ += "participating=" + encodeURIComponent("" + participating) + "&";
+        if (closedSince !== undefined && closedSince !== null)
+            url_ += "closedSince=" + encodeURIComponent(closedSince ? "" + closedSince.toISOString() : "") + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -52150,9 +52176,12 @@ export class IntakeRequestsClient {
      * @param deskId (optional) 
      * @param mine (optional) 
      * @param openOnly (optional) 
+     * @param assignedToMe (optional) 
+     * @param participating (optional) 
+     * @param closedSince (optional) 
      * @return OK
      */
-    getIntakeRequestEstimates(deskId?: string | null | undefined, mine?: boolean | undefined, openOnly?: boolean | undefined, cancelToken?: CancelToken): Promise<IntakeRequestCurrentEstimateDto[]> {
+    getIntakeRequestEstimates(deskId?: string | null | undefined, mine?: boolean | undefined, openOnly?: boolean | undefined, assignedToMe?: boolean | undefined, participating?: boolean | undefined, closedSince?: Date | null | undefined, cancelToken?: CancelToken): Promise<IntakeRequestCurrentEstimateDto[]> {
         let url_ = this.baseUrl + "/api/demand-management/intake-requests/estimates?";
         if (deskId !== undefined && deskId !== null)
             url_ += "deskId=" + encodeURIComponent("" + deskId) + "&";
@@ -52164,6 +52193,16 @@ export class IntakeRequestsClient {
             throw new globalThis.Error("The parameter 'openOnly' cannot be null.");
         else if (openOnly !== undefined)
             url_ += "openOnly=" + encodeURIComponent("" + openOnly) + "&";
+        if (assignedToMe === null)
+            throw new globalThis.Error("The parameter 'assignedToMe' cannot be null.");
+        else if (assignedToMe !== undefined)
+            url_ += "assignedToMe=" + encodeURIComponent("" + assignedToMe) + "&";
+        if (participating === null)
+            throw new globalThis.Error("The parameter 'participating' cannot be null.");
+        else if (participating !== undefined)
+            url_ += "participating=" + encodeURIComponent("" + participating) + "&";
+        if (closedSince !== undefined && closedSince !== null)
+            url_ += "closedSince=" + encodeURIComponent(closedSince ? "" + closedSince.toISOString() : "") + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -52208,6 +52247,84 @@ export class IntakeRequestsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<IntakeRequestCurrentEstimateDto[]>(null as any);
+    }
+
+    /**
+     * Get what the intake requests you can see became.
+     * @param deskId (optional) 
+     * @param mine (optional) 
+     * @param openOnly (optional) 
+     * @param assignedToMe (optional) 
+     * @param participating (optional) 
+     * @param closedSince (optional) 
+     * @return OK
+     */
+    getIntakeRequestOutcomes(deskId?: string | null | undefined, mine?: boolean | undefined, openOnly?: boolean | undefined, assignedToMe?: boolean | undefined, participating?: boolean | undefined, closedSince?: Date | null | undefined, cancelToken?: CancelToken): Promise<IntakeRequestOutcomesDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-requests/outcomes?";
+        if (deskId !== undefined && deskId !== null)
+            url_ += "deskId=" + encodeURIComponent("" + deskId) + "&";
+        if (mine === null)
+            throw new globalThis.Error("The parameter 'mine' cannot be null.");
+        else if (mine !== undefined)
+            url_ += "mine=" + encodeURIComponent("" + mine) + "&";
+        if (openOnly === null)
+            throw new globalThis.Error("The parameter 'openOnly' cannot be null.");
+        else if (openOnly !== undefined)
+            url_ += "openOnly=" + encodeURIComponent("" + openOnly) + "&";
+        if (assignedToMe === null)
+            throw new globalThis.Error("The parameter 'assignedToMe' cannot be null.");
+        else if (assignedToMe !== undefined)
+            url_ += "assignedToMe=" + encodeURIComponent("" + assignedToMe) + "&";
+        if (participating === null)
+            throw new globalThis.Error("The parameter 'participating' cannot be null.");
+        else if (participating !== undefined)
+            url_ += "participating=" + encodeURIComponent("" + participating) + "&";
+        if (closedSince !== undefined && closedSince !== null)
+            url_ += "closedSince=" + encodeURIComponent(closedSince ? "" + closedSince.toISOString() : "") + "&";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIntakeRequestOutcomes(_response);
+        });
+    }
+
+    protected processGetIntakeRequestOutcomes(response: AxiosResponse): Promise<IntakeRequestOutcomesDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeRequestOutcomesDto[]>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeRequestOutcomesDto[]>(null as any);
     }
 
     /**
@@ -66909,6 +67026,13 @@ export interface IntakeDeskWaitingDto {
     count: number;
     /** When the oldest waiting request was submitted, or null when none is waiting. */
     oldestSubmittedOn?: Date | undefined;
+    /** How many of the waiting requests no one is assigned to: what still needs triage. */
+    unassignedCount: number;
+    /** How many of the waiting requests have no score from the desk's scoring model, a score from a model the desk
+no longer uses included; null when the desk scores with no model. */
+    unscoredCount?: number | undefined;
+    /** How many of the waiting requests have no estimate; null when the desk estimates on no scale. */
+    unestimatedCount?: number | undefined;
 }
 
 /** The review workflow a desk's requests follow, and whether the reader may point the desk at another. */
@@ -67157,6 +67281,17 @@ export enum IntakeRequestOutcomeKind {
     NewProject = "NewProject",
     ExistingProjectScope = "ExistingProjectScope",
     WorkItem = "WorkItem",
+}
+
+/** What one intake request became, answered beside the requests list. Summary tier, like the outcomes. */
+export interface IntakeRequestOutcomesDto {
+    /** The request the outcomes belong to. */
+    requestId: string;
+    /** The projects and work items the request became, oldest first. Never empty. */
+    outcomes: IntakeRequestOutcomeDto[];
+    /** Whether the request is met by the deliverables its outcomes are mapped to: true when every mapped deliverable
+still on its project is Accepted, false while any is not, and null when no outcome maps one. */
+    deliverablesMet?: boolean | undefined;
 }
 
 /** A work item an intake request's outcome points at, as Work reports it now. */

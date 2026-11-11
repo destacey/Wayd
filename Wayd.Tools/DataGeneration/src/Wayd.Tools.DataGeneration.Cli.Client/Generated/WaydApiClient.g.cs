@@ -95477,11 +95477,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the intake requests you can see, as summaries.
         /// </summary>
         /// <remarks>
-        /// Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status.
+        /// Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status. With `assignedToMe`, only requests assigned to you; with `participating`, only requests you were added to as a participant. With `closedSince`, closed requests (Done or Removed) only when they closed at or after that instant, open requests unaffected — `mine` with `closedSince` 30 days ago is what you asked for that is open or recently finished. Filters combine, each narrowing the list.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestSummaryDto>> GetIntakeRequestsAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestSummaryDto>> GetIntakeRequestsAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, bool? assignedToMe = null, bool? participating = null, System.DateTimeOffset? closedSince = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -95503,7 +95503,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentScoreDto>> GetIntakeRequestScoresAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentScoreDto>> GetIntakeRequestScoresAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, bool? assignedToMe = null, bool? participating = null, System.DateTimeOffset? closedSince = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -95514,7 +95514,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentEstimateDto>> GetIntakeRequestEstimatesAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentEstimateDto>> GetIntakeRequestEstimatesAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, bool? assignedToMe = null, bool? participating = null, System.DateTimeOffset? closedSince = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get what the intake requests you can see became.
+        /// </summary>
+        /// <remarks>
+        /// Takes the same filters as the list and answers beside it, so a list can show each request's projects and work items without reading every request. A request with no outcome is absent. Each outcome is as `IntakeRequests_GetIntakeRequest` returns it, with the work item's current status and the mapped deliverables' statuses. `deliverablesMet` is true when every mapped deliverable still on its project is Accepted, false while any is not, and null when no outcome maps one.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestOutcomesDto>> GetIntakeRequestOutcomesAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, bool? assignedToMe = null, bool? participating = null, System.DateTimeOffset? closedSince = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -95907,11 +95918,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the intake requests you can see, as summaries.
         /// </summary>
         /// <remarks>
-        /// Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status.
+        /// Without View, only requests on desks you are a member of and requests that are your own. Requests on a private desk are absent for anyone outside it rather than listed as redacted rows. With `mine`, only requests you are the requester of or submitted, including those entered on someone else's behalf. With `openOnly`, only requests still under review or accepted — in the Proposed or Active status category, whatever the desk's workflow calls the status. With `assignedToMe`, only requests assigned to you; with `participating`, only requests you were added to as a participant. With `closedSince`, closed requests (Done or Removed) only when they closed at or after that instant, open requests unaffected — `mine` with `closedSince` 30 days ago is what you asked for that is open or recently finished. Filters combine, each narrowing the list.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestSummaryDto>> GetIntakeRequestsAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestSummaryDto>> GetIntakeRequestsAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, bool? assignedToMe = null, bool? participating = null, System.DateTimeOffset? closedSince = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -95938,6 +95949,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (openOnly != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("openOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(openOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (assignedToMe != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("assignedToMe")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(assignedToMe, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (participating != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("participating")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(participating, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (closedSince != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("closedSince")).Append('=').Append(System.Uri.EscapeDataString(closedSince.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -96096,7 +96119,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentScoreDto>> GetIntakeRequestScoresAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentScoreDto>> GetIntakeRequestScoresAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, bool? assignedToMe = null, bool? participating = null, System.DateTimeOffset? closedSince = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -96123,6 +96146,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (openOnly != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("openOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(openOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (assignedToMe != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("assignedToMe")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(assignedToMe, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (participating != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("participating")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(participating, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (closedSince != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("closedSince")).Append('=').Append(System.Uri.EscapeDataString(closedSince.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -96187,7 +96222,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentEstimateDto>> GetIntakeRequestEstimatesAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestCurrentEstimateDto>> GetIntakeRequestEstimatesAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, bool? assignedToMe = null, bool? participating = null, System.DateTimeOffset? closedSince = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -96214,6 +96249,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (openOnly != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("openOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(openOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (assignedToMe != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("assignedToMe")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(assignedToMe, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (participating != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("participating")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(participating, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (closedSince != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("closedSince")).Append('=').Append(System.Uri.EscapeDataString(closedSince.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -96243,6 +96290,109 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 200)
                         {
                             var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<IntakeRequestCurrentEstimateDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get what the intake requests you can see became.
+        /// </summary>
+        /// <remarks>
+        /// Takes the same filters as the list and answers beside it, so a list can show each request's projects and work items without reading every request. A request with no outcome is absent. Each outcome is as `IntakeRequests_GetIntakeRequest` returns it, with the work item's current status and the mapped deliverables' statuses. `deliverablesMet` is true when every mapped deliverable still on its project is Accepted, false while any is not, and null when no outcome maps one.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeRequestOutcomesDto>> GetIntakeRequestOutcomesAsync(System.Guid? deskId = null, bool? mine = null, bool? openOnly = null, bool? assignedToMe = null, bool? participating = null, System.DateTimeOffset? closedSince = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-requests/outcomes"
+                    urlBuilder_.Append("api/demand-management/intake-requests/outcomes");
+                    urlBuilder_.Append('?');
+                    if (deskId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("deskId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(deskId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (mine != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("mine")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(mine, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (openOnly != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("openOnly")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(openOnly, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (assignedToMe != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("assignedToMe")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(assignedToMe, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (participating != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("participating")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(participating, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (closedSince != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("closedSince")).Append('=').Append(System.Uri.EscapeDataString(closedSince.Value.ToString("s", System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<IntakeRequestOutcomesDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -126651,6 +126801,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("oldestSubmittedOn")]
         public System.DateTimeOffset? OldestSubmittedOn { get; set; } = default!;
 
+        /// <summary>
+        /// How many of the waiting requests no one is assigned to: what still needs triage.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unassignedCount")]
+        public int UnassignedCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many of the waiting requests have no score from the desk's scoring model, a score from a model the desk
+        /// <br/>no longer uses included; null when the desk scores with no model.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unscoredCount")]
+        public int? UnscoredCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many of the waiting requests have no estimate; null when the desk estimates on no scale.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("unestimatedCount")]
+        public int? UnestimatedCount { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -127334,6 +127503,36 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"WorkItem")]
         WorkItem = 2,
+
+    }
+
+    /// <summary>
+    /// What one intake request became, answered beside the requests list. Summary tier, like the outcomes.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeRequestOutcomesDto
+    {
+
+        /// <summary>
+        /// The request the outcomes belong to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("requestId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid RequestId { get; set; } = default!;
+
+        /// <summary>
+        /// The projects and work items the request became, oldest first. Never empty.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("outcomes")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IntakeRequestOutcomeDto> Outcomes { get; set; } = new System.Collections.ObjectModel.Collection<IntakeRequestOutcomeDto>();
+
+        /// <summary>
+        /// Whether the request is met by the deliverables its outcomes are mapped to: true when every mapped deliverable
+        /// <br/>still on its project is Accepted, false while any is not, and null when no outcome maps one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("deliverablesMet")]
+        public bool? DeliverablesMet { get; set; } = default!;
 
     }
 

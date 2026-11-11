@@ -50,7 +50,11 @@ Before raising a request, it can be worth checking whether the ask already exist
 
 `IntakeRequests_GetList` with `mine: true` lists the requests the caller asked for or submitted, including those entered on someone else's behalf; add `openOnly: true` for those still under review or accepted, and `deskId` for one desk. Without `mine`, it lists every request the caller can see: their own and those on desks they work, plus, with the permission to view requests, those other desks let everyone see. Each item is a summary: number, title, status, desk, requester, channel, assignee, need-by and tags, with `submittedOn` and `statusChangedOn` for how long it has waited.
 
-For a desk's queue, pass its `deskId` and `openOnly: true`, then filter the result: no `assignee` is what still needs triage; `needBy` with a fixed basis is what cannot move.
+More filters narrow it, each combining with the rest: `assignedToMe: true` for requests assigned to the caller, `participating: true` for those they were added to as a participant, and `closedSince` (an instant) to keep closed requests only when they closed at or after it, open ones unaffected. `mine: true` with `closedSince` 30 days ago is what the caller asked for that is open or recently finished.
+
+For a desk's queue, pass its `deskId` and `openOnly: true`, then filter the result: no `assignee` is what still needs triage; `needBy` with a fixed basis is what cannot move. `IntakeDesks_GetList` gives each desk the caller works a `waiting` count, with `unassignedCount`, and `unscoredCount` and `unestimatedCount` on a desk that scores or estimates (null on one that does not).
+
+To say what requests became without reading each one, `IntakeRequests_GetOutcomes` takes the same filters as the list and returns each request's outcomes (absent when it has none), as `IntakeRequests_GetIntakeRequest` gives them, with `deliverablesMet`.
 
 ## Where a request stands
 

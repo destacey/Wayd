@@ -9,6 +9,7 @@ using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Application.Incidents.Queries;
 using Wayd.Web.Api.Extensions;
 using Wayd.Web.Api.Models.ProductManagement.Incidents;
+using Wayd.Work.Application.Persistence;
 using Wayd.Work.Application.WorkItems.Commands;
 using Wayd.Work.Application.WorkItems.Dtos;
 using Wayd.Work.Application.WorkItems.Queries;
@@ -22,9 +23,10 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 [ApiVersionNeutral]
 [ApiController]
 [FeatureGate(RequirementType.All, FeatureFlags.Names.ProductManagement, FeatureFlags.Names.IncidentManagement)]
-public class IncidentsController(IDispatcher dispatcher) : ControllerBase
+public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbContext) : ControllerBase
 {
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly IWorkDbContext _workDbContext = workDbContext;
 
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
@@ -34,10 +36,12 @@ public class IncidentsController(IDispatcher dispatcher) : ControllerBase
     public async Task<ActionResult<PagedResponse<IncidentSummaryDto>>> GetIncidents(
         [FromQuery] int page = PageRequest.FirstPage,
         [FromQuery] int pageSize = PageSizes.Default,
+        [FromQuery] ProductStatusAlias[]? status = null,
+        [FromQuery] Guid[]? severityLevelId = null,
         CancellationToken cancellationToken = default)
     {
         var incidents = await _dispatcher.Send(
-            new GetIncidentsQuery(new PageRequest(page, pageSize)),
+            new GetIncidentsQuery(new PageRequest(page, pageSize), status, severityLevelId),
             cancellationToken);
 
         return Ok(incidents);
@@ -140,6 +144,10 @@ public class IncidentsController(IDispatcher dispatcher) : ControllerBase
             new GetExternalObjectWorkItemsQuery(incident.Id),
             cancellationToken);
 
+        // The link rows and the timeline entry commit together. A timeline failure used to return 400
+        // after the links were already saved.
+        await using var unitOfWork = await _workDbContext.BeginUnitOfWork(cancellationToken);
+
         var result = await _dispatcher.Send(
             request.ToManageExternalObjectWorkItemsCommand(),
             cancellationToken);
@@ -172,7 +180,9 @@ public class IncidentsController(IDispatcher dispatcher) : ControllerBase
                 IncidentTimelineLinkAction.Updated,
                 $"{fromWorkItem.Title} → {toWorkItem.Title}",
                 fromWorkItem.Title,
-                toWorkItem.Title));
+                toWorkItem.Title,
+                toWorkItem.Id,
+                fromWorkItem.Id));
         }
         else
         {
@@ -183,7 +193,8 @@ public class IncidentsController(IDispatcher dispatcher) : ControllerBase
                     changes.Add(new IncidentTimelineLinkChangeDto(
                         IncidentTimelineLinkKind.WorkItem,
                         IncidentTimelineLinkAction.Removed,
-                        removed.Title));
+                        removed.Title,
+                        TargetId: removed.Id));
                 }
             }
 
@@ -194,7 +205,8 @@ public class IncidentsController(IDispatcher dispatcher) : ControllerBase
                     changes.Add(new IncidentTimelineLinkChangeDto(
                         IncidentTimelineLinkKind.WorkItem,
                         IncidentTimelineLinkAction.Added,
-                        added.Title));
+                        added.Title,
+                        TargetId: added.Id));
                 }
             }
         }
@@ -211,6 +223,7 @@ public class IncidentsController(IDispatcher dispatcher) : ControllerBase
             }
         }
 
+        await unitOfWork.CommitAsync(cancellationToken);
         return NoContent();
     }
 

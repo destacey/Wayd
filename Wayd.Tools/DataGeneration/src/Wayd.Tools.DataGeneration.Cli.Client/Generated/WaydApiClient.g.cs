@@ -27415,7 +27415,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PagedResponseOfIncidentSummaryDto> GetIncidentsAsync(int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<PagedResponseOfIncidentSummaryDto> GetIncidentsAsync(int? page = null, int? pageSize = null, System.Collections.Generic.IEnumerable<ProductStatusAlias>? status = null, System.Collections.Generic.IEnumerable<System.Guid>? severityLevelId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -27559,7 +27559,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<PagedResponseOfIncidentSummaryDto> GetIncidentsAsync(int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<PagedResponseOfIncidentSummaryDto> GetIncidentsAsync(int? page = null, int? pageSize = null, System.Collections.Generic.IEnumerable<ProductStatusAlias>? status = null, System.Collections.Generic.IEnumerable<System.Guid>? severityLevelId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -27582,6 +27582,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (pageSize != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("pageSize")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageSize, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (status != null)
+                    {
+                            foreach (var item_ in status) { urlBuilder_.Append(System.Uri.EscapeDataString("status")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
+                    }
+                    if (severityLevelId != null)
+                    {
+                            foreach (var item_ in severityLevelId) { urlBuilder_.Append(System.Uri.EscapeDataString("severityLevelId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
                     }
                     urlBuilder_.Length--;
 
@@ -128259,6 +128267,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("actor")]
         [System.ComponentModel.DataAnnotations.Required]
         public NavigationDto Actor { get; set; } = default!;
+
+        /// <summary>
+        /// The work item or link this entry is about.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("targetId")]
+        public System.Guid? TargetId { get; set; } = default!;
+
+        /// <summary>
+        /// The work item or link replaced, when the entry records an update.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fromTargetId")]
+        public System.Guid? FromTargetId { get; set; } = default!;
 
     }
 

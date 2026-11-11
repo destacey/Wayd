@@ -13909,9 +13909,11 @@ export class IncidentsClient {
      * List incidents, highest key first.
      * @param page (optional) 
      * @param pageSize (optional) 
+     * @param status (optional) 
+     * @param severityLevelId (optional) 
      * @return OK
      */
-    getIncidents(page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfIncidentSummaryDto> {
+    getIncidents(page?: number | undefined, pageSize?: number | undefined, status?: ProductStatusAlias[] | null | undefined, severityLevelId?: string[] | null | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfIncidentSummaryDto> {
         let url_ = this.baseUrl + "/api/product-management/incidents?";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
@@ -13921,6 +13923,10 @@ export class IncidentsClient {
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (status !== undefined && status !== null)
+            status && status.forEach(item => { url_ += "status=" + encodeURIComponent("" + item) + "&"; });
+        if (severityLevelId !== undefined && severityLevelId !== null)
+            severityLevelId && severityLevelId.forEach(item => { url_ += "severityLevelId=" + encodeURIComponent("" + item) + "&"; });
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -67841,6 +67847,10 @@ export interface IncidentTimelineLinkEntryDto {
     label: string;
     recordedAt: Date;
     actor: NavigationDto;
+    /** The work item or link this entry is about. */
+    targetId?: string | undefined;
+    /** The work item or link replaced, when the entry records an update. */
+    fromTargetId?: string | undefined;
 }
 
 export enum IncidentTimelineLinkKind {

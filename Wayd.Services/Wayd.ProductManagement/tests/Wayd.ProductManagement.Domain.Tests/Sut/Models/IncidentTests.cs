@@ -3,6 +3,7 @@ using NodaTime;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement.Incidents;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.ProductManagement.Domain.Tests.Data;
 
@@ -44,6 +45,9 @@ public sealed class IncidentTests
         var created = result.Value.DomainEvents.OfType<IncidentCreatedEvent>().Should().ContainSingle().Subject;
         created.Symptoms.Should().Be("Payments failing in production.");
         created.RootCause.Should().BeNull();
+        created.Title.Should().Be("Checkout unavailable");
+        created.ProductIds.Should().BeEquivalentTo([productId]);
+        created.ReleaseIds.Should().BeEmpty();
         result.Value.CommanderEmployeeId.Should().Be(commanderId);
         result.Value.StatusAlias.Should().Be(ProductStatusAlias.Open);
         result.Value.ProductLinks.Should().ContainSingle().Which.ProductId.Should().Be(productId);
@@ -231,10 +235,9 @@ public sealed class IncidentTests
 
         incident.ExecutePostPersistenceActions();
 
-        var changed = incident.DomainEvents.OfType<IncidentReleasesChangedEvent>().Should().ContainSingle().Subject;
-        changed.AddedReleaseIds.Should().BeEquivalentTo([first, second]);
-        changed.RemovedReleaseIds.Should().BeEmpty();
-        changed.ReleaseIds.Should().BeEquivalentTo([first, second]);
+        incident.DomainEvents.OfType<IncidentReleasesChangedEvent>().Should().BeEmpty();
+        var created = incident.DomainEvents.OfType<IncidentCreatedEvent>().Should().ContainSingle().Subject;
+        created.ReleaseIds.Should().BeEquivalentTo([first, second]);
     }
 
     [Fact]
@@ -324,6 +327,247 @@ public sealed class IncidentTests
         details.ToRootCause.Should().Be("A bad deploy");
         details.FromSymptoms.Should().Be("Payments failing in production.");
         details.ToSymptoms.Should().Be("Payments failing in production.");
+    }
+
+    [Fact]
+    public void Create_ShouldRecordTheIncidentAsOpened_AfterALaterEdit()
+    {
+        // Arrange
+        var productId = Guid.CreateVersion7();
+        var releaseId = Guid.CreateVersion7();
+        var incident = Incident.Create(
+            "Checkout unavailable",
+            "Payments failing in production.",
+            null,
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [productId],
+            StatusRefFactory.Open(),
+            EventActor.System,
+            Timestamp,
+            [releaseId]).Value;
+
+        incident.UpdateDetails(
+            "Renamed after open",
+            "Different symptoms",
+            "A bad deploy",
+            Guid.CreateVersion7(),
+            Timestamp.Plus(Duration.FromMinutes(2)),
+            startedAt: null,
+            recoveredAt: null,
+            [],
+            EventActor.System,
+            Timestamp);
+
+        // Act
+        incident.ExecutePostPersistenceActions();
+
+        // Assert
+        var created = incident.DomainEvents.OfType<IncidentCreatedEvent>().Should().ContainSingle().Subject;
+        created.Title.Should().Be("Checkout unavailable");
+        created.Symptoms.Should().Be("Payments failing in production.");
+        created.RootCause.Should().BeNull();
+        created.ProductIds.Should().BeEquivalentTo([productId]);
+        created.ReleaseIds.Should().BeEquivalentTo([releaseId]);
+        incident.DomainEvents.OfType<IncidentReleasesChangedEvent>().Should().BeEmpty();
+        incident.DomainEvents.OfType<IncidentProductsChangedEvent>().Should().ContainSingle()
+            .Which.RemovedProductIds.Should().BeEquivalentTo([productId]);
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldRaiseProductChanges_WhenTheSetChanges()
+    {
+        // Arrange
+        var kept = Guid.CreateVersion7();
+        var removed = Guid.CreateVersion7();
+        var added = Guid.CreateVersion7();
+        var incident = Incident.Create(
+            "Checkout unavailable",
+            "Payments failing in production.",
+            null,
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [kept, removed],
+            StatusRefFactory.Open(),
+            EventActor.System,
+            Timestamp).Value;
+
+        // Act
+        var result = incident.UpdateDetails(
+            "Checkout unavailable",
+            "Payments failing in production.",
+            null,
+            incident.SeverityLevelId,
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [kept, added],
+            EventActor.System,
+            Timestamp);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var changed = incident.DomainEvents.OfType<IncidentProductsChangedEvent>().Should().ContainSingle().Subject;
+        changed.AddedProductIds.Should().BeEquivalentTo([added]);
+        changed.RemovedProductIds.Should().BeEquivalentTo([removed]);
+        changed.ProductIds.Should().BeEquivalentTo([kept, added]);
+    }
+
+    [Fact]
+    public void BeginResponding_ShouldRecordTheStartOnTheStatusEvent()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        var started = Timestamp.Plus(Duration.FromMinutes(3));
+
+        // Act
+        var result = incident.BeginResponding(
+            StatusRefFactory.For(StatusCategory.Active, ProductStatusAlias.Responding),
+            EventActor.System,
+            Timestamp,
+            started);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.StartedAt.Should().Be(started);
+        incident.StatusAlias.Should().Be(ProductStatusAlias.Responding);
+        var changed = incident.DomainEvents.OfType<IncidentStatusChangedEvent>().Should().ContainSingle().Subject;
+        changed.FromStartedAt.Should().BeNull();
+        changed.ToStartedAt.Should().Be(started);
+        incident.DomainEvents.OfType<IncidentTimelineChangedEvent>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public void BeginResponding_ShouldFail_WhenResponseStartsBeforeNotice()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+
+        // Act
+        var result = incident.BeginResponding(
+            StatusRefFactory.For(StatusCategory.Active, ProductStatusAlias.Responding),
+            EventActor.System,
+            Timestamp,
+            Timestamp.Minus(Duration.FromMinutes(5)));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        incident.StatusAlias.Should().Be(ProductStatusAlias.Open);
+        incident.StartedAt.Should().BeNull();
+        incident.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void MarkRecovered_ShouldRecordRecoveryOnTheStatusEvent()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, Timestamp);
+        var recovered = Timestamp.Plus(Duration.FromMinutes(10));
+
+        // Act
+        var result = incident.MarkRecovered(
+            StatusRefFactory.For(StatusCategory.Active, ProductStatusAlias.Resolved),
+            EventActor.System,
+            recovered,
+            recovered);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.RecoveredAt.Should().Be(recovered);
+        var changed = incident.DomainEvents.OfType<IncidentStatusChangedEvent>().Should().ContainSingle().Subject;
+        changed.ToAlias.Should().Be(ProductStatusAlias.Resolved);
+        changed.FromRecoveredAt.Should().BeNull();
+        changed.ToRecoveredAt.Should().Be(recovered);
+    }
+
+    [Fact]
+    public void MarkRecovered_ShouldFail_WhenRecoveryIsBeforeResponse()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, Timestamp.Plus(Duration.FromMinutes(10)));
+
+        // Act
+        var result = incident.MarkRecovered(
+            StatusRefFactory.For(StatusCategory.Active, ProductStatusAlias.Resolved),
+            EventActor.System,
+            Timestamp,
+            Timestamp.Plus(Duration.FromMinutes(5)));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        incident.StatusAlias.Should().Be(ProductStatusAlias.Open);
+        incident.RecoveredAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void Close_ShouldMoveToClosed()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+
+        // Act
+        var result = incident.Close(
+            StatusRefFactory.For(StatusCategory.Done, ProductStatusAlias.Closed),
+            EventActor.System,
+            Timestamp);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.StatusAlias.Should().Be(ProductStatusAlias.Closed);
+        incident.DomainEvents.OfType<IncidentStatusChangedEvent>().Should().ContainSingle()
+            .Which.ToAlias.Should().Be(ProductStatusAlias.Closed);
+    }
+
+    [Fact]
+    public void Cancel_ShouldMoveToCanceled()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+
+        // Act
+        var result = incident.Cancel(
+            StatusRefFactory.For(StatusCategory.Removed, ProductStatusAlias.Canceled),
+            EventActor.System,
+            Timestamp,
+            "Duplicate");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.StatusAlias.Should().Be(ProductStatusAlias.Canceled);
+    }
+
+    [Fact]
+    public void RecordLinkTimelineEntry_ShouldKeepTheTarget()
+    {
+        // Arrange
+        var commanderId = Guid.CreateVersion7();
+        var workItemId = Guid.CreateVersion7();
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        var actor = EventActor.User(Guid.CreateVersion7().ToString(), commanderId);
+
+        // Act
+        var result = incident.RecordLinkTimelineEntry(
+            IncidentTimelineLinkKind.WorkItem,
+            IncidentTimelineLinkAction.Added,
+            "INC-42",
+            fromLabel: null,
+            toLabel: null,
+            actor,
+            Timestamp,
+            Timestamp,
+            workItemId);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.TargetId.Should().Be(workItemId);
+        incident.DomainEvents.OfType<IncidentTimelineLinkRecordedEvent>().Should().ContainSingle()
+            .Which.TargetId.Should().Be(workItemId);
     }
 
     private static Incident OpenIncident(Instant noticedAt, Instant? startedAt, IReadOnlyCollection<Guid>? releaseIds = null) =>

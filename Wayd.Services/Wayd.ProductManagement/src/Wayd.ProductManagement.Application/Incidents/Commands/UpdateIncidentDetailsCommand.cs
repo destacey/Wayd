@@ -15,7 +15,7 @@ public sealed record UpdateIncidentDetailsCommand(
     Instant? StartedAt,
     Instant? RecoveredAt,
     IReadOnlyList<Guid> ProductIds,
-    IReadOnlyList<Guid>? ReleaseIds = null) : ICommand;
+    IReadOnlyList<Guid>? ReleaseIds = null) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdateIncidentDetailsCommandValidator : AbstractValidator<UpdateIncidentDetailsCommand>
 {

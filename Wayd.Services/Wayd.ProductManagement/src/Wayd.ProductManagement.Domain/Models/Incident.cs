@@ -164,39 +164,35 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
             return Result.Failure<Incident>(releases.Error);
         }
 
-        var createdReleaseIds = incident.ReleaseLinks.Select(link => link.ReleaseId).Order().ToArray();
+        var createdTitle = incident.Title;
+        var createdCommanderEmployeeId = incident.CommanderEmployeeId;
+        var createdSeverityLevelId = incident.SeverityLevelId;
+        var createdNoticedAt = incident.NoticedAt;
+        var createdStartedAt = incident.StartedAt;
+        var createdRecoveredAt = incident.RecoveredAt;
+        var createdStatusAlias = incident.StatusAlias;
         var createdSymptoms = incident.Symptoms;
         var createdRootCause = incident.RootCause;
+        var createdProductIds = incident.ProductLinks.Select(link => link.ProductId).Order().ToArray();
+        var createdReleaseIds = incident.ReleaseLinks.Select(link => link.ReleaseId).Order().ToArray();
 
         incident.AddPostPersistenceAction(() =>
-        {
             incident.AddDomainEvent(new IncidentCreatedEvent(
                 incident.Id,
                 incident.Key,
-                incident.Title,
-                incident.CommanderEmployeeId,
-                incident.SeverityLevelId,
-                incident.NoticedAt,
-                incident.StartedAt,
-                incident.RecoveredAt,
-                incident.StatusAlias,
+                createdTitle,
+                createdCommanderEmployeeId,
+                createdSeverityLevelId,
+                createdNoticedAt,
+                createdStartedAt,
+                createdRecoveredAt,
+                createdStatusAlias,
                 actor,
                 timestamp,
                 createdSymptoms,
-                createdRootCause));
-
-            if (createdReleaseIds.Length > 0)
-            {
-                incident.AddDomainEvent(new IncidentReleasesChangedEvent(
-                    incident.Id,
-                    incident.Key,
-                    createdReleaseIds,
-                    [],
-                    createdReleaseIds,
-                    actor,
-                    timestamp));
-            }
-        });
+                createdRootCause,
+                createdProductIds,
+                createdReleaseIds)));
 
         return Result.Success(incident);
     }
@@ -248,6 +244,18 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         if (products.IsFailure)
         {
             return products;
+        }
+
+        if (products.Value.Changed)
+        {
+            AddDomainEvent(new IncidentProductsChangedEvent(
+                Id,
+                Key,
+                products.Value.Added,
+                products.Value.Removed,
+                ProductLinks.Select(link => link.ProductId).Order().ToArray(),
+                actor,
+                timestamp));
         }
 
         if (releaseIds is not null)
@@ -326,18 +334,14 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         Instant? responseStartedAt = null)
     {
         var at = responseStartedAt ?? timestamp;
-        var statusChange = ChangeStatus(respondingStatus, actor, timestamp);
-        if (statusChange.IsFailure)
+        var nextStarted = StartedAt ?? at;
+        var timeline = ValidateTimeline(NoticedAt, nextStarted, RecoveredAt);
+        if (timeline.IsFailure)
         {
-            return statusChange;
+            return timeline;
         }
 
-        if (StartedAt is null)
-        {
-            StartedAt = at;
-        }
-
-        return Result.Success();
+        return ChangeStatus(respondingStatus, actor, timestamp, nextStartedAt: nextStarted);
     }
 
     /// <summary>Records that service has been restored.</summary>
@@ -348,23 +352,20 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         Instant? recoveredAt = null)
     {
         var at = recoveredAt ?? timestamp;
-        var statusChange = ChangeStatus(recoveredStatus, actor, timestamp);
-        if (statusChange.IsFailure)
+        var nextStarted = StartedAt ?? at;
+        var nextRecovered = RecoveredAt ?? at;
+        var timeline = ValidateTimeline(NoticedAt, nextStarted, nextRecovered);
+        if (timeline.IsFailure)
         {
-            return statusChange;
+            return timeline;
         }
 
-        if (RecoveredAt is null)
-        {
-            RecoveredAt = at;
-        }
-
-        if (StartedAt is null)
-        {
-            StartedAt = at;
-        }
-
-        return Result.Success();
+        return ChangeStatus(
+            recoveredStatus,
+            actor,
+            timestamp,
+            nextStartedAt: nextStarted,
+            nextRecoveredAt: nextRecovered);
     }
 
     /// <summary>Closes the incident after recovery.</summary>
@@ -422,7 +423,9 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         string? toLabel,
         EventActor actor,
         Instant recordedAt,
-        Instant timestamp)
+        Instant timestamp,
+        Guid? targetId = null,
+        Guid? fromTargetId = null)
     {
         if (actor.EmployeeId is null || actor.EmployeeId == Guid.Empty)
         {
@@ -446,7 +449,9 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
             action,
             label,
             actorEmployeeId,
-            recordedAt);
+            recordedAt,
+            targetId,
+            fromTargetId);
         _timelineLinkEntries.Add(entry);
 
         AddDomainEvent(new IncidentTimelineLinkRecordedEvent(
@@ -460,16 +465,32 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
             toLabel?.Trim(),
             recordedAt,
             actor,
-            timestamp));
+            timestamp,
+            targetId,
+            fromTargetId));
 
         return Result.Success(entry);
     }
 
-    private Result ChangeStatus(StatusRef status, EventActor actor, Instant timestamp, string? reason = null)
+    private Result ChangeStatus(
+        StatusRef status,
+        EventActor actor,
+        Instant timestamp,
+        string? reason = null,
+        Instant? nextStartedAt = null,
+        Instant? nextRecoveredAt = null)
     {
         Guard.Against.Null(status, nameof(status));
 
-        if (status.StatusId == StatusId)
+        var fromStartedAt = StartedAt;
+        var fromRecoveredAt = RecoveredAt;
+        var toStartedAt = nextStartedAt ?? StartedAt;
+        var toRecoveredAt = nextRecoveredAt ?? RecoveredAt;
+        var statusSame = status.StatusId == StatusId;
+        var datesSame = SameMillisecond(fromStartedAt, toStartedAt)
+            && SameMillisecond(fromRecoveredAt, toRecoveredAt);
+
+        if (statusSame && datesSame)
         {
             return Result.Success();
         }
@@ -478,10 +499,36 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         var fromCategory = StatusCategory;
         var fromAlias = StatusAlias;
 
-        var applied = ApplyStatus(status, actor, timestamp, reason);
-        if (applied.IsFailure)
+        if (!statusSame)
         {
-            return applied;
+            var applied = ApplyStatus(status, actor, timestamp, reason);
+            if (applied.IsFailure)
+            {
+                return applied;
+            }
+        }
+
+        if (!datesSame)
+        {
+            StartedAt = toStartedAt;
+            RecoveredAt = toRecoveredAt;
+        }
+
+        if (statusSame)
+        {
+            AddDomainEvent(new IncidentTimelineChangedEvent(
+                Id,
+                Key,
+                NoticedAt,
+                fromStartedAt,
+                fromRecoveredAt,
+                NoticedAt,
+                StartedAt,
+                RecoveredAt,
+                actor,
+                timestamp));
+
+            return Result.Success();
         }
 
         AddDomainEvent(new IncidentStatusChangedEvent(
@@ -494,7 +541,11 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
             status.Category,
             (ProductStatusAlias)status.Alias,
             actor,
-            timestamp));
+            timestamp,
+            fromStartedAt,
+            StartedAt,
+            fromRecoveredAt,
+            RecoveredAt));
 
         return Result.Success();
     }
@@ -558,16 +609,25 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         return Result.Success((true, added, removed));
     }
 
-    private static Result ReplaceProductLinks(Incident incident, IReadOnlyCollection<Guid> productIds)
+    private static Result<(bool Changed, Guid[] Added, Guid[] Removed)> ReplaceProductLinks(
+        Incident incident,
+        IReadOnlyCollection<Guid> productIds)
     {
-        var distinct = productIds.Where(id => id != Guid.Empty).Distinct().ToList();
-        incident._productLinks.Clear();
+        var next = productIds.Where(id => id != Guid.Empty).Distinct().ToHashSet();
+        var current = incident._productLinks.Select(link => link.ProductId).ToHashSet();
+        var added = next.Except(current).Order().ToArray();
+        var removed = current.Except(next).Order().ToArray();
+        if (added.Length == 0 && removed.Length == 0)
+        {
+            return Result.Success((false, added, removed));
+        }
 
-        foreach (var productId in distinct)
+        incident._productLinks.Clear();
+        foreach (var productId in next.Order())
         {
             incident._productLinks.Add(new IncidentProductLink(incident.Id, productId));
         }
 
-        return Result.Success();
+        return Result.Success((true, added, removed));
     }
 }

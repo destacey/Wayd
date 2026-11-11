@@ -17,7 +17,9 @@ public sealed class IncidentTimelineLinkEntry : BaseAuditableEntity
         IncidentTimelineLinkAction action,
         string label,
         Guid actorEmployeeId,
-        Instant recordedAt)
+        Instant recordedAt,
+        Guid? targetId,
+        Guid? fromTargetId)
     {
         IncidentId = incidentId;
         Kind = kind;
@@ -25,6 +27,8 @@ public sealed class IncidentTimelineLinkEntry : BaseAuditableEntity
         Label = label;
         ActorEmployeeId = actorEmployeeId;
         RecordedAt = recordedAt;
+        TargetId = targetId;
+        FromTargetId = fromTargetId;
     }
 
     /// <summary>The incident this entry belongs to.</summary>
@@ -49,6 +53,12 @@ public sealed class IncidentTimelineLinkEntry : BaseAuditableEntity
     /// <summary>When the change was recorded on the timeline.</summary>
     public Instant RecordedAt { get; private init; }
 
+    /// <summary>The work item or link this entry is about.</summary>
+    public Guid? TargetId { get; private init; }
+
+    /// <summary>The work item or link replaced, when the entry records an update.</summary>
+    public Guid? FromTargetId { get; private init; }
+
     /// <summary>Creates a link change entry for an incident timeline.</summary>
     public static IncidentTimelineLinkEntry Create(
         Guid incidentId,
@@ -56,7 +66,9 @@ public sealed class IncidentTimelineLinkEntry : BaseAuditableEntity
         IncidentTimelineLinkAction action,
         string label,
         Guid actorEmployeeId,
-        Instant recordedAt)
+        Instant recordedAt,
+        Guid? targetId,
+        Guid? fromTargetId)
     {
         Guard.Against.Default(incidentId, nameof(incidentId));
         Guard.Against.Default(actorEmployeeId, nameof(actorEmployeeId));
@@ -67,6 +79,8 @@ public sealed class IncidentTimelineLinkEntry : BaseAuditableEntity
             action,
             label,
             actorEmployeeId,
-            recordedAt);
+            recordedAt,
+            targetId,
+            fromTargetId);
     }
 }

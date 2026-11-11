@@ -8,6 +8,8 @@ namespace Wayd.Common.Domain.Events.ProductManagement.Incidents;
 /// <remarks>
 /// <see cref="Symptoms"/> and <see cref="RootCause"/> were added after the first payloads. A payload
 /// written before them deserializes both as null, which is what an incident opened with neither recorded.
+/// <see cref="ProductIds"/> and <see cref="ReleaseIds"/> were added later still. A payload written before
+/// them deserializes both as null, stored here as an empty set: the incident was opened with nothing linked.
 /// </remarks>
 public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
@@ -27,8 +29,10 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
         EventActor actor,
         Instant timestamp,
         string? symptoms = null,
-        string? rootCause = null)
-        : base(actor, "1.1")
+        string? rootCause = null,
+        IReadOnlyCollection<Guid>? productIds = null,
+        IReadOnlyCollection<Guid>? releaseIds = null)
+        : base(actor, "1.2")
     {
         Id = id;
         Key = key;
@@ -41,6 +45,8 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
         StatusAlias = statusAlias;
         Symptoms = symptoms;
         RootCause = rootCause;
+        ProductIds = productIds ?? [];
+        ReleaseIds = releaseIds ?? [];
 
         Timestamp = timestamp;
     }
@@ -60,6 +66,12 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
 
     /// <summary>Why it happened, if that was already known. Null until a cause is recorded.</summary>
     public string? RootCause { get; }
+
+    /// <summary>The products implicated when the incident was opened. Empty when none were linked.</summary>
+    public IReadOnlyCollection<Guid> ProductIds { get; }
+
+    /// <summary>The releases the incident pointed at when it was opened. Empty when none were linked.</summary>
+    public IReadOnlyCollection<Guid> ReleaseIds { get; }
 
     [JsonIgnore]
     public string AggregateType => "Incident";

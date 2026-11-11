@@ -105,6 +105,12 @@ public sealed record IncidentTimelineLinkEntryDto
     public required string Label { get; init; }
     public Instant RecordedAt { get; init; }
     public NavigationDto Actor { get; init; } = default!;
+
+    /// <summary>The work item or link this entry is about.</summary>
+    public Guid? TargetId { get; init; }
+
+    /// <summary>The work item or link replaced, when the entry records an update.</summary>
+    public Guid? FromTargetId { get; init; }
 }
 
 internal static class IncidentProjections

@@ -158,7 +158,7 @@ public partial class EventCoverageTests
             "Called only by HealthReport when a new check supersedes the latest, inside the owning aggregate's AddHealthCheck, which raises.",
         ["IncidentTimelineNote.Create(Guid, String, Guid, Instant)"] =
             "Called only from Incident.AddTimelineNote, which raises IncidentTimelineNoteAddedEvent.",
-        ["IncidentTimelineLinkEntry.Create(Guid, IncidentTimelineLinkKind, IncidentTimelineLinkAction, String, Guid, Instant)"] =
+        ["IncidentTimelineLinkEntry.Create(Guid, IncidentTimelineLinkKind, IncidentTimelineLinkAction, String, Guid, Instant, Nullable<Guid>, Nullable<Guid>)"] =
             "Called only from Incident.RecordLinkTimelineEntry, which raises IncidentTimelineLinkRecordedEvent.",
 
         // Not yet evented: each awaits the issue it names.

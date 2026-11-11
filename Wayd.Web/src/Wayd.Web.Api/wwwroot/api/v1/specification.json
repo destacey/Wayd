@@ -11248,6 +11248,31 @@
               "default": 50
             },
             "x-position": 2
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ProductStatusAlias"
+              },
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "severityLevelId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "nullable": true
+            },
+            "x-position": 4
           }
         ],
         "responses": {
@@ -67384,6 +67409,18 @@
           },
           "actor": {
             "$ref": "#/components/schemas/NavigationDto"
+          },
+          "targetId": {
+            "type": "string",
+            "description": "The work item or link this entry is about.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fromTargetId": {
+            "type": "string",
+            "description": "The work item or link replaced, when the entry records an update.",
+            "format": "uuid",
+            "nullable": true
           }
         },
         "additionalProperties": false,

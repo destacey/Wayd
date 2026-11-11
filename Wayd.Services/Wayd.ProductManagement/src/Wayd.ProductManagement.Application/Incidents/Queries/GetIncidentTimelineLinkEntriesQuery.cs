@@ -51,6 +51,8 @@ public sealed class GetIncidentTimelineLinkEntriesQueryHandler(IProductManagemen
                     Action = entry.Action,
                     Label = entry.Label,
                     RecordedAt = entry.RecordedAt,
+                    TargetId = entry.TargetId,
+                    FromTargetId = entry.FromTargetId,
                     Actor = NavigationDto.Create(
                         employee.Id,
                         employee.Key,

@@ -1,4 +1,5 @@
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.ProductManagement.Domain;
@@ -22,7 +23,7 @@ public sealed class ApplyIncidentWorkflowActionCommandValidator : AbstractValida
 
 public sealed class ApplyIncidentWorkflowActionCommandHandler(
     IProductManagementDbContext productManagementDbContext,
-    IStatusResolver statusResolver,
+    IStatusWorkflowDbContext statusWorkflowDbContext,
     ICurrentUser currentUser,
     ICurrentPrincipal currentPrincipal,
     IDateTimeProvider dateTimeProvider,
@@ -30,7 +31,7 @@ public sealed class ApplyIncidentWorkflowActionCommandHandler(
     : ICommandHandler<ApplyIncidentWorkflowActionCommand>
 {
     private readonly IProductManagementDbContext _productManagementDbContext = productManagementDbContext;
-    private readonly IStatusResolver _statusResolver = statusResolver;
+    private readonly IStatusWorkflowDbContext _statusWorkflowDbContext = statusWorkflowDbContext;
     private readonly ICurrentUser _currentUser = currentUser;
     private readonly ICurrentPrincipal _currentPrincipal = currentPrincipal;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
@@ -65,24 +66,36 @@ public sealed class ApplyIncidentWorkflowActionCommandHandler(
             _ => throw new ArgumentOutOfRangeException(nameof(request)),
         };
 
-        var status = await _statusResolver.ForAlias(
-            ProductWorkflowOwners.Incident.Key,
-            scopeId: null,
-            (int)targetAlias,
-            cancellationToken);
+        // The status ids on the incident belong to the workflow it holds. The org assignment can name
+        // another workflow with the same aliases and different ids, which makes the move illegal.
+        var workflow = await _statusWorkflowDbContext.StatusWorkflows
+            .Include(w => w.Statuses)
+            .Include(w => w.Transitions)
+                .ThenInclude(t => t.Conditions)
+            .AsSplitQuery()
+            .FirstOrDefaultAsync(w => w.Id == incident.StatusWorkflowId, cancellationToken);
 
-        if (status.IsFailure)
+        if (workflow is null)
         {
-            _logger.LogError("Unable to resolve incident status {Alias}. Error: {Error}", targetAlias, status.Error);
-            return Result.Failure(status.Error);
+            _logger.LogError("Incident {IncidentId} has no status workflow {WorkflowId}.", incident.Id, incident.StatusWorkflowId);
+            return Result.Failure("The incident's status workflow could not be loaded.");
+        }
+
+        var status = workflow.StatusFor((int)targetAlias);
+        var target = status is null ? null : workflow.TargetRef(status.Id);
+        if (target is null)
+        {
+            _logger.LogInformation(
+                "Workflow {WorkflowId} has no status for {Alias}.", workflow.Id, targetAlias);
+            return Result.Failure($"'{workflow.Name}' has no status for this action.");
         }
 
         var result = request.Action switch
         {
-            IncidentWorkflowAction.BeginResponding => incident.BeginResponding(status.Value, actor, now),
-            IncidentWorkflowAction.MarkRecovered => incident.MarkRecovered(status.Value, actor, now),
-            IncidentWorkflowAction.Close => incident.Close(status.Value, actor, now),
-            IncidentWorkflowAction.Cancel => incident.Cancel(status.Value, actor, now, request.Reason),
+            IncidentWorkflowAction.BeginResponding => incident.BeginResponding(target, actor, now),
+            IncidentWorkflowAction.MarkRecovered => incident.MarkRecovered(target, actor, now),
+            IncidentWorkflowAction.Close => incident.Close(target, actor, now),
+            IncidentWorkflowAction.Cancel => incident.Cancel(target, actor, now, request.Reason),
             _ => throw new ArgumentOutOfRangeException(nameof(request)),
         };
 

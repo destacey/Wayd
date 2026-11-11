@@ -1,11 +1,15 @@
 using System.Linq.Expressions;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Domain.Models;
 
 namespace Wayd.ProductManagement.Application.Incidents.Queries;
 
-public sealed record GetIncidentsQuery(PageRequest Paging) : IQuery<PagedResponse<IncidentSummaryDto>>, IPagedQuery;
+public sealed record GetIncidentsQuery(
+    PageRequest Paging,
+    IReadOnlyCollection<ProductStatusAlias>? Statuses = null,
+    IReadOnlyCollection<Guid>? SeverityLevelIds = null) : IQuery<PagedResponse<IncidentSummaryDto>>, IPagedQuery;
 
 public sealed class GetIncidentsQueryValidator : PagedQueryValidator<GetIncidentsQuery>;
 
@@ -19,6 +23,17 @@ public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context
         CancellationToken cancellationToken)
     {
         var query = _context.Incidents.AsNoTracking();
+        if (request.Statuses is { Count: > 0 })
+        {
+            var aliases = request.Statuses.Select(status => (int)status).ToArray();
+            query = query.Where(incident => aliases.Contains(incident.StatusAliasValue));
+        }
+
+        if (request.SeverityLevelIds is { Count: > 0 })
+        {
+            query = query.Where(incident => request.SeverityLevelIds.Contains(incident.SeverityLevelId));
+        }
+
         var totalCount = await query.CountAsync(cancellationToken);
 
         if (totalCount == 0)

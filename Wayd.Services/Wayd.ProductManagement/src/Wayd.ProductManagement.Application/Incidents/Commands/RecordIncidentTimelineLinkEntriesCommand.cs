@@ -11,7 +11,9 @@ public sealed record IncidentTimelineLinkChangeDto(
     IncidentTimelineLinkAction Action,
     string Label,
     string? FromLabel = null,
-    string? ToLabel = null);
+    string? ToLabel = null,
+    Guid? TargetId = null,
+    Guid? FromTargetId = null);
 
 /// <summary>Persists link timeline entries after work item or generic link changes.</summary>
 public sealed record RecordIncidentTimelineLinkEntriesCommand(
@@ -82,7 +84,9 @@ public sealed class RecordIncidentTimelineLinkEntriesCommandHandler(
                 change.ToLabel,
                 actor,
                 recordedAt,
-                timestamp);
+                timestamp,
+                change.TargetId,
+                change.FromTargetId);
             if (recorded.IsFailure)
             {
                 return Result.Failure(recorded.Error);

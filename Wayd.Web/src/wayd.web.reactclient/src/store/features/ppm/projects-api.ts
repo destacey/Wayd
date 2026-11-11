@@ -17,6 +17,7 @@ import {
   ProjectPlanSummaryDto,
   ProjectTeamMemberDto,
   MyProjectsSummaryDto,
+  MyProjectTaskDto,
   ProjectsTaskMetricsDto,
   ProjectStatusHistoryDto,
   ProjectStatus,
@@ -26,6 +27,7 @@ import {
 import { QueryTags } from '../query-tags'
 import { projectLinkTags } from '../work-management/workspace-api'
 import { projectActivityTags } from './ppm-activity-tags'
+import { MY_DELIVERABLES } from './project-deliverables-api'
 import type { BaseOptionType } from 'antd/es/select'
 import { StatusOptionModel } from '@/src/components/types'
 import { chunk } from '@/src/utils'
@@ -70,6 +72,18 @@ export const projectStageMutationTags = (
   { type: QueryTags.Project, id: 'MY_SUMMARY' },
   { type: QueryTags.PortfolioProjects, id: 'LIST' },
   { type: QueryTags.ProgramProjects, id: 'LIST' },
+]
+
+/**
+ * The caller's own project work on the home page — involvement counts, open
+ * tasks and owned deliverables — which a project's status, key or existence
+ * changes: tasks on a cancelled project leave the list, and links follow a new
+ * key.
+ */
+export const myProjectWorkTags = [
+  { type: QueryTags.Project, id: 'MY_SUMMARY' },
+  { type: QueryTags.Project, id: 'MY_TASK_METRICS' },
+  { type: QueryTags.ProjectDeliverable, id: MY_DELIVERABLES },
 ]
 
 export const projectsApi = apiSlice.injectEndpoints({
@@ -201,6 +215,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           // If any screens already cached the *new* key, ensure it's refreshed.
           { type: QueryTags.Project, id: request.key },
           ...projectActivityTags(id),
+          ...myProjectWorkTags,
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
         ]
@@ -225,6 +240,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
           ...projectActivityTags(id),
+          ...myProjectWorkTags,
         ]
       },
     }),
@@ -247,6 +263,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
           ...projectActivityTags(id),
+          ...myProjectWorkTags,
         ]
       },
     }),
@@ -269,6 +286,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
           ...projectActivityTags(id),
+          ...myProjectWorkTags,
         ]
       },
     }),
@@ -291,6 +309,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
           ...projectActivityTags(id),
+          ...myProjectWorkTags,
         ]
       },
     }),
@@ -319,6 +338,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
           ...projectActivityTags(id),
+          ...myProjectWorkTags,
         ]
       },
     }),
@@ -338,6 +358,7 @@ export const projectsApi = apiSlice.injectEndpoints({
           { type: QueryTags.Project, id: 'LIST' },
           { type: QueryTags.PortfolioProjects, id: 'LIST' },
           { type: QueryTags.ProgramProjects, id: 'LIST' },
+          ...myProjectWorkTags,
         ]
       },
     }),
@@ -681,6 +702,25 @@ export const projectsApi = apiSlice.injectEndpoints({
       providesTags: () => [{ type: QueryTags.Project, id: 'MY_TASK_METRICS' }],
     }),
 
+    getMyProjectTasks: builder.query<
+      MyProjectTaskDto[],
+      { status?: ProjectStatus[] } | void
+    >({
+      queryFn: async (request = undefined) => {
+        try {
+          const data = await getProjectsClient().getMyProjectTasks(
+            request?.status,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // The metrics tag: every mutation that moves a task already invalidates it.
+      providesTags: () => [{ type: QueryTags.Project, id: 'MY_TASK_METRICS' }],
+    }),
+
     getProjectTeam: builder.query<ProjectTeamMemberDto[], string>({
       queryFn: async (idOrKey) => {
         try {
@@ -763,6 +803,7 @@ export const {
   useGetMyProjectsSummaryQuery,
   useGetProjectsTaskMetricsQuery,
   useGetMyProjectsTaskMetricsQuery,
+  useGetMyProjectTasksQuery,
   useGetProjectTeamQuery,
   useGetProjectStatusHistoryQuery,
   useGetProjectActivitiesQuery,

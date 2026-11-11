@@ -7,10 +7,15 @@ import DeskQueueWidget, {
   UnassignedRequestsTile,
 } from './widgets/desk-queue-widget'
 import FollowingWidget from './widgets/following-widget'
-import MyProjectsWidget, {
+import ProjectHealthChecksDueWidget, {
+  ProjectHealthChecksDueTile,
+} from './widgets/project-health-checks-due-widget'
+import MyDeliverablesWidget from './widgets/my-deliverables-widget'
+import MyProjectTasksWidget, {
   DueThisWeekTile,
   OverdueTasksTile,
-} from './widgets/my-projects-widget'
+} from './widgets/my-project-tasks-widget'
+import MyProjectsWidget from './widgets/my-projects-widget'
 import MyRequestsWidget from './widgets/my-requests-widget'
 import MyRisksWidget, { RiskFollowUpsTile } from './widgets/my-risks-widget'
 import PlanningIntervalsWidget from './widgets/planning-intervals-widget'
@@ -36,6 +41,7 @@ const MyTeamsWidget = lazy(() => import('./widgets/my-teams-widget'))
 export const TilePriority = {
   OverdueTasks: 100,
   SprintsToComplete: 90,
+  ProjectHealthChecksDue: 85,
   RiskFollowUps: 80,
   CrossTeamDependencies: 75,
   DependenciesAtRisk: 70,
@@ -90,6 +96,23 @@ export const HomeWidgets: HomeWidget[] = [
     },
     Component: MyProjectsWidget,
     involvement: projectInvolvement,
+  },
+  {
+    id: 'my-project-tasks',
+    title: 'My project tasks',
+    description:
+      'The open project plan tasks and milestones assigned to you on approved and active projects, overdue first.',
+    defaultColumn: 'main',
+    defaultOrder: 25,
+    requires: {
+      permissions: ['Permissions.Projects.View'],
+      linkedEmployee: true,
+      // Only someone assigned a task on an approved or active project has any to list.
+      involved: ({ projects }) => projects.assigneeCount > 0,
+    },
+    Component: MyProjectTasksWidget,
+    // Assigned tasks are day-to-day work, and everyone it is shown to has some.
+    involvement: () => Involvement.Leads,
     tiles: [
       {
         id: 'overdue-tasks',
@@ -102,6 +125,46 @@ export const HomeWidgets: HomeWidget[] = [
         Tile: DueThisWeekTile,
       },
     ],
+  },
+  {
+    id: 'project-health-checks-due',
+    title: 'Project health checks due',
+    description:
+      'Active projects you own or manage whose health check is missing, expired or expiring within a week.',
+    defaultColumn: 'main',
+    defaultOrder: 27,
+    requires: {
+      permissions: ['Permissions.Projects.View'],
+      linkedEmployee: true,
+      // Reporting health falls to a project's owners and managers; for anyone else it would only ever be empty.
+      involved: ({ projects }) =>
+        projects.ownerCount + projects.managerCount > 0,
+    },
+    Component: ProjectHealthChecksDueWidget,
+    // Everyone it is shown to leads a project.
+    involvement: () => Involvement.Leads,
+    tiles: [
+      {
+        id: 'project-health-checks-due',
+        priority: TilePriority.ProjectHealthChecksDue,
+        Tile: ProjectHealthChecksDueTile,
+      },
+    ],
+  },
+  {
+    id: 'my-deliverables',
+    title: 'Deliverables I own',
+    description:
+      'The open project deliverables you are the owner of, past target first.',
+    defaultColumn: 'side',
+    defaultOrder: 27,
+    requires: {
+      permissions: ['Permissions.Projects.View'],
+      linkedEmployee: true,
+    },
+    Component: MyDeliverablesWidget,
+    // An owner need hold no role on the project, so this is a guess from the roles held.
+    involvement: projectInvolvement,
   },
   {
     id: 'my-risks',

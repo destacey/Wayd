@@ -7,7 +7,7 @@ audience: [user, agent]
 
 # Home
 
-The home page is a briefing on your work: what needs your attention today, what has changed on the records you follow or work on, and the projects, risks, planning intervals, teams, intake desks and requests you are part of.
+The home page is a briefing on your work: what needs your attention today, what has changed on the records you follow or work on, and the projects, tasks, deliverables, risks, planning intervals, teams, intake desks and requests you are part of.
 
 It opens with a greeting and today's date, then a row of counts across the top, then the widgets in two columns: a wider main column and a narrower side column. On a tablet the side column's widgets sit two abreast below the main column; on a phone everything is one column, with the side column's widgets last.
 
@@ -20,6 +20,7 @@ You see only the widgets that apply to you. A widget needs some or all of:
 - **A permission.** My projects needs permission to view projects, for example. Without it the widget is not shown.
 - **A feature flag.** What's changed and Following need the **Following** feature flag, and Desk queue and My requests the **Demand Management** flag, which an administrator turns on in **Settings → System → Feature Flags**.
 - **An account linked to an employee.** Anything about "my" work — projects, risks, tasks, teams, notifications, the records you follow — comes from the employee record your account is linked to.
+- **A duty only some people hold.** My project tasks shows only once you have a task assigned on an approved or active project. Project health checks due shows only if you are an Owner or Manager on an approved or active project, since reporting a project's health falls to them; being a sponsor, member or task assignee, or leading the project's program or portfolio, does not add it. Each appears once you take that on.
 
 If your account is not linked to an employee, a banner at the top says so. Your projects, risks, tasks, teams, notifications and the records you follow appear once an administrator links your account in **Settings → Access → Users**.
 
@@ -29,13 +30,14 @@ Every widget is a card with its title at the top left and, where there is a full
 
 The row of counts across the top shows up to four numbers that need you today. Each one links to the list behind it, and its number turns orange or red. A count at zero gives up its place to the next one, and when every count is zero the row is not shown at all, so an empty row means nothing is waiting.
 
-When more counts are above zero than fit, the most urgent four show, in this order: overdue tasks, sprints to complete, risk follow-ups, unhealthy dependencies, dependencies at risk, unassigned requests, tasks due this week, requests assigned to you, unread notifications. Where you placed the widgets makes no difference to which counts show.
+When more counts are above zero than fit, the most urgent four show, in this order: overdue tasks, sprints to complete, health checks due, risk follow-ups, unhealthy dependencies, dependencies at risk, unassigned requests, tasks due this week, requests assigned to you, unread notifications. Where you placed the widgets makes no difference to which counts show.
 
 | Count | What it counts | Where it goes |
 |-------|----------------|---------------|
 | Unread notifications | Records with changes you have not read, the same count as the bell; shown as 99+ above 99 | Your [notifications](./notifications.mdx) |
-| Overdue tasks (on your projects) | Open tasks on your approved and active projects whose planned end has passed | The [Projects Dashboard](./ppm/my-projects.mdx) |
-| Due this week (on your projects) | Open tasks on those projects due by the end of this week (Saturday) | The Projects Dashboard |
+| Overdue tasks (assigned to you) | Open tasks and milestones assigned to you on approved and active projects whose due date has passed | The My project tasks widget below |
+| Due this week (assigned to you) | Open tasks and milestones assigned to you on those projects due by the end of this week (Saturday) | The My project tasks widget below |
+| Health checks due (on projects you lead) | Active projects you own or manage with no current health check: none was reported, or the last one expired | The Project health checks due widget below |
 | Risk follow-ups | Open risks assigned to you whose follow-up date is today or past | The My risks widget below |
 | Dependencies at risk (on your teams) | Open [dependencies](./work-management/work-items.mdx#work-item-dependencies) of your teams that are at risk (neither end planned) or unhealthy (planned to finish after they are needed); a dependency between two of your teams counts once | The My teams widget below |
 | Sprints to complete (in your teams of teams) | Sprints that a team in one of your teams of teams started and that are past their end without being completed | The My teams widget below |
@@ -43,7 +45,7 @@ When more counts are above zero than fit, the most urgent four show, in this ord
 | Unassigned requests (on your desks) | Open [intake requests](./demand-management/index.mdx) on the desks you are a Desk Admin or Agent on that no one is assigned to | Requests, filtered to your desks and Unassigned |
 | Requests assigned (to you) | Open intake requests assigned to you | Requests, filtered to Assigned to me |
 
-A count shows only when its widget does: without the Following flag there is no unread count, without permission to view risks there are no risk follow-ups, without permission to view work items there are no dependencies at risk or unhealthy dependencies, without permission to view iterations there are no sprints to complete, and without the Demand Management flag there are no request counts. A count that fails to load keeps its place and shows a dash rather than a zero.
+A count shows only when its widget does: without permission to view projects there are no task or health check counts, with no project task assigned there are no task counts, unless you own or manage a project there is no health check count, without the Following flag there is no unread count, without permission to view risks there are no risk follow-ups, without permission to view work items there are no dependencies at risk or unhealthy dependencies, without permission to view iterations there are no sprints to complete, and without the Demand Management flag there are no request counts. A count that fails to load keeps its place and shows a dash rather than a zero.
 
 ## Widgets
 
@@ -53,6 +55,7 @@ This is each widget's usual place. Until you [customize](#customizing) the page,
 
 - **What's changed** — your five latest [notifications](./notifications.mdx): what changed, on which record, and why you were told. Opening one goes to the record and marks it read. **View all** opens the full list.
 - **My projects** — how many approved and active projects you hold a role on, broken down by role (Sponsor, Owner, PM, Member, Task Assignee). **View all** opens the Projects Dashboard.
+- **My project tasks** — the open project plan tasks and milestones assigned to you on approved and active projects that are overdue or due by the end of next week: overdue first, then by due date. It lists up to five, and says how many more are due in that time and how many open tasks are due later or have no due date; when nothing is due by the end of next week, it says so and how many are due later. Each shows its due date and its project; the task opens the project's plan. A task's due date is its planned end, a milestone's its planned date. Only tasks assigned to you are listed: owning or managing a project does not add its tasks. Shown only once you have a project task assigned.
 - **My risks** — the open [risks](./planning/risks.mdx) assigned to you, with their exposure and follow-up date, soonest follow-up first. A follow-up that is today or past is highlighted.
 - **Desk queue** — what waits on the [intake desks](./demand-management/index.mdx) you are a Desk Admin or Agent on. Each desk shows your role and its open requests, with how many no one is assigned to and, on a desk that scores or estimates, how many have no score from the desk's model or no estimate. Below the desks are the open requests **Assigned to me** and those you are **Participating** in, five of each, with a link to the rest of those assigned to you. Being the Demand Management Admin does not put every desk here: only the desks you are a member of. **View all** opens Requests filtered to your desks.
 
@@ -79,6 +82,8 @@ This is each widget's usual place. Until you [customize](#customizing) the page,
   - The footer gives its open cross-team dependencies — those of every team beneath it whose predecessor is not done, as its Dependencies section lists them — with how many are at risk or unhealthy, and its own open risks with those of the teams beneath it. Each links to that section of the team of teams page.
 
   The card's parts need the same permissions as the team of teams page's: viewing iterations for sprints, viewing work items for flow and dependencies, viewing risks for risks, and viewing planning intervals for the planning interval, with viewing planning interval objectives for its at-risk count. Without permission to view a team's sprint or flow, its row shows only its name and counts as on track.
+- **Project health checks due** — the active projects you own or manage whose [health check](./ppm/projects.mdx#project-health-checks) needs reporting: those with none current first (including one whose check expired while the page was open), then those whose current check expires within seven days, soonest first, with how many days are left. It lists up to five and says how many more there are. When every check lasts longer, it says so. Shown only to project owners and managers; an owner or manager whose projects are all still approved sees a line saying so.
+- **Deliverables I own** — the open [deliverables](./ppm/projects.mdx#project-deliverables) you are the owner of on any project, whether or not you hold a role on it, that are past their target date or due within the next 14 days: past target first, then by target date. It lists up to five, and says how many more are due in that time and how many you own that are due later or have no target date. Each shows its status, target date and project, and opens the project's deliverables.
 - **My requests** — the intake requests you asked for or submitted for someone else that are open, or that closed in the last 30 days: open ones first, each with its status, its desk and what it became. A project shows how many of the deliverables mapped to it are accepted, or **Met** once all are; a work item shows its status. **View all** opens My Requests, which lists all of them.
 - **Following** — the records you [follow](./following.mdx), most recently changed first. **View all** opens your Following list.
 
@@ -86,8 +91,8 @@ This is each widget's usual place. Until you [customize](#customizing) the page,
 
 The columns above are the starting point. Until you customize the page, Wayd reorders them around what you are involved in, so you land on your own work without setting anything up. It works this out from your records each time you open the page — your team memberships, the roles you hold and tasks assigned to you on approved and active projects, the risks assigned to you, the intake desks you work and the open requests you raised — and never asks or stores what your job is.
 
-- **What you lead or do every day comes first.** If you sponsor, own or manage a project, My projects moves to the top of the main column. If you are a member of a team or a team of teams, My teams moves to the top of the main column too, and if you work an intake desk, so does Desk queue.
-- **Areas you work in come next.** My projects for a project member or task assignee, My risks when risks are assigned to you, My requests when you have an open request, and Planning intervals when you are on a team or a team of teams.
+- **What you lead or do every day comes first.** If you sponsor, own or manage a project, My projects and Deliverables I own move to the top of the main column, and if you own or manage one, so does Project health checks due. If you have a project task assigned, My project tasks moves up too. If you are a member of a team or a team of teams, My teams moves to the top of the main column too, and if you work an intake desk, so does Desk queue.
+- **Areas you work in come next.** My projects and Deliverables I own for a project member or task assignee, My risks when risks are assigned to you, My requests when you have an open request, and Planning intervals when you are on a team or a team of teams.
 - **Shared widgets follow** — What's changed and Following.
 - **Areas you are not part of go last.** They still show, with a line saying how they fill.
 
@@ -108,6 +113,6 @@ Each widget also has a menu (**⋯**) with **Move up**, **Move down** and **Move
 
 The page behind the panel changes as you go. Your layout is saved when you close the panel, with **Done** or the close button; if it cannot be saved, a message says so and the page keeps showing it until you leave. The layout is saved to your account, not the browser, so it follows you to every device you sign in on.
 
-The **Needs attention** row is not in the panel: it always stays at the top. Its counts follow the widgets they come from — switch off My projects and its overdue and due-this-week counts leave the row — but not their order: the row always shows the most urgent counts above zero, up to four.
+The **Needs attention** row is not in the panel: it always stays at the top. Its counts follow the widgets they come from — switch off My project tasks and its overdue and due-this-week counts leave the row — but not their order: the row always shows the most urgent counts above zero, up to four.
 
 What the panel offers follows what you can see. A widget you gain access to after customizing (say a feature flag is turned on) appears at its usual position. One you lose access to disappears from the page and the panel, but your layout remembers it, so it comes back where you left it if your access returns.

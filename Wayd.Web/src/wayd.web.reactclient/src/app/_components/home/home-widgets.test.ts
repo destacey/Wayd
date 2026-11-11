@@ -11,11 +11,17 @@ vi.mock('./widgets/desk-queue-widget', () => ({
 }))
 vi.mock('./widgets/following-widget', () => ({ default: () => null }))
 vi.mock('./widgets/my-requests-widget', () => ({ default: () => null }))
-vi.mock('./widgets/my-projects-widget', () => ({
+vi.mock('./widgets/my-projects-widget', () => ({ default: () => null }))
+vi.mock('./widgets/my-project-tasks-widget', () => ({
   default: () => null,
   OverdueTasksTile: () => null,
   DueThisWeekTile: () => null,
 }))
+vi.mock('./widgets/project-health-checks-due-widget', () => ({
+  default: () => null,
+  ProjectHealthChecksDueTile: () => null,
+}))
+vi.mock('./widgets/my-deliverables-widget', () => ({ default: () => null }))
 vi.mock('./widgets/my-risks-widget', () => ({
   default: () => null,
   RiskFollowUpsTile: () => null,
@@ -37,6 +43,21 @@ const everything: WidgetAccess = {
   isFeatureEnabled: () => true,
   hasLinkedEmployee: true,
 }
+
+/** Every permission and flag, as a project manager with tasks: everything a widget can require. */
+const everythingAsAManager: WidgetAccess = {
+  ...everything,
+  context: homeContext({
+    projects: { totalCount: 1, managerCount: 1, assigneeCount: 1 },
+  }),
+}
+
+/** The tiles of widgets shown only to some people: project task assignees, owners and managers. */
+const projectDutyTiles = [
+  'overdue-tasks',
+  'tasks-due-this-week',
+  'project-health-checks-due',
+]
 
 describe('HomeWidgets', () => {
   it('gives every widget a unique id, since saved layouts refer to them', () => {
@@ -66,12 +87,15 @@ describe('HomeWidgets', () => {
 
   it('offers every tile of the default briefing, most urgent first', () => {
     // Arrange / Act
-    const tiles = attentionTiles(arrangeWidgets(HomeWidgets, everything))
+    const tiles = attentionTiles(
+      arrangeWidgets(HomeWidgets, everythingAsAManager),
+    )
 
     // Assert
     expect(tiles.map((t) => t.id)).toEqual([
       'overdue-tasks',
       'sprints-to-complete',
+      'project-health-checks-due',
       'risk-follow-ups',
       'cross-team-dependencies',
       'dependencies-at-risk',
@@ -98,10 +122,11 @@ describe('HomeWidgets', () => {
 })
 
 const defaultFor = (overrides: HomeContextOverrides) => {
+  const context = homeContext(overrides)
   const columns = arrangeWidgets(
     HomeWidgets,
-    everything,
-    involvementPlacement(HomeWidgets, homeContext(overrides)),
+    { ...everything, context },
+    involvementPlacement(HomeWidgets, context),
   )
   return {
     main: columns.main.map((w) => w.id),
@@ -127,6 +152,7 @@ describe('HomeWidgets involvement rules', () => {
       'planning-intervals',
       'following',
       'my-requests',
+      'my-deliverables',
     ])
   })
 
@@ -148,20 +174,98 @@ describe('HomeWidgets involvement rules', () => {
       // Arrange / Act
       const layout = defaultFor(overrides)
 
-      // Assert
-      expect(layout.tiles).toEqual([
-        'overdue-tasks',
-        'sprints-to-complete',
-        'risk-follow-ups',
-        'cross-team-dependencies',
-        'dependencies-at-risk',
-        'unassigned-requests',
-        'tasks-due-this-week',
-        'requests-assigned-to-me',
-        'unread-notifications',
-      ])
+      // Assert — the project task and health check tiles belong to people who hold those duties.
+      expect(layout.tiles.filter((t) => !projectDutyTiles.includes(t))).toEqual(
+        [
+          'sprints-to-complete',
+          'risk-follow-ups',
+          'cross-team-dependencies',
+          'dependencies-at-risk',
+          'unassigned-requests',
+          'requests-assigned-to-me',
+          'unread-notifications',
+        ],
+      )
     },
   )
+
+  it('puts a task assignee’s project tasks first, with their tiles', () => {
+    // Arrange / Act
+    const layout = defaultFor({ projects: { totalCount: 1, assigneeCount: 1 } })
+
+    // Assert
+    expect(layout.main[0]).toBe('my-project-tasks')
+    expect(layout.tiles).toEqual(
+      expect.arrayContaining(['overdue-tasks', 'tasks-due-this-week']),
+    )
+  })
+
+  it.each([
+    ['a sponsor', { sponsorCount: 1 }],
+    ['an owner', { ownerCount: 1 }],
+    ['a manager', { managerCount: 1 }],
+    ['a member', { memberCount: 1 }],
+  ])(
+    'shows project tasks, and their tiles, to %s only once they are assigned one',
+    (_, role) => {
+      // Arrange / Act
+      const layout = defaultFor({ projects: { totalCount: 1, ...role } })
+
+      // Assert
+      expect([...layout.main, ...layout.side]).not.toContain('my-project-tasks')
+      expect(layout.tiles).not.toContain('overdue-tasks')
+      expect(layout.tiles).not.toContain('tasks-due-this-week')
+    },
+  )
+
+  it.each([
+    ['a sponsor', { sponsorCount: 1 }],
+    ['a member', { memberCount: 1 }],
+    ['a task assignee', { assigneeCount: 1 }],
+  ])('shows health checks due neither to %s nor in their tiles', (_, role) => {
+    // Arrange / Act
+    const layout = defaultFor({ projects: { totalCount: 1, ...role } })
+
+    // Assert
+    expect([...layout.main, ...layout.side]).not.toContain(
+      'project-health-checks-due',
+    )
+    expect(layout.tiles).not.toContain('project-health-checks-due')
+  })
+
+  it.each([
+    ['an owner', { ownerCount: 1 }],
+    ['a manager', { managerCount: 1 }],
+  ])('shows health checks due, and its tile, to %s', (_, role) => {
+    // Arrange / Act
+    const layout = defaultFor({ projects: { totalCount: 1, ...role } })
+
+    // Assert
+    expect(layout.main).toContain('project-health-checks-due')
+    expect(layout.tiles).toContain('project-health-checks-due')
+  })
+
+  it('hides health checks due until the home context has loaded', () => {
+    // Arrange / Act
+    const columns = arrangeWidgets(HomeWidgets, everything)
+
+    // Assert
+    expect([...columns.main, ...columns.side].map((w) => w.id)).not.toContain(
+      'project-health-checks-due',
+    )
+  })
+
+  it('brings health checks due into the main column for a project owner or manager', () => {
+    // Arrange / Act
+    const layout = defaultFor({ projects: { totalCount: 1, managerCount: 1 } })
+
+    // Assert
+    expect(layout.main.slice(0, 3)).toEqual([
+      'my-projects',
+      'project-health-checks-due',
+      'my-deliverables',
+    ])
+  })
 
   it('ranks a project member below a project leader but above shared widgets', () => {
     // Arrange / Act
@@ -188,6 +292,8 @@ describe('HomeWidgets involvement rules', () => {
     expect(layout.main).toEqual([
       'my-projects',
       'my-teams',
+      'project-health-checks-due',
+      'my-deliverables',
       'my-risks',
       'whats-changed',
       'desk-queue',
@@ -209,6 +315,7 @@ describe('HomeWidgets involvement rules', () => {
       'planning-intervals',
       'following',
       'my-requests',
+      'my-deliverables',
     ])
   })
 

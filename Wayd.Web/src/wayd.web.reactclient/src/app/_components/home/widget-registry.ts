@@ -12,6 +12,13 @@ export interface WidgetRequirements {
   featureFlag?: string
   /** Whether the account must be linked to an employee — true for anything about "my" work. */
   linkedEmployee?: boolean
+  /**
+   * What the caller must be involved in, read from the home context, for a
+   * widget about a duty only some people hold (reporting project health). It
+   * is not shown or offered until the context says so; a saved layout keeps
+   * it, so it returns where it was when the caller takes the duty on.
+   */
+  involved?: (context: HomeContextResponse) => boolean
 }
 
 /** A count in the attention strip, contributed by the widget whose data it comes from. */
@@ -83,6 +90,8 @@ export interface WidgetAccess {
   hasPermissionClaim: (claim: string) => boolean
   isFeatureEnabled: (featureName: string) => boolean
   hasLinkedEmployee: boolean
+  /** What the caller is involved in; undefined while it loads or when it failed. */
+  context?: HomeContextResponse
 }
 
 /** The most tiles the attention strip shows; more would stop it being a glance. */
@@ -102,8 +111,15 @@ export const isWidgetAvailable = (
   widget: HomeWidget,
   access: WidgetAccess,
 ): boolean => {
-  const { permissions = [], featureFlag, linkedEmployee } = widget.requires
+  const {
+    permissions = [],
+    featureFlag,
+    linkedEmployee,
+    involved,
+  } = widget.requires
   if (linkedEmployee && !access.hasLinkedEmployee) return false
+  // Unknown counts as not involved, as an unknown flag counts as off.
+  if (involved && !(access.context && involved(access.context))) return false
   // Unknown counts as off: while the flags load, a flagged widget is not even
   // hinted at, since an organization may not want the feature seen at all.
   if (featureFlag && !access.isFeatureEnabled(featureFlag)) return false

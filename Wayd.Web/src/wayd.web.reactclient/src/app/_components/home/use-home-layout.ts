@@ -60,6 +60,7 @@ export const useHomeLayout = () => {
     hasPermissionClaim,
     isFeatureEnabled,
     hasLinkedEmployee,
+    context,
   }
   const saved = fromSavedWidgets(data?.widgets ?? [])
   // The default, and where a widget the saved layout lacks joins it, follow

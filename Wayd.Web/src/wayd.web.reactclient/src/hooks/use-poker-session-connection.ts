@@ -8,7 +8,10 @@ import {
 } from '@microsoft/signalr'
 import { getFreshAuthToken } from '@/src/services/clients'
 import { store } from '@/src/store/store'
-import { pokerSessionsApi } from '@/src/store/features/planning/poker-sessions-api'
+import {
+  pokerSessionsApi,
+  setCachedFocusedRound,
+} from '@/src/store/features/planning/poker-sessions-api'
 import { QueryTags } from '@/src/store/features/query-tags'
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? ''
@@ -112,6 +115,23 @@ export function usePokerSessionConnection(
         for (const event of events) {
           connection.on(event, invalidateSession)
         }
+
+        // A facilitator pointed the session at a round. The cache is written first so a
+        // follower's screen moves with the facilitator's; the refetch then settles it
+        // against any older read of the session still in flight.
+        connection.on(
+          'RoundFocused',
+          (_sessionId: string, roundId: string | null) => {
+            if (sessionKey === undefined) return
+            setCachedFocusedRound(
+              store.dispatch,
+              store.getState(),
+              sessionKey,
+              roundId ?? undefined,
+            )
+            invalidateSession()
+          },
+        )
 
         // The server took this connection out of the session because the user lost access. Nothing
         // more will arrive, so stop it. A refetch would fail but leave the cached session showing,

@@ -3,6 +3,7 @@
 jest.unmock('dayjs')
 
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { ReleaseDto } from '@/src/services/wayd-api'
 import ReleasesGrid from './releases-grid'
 
@@ -26,11 +27,17 @@ const cellBackground = (cell: HTMLElement) =>
   cell.style.backgroundColor || cell.style.background
 
 describe('ReleasesGrid', () => {
-  it('tints every cell from the highest active incident and links each one', () => {
+  it('tints every cell from the highest active incident and counts them in a pill', async () => {
     // Arrange
     const hotRelease = release(1, '2026.07', { name: 'SEV-2', color: '#D4A017' })
     ;(hotRelease as { activeIncidents: unknown }).activeIncidents = [
-      { key: 4, title: 'Pricing stall', severityName: 'SEV-2' },
+      {
+        key: 4,
+        title: 'Pricing stall',
+        severityName: 'SEV-2',
+        severityColor: '#D4A017',
+        statusName: 'Open',
+      },
     ]
     const releases = [hotRelease, release(2, '2026.08')]
 
@@ -42,10 +49,12 @@ describe('ReleasesGrid', () => {
       screen.getByRole('columnheader', { name: /Incident/ }),
     ).toBeInTheDocument()
     const hot = screen.getByText('2026.07').closest('tr')!
-    expect(screen.getByRole('link', { name: 'SEV-2' })).toHaveAttribute(
-      'href',
-      '/product-management/incidents/4',
-    )
+    const pill = screen.getByLabelText('1 active incident')
+    expect(pill).toHaveTextContent('1')
+    await userEvent.hover(pill)
+    const link = await screen.findByRole('link', { name: /Pricing stall/ })
+    expect(link).toHaveAttribute('href', '/product-management/incidents/4')
+    expect(link).toHaveTextContent('Open')
     const hotCells = hot.querySelectorAll('td')
     expect(hotCells.length).toBeGreaterThan(1)
     for (const cell of hotCells) {

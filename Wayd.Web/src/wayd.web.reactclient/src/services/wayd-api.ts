@@ -64020,10 +64020,14 @@ export class WorkflowSchemesClient {
 export interface ActiveIncidentLinkDto {
     /** Incident key. The record is addressed by this key. */
     key: number;
-    /** Incident title, shown when the link is hovered. */
+    /** Incident title, the name in the hover list. */
     title: string;
-    /** Severity name shown in the grid column. */
+    /** Severity name shown beside the title. */
     severityName: string;
+    /** Severity color, the accent beside the severity name. */
+    severityColor: string;
+    /** The incident's current status name. */
+    statusName: string;
 }
 
 export enum ActivityCategory {
@@ -64993,7 +64997,10 @@ export interface CreateHolidayCalendarRequest {
 
 export interface CreateIncidentRequest {
     title: string;
-    description?: string | undefined;
+    /** What responders are seeing. Empty when nothing has been recorded yet. */
+    symptoms?: string | undefined;
+    /** Why it happened, once that is known. Empty until a cause is recorded. */
+    rootCause?: string | undefined;
     severityLevelId: string;
     noticedAt?: Date | undefined;
     startedAt?: Date | undefined;
@@ -67751,7 +67758,10 @@ export interface IncidentDto {
     id: string;
     key: number;
     title: string;
-    description?: string | undefined;
+    /** What responders are seeing. Null when nothing has been recorded yet. */
+    symptoms?: string | undefined;
+    /** Why it happened, once that is known. Null until a cause is recorded. */
+    rootCause?: string | undefined;
     commander: NavigationDto;
     severityLevel: IncidentSeverityLevelNavigationDto;
     noticedAt: Date;
@@ -74416,7 +74426,10 @@ export interface UpdateHomeLayoutRequest {
 export interface UpdateIncidentDetailsRequest {
     id: string;
     title: string;
-    description?: string | undefined;
+    /** What responders are seeing. Empty when nothing has been recorded yet. */
+    symptoms?: string | undefined;
+    /** Why it happened, once that is known. Empty until a cause is recorded. */
+    rootCause?: string | undefined;
     severityLevelId: string;
     noticedAt: Date;
     startedAt?: Date | undefined;

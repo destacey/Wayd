@@ -46,11 +46,17 @@ public sealed record ActiveIncidentLinkDto
     /// <summary>Incident key. The record is addressed by this key.</summary>
     public int Key { get; init; }
 
-    /// <summary>Incident title, shown when the link is hovered.</summary>
+    /// <summary>Incident title, the name in the hover list.</summary>
     public string Title { get; init; } = string.Empty;
 
-    /// <summary>Severity name shown in the grid column.</summary>
+    /// <summary>Severity name shown beside the title.</summary>
     public string SeverityName { get; init; } = string.Empty;
+
+    /// <summary>Severity color, the accent beside the severity name.</summary>
+    public string SeverityColor { get; init; } = string.Empty;
+
+    /// <summary>The incident's current status name.</summary>
+    public string StatusName { get; init; } = string.Empty;
 }
 
 /// <summary>
@@ -61,7 +67,12 @@ public sealed record IncidentDto
     public Guid Id { get; init; }
     public int Key { get; init; }
     public string Title { get; init; } = default!;
-    public string? Description { get; init; }
+
+    /// <summary>What responders are seeing. Null when nothing has been recorded yet.</summary>
+    public string? Symptoms { get; init; }
+
+    /// <summary>Why it happened, once that is known. Null until a cause is recorded.</summary>
+    public string? RootCause { get; init; }
     public NavigationDto Commander { get; init; } = default!;
     public IncidentSeverityLevelNavigationDto SeverityLevel { get; init; } = default!;
     public Instant NoticedAt { get; init; }
@@ -159,7 +170,8 @@ internal static class IncidentProjections
             Id = incident.Id,
             Key = incident.Key,
             Title = incident.Title,
-            Description = incident.Description,
+            Symptoms = incident.Symptoms,
+            RootCause = incident.RootCause,
             Commander = Commander(commander),
             SeverityLevel = SeverityLevel(level),
             NoticedAt = incident.NoticedAt,

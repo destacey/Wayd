@@ -314,15 +314,27 @@ describe('ProductsGrid', () => {
     expect(screen.getAllByText('Application').length).toBeGreaterThan(0)
   })
 
-  it('tints every cell from the highest active incident and links each one', () => {
+  it('shows a count of active incidents and does not tint the row', async () => {
     // Arrange
     const withIncident = {
       ...product('a1', 1, 'Storefront Suite'),
       activeIncidentSeverityName: 'SEV-1',
       activeIncidentSeverityColor: '#E07A4C',
       activeIncidents: [
-        { key: 7, title: 'Checkout down', severityName: 'SEV-1' },
-        { key: 8, title: 'A warning', severityName: 'SEV-3' },
+        {
+          key: 7,
+          title: 'Checkout down',
+          severityName: 'SEV-1',
+          severityColor: '#E07A4C',
+          statusName: 'Open',
+        },
+        {
+          key: 8,
+          title: 'A warning',
+          severityName: 'SEV-3',
+          severityColor: '#7FA3BF',
+          statusName: 'Responding',
+        },
       ],
     } as ProductDto
     const quiet = product('b2', 2, 'Storefront Web')
@@ -337,32 +349,31 @@ describe('ProductsGrid', () => {
       />,
     )
 
-    // Assert
+    // Assert — the products grid keeps the count, and the row stays the page color
     expect(
       screen.getByRole('columnheader', { name: /Incident/ }),
     ).toBeInTheDocument()
     const hot = screen.getByText('Storefront Suite').closest('tr')!
-    expect(screen.getByRole('link', { name: 'SEV-1' })).toHaveAttribute(
-      'href',
-      '/product-management/incidents/7',
-    )
-    expect(screen.getByRole('link', { name: 'SEV-3' })).toHaveAttribute(
+    const pill = screen.getByLabelText('2 active incidents')
+    expect(pill).toHaveTextContent('2')
+    for (const cell of hot.querySelectorAll('td')) {
+      expect(cellBackground(cell as HTMLElement)).toBe('')
+    }
+
+    await userEvent.hover(pill)
+    expect(
+      await screen.findByRole('link', { name: /Checkout down/ }),
+    ).toHaveAttribute('href', '/product-management/incidents/7')
+    expect(screen.getByRole('link', { name: /A warning/ })).toHaveAttribute(
       'href',
       '/product-management/incidents/8',
     )
-    const hotCells = hot.querySelectorAll('td')
-    expect(hotCells.length).toBeGreaterThan(1)
-    for (const cell of hotCells) {
-      const background = cellBackground(cell as HTMLElement)
-      expect(background).toContain('color-mix')
-      expect(background).toContain('rgb(224, 122, 76)')
-    }
+    expect(screen.getByText('Open')).toBeInTheDocument()
+    expect(screen.getByText('Responding')).toBeInTheDocument()
 
     const cool = screen.getByText('Storefront Web').closest('tr')!
     expect(cool).not.toHaveTextContent('SEV-1')
-    for (const cell of cool.querySelectorAll('td')) {
-      expect(cellBackground(cell as HTMLElement)).toBe('')
-    }
+    expect(screen.queryByLabelText('1 active incident')).not.toBeInTheDocument()
   })
 })
 

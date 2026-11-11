@@ -5,6 +5,10 @@ using Wayd.Common.Domain.Enums.ProductManagement;
 namespace Wayd.Common.Domain.Events.ProductManagement.Incidents;
 
 /// <summary>An incident was opened.</summary>
+/// <remarks>
+/// <see cref="Symptoms"/> and <see cref="RootCause"/> were added after the first payloads. A payload
+/// written before them deserializes both as null, which is what an incident opened with neither recorded.
+/// </remarks>
 public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Created;
@@ -21,8 +25,10 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
         Instant? recoveredAt,
         ProductStatusAlias statusAlias,
         EventActor actor,
-        Instant timestamp)
-        : base(actor, "1.0")
+        Instant timestamp,
+        string? symptoms = null,
+        string? rootCause = null)
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;
@@ -33,6 +39,8 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
         StartedAt = startedAt;
         RecoveredAt = recoveredAt;
         StatusAlias = statusAlias;
+        Symptoms = symptoms;
+        RootCause = rootCause;
 
         Timestamp = timestamp;
     }
@@ -46,6 +54,12 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
     public Instant? StartedAt { get; }
     public Instant? RecoveredAt { get; }
     public ProductStatusAlias StatusAlias { get; }
+
+    /// <summary>What responders were seeing when the incident was opened. Null when nothing was recorded.</summary>
+    public string? Symptoms { get; }
+
+    /// <summary>Why it happened, if that was already known. Null until a cause is recorded.</summary>
+    public string? RootCause { get; }
 
     [JsonIgnore]
     public string AggregateType => "Incident";

@@ -117086,18 +117086,32 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public int Key { get; set; } = default!;
 
         /// <summary>
-        /// Incident title, shown when the link is hovered.
+        /// Incident title, the name in the hover list.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("title")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Title { get; set; } = default!;
 
         /// <summary>
-        /// Severity name shown in the grid column.
+        /// Severity name shown beside the title.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("severityName")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string SeverityName { get; set; } = default!;
+
+        /// <summary>
+        /// Severity color, the accent beside the severity name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("severityColor")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string SeverityColor { get; set; } = default!;
+
+        /// <summary>
+        /// The incident's current status name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("statusName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string StatusName { get; set; } = default!;
 
     }
 
@@ -119909,9 +119923,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
         public string Title { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        /// <summary>
+        /// What responders are seeing. Empty when nothing has been recorded yet.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("symptoms")]
         [System.ComponentModel.DataAnnotations.StringLength(4096)]
-        public string? Description { get; set; } = default!;
+        public string? Symptoms { get; set; } = default!;
+
+        /// <summary>
+        /// Why it happened, once that is known. Empty until a cause is recorded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rootCause")]
+        [System.ComponentModel.DataAnnotations.StringLength(4096)]
+        public string? RootCause { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("severityLevelId")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -127972,8 +127996,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Title { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("description")]
-        public string? Description { get; set; } = default!;
+        /// <summary>
+        /// What responders are seeing. Null when nothing has been recorded yet.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("symptoms")]
+        public string? Symptoms { get; set; } = default!;
+
+        /// <summary>
+        /// Why it happened, once that is known. Null until a cause is recorded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rootCause")]
+        public string? RootCause { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("commander")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -147539,9 +147572,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
         public string Title { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        /// <summary>
+        /// What responders are seeing. Empty when nothing has been recorded yet.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("symptoms")]
         [System.ComponentModel.DataAnnotations.StringLength(4096)]
-        public string? Description { get; set; } = default!;
+        public string? Symptoms { get; set; } = default!;
+
+        /// <summary>
+        /// Why it happened, once that is known. Empty until a cause is recorded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rootCause")]
+        [System.ComponentModel.DataAnnotations.StringLength(4096)]
+        public string? RootCause { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("severityLevelId")]
         [System.ComponentModel.DataAnnotations.Required]

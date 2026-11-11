@@ -3,7 +3,13 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement.Incidents;
 
-/// <summary>An incident's title, description, severity or product links changed.</summary>
+/// <summary>An incident's title, description, or severity changed.</summary>
+/// <remarks>
+/// Frozen at its published shape and never raised; <see cref="IncidentDetailsUpdatedEventV2"/> replaced it
+/// when description split into symptoms and root cause. Kept so every payload written as this type still
+/// deserializes into it — its name and members are the contract those payloads were written against.
+/// </remarks>
+[Obsolete("Superseded by IncidentDetailsUpdatedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record IncidentDetailsUpdatedEvent : DomainEvent<IncidentDetailsUpdatedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;

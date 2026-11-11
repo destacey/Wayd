@@ -16,6 +16,16 @@
   padding: 16px;
 }
 
+.fieldHeading {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.fieldHeading + .desc {
+  margin-bottom: 16px;
+}
+
 .desc {
   color: var(--ant-color-text-secondary);
   font-size: 14px;

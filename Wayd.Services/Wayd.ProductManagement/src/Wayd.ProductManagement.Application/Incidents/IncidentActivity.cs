@@ -26,10 +26,16 @@ internal static class IncidentActivity
         string Name,
         string Color,
         int IncidentKey,
-        string Title);
+        string Title,
+        string StatusName);
 
-    /// <summary>One active incident a product or release row can link to.</summary>
-    internal readonly record struct ActiveIncidentLink(int Key, string Title, string SeverityName);
+    /// <summary>One active incident a product or release row can open from the count pill.</summary>
+    internal readonly record struct ActiveIncidentLink(
+        int Key,
+        string Title,
+        string SeverityName,
+        string SeverityColor,
+        string StatusName);
 
     /// <summary>The highest active severity for one owner, and every active incident that owner has.</summary>
     internal readonly record struct ActiveSeverity(
@@ -43,6 +49,8 @@ internal static class IncidentActivity
                 Key = incident.Key,
                 Title = incident.Title,
                 SeverityName = incident.SeverityName,
+                SeverityColor = incident.SeverityColor,
+                StatusName = incident.StatusName,
             }).ToList();
     }
 
@@ -65,7 +73,12 @@ internal static class IncidentActivity
                     return new ActiveSeverity(
                         top.Name,
                         top.Color,
-                        ordered.Select(row => new ActiveIncidentLink(row.IncidentKey, row.Title, row.Name)).ToList());
+                        ordered.Select(row => new ActiveIncidentLink(
+                            row.IncidentKey,
+                            row.Title,
+                            row.Name,
+                            row.Color,
+                            row.StatusName)).ToList());
                 });
 
     internal static async Task<IReadOnlyDictionary<Guid, ActiveSeverity>> ForProducts(
@@ -88,6 +101,7 @@ internal static class IncidentActivity
                 link.ProductId,
                 incident.Key,
                 incident.Title,
+                incident.StatusName,
                 incident.StatusAliasValue,
                 incident.StatusCategory,
                 level.SortOrder,
@@ -105,7 +119,8 @@ internal static class IncidentActivity
             row.Name,
             row.Color,
             row.Key,
-            row.Title)));
+            row.Title,
+            row.StatusName)));
     }
 
     internal static async Task<IReadOnlyDictionary<Guid, ActiveSeverity>> ForReleases(
@@ -128,6 +143,7 @@ internal static class IncidentActivity
                 link.ReleaseId,
                 incident.Key,
                 incident.Title,
+                incident.StatusName,
                 incident.StatusAliasValue,
                 incident.StatusCategory,
                 level.SortOrder,
@@ -145,7 +161,8 @@ internal static class IncidentActivity
             row.Name,
             row.Color,
             row.Key,
-            row.Title)));
+            row.Title,
+            row.StatusName)));
     }
 
     internal static void Apply<T>(

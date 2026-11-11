@@ -24,7 +24,8 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 
     private Incident(
         string title,
-        string? description,
+        string? symptoms,
+        string? rootCause,
         Guid commanderEmployeeId,
         Guid severityLevelId,
         Instant noticedAt,
@@ -32,7 +33,8 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         Instant? recoveredAt)
     {
         Title = title;
-        Description = description;
+        Symptoms = symptoms;
+        RootCause = rootCause;
         CommanderEmployeeId = commanderEmployeeId;
         SeverityLevelId = severityLevelId;
         NoticedAt = noticedAt;
@@ -53,11 +55,18 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         private set => field = Guard.Against.NullOrWhiteSpace(value, nameof(Title)).Trim();
     } = default!;
 
-    /// <summary>Additional context for responders.</summary>
-    public string? Description
+    /// <summary>What responders are seeing. Null when nothing has been recorded yet.</summary>
+    public string? Symptoms
     {
         get;
-        private set => field = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        private set => field = Normalize(value);
+    }
+
+    /// <summary>Why it happened, once that is known. Null until a cause is recorded.</summary>
+    public string? RootCause
+    {
+        get;
+        private set => field = Normalize(value);
     }
 
     /// <summary>The employee commanding the response.</summary>
@@ -96,7 +105,8 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     /// </summary>
     public static Result<Incident> Create(
         string title,
-        string? description,
+        string? symptoms,
+        string? rootCause,
         Guid commanderEmployeeId,
         Guid severityLevelId,
         Instant noticedAt,
@@ -128,7 +138,8 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 
         var incident = new Incident(
             title,
-            description,
+            symptoms,
+            rootCause,
             commanderEmployeeId,
             severityLevelId,
             noticedAt,
@@ -154,6 +165,8 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         }
 
         var createdReleaseIds = incident.ReleaseLinks.Select(link => link.ReleaseId).Order().ToArray();
+        var createdSymptoms = incident.Symptoms;
+        var createdRootCause = incident.RootCause;
 
         incident.AddPostPersistenceAction(() =>
         {
@@ -168,7 +181,9 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
                 incident.RecoveredAt,
                 incident.StatusAlias,
                 actor,
-                timestamp));
+                timestamp,
+                createdSymptoms,
+                createdRootCause));
 
             if (createdReleaseIds.Length > 0)
             {
@@ -191,7 +206,8 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     /// </summary>
     public Result UpdateDetails(
         string title,
-        string? description,
+        string? symptoms,
+        string? rootCause,
         Guid severityLevelId,
         Instant noticedAt,
         Instant? startedAt,
@@ -213,14 +229,16 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         }
 
         var previousTitle = Title;
-        var previousDescription = Description;
+        var previousSymptoms = Symptoms;
+        var previousRootCause = RootCause;
         var previousSeverityLevelId = SeverityLevelId;
         var previousNoticedAt = NoticedAt;
         var previousStartedAt = StartedAt;
         var previousRecoveredAt = RecoveredAt;
 
         Title = title;
-        Description = description;
+        Symptoms = symptoms;
+        RootCause = rootCause;
         SeverityLevelId = severityLevelId;
         NoticedAt = noticedAt;
         StartedAt = startedAt;
@@ -255,19 +273,22 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 
         var detailsChanged =
             previousTitle != Title
-            || previousDescription != Description
+            || previousSymptoms != Symptoms
+            || previousRootCause != RootCause
             || previousSeverityLevelId != SeverityLevelId;
 
         if (detailsChanged)
         {
-            AddDomainEvent(new IncidentDetailsUpdatedEvent(
+            AddDomainEvent(new IncidentDetailsUpdatedEventV2(
                 Id,
                 Key,
                 previousTitle,
-                previousDescription,
+                previousSymptoms,
+                previousRootCause,
                 previousSeverityLevelId,
                 Title,
-                Description,
+                Symptoms,
+                RootCause,
                 SeverityLevelId,
                 actor,
                 timestamp));
@@ -482,6 +503,9 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     /// Both absent, or both in the same millisecond. Sub-millisecond ticks are
     /// not a different time: a browser date cannot carry them.
     /// </summary>
+    private static string? Normalize(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     private static bool SameMillisecond(Instant? previous, Instant? updated) =>
         previous is null
             ? updated is null

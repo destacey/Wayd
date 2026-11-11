@@ -6,7 +6,13 @@ namespace Wayd.Web.Api.Models.ProductManagement.Incidents;
 public sealed class CreateIncidentRequest
 {
     public string Title { get; set; } = default!;
-    public string? Description { get; set; }
+
+    /// <summary>What responders are seeing. Empty when nothing has been recorded yet.</summary>
+    public string? Symptoms { get; set; }
+
+    /// <summary>Why it happened, once that is known. Empty until a cause is recorded.</summary>
+    public string? RootCause { get; set; }
+
     public Guid SeverityLevelId { get; set; }
     public Instant? NoticedAt { get; set; }
     public Instant? StartedAt { get; set; }
@@ -17,7 +23,7 @@ public sealed class CreateIncidentRequest
     public List<Guid> ReleaseIds { get; set; } = [];
 
     public CreateIncidentCommand ToCommand() =>
-        new(Title, Description, SeverityLevelId, NoticedAt, StartedAt, RecoveredAt, ProductIds, ReleaseIds);
+        new(Title, Symptoms, RootCause, SeverityLevelId, NoticedAt, StartedAt, RecoveredAt, ProductIds, ReleaseIds);
 }
 
 public sealed class CreateIncidentRequestValidator : CustomValidator<CreateIncidentRequest>
@@ -25,7 +31,8 @@ public sealed class CreateIncidentRequestValidator : CustomValidator<CreateIncid
     public CreateIncidentRequestValidator()
     {
         RuleFor(r => r.Title).NotEmpty().MaximumLength(256);
-        RuleFor(r => r.Description).MaximumLength(4096);
+        RuleFor(r => r.Symptoms).MaximumLength(4096);
+        RuleFor(r => r.RootCause).MaximumLength(4096);
         RuleFor(r => r.SeverityLevelId).NotEmpty();
     }
 }
@@ -34,7 +41,12 @@ public sealed class UpdateIncidentDetailsRequest
 {
     public Guid Id { get; set; }
     public string Title { get; set; } = default!;
-    public string? Description { get; set; }
+
+    /// <summary>What responders are seeing. Empty when nothing has been recorded yet.</summary>
+    public string? Symptoms { get; set; }
+
+    /// <summary>Why it happened, once that is known. Empty until a cause is recorded.</summary>
+    public string? RootCause { get; set; }
     public Guid SeverityLevelId { get; set; }
     public Instant NoticedAt { get; set; }
     public Instant? StartedAt { get; set; }
@@ -45,7 +57,7 @@ public sealed class UpdateIncidentDetailsRequest
     public List<Guid> ReleaseIds { get; set; } = [];
 
     public UpdateIncidentDetailsCommand ToCommand() =>
-        new(Id, Title, Description, SeverityLevelId, NoticedAt, StartedAt, RecoveredAt, ProductIds, ReleaseIds);
+        new(Id, Title, Symptoms, RootCause, SeverityLevelId, NoticedAt, StartedAt, RecoveredAt, ProductIds, ReleaseIds);
 }
 
 public sealed class UpdateIncidentDetailsRequestValidator : CustomValidator<UpdateIncidentDetailsRequest>
@@ -54,7 +66,8 @@ public sealed class UpdateIncidentDetailsRequestValidator : CustomValidator<Upda
     {
         RuleFor(r => r.Id).NotEmpty();
         RuleFor(r => r.Title).NotEmpty().MaximumLength(256);
-        RuleFor(r => r.Description).MaximumLength(4096);
+        RuleFor(r => r.Symptoms).MaximumLength(4096);
+        RuleFor(r => r.RootCause).MaximumLength(4096);
         RuleFor(r => r.SeverityLevelId).NotEmpty();
     }
 }

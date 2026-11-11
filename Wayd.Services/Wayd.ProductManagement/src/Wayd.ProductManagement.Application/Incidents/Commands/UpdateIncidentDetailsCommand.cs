@@ -8,7 +8,8 @@ namespace Wayd.ProductManagement.Application.Incidents.Commands;
 public sealed record UpdateIncidentDetailsCommand(
     Guid Id,
     string Title,
-    string? Description,
+    string? Symptoms,
+    string? RootCause,
     Guid SeverityLevelId,
     Instant NoticedAt,
     Instant? StartedAt,
@@ -22,7 +23,8 @@ public sealed class UpdateIncidentDetailsCommandValidator : AbstractValidator<Up
     {
         RuleFor(c => c.Id).NotEmpty();
         RuleFor(c => c.Title).NotEmpty().MaximumLength(256);
-        RuleFor(c => c.Description).MaximumLength(4096);
+        RuleFor(c => c.Symptoms).MaximumLength(4096);
+        RuleFor(c => c.RootCause).MaximumLength(4096);
         RuleFor(c => c.SeverityLevelId).NotEmpty();
     }
 }
@@ -86,7 +88,8 @@ public sealed class UpdateIncidentDetailsCommandHandler(
 
         var updated = incident.UpdateDetails(
             request.Title,
-            request.Description,
+            request.Symptoms,
+            request.RootCause,
             request.SeverityLevelId,
             request.NoticedAt,
             request.StartedAt,

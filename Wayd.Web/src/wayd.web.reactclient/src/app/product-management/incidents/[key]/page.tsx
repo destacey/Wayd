@@ -105,7 +105,8 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const startEditing = () => {
     form.setFieldsValue({
       title: incident.title,
-      description: incident.description,
+      symptoms: incident.symptoms,
+      rootCause: incident.rootCause,
       severityLevelId: incident.severityLevel.id,
       noticedAt: dayjs(incident.noticedAt),
       startedAt: incident.startedAt ? dayjs(incident.startedAt) : undefined,
@@ -124,7 +125,8 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       await updateDetails({
         id: incident.id,
         title: values.title,
-        description: values.description,
+        symptoms: values.symptoms,
+        rootCause: values.rootCause,
         severityLevelId: values.severityLevelId,
         noticedAt: (values.noticedAt as Dayjs).toDate(),
         startedAt: values.startedAt
@@ -327,7 +329,10 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             <Form.Item name="title" label="Title" rules={[{ required: true }]}>
               <TextArea rows={2} />
             </Form.Item>
-            <Form.Item name="description" label="Description">
+            <Form.Item name="symptoms" label="Symptoms">
+              <MarkdownEditor maxLength={4096} />
+            </Form.Item>
+            <Form.Item name="rootCause" label="Root cause">
               <MarkdownEditor maxLength={4096} />
             </Form.Item>
             <Form.Item
@@ -360,8 +365,17 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         ) : (
           <article className={styles.detail}>
             <div className={styles.detailMain}>
-              {incident.description ? (
-                <p className={styles.desc}>{incident.description}</p>
+              {incident.symptoms ? (
+                <>
+                  <h2 className={styles.fieldHeading}>Symptoms</h2>
+                  <p className={styles.desc}>{incident.symptoms}</p>
+                </>
+              ) : null}
+              {incident.rootCause ? (
+                <>
+                  <h2 className={styles.fieldHeading}>Root cause</h2>
+                  <p className={styles.desc}>{incident.rootCause}</p>
+                </>
               ) : null}
               <div className={styles.discussionSection}>
                 <IncidentDiscussion incident={incident} />

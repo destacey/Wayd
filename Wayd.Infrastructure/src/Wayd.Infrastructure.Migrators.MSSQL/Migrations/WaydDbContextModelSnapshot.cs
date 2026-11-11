@@ -5526,10 +5526,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("CommanderEmployeeId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Description")
-                        .HasMaxLength(4096)
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("Key")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
@@ -5541,6 +5537,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.Property<DateTime?>("RecoveredAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("RootCause")
+                        .HasMaxLength(4096)
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("SeverityLevelId")
                         .HasColumnType("uniqueidentifier");
@@ -5569,6 +5569,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.Property<Guid>("StatusWorkflowId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Symptoms")
+                        .HasMaxLength(4096)
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("SystemCreated")
                         .HasColumnType("datetime2");

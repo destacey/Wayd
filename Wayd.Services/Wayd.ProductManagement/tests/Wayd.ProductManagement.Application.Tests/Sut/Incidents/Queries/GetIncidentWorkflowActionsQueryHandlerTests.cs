@@ -35,6 +35,7 @@ public sealed class GetIncidentWorkflowActionsQueryHandlerTests : ProductCommand
         var incident = Incident.Create(
             "Checkout unavailable",
             null,
+            null,
             ActingEmployeeId,
             Guid.CreateVersion7(),
             Now,
@@ -90,6 +91,7 @@ public sealed class GetIncidentWorkflowActionsQueryHandlerTests : ProductCommand
 
         var incident = Incident.Create(
             "Checkout unavailable",
+            null,
             null,
             ActingEmployeeId,
             Guid.CreateVersion7(),

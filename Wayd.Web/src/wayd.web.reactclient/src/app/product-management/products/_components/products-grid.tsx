@@ -18,7 +18,6 @@ import Link from 'next/link'
 import { Fragment, ReactElement } from 'react'
 import { buildProductTree, ProductTreeNode } from '../../_components'
 import { activeIncidentColumn } from '../../_components/active-incident-links'
-import { incidentRowTint } from '../../_components/incident-row-tint'
 
 export interface ProductsGridProps {
   products: ProductDto[]
@@ -186,7 +185,6 @@ const ProductsGrid: React.FC<ProductsGridProps> = (
         rightSlot={props.viewSelector}
         persistStateKey={props.persistStateKey}
         emptyMessage="No products found."
-        getRowBackground={(row) => incidentRowTint(row.activeIncidentSeverityColor)}
       />
     )
   }
@@ -201,7 +199,6 @@ const ProductsGrid: React.FC<ProductsGridProps> = (
       rightSlot={props.viewSelector}
       persistStateKey={props.persistStateKey}
       emptyMessage="No products found."
-      getRowBackground={(row) => incidentRowTint(row.activeIncidentSeverityColor)}
     />
   )
 }

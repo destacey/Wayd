@@ -24,7 +24,8 @@ export interface CreateIncidentFormProps {
 
 interface CreateIncidentFormValues {
   title: string
-  description?: string
+  symptoms?: string
+  rootCause?: string
   severityLevelId: string
   noticedAt?: Dayjs
   startedAt?: Dayjs
@@ -68,7 +69,8 @@ export function CreateIncidentForm({
         try {
           const request: CreateIncidentRequest = {
             title: values.title,
-            description: values.description,
+            symptoms: values.symptoms,
+            rootCause: values.rootCause,
             severityLevelId: values.severityLevelId,
             noticedAt: values.noticedAt?.toDate(),
             startedAt: values.startedAt?.toDate(),
@@ -125,7 +127,10 @@ export function CreateIncidentForm({
         >
           <TextArea rows={2} />
         </Item>
-        <Item name="description" label="Description">
+        <Item name="symptoms" label="Symptoms">
+          <MarkdownEditor maxLength={4096} />
+        </Item>
+        <Item name="rootCause" label="Root cause">
           <MarkdownEditor maxLength={4096} />
         </Item>
         <Item

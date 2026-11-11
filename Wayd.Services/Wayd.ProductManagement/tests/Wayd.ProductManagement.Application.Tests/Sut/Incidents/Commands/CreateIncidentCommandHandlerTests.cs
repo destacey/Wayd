@@ -51,6 +51,7 @@ public sealed class CreateIncidentCommandHandlerTests : IncidentSeveritySetHandl
             new CreateIncidentCommand(
                 "API errors",
                 "Elevated 5xx rate",
+                null,
                 level.Id,
                 NoticedAt: null,
                 StartedAt: null,
@@ -79,7 +80,7 @@ public sealed class CreateIncidentCommandHandlerTests : IncidentSeveritySetHandl
 
         // Act
         var result = await sut.Handle(
-            new CreateIncidentCommand("Issue", null, level.Id, null, null, null, []),
+            new CreateIncidentCommand("Issue", null, null, level.Id, null, null, null, []),
             TestContext.Current.CancellationToken);
 
         // Assert

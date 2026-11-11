@@ -24,6 +24,7 @@ public sealed class IncidentTests
         var result = Incident.Create(
             "Checkout unavailable",
             "Payments failing in production.",
+            "   ",
             commanderId,
             severityLevelId,
             Timestamp,
@@ -37,6 +38,12 @@ public sealed class IncidentTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         result.Value.Title.Should().Be("Checkout unavailable");
+        result.Value.Symptoms.Should().Be("Payments failing in production.");
+        result.Value.RootCause.Should().BeNull();
+        result.Value.ExecutePostPersistenceActions();
+        var created = result.Value.DomainEvents.OfType<IncidentCreatedEvent>().Should().ContainSingle().Subject;
+        created.Symptoms.Should().Be("Payments failing in production.");
+        created.RootCause.Should().BeNull();
         result.Value.CommanderEmployeeId.Should().Be(commanderId);
         result.Value.StatusAlias.Should().Be(ProductStatusAlias.Open);
         result.Value.ProductLinks.Should().ContainSingle().Which.ProductId.Should().Be(productId);
@@ -48,6 +55,7 @@ public sealed class IncidentTests
         // Act
         var result = Incident.Create(
             "Latency spike",
+            null,
             null,
             Guid.CreateVersion7(),
             Guid.CreateVersion7(),
@@ -70,6 +78,7 @@ public sealed class IncidentTests
         var commanderId = Guid.CreateVersion7();
         var incident = Incident.Create(
             "Latency spike",
+            null,
             null,
             commanderId,
             Guid.CreateVersion7(),
@@ -101,6 +110,7 @@ public sealed class IncidentTests
         var commanderId = Guid.CreateVersion7();
         var incident = Incident.Create(
             "Latency spike",
+            null,
             null,
             commanderId,
             Guid.CreateVersion7(),
@@ -146,6 +156,7 @@ public sealed class IncidentTests
         var result = incident.UpdateDetails(
             "Checkout recovered",
             "Payments failing in production.",
+            null,
             incident.SeverityLevelId,
             truncatedNoticed,
             truncatedStarted,
@@ -156,8 +167,14 @@ public sealed class IncidentTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        incident.DomainEvents.Should().ContainSingle()
-            .Which.Should().BeOfType<IncidentDetailsUpdatedEvent>();
+        var details = incident.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<IncidentDetailsUpdatedEventV2>().Subject;
+        details.FromTitle.Should().Be("Checkout unavailable");
+        details.ToTitle.Should().Be("Checkout recovered");
+        details.FromSymptoms.Should().Be("Payments failing in production.");
+        details.ToSymptoms.Should().Be("Payments failing in production.");
+        details.FromRootCause.Should().BeNull();
+        details.ToRootCause.Should().BeNull();
     }
 
     [Fact]
@@ -170,6 +187,7 @@ public sealed class IncidentTests
         var result = incident.UpdateDetails(
             "Checkout unavailable",
             "Payments failing in production.",
+            null,
             incident.SeverityLevelId,
             Timestamp.Plus(Duration.FromMinutes(2)),
             startedAt: null,
@@ -194,6 +212,7 @@ public sealed class IncidentTests
         // Act
         var incident = Incident.Create(
             "Checkout unavailable",
+            null,
             null,
             Guid.CreateVersion7(),
             Guid.CreateVersion7(),
@@ -231,6 +250,7 @@ public sealed class IncidentTests
         var result = incident.UpdateDetails(
             "Checkout unavailable",
             "Payments failing in production.",
+            null,
             incident.SeverityLevelId,
             Timestamp,
             startedAt: null,
@@ -260,6 +280,7 @@ public sealed class IncidentTests
         var result = incident.UpdateDetails(
             "Checkout unavailable",
             "Payments failing in production.",
+            null,
             incident.SeverityLevelId,
             Timestamp,
             startedAt: null,
@@ -275,10 +296,41 @@ public sealed class IncidentTests
         incident.DomainEvents.Should().BeEmpty();
     }
 
+    [Fact]
+    public void UpdateDetails_ShouldRaiseDetailsChanged_WhenRootCauseIsRecorded()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+
+        // Act
+        var result = incident.UpdateDetails(
+            "Checkout unavailable",
+            "Payments failing in production.",
+            "A bad deploy",
+            incident.SeverityLevelId,
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [],
+            EventActor.System,
+            Timestamp);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.RootCause.Should().Be("A bad deploy");
+        var details = incident.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<IncidentDetailsUpdatedEventV2>().Subject;
+        details.FromRootCause.Should().BeNull();
+        details.ToRootCause.Should().Be("A bad deploy");
+        details.FromSymptoms.Should().Be("Payments failing in production.");
+        details.ToSymptoms.Should().Be("Payments failing in production.");
+    }
+
     private static Incident OpenIncident(Instant noticedAt, Instant? startedAt, IReadOnlyCollection<Guid>? releaseIds = null) =>
         Incident.Create(
             "Checkout unavailable",
             "Payments failing in production.",
+            null,
             Guid.CreateVersion7(),
             Guid.CreateVersion7(),
             noticedAt,

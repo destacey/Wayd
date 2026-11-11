@@ -46032,7 +46032,7 @@
           "IntakeRequests"
         ],
         "summary": "Submit a csv file of intake request outcomes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
-        "description": "Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` needs a `Note`, and can name `DeliverableIds`, semicolon-separated deliverables of that project. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.",
+        "description": "Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` names `DeliverableIds`, semicolon-separated deliverables of that project, or a `Note` saying what it absorbed, or both. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.",
         "operationId": "IntakeRequests_ImportOutcomes",
         "parameters": [
           {
@@ -46998,7 +46998,7 @@
           "IntakeRequests"
         ],
         "summary": "Record that an accepted intake request became a project or work item.",
-        "description": "Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `ExistingProjectScope` can also name `deliverableIds`, deliverables of that project that meet the request (list them with `IntakeRequests_GetProjectDeliverables`); the request counts as met once every one is Accepted. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.",
+        "description": "Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it; both take `projectId`. `ExistingProjectScope` says what the project took on by naming `deliverableIds`, deliverables of that project that meet the request (list them with `IntakeRequests_GetProjectDeliverables`), by a `note`, or both; it needs one of them, and deliverables are preferred because the request counts as met once every one is Accepted. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.",
         "operationId": "IntakeRequests_AddOutcome",
         "parameters": [
           {
@@ -47134,7 +47134,7 @@
           "IntakeRequests"
         ],
         "summary": "Set the project deliverables an existing project scope outcome is mapped to.",
-        "description": "Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it. `expectedDeliverableIds` is the outcome's mapping as you read it (the ids of its `deliverables` on the request); when the outcome no longer holds exactly those, the change is refused with 409, so read the request again and redo it. Each deliverable must be one of that project's (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.",
+        "description": "Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it, unless the outcome has no note, which is refused. `expectedDeliverableIds` is the outcome's mapping as you read it (the ids of its `deliverables` on the request); when the outcome no longer holds exactly those, the change is refused with 409, so read the request again and redo it. Each deliverable must be one of that project's (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.",
         "operationId": "IntakeRequests_SetOutcomeDeliverables",
         "parameters": [
           {
@@ -55255,7 +55255,7 @@
           "note": {
             "maxLength": 1024,
             "type": "string",
-            "description": "What the outcome covers. Required for existing project scope, where it says what the project absorbed.",
+            "description": "What the outcome covers. For existing project scope it says what the project absorbed, and is required\nwhen the outcome names no deliverables.",
             "nullable": true
           },
           "deliverableIds": {
@@ -55264,7 +55264,7 @@
               "type": "string",
               "format": "uuid"
             },
-            "description": "For `ExistingProjectScope` only, deliverables of the project that meet the request; the request counts as\nmet once every one is Accepted. Leave it out for the other kinds. Mapping them does not change the project.",
+            "description": "For `ExistingProjectScope` only, deliverables of the project that meet the request; the request counts as\nmet once every one is Accepted. The preferred way to say what the project absorbed; without them a note is\nrequired. Leave it out for the other kinds. Mapping them does not change the project.",
             "nullable": true
           }
         },
@@ -64133,7 +64133,7 @@
           },
           "note": {
             "type": "string",
-            "description": "What the outcome covers. Required for `ExistingProjectScope`, saying what the project absorbed. Max 1024 chars.",
+            "description": "What the outcome covers. Required for `ExistingProjectScope` with no `DeliverableIds`, saying what the project absorbed. Max 1024 chars.",
             "nullable": true,
             "x-csv-column": "Note"
           },

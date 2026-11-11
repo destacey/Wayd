@@ -10,13 +10,16 @@ import { toApiError } from '@/src/utils'
 import { DownOutlined } from '@ant-design/icons'
 import { Button, Dropdown } from 'antd'
 import { FC, useState } from 'react'
-import { asksTheRequester } from './change-intake-request-status-form'
+import {
+  asksTheRequester,
+  finishesBeforeDeliverablesMet,
+} from './change-intake-request-status-form'
 
 export interface MoveIntakeRequestButtonProps {
   request: IntakeRequestDetailsDto
   /**
-   * Opens the status form on a move that needs more than a click: a reason, the surviving request, or for Waiting
-   * on Requester the question to ask.
+   * Opens the status form on a move that needs more than a click: a reason, the surviving request, for Waiting
+   * on Requester the question to ask, or a warning that the request would finish before its deliverables are met.
    */
   onNeedsDetail: (statusId: string) => void
 }
@@ -45,7 +48,8 @@ const MoveIntakeRequestButton: FC<MoveIntakeRequestButtonProps> = ({
     if (
       option.needsReason ||
       option.needsSurvivingRequest ||
-      asksTheRequester(option)
+      asksTheRequester(option) ||
+      finishesBeforeDeliverablesMet(request, option)
     ) {
       onNeedsDetail(statusId)
       return

@@ -18,7 +18,7 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.Commands;
 /// <param name="Id">The request.</param>
 /// <param name="Kind">What the request became.</param>
 /// <param name="TargetId">The project or work item, by its id in its own module.</param>
-/// <param name="Note">What the outcome covers; required for existing project scope.</param>
+/// <param name="Note">What the outcome covers; required for existing project scope that names no deliverables.</param>
 public sealed record AddIntakeRequestOutcomeCommand(Guid Id, IntakeRequestOutcomeKind Kind, Guid TargetId, string? Note)
     : ICommand, IRequireLinkedEmployee
 {

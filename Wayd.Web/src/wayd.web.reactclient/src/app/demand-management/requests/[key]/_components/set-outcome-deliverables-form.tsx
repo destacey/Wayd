@@ -37,6 +37,10 @@ const SetOutcomeDeliverablesForm: FC<SetOutcomeDeliverablesFormProps> = ({
 }) => {
   const messageApi = useMessage()
   const [setDeliverables] = useSetIntakeRequestOutcomeDeliverablesMutation()
+  // A deliverable deleted from the project stays mapped but no longer says what the project took on.
+  const deletedIds = new Set(
+    outcome.deliverables.filter((d) => !d.isOnProject).map((d) => d.id),
+  )
 
   const { form, isOpen, isSaving, handleOk, handleCancel } =
     useModalForm<SetOutcomeDeliverablesFormValues>({
@@ -101,7 +105,25 @@ const SetOutcomeDeliverablesForm: FC<SetOutcomeDeliverablesFormProps> = ({
           deliverableIds: outcome.deliverables.map((d) => d.id),
         }}
       >
-        <Item name="deliverableIds" label="Deliverables">
+        <Item
+          name="deliverableIds"
+          label="Deliverables"
+          required={!outcome.note}
+          rules={
+            outcome.note
+              ? undefined
+              : [
+                  {
+                    validator: async (_, ids: string[] | undefined) => {
+                      if (!(ids ?? []).some((id) => !deletedIds.has(id)))
+                        throw new Error()
+                    },
+                    message:
+                      'This outcome has no note, so it needs at least one deliverable still on the project. To clear them, remove the outcome and add it again with a note.',
+                  },
+                ]
+          }
+        >
           <OutcomeDeliverablesSelect
             requestId={requestId}
             projectId={outcome.targetId}

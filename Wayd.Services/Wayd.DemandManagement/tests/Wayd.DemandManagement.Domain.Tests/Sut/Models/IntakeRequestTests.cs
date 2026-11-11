@@ -1737,7 +1737,7 @@ public sealed class IntakeRequestTests
     [Theory]
     [InlineData(null)]
     [InlineData("  ")]
-    public void AddOutcome_ExistingProjectScopeWithoutANote_Fails(string? note)
+    public void AddOutcome_ExistingProjectScopeWithNeitherANoteNorDeliverables_Fails(string? note)
     {
         // Arrange
         var sut = AnAcceptedRequest();
@@ -1747,8 +1747,31 @@ public sealed class IntakeRequestTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(IntakeRequest.ExistingProjectScopeNeedsNoteError);
+        result.Error.Should().Be(IntakeRequest.ExistingProjectScopeNeedsNoteOrDeliverablesError);
         sut.Outcomes.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("  ")]
+    public void AddOutcome_ExistingProjectScopeWithDeliverablesAndNoNote_RecordsItWithoutANote(string? note)
+    {
+        // Arrange
+        var sut = AnAcceptedRequest();
+        var projectId = Guid.NewGuid();
+        var deliverable = Guid.NewGuid();
+
+        // Act
+        var result = sut.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, projectId, note, [deliverable], Guid.NewGuid(),
+            EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var outcome = sut.Outcomes.Should().ContainSingle().Subject;
+        outcome.Note.Should().BeNull();
+        outcome.DeliverableIds().Should().Equal(deliverable);
+        sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestOutcomeAddedEvent>()
+            .Which.Note.Should().BeNull();
     }
 
     [Fact]
@@ -1975,6 +1998,45 @@ public sealed class IntakeRequestTests
         sut.Outcomes.Single().Deliverables.Should().BeEmpty();
         sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeRequestOutcomeDeliverablesChangedEvent>()
             .Which.Removed.Should().Equal(only);
+    }
+
+    [Fact]
+    public void SetOutcomeDeliverables_ToNoneOnAnOutcomeWithoutANote_FailsAndKeepsTheMapping()
+    {
+        // Arrange
+        var sut = AnAcceptedRequest();
+        var projectId = Guid.NewGuid();
+        var only = Guid.NewGuid();
+        sut.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, projectId, null, [only], Guid.NewGuid(), EventActor.System,
+            _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.SetOutcomeDeliverables(projectId, [], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ExistingProjectScopeNeedsDeliverablesError);
+        sut.Outcomes.Single().DeliverableIds().Should().Equal(only);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetOutcomeDeliverables_ToOthersOnAnOutcomeWithoutANote_ReplacesThem()
+    {
+        // Arrange
+        var sut = AnAcceptedRequest();
+        var projectId = Guid.NewGuid();
+        var replacement = Guid.NewGuid();
+        sut.AddOutcome(IntakeRequestOutcomeKind.ExistingProjectScope, projectId, null, [Guid.NewGuid()], Guid.NewGuid(),
+            EventActor.System, _dateTimeProvider.Now).IsSuccess.Should().BeTrue();
+
+        // Act
+        var result = sut.SetOutcomeDeliverables(projectId, [replacement], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.Outcomes.Single().DeliverableIds().Should().Equal(replacement);
     }
 
     [Fact]

@@ -6,7 +6,7 @@ export const importTemplates = {
   'demand-management.intake-request-outcomes': {
     module: 'demand-management',
     description:
-      "Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` needs a `Note`, and can name `DeliverableIds`, semicolon-separated deliverables of that project. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.",
+      "Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` names `DeliverableIds`, semicolon-separated deliverables of that project, or a `Note` saying what it absorbed, or both. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.",
     files: [
       {
         field: 'file',
@@ -52,7 +52,7 @@ export const importTemplates = {
             type: 'text',
             required: false,
             description:
-              'What the outcome covers. Required for `ExistingProjectScope`, saying what the project absorbed. Max 1024 chars.',
+              'What the outcome covers. Required for `ExistingProjectScope` with no `DeliverableIds`, saying what the project absorbed. Max 1024 chars.',
           },
           {
             name: 'DeliverableIds',

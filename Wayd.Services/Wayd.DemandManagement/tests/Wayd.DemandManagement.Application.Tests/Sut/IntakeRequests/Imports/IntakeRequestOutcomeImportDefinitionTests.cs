@@ -95,6 +95,25 @@ public sealed class IntakeRequestOutcomeImportDefinitionTests
     }
 
     [Fact]
+    public async Task RecordOutcomes_AScopeRowWithDeliverablesAndNoNote_RecordsItWithoutANote()
+    {
+        // Arrange
+        var request = _scenario.RequestInStatus(_desk, _scenario.Employee(), "Fulfilled");
+        var portal = _scenario.Deliverable(_project, "Portal");
+
+        // Act
+        var result = await Run(ScopeRow(request.Id, portal.Id) with { Note = null });
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        var row = result.Value.Rows.Should().ContainSingle().Subject;
+        row.Failed.Should().BeFalse(row.Error);
+        var outcome = request.Outcomes.Should().ContainSingle().Subject;
+        outcome.Note.Should().BeNull();
+        outcome.DeliverableIds().Should().Equal(portal.Id);
+    }
+
+    [Fact]
     public async Task RecordOutcomes_WithoutAddedBy_RecordsItAsTheAssigneesAndFailsWithoutOne()
     {
         // Arrange
@@ -231,7 +250,7 @@ public sealed class IntakeRequestOutcomeImportDefinitionTests
     }
 
     [Fact]
-    public void Validate_AScopeRowWithoutANote_IsRefused()
+    public void Validate_AScopeRowWithNeitherANoteNorDeliverables_IsRefused()
     {
         // Arrange
         var validator = new ImportIntakeRequestOutcomeDtoValidator();
@@ -242,5 +261,18 @@ public sealed class IntakeRequestOutcomeImportDefinitionTests
         // Assert
         result.IsValid.Should().BeFalse();
         result.Errors.Should().ContainSingle(e => e.PropertyName == nameof(ImportIntakeRequestOutcomeDto.Note));
+    }
+
+    [Fact]
+    public void Validate_AScopeRowWithDeliverablesAndNoNote_IsAccepted()
+    {
+        // Arrange
+        var validator = new ImportIntakeRequestOutcomeDtoValidator();
+
+        // Act
+        var result = validator.Validate(ScopeRow(Guid.NewGuid(), Guid.NewGuid()) with { Note = null });
+
+        // Assert
+        result.IsValid.Should().BeTrue();
     }
 }

@@ -716,9 +716,10 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// request knows neither who works its desk nor what exists in PPM or Work. Allowed only while
     /// the request is accepted (Active): before that nothing has been decided, and once it is closed the
     /// record of what it became is settled until it is reopened. Recording existing project scope says what
-    /// the project absorbed, because the project's own definition is not changed. Existing project scope can
-    /// also name the project's deliverables that meet the request; the caller checks they are that project's,
-    /// and mapping them changes nothing on the project.
+    /// the project absorbed, because the project's own definition is not changed: by naming the project's
+    /// deliverables that meet the request, by a note, or both. Deliverables are the preferred form, since they
+    /// say when the request is met; a note alone covers scope the project has not yet planned as deliverables.
+    /// The caller checks the deliverables are that project's, and mapping them changes nothing on the project.
     /// </remarks>
     /// <param name="targetId">The project or work item, by its id in its own module.</param>
     /// <param name="deliverableIds">For existing project scope, deliverables of the project; otherwise empty.</param>
@@ -753,7 +754,8 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// <remarks>
     /// Needs an agent on the request's desk, and deliverables of the outcome's project; the caller checks both.
     /// Allowed only while the request is accepted, as changing its outcomes is. A descoped deliverable stays mapped
-    /// until an agent takes it off, so the request shows what was dropped.
+    /// until an agent takes it off, so the request shows what was dropped. An outcome recorded without a note keeps
+    /// at least one deliverable, since they are all that says what the project absorbed.
     /// </remarks>
     /// <param name="targetId">The project the outcome points at.</param>
     /// <param name="deliverableIds">Every deliverable the outcome is to be mapped to; empty clears the mapping.</param>
@@ -770,6 +772,9 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
 
         if (outcome.Kind != IntakeRequestOutcomeKind.ExistingProjectScope && deliverableIds.Count > 0)
             return Result.Failure(DeliverablesNeedExistingProjectScopeError);
+
+        if (outcome.Kind == IntakeRequestOutcomeKind.ExistingProjectScope && outcome.Note is null && deliverableIds.Count == 0)
+            return Result.Failure(ExistingProjectScopeNeedsDeliverablesError);
 
         var (added, removed) = outcome.SetDeliverables(deliverableIds);
         if (added.Length == 0 && removed.Length == 0)
@@ -794,8 +799,8 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         Guard.Against.Default(addedById, nameof(addedById));
         Guard.Against.Null(deliverableIds);
 
-        if (kind == IntakeRequestOutcomeKind.ExistingProjectScope && string.IsNullOrWhiteSpace(note))
-            return Result.Failure(ExistingProjectScopeNeedsNoteError);
+        if (kind == IntakeRequestOutcomeKind.ExistingProjectScope && string.IsNullOrWhiteSpace(note) && deliverableIds.Count == 0)
+            return Result.Failure(ExistingProjectScopeNeedsNoteOrDeliverablesError);
 
         if (kind != IntakeRequestOutcomeKind.ExistingProjectScope && deliverableIds.Count > 0)
             return Result.Failure(DeliverablesNeedExistingProjectScopeError);
@@ -855,10 +860,18 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         "Outcomes can be changed only while the request is accepted.";
 
     /// <summary>
-    /// The failure for recording existing project scope without saying what the project absorbed.
+    /// The failure for recording existing project scope that names neither deliverables nor a note, and so does
+    /// not say what the project absorbed.
     /// </summary>
-    public const string ExistingProjectScopeNeedsNoteError =
-        "Say what the project absorbed from this request.";
+    public const string ExistingProjectScopeNeedsNoteOrDeliverablesError =
+        "Name the deliverables that meet this request, or say what the project absorbed from it.";
+
+    /// <summary>
+    /// The failure for taking every deliverable off an existing project scope outcome that has no note, which would
+    /// leave it saying nothing about what the project absorbed.
+    /// </summary>
+    public const string ExistingProjectScopeNeedsDeliverablesError =
+        "This outcome has no note, so it needs at least one deliverable. To clear them, remove the outcome and add it again with a note.";
 
     /// <summary>
     /// The failure for recording a second outcome pointing at the same project or work item.

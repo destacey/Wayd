@@ -5,6 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   IntakeRequestDetailsDto,
   IntakeRequestStatusOptionDto,
+  StatusCategory,
 } from '@/src/services/wayd-api'
 import {
   useChangeIntakeRequestStatusMutation,
@@ -27,6 +28,18 @@ export const WAITING_ON_REQUESTER = 2
 /** Whether a move to the status is asking the requester something, so the form asks for the question. */
 export const asksTheRequester = (status: { alias: number } | undefined) =>
   status?.alias === WAITING_ON_REQUESTER
+
+/**
+ * Whether a move to the status would finish an unfinished request while a deliverable it was mapped to has not
+ * been accepted, so the form warns first. The server allows it: closing stays the desk's decision.
+ */
+export const finishesBeforeDeliverablesMet = (
+  request: IntakeRequestDetailsDto,
+  status: { category: StatusCategory } | undefined,
+) =>
+  status?.category === StatusCategory.Done &&
+  request.summary.status.category !== StatusCategory.Done &&
+  request.deliverablesMet === false
 
 export interface ChangeIntakeRequestStatusFormProps {
   request: IntakeRequestDetailsDto
@@ -113,6 +126,15 @@ const ChangeIntakeRequestStatusForm: FC<ChangeIntakeRequestStatusFormProps> = ({
 
   const renderNeeds = (chosen: IntakeRequestStatusOptionDto | undefined) => (
     <>
+      {finishesBeforeDeliverablesMet(request, chosen) && (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12 }}
+          title="Not every mapped deliverable has been accepted."
+          description="Finishing the request now closes it before the project has delivered what it was waiting on."
+        />
+      )}
       {chosen?.needsSurvivingRequest && (
         <Item
           name="duplicateOfId"

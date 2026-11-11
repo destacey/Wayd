@@ -95562,7 +95562,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of intake request outcomes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
-        /// Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` needs a `Note`, and can name `DeliverableIds`, semicolon-separated deliverables of that project. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.
+        /// Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` names `DeliverableIds`, semicolon-separated deliverables of that project, or a `Note` saying what it absorbed, or both. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -95716,7 +95716,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that an accepted intake request became a project or work item.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `ExistingProjectScope` can also name `deliverableIds`, deliverables of that project that meet the request (list them with `IntakeRequests_GetProjectDeliverables`); the request counts as met once every one is Accepted. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.
+        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it; both take `projectId`. `ExistingProjectScope` says what the project took on by naming `deliverableIds`, deliverables of that project that meet the request (list them with `IntakeRequests_GetProjectDeliverables`), by a `note`, or both; it needs one of them, and deliverables are preferred because the request counts as met once every one is Accepted. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -95738,7 +95738,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the project deliverables an existing project scope outcome is mapped to.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it. `expectedDeliverableIds` is the outcome's mapping as you read it (the ids of its `deliverables` on the request); when the outcome no longer holds exactly those, the change is refused with 409, so read the request again and redo it. Each deliverable must be one of that project's (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.
+        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it, unless the outcome has no note, which is refused. `expectedDeliverableIds` is the outcome's mapping as you read it (the ids of its `deliverables` on the request); when the outcome no longer holds exactly those, the change is refused with 409, so read the request again and redo it. Each deliverable must be one of that project's (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -96756,7 +96756,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Submit a csv file of intake request outcomes to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.
         /// </summary>
         /// <remarks>
-        /// Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` needs a `Note`, and can name `DeliverableIds`, semicolon-separated deliverables of that project. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.
+        /// Each row records one thing a request already in Wayd became, whatever its status: `NewProject` or `ExistingProjectScope` with a `ProjectId`, or `WorkItem` with a `WorkItemId`. `ExistingProjectScope` names `DeliverableIds`, semicolon-separated deliverables of that project, or a `Note` saying what it absorbed, or both. Run it after the request import, once the projects' copies have reached Demand Management. Every column must be in the file, even one left blank. Needs the Demand Management Admin.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -98267,7 +98267,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Record that an accepted intake request became a project or work item.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it, and needs a note saying what it took on; both take `projectId`. `ExistingProjectScope` can also name `deliverableIds`, deliverables of that project that meet the request (list them with `IntakeRequests_GetProjectDeliverables`); the request counts as met once every one is Accepted. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.
+        /// Needs an agent on the request's desk, while the request is accepted (Active category). `NewProject` is a project started for the request; `ExistingProjectScope` is a project that already existed and absorbed it; both take `projectId`. `ExistingProjectScope` says what the project took on by naming `deliverableIds`, deliverables of that project that meet the request (list them with `IntakeRequests_GetProjectDeliverables`), by a `note`, or both; it needs one of them, and deliverables are preferred because the request counts as met once every one is Accepted. `WorkItem` is a work item that delivers the request and takes `workItemId`; its note is optional. The project or work item itself is not changed. A request points at a project or work item at most once. Once a request has an outcome, finishing it needs no reason.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -98480,7 +98480,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the project deliverables an existing project scope outcome is mapped to.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it. `expectedDeliverableIds` is the outcome's mapping as you read it (the ids of its `deliverables` on the request); when the outcome no longer holds exactly those, the change is refused with 409, so read the request again and redo it. Each deliverable must be one of that project's (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.
+        /// Needs an agent on the request's desk, while the request is accepted. `targetId` is the project the outcome points at. `deliverableIds` replaces the outcome's whole mapping, so send every deliverable it should keep; an empty list clears it, unless the outcome has no note, which is refused. `expectedDeliverableIds` is the outcome's mapping as you read it (the ids of its `deliverables` on the request); when the outcome no longer holds exactly those, the change is refused with 409, so read the request again and redo it. Each deliverable must be one of that project's (list them with `IntakeRequests_GetProjectDeliverables`), unless the outcome is already mapped to it. The request counts as met once every mapped deliverable still on the project is Accepted; a descoped one stays mapped, shown as descoped, until it is taken off. The project itself is not changed.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -115735,7 +115735,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Guid? WorkItemId { get; set; } = default!;
 
         /// <summary>
-        /// What the outcome covers. Required for existing project scope, where it says what the project absorbed.
+        /// What the outcome covers. For existing project scope it says what the project absorbed, and is required
+        /// <br/>when the outcome names no deliverables.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("note")]
         [System.ComponentModel.DataAnnotations.StringLength(1024)]
@@ -115743,7 +115744,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <summary>
         /// For `ExistingProjectScope` only, deliverables of the project that meet the request; the request counts as
-        /// <br/>met once every one is Accepted. Leave it out for the other kinds. Mapping them does not change the project.
+        /// <br/>met once every one is Accepted. The preferred way to say what the project absorbed; without them a note is
+        /// <br/>required. Leave it out for the other kinds. Mapping them does not change the project.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("deliverableIds")]
         public System.Collections.Generic.ICollection<System.Guid>? DeliverableIds { get; set; } = default!;
@@ -124243,7 +124245,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Guid? WorkItemId { get; set; } = default!;
 
         /// <summary>
-        /// What the outcome covers. Required for `ExistingProjectScope`, saying what the project absorbed. Max 1024 chars.
+        /// What the outcome covers. Required for `ExistingProjectScope` with no `DeliverableIds`, saying what the project absorbed. Max 1024 chars.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("note")]
         public string? Note { get; set; } = default!;

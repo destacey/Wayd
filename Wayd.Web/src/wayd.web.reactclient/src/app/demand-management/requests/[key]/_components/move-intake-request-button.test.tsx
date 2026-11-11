@@ -27,6 +27,14 @@ vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
         needsSurvivingRequest: false,
       },
       {
+        id: 's-fulfilled',
+        name: 'Fulfilled',
+        category: 'Done',
+        alias: 4,
+        needsReason: false,
+        needsSurvivingRequest: false,
+      },
+      {
         id: 's-declined',
         name: 'Declined',
         category: 'Removed',
@@ -93,6 +101,45 @@ describe('MoveIntakeRequestButton', () => {
     // Assert
     expect(onNeedsDetail).toHaveBeenCalledWith('s-declined')
     expect(mockChangeStatus).not.toHaveBeenCalled()
+  })
+
+  it('opens the status form to warn before finishing a request whose deliverables are not met', async () => {
+    // Arrange
+    const onNeedsDetail = vi.fn()
+    render(
+      <MoveIntakeRequestButton
+        request={{ ...request, deliverablesMet: false }}
+        onNeedsDetail={onNeedsDetail}
+      />,
+    )
+
+    // Act
+    await pick('Fulfilled')
+
+    // Assert
+    expect(onNeedsDetail).toHaveBeenCalledWith('s-fulfilled')
+    expect(mockChangeStatus).not.toHaveBeenCalled()
+  })
+
+  it('finishes a request at once when its deliverables are met', async () => {
+    // Arrange
+    const onNeedsDetail = vi.fn()
+    render(
+      <MoveIntakeRequestButton
+        request={{ ...request, deliverablesMet: true }}
+        onNeedsDetail={onNeedsDetail}
+      />,
+    )
+
+    // Act
+    await pick('Fulfilled')
+
+    // Assert
+    expect(mockChangeStatus).toHaveBeenCalledWith({
+      requestId: 'r-42',
+      statusId: 's-fulfilled',
+    })
+    expect(onNeedsDetail).not.toHaveBeenCalled()
   })
 
   it('opens the status form for Waiting on Requester, to ask the question', async () => {

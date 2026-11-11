@@ -30,7 +30,13 @@ vi.mock(import('@/src/hooks'), async () => {
         isValid: true,
         isSaving: false,
         handleOk: async () => {
-          if (await onSubmit(await form.validateFields(), form)) onComplete()
+          let values: TValues
+          try {
+            values = await form.validateFields()
+          } catch {
+            return
+          }
+          if (await onSubmit(values, form)) onComplete()
         },
         handleCancel: vi.fn(),
       }
@@ -63,12 +69,12 @@ const outcome = {
   deliverables: [{ id: 'd-gone', isOnProject: false }],
 } as unknown as IntakeRequestOutcomeDto
 
-const renderForm = (onFormComplete = vi.fn()) =>
+const renderForm = (onFormComplete = vi.fn(), shown = outcome) =>
   act(async () =>
     render(
       <SetOutcomeDeliverablesForm
         requestId="r-42"
-        outcome={outcome}
+        outcome={shown}
         onFormComplete={onFormComplete}
         onFormCancel={vi.fn()}
       />,
@@ -105,6 +111,38 @@ describe('SetOutcomeDeliverablesForm', () => {
       expectedDeliverableIds: ['d-gone'],
     })
     expect(onFormComplete).toHaveBeenCalled()
+  })
+
+  it('refuses to leave an outcome with no note mapped to nothing', async () => {
+    // Arrange
+    await renderForm(vi.fn(), { ...outcome, note: undefined, deliverables: [] })
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    // Assert
+    expect(mockSet).not.toHaveBeenCalled()
+    expect(
+      await screen.findByText(/This outcome has no note/),
+    ).toBeInTheDocument()
+  })
+
+  it('clears the mapping of an outcome with a note', async () => {
+    // Arrange
+    mockSet.mockReturnValue({ unwrap: () => Promise.resolve(null) })
+    await renderForm(vi.fn(), {
+      ...outcome,
+      note: 'The export screen',
+      deliverables: [],
+    })
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    // Assert
+    expect(mockSet).toHaveBeenCalledWith(
+      expect.objectContaining({ deliverableIds: [] }),
+    )
   })
 
   it('closes and says why when another change landed first', async () => {

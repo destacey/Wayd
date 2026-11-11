@@ -55,6 +55,10 @@ const mockOptions = [
     category: StatusCategory.Removed,
     needsReason: true,
   }),
+  option('s-fulfilled', 'Fulfilled', {
+    category: StatusCategory.Done,
+    alias: 4,
+  }),
   option('s-duplicate', 'Duplicate', {
     category: StatusCategory.Removed,
     needsReason: true,
@@ -86,11 +90,11 @@ const request = {
   canChangeStatus: true,
 } as any
 
-const renderForm = async () =>
+const renderForm = async (shown = request) =>
   await act(async () =>
     render(
       <ChangeIntakeRequestStatusForm
-        request={request}
+        request={shown}
         onFormComplete={vi.fn()}
         onFormCancel={vi.fn()}
       />,
@@ -110,6 +114,30 @@ describe('ChangeIntakeRequestStatusForm', () => {
   beforeEach(() => {
     mockChangeStatus.mockReset()
     mockChangeStatus.mockReturnValue({ unwrap: () => Promise.resolve() })
+  })
+
+  it('warns before finishing a request whose mapped deliverables are not all accepted', async () => {
+    // Arrange
+    await renderForm({ ...request, deliverablesMet: false })
+
+    // Act
+    await choose(0, 'Fulfilled')
+
+    // Assert
+    expect(
+      screen.getByText('Not every mapped deliverable has been accepted.'),
+    ).toBeInTheDocument()
+  })
+
+  it('does not warn when the mapped deliverables are met, or when another status is chosen', async () => {
+    // Arrange
+    await renderForm({ ...request, deliverablesMet: true })
+
+    // Act
+    await choose(0, 'Fulfilled')
+
+    // Assert
+    expect(screen.queryByText(/Not every mapped deliverable/)).toBeNull()
   })
 
   it('moves to a status that needs nothing more, without a reason', async () => {

@@ -338,7 +338,38 @@ describe('AddIntakeRequestOutcomeForm', () => {
     expect(mockProjectDeliverables).not.toHaveBeenCalled()
   })
 
-  it('refuses existing project scope without saying what was absorbed', async () => {
+  it('maps existing project scope to deliverables with no note', async () => {
+    // Arrange
+    mockAdd.mockReturnValue({ unwrap: () => Promise.resolve(null) })
+    await renderForm()
+    await userEvent.click(
+      screen.getByLabelText('Scope added to an existing project'),
+    )
+    await openProjectPicker()
+    await userEvent.click(screen.getByTitle('Borealis (BOREAL)'))
+    const picker = screen
+      .getByText('Deliverables')
+      .closest('.ant-form-item')!
+      .querySelector('input')!
+    await userEvent.click(picker)
+    await userEvent.click(screen.getByTitle('Reports · Not Started'))
+
+    // Act
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+    // Assert
+    expect(mockAdd).toHaveBeenCalledWith({
+      requestId: 'r-42',
+      request: {
+        kind: IntakeRequestOutcomeKind.ExistingProjectScope,
+        projectId: 'p-2',
+        note: undefined,
+        deliverableIds: ['d-2'],
+      },
+    })
+  })
+
+  it('refuses existing project scope with neither deliverables nor a note', async () => {
     // Arrange
     await renderForm()
     await userEvent.click(
@@ -357,7 +388,9 @@ describe('AddIntakeRequestOutcomeForm', () => {
         errorFields: [
           expect.objectContaining({
             name: ['note'],
-            errors: ['Say what the project absorbed from this request.'],
+            errors: [
+              'Choose the deliverables that meet this request, or say what the project absorbed from it.',
+            ],
           }),
         ],
       }),

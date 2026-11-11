@@ -101,7 +101,24 @@ const SetOutcomeDeliverablesForm: FC<SetOutcomeDeliverablesFormProps> = ({
           deliverableIds: outcome.deliverables.map((d) => d.id),
         }}
       >
-        <Item name="deliverableIds" label="Deliverables">
+        <Item
+          name="deliverableIds"
+          label="Deliverables"
+          required={!outcome.note}
+          rules={
+            outcome.note
+              ? undefined
+              : [
+                  {
+                    required: true,
+                    type: 'array',
+                    min: 1,
+                    message:
+                      'This outcome has no note, so it needs at least one deliverable. To clear them, remove the outcome and add it again with a note.',
+                  },
+                ]
+          }
+        >
           <OutcomeDeliverablesSelect
             requestId={requestId}
             projectId={outcome.targetId}

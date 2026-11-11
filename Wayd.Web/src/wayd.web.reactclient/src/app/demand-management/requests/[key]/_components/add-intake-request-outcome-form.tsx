@@ -104,7 +104,10 @@ const AddIntakeRequestOutcomeForm: FC<AddIntakeRequestOutcomeFormProps> = ({
     })
 
   const kind = Form.useWatch('kind', form)
-  const noteRequired = kind === IntakeRequestOutcomeKind.ExistingProjectScope
+  const deliverableIds = Form.useWatch('deliverableIds', form)
+  const isScope = kind === IntakeRequestOutcomeKind.ExistingProjectScope
+  // Deliverables say what the project absorbed; without them the note has to.
+  const noteRequired = isScope && !deliverableIds?.length
 
   return (
     <Modal
@@ -210,7 +213,7 @@ const AddIntakeRequestOutcomeForm: FC<AddIntakeRequestOutcomeFormProps> = ({
               <Item
                 name="deliverableIds"
                 label="Deliverables"
-                extra="Optional: the project's deliverables that meet this request. It counts as met once every one is accepted."
+                extra="The parts of the project that meet this request. It counts as met once every one is accepted. Without them, the note must say what the project absorbed."
               >
                 <OutcomeDeliverablesSelect
                   requestId={request.summary.id}
@@ -224,23 +227,27 @@ const AddIntakeRequestOutcomeForm: FC<AddIntakeRequestOutcomeFormProps> = ({
           name="note"
           label="Note"
           required={noteRequired}
-          dependencies={['kind']}
+          dependencies={['kind', 'deliverableIds']}
           rules={[
             ({ getFieldValue }) => ({
               required:
                 getFieldValue('kind') ===
-                IntakeRequestOutcomeKind.ExistingProjectScope,
+                  IntakeRequestOutcomeKind.ExistingProjectScope &&
+                !getFieldValue('deliverableIds')?.length,
               whitespace: true,
-              message: 'Say what the project absorbed from this request.',
+              message:
+                'Choose the deliverables that meet this request, or say what the project absorbed from it.',
             }),
             { max: 1024 },
           ]}
           extra={
             noteRequired
               ? 'What the project took on from this request.'
-              : kind === IntakeRequestOutcomeKind.WorkItem
-                ? 'Optional: what the work item covers of this request.'
-                : undefined
+              : isScope
+                ? 'Optional: anything the deliverables do not say about what the project took on.'
+                : kind === IntakeRequestOutcomeKind.WorkItem
+                  ? 'Optional: what the work item covers of this request.'
+                  : undefined
           }
         >
           <TextArea autoSize={{ minRows: 2, maxRows: 6 }} maxLength={1024} />

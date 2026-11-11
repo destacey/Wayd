@@ -127,6 +127,14 @@ describe('IntakeRequestOutcomes', () => {
     expect(screen.queryByText('A project that has been deleted')).toBeNull()
   })
 
+  it('says when existing project scope maps no deliverables, and only for that kind', () => {
+    // Arrange / Act
+    render(<IntakeRequestOutcomes request={request(false)} />)
+
+    // Assert
+    expect(screen.getAllByText('No deliverables mapped')).toHaveLength(1)
+  })
+
   const mapped = (
     deliverables: IntakeRequestOutcomeDto['deliverables'],
     isMet: boolean | undefined,

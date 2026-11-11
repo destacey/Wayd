@@ -86,11 +86,19 @@ const OutcomeDeliverables: FC<{ outcome: IntakeRequestOutcomeDto }> = ({
   </Flex>
 )
 
-/** Whether the outcome's deliverables meet the request; nothing when it maps none. */
-const MetTag: FC<{ isMet: boolean | undefined }> = ({ isMet }) => {
-  if (isMet === true) return <Tag color="success">Met</Tag>
-  if (isMet === false)
+/**
+ * Whether the outcome's deliverables meet the request. Existing project scope that maps none says so, since
+ * nothing then tells when the request is met.
+ */
+const MetTag: FC<{ outcome: IntakeRequestOutcomeDto }> = ({ outcome }) => {
+  if (outcome.isMet === true) return <Tag color="success">Met</Tag>
+  if (outcome.isMet === false)
     return <Tag color="processing">Waiting on deliverables</Tag>
+  if (
+    outcome.kind === IntakeRequestOutcomeKind.ExistingProjectScope &&
+    outcome.deliverables.length === 0
+  )
+    return <Tag color="warning">No deliverables mapped</Tag>
   return null
 }
 
@@ -189,7 +197,7 @@ const IntakeRequestOutcomes: FC<IntakeRequestOutcomesProps> = ({ request }) => {
                 <Flex gap={8} align="center" wrap>
                   <OutcomeTarget outcome={outcome} />
                   <Tag>{outcomeKindLabel[outcome.kind]}</Tag>
-                  <MetTag isMet={outcome.isMet} />
+                  <MetTag outcome={outcome} />
                 </Flex>
               }
               description={

@@ -782,14 +782,14 @@ public class IncidentConfiguration : IEntityTypeConfiguration<Incident>
 
         builder.Navigation(i => i.ReleaseLinks).HasField("_releaseLinks").UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasMany<IncidentTimelineNote>()
+        builder.HasMany(i => i.TimelineNotes)
             .WithOne()
             .HasForeignKey(n => n.IncidentId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.Navigation(i => i.TimelineNotes).HasField("_timelineNotes").UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        builder.HasMany<IncidentTimelineLinkEntry>()
+        builder.HasMany(i => i.TimelineLinkEntries)
             .WithOne()
             .HasForeignKey(e => e.IncidentId)
             .OnDelete(DeleteBehavior.Cascade);

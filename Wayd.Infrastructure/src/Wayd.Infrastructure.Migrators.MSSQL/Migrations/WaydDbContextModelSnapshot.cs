@@ -5797,10 +5797,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("ActorEmployeeId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("IncidentId")
+                    b.Property<Guid?>("FromTargetId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("IncidentId1")
+                    b.Property<Guid>("IncidentId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Kind")
@@ -5828,9 +5828,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
-                    b.HasKey("Id");
+                    b.Property<Guid?>("TargetId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.HasIndex("IncidentId1");
+                    b.HasKey("Id");
 
                     b.HasIndex("IncidentId", "RecordedAt");
 
@@ -5853,9 +5854,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("IncidentId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("IncidentId1")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<DateTime>("RecordedAt")
                         .HasColumnType("datetime2");
 
@@ -5874,8 +5872,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IncidentId1");
 
                     b.HasIndex("IncidentId", "RecordedAt");
 
@@ -11236,27 +11232,19 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentTimelineLinkEntry", b =>
                 {
                     b.HasOne("Wayd.ProductManagement.Domain.Models.Incident", null)
-                        .WithMany()
+                        .WithMany("TimelineLinkEntries")
                         .HasForeignKey("IncidentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Wayd.ProductManagement.Domain.Models.Incident", null)
-                        .WithMany("TimelineLinkEntries")
-                        .HasForeignKey("IncidentId1");
                 });
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentTimelineNote", b =>
                 {
                     b.HasOne("Wayd.ProductManagement.Domain.Models.Incident", null)
-                        .WithMany()
+                        .WithMany("TimelineNotes")
                         .HasForeignKey("IncidentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Wayd.ProductManagement.Domain.Models.Incident", null)
-                        .WithMany("TimelineNotes")
-                        .HasForeignKey("IncidentId1");
                 });
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Product", b =>

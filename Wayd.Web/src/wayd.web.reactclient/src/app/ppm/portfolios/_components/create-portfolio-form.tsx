@@ -8,9 +8,9 @@ import { CreatePortfolioRequest } from '@/src/services/wayd-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { useCreatePortfolioMutation } from '@/src/store/features/ppm/portfolios-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Modal } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
+import { Form, Input, Modal } from 'antd'
 
+const { TextArea } = Input
 const { Item } = Form
 
 export interface CreatePortfolioFormProps {

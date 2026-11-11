@@ -10,14 +10,14 @@ import {
   useUpdateEstimationScaleMutation,
 } from '@/src/store/features/planning/estimation-scales-api'
 import { toFormErrors, toApiError } from '@/src/utils'
-import { Form, Modal } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
+import { Form, Input, Modal } from 'antd'
 import { useEffect } from 'react'
 import { useModalForm } from '@/src/hooks'
 import EstimationScaleValuesField, {
   estimationScaleValueErrorFieldFor,
 } from './estimation-scale-values-field'
 
+const { TextArea } = Input
 const { Item } = Form
 
 export interface EditEstimationScaleFormProps {

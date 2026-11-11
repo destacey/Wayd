@@ -12,9 +12,9 @@ import {
 } from '@/src/store/features/planning/planning-interval-api'
 import useAuth from '@/src/components/contexts/auth'
 import { BuildOutlined, MenuOutlined } from '@ant-design/icons'
-import Segmented, { SegmentedLabeledOption } from 'antd/es/segmented'
+import type { SegmentedLabeledOption } from 'antd/es/segmented'
 import dynamic from 'next/dynamic'
-import { Spin } from 'antd'
+import { Segmented, Spin } from 'antd'
 import { useState } from 'react'
 
 const PlanningIntervalObjectivesTimeline = dynamic(

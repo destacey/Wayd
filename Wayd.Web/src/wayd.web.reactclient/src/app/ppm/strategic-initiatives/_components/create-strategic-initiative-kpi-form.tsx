@@ -11,7 +11,8 @@ import {
 import { useCreateStrategicInitiativeKpiMutation } from '@/src/store/features/ppm/strategic-initiatives-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, InputNumber, Modal, Select } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
+
+const { TextArea } = Input
 
 export interface CreateStrategicInitiativeKpiFormProps {
   strategicInitiativeId: string

@@ -11,9 +11,9 @@ import { useGetProductTypesQuery } from '@/src/store/features/product-management
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { ProductTreeSelect } from '../../_components'
-import { Form, Modal, Select } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
+import { Form, Input, Modal, Select } from 'antd'
 
+const { TextArea } = Input
 const { Item } = Form
 
 export interface CreateProductFormProps {

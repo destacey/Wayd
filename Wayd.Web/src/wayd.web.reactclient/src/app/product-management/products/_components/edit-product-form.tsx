@@ -6,10 +6,10 @@ import { useModalForm } from '@/src/hooks'
 import { ProductDto, UpdateProductRequest } from '@/src/services/wayd-api'
 import { useUpdateProductMutation } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
-import { Form, Modal } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
+import { Form, Input, Modal } from 'antd'
 import { useEffect } from 'react'
 
+const { TextArea } = Input
 const { Item } = Form
 
 export interface EditProductFormProps {

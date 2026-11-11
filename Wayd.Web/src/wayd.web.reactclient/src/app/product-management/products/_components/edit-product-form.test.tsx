@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { ConfigProvider } from 'antd'
 import { ProductDto } from '@/src/services/wayd-api'
 import EditProductForm from './edit-product-form'
 import type { UseModalFormOptions } from '@/src/hooks'
@@ -88,5 +89,23 @@ describe('EditProductForm', () => {
     expect(updateProduct.mock.calls[0][0].request).not.toHaveProperty(
       'externalId',
     )
+  })
+
+  it('disables the name field when antd disables its components', () => {
+    // antd reaches a field through a React context, which only a component
+    // imported from `antd` itself reads.
+    // Arrange / Act
+    render(
+      <ConfigProvider componentDisabled>
+        <EditProductForm
+          product={product}
+          onFormComplete={() => {}}
+          onFormCancel={() => {}}
+        />
+      </ConfigProvider>,
+    )
+
+    // Assert
+    expect(screen.getByRole('textbox', { name: 'Name' })).toBeDisabled()
   })
 })

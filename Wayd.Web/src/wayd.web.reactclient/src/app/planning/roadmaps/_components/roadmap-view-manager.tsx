@@ -2,10 +2,10 @@
 
 import { RoadmapDetailsDto, RoadmapItemListDto } from '@/src/services/wayd-api'
 import { BuildOutlined, MenuOutlined } from '@ant-design/icons'
-import Segmented, { SegmentedLabeledOption } from 'antd/es/segmented'
+import type { SegmentedLabeledOption } from 'antd/es/segmented'
 import { memo, useState } from 'react'
 import dynamic from 'next/dynamic'
-import { Spin } from 'antd'
+import { Segmented, Spin } from 'antd'
 import { useMessage } from '@/src/components/contexts/messaging'
 import RoadmapItemsGrid from './roadmap-items-grid'
 

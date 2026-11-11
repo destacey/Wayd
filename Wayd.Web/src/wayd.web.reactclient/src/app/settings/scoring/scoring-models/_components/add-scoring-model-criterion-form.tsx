@@ -8,9 +8,9 @@ import {
 import { useAddScoringModelCriterionMutation } from '@/src/store/features/scoring/scoring-models-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, InputNumber, Modal, Select } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
 import { useModalForm } from '@/src/hooks'
 
+const { TextArea } = Input
 const { Item } = Form
 
 export interface AddScoringModelCriterionFormProps {

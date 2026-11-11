@@ -1,7 +1,11 @@
 'use client'
 
 import { PageActions } from '@/src/components/common'
-import { RecordLayout, RecordLoading } from '@/src/components/common/record'
+import {
+  RecordLayout,
+  RecordLoading,
+  RecordSection,
+} from '@/src/components/common/record'
 import { WorkflowStatusTag } from '@/src/components/common/status-workflows'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -17,10 +21,18 @@ import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { useGetReleasesQuery } from '@/src/store/features/product-management/releases-api'
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
-import { Button, DatePicker, Flex, Form, Modal, Result, Select } from 'antd'
+import {
+  Button,
+  DatePicker,
+  Flex,
+  Form,
+  Input,
+  Modal,
+  Result,
+  Select,
+} from 'antd'
 import type { MenuProps } from 'antd'
-import { ItemType } from 'antd/es/menu/interface'
-import TextArea from 'antd/es/input/TextArea'
+import type { ItemType } from 'antd/es/menu/interface'
 import dayjs, { Dayjs } from 'dayjs'
 import { notFound } from 'next/navigation'
 import { use, useEffect, useMemo, useState } from 'react'
@@ -29,8 +41,8 @@ import {
   MarkdownEditor,
   MarkdownRenderer,
 } from '@/src/components/common/markdown'
-import IncidentLinks from '@/src/app/product-management/incidents/_components/incident-links'
 import IncidentDiscussion from '@/src/app/product-management/incidents/_components/incident-discussion'
+import IncidentWorkItemsSection from '@/src/app/product-management/incidents/_components/incident-work-items-section'
 import { IncidentSeverityRank } from '@/src/app/product-management/incidents/_components/incident-severity-rank'
 import IncidentFacts from '@/src/app/product-management/incidents/_components/incident-facts'
 import CancelIncidentForm from '@/src/app/product-management/incidents/_components/cancel-incident-form'
@@ -42,7 +54,24 @@ import {
 } from '@/src/services/wayd-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 
-const incidentSections = [{ id: 'overview', label: 'Overview' }]
+const { TextArea } = Input
+
+enum IncidentSection {
+  Overview = 'overview',
+  WorkItems = 'work-items',
+  Discussion = 'discussion',
+}
+
+const incidentSections: RecordSection[] = [
+  { id: IncidentSection.Overview, label: 'Overview' },
+  { id: IncidentSection.WorkItems, label: 'Work Items' },
+  // The discussion draws its own heading, with its counts and filters beside it.
+  {
+    id: IncidentSection.Discussion,
+    label: 'Discussion',
+    hideHeading: true,
+  },
+]
 
 const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { key } = use(props.params)
@@ -318,8 +347,16 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   return (
     <>
       <RecordLayout
-        sections={incidentSections}
-        defaultSection="overview"
+        // Editing replaces the overview. A single section keeps that form
+        // mounted, so Save still has the fields if Edit was opened elsewhere.
+        sections={
+          editing
+            ? incidentSections.filter(
+                (section) => section.id === IncidentSection.Overview,
+              )
+            : incidentSections
+        }
+        defaultSection={IncidentSection.Overview}
         record={{
           name: incident.title,
           recordKey: String(incident.key),
@@ -348,72 +385,86 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             ownerId: incident.id,
           },
         }}
-        facts={
-          <IncidentFacts incident={incident} viewerZone={viewerZone} />
-        }
+        facts={<IncidentFacts incident={incident} viewerZone={viewerZone} />}
       >
-        {() => editing ? (
-          <Form form={form} layout="vertical">
-            <Form.Item name="title" label="Title" rules={[{ required: true }]}>
-              <TextArea rows={2} />
-            </Form.Item>
-            <Form.Item name="symptoms" label="Symptoms">
-              <MarkdownEditor maxLength={4096} />
-            </Form.Item>
-            <Form.Item name="rootCause" label="Root cause">
-              <MarkdownEditor maxLength={4096} />
-            </Form.Item>
-            <Form.Item
-              name="severityLevelId"
-              label="Severity"
-              rules={[{ required: true }]}
-            >
-              <Select options={severityOptions} />
-            </Form.Item>
-            <Form.Item name="productIds" label="Products">
-              <Select mode="multiple" options={productOptions} allowClear />
-            </Form.Item>
-            <Form.Item name="releaseIds" label="Releases">
-              <Select mode="multiple" options={releaseOptions} allowClear />
-            </Form.Item>
-            <Form.Item
-              name="noticedAt"
-              label="Noticed at"
-              rules={[{ required: true }]}
-            >
-              <DatePicker showTime className="w-full" />
-            </Form.Item>
-            <Form.Item name="startedAt" label="Response started at">
-              <DatePicker showTime className="w-full" />
-            </Form.Item>
-            <Form.Item name="recoveredAt" label="Recovered at">
-              <DatePicker showTime className="w-full" />
-            </Form.Item>
-          </Form>
-        ) : (
-          <div className={styles.detailMain}>
-            {incident.symptoms ? (
-              <>
-                <h2 className={styles.fieldHeading}>Symptoms</h2>
-                <MarkdownRenderer markdown={incident.symptoms} />
-              </>
-            ) : null}
-            {incident.rootCause ? (
-              <>
-                <h2 className={styles.fieldHeading}>Root cause</h2>
-                <MarkdownRenderer markdown={incident.rootCause} />
-              </>
-            ) : null}
-            <div className={styles.discussionSection}>
-              <IncidentDiscussion incident={incident} />
+        {(section) => {
+          if (section === IncidentSection.WorkItems) {
+            return (
+              <IncidentWorkItemsSection
+                incidentId={incident.id}
+                idOrKey={key}
+                canManage={canUpdate}
+              />
+            )
+          }
+
+          if (section === IncidentSection.Discussion) {
+            return <IncidentDiscussion incident={incident} />
+          }
+
+          if (editing) {
+            return (
+              <Form form={form} layout="vertical">
+                <Form.Item
+                  name="title"
+                  label="Title"
+                  rules={[{ required: true }]}
+                >
+                  <TextArea rows={2} />
+                </Form.Item>
+                <Form.Item name="symptoms" label="Symptoms">
+                  <MarkdownEditor maxLength={4096} />
+                </Form.Item>
+                <Form.Item name="rootCause" label="Root cause">
+                  <MarkdownEditor maxLength={4096} />
+                </Form.Item>
+                <Form.Item
+                  name="severityLevelId"
+                  label="Severity"
+                  rules={[{ required: true }]}
+                >
+                  <Select options={severityOptions} />
+                </Form.Item>
+                <Form.Item name="productIds" label="Products">
+                  <Select mode="multiple" options={productOptions} allowClear />
+                </Form.Item>
+                <Form.Item name="releaseIds" label="Releases">
+                  <Select mode="multiple" options={releaseOptions} allowClear />
+                </Form.Item>
+                <Form.Item
+                  name="noticedAt"
+                  label="Noticed at"
+                  rules={[{ required: true }]}
+                >
+                  <DatePicker showTime className="w-full" />
+                </Form.Item>
+                <Form.Item name="startedAt" label="Response started at">
+                  <DatePicker showTime className="w-full" />
+                </Form.Item>
+                <Form.Item name="recoveredAt" label="Recovered at">
+                  <DatePicker showTime className="w-full" />
+                </Form.Item>
+              </Form>
+            )
+          }
+
+          return (
+            <div className={styles.overview}>
+              {incident.symptoms ? (
+                <div>
+                  <h2 className={styles.fieldHeading}>Symptoms</h2>
+                  <MarkdownRenderer markdown={incident.symptoms} />
+                </div>
+              ) : null}
+              {incident.rootCause ? (
+                <div>
+                  <h2 className={styles.fieldHeading}>Root cause</h2>
+                  <MarkdownRenderer markdown={incident.rootCause} />
+                </div>
+              ) : null}
             </div>
-            <IncidentLinks
-              incidentId={incident.id}
-              idOrKey={key}
-              canManageIncident={canUpdate}
-            />
-          </div>
-        )}
+          )
+        }}
       </RecordLayout>
       {cancelOpen ? (
         <CancelIncidentForm

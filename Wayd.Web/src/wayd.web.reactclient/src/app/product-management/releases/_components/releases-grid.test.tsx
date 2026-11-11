@@ -1,7 +1,3 @@
-// jest.setup stubs dayjs down to formatting, which leaves the grid's date columns without
-// dayjs.isDayjs. The grid needs the real module.
-jest.unmock('dayjs')
-
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ReleaseDto } from '@/src/services/wayd-api'
@@ -29,7 +25,10 @@ const cellBackground = (cell: HTMLElement) =>
 describe('ReleasesGrid', () => {
   it('counts active incidents in a pill and does not tint the row', async () => {
     // Arrange
-    const hotRelease = release(1, '2026.07', { name: 'SEV-2', color: '#D4A017' })
+    const hotRelease = release(1, '2026.07', {
+      name: 'SEV-2',
+      color: '#D4A017',
+    })
     ;(hotRelease as { activeIncidents: unknown }).activeIncidents = [
       {
         key: 4,

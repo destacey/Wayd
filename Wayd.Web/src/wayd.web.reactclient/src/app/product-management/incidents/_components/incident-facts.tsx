@@ -1,6 +1,7 @@
 'use client'
 
 import { LabeledContent } from '@/src/components/common/content'
+import LinksCard from '@/src/components/common/links/links-card'
 import {
   RecordFactsGroup,
   RecordLinkList,
@@ -22,8 +23,8 @@ export interface IncidentFactsProps {
  * An incident's stable facts, for the details panel.
  *
  * When it was noticed and who is running it, then the products and releases it
- * points at. Symptoms and the discussion stay in the page: they are the record
- * being read, not a label beside it.
+ * points at, then the same links card a PI objective uses. Symptoms and the
+ * discussion are sections of the record, not labels beside it.
  */
 const IncidentFacts = ({ incident, viewerZone }: IncidentFactsProps) => {
   const products = incident.products.map((product) => ({
@@ -83,6 +84,10 @@ const IncidentFacts = ({ incident, viewerZone }: IncidentFactsProps) => {
           )}
         </LabeledContent>
       </RecordFactsGroup>
+
+      <Divider size="small" style={{ margin: 0 }} />
+
+      <LinksCard objectId={incident.id} width="100%" />
     </>
   )
 }

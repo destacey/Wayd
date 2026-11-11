@@ -1,118 +1,13 @@
-.detail {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(180px, 0.7fr);
-  background: var(--ant-color-bg-container);
-  border: 1px solid var(--ant-color-border-secondary);
-  border-radius: var(--ant-border-radius);
-}
-
-.detailMain {
-  padding: 16px;
-  min-width: 0;
-}
-
-.detailAside {
-  border-left: 1px solid var(--ant-color-border-secondary);
-  padding: 16px;
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .fieldHeading {
   margin: 0 0 4px;
   font-size: 13px;
   font-weight: 600;
-}
-
-.fieldHeading + .desc {
-  margin-bottom: 16px;
-}
-
-.desc {
-  color: var(--ant-color-text-secondary);
-  font-size: 14px;
-  margin: 0;
-  white-space: pre-wrap;
-}
-
-.asideHeading {
-  margin: 16px 0 8px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.asideHeading:first-child {
-  margin-top: 0;
-}
-
-.asideList {
-  margin: 0 0 16px;
-  padding: 0;
-  list-style: none;
-  font-size: 14px;
-}
-
-.asideList li {
-  margin: 0 0 6px;
-}
-
-.linksHeadingRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin: 16px 0 8px;
-}
-
-.linksHeadingRow .asideHeading {
-  margin: 0;
-}
-
-.linkList {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 14px;
-}
-
-.linkRow {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  line-height: 1.4;
-  min-width: 0;
-}
-
-.linkRow > :first-child {
-  min-width: 0;
-  flex: 1;
-}
-
-.externalLink {
-  color: inherit;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.addLinkChoices {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.linkMuted {
-  color: var(--ant-color-text-secondary);
-}
-
-.discussionSection {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--ant-color-border-secondary);
-}
-
-.detailMain > .discussionSection:first-child {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: 0;
 }
 
 .rank {
@@ -133,15 +28,4 @@
   align-self: center;
   border-radius: 1px;
   flex-shrink: 0;
-}
-
-@media (max-width: 700px) {
-  .detail {
-    grid-template-columns: 1fr;
-  }
-
-  .detailAside {
-    border-left: 0;
-    border-top: 1px solid var(--ant-color-border-secondary);
-  }
 }

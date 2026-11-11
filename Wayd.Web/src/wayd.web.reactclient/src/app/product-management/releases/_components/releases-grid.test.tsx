@@ -27,7 +27,7 @@ const cellBackground = (cell: HTMLElement) =>
   cell.style.backgroundColor || cell.style.background
 
 describe('ReleasesGrid', () => {
-  it('tints every cell from the highest active incident and counts them in a pill', async () => {
+  it('counts active incidents in a pill and does not tint the row', async () => {
     // Arrange
     const hotRelease = release(1, '2026.07', { name: 'SEV-2', color: '#D4A017' })
     ;(hotRelease as { activeIncidents: unknown }).activeIncidents = [
@@ -58,9 +58,7 @@ describe('ReleasesGrid', () => {
     const hotCells = hot.querySelectorAll('td')
     expect(hotCells.length).toBeGreaterThan(1)
     for (const cell of hotCells) {
-      const background = cellBackground(cell as HTMLElement)
-      expect(background).toContain('color-mix')
-      expect(background).toContain('rgb(212, 160, 23)')
+      expect(cellBackground(cell as HTMLElement)).toBe('')
     }
 
     const cool = screen.getByText('2026.08').closest('tr')!

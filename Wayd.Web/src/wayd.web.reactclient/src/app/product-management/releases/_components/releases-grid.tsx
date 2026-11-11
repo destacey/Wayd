@@ -12,7 +12,6 @@ import { Tooltip, Typography } from 'antd'
 import Link from 'next/link'
 import { ReactElement } from 'react'
 import { activeIncidentColumn } from '../../_components/active-incident-links'
-import { incidentRowTint } from '../../_components/incident-row-tint'
 
 const { Text } = Typography
 
@@ -152,7 +151,6 @@ const ReleasesGrid: React.FC<ReleasesGridProps> = ({
     csvFileName="releases"
     persistStateKey={persistStateKey}
     emptyMessage={emptyMessage}
-    getRowBackground={(row) => incidentRowTint(row.activeIncidentSeverityColor)}
   />
 )
 

@@ -72,7 +72,7 @@ const IncidentTeamsChat = ({
       {incident.teamsChatLink ? (
         <Flex align="center" gap={8}>
           <TeamsMark />
-          <Link href={incident.teamsChatLink} target="_blank" rel="noreferrer">
+          <Link href={incident.teamsChatLink} target="_blank" rel="noopener noreferrer">
             {chatName}
           </Link>
         </Flex>
@@ -140,7 +140,7 @@ const IncidentTeamsChat = ({
                       { required: true, message: 'Paste the Teams link.' },
                       {
                         validator: (_, value: string | undefined) =>
-                          !value || value.trim().startsWith('https://')
+                          !value || value.trim().toLowerCase().startsWith('https://')
                             ? Promise.resolve()
                             : Promise.reject(
                                 new Error('The link must start with https://'),

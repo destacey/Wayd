@@ -115,7 +115,19 @@ public sealed class LinkIncidentTeamsChatRequestValidator : CustomValidator<Link
     public LinkIncidentTeamsChatRequestValidator()
     {
         RuleFor(r => r.Id).NotEmpty();
-        RuleFor(r => r.Link).NotEmpty().MaximumLength(2048);
+        RuleFor(r => r.Link)
+            .NotEmpty()
+            .MaximumLength(2048)
+            .Must(BeHttpsAbsoluteUrl)
+            .WithMessage("A Teams chat link must be an https URL.");
         RuleFor(r => r.DisplayName).MaximumLength(256);
+    }
+
+    private static bool BeHttpsAbsoluteUrl(string? link)
+    {
+        var trimmed = link?.Trim();
+        return trimmed is not null
+            && Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
+            && uri.Scheme == Uri.UriSchemeHttps;
     }
 }

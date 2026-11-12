@@ -10,6 +10,7 @@ namespace Wayd.ProductManagement.Application.Incidents.Commands;
 public sealed record CreateIncidentCommand(
     string Title,
     string? Symptoms,
+    string? Remediation,
     string? RootCause,
     Guid SeverityLevelId,
     Instant? NoticedAt,
@@ -26,6 +27,7 @@ public sealed class CreateIncidentCommandValidator : AbstractValidator<CreateInc
     {
         RuleFor(c => c.Title).NotEmpty().MaximumLength(256);
         RuleFor(c => c.Symptoms).MaximumLength(4096);
+        RuleFor(c => c.Remediation).MaximumLength(4096);
         RuleFor(c => c.RootCause).MaximumLength(4096);
         RuleFor(c => c.SeverityLevelId).NotEmpty();
         RuleFor(c => c.ReportedByEmployeeId).NotEmpty();
@@ -128,7 +130,8 @@ public sealed class CreateIncidentCommandHandler(
                 _dateTimeProvider.Now,
                 employeeId.Value,
                 request.ReportedByEmployeeId,
-                request.ReleaseIds);
+                request.ReleaseIds,
+                request.Remediation);
 
             if (incident.IsFailure)
             {

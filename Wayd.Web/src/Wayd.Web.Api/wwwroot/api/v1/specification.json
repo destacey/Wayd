@@ -58982,6 +58982,12 @@
             "description": "What responders are seeing. Empty when nothing has been recorded yet.",
             "nullable": true
           },
+          "remediation": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "What was done to restore service or stop the impact. Empty until a remediation is recorded.",
+            "nullable": true
+          },
           "rootCause": {
             "maxLength": 4096,
             "type": "string",
@@ -67201,6 +67207,11 @@
           "symptoms": {
             "type": "string",
             "description": "What responders are seeing. Null when nothing has been recorded yet.",
+            "nullable": true
+          },
+          "remediation": {
+            "type": "string",
+            "description": "What was done to restore service or stop the impact. Null until a remediation is recorded.",
             "nullable": true
           },
           "rootCause": {
@@ -87581,6 +87592,12 @@
             "maxLength": 4096,
             "type": "string",
             "description": "What responders are seeing. Empty when nothing has been recorded yet.",
+            "nullable": true
+          },
+          "remediation": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "What was done to restore service or stop the impact. Empty until a remediation is recorded.",
             "nullable": true
           },
           "rootCause": {

@@ -25,10 +25,11 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
         EventActor actor,
         Instant timestamp,
         string? symptoms,
+        string? remediation,
         string? rootCause,
         IReadOnlyCollection<Guid> productIds,
         IReadOnlyCollection<Guid> releaseIds)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;
@@ -42,6 +43,7 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
         RecoveredAt = recoveredAt;
         StatusAlias = statusAlias;
         Symptoms = symptoms;
+        Remediation = remediation;
         RootCause = rootCause;
         ProductIds = productIds;
         ReleaseIds = releaseIds;
@@ -69,6 +71,9 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
 
     /// <summary>What responders were seeing when the incident was opened. Null when nothing was recorded.</summary>
     public string? Symptoms { get; }
+
+    /// <summary>What was done to restore service, if that was already known. Null until a remediation is recorded.</summary>
+    public string? Remediation { get; }
 
     /// <summary>Why it happened, if that was already known. Null until a cause is recorded.</summary>
     public string? RootCause { get; }

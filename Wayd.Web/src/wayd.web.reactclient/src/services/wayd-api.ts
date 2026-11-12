@@ -65071,6 +65071,8 @@ export interface CreateIncidentRequest {
     title: string;
     /** What responders are seeing. Empty when nothing has been recorded yet. */
     symptoms?: string | undefined;
+    /** What was done to restore service or stop the impact. Empty until a remediation is recorded. */
+    remediation?: string | undefined;
     /** Why it happened, once that is known. Empty until a cause is recorded. */
     rootCause?: string | undefined;
     severityLevelId: string;
@@ -67836,6 +67838,8 @@ export interface IncidentDto {
     title: string;
     /** What responders are seeing. Null when nothing has been recorded yet. */
     symptoms?: string | undefined;
+    /** What was done to restore service or stop the impact. Null until a remediation is recorded. */
+    remediation?: string | undefined;
     /** Why it happened, once that is known. Null until a cause is recorded. */
     rootCause?: string | undefined;
     /** The employee who opened the incident. */
@@ -74518,6 +74522,8 @@ export interface UpdateIncidentDetailsRequest {
     title: string;
     /** What responders are seeing. Empty when nothing has been recorded yet. */
     symptoms?: string | undefined;
+    /** What was done to restore service or stop the impact. Empty until a remediation is recorded. */
+    remediation?: string | undefined;
     /** Why it happened, once that is known. Empty until a cause is recorded. */
     rootCause?: string | undefined;
     severityLevelId: string;

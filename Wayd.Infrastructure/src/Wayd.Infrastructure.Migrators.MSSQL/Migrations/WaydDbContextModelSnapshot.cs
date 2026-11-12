@@ -5538,6 +5538,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<DateTime?>("RecoveredAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Remediation")
+                        .HasMaxLength(4096)
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("ReportedByEmployeeId")
                         .HasColumnType("uniqueidentifier");
 

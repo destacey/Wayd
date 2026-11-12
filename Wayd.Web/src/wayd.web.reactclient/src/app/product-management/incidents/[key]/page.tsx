@@ -164,6 +164,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     form.setFieldsValue({
       title: incident.title,
       symptoms: incident.symptoms,
+      remediation: incident.remediation,
       rootCause: incident.rootCause,
       severityLevelId: incident.severityLevel.id,
       noticedAt: dayjs(incident.noticedAt),
@@ -186,6 +187,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         id: incident.id,
         title: values.title,
         symptoms: values.symptoms,
+        remediation: values.remediation,
         rootCause: values.rootCause,
         severityLevelId: values.severityLevelId,
         noticedAt: (values.noticedAt as Dayjs).toDate(),
@@ -465,6 +467,9 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                   <Form.Item name="symptoms" label="Symptoms">
                     <MarkdownEditor maxLength={4096} />
                   </Form.Item>
+                  <Form.Item name="remediation" label="Remediation">
+                    <MarkdownEditor maxLength={4096} />
+                  </Form.Item>
                   <Form.Item name="rootCause" label="Root cause">
                     <MarkdownEditor maxLength={4096} />
                   </Form.Item>
@@ -529,6 +534,12 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                 <div>
                   <h2 className={styles.fieldHeading}>Symptoms</h2>
                   <MarkdownRenderer markdown={incident.symptoms} />
+                </div>
+              ) : null}
+              {incident.remediation ? (
+                <div>
+                  <h2 className={styles.fieldHeading}>Remediation</h2>
+                  <MarkdownRenderer markdown={incident.remediation} />
                 </div>
               ) : null}
               {incident.rootCause ? (

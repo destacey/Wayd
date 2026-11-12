@@ -466,6 +466,146 @@ public sealed class IncidentTests
     }
 
     [Fact]
+    public void Create_ShouldStoreRemediation()
+    {
+        // Arrange
+        var submittedById = Guid.CreateVersion7();
+        var reportedById = Guid.CreateVersion7();
+
+        // Act
+        var result = Incident.Create(
+            "Checkout unavailable",
+            "Payments failing in production.",
+            null,
+            commanderEmployeeId: null,
+            Guid.CreateVersion7(),
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [],
+            StatusRefFactory.Open(),
+            EventActor.System,
+            Timestamp,
+            submittedById,
+            reportedById,
+            remediation: "  Restored the checkout.  ");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Remediation.Should().Be("Restored the checkout.");
+        result.Value.ExecutePostPersistenceActions();
+        var created = result.Value.DomainEvents.OfType<IncidentCreatedEvent>().Should().ContainSingle().Subject;
+        created.Remediation.Should().Be("Restored the checkout.");
+        created.EventVersion.Should().Be("1.1");
+    }
+
+    [Fact]
+    public void Create_ShouldLeaveRemediationEmpty_WhenItIsBlank()
+    {
+        // Arrange
+        var submittedById = Guid.CreateVersion7();
+        var reportedById = Guid.CreateVersion7();
+
+        // Act
+        var result = Incident.Create(
+            "Checkout unavailable",
+            null,
+            null,
+            commanderEmployeeId: null,
+            Guid.CreateVersion7(),
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [],
+            StatusRefFactory.Open(),
+            EventActor.System,
+            Timestamp,
+            submittedById,
+            reportedById,
+            remediation: "   ");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Remediation.Should().BeNull();
+        result.Value.ExecutePostPersistenceActions();
+        result.Value.DomainEvents.OfType<IncidentCreatedEvent>().Should().ContainSingle()
+            .Which.Remediation.Should().BeNull();
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldRaiseDetailsChanged_WhenRemediationIsRecorded()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+
+        // Act
+        var result = incident.UpdateDetails(
+            "Checkout unavailable",
+            "Payments failing in production.",
+            null,
+            incident.SeverityLevelId,
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [],
+            EventActor.System,
+            Timestamp,
+            remediation: "Rolled back the deploy");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.Remediation.Should().Be("Rolled back the deploy");
+        var details = incident.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<IncidentDetailsUpdatedEvent>().Subject;
+        details.FromRemediation.Should().BeNull();
+        details.ToRemediation.Should().Be("Rolled back the deploy");
+        details.FromSymptoms.Should().Be("Payments failing in production.");
+        details.ToSymptoms.Should().Be("Payments failing in production.");
+        details.FromRootCause.Should().BeNull();
+        details.ToRootCause.Should().BeNull();
+        details.EventVersion.Should().Be("1.1");
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldNotRaiseDetailsChanged_WhenRemediationIsUnchanged()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        incident.UpdateDetails(
+            "Checkout unavailable",
+            "Payments failing in production.",
+            null,
+            incident.SeverityLevelId,
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [],
+            EventActor.System,
+            Timestamp,
+            remediation: "Rolled back the deploy");
+        incident.ClearDomainEvents();
+
+        // Act
+        var result = incident.UpdateDetails(
+            "Checkout unavailable",
+            "Payments failing in production.",
+            null,
+            incident.SeverityLevelId,
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [],
+            EventActor.System,
+            Timestamp,
+            remediation: "  Rolled back the deploy  ");
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.Remediation.Should().Be("Rolled back the deploy");
+        incident.DomainEvents.OfType<IncidentDetailsUpdatedEvent>().Should().BeEmpty();
+    }
+
+    [Fact]
     public void Create_ShouldRecordTheIncidentAsOpened_AfterALaterEdit()
     {
         // Arrange

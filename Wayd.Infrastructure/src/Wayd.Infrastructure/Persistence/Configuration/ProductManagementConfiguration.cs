@@ -748,6 +748,7 @@ public class IncidentConfiguration : IEntityTypeConfiguration<Incident>
 
         builder.Property(i => i.Title).IsRequired().HasMaxLength(256);
         builder.Property(i => i.Symptoms).HasMaxLength(4096);
+        builder.Property(i => i.Remediation).HasMaxLength(4096);
         builder.Property(i => i.RootCause).HasMaxLength(4096);
         builder.Property(i => i.SubmittedByEmployeeId).IsRequired();
         builder.Property(i => i.ReportedByEmployeeId).IsRequired();

@@ -28,8 +28,8 @@ const incidentCounts = (row: IncidentRow): string[] => {
 }
 
 /**
- * A count of the active incidents on a product or release. Hovering it lists each one —
- * severity, name, and status — and each row opens that incident.
+ * A count of the active incidents on a product or release. Hovering or focusing it lists
+ * each one — severity, name, and status — and each row opens that incident.
  */
 export function ActiveIncidentPill({
   incidents,
@@ -48,7 +48,7 @@ export function ActiveIncidentPill({
 
   return (
     <Popover
-      trigger="hover"
+      trigger={['hover', 'focus']}
       title="Active incidents"
       content={
         <ul className={styles.list}>
@@ -72,7 +72,12 @@ export function ActiveIncidentPill({
         </ul>
       }
     >
-      <Tag color={color || undefined} aria-label={label} className={styles.pill}>
+      <Tag
+        color={color || undefined}
+        aria-label={label}
+        className={styles.pill}
+        tabIndex={0}
+      >
         {links.length}
       </Tag>
     </Popover>

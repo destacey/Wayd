@@ -71,8 +71,7 @@ public sealed class RecordIncidentTimelineLinkEntriesCommandHandler(
             return Result.Failure("Incident not found.");
         }
 
-        var recordedAt = _dateTimeProvider.Now;
-        var timestamp = _dateTimeProvider.Now;
+        var now = _dateTimeProvider.Now;
         var actor = EventActor.User(_currentUser.GetUserId(), employeeId.Value);
         foreach (var change in request.Changes)
         {
@@ -83,8 +82,8 @@ public sealed class RecordIncidentTimelineLinkEntriesCommandHandler(
                 change.FromLabel,
                 change.ToLabel,
                 actor,
-                recordedAt,
-                timestamp,
+                now,
+                now,
                 change.TargetId,
                 change.FromTargetId);
             if (recorded.IsFailure)

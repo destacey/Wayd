@@ -50,7 +50,8 @@ describe('ReleasesGrid', () => {
     const hot = screen.getByText('2026.07').closest('tr')!
     const pill = screen.getByLabelText('1 active incident')
     expect(pill).toHaveTextContent('1')
-    await userEvent.hover(pill)
+    pill.focus()
+    expect(pill).toHaveFocus()
     const link = await screen.findByRole('link', { name: /Pricing stall/ })
     expect(link).toHaveAttribute('href', '/product-management/incidents/4')
     expect(link).toHaveTextContent('Open')

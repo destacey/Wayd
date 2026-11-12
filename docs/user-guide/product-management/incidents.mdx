@@ -31,9 +31,9 @@ The record page shows the title, key, severity, and status. The details panel ho
 
 | Action | What it records |
 | --- | --- |
-| Begin responding | Response has started. The start cannot be before the incident was noticed. |
-| Mark recovered | Service is restored. Recovery cannot be before response started. |
-| Close | The incident is finished, after recovery. |
+| Begin responding | Response has started. When response start is empty, the confirmation asks for that time, preset to now, and the chosen time is what gets recorded. The start cannot be before the incident was noticed. |
+| Mark recovered | Service is restored. When recovery is empty, the confirmation asks for that time, preset to now. If response start is empty too, that same time is recorded as both. Recovery cannot be before response started. |
+| Close | The incident is finished, after recovery. The confirmation writes no date. |
 | Cancel | The incident is set aside. A reason is optional. |
 
 Which of those the page offers depends on the incident's [status workflow](../settings/status-workflows.mdx). A move the workflow does not allow is not offered.

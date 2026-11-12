@@ -178,6 +178,7 @@ describe('IncidentDetailsPage status confirmation', () => {
     expect(
       await screen.findByText('Mark this incident as actively being worked.'),
     ).toBeInTheDocument()
+    expect(screen.getByText('Response started at')).toBeInTheDocument()
     expect(staticConfirm).not.toHaveBeenCalled()
     staticConfirm.mockRestore()
   })

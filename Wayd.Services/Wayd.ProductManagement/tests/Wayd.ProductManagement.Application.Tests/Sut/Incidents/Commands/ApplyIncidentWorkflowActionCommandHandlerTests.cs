@@ -1,4 +1,5 @@
 using FluentAssertions;
+using NodaTime;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
@@ -58,6 +59,25 @@ public sealed class ApplyIncidentWorkflowActionCommandHandlerTests : ProductComm
     }
 
     [Fact]
+    public async Task Handle_ShouldBeginResponding_AtTheSuppliedInstant()
+    {
+        // Arrange
+        var workflow = DeliveryWorkflowFactory.Published(DeliveryWorkflowFactory.Seeded(ProductWorkflowOwners.Incident));
+        DbContext.AddStatusWorkflow(workflow);
+        var incident = Seed(workflow);
+        var when = Now.Plus(Duration.FromMinutes(12));
+
+        // Act
+        var result = await CreateSut().Handle(
+            new ApplyIncidentWorkflowActionCommand(incident.Id, IncidentWorkflowAction.BeginResponding, null, when),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.StartedAt.Should().Be(when);
+    }
+
+    [Fact]
     public async Task Handle_ShouldMarkRecovered()
     {
         // Arrange
@@ -74,6 +94,27 @@ public sealed class ApplyIncidentWorkflowActionCommandHandlerTests : ProductComm
         result.IsSuccess.Should().BeTrue();
         incident.StatusAlias.Should().Be(ProductStatusAlias.Resolved);
         incident.RecoveredAt.Should().Be(Now);
+        incident.StartedAt.Should().Be(Now);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldMarkRecovered_AtTheSuppliedInstant()
+    {
+        // Arrange
+        var workflow = DeliveryWorkflowFactory.Published(DeliveryWorkflowFactory.Seeded(ProductWorkflowOwners.Incident));
+        DbContext.AddStatusWorkflow(workflow);
+        var incident = Seed(workflow);
+        var when = Now.Plus(Duration.FromMinutes(4));
+
+        // Act
+        var result = await CreateSut().Handle(
+            new ApplyIncidentWorkflowActionCommand(incident.Id, IncidentWorkflowAction.MarkRecovered, null, when),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.StartedAt.Should().Be(when);
+        incident.RecoveredAt.Should().Be(when);
     }
 
     [Fact]

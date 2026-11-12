@@ -117823,6 +117823,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("reason")]
         public string? Reason { get; set; } = default!;
 
+        /// <summary>
+        /// The instant written onto a date this action fills in. Begin responding uses it for response start
+        /// <br/>when that is empty. Mark recovered uses it for recovery, and for response start when that is also empty.
+        /// <br/>Empty means now. Close and cancel ignore it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("occurredAt")]
+        public System.DateTimeOffset? OccurredAt { get; set; } = default!;
+
     }
 
     /// <summary>

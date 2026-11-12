@@ -64300,6 +64300,10 @@ export interface ApplyIncidentWorkflowActionRequest {
     action: IncidentWorkflowAction;
     /** Why the incident was canceled, when IncidentWorkflowAction ApplyIncidentWorkflowActionRequest.Action is Cancel. */
     reason?: string | undefined;
+    /** The instant written onto a date this action fills in. Begin responding uses it for response start
+when that is empty. Mark recovered uses it for recovery, and for response start when that is also empty.
+Empty means now. Close and cancel ignore it. */
+    occurredAt?: Date | undefined;
 }
 
 /** The user's approval of a connection request. */

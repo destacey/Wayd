@@ -46,6 +46,7 @@ import IncidentWorkItemsSection from '@/src/app/product-management/incidents/_co
 import { IncidentSeverityRank } from '@/src/app/product-management/incidents/_components/incident-severity-rank'
 import IncidentFacts from '@/src/app/product-management/incidents/_components/incident-facts'
 import CancelIncidentForm from '@/src/app/product-management/incidents/_components/cancel-incident-form'
+import { incidentTransitionDate } from '@/src/app/product-management/incidents/_components/incident-transition-date'
 import { incidentWorkflowActionAvailability } from '@/src/app/product-management/incidents/_components/incident-workflow-actions'
 import styles from '@/src/app/product-management/incidents/_components/incidents.module.css'
 import {
@@ -246,11 +247,44 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     action: IncidentWorkflowAction,
     successMessage: string,
   ) => {
+    const dateField = incidentTransitionDate(action, incident)
+    const chosen = { current: dayjs() as Dayjs | null }
+    const preset = chosen.current
+    const dateLabel =
+      dateField === 'recoveredAt' ? 'Recovered at' : 'Response started at'
+
     modal.confirm({
       title,
-      content,
+      content: dateField ? (
+        <Flex vertical gap={8}>
+          <span>{content}</span>
+          {dateField === 'both' ? (
+            <span>
+              This time is recorded as the response start and the recovery.
+            </span>
+          ) : (
+            <span>{dateLabel}</span>
+          )}
+          <DatePicker
+            showTime
+            defaultValue={preset ?? undefined}
+            className="w-full"
+            onChange={(value) => {
+              chosen.current = value
+            }}
+          />
+        </Flex>
+      ) : (
+        content
+      ),
       okText: title,
-      onOk: () => applyLifecycleAction(action, { action }, successMessage),
+      onOk: () => {
+        const request: ApplyIncidentWorkflowActionRequest = { action }
+        if (dateField) {
+          request.occurredAt = (chosen.current ?? dayjs()).toDate()
+        }
+        return applyLifecycleAction(action, request, successMessage)
+      },
     })
   }
 

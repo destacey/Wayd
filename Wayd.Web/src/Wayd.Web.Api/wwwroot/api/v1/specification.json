@@ -56519,6 +56519,12 @@
             "type": "string",
             "description": "Why the incident was canceled, when IncidentWorkflowAction ApplyIncidentWorkflowActionRequest.Action is Cancel.",
             "nullable": true
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "The instant written onto a date this action fills in. Begin responding uses it for response start\nwhen that is empty. Mark recovered uses it for recovery, and for response start when that is also empty.\nEmpty means now. Close and cancel ignore it.",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "additionalProperties": false,

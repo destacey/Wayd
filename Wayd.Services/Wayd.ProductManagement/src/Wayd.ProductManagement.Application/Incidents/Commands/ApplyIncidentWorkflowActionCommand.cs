@@ -10,7 +10,8 @@ namespace Wayd.ProductManagement.Application.Incidents.Commands;
 public sealed record ApplyIncidentWorkflowActionCommand(
     Guid IncidentId,
     IncidentWorkflowAction Action,
-    string? Reason) : ICommand, IRequireLinkedEmployee;
+    string? Reason,
+    Instant? OccurredAt = null) : ICommand, IRequireLinkedEmployee;
 
 public sealed class ApplyIncidentWorkflowActionCommandValidator : AbstractValidator<ApplyIncidentWorkflowActionCommand>
 {
@@ -92,8 +93,8 @@ public sealed class ApplyIncidentWorkflowActionCommandHandler(
 
         var result = request.Action switch
         {
-            IncidentWorkflowAction.BeginResponding => incident.BeginResponding(target, actor, now),
-            IncidentWorkflowAction.MarkRecovered => incident.MarkRecovered(target, actor, now),
+            IncidentWorkflowAction.BeginResponding => incident.BeginResponding(target, actor, now, request.OccurredAt),
+            IncidentWorkflowAction.MarkRecovered => incident.MarkRecovered(target, actor, now, request.OccurredAt),
             IncidentWorkflowAction.Close => incident.Close(target, actor, now),
             IncidentWorkflowAction.Cancel => incident.Cancel(target, actor, now, request.Reason),
             _ => throw new ArgumentOutOfRangeException(nameof(request)),

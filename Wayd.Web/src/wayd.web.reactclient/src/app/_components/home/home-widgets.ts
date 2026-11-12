@@ -19,6 +19,7 @@ import MyProjectsWidget from './widgets/my-projects-widget'
 import MyRequestsWidget from './widgets/my-requests-widget'
 import MyWorkItemsWidget from './widgets/my-work-items-widget'
 import MyRisksWidget, { RiskFollowUpsTile } from './widgets/my-risks-widget'
+import MyRoadmapsWidget from './widgets/my-roadmaps-widget'
 import PlanningIntervalsWidget from './widgets/planning-intervals-widget'
 import WhatsChangedWidget, {
   UnreadNotificationsTile,
@@ -203,6 +204,23 @@ export const HomeWidgets: HomeWidget[] = [
         Tile: RiskFollowUpsTile,
       },
     ],
+  },
+  {
+    id: 'my-roadmaps',
+    title: 'My roadmaps',
+    description:
+      'The active roadmaps you are an owner of, with their dates and visibility.',
+    defaultColumn: 'side',
+    defaultOrder: 35,
+    requires: {
+      permissions: ['Permissions.Roadmaps.View'],
+      linkedEmployee: true,
+      // Keeping a roadmap current falls to its owners; anyone else would only ever see it empty.
+      involved: ({ ownedRoadmapCount }) => ownedRoadmapCount > 0,
+    },
+    Component: MyRoadmapsWidget,
+    // Owning a roadmap is involvement, not day-to-day work, so it stays in the side column.
+    involvement: () => Involvement.Involved,
   },
   {
     id: 'planning-intervals',

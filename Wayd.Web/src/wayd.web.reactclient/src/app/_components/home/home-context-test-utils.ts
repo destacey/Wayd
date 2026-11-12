@@ -7,6 +7,7 @@ export interface HomeContextOverrides {
   intake?: Partial<HomeContextResponse['intake']>
   assignedRiskCount?: number
   teamProductCount?: number
+  ownedRoadmapCount?: number
 }
 
 /** A linked caller's home context: involved in nothing but what the overrides add. */
@@ -33,4 +34,5 @@ export const homeContext = (
   },
   assignedRiskCount: overrides.assignedRiskCount ?? 0,
   teamProductCount: overrides.teamProductCount ?? 0,
+  ownedRoadmapCount: overrides.ownedRoadmapCount ?? 0,
 })

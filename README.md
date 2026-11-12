@@ -277,7 +277,7 @@ SecuritySettings__LocalJwt__Secret={strong random secret, at least 32 chars}
 SecuritySettings__DataProtection__MasterKey={base64 32-byte key: openssl rand -base64 32}
 ```
 
-`MasterKey` encrypts connector credentials (such as Azure DevOps PATs) at rest; losing it means re-entering them, so keep it separate from the JWT secret and back it up — see [Data Protection](docs/contributing/configuration.mdx#data-protection-at-rest-secret-encryption). Also override the Hangfire dashboard's checked-in credentials (`HangfireSettings__Credentials__User` / `HangfireSettings__Credentials__Password`), and set `ApiSettings__PublicUrl` and `ApiSettings__WebClientUrl` for MCP clients to sign in. The full list is in [Configuration → Environment Variables](docs/contributing/configuration.mdx#environment-variables).
+`MasterKey` encrypts connector credentials (such as Azure DevOps PATs) at rest; losing it means re-entering them, so keep it separate from the JWT secret and back it up — see [Data Protection](docs/contributing/configuration.mdx#data-protection-at-rest-secret-encryption). Also set `ApiSettings__PublicUrl` and `ApiSettings__WebClientUrl` for MCP clients to sign in. The full list is in [Configuration → Environment Variables](docs/contributing/configuration.mdx#environment-variables).
 
 > **Entra ID login** and the **Microsoft Graph people-sync connector** are both configured in the database, not via environment variables. Manage login providers under **Settings → Access → Identity Providers** and the Graph connection under **Settings → System → Connections**. See the [identity provider configuration docs](https://wayd.dev/docs/contributing/configuration).
 

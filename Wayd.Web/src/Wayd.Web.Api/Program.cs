@@ -1,7 +1,6 @@
 ﻿using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using FluentValidation.AspNetCore;
 using JasperFx;
 using Wayd.AppIntegration.Application;
 using Wayd.Common.Application;
@@ -19,6 +18,7 @@ using Wayd.StrategicManagement.Application;
 using Wayd.Web.Api.Configurations;
 using Wayd.Web.Api.Interfaces;
 using Wayd.Web.Api.Services;
+using Wayd.Web.Api.Validation;
 using Wayd.Work.Application;
 using NodaTime.Serialization.SystemTextJson;
 using Serilog;
@@ -54,7 +54,7 @@ try
         options.AllowTrailingCommas = true;
     }
 
-    builder.Services.AddControllers()
+    builder.Services.AddControllers(options => options.Filters.Add<RequestValidationFilter>(RequestValidationFilter.Order))
         .AddJsonOptions(options => ConfigureJson(options.JsonSerializerOptions));
 
     // Microsoft.AspNetCore.OpenApi describes every endpoint, controllers included, from these options rather
@@ -75,8 +75,6 @@ try
     });
 
     builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
-    builder.Services.AddFluentValidationAutoValidation();
-    builder.Services.AddFluentValidationClientsideAdapters();
 
     builder.Services.AddCommonApplication();
     builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);

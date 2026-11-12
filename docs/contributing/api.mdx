@@ -189,9 +189,9 @@ values; a new kind of pass that writes differently needs its own case there.
   `WaydApiConventions` method so the OpenAPI document lists it
 - Use `CancellationToken` in all async endpoints
 - Validate input through FluentValidation, at two levels. A request model's `IValidator<TRequest>` in
-  `Wayd.Web.Api` runs during model binding (FluentValidation's ASP.NET auto-validation), and a command's
-  validator in its Application project runs in the Wolverine handler pipeline. Both failures answer 422 with
-  validation problem details.
+  `Wayd.Web.Api` runs before the action (`RequestValidationFilter`, picked by the argument's runtime type, async
+  rules included), and a command's validator in its Application project runs in the Wolverine handler pipeline.
+  Both failures answer 422 with validation problem details.
 - A list query ends its order on a unique key (`Key` or `Id` last). The hosted MCP server pages a list over
   several calls with an `offset`, so an order the database is free to vary repeats and skips records between
   pages.

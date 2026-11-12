@@ -22,6 +22,7 @@ vi.mock('./widgets/project-health-checks-due-widget', () => ({
   ProjectHealthChecksDueTile: () => null,
 }))
 vi.mock('./widgets/my-deliverables-widget', () => ({ default: () => null }))
+vi.mock('./widgets/my-work-items-widget', () => ({ default: () => null }))
 vi.mock('./widgets/my-risks-widget', () => ({
   default: () => null,
   RiskFollowUpsTile: () => null,
@@ -136,13 +137,14 @@ const defaultFor = (overrides: HomeContextOverrides) => {
 }
 
 describe('HomeWidgets involvement rules', () => {
-  it('puts a team member’s teams first, above areas they are not in', () => {
+  it('puts a team member’s teams and work items first, above areas they are not in', () => {
     // Arrange / Act
     const layout = defaultFor({ teams: { teamCount: 2 } })
 
     // Assert
     expect(layout.main).toEqual([
       'my-teams',
+      'my-work-items',
       'whats-changed',
       'my-projects',
       'my-risks',
@@ -275,6 +277,7 @@ describe('HomeWidgets involvement rules', () => {
     expect(layout.main).toEqual([
       'my-projects',
       'whats-changed',
+      'my-work-items',
       'my-risks',
       'desk-queue',
     ])
@@ -292,6 +295,7 @@ describe('HomeWidgets involvement rules', () => {
     expect(layout.main).toEqual([
       'my-projects',
       'my-teams',
+      'my-work-items',
       'project-health-checks-due',
       'my-deliverables',
       'my-risks',
@@ -310,13 +314,26 @@ describe('HomeWidgets involvement rules', () => {
     const layout = defaultFor({ teams: { teamOfTeamsCount: 1 } })
 
     // Assert
-    expect(layout.main[0]).toBe('my-teams')
+    // Their own work items are not raised: the rollup is about teams beneath them.
+    expect(layout.main.slice(0, 3)).toEqual([
+      'my-teams',
+      'whats-changed',
+      'my-work-items',
+    ])
     expect(layout.side).toEqual([
       'planning-intervals',
       'following',
       'my-requests',
       'my-deliverables',
     ])
+  })
+
+  it('ranks work items as shared for someone on no team', () => {
+    // Arrange / Act
+    const layout = defaultFor({})
+
+    // Assert
+    expect(layout.main.slice(0, 2)).toEqual(['whats-changed', 'my-work-items'])
   })
 
   it('puts the desk queue first for someone who works an intake desk', () => {

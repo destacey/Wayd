@@ -17,6 +17,7 @@ import MyProjectTasksWidget, {
 } from './widgets/my-project-tasks-widget'
 import MyProjectsWidget from './widgets/my-projects-widget'
 import MyRequestsWidget from './widgets/my-requests-widget'
+import MyWorkItemsWidget from './widgets/my-work-items-widget'
 import MyRisksWidget, { RiskFollowUpsTile } from './widgets/my-risks-widget'
 import PlanningIntervalsWidget from './widgets/planning-intervals-widget'
 import WhatsChangedWidget, {
@@ -82,6 +83,25 @@ export const HomeWidgets: HomeWidget[] = [
         Tile: UnreadNotificationsTile,
       },
     ],
+  },
+  {
+    id: 'my-work-items',
+    title: 'My work items',
+    description:
+      'The work items assigned to you that are in progress or proposed, in progress first, with how many you finished in the last week.',
+    defaultColumn: 'main',
+    // After My teams, so a team member sees their team before their own share of its work.
+    defaultOrder: 22,
+    requires: {
+      permissions: ['Permissions.WorkItems.View'],
+      linkedEmployee: true,
+    },
+    Component: MyWorkItemsWidget,
+    // A team member's assigned work items are their day-to-day work; a member
+    // of a team of teams alone holds a role above the work. The home context
+    // counts no work items, so for anyone else it ranks as shared.
+    involvement: ({ teams }) =>
+      teams.teamCount > 0 ? Involvement.Leads : Involvement.Shared,
   },
   {
     id: 'my-projects',

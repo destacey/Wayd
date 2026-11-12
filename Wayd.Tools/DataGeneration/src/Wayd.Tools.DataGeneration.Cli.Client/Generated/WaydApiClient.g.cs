@@ -27457,6 +27457,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Link a Teams chat on an incident.
+        /// </summary>
+        /// <remarks>
+        /// Stores one pasted Teams link. Wayd does not join the chat, look it up, or send it for approval. Linking again replaces the stored chat.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task LinkTeamsChatAsync(System.Guid id, LinkIncidentTeamsChatRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get work items linked to an incident.
         /// </summary>
         /// <returns>OK</returns>
@@ -27971,6 +27982,99 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     // Operation Path: "api/product-management/incidents/{id}"
                     urlBuilder_.Append("api/product-management/incidents/");
                     urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Link a Teams chat on an incident.
+        /// </summary>
+        /// <remarks>
+        /// Stores one pasted Teams link. Wayd does not join the chat, look it up, or send it for approval. Linking again replaces the stored chat.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task LinkTeamsChatAsync(System.Guid id, LinkIncidentTeamsChatRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("PUT");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/incidents/{id}/teams-chat"
+                    urlBuilder_.Append("api/product-management/incidents/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/teams-chat");
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -128205,6 +128309,37 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ProductStatusAlias>))]
         public ProductStatusAlias StatusAlias { get; set; } = default!;
 
+        /// <summary>
+        /// The Teams chat id, when Wayd created the chat. A pasted link has none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamsChatId")]
+        public string? TeamsChatId { get; set; } = default!;
+
+        /// <summary>
+        /// The name shown for the incident's Teams chat.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamsChatDisplayName")]
+        public string? TeamsChatDisplayName { get; set; } = default!;
+
+        /// <summary>
+        /// The link that opens the incident's one Teams chat. Null when none is stored.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamsChatLink")]
+        public string? TeamsChatLink { get; set; } = default!;
+
+        /// <summary>
+        /// True only when Wayd created the stored chat.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamsChatCreatedByWayd")]
+        public bool TeamsChatCreatedByWayd { get; set; } = default!;
+
+        /// <summary>
+        /// True when a Teams connector is configured. The chat control is hidden when this is false.
+        /// <br/>This is not stored on the incident.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("teamsConnectorConfigured")]
+        public bool TeamsConnectorConfigured { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -131098,6 +131233,34 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("url")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string Url { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Stores a pasted Teams link as the incident's one chat. Wayd does not join the chat.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class LinkIncidentTeamsChatRequest
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The https link that opens the Teams chat.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("link")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(2048, MinimumLength = 1)]
+        public string Link { get; set; } = default!;
+
+        /// <summary>
+        /// The name shown beside the link. Empty when the link stands alone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("displayName")]
+        [System.ComponentModel.DataAnnotations.StringLength(256)]
+        public string? DisplayName { get; set; } = default!;
 
     }
 

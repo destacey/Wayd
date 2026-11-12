@@ -757,6 +757,10 @@ public class IncidentConfiguration : IEntityTypeConfiguration<Incident>
         builder.Property(i => i.NoticedAt).IsRequired();
         builder.Property(i => i.StartedAt);
         builder.Property(i => i.RecoveredAt);
+        builder.Property(i => i.TeamsChatId).HasMaxLength(512);
+        builder.Property(i => i.TeamsChatDisplayName).HasMaxLength(256);
+        builder.Property(i => i.TeamsChatLink).HasMaxLength(2048);
+        builder.Property(i => i.TeamsChatCreatedByWayd).HasDefaultValue(false);
 
         builder.Property(i => i.StatusId).IsRequired();
         builder.Property(i => i.StatusWorkflowId).IsRequired();

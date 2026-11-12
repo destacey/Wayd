@@ -103,6 +103,21 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     /// <summary>When service was restored, if recorded.</summary>
     public Instant? RecoveredAt { get; private set; }
 
+    /// <summary>The Teams chat id, when Wayd created the chat. A pasted link does not have one.</summary>
+    public string? TeamsChatId { get; private set; }
+
+    /// <summary>The name shown for the incident's Teams chat. Null when the link stands alone.</summary>
+    public string? TeamsChatDisplayName { get; private set; }
+
+    /// <summary>The link that opens the incident's one Teams chat. Null when none is stored.</summary>
+    public string? TeamsChatLink { get; private set; }
+
+    /// <summary>
+    /// True only when Wayd created the chat. Later invites are limited to those chats.
+    /// A pasted link is not one Wayd created.
+    /// </summary>
+    public bool TeamsChatCreatedByWayd { get; private set; }
+
     /// <summary>The products implicated in the incident.</summary>
     public IReadOnlyCollection<IncidentProductLink> ProductLinks => _productLinks.AsReadOnly();
 
@@ -417,6 +432,63 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         return Result.Success();
     }
 
+    /// <summary>
+    /// Stores one pasted Teams link on the incident, replacing whatever chat was stored before.
+    /// Wayd does not join the chat and does not look it up. The stored chat is not one Wayd created.
+    /// </summary>
+    public Result LinkTeamsChat(string link, string? displayName, EventActor actor, Instant timestamp)
+    {
+        if (!TryNormalizeHttpsLink(link, out var normalizedLink))
+        {
+            return Result.Failure("A Teams chat link must be an https URL.");
+        }
+
+        if (normalizedLink.Length > 2048)
+        {
+            return Result.Failure("A Teams chat link cannot be longer than 2048 characters.");
+        }
+
+        var normalizedName = Normalize(displayName);
+        if (normalizedName is not null && normalizedName.Length > 256)
+        {
+            return Result.Failure("A Teams chat name cannot be longer than 256 characters.");
+        }
+
+        if (TeamsChatId is null
+            && !TeamsChatCreatedByWayd
+            && TeamsChatLink == normalizedLink
+            && TeamsChatDisplayName == normalizedName)
+        {
+            return Result.Success();
+        }
+
+        var fromId = TeamsChatId;
+        var fromName = TeamsChatDisplayName;
+        var fromLink = TeamsChatLink;
+        var fromCreatedByWayd = TeamsChatCreatedByWayd;
+
+        TeamsChatId = null;
+        TeamsChatDisplayName = normalizedName;
+        TeamsChatLink = normalizedLink;
+        TeamsChatCreatedByWayd = false;
+
+        AddDomainEvent(new IncidentTeamsChatLinkedEvent(
+            Id,
+            Key,
+            fromId,
+            fromName,
+            fromLink,
+            fromCreatedByWayd,
+            TeamsChatId,
+            TeamsChatDisplayName,
+            TeamsChatLink,
+            TeamsChatCreatedByWayd,
+            actor,
+            timestamp));
+
+        return Result.Success();
+    }
+
     /// <summary>Records active response has begun.</summary>
     public Result BeginResponding(
         StatusRef respondingStatus,
@@ -647,6 +719,13 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     /// </summary>
     private static string? Normalize(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static bool TryNormalizeHttpsLink(string? link, out string normalized)
+    {
+        normalized = link?.Trim() ?? "";
+        return Uri.TryCreate(normalized, UriKind.Absolute, out var uri)
+            && uri.Scheme == Uri.UriSchemeHttps;
+    }
 
     private static bool SameMillisecond(Instant? previous, Instant? updated) =>
         previous is null

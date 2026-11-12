@@ -95,3 +95,27 @@ public sealed class UpdateIncidentDetailsRequestValidator : CustomValidator<Upda
         RuleFor(r => r.ReportedByEmployeeId).NotEmpty();
     }
 }
+
+/// <summary>Stores a pasted Teams link as the incident's one chat. Wayd does not join the chat.</summary>
+public sealed class LinkIncidentTeamsChatRequest
+{
+    public Guid Id { get; set; }
+
+    /// <summary>The https link that opens the Teams chat.</summary>
+    public string Link { get; set; } = default!;
+
+    /// <summary>The name shown beside the link. Empty when the link stands alone.</summary>
+    public string? DisplayName { get; set; }
+
+    public LinkIncidentTeamsChatCommand ToCommand() => new(Id, Link, DisplayName);
+}
+
+public sealed class LinkIncidentTeamsChatRequestValidator : CustomValidator<LinkIncidentTeamsChatRequest>
+{
+    public LinkIncidentTeamsChatRequestValidator()
+    {
+        RuleFor(r => r.Id).NotEmpty();
+        RuleFor(r => r.Link).NotEmpty().MaximumLength(2048);
+        RuleFor(r => r.DisplayName).MaximumLength(256);
+    }
+}

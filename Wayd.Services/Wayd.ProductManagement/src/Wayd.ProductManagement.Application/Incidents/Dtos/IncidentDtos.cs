@@ -104,6 +104,24 @@ public sealed record IncidentDto
 
     public StatusNavigationDto Status { get; init; } = default!;
     public ProductStatusAlias StatusAlias { get; init; }
+
+    /// <summary>The Teams chat id, when Wayd created the chat. A pasted link has none.</summary>
+    public string? TeamsChatId { get; init; }
+
+    /// <summary>The name shown for the incident's Teams chat.</summary>
+    public string? TeamsChatDisplayName { get; init; }
+
+    /// <summary>The link that opens the incident's one Teams chat. Null when none is stored.</summary>
+    public string? TeamsChatLink { get; init; }
+
+    /// <summary>True only when Wayd created the stored chat.</summary>
+    public bool TeamsChatCreatedByWayd { get; init; }
+
+    /// <summary>
+    /// True when a Teams connector is configured. The chat control is hidden when this is false.
+    /// This is not stored on the incident.
+    /// </summary>
+    public bool TeamsConnectorConfigured { get; init; }
 }
 
 /// <summary>One commander-authored entry on an incident timeline.</summary>
@@ -195,7 +213,8 @@ internal static class IncidentProjections
         Employee? commander,
         IncidentSeverityLevel level,
         IReadOnlyList<Product> products,
-        IReadOnlyList<Release> releases) =>
+        IReadOnlyList<Release> releases,
+        bool teamsConnectorConfigured = false) =>
         new()
         {
             Id = incident.Id,
@@ -215,5 +234,10 @@ internal static class IncidentProjections
             Releases = releases.Select(Release).ToList(),
             Status = Status(incident),
             StatusAlias = incident.StatusAlias,
+            TeamsChatId = incident.TeamsChatId,
+            TeamsChatDisplayName = incident.TeamsChatDisplayName,
+            TeamsChatLink = incident.TeamsChatLink,
+            TeamsChatCreatedByWayd = incident.TeamsChatCreatedByWayd,
+            TeamsConnectorConfigured = teamsConnectorConfigured,
         };
 }

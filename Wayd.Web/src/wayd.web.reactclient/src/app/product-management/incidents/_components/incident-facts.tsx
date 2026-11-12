@@ -2,6 +2,7 @@
 
 import { LabeledContent } from '@/src/components/common/content'
 import LinksCard from '@/src/components/common/links/links-card'
+import IncidentTeamsChat from '@/src/app/product-management/incidents/_components/incident-teams-chat'
 import {
   RecordFactsGroup,
   RecordLinkList,
@@ -10,6 +11,7 @@ import {
 import { IncidentDto } from '@/src/services/wayd-api'
 import { formatInstantInZone } from '@/src/utils'
 import { Divider, Flex, Typography } from 'antd'
+import type { BaseOptionType } from 'antd/es/select'
 
 const { Text } = Typography
 
@@ -17,6 +19,8 @@ export interface IncidentFactsProps {
   incident: IncidentDto
   /** The viewer's zone, so the timeline reads as local time. */
   viewerZone: string
+  canUpdate: boolean
+  employees: BaseOptionType[]
 }
 
 /**
@@ -26,7 +30,12 @@ export interface IncidentFactsProps {
  * points at, then the same links card a PI objective uses. Symptoms and the
  * discussion are sections of the record, not labels beside it.
  */
-const IncidentFacts = ({ incident, viewerZone }: IncidentFactsProps) => {
+const IncidentFacts = ({
+  incident,
+  viewerZone,
+  canUpdate,
+  employees,
+}: IncidentFactsProps) => {
   const products = incident.products.map((product) => ({
     id: product.id,
     name: product.name,
@@ -98,6 +107,12 @@ const IncidentFacts = ({ incident, viewerZone }: IncidentFactsProps) => {
       </RecordFactsGroup>
 
       <Divider size="small" style={{ margin: 0 }} />
+
+      <IncidentTeamsChat
+        incident={incident}
+        canUpdate={canUpdate}
+        employees={employees}
+      />
 
       <LinksCard objectId={incident.id} width="100%" />
     </>

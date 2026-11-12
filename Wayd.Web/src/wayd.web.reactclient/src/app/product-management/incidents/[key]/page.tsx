@@ -432,7 +432,14 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
             ownerId: incident.id,
           },
         }}
-        facts={<IncidentFacts incident={incident} viewerZone={viewerZone} />}
+        facts={
+          <IncidentFacts
+            incident={incident}
+            viewerZone={viewerZone}
+            canUpdate={canUpdate}
+            employees={employeeOptions}
+          />
+        }
       >
         {(section) => {
           if (section === IncidentSection.WorkItems) {

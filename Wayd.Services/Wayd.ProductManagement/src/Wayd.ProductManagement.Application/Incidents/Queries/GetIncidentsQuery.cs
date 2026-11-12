@@ -1,5 +1,7 @@
 using System.Linq.Expressions;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.Requests.AppIntegration;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Domain.Models;
@@ -118,10 +120,11 @@ public sealed record GetIncidentQuery : IQuery<IncidentDto?>
     public Expression<Func<Incident, bool>> IdOrKeyFilter { get; }
 }
 
-public sealed class GetIncidentQueryHandler(IProductManagementDbContext context)
+public sealed class GetIncidentQueryHandler(IProductManagementDbContext context, IDispatcher dispatcher)
     : IQueryHandler<GetIncidentQuery, IncidentDto?>
 {
     private readonly IProductManagementDbContext _context = context;
+    private readonly IDispatcher _dispatcher = dispatcher;
 
     public async Task<IncidentDto?> Handle(GetIncidentQuery query, CancellationToken cancellationToken)
     {
@@ -165,6 +168,9 @@ public sealed class GetIncidentQueryHandler(IProductManagementDbContext context)
             ? []
             : await _context.Releases.AsNoTracking().Where(r => releaseIds.Contains(r.Id)).ToListAsync(cancellationToken);
 
+        var connections = await _dispatcher.Send(new GetActiveCommunicationConnectionsQuery(), cancellationToken);
+        var teamsConnectorConfigured = connections.Any(connection => connection.Connector == Connector.Teams);
+
         return IncidentProjections.Details(
             incident,
             people[incident.SubmittedByEmployeeId],
@@ -172,6 +178,7 @@ public sealed class GetIncidentQueryHandler(IProductManagementDbContext context)
             incident.CommanderEmployeeId is Guid commanderId ? people[commanderId] : null,
             level,
             products,
-            releases);
+            releases,
+            teamsConnectorConfigured);
     }
 }

@@ -11,14 +11,24 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "Color",
-                schema: "ProductManagement",
-                table: "IncidentSeverityLevels",
-                type: "nvarchar(9)",
-                maxLength: 9,
-                nullable: false,
-                defaultValue: "");
+            // IncidentSeveritySets creates this table without Color. A database that already has the
+            // column — the earlier color migration, applied before this history was collapsed — must not
+            // add it again. A fresh database still receives it here, once.
+            migrationBuilder.Sql(
+                """
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM sys.columns c
+                    INNER JOIN sys.tables t ON c.object_id = t.object_id
+                    INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                    WHERE s.name = N'ProductManagement'
+                      AND t.name = N'IncidentSeverityLevels'
+                      AND c.name = N'Color')
+                BEGIN
+                    ALTER TABLE [ProductManagement].[IncidentSeverityLevels]
+                        ADD [Color] nvarchar(9) NOT NULL CONSTRAINT [DF_IncidentSeverityLevels_Color] DEFAULT N'';
+                END
+                """);
 
             migrationBuilder.CreateTable(
                 name: "Incidents",

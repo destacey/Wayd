@@ -17,7 +17,6 @@ namespace Wayd.Web.Api.Controllers.DemandManagement;
 /// Intake desks: the review responsibilities requests are submitted to.
 /// </summary>
 [Route("api/demand-management/intake-desks")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.DemandManagement)]
 [McpTools(McpToolset.Intake, "wayd-intake")]

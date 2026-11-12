@@ -1,5 +1,4 @@
-﻿global using Asp.Versioning;
-global using FluentValidation;
+﻿global using FluentValidation;
 global using Microsoft.AspNetCore.Mvc;
 global using Wayd.AppIntegration.Application.Connections.Commands;
 global using Wayd.AppIntegration.Application.Connections.Dtos;

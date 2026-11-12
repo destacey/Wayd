@@ -7,7 +7,6 @@ using Wayd.Web.Api.Models.Ppm.ExpenditureCategories;
 namespace Wayd.Web.Api.Controllers.Ppm;
 
 [Route("api/ppm/expenditure-categories")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Ppm, "wayd-ppm")]
 public class ExpenditureCategoriesController(ILogger<ExpenditureCategoriesController> logger, IDispatcher dispatcher) : ControllerBase

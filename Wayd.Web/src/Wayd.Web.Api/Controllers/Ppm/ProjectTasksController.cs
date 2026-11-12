@@ -12,7 +12,6 @@ using TaskStatus = Wayd.ProjectPortfolioManagement.Domain.Enums.TaskStatus;
 namespace Wayd.Web.Api.Controllers.Ppm;
 
 [Route("api/ppm/projects/{projectIdOrKey}/tasks")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Ppm, "wayd-ppm")]
 public class ProjectTasksController(ILogger<ProjectTasksController> logger, IDispatcher dispatcher) : ControllerBase

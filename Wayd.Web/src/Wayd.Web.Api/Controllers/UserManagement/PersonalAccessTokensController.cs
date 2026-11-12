@@ -7,7 +7,6 @@ using Wayd.Web.Api.Models.UserManagement.PersonalAccessTokens;
 namespace Wayd.Web.Api.Controllers.UserManagement;
 
 [Route("api/user-management/personal-access-tokens")]
-[ApiVersionNeutral]
 [ApiController]
 public class PersonalAccessTokensController : ControllerBase
 {

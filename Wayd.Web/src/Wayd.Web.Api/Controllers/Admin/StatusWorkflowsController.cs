@@ -10,7 +10,6 @@ using Wayd.Web.Api.Models.Admin.StatusWorkflows;
 namespace Wayd.Web.Api.Controllers.Admin;
 
 [Route("api/status-workflows")]
-[ApiVersionNeutral]
 [ApiController]
 public class StatusWorkflowsController(ILogger<StatusWorkflowsController> logger, IDispatcher dispatcher) : ControllerBase
 {

@@ -35,7 +35,6 @@ using Wayd.Common.Domain.StatusWorkflows.Enums;
 namespace Wayd.Web.Api.Controllers.Organizations;
 
 [Route("api/organization/teams")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Teams, "wayd-teams")]
 public class TeamsController(

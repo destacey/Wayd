@@ -9,7 +9,6 @@ using Wayd.Work.Application.WorkProcesses.Queries;
 namespace Wayd.Web.Api.Controllers.Work;
 
 [Route("api/work/work-processes")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Work, "wayd-work")]
 public class WorkProcessesController(ILogger<WorkProcessesController> logger, IDispatcher dispatcher) : ControllerBase

@@ -4,7 +4,6 @@ using Wayd.Web.Api.Models.AppIntegrations.Connections;
 namespace Wayd.Web.Api.Controllers.AppIntegrations;
 
 [Route("api/app-integrations/connections/azure-openai")]
-[ApiVersionNeutral]
 [ApiController]
 public class AzureOpenAIConnectionsController(IDispatcher dispatcher) : ControllerBase
 {

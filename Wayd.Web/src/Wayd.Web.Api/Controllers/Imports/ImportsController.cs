@@ -28,7 +28,6 @@ namespace Wayd.Web.Api.Controllers.Imports;
 /// </para>
 /// </remarks>
 [Route(Route)]
-[ApiVersionNeutral]
 [ApiController]
 [Authorize]
 [McpTools(McpToolset.Imports, "wayd-imports")]

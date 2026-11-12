@@ -15,7 +15,6 @@ namespace Wayd.Web.Api.Controllers.Admin;
 /// the committed handler codegen tree untouched.
 /// </summary>
 [Route("api/admin/messaging")]
-[ApiVersionNeutral]
 [ApiController]
 public class MessagingController(IMessageStore messageStore) : ControllerBase
 {

@@ -29,7 +29,6 @@ using Wayd.Web.Api.Models.AppIntegrations.Connections;
 namespace Wayd.Web.Api.Controllers.AppIntegrations;
 
 [Route("api/app-integrations/connections")]
-[ApiVersionNeutral]
 [ApiController]
 public class ConnectionsController(IDispatcher dispatcher) : ControllerBase
 {

@@ -19,7 +19,6 @@ namespace Wayd.Web.Api.Controllers.UserManagement;
 /// would turn a short-lived or revocable token into a connector session that outlives it.
 /// </remarks>
 [Route("api/oauth/authorization-requests")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.McpServer)]
 public class OAuthAuthorizationRequestsController(IAuthorizationServer authorizationServer, ICurrentUser currentUser) : ControllerBase

@@ -8,7 +8,6 @@ using Wayd.Web.Api.Models.Admin.StatusWorkflows;
 namespace Wayd.Web.Api.Controllers.Admin;
 
 [Route("api/workflow-schemes")]
-[ApiVersionNeutral]
 [ApiController]
 public class WorkflowSchemesController(ILogger<WorkflowSchemesController> logger, IDispatcher dispatcher) : ControllerBase
 {

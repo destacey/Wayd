@@ -34,7 +34,6 @@ using Wayd.Work.Application.WorkTeams.Queries;
 namespace Wayd.Web.Api.Controllers.Planning;
 
 [Route("api/planning/planning-intervals")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Planning, "wayd-pi")]
 public class PlanningIntervalsController : ControllerBase

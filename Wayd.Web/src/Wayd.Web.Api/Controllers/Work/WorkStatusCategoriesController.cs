@@ -4,7 +4,6 @@ using Wayd.Work.Application.WorkStatusCategories.Queries;
 namespace Wayd.Web.Api.Controllers.Work;
 
 [Route("api/work/work-status-categories")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Work, "wayd-work")]
 public class WorkStatusCategoriesController : ControllerBase

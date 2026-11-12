@@ -1,7 +1,6 @@
 ﻿namespace Wayd.Web.Api.Controllers.UserManagement;
 
 [Route("api/user-management/permissions")]
-[ApiVersionNeutral]
 [ApiController]
 public class PermissionsController : ControllerBase
 {

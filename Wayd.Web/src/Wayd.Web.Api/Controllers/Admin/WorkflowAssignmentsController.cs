@@ -6,7 +6,6 @@ using Wayd.Web.Api.Models.Admin.StatusWorkflows;
 namespace Wayd.Web.Api.Controllers.Admin;
 
 [Route("api/workflow-assignments")]
-[ApiVersionNeutral]
 [ApiController]
 public class WorkflowAssignmentsController(ILogger<WorkflowAssignmentsController> logger, IDispatcher dispatcher) : ControllerBase
 {

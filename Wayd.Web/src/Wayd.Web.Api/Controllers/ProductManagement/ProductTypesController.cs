@@ -17,7 +17,6 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 /// short and curated while tag categories are open-ended.
 /// </remarks>
 [Route("api/product-management/product-types")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
 [McpTools(McpToolset.Products, "wayd-products")]

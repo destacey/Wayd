@@ -33,7 +33,6 @@ namespace Wayd.Web.Api.Controllers.DemandManagement;
 /// exactly like one that does not exist, so a private desk's requests cannot be found by probing.
 /// </remarks>
 [Route("api/demand-management/intake-requests")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.DemandManagement)]
 [McpTools(McpToolset.Intake, "wayd-intake")]

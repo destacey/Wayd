@@ -12,7 +12,6 @@ using Wayd.Web.Api.Models.Planning.StoryMaps;
 namespace Wayd.Web.Api.Controllers.Planning;
 
 [Route("api/planning/story-maps")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.StoryMaps)]
 [McpTools(McpToolset.Planning, "wayd-story-maps")]

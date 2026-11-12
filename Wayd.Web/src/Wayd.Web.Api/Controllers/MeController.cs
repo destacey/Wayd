@@ -43,7 +43,6 @@ namespace Wayd.Web.Api.Controllers;
 /// reading anyone else's does.
 /// </summary>
 [Route("api/me")]
-[ApiVersionNeutral]
 [ApiController]
 [Authorize]
 [McpTools("wayd-users")]

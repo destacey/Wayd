@@ -7,7 +7,6 @@ using Wayd.Web.Api.Models.UserManagement.Users;
 namespace Wayd.Web.Api.Controllers.UserManagement;
 
 [Route("api/user-management/users")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Teams, "wayd-users")]
 public class UsersController(IUserService userService, IDispatcher dispatcher) : ControllerBase

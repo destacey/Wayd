@@ -8,7 +8,6 @@ using Wayd.Work.Application.WorkTypeLevels.Queries;
 namespace Wayd.Web.Api.Controllers.Work;
 
 [Route("api/work/work-type-levels")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Work, "wayd-work")]
 public class WorkTypeLevelsController : ControllerBase

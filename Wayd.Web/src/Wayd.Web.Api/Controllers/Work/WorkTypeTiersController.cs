@@ -4,7 +4,6 @@ using Wayd.Work.Application.WorkTypeTiers.Queries;
 namespace Wayd.Web.Api.Controllers.Work;
 
 [Route("api/work/work-type-tiers")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Work, "wayd-work")]
 public class WorkTypeTiersController : ControllerBase

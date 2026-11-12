@@ -4,7 +4,6 @@ using Wayd.Common.Application.FeatureManagement.Queries;
 namespace Wayd.Web.Api.Controllers;
 
 [Route("api/feature-flags")]
-[ApiVersionNeutral]
 [ApiController]
 public class FeatureFlagsController(IDispatcher dispatcher) : ControllerBase
 {

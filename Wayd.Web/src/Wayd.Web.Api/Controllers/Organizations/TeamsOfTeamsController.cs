@@ -30,7 +30,6 @@ using Wayd.Work.Application.WorkTeams.Dtos;
 namespace Wayd.Web.Api.Controllers.Organizations;
 
 [Route("api/organization/teams-of-teams")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Teams, "wayd-teams")]
 public class TeamsOfTeamsController : ControllerBase

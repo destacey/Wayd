@@ -8,7 +8,6 @@ using Wayd.Web.Api.Models.Ppm.ProjectLifecycles;
 namespace Wayd.Web.Api.Controllers.Ppm;
 
 [Route("api/ppm/project-lifecycles")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Ppm, "wayd-ppm")]
 public class ProjectLifecyclesController(ILogger<ProjectLifecyclesController> logger, IDispatcher dispatcher) : ControllerBase

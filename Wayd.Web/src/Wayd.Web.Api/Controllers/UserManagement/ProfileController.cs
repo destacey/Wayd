@@ -7,7 +7,6 @@ using Wayd.Web.Api.Models.UserManagement.Profiles;
 namespace Wayd.Web.Api.Controllers.UserManagement;
 
 [Route("api/user-management/profiles")]
-[ApiVersionNeutral]
 [ApiController]
 public class ProfileController(IUserService userService, IDispatcher dispatcher, ICurrentUser currentUser) : ControllerBase
 {

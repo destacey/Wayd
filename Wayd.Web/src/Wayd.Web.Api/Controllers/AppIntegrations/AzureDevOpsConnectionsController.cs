@@ -12,7 +12,6 @@ using Wayd.Web.Api.Models.AppIntegrations.Connections;
 namespace Wayd.Web.Api.Controllers.AppIntegrations;
 
 [Route("api/app-integrations/connections/azure-devops")]
-[ApiVersionNeutral]
 [ApiController]
 public class AzureDevOpsConnectionsController(IDispatcher dispatcher) : ControllerBase
 {

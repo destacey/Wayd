@@ -12,7 +12,6 @@ using Wayd.Web.Api.Models.Planning.Risks;
 namespace Wayd.Web.Api.Controllers.Planning;
 
 [Route("api/planning/risks")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Organization, "wayd-teams")]
 public class RisksController : ControllerBase

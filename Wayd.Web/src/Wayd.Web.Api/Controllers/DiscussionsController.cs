@@ -22,7 +22,6 @@ namespace Wayd.Web.Api.Controllers;
 /// </para>
 /// </remarks>
 [Route("api/discussions/{channelType}/{ownerId:guid}")]
-[ApiVersionNeutral]
 [ApiController]
 [Authorize]
 [McpTools(McpToolset.Discussions, "wayd-discussions")]

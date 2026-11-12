@@ -120050,6 +120050,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? Symptoms { get; set; } = default!;
 
         /// <summary>
+        /// What was done to restore service or stop the impact. Empty until a remediation is recorded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("remediation")]
+        [System.ComponentModel.DataAnnotations.StringLength(4096)]
+        public string? Remediation { get; set; } = default!;
+
+        /// <summary>
         /// Why it happened, once that is known. Empty until a cause is recorded.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rootCause")]
@@ -128133,6 +128140,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("symptoms")]
         public string? Symptoms { get; set; } = default!;
+
+        /// <summary>
+        /// What was done to restore service or stop the impact. Null until a remediation is recorded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("remediation")]
+        public string? Remediation { get; set; } = default!;
 
         /// <summary>
         /// Why it happened, once that is known. Null until a cause is recorded.
@@ -147750,6 +147763,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("symptoms")]
         [System.ComponentModel.DataAnnotations.StringLength(4096)]
         public string? Symptoms { get; set; } = default!;
+
+        /// <summary>
+        /// What was done to restore service or stop the impact. Empty until a remediation is recorded.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("remediation")]
+        [System.ComponentModel.DataAnnotations.StringLength(4096)]
+        public string? Remediation { get; set; } = default!;
 
         /// <summary>
         /// Why it happened, once that is known. Empty until a cause is recorded.

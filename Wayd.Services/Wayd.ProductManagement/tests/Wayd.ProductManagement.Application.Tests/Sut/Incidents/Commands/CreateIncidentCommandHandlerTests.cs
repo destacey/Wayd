@@ -58,6 +58,7 @@ public sealed class CreateIncidentCommandHandlerTests : IncidentSeveritySetHandl
             new CreateIncidentCommand(
                 "API errors",
                 "Elevated 5xx rate",
+                "Rolled back the deploy",
                 null,
                 level.Id,
                 NoticedAt: null,
@@ -75,6 +76,7 @@ public sealed class CreateIncidentCommandHandlerTests : IncidentSeveritySetHandl
         incident.ReportedByEmployeeId.Should().Be(reportedById);
         incident.CommanderEmployeeId.Should().Be(commanderId);
         incident.SeverityLevelId.Should().Be(level.Id);
+        incident.Remediation.Should().Be("Rolled back the deploy");
         incident.NoticedAt.Should().Be(Now);
         DbContext.SaveChangesCallCount.Should().Be(1);
     }
@@ -91,7 +93,7 @@ public sealed class CreateIncidentCommandHandlerTests : IncidentSeveritySetHandl
 
         // Act
         var result = await sut.Handle(
-            new CreateIncidentCommand("Issue", null, null, level.Id, null, null, null, [], Guid.CreateVersion7()),
+            new CreateIncidentCommand("Issue", null, null, null, level.Id, null, null, null, [], Guid.CreateVersion7()),
             TestContext.Current.CancellationToken);
 
         // Assert

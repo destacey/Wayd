@@ -79,6 +79,9 @@ public sealed record IncidentDto
     /// <summary>What responders are seeing. Null when nothing has been recorded yet.</summary>
     public string? Symptoms { get; init; }
 
+    /// <summary>What was done to restore service or stop the impact. Null until a remediation is recorded.</summary>
+    public string? Remediation { get; init; }
+
     /// <summary>Why it happened, once that is known. Null until a cause is recorded.</summary>
     public string? RootCause { get; init; }
 
@@ -199,6 +202,7 @@ internal static class IncidentProjections
             Key = incident.Key,
             Title = incident.Title,
             Symptoms = incident.Symptoms,
+            Remediation = incident.Remediation,
             RootCause = incident.RootCause,
             SubmittedBy = Person(submittedBy),
             ReportedBy = Person(reportedBy),

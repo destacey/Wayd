@@ -9,6 +9,7 @@ public sealed record UpdateIncidentDetailsCommand(
     Guid Id,
     string Title,
     string? Symptoms,
+    string? Remediation,
     string? RootCause,
     Guid SeverityLevelId,
     Instant NoticedAt,
@@ -26,6 +27,7 @@ public sealed class UpdateIncidentDetailsCommandValidator : AbstractValidator<Up
         RuleFor(c => c.Id).NotEmpty();
         RuleFor(c => c.Title).NotEmpty().MaximumLength(256);
         RuleFor(c => c.Symptoms).MaximumLength(4096);
+        RuleFor(c => c.Remediation).MaximumLength(4096);
         RuleFor(c => c.RootCause).MaximumLength(4096);
         RuleFor(c => c.SeverityLevelId).NotEmpty();
         RuleFor(c => c.ReportedByEmployeeId).NotEmpty();
@@ -120,7 +122,8 @@ public sealed class UpdateIncidentDetailsCommandHandler(
             request.ReleaseIds,
             request.ReportedByEmployeeId,
             setCommander: true,
-            request.CommanderEmployeeId);
+            request.CommanderEmployeeId,
+            request.Remediation);
 
         if (updated.IsFailure)
         {

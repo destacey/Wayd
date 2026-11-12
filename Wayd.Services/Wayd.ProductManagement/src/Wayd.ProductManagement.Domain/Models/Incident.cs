@@ -25,6 +25,7 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     private Incident(
         string title,
         string? symptoms,
+        string? remediation,
         string? rootCause,
         Guid submittedByEmployeeId,
         Guid reportedByEmployeeId,
@@ -36,6 +37,7 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     {
         Title = title;
         Symptoms = symptoms;
+        Remediation = remediation;
         RootCause = rootCause;
         SubmittedByEmployeeId = submittedByEmployeeId;
         ReportedByEmployeeId = reportedByEmployeeId;
@@ -61,6 +63,13 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 
     /// <summary>What responders are seeing. Null when nothing has been recorded yet.</summary>
     public string? Symptoms
+    {
+        get;
+        private set => field = Normalize(value);
+    }
+
+    /// <summary>What was done to restore service or stop the impact. Null until a remediation is recorded.</summary>
+    public string? Remediation
     {
         get;
         private set => field = Normalize(value);
@@ -128,7 +137,8 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         Instant timestamp,
         Guid submittedByEmployeeId,
         Guid reportedByEmployeeId,
-        IReadOnlyCollection<Guid>? releaseIds = null)
+        IReadOnlyCollection<Guid>? releaseIds = null,
+        string? remediation = null)
     {
         Guard.Against.Null(openStatus, nameof(openStatus));
 
@@ -160,6 +170,7 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         var incident = new Incident(
             title,
             symptoms,
+            remediation,
             rootCause,
             submittedByEmployeeId,
             reportedByEmployeeId,
@@ -197,6 +208,7 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         var createdRecoveredAt = incident.RecoveredAt;
         var createdStatusAlias = incident.StatusAlias;
         var createdSymptoms = incident.Symptoms;
+        var createdRemediation = incident.Remediation;
         var createdRootCause = incident.RootCause;
         var createdProductIds = incident.ProductLinks.Select(link => link.ProductId).Order().ToArray();
         var createdReleaseIds = incident.ReleaseLinks.Select(link => link.ReleaseId).Order().ToArray();
@@ -217,6 +229,7 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
                 actor,
                 timestamp,
                 createdSymptoms,
+                createdRemediation,
                 createdRootCause,
                 createdProductIds,
                 createdReleaseIds)));
@@ -246,7 +259,8 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         IReadOnlyCollection<Guid>? releaseIds = null,
         Guid? reportedByEmployeeId = null,
         bool setCommander = false,
-        Guid? commanderEmployeeId = null)
+        Guid? commanderEmployeeId = null,
+        string? remediation = null)
     {
         if (severityLevelId == Guid.Empty)
         {
@@ -266,6 +280,7 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 
         var previousTitle = Title;
         var previousSymptoms = Symptoms;
+        var previousRemediation = Remediation;
         var previousRootCause = RootCause;
         var previousSeverityLevelId = SeverityLevelId;
         var previousNoticedAt = NoticedAt;
@@ -274,6 +289,7 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 
         Title = title;
         Symptoms = symptoms;
+        Remediation = remediation;
         RootCause = rootCause;
         SeverityLevelId = severityLevelId;
         NoticedAt = noticedAt;
@@ -322,6 +338,7 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         var detailsChanged =
             previousTitle != Title
             || previousSymptoms != Symptoms
+            || previousRemediation != Remediation
             || previousRootCause != RootCause
             || previousSeverityLevelId != SeverityLevelId;
 
@@ -332,10 +349,12 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
                 Key,
                 previousTitle,
                 previousSymptoms,
+                previousRemediation,
                 previousRootCause,
                 previousSeverityLevelId,
                 Title,
                 Symptoms,
+                Remediation,
                 RootCause,
                 SeverityLevelId,
                 actor,

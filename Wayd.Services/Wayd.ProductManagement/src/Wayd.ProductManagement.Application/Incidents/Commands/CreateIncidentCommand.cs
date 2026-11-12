@@ -16,6 +16,8 @@ public sealed record CreateIncidentCommand(
     Instant? StartedAt,
     Instant? RecoveredAt,
     IReadOnlyList<Guid> ProductIds,
+    Guid ReportedByEmployeeId,
+    Guid? CommanderEmployeeId = null,
     IReadOnlyList<Guid>? ReleaseIds = null) : ICommand<ObjectIdAndKey>, IRequireLinkedEmployee;
 
 public sealed class CreateIncidentCommandValidator : AbstractValidator<CreateIncidentCommand>
@@ -26,6 +28,10 @@ public sealed class CreateIncidentCommandValidator : AbstractValidator<CreateInc
         RuleFor(c => c.Symptoms).MaximumLength(4096);
         RuleFor(c => c.RootCause).MaximumLength(4096);
         RuleFor(c => c.SeverityLevelId).NotEmpty();
+        RuleFor(c => c.ReportedByEmployeeId).NotEmpty();
+        RuleFor(c => c.CommanderEmployeeId)
+            .Must(id => id != Guid.Empty)
+            .When(c => c.CommanderEmployeeId is not null);
     }
 }
 
@@ -78,6 +84,20 @@ public sealed class CreateIncidentCommandHandler(
                 return Result.Failure<ObjectIdAndKey>(releases.Error);
             }
 
+            var reportedBy = await IncidentReferenceValidation.ValidateEmployeeExists(
+                _productManagementDbContext, request.ReportedByEmployeeId, "Who reported the incident was not found.", cancellationToken);
+            if (reportedBy.IsFailure)
+            {
+                return Result.Failure<ObjectIdAndKey>(reportedBy.Error);
+            }
+
+            var commander = await IncidentReferenceValidation.ValidateEmployeeExists(
+                _productManagementDbContext, request.CommanderEmployeeId, "The commander was not found.", cancellationToken);
+            if (commander.IsFailure)
+            {
+                return Result.Failure<ObjectIdAndKey>(commander.Error);
+            }
+
             var openStatus = await _statusResolver.ForAlias(
                 ProductWorkflowOwners.Incident.Key,
                 scopeId: null,
@@ -97,7 +117,7 @@ public sealed class CreateIncidentCommandHandler(
                 request.Title,
                 request.Symptoms,
                 request.RootCause,
-                employeeId.Value,
+                request.CommanderEmployeeId,
                 request.SeverityLevelId,
                 noticedAt,
                 request.StartedAt,
@@ -106,6 +126,8 @@ public sealed class CreateIncidentCommandHandler(
                 openStatus.Value,
                 actor,
                 _dateTimeProvider.Now,
+                employeeId.Value,
+                request.ReportedByEmployeeId,
                 request.ReleaseIds);
 
             if (incident.IsFailure)

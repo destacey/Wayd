@@ -58959,6 +58959,7 @@
         "required": [
           "title",
           "severityLevelId",
+          "reportedByEmployeeId",
           "productIds",
           "releaseIds"
         ],
@@ -58985,6 +58986,18 @@
             "minLength": 1,
             "type": "string",
             "format": "uuid"
+          },
+          "reportedByEmployeeId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The employee who reported the incident. Required, and not inferred from who opened it.",
+            "format": "uuid"
+          },
+          "commanderEmployeeId": {
+            "type": "string",
+            "description": "The employee commanding the response. Empty when nobody is assigned.",
+            "format": "uuid",
+            "nullable": true
           },
           "noticedAt": {
             "type": "string",
@@ -67157,7 +67170,8 @@
           "id",
           "key",
           "title",
-          "commander",
+          "submittedBy",
+          "reportedBy",
           "severityLevel",
           "noticedAt",
           "products",
@@ -67188,8 +67202,30 @@
             "description": "Why it happened, once that is known. Null until a cause is recorded.",
             "nullable": true
           },
+          "submittedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The employee who opened the incident."
+          },
+          "reportedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The employee who reported the incident."
+          },
           "commander": {
-            "$ref": "#/components/schemas/NavigationDto"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The employee commanding the response, when one is assigned.",
+            "nullable": true
           },
           "severityLevel": {
             "$ref": "#/components/schemas/IncidentSeverityLevelNavigationDto"
@@ -67356,7 +67392,8 @@
           "key",
           "title",
           "noticedAt",
-          "commander",
+          "submittedBy",
+          "reportedBy",
           "severityLevel",
           "status",
           "statusAlias",
@@ -67390,8 +67427,30 @@
             "format": "date-time",
             "nullable": true
           },
+          "submittedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The employee who opened the incident."
+          },
+          "reportedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The employee who reported the incident."
+          },
           "commander": {
-            "$ref": "#/components/schemas/NavigationDto"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The employee commanding the response, when one is assigned.",
+            "nullable": true
           },
           "severityLevel": {
             "$ref": "#/components/schemas/IncidentSeverityLevelNavigationDto"
@@ -87495,6 +87554,7 @@
           "id",
           "title",
           "severityLevelId",
+          "reportedByEmployeeId",
           "noticedAt",
           "productIds",
           "releaseIds"
@@ -87527,6 +87587,18 @@
             "minLength": 1,
             "type": "string",
             "format": "uuid"
+          },
+          "reportedByEmployeeId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The employee who reported the incident.",
+            "format": "uuid"
+          },
+          "commanderEmployeeId": {
+            "type": "string",
+            "description": "The employee commanding the response. Empty when nobody is assigned.",
+            "format": "uuid",
+            "nullable": true
           },
           "noticedAt": {
             "type": "string",

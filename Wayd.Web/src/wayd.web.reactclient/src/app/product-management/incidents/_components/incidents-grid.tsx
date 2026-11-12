@@ -126,6 +126,13 @@ const columns: ColumnDef<IncidentSummaryDto, any>[] = [
     cell: ({ row }) => formatIncidentAge(row.original.noticedAt),
   },
   {
+    id: 'reportedBy',
+    accessorFn: (row) => row.reportedBy?.name ?? '',
+    header: 'Reported by',
+    size: 180,
+    meta: { filterType: 'set' },
+  },
+  {
     id: 'commander',
     accessorFn: (row) => row.commander?.name ?? '',
     header: 'Commander',

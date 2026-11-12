@@ -43,10 +43,13 @@ public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context
 
         var page = await (
             from incident in query
-            join commander in _context.Employees on incident.CommanderEmployeeId equals commander.Id
+            join submittedBy in _context.Employees on incident.SubmittedByEmployeeId equals submittedBy.Id
+            join reportedBy in _context.Employees on incident.ReportedByEmployeeId equals reportedBy.Id
+            join commander in _context.Employees on incident.CommanderEmployeeId equals (Guid?)commander.Id into commanders
+            from commander in commanders.DefaultIfEmpty()
             join level in _context.IncidentSeverityLevels on incident.SeverityLevelId equals level.Id
             orderby incident.Key descending
-            select new { incident, commander, level })
+            select new { incident, submittedBy, reportedBy, commander, level })
             .Skip(request.Paging.Skip)
             .Take(request.Paging.PageSize)
             .ToListAsync(cancellationToken);
@@ -86,7 +89,14 @@ public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context
                 var incident = byId.GetValueOrDefault(row.incident.Id);
                 var products = incident?.ProductLinks.Select(l => productsById[l.ProductId]).ToList() ?? [];
                 var releases = incident?.ReleaseLinks.Select(l => releasesById[l.ReleaseId]).ToList() ?? [];
-                return IncidentProjections.Summary(row.incident, row.commander, row.level, products, releases);
+                return IncidentProjections.Summary(
+                    row.incident,
+                    row.submittedBy,
+                    row.reportedBy,
+                    row.commander,
+                    row.level,
+                    products,
+                    releases);
             })
             .ToList();
 
@@ -127,9 +137,19 @@ public sealed class GetIncidentQueryHandler(IProductManagementDbContext context)
             return null;
         }
 
-        var commander = await _context.Employees
+        var peopleIds = new[]
+            {
+                incident.SubmittedByEmployeeId,
+                incident.ReportedByEmployeeId,
+                incident.CommanderEmployeeId,
+            }
+            .OfType<Guid>()
+            .Distinct()
+            .ToList();
+        var people = await _context.Employees
             .AsNoTracking()
-            .FirstAsync(e => e.Id == incident.CommanderEmployeeId, cancellationToken);
+            .Where(e => peopleIds.Contains(e.Id))
+            .ToDictionaryAsync(e => e.Id, cancellationToken);
 
         var level = await _context.IncidentSeverityLevels
             .AsNoTracking()
@@ -145,6 +165,13 @@ public sealed class GetIncidentQueryHandler(IProductManagementDbContext context)
             ? []
             : await _context.Releases.AsNoTracking().Where(r => releaseIds.Contains(r.Id)).ToListAsync(cancellationToken);
 
-        return IncidentProjections.Details(incident, commander, level, products, releases);
+        return IncidentProjections.Details(
+            incident,
+            people[incident.SubmittedByEmployeeId],
+            people[incident.ReportedByEmployeeId],
+            incident.CommanderEmployeeId is Guid commanderId ? people[commanderId] : null,
+            level,
+            products,
+            releases);
     }
 }

@@ -14,7 +14,9 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
         Guid id,
         int key,
         string title,
-        Guid commanderEmployeeId,
+        Guid submittedByEmployeeId,
+        Guid reportedByEmployeeId,
+        Guid? commanderEmployeeId,
         Guid severityLevelId,
         Instant noticedAt,
         Instant? startedAt,
@@ -31,6 +33,8 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
         Id = id;
         Key = key;
         Title = title;
+        SubmittedByEmployeeId = submittedByEmployeeId;
+        ReportedByEmployeeId = reportedByEmployeeId;
         CommanderEmployeeId = commanderEmployeeId;
         SeverityLevelId = severityLevelId;
         NoticedAt = noticedAt;
@@ -48,7 +52,15 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
     public Guid Id { get; }
     public int Key { get; }
     public string Title { get; }
-    public Guid CommanderEmployeeId { get; }
+
+    /// <summary>The employee who opened the incident. Set once, when it is created.</summary>
+    public Guid SubmittedByEmployeeId { get; }
+
+    /// <summary>The employee who reported the incident.</summary>
+    public Guid ReportedByEmployeeId { get; }
+
+    /// <summary>The employee commanding the response, when one is assigned.</summary>
+    public Guid? CommanderEmployeeId { get; }
     public Guid SeverityLevelId { get; }
     public Instant NoticedAt { get; }
     public Instant? StartedAt { get; }

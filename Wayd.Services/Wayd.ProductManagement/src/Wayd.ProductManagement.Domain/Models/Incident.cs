@@ -26,7 +26,9 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         string title,
         string? symptoms,
         string? rootCause,
-        Guid commanderEmployeeId,
+        Guid submittedByEmployeeId,
+        Guid reportedByEmployeeId,
+        Guid? commanderEmployeeId,
         Guid severityLevelId,
         Instant noticedAt,
         Instant? startedAt,
@@ -35,6 +37,8 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         Title = title;
         Symptoms = symptoms;
         RootCause = rootCause;
+        SubmittedByEmployeeId = submittedByEmployeeId;
+        ReportedByEmployeeId = reportedByEmployeeId;
         CommanderEmployeeId = commanderEmployeeId;
         SeverityLevelId = severityLevelId;
         NoticedAt = noticedAt;
@@ -69,8 +73,14 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         private set => field = Normalize(value);
     }
 
-    /// <summary>The employee commanding the response.</summary>
-    public Guid CommanderEmployeeId { get; private init; }
+    /// <summary>The employee who opened the incident. Set once, when it is created.</summary>
+    public Guid SubmittedByEmployeeId { get; private init; }
+
+    /// <summary>The employee who reported the incident.</summary>
+    public Guid ReportedByEmployeeId { get; private set; }
+
+    /// <summary>The employee commanding the response, when one is assigned.</summary>
+    public Guid? CommanderEmployeeId { get; private set; }
 
     /// <summary>The severity level from the organization's selected scale.</summary>
     public Guid SeverityLevelId { get; private set; }
@@ -107,7 +117,7 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         string title,
         string? symptoms,
         string? rootCause,
-        Guid commanderEmployeeId,
+        Guid? commanderEmployeeId,
         Guid severityLevelId,
         Instant noticedAt,
         Instant? startedAt,
@@ -116,14 +126,25 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         StatusRef openStatus,
         EventActor actor,
         Instant timestamp,
+        Guid submittedByEmployeeId,
+        Guid reportedByEmployeeId,
         IReadOnlyCollection<Guid>? releaseIds = null)
     {
         Guard.Against.Null(openStatus, nameof(openStatus));
 
-        if (commanderEmployeeId == Guid.Empty)
+        if (submittedByEmployeeId == Guid.Empty)
         {
-            return Result.Failure<Incident>("A commander is required.");
+            return Result.Failure<Incident>("Who opened the incident is required.");
         }
+
+        if (reportedByEmployeeId == Guid.Empty)
+        {
+            return Result.Failure<Incident>("Who reported the incident is required.");
+        }
+
+        var commander = commanderEmployeeId is null || commanderEmployeeId == Guid.Empty
+            ? null
+            : commanderEmployeeId;
 
         if (severityLevelId == Guid.Empty)
         {
@@ -140,7 +161,9 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
             title,
             symptoms,
             rootCause,
-            commanderEmployeeId,
+            submittedByEmployeeId,
+            reportedByEmployeeId,
+            commander,
             severityLevelId,
             noticedAt,
             startedAt,
@@ -165,6 +188,8 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         }
 
         var createdTitle = incident.Title;
+        var createdSubmittedByEmployeeId = incident.SubmittedByEmployeeId;
+        var createdReportedByEmployeeId = incident.ReportedByEmployeeId;
         var createdCommanderEmployeeId = incident.CommanderEmployeeId;
         var createdSeverityLevelId = incident.SeverityLevelId;
         var createdNoticedAt = incident.NoticedAt;
@@ -181,6 +206,8 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
                 incident.Id,
                 incident.Key,
                 createdTitle,
+                createdSubmittedByEmployeeId,
+                createdReportedByEmployeeId,
                 createdCommanderEmployeeId,
                 createdSeverityLevelId,
                 createdNoticedAt,
@@ -200,6 +227,11 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     /// <summary>
     /// Updates the editable details of an incident.
     /// </summary>
+    /// <remarks>
+    /// Who reported it changes only when <paramref name="reportedByEmployeeId"/> is set.
+    /// The commander changes only when <paramref name="setCommander"/> is true, and a null or empty
+    /// commander then clears the assignment. Who opened the incident is not editable.
+    /// </remarks>
     public Result UpdateDetails(
         string title,
         string? symptoms,
@@ -211,11 +243,19 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         IReadOnlyCollection<Guid> productIds,
         EventActor actor,
         Instant timestamp,
-        IReadOnlyCollection<Guid>? releaseIds = null)
+        IReadOnlyCollection<Guid>? releaseIds = null,
+        Guid? reportedByEmployeeId = null,
+        bool setCommander = false,
+        Guid? commanderEmployeeId = null)
     {
         if (severityLevelId == Guid.Empty)
         {
             return Result.Failure("A severity level is required.");
+        }
+
+        if (reportedByEmployeeId == Guid.Empty)
+        {
+            return Result.Failure("Who reported the incident is required.");
         }
 
         var timeline = ValidateTimeline(noticedAt, startedAt, recoveredAt);
@@ -321,6 +361,38 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
                 RecoveredAt,
                 actor,
                 timestamp));
+        }
+
+        if (reportedByEmployeeId is Guid nextReportedBy && nextReportedBy != ReportedByEmployeeId)
+        {
+            var previousReportedBy = ReportedByEmployeeId;
+            ReportedByEmployeeId = nextReportedBy;
+            AddDomainEvent(new IncidentReportedByChangedEvent(
+                Id,
+                Key,
+                previousReportedBy,
+                ReportedByEmployeeId,
+                actor,
+                timestamp));
+        }
+
+        if (setCommander)
+        {
+            var nextCommander = commanderEmployeeId is null || commanderEmployeeId == Guid.Empty
+                ? null
+                : commanderEmployeeId;
+            if (nextCommander != CommanderEmployeeId)
+            {
+                var previousCommander = CommanderEmployeeId;
+                CommanderEmployeeId = nextCommander;
+                AddDomainEvent(new IncidentCommanderChangedEvent(
+                    Id,
+                    Key,
+                    previousCommander,
+                    CommanderEmployeeId,
+                    actor,
+                    timestamp));
+            }
         }
 
         return Result.Success();

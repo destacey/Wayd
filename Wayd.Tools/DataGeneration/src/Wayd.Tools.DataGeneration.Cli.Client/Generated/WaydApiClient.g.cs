@@ -120052,6 +120052,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid SeverityLevelId { get; set; } = default!;
 
+        /// <summary>
+        /// The employee who reported the incident. Required, and not inferred from who opened it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reportedByEmployeeId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid ReportedByEmployeeId { get; set; } = default!;
+
+        /// <summary>
+        /// The employee commanding the response. Empty when nobody is assigned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("commanderEmployeeId")]
+        public System.Guid? CommanderEmployeeId { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("noticedAt")]
         public System.DateTimeOffset? NoticedAt { get; set; } = default!;
 
@@ -128119,9 +128132,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("rootCause")]
         public string? RootCause { get; set; } = default!;
 
+        /// <summary>
+        /// The employee who opened the incident.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("submittedBy")]
+        public NavigationDto SubmittedBy { get; set; } = default!;
+
+        /// <summary>
+        /// The employee who reported the incident.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reportedBy")]
+        public NavigationDto ReportedBy { get; set; } = default!;
+
+        /// <summary>
+        /// The employee commanding the response, when one is assigned.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("commander")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public NavigationDto Commander { get; set; } = default!;
+        public NavigationDto? Commander { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("severityLevel")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -128293,9 +128320,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("recoveredAt")]
         public System.DateTimeOffset? RecoveredAt { get; set; } = default!;
 
+        /// <summary>
+        /// The employee who opened the incident.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("submittedBy")]
+        public NavigationDto SubmittedBy { get; set; } = default!;
+
+        /// <summary>
+        /// The employee who reported the incident.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reportedBy")]
+        public NavigationDto ReportedBy { get; set; } = default!;
+
+        /// <summary>
+        /// The employee commanding the response, when one is assigned.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("commander")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public NavigationDto Commander { get; set; } = default!;
+        public NavigationDto? Commander { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("severityLevel")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -147712,6 +147753,19 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("severityLevelId")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Guid SeverityLevelId { get; set; } = default!;
+
+        /// <summary>
+        /// The employee who reported the incident.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reportedByEmployeeId")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Guid ReportedByEmployeeId { get; set; } = default!;
+
+        /// <summary>
+        /// The employee commanding the response. Empty when nobody is assigned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("commanderEmployeeId")]
+        public System.Guid? CommanderEmployeeId { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("noticedAt")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

@@ -76,7 +76,10 @@ public sealed class IncidentReadRule(
     {
         var incidents = await (
             from i in _productManagementDbContext.Incidents
-            join e in _productManagementDbContext.Employees on i.CommanderEmployeeId equals e.Id
+            join submitted in _productManagementDbContext.Employees on i.SubmittedByEmployeeId equals submitted.Id
+            join reported in _productManagementDbContext.Employees on i.ReportedByEmployeeId equals reported.Id
+            join commander in _productManagementDbContext.Employees on i.CommanderEmployeeId equals (Guid?)commander.Id into commanders
+            from commander in commanders.DefaultIfEmpty()
             where ids.Contains(i.Id)
             select new
             {
@@ -88,7 +91,9 @@ public sealed class IncidentReadRule(
                 i.StatusAliasValue,
                 i.NoticedAt,
                 i.RecoveredAt,
-                CommanderName = e.Name.FullName,
+                SubmittedByName = submitted.Name.FullName,
+                ReportedByName = reported.Name.FullName,
+                CommanderName = commander == null ? null : commander.Name.FullName,
             }).ToListAsync(cancellationToken);
 
         return incidents.ToDictionary(
@@ -102,15 +107,24 @@ public sealed class IncidentReadRule(
                     Name = i.Title,
                     StatusName = i.StatusName,
                     Lifecycle = LifecycleOf(alias, i.StatusCategory),
-                    People =
-                    [
-                        new RecordPerson(
-                            "Commander",
-                            i.CommanderName,
-                            null),
-                    ],
+                    People = People(i.SubmittedByName, i.ReportedByName, i.CommanderName),
                 };
             });
+    }
+
+    private static RecordPerson[] People(string submittedBy, string reportedBy, string? commander)
+    {
+        var people = new List<RecordPerson>
+        {
+            new("Submitted by", submittedBy, null),
+            new("Reported by", reportedBy, null),
+        };
+        if (commander is not null)
+        {
+            people.Add(new RecordPerson("Commander", commander, null));
+        }
+
+        return [.. people];
     }
 
     /// <inheritdoc/>

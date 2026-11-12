@@ -44,7 +44,9 @@ public sealed class GetIncidentWorkflowActionsQueryHandlerTests : ProductCommand
             [],
             DeliveryWorkflowFactory.Initial(workflow),
             EventActor.System,
-            Now).Value;
+            Now,
+            ActingEmployeeId,
+            ActingEmployeeId).Value;
 
         incident.BeginResponding(
                 DeliveryWorkflowFactory.Ref(workflow, ProductStatusAlias.Responding),
@@ -101,7 +103,9 @@ public sealed class GetIncidentWorkflowActionsQueryHandlerTests : ProductCommand
             [],
             DeliveryWorkflowFactory.Initial(onRecord),
             EventActor.System,
-            Now).Value;
+            Now,
+            ActingEmployeeId,
+            ActingEmployeeId).Value;
         incident.BeginResponding(
                 DeliveryWorkflowFactory.Ref(onRecord, ProductStatusAlias.Responding),
                 EventActor.System,

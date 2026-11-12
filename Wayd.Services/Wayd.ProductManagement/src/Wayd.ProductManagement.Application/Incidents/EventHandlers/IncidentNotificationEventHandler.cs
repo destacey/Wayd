@@ -47,19 +47,23 @@ public sealed class IncidentNotificationEventHandler(
             return;
         }
 
-        var commanderId = await _productManagementDbContext.Incidents
+        var row = await _productManagementDbContext.Incidents
             .Where(i => i.Id == incidentId)
-            .Select(i => (Guid?)i.CommanderEmployeeId)
+            .Select(i => new { i.CommanderEmployeeId })
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (commanderId is null)
+        if (row is null)
         {
             return;
         }
 
+        var commanders = row.CommanderEmployeeId is Guid commanderId
+            ? NotificationRecipient.For(NotificationReason.Role, [commanderId]).ToList()
+            : [];
+
         await _notificationWriter.Notify(
             new RecordChange(ProductManagementFollowOwners.Incident.Key, incidentId, notificationEvent, @event),
-            NotificationRecipient.For(NotificationReason.Role, [commanderId.Value]).ToList(),
+            commanders,
             cancellationToken);
     }
 }

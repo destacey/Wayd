@@ -7,7 +7,7 @@ audience: [user, agent]
 
 # Incidents
 
-An incident is an operational problem tied to the catalog: something responders are working, with a commander, a severity, and the products and releases it points at. It is not a project and not a work item. Work items and links can be recorded on it, and they stay work items and links.
+An incident is an operational problem tied to the catalog: something responders are working, with a severity and the products and releases it points at. It is not a project and not a work item. Work items and links can be recorded on it, and they stay work items and links.
 
 :::note[Feature flags]
 Incidents need both **Product Management** and **Incident Management**. Each is disabled when first deployed. An administrator enables them under [Settings → System → Feature Flags](../settings/index.mdx). While either is off, the incidents list and record are not reachable.
@@ -19,15 +19,15 @@ Severity comes from the set selected under **Settings → Product Management →
 
 **Product Management → Incidents** lists incidents, highest key first. **State** and **Severity** sit above the grid. Every chip starts lit, which is the whole list; turn one off to narrow it. The list pages on the server, and the page controls in the toolbar use the full count.
 
-The grid also filters the page it is showing — products, releases, commander, and the rest. Those filters do not reach rows on another page. State and severity do, because they are sent with the request.
+The grid also filters the page it is showing — products, releases, who reported it, the commander, and the rest. Those filters do not reach rows on another page. State and severity do, because they are sent with the request.
 
-**Open incident** needs **Create Incidents**. You become the commander. Title, severity, and when it was noticed are required. Symptoms, root cause, products, and releases can be left empty. Noticed at defaults to now.
+**Open incident** needs **Create Incidents** and an account linked to an employee. That employee is recorded as who submitted it, and that cannot be changed later. **Reported by** starts as that same person and can be changed before the incident is opened. **Commander** is optional and starts empty. Title, severity, who reported it, and when it was noticed are required. Symptoms, root cause, products, and releases can be left empty. Noticed at defaults to now.
 
 ## The record
 
-The record page shows the title, key, severity, and status. The details panel holds when it was noticed, when response started, when it recovered, the commander, the products and releases, and the incident's links. The overview starts with the incident's workflow statuses in the workflow's order, the current one marked, and then symptoms and root cause, written in Markdown and read that way. Discussion and work items are their own sections.
+The record page shows the title, key, severity, and status. The details panel holds when it was noticed, when response started, when it recovered, who submitted it, who reported it, the commander when one is assigned, the products and releases, and the incident's links. The overview starts with the incident's workflow statuses in the workflow's order, the current one marked, and then symptoms and root cause, written in Markdown and read that way. Discussion and work items are their own sections.
 
-**Edit**, under **Actions**, needs **Update Incidents**. The same permission runs the lifecycle:
+**Edit**, under **Actions**, needs **Update Incidents**. Who reported it and the commander can be changed there. Who submitted it cannot. The same permission runs the lifecycle:
 
 | Action | What it records |
 | --- | --- |
@@ -42,4 +42,4 @@ An active incident — one that is not closed, canceled, done, or removed — sh
 
 ## Following and notifications
 
-The eye on the record follows the incident, when [Following](../following.mdx) is on and you can view incidents. The commander, and anyone following it, is told when it is opened, changes status, changes its noticed, response, or recovery time, or gains a discussion note. Editing the title, symptoms, root cause, severity, or links does not send a notification. See [Notifications](../notifications.mdx).
+The eye on the record follows the incident, when [Following](../following.mdx) is on and you can view incidents. The commander, when one is assigned, and anyone following it, is told when it is opened, changes status, changes its noticed, response, or recovery time, or gains a discussion note. Editing the title, symptoms, root cause, severity, who reported it, the commander, or links does not send a notification. See [Notifications](../notifications.mdx).

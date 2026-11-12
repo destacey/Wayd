@@ -37,7 +37,9 @@ public sealed class RecordIncidentTimelineLinkEntriesCommandHandlerTests : Produ
             [],
             DeliveryWorkflowFactory.Initial(workflow),
             EventActor.System,
-            Now).Value;
+            Now,
+            ActingEmployeeId,
+            ActingEmployeeId).Value;
         DbContext.AddIncident(incident);
         incident.ClearDomainEvents();
 

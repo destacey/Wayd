@@ -14,6 +14,8 @@ const incident = {
   key: 1,
   title: 'Checkout latency',
   commander: { id: 'emp-1', key: 4, name: 'Addison Waldow' },
+  submittedBy: { id: 'emp-2', key: 5, name: 'Casey Submitter' },
+  reportedBy: { id: 'emp-3', key: 6, name: 'Riley Reporter' },
   severityLevel: {
     id: 'sev-1',
     name: 'High',
@@ -51,31 +53,34 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }))
 
-vi.mock(import('@/src/components/common'), async (importOriginal) => ({
-  ...(await importOriginal()),
-  PageActions: ({
-    actionItems = [],
-  }: {
-    actionItems?: {
-      type?: string
-      key?: string
-      label?: string
-      onClick?: () => void
-    }[]
-  }) => (
-    <div>
-      {actionItems.map((item, index) =>
-        item.type === 'divider' ? (
-          <hr key={item.key ?? index} />
-        ) : (
-          <button key={item.key} type="button" onClick={item.onClick}>
-            {item.label}
-          </button>
-        ),
-      )}
-    </div>
-  ),
-}))
+vi.mock(import('@/src/components/common'), async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    PageActions: (({
+      actionItems = [],
+    }: {
+      actionItems?: {
+        type?: string
+        key?: string
+        label?: string
+        onClick?: () => void
+      }[]
+    }) => (
+      <div>
+        {actionItems.map((item, index) =>
+          item.type === 'divider' ? (
+            <hr key={item.key ?? index} />
+          ) : (
+            <button key={item.key} type="button" onClick={item.onClick}>
+              {item.label}
+            </button>
+          ),
+        )}
+      </div>
+    )) as (typeof actual)['PageActions'],
+  }
+})
 
 vi.mock('@/src/components/common/follow-button', () => ({
   default: () => null,
@@ -143,6 +148,10 @@ vi.mock(
     useGetIncidentSeveritySetsQuery: () => ({ data: [] }),
   }),
 )
+
+vi.mock('@/src/store/features/organizations/employee-api', () => ({
+  useGetEmployeesQuery: () => ({ data: [] }),
+}))
 
 const renderPage = () =>
   act(async () => {

@@ -57,4 +57,19 @@ internal static class IncidentReferenceValidation
             ? Result.Success()
             : Result.Failure("One or more releases were not found.");
     }
+
+    internal static async Task<Result> ValidateEmployeeExists(
+        IProductManagementDbContext context,
+        Guid? employeeId,
+        string missingMessage,
+        CancellationToken cancellationToken)
+    {
+        if (employeeId is null || employeeId == Guid.Empty)
+        {
+            return Result.Success();
+        }
+
+        var found = await context.Employees.AnyAsync(e => e.Id == employeeId, cancellationToken);
+        return found ? Result.Success() : Result.Failure(missingMessage);
+    }
 }

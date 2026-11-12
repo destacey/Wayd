@@ -1,18 +1,21 @@
 'use client'
 
 import { MarkdownEditor } from '@/src/components/common/markdown'
+import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { useModalForm } from '@/src/hooks'
+import { useLinkedEmployee, useModalForm } from '@/src/hooks'
 import { CreateIncidentRequest } from '@/src/services/wayd-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { useGetReleasesQuery } from '@/src/store/features/product-management/releases-api'
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
 import { useCreateIncidentMutation } from '@/src/store/features/product-management/incidents-api'
+import { useGetEmployeesQuery } from '@/src/store/features/organizations/employee-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { DatePicker, Form, Input, Modal, Select } from 'antd'
 import { Dayjs } from 'dayjs'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -32,6 +35,8 @@ interface CreateIncidentFormValues {
   recoveredAt?: Dayjs
   productIds?: string[]
   releaseIds?: string[]
+  reportedByEmployeeId: string
+  commanderEmployeeId?: string
 }
 
 export function CreateIncidentForm({
@@ -45,6 +50,12 @@ export function CreateIncidentForm({
   const { data: products } = useGetProductsQuery(undefined)
   const { data: releases } = useGetReleasesQuery(undefined)
 
+  const { employeeId } = useLinkedEmployee()
+  const { data: employees } = useGetEmployeesQuery(false)
+  const employeeOptions = (employees ?? []).map((employee) => ({
+    label: employee.displayName,
+    value: employee.id,
+  }))
   const selectedSet = severitySets?.find((set) => set.isSelected)
   const severityOptions = (selectedSet?.levels ?? [])
     .map((level) => ({ value: level.id, label: level.name }))
@@ -77,6 +88,8 @@ export function CreateIncidentForm({
             recoveredAt: values.recoveredAt?.toDate(),
             productIds: values.productIds ?? [],
             releaseIds: values.releaseIds ?? [],
+            reportedByEmployeeId: values.reportedByEmployeeId,
+            commanderEmployeeId: values.commanderEmployeeId,
           }
           const response = await createIncident(request)
           if (response.error) throw response.error
@@ -107,6 +120,13 @@ export function CreateIncidentForm({
       permission: 'Permissions.Incidents.Create',
     })
 
+  useEffect(() => {
+    if (!employeeId || form.getFieldValue('reportedByEmployeeId')) {
+      return
+    }
+    form.setFieldValue('reportedByEmployeeId', employeeId)
+  }, [employeeId, form])
+
   return (
     <Modal
       title="Open Incident"
@@ -119,7 +139,12 @@ export function CreateIncidentForm({
       destroyOnHidden
       width={640}
     >
-      <Form form={form} layout="vertical" size="small">
+      <Form
+        form={form}
+        layout="vertical"
+        size="small"
+        initialValues={{ reportedByEmployeeId: employeeId ?? undefined }}
+      >
         <Item
           name="title"
           label="Title"
@@ -166,6 +191,16 @@ export function CreateIncidentForm({
         </Item>
         <Item name="recoveredAt" label="Recovered at">
           <DatePicker showTime className="w-full" />
+        </Item>
+        <Item
+          name="reportedByEmployeeId"
+          label="Reported by"
+          rules={[{ required: true, message: 'Who reported it is required.' }]}
+        >
+          <EmployeeSelect employees={employeeOptions} />
+        </Item>
+        <Item name="commanderEmployeeId" label="Commander">
+          <EmployeeSelect employees={employeeOptions} />
         </Item>
       </Form>
     </Modal>

@@ -31,7 +31,9 @@ public sealed class ApplyIncidentWorkflowActionCommandHandlerTests : ProductComm
             [],
             DeliveryWorkflowFactory.Initial(workflow),
             EventActor.System,
-            Now).Value;
+            Now,
+            ActingEmployeeId,
+            ActingEmployeeId).Value;
         DbContext.AddIncident(incident);
         return incident;
     }

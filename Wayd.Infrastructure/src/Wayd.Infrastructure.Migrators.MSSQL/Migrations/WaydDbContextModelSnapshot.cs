@@ -5523,7 +5523,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("CommanderEmployeeId")
+                    b.Property<Guid?>("CommanderEmployeeId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("Key")
@@ -5538,6 +5538,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<DateTime?>("RecoveredAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid>("ReportedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("RootCause")
                         .HasMaxLength(4096)
                         .HasColumnType("nvarchar(max)");
@@ -5547,6 +5550,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SubmittedByEmployeeId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("StatusAliasValue")
                         .HasColumnType("int");

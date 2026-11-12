@@ -18,6 +18,8 @@ public sealed class IncidentTests
     {
         // Arrange
         var commanderId = Guid.CreateVersion7();
+        var submittedById = Guid.CreateVersion7();
+        var reportedById = Guid.CreateVersion7();
         var severityLevelId = Guid.CreateVersion7();
         var productId = Guid.CreateVersion7();
 
@@ -34,7 +36,9 @@ public sealed class IncidentTests
             [productId],
             StatusRefFactory.Open(),
             EventActor.System,
-            Timestamp);
+            Timestamp,
+            submittedById,
+            reportedById);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -49,6 +53,11 @@ public sealed class IncidentTests
         created.ProductIds.Should().BeEquivalentTo([productId]);
         created.ReleaseIds.Should().BeEmpty();
         result.Value.CommanderEmployeeId.Should().Be(commanderId);
+        result.Value.SubmittedByEmployeeId.Should().Be(submittedById);
+        result.Value.ReportedByEmployeeId.Should().Be(reportedById);
+        created.SubmittedByEmployeeId.Should().Be(submittedById);
+        created.ReportedByEmployeeId.Should().Be(reportedById);
+        created.CommanderEmployeeId.Should().Be(commanderId);
         result.Value.StatusAlias.Should().Be(ProductStatusAlias.Open);
         result.Value.ProductLinks.Should().ContainSingle().Which.ProductId.Should().Be(productId);
     }
@@ -69,10 +78,131 @@ public sealed class IncidentTests
             [],
             StatusRefFactory.Open(),
             EventActor.System,
-            Timestamp);
+            Timestamp,
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7());
 
         // Assert
         result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Create_ShouldOpenWithoutACommander()
+    {
+        // Arrange
+        var submittedById = Guid.CreateVersion7();
+        var reportedById = Guid.CreateVersion7();
+
+        // Act
+        var result = Incident.Create(
+            "Checkout unavailable",
+            null,
+            null,
+            commanderEmployeeId: null,
+            Guid.CreateVersion7(),
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [],
+            StatusRefFactory.Open(),
+            EventActor.System,
+            Timestamp,
+            submittedById,
+            reportedById);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.CommanderEmployeeId.Should().BeNull();
+        result.Value.SubmittedByEmployeeId.Should().Be(submittedById);
+        result.Value.ReportedByEmployeeId.Should().Be(reportedById);
+    }
+
+    [Fact]
+    public void Create_ShouldFail_WhenNobodyReportedIt()
+    {
+        // Act
+        var result = Incident.Create(
+            "Checkout unavailable",
+            null,
+            null,
+            commanderEmployeeId: null,
+            Guid.CreateVersion7(),
+            Timestamp,
+            startedAt: null,
+            recoveredAt: null,
+            [],
+            StatusRefFactory.Open(),
+            EventActor.System,
+            Timestamp,
+            Guid.CreateVersion7(),
+            Guid.Empty);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldChangeWhoReportedIt_AndLeaveWhoOpenedIt()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        var openedBy = incident.SubmittedByEmployeeId;
+        var reportedBy = incident.ReportedByEmployeeId;
+        var nextReportedBy = Guid.CreateVersion7();
+        incident.ClearDomainEvents();
+
+        // Act
+        var result = incident.UpdateDetails(
+            incident.Title,
+            incident.Symptoms,
+            incident.RootCause,
+            incident.SeverityLevelId,
+            incident.NoticedAt,
+            incident.StartedAt,
+            incident.RecoveredAt,
+            [],
+            EventActor.System,
+            Timestamp,
+            reportedByEmployeeId: nextReportedBy);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.ReportedByEmployeeId.Should().Be(nextReportedBy);
+        incident.SubmittedByEmployeeId.Should().Be(openedBy);
+        var changed = incident.DomainEvents.OfType<IncidentReportedByChangedEvent>().Should().ContainSingle().Subject;
+        changed.FromReportedByEmployeeId.Should().Be(reportedBy);
+        changed.ToReportedByEmployeeId.Should().Be(nextReportedBy);
+    }
+
+    [Fact]
+    public void UpdateDetails_ShouldClearTheCommander()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        var commander = incident.CommanderEmployeeId;
+        incident.ClearDomainEvents();
+
+        // Act
+        var result = incident.UpdateDetails(
+            incident.Title,
+            incident.Symptoms,
+            incident.RootCause,
+            incident.SeverityLevelId,
+            incident.NoticedAt,
+            incident.StartedAt,
+            incident.RecoveredAt,
+            [],
+            EventActor.System,
+            Timestamp,
+            setCommander: true,
+            commanderEmployeeId: null);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.CommanderEmployeeId.Should().BeNull();
+        var changed = incident.DomainEvents.OfType<IncidentCommanderChangedEvent>().Should().ContainSingle().Subject;
+        changed.FromCommanderEmployeeId.Should().Be(commander);
+        changed.ToCommanderEmployeeId.Should().BeNull();
     }
 
     [Fact]
@@ -92,7 +222,9 @@ public sealed class IncidentTests
             [],
             StatusRefFactory.Open(),
             EventActor.System,
-            Timestamp).Value;
+            Timestamp,
+            commanderId,
+            commanderId).Value;
 
         // Act
         var result = incident.AddTimelineNote(
@@ -124,7 +256,9 @@ public sealed class IncidentTests
             [],
             StatusRefFactory.Open(),
             EventActor.System,
-            Timestamp).Value;
+            Timestamp,
+            commanderId,
+            commanderId).Value;
         var actor = EventActor.User(Guid.CreateVersion7().ToString(), commanderId);
 
         // Act
@@ -227,6 +361,8 @@ public sealed class IncidentTests
             StatusRefFactory.Open(),
             EventActor.System,
             Timestamp,
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
             [second, first, Guid.Empty]).Value;
 
         // Assert
@@ -348,6 +484,8 @@ public sealed class IncidentTests
             StatusRefFactory.Open(),
             EventActor.System,
             Timestamp,
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
             [releaseId]).Value;
 
         incident.UpdateDetails(
@@ -396,7 +534,9 @@ public sealed class IncidentTests
             [kept, removed],
             StatusRefFactory.Open(),
             EventActor.System,
-            Timestamp).Value;
+            Timestamp,
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7()).Value;
 
         // Act
         var result = incident.UpdateDetails(
@@ -584,5 +724,7 @@ public sealed class IncidentTests
             StatusRefFactory.Open(),
             EventActor.System,
             Timestamp,
+            Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
             releaseIds).Value;
 }

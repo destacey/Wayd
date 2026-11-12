@@ -21,6 +21,7 @@ import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { useGetReleasesQuery } from '@/src/store/features/product-management/releases-api'
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
+import { useGetEmployeesQuery } from '@/src/store/features/organizations/employee-api'
 import {
   App,
   Button,
@@ -37,10 +38,8 @@ import dayjs, { Dayjs } from 'dayjs'
 import { notFound } from 'next/navigation'
 import { use, useEffect, useMemo, useState } from 'react'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import {
-  MarkdownEditor,
-  MarkdownRenderer,
-} from '@/src/components/common/markdown'
+import { MarkdownEditor, MarkdownRenderer } from '@/src/components/common/markdown'
+import { EmployeeSelect } from '@/src/components/common/organizations'
 import IncidentDiscussion from '@/src/app/product-management/incidents/_components/incident-discussion'
 import IncidentStatusStepper from '@/src/app/product-management/incidents/_components/incident-status-stepper'
 import IncidentWorkItemsSection from '@/src/app/product-management/incidents/_components/incident-work-items-section'
@@ -104,6 +103,11 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { data: severitySets } = useGetIncidentSeveritySetsQuery(false)
   const { data: products } = useGetProductsQuery(undefined)
   const { data: releases } = useGetReleasesQuery(undefined)
+  const { data: employees } = useGetEmployeesQuery(false)
+  const employeeOptions = (employees ?? []).map((employee) => ({
+    label: employee.displayName,
+    value: employee.id,
+  }))
 
   useDocumentTitle(incident ? `Incident ${incident.key}` : 'Incident')
 
@@ -168,6 +172,8 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         : undefined,
       productIds: incident.products.map((p) => p.id),
       releaseIds: incident.releases.map((release) => release.id),
+      reportedByEmployeeId: incident.reportedBy.id,
+      commanderEmployeeId: incident.commander?.id,
     })
     setEditing(true)
   }
@@ -190,6 +196,8 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
           : undefined,
         productIds: values.productIds ?? [],
         releaseIds: values.releaseIds ?? [],
+        reportedByEmployeeId: values.reportedByEmployeeId,
+        commanderEmployeeId: values.commanderEmployeeId,
       }).unwrap()
       messageApi.success('Incident updated.')
       setEditing(false)
@@ -459,6 +467,18 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                   </Form.Item>
                   <Form.Item name="recoveredAt" label="Recovered at">
                     <DatePicker showTime className="w-full" />
+                  </Form.Item>
+                  <Form.Item
+                    name="reportedByEmployeeId"
+                    label="Reported by"
+                    rules={[
+                      { required: true, message: 'Who reported it is required.' },
+                    ]}
+                  >
+                    <EmployeeSelect employees={employeeOptions} />
+                  </Form.Item>
+                  <Form.Item name="commanderEmployeeId" label="Commander">
+                    <EmployeeSelect employees={employeeOptions} />
                   </Form.Item>
                 </Form>
               </div>

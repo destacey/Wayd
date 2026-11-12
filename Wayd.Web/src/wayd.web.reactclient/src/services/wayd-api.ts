@@ -65070,6 +65070,10 @@ export interface CreateIncidentRequest {
     /** Why it happened, once that is known. Empty until a cause is recorded. */
     rootCause?: string | undefined;
     severityLevelId: string;
+    /** The employee who reported the incident. Required, and not inferred from who opened it. */
+    reportedByEmployeeId: string;
+    /** The employee commanding the response. Empty when nobody is assigned. */
+    commanderEmployeeId?: string | undefined;
     noticedAt?: Date | undefined;
     startedAt?: Date | undefined;
     recoveredAt?: Date | undefined;
@@ -67830,7 +67834,12 @@ export interface IncidentDto {
     symptoms?: string | undefined;
     /** Why it happened, once that is known. Null until a cause is recorded. */
     rootCause?: string | undefined;
-    commander: NavigationDto;
+    /** The employee who opened the incident. */
+    submittedBy: NavigationDto;
+    /** The employee who reported the incident. */
+    reportedBy: NavigationDto;
+    /** The employee commanding the response, when one is assigned. */
+    commander?: NavigationDto | undefined;
     severityLevel: IncidentSeverityLevelNavigationDto;
     noticedAt: Date;
     startedAt?: Date | undefined;
@@ -67886,7 +67895,12 @@ export interface IncidentSummaryDto {
     noticedAt: Date;
     startedAt?: Date | undefined;
     recoveredAt?: Date | undefined;
-    commander: NavigationDto;
+    /** The employee who opened the incident. */
+    submittedBy: NavigationDto;
+    /** The employee who reported the incident. */
+    reportedBy: NavigationDto;
+    /** The employee commanding the response, when one is assigned. */
+    commander?: NavigationDto | undefined;
     severityLevel: IncidentSeverityLevelNavigationDto;
     status: StatusNavigationDto;
     statusAlias: ProductStatusAlias;
@@ -74503,6 +74517,10 @@ export interface UpdateIncidentDetailsRequest {
     /** Why it happened, once that is known. Empty until a cause is recorded. */
     rootCause?: string | undefined;
     severityLevelId: string;
+    /** The employee who reported the incident. */
+    reportedByEmployeeId: string;
+    /** The employee commanding the response. Empty when nobody is assigned. */
+    commanderEmployeeId?: string | undefined;
     noticedAt: Date;
     startedAt?: Date | undefined;
     recoveredAt?: Date | undefined;

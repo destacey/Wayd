@@ -15,6 +15,8 @@ const incident = (
     title,
     noticedAt: new Date('2026-11-10T12:00:00Z'),
     commander: { id: 'c1', key: 1, name: 'Addison Waldow' },
+    submittedBy: { id: 's1', key: 2, name: 'Casey Submitter' },
+    reportedBy: { id: 'r1', key: 3, name: 'Riley Reporter' },
     severityLevel: {
       id: 'sev',
       name: 'SEV-1',

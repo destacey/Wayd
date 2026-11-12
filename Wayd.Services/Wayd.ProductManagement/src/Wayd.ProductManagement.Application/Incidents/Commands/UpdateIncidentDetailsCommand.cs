@@ -15,6 +15,8 @@ public sealed record UpdateIncidentDetailsCommand(
     Instant? StartedAt,
     Instant? RecoveredAt,
     IReadOnlyList<Guid> ProductIds,
+    Guid ReportedByEmployeeId,
+    Guid? CommanderEmployeeId = null,
     IReadOnlyList<Guid>? ReleaseIds = null) : ICommand, IRequireLinkedEmployee;
 
 public sealed class UpdateIncidentDetailsCommandValidator : AbstractValidator<UpdateIncidentDetailsCommand>
@@ -26,6 +28,10 @@ public sealed class UpdateIncidentDetailsCommandValidator : AbstractValidator<Up
         RuleFor(c => c.Symptoms).MaximumLength(4096);
         RuleFor(c => c.RootCause).MaximumLength(4096);
         RuleFor(c => c.SeverityLevelId).NotEmpty();
+        RuleFor(c => c.ReportedByEmployeeId).NotEmpty();
+        RuleFor(c => c.CommanderEmployeeId)
+            .Must(id => id != Guid.Empty)
+            .When(c => c.CommanderEmployeeId is not null);
     }
 }
 
@@ -77,6 +83,20 @@ public sealed class UpdateIncidentDetailsCommandHandler(
             return releases;
         }
 
+        var reportedBy = await IncidentReferenceValidation.ValidateEmployeeExists(
+            _productManagementDbContext, request.ReportedByEmployeeId, "Who reported the incident was not found.", cancellationToken);
+        if (reportedBy.IsFailure)
+        {
+            return reportedBy;
+        }
+
+        var commander = await IncidentReferenceValidation.ValidateEmployeeExists(
+            _productManagementDbContext, request.CommanderEmployeeId, "The commander was not found.", cancellationToken);
+        if (commander.IsFailure)
+        {
+            return commander;
+        }
+
         var employeeId = await _currentPrincipal.GetEmployeeId(cancellationToken);
         if (employeeId is null)
         {
@@ -97,7 +117,10 @@ public sealed class UpdateIncidentDetailsCommandHandler(
             request.ProductIds,
             actor,
             timestamp,
-            request.ReleaseIds);
+            request.ReleaseIds,
+            request.ReportedByEmployeeId,
+            setCommander: true,
+            request.CommanderEmployeeId);
 
         if (updated.IsFailure)
         {

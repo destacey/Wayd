@@ -30,7 +30,15 @@ public sealed record IncidentSummaryDto
     public Instant NoticedAt { get; init; }
     public Instant? StartedAt { get; init; }
     public Instant? RecoveredAt { get; init; }
-    public NavigationDto Commander { get; init; } = default!;
+
+    /// <summary>The employee who opened the incident.</summary>
+    public NavigationDto SubmittedBy { get; init; } = default!;
+
+    /// <summary>The employee who reported the incident.</summary>
+    public NavigationDto ReportedBy { get; init; } = default!;
+
+    /// <summary>The employee commanding the response, when one is assigned.</summary>
+    public NavigationDto? Commander { get; init; }
     public IncidentSeverityLevelNavigationDto SeverityLevel { get; init; } = default!;
     public StatusNavigationDto Status { get; init; } = default!;
     public ProductStatusAlias StatusAlias { get; init; }
@@ -73,7 +81,15 @@ public sealed record IncidentDto
 
     /// <summary>Why it happened, once that is known. Null until a cause is recorded.</summary>
     public string? RootCause { get; init; }
-    public NavigationDto Commander { get; init; } = default!;
+
+    /// <summary>The employee who opened the incident.</summary>
+    public NavigationDto SubmittedBy { get; init; } = default!;
+
+    /// <summary>The employee who reported the incident.</summary>
+    public NavigationDto ReportedBy { get; init; } = default!;
+
+    /// <summary>The employee commanding the response, when one is assigned.</summary>
+    public NavigationDto? Commander { get; init; }
     public IncidentSeverityLevelNavigationDto SeverityLevel { get; init; } = default!;
     public Instant NoticedAt { get; init; }
     public Instant? StartedAt { get; init; }
@@ -125,7 +141,7 @@ internal static class IncidentProjections
             Alias = incident.StatusAliasValue,
         };
 
-    internal static NavigationDto Commander(Employee employee) =>
+    internal static NavigationDto Person(Employee employee) =>
         NavigationDto.Create(employee.Id, employee.Key, employee.Name.FullName);
 
     internal static IncidentSeverityLevelNavigationDto SeverityLevel(IncidentSeverityLevel level) =>
@@ -145,7 +161,9 @@ internal static class IncidentProjections
 
     internal static IncidentSummaryDto Summary(
         Incident incident,
-        Employee commander,
+        Employee submittedBy,
+        Employee reportedBy,
+        Employee? commander,
         IncidentSeverityLevel level,
         IReadOnlyList<Product> products,
         IReadOnlyList<Release> releases) =>
@@ -157,7 +175,9 @@ internal static class IncidentProjections
             NoticedAt = incident.NoticedAt,
             StartedAt = incident.StartedAt,
             RecoveredAt = incident.RecoveredAt,
-            Commander = Commander(commander),
+            SubmittedBy = Person(submittedBy),
+            ReportedBy = Person(reportedBy),
+            Commander = commander is null ? null : Person(commander),
             SeverityLevel = SeverityLevel(level),
             Status = Status(incident),
             StatusAlias = incident.StatusAlias,
@@ -167,7 +187,9 @@ internal static class IncidentProjections
 
     internal static IncidentDto Details(
         Incident incident,
-        Employee commander,
+        Employee submittedBy,
+        Employee reportedBy,
+        Employee? commander,
         IncidentSeverityLevel level,
         IReadOnlyList<Product> products,
         IReadOnlyList<Release> releases) =>
@@ -178,7 +200,9 @@ internal static class IncidentProjections
             Title = incident.Title,
             Symptoms = incident.Symptoms,
             RootCause = incident.RootCause,
-            Commander = Commander(commander),
+            SubmittedBy = Person(submittedBy),
+            ReportedBy = Person(reportedBy),
+            Commander = commander is null ? null : Person(commander),
             SeverityLevel = SeverityLevel(level),
             NoticedAt = incident.NoticedAt,
             StartedAt = incident.StartedAt,

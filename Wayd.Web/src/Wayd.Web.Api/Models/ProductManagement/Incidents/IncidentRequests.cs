@@ -14,6 +14,13 @@ public sealed class CreateIncidentRequest
     public string? RootCause { get; set; }
 
     public Guid SeverityLevelId { get; set; }
+
+    /// <summary>The employee who reported the incident. Required, and not inferred from who opened it.</summary>
+    public Guid ReportedByEmployeeId { get; set; }
+
+    /// <summary>The employee commanding the response. Empty when nobody is assigned.</summary>
+    public Guid? CommanderEmployeeId { get; set; }
+
     public Instant? NoticedAt { get; set; }
     public Instant? StartedAt { get; set; }
     public Instant? RecoveredAt { get; set; }
@@ -23,7 +30,7 @@ public sealed class CreateIncidentRequest
     public List<Guid> ReleaseIds { get; set; } = [];
 
     public CreateIncidentCommand ToCommand() =>
-        new(Title, Symptoms, RootCause, SeverityLevelId, NoticedAt, StartedAt, RecoveredAt, ProductIds, ReleaseIds);
+        new(Title, Symptoms, RootCause, SeverityLevelId, NoticedAt, StartedAt, RecoveredAt, ProductIds, ReportedByEmployeeId, CommanderEmployeeId, ReleaseIds);
 }
 
 public sealed class CreateIncidentRequestValidator : CustomValidator<CreateIncidentRequest>
@@ -34,6 +41,7 @@ public sealed class CreateIncidentRequestValidator : CustomValidator<CreateIncid
         RuleFor(r => r.Symptoms).MaximumLength(4096);
         RuleFor(r => r.RootCause).MaximumLength(4096);
         RuleFor(r => r.SeverityLevelId).NotEmpty();
+        RuleFor(r => r.ReportedByEmployeeId).NotEmpty();
     }
 }
 
@@ -48,6 +56,13 @@ public sealed class UpdateIncidentDetailsRequest
     /// <summary>Why it happened, once that is known. Empty until a cause is recorded.</summary>
     public string? RootCause { get; set; }
     public Guid SeverityLevelId { get; set; }
+
+    /// <summary>The employee who reported the incident.</summary>
+    public Guid ReportedByEmployeeId { get; set; }
+
+    /// <summary>The employee commanding the response. Empty when nobody is assigned.</summary>
+    public Guid? CommanderEmployeeId { get; set; }
+
     public Instant NoticedAt { get; set; }
     public Instant? StartedAt { get; set; }
     public Instant? RecoveredAt { get; set; }
@@ -57,7 +72,7 @@ public sealed class UpdateIncidentDetailsRequest
     public List<Guid> ReleaseIds { get; set; } = [];
 
     public UpdateIncidentDetailsCommand ToCommand() =>
-        new(Id, Title, Symptoms, RootCause, SeverityLevelId, NoticedAt, StartedAt, RecoveredAt, ProductIds, ReleaseIds);
+        new(Id, Title, Symptoms, RootCause, SeverityLevelId, NoticedAt, StartedAt, RecoveredAt, ProductIds, ReportedByEmployeeId, CommanderEmployeeId, ReleaseIds);
 }
 
 public sealed class UpdateIncidentDetailsRequestValidator : CustomValidator<UpdateIncidentDetailsRequest>
@@ -69,5 +84,6 @@ public sealed class UpdateIncidentDetailsRequestValidator : CustomValidator<Upda
         RuleFor(r => r.Symptoms).MaximumLength(4096);
         RuleFor(r => r.RootCause).MaximumLength(4096);
         RuleFor(r => r.SeverityLevelId).NotEmpty();
+        RuleFor(r => r.ReportedByEmployeeId).NotEmpty();
     }
 }

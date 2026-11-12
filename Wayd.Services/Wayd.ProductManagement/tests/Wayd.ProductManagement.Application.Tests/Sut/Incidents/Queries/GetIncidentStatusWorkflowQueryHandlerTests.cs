@@ -37,7 +37,9 @@ public sealed class GetIncidentStatusWorkflowQueryHandlerTests : ProductCommandT
             [],
             DeliveryWorkflowFactory.Initial(workflow),
             EventActor.System,
-            Now).Value;
+            Now,
+            ActingEmployeeId,
+            ActingEmployeeId).Value;
         DbContext.AddIncident(incident);
         return incident;
     }

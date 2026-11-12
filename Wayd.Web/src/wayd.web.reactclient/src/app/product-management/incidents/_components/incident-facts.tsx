@@ -59,6 +59,18 @@ const IncidentFacts = ({ incident, viewerZone }: IncidentFactsProps) => {
       <Divider size="small" style={{ margin: 0 }} />
 
       <RecordFactsGroup label="Relationships">
+        <LabeledContent label="Submitted by">
+          <RecordPersonLink
+            name={incident.submittedBy.name}
+            href={`/organizations/employees/${incident.submittedBy.key}`}
+          />
+        </LabeledContent>
+        <LabeledContent label="Reported by">
+          <RecordPersonLink
+            name={incident.reportedBy.name}
+            href={`/organizations/employees/${incident.reportedBy.key}`}
+          />
+        </LabeledContent>
         <LabeledContent label="Commander">
           {incident.commander ? (
             <RecordPersonLink

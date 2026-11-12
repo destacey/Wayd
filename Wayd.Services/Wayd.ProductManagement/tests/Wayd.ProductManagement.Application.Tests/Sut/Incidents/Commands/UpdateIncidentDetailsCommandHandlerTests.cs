@@ -59,6 +59,7 @@ public sealed class UpdateIncidentDetailsCommandHandlerTests : IncidentSeverityS
                     reportedById),
                 TestContext.Current.CancellationToken);
         var incident = DbContext.Incidents.Should().ContainSingle().Subject;
+        var savesBeforeUpdate = DbContext.SaveChangesCallCount;
 
         // Act
         var result = await new UpdateIncidentDetailsCommandHandler(
@@ -86,6 +87,7 @@ public sealed class UpdateIncidentDetailsCommandHandlerTests : IncidentSeverityS
         opened.IsSuccess.Should().BeTrue();
         result.IsSuccess.Should().BeTrue();
         incident.Remediation.Should().Be("Rolled back the deploy");
+        DbContext.SaveChangesCallCount.Should().Be(savesBeforeUpdate + 1);
     }
 
     private void SeedEmployee(Guid id)

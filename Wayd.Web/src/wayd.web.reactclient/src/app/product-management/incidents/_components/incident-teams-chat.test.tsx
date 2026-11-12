@@ -1,5 +1,7 @@
+import type { ReactElement } from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MessageProvider } from '@/src/components/contexts/messaging'
 import { IncidentDto } from '@/src/services/wayd-api'
 import IncidentTeamsChat from './incident-teams-chat'
 
@@ -7,16 +9,20 @@ const linkChat = vi.hoisted(() =>
   vi.fn(() => ({ unwrap: () => Promise.resolve() })),
 )
 
-vi.mock(import('@/src/components/contexts/messaging'), () => ({
-  useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
-}))
-
 vi.mock(
   import('@/src/store/features/product-management/incidents-api'),
-  () => ({
-    useLinkIncidentTeamsChatMutation: () => [linkChat, { isLoading: false }],
-  }),
+  async (importOriginal) => {
+    const actual = await importOriginal()
+    return {
+      ...actual,
+      // unwrap is the only part of the RTK trigger this component awaits.
+      useLinkIncidentTeamsChatMutation: () => [linkChat, { isLoading: false }],
+    } as unknown as typeof actual
+  },
 )
+
+const renderChat = (ui: ReactElement) =>
+  render(<MessageProvider>{ui}</MessageProvider>)
 
 const incident = (teamsChatLink: string | null, teamsChatDisplayName: string | null = null) =>
   ({
@@ -38,7 +44,7 @@ describe('IncidentTeamsChat', () => {
 
   it('opens the stored chat without giving the new tab access back', () => {
     // Arrange
-    render(
+    renderChat(
       <IncidentTeamsChat
         incident={incident(
           'https://teams.microsoft.com/l/chat/1',
@@ -64,7 +70,7 @@ describe('IncidentTeamsChat', () => {
   it('accepts a Teams link whose scheme is uppercase', async () => {
     // Arrange
     const user = userEvent.setup()
-    render(
+    renderChat(
       <IncidentTeamsChat
         incident={incident(null)}
         canUpdate
@@ -97,7 +103,7 @@ describe('IncidentTeamsChat', () => {
   it('rejects a link that is not https', async () => {
     // Arrange
     const user = userEvent.setup()
-    render(
+    renderChat(
       <IncidentTeamsChat
         incident={incident(null)}
         canUpdate

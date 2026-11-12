@@ -40,6 +40,7 @@ public sealed class GetMyReasonMutesQueryHandlerTests
             new ReasonMuteDto { Reason = NotificationReason.Participant, IsMuted = false, MutedOn = null },
             new ReasonMuteDto { Reason = NotificationReason.Assigned, IsMuted = false, MutedOn = null },
             new ReasonMuteDto { Reason = NotificationReason.Mentioned, IsMuted = false, MutedOn = null },
+            new ReasonMuteDto { Reason = NotificationReason.Desk, IsMuted = false, MutedOn = null },
             new ReasonMuteDto { Reason = NotificationReason.Role, IsMuted = true, MutedOn = Now },
             new ReasonMuteDto { Reason = NotificationReason.Thread, IsMuted = false, MutedOn = null });
     }
@@ -60,6 +61,7 @@ public sealed class GetMyReasonMutesQueryHandlerTests
             NotificationReason.Participant,
             NotificationReason.Assigned,
             NotificationReason.Mentioned,
+            NotificationReason.Desk,
             NotificationReason.Role,
             NotificationReason.Thread);
         reasons.Should().OnlyContain(r => !r.IsMuted);

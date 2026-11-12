@@ -464,4 +464,62 @@ public sealed class UpdateIntakeDeskCommandHandlerTests
         desk.OffersAllTagCategories.Should().BeTrue();
         _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
     }
+
+    [Fact]
+    public async Task Handle_NamingAMemberAndMakingThemATriager_InOneChange_Succeeds()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var joining = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id));
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            Unchanged(desk) with { Members = [Admin(deskAdmin.Id), Agent(joining.Id)], TriagerIds = [joining.Id] },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        desk.TriagerIds.Should().Equal(joining.Id);
+        desk.DomainEvents.Should().ContainSingle(e => e is IntakeDeskTriagersChangedEvent);
+    }
+
+    [Fact]
+    public async Task Handle_LeavingTriagersOut_KeepsTheDesksTriagers()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id));
+        desk.ChangeTriagers([deskAdmin.Id], EventActor.System, _scenario.Clock.Now);
+        desk.ClearDomainEvents();
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(Unchanged(desk) with { Name = "Renamed" }, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        desk.TriagerIds.Should().Equal(deskAdmin.Id);
+    }
+
+    [Fact]
+    public async Task Handle_MakingSomeoneRemovedInTheSameChangeATriager_FailsWithoutSaving()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var leaving = _scenario.Employee();
+        var desk = _scenario.DeskWithMembers(Admin(deskAdmin.Id), Agent(leaving.Id));
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            Unchanged(desk) with { Members = [Admin(deskAdmin.Id)], TriagerIds = [leaving.Id] },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only members of the desk can triage its requests.");
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+    }
 }

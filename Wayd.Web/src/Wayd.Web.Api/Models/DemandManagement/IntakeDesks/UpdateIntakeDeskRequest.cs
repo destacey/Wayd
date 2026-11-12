@@ -84,6 +84,13 @@ public sealed record UpdateIntakeDeskRequest
     public List<IntakeDeskMemberRequest> Members { get; set; } = [];
 
     /// <summary>
+    /// The members who triage the desk's new requests — told about requests waiting on it unassigned — after the
+    /// change; empty means nobody, and the desk triages from its board. Leave it out to keep the desk's triagers.
+    /// Each must be in <c>members</c>; a member named in this change can triage at once, and a member removed stops.
+    /// </summary>
+    public List<Guid>? TriagerIds { get; set; }
+
+    /// <summary>
     /// The desk's <c>revision</c> as it was read before making this change. A desk changed since refuses the
     /// update with 409, so a stale page never undoes what someone else changed.
     /// </summary>
@@ -92,7 +99,7 @@ public sealed record UpdateIntakeDeskRequest
     public UpdateIntakeDeskCommand ToUpdateIntakeDeskCommand() =>
         new(Id, Name, Description, Visibility, IsRequesterSelectable, IsOpen, RequesterMayAddParticipants,
             OffersAllChannels, ChannelIds, [.. Members.Select(m => m.ToMemberDetails())], ExpectedRevision,
-            OffersAllTagCategories, TagCategoryIds, AllowsFreeTags);
+            OffersAllTagCategories, TagCategoryIds, AllowsFreeTags, TriagerIds);
 }
 
 public sealed class UpdateIntakeDeskRequestValidator : CustomValidator<UpdateIntakeDeskRequest>
@@ -105,6 +112,7 @@ public sealed class UpdateIntakeDeskRequestValidator : CustomValidator<UpdateInt
         RuleFor(d => d.Visibility).IsInEnum();
         RuleForEach(d => d.ChannelIds).NotEmpty();
         RuleForEach(d => d.TagCategoryIds).NotEmpty();
+        RuleForEach(d => d.TriagerIds).NotEmpty();
         RuleFor(d => d.Members).NotNull()
             .Must(members => members.Select(m => m.EmployeeId).Distinct().Count() == members.Count)
             .WithMessage("An employee can hold only one role on a desk.");

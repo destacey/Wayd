@@ -48,7 +48,7 @@ public sealed class NotificationReasonsTests
     [InlineData(NotificationReason.Following, true)]
     [InlineData(NotificationReason.Role, true)]
     [InlineData(NotificationReason.Participant, true)]
-    [InlineData(NotificationReason.Desk, false)]
+    [InlineData(NotificationReason.Desk, true)]
     [InlineData(NotificationReason.Requester, true)]
     [InlineData(NotificationReason.Assigned, true)]
     [InlineData(NotificationReason.Mentioned, true)]

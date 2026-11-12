@@ -14,11 +14,12 @@ public sealed class IntakeDeskMember
 {
     private IntakeDeskMember() { }
 
-    internal IntakeDeskMember(Guid deskId, Guid employeeId, IntakeDeskRole role)
+    internal IntakeDeskMember(Guid deskId, Guid employeeId, IntakeDeskRole role, bool isTriager)
     {
         DeskId = deskId;
         EmployeeId = employeeId;
         Role = role;
+        IsTriager = isTriager;
     }
 
     /// <summary>The desk the employee is named on.</summary>
@@ -30,6 +31,18 @@ public sealed class IntakeDeskMember
     /// <summary>What the employee may do on the desk.</summary>
     public IntakeDeskRole Role { get; private set; }
 
+    /// <summary>
+    /// Whether the member triages the desk's new requests, and so is told about requests waiting on it unassigned.
+    /// </summary>
+    /// <remarks>
+    /// Independent of <see cref="Role"/>: who dispatches a desk's work is not who configures it, and a desk may
+    /// name one agent, two, an admin, or everyone.
+    /// </remarks>
+    public bool IsTriager { get; private set; }
+
     /// <summary>Gives the member a different role. Only the desk changes it, which records the change.</summary>
     internal void ChangeRole(IntakeDeskRole role) => Role = role;
+
+    /// <summary>Makes the member a triager or not. Only the desk changes it, which records the change.</summary>
+    internal void ChangeTriager(bool isTriager) => IsTriager = isTriager;
 }

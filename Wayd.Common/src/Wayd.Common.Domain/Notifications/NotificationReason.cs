@@ -35,7 +35,7 @@ public enum NotificationReason
     [Display(Name = "Mentioned", Description = "You were mentioned on the record.", Order = 5)]
     Mentioned = 16,
 
-    [Display(Name = "Desk", Description = "The record is waiting, unassigned, on a desk you work on.", Order = 6)]
+    [Display(Name = "Desk", Description = "The record is waiting, unassigned, on a desk you triage.", Order = 6)]
     Desk = 32,
 
     [Display(Name = "Role", Description = "You hold a role on the record, or belong to the team that owns it.", Order = 7)]
@@ -72,6 +72,7 @@ public static class NotificationReasons
         | NotificationReason.Participant
         | NotificationReason.Assigned
         | NotificationReason.Mentioned
+        | NotificationReason.Desk
         | NotificationReason.Role
         | NotificationReason.Thread;
 

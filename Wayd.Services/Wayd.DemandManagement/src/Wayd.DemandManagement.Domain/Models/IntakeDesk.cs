@@ -57,7 +57,8 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
             if (_members.Any(m => m.EmployeeId == member.EmployeeId))
                 throw new ArgumentException("An employee can hold only one role on a desk.", nameof(members));
 
-            _members.Add(new IntakeDeskMember(Id, member.EmployeeId, member.Role));
+            // A new desk starts small, so everyone it starts with triages: none of its first requests goes unheard.
+            _members.Add(new IntakeDeskMember(Id, member.EmployeeId, member.Role, isTriager: true));
         }
     }
 
@@ -409,12 +410,48 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
+    /// The members who triage the desk's new requests. Needs <see cref="Members"/> loaded.
+    /// </summary>
+    public IEnumerable<Guid> TriagerIds => _members.Where(m => m.IsTriager).Select(m => m.EmployeeId);
+
+    /// <summary>
+    /// Sets which members triage the desk's new requests; none means nobody is told and the desk triages from
+    /// the board. Needs <see cref="Members"/> loaded.
+    /// </summary>
+    /// <remarks>Refused when anyone named is not a member: a triager is always someone who can act on the request.</remarks>
+    public Result ChangeTriagers(IEnumerable<Guid> employeeIds, EventActor actor, Instant timestamp)
+    {
+        Guid[] target = [.. employeeIds.Distinct()];
+        if (target.Any(id => _members.All(m => m.EmployeeId != id)))
+            return Result.Failure("Only members of the desk can triage its requests.");
+
+        IntakeDeskMember[] added = [.. _members.Where(m => !m.IsTriager && target.Contains(m.EmployeeId))];
+        IntakeDeskMember[] removed = [.. _members.Where(m => m.IsTriager && !target.Contains(m.EmployeeId))];
+        if (added.Length == 0 && removed.Length == 0)
+            return Result.Success();
+
+        foreach (var member in added)
+            member.ChangeTriager(true);
+        foreach (var member in removed)
+            member.ChangeTriager(false);
+
+        Guid[] addedIds = [.. added.Select(m => m.EmployeeId)];
+        Guid[] removedIds = [.. removed.Select(m => m.EmployeeId)];
+        Guid[] resulting = [.. TriagerIds];
+        RaiseWhenKeyed(() => new IntakeDeskTriagersChangedEvent(Id, Key, addedIds, removedIds, resulting, actor, timestamp));
+
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Sets who works the desk and in which role, naming, removing and changing roles in one change. Needs
     /// <see cref="Members"/> loaded.
     /// </summary>
     /// <remarks>
     /// Refused when an employee is given two roles. Whether the caller may touch Desk Admins is theirs to
-    /// decide; <see cref="MembershipChange"/> says which roles a change would touch.
+    /// decide; <see cref="MembershipChange"/> says which roles a change would touch. A member named here does
+    /// not triage until <see cref="ChangeTriagers"/> says so, and a member removed stops triaging with them; a
+    /// role change leaves triaging alone.
     /// </remarks>
     public Result ChangeMembers(IEnumerable<IntakeDeskMemberDetails> members, EventActor actor, Instant timestamp)
     {
@@ -431,7 +468,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         _members.RemoveAll(m => change.Removed.Any(r => r.EmployeeId == m.EmployeeId));
         foreach (var roleChange in change.RoleChanges)
             _members.Single(m => m.EmployeeId == roleChange.EmployeeId).ChangeRole(roleChange.ToRole);
-        _members.AddRange(change.Added.Select(a => new IntakeDeskMember(Id, a.EmployeeId, a.Role)));
+        _members.AddRange(change.Added.Select(a => new IntakeDeskMember(Id, a.EmployeeId, a.Role, isTriager: false)));
 
         var resulting = _members.Select(m => new IntakeDeskMemberDetails(m.EmployeeId, m.Role)).ToArray();
         RaiseWhenKeyed(() => new IntakeDeskMembersChangedEvent(Id, Key, change.Added, change.Removed, change.RoleChanges,
@@ -580,6 +617,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         var isOpen = desk.IsOpen;
         var requesterMayAddParticipants = desk.RequesterMayAddParticipants;
         var members = desk._members.Select(m => new IntakeDeskMemberDetails(m.EmployeeId, m.Role)).ToArray();
+        var triagers = desk.TriagerIds.ToArray();
 
         desk.AddPostPersistenceAction(() => desk.AddDomainEvent(new IntakeDeskCreatedEvent(
             desk.Id,
@@ -591,6 +629,7 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
             isOpen,
             requesterMayAddParticipants,
             members,
+            triagers,
             actor,
             timestamp)));
 

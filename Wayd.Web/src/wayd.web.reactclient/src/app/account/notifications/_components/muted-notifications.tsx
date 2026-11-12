@@ -49,6 +49,11 @@ const reasonWording: Partial<
     description:
       'Changes to intake requests you were given access to, or submitted for someone else. You keep your access.',
   },
+  [NotificationReason.Desk]: {
+    title: 'Desks you triage',
+    description:
+      'Intake requests arriving, waiting unassigned or being taken on a desk you triage. You stay a triager.',
+  },
   [NotificationReason.Role]: {
     title: 'Records you work on',
     description:

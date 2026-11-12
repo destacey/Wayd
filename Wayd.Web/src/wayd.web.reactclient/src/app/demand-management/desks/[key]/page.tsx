@@ -11,7 +11,7 @@ import {
   useGetNeedByBasesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError } from '@/src/utils'
-import { Alert, Button } from 'antd'
+import { Alert, Button, Space } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
 import { use, useState } from 'react'
@@ -20,6 +20,7 @@ import { UnownedDeskAlert } from '../../_components/desk-status'
 import DeleteIntakeDeskForm from './_components/delete-intake-desk-form'
 import EditIntakeDeskMembersForm from './_components/edit-intake-desk-members-form'
 import EditIntakeDeskSettingsForm from './_components/edit-intake-desk-settings-form'
+import EditIntakeDeskTriagersForm from './_components/edit-intake-desk-triagers-form'
 import IntakeDeskFacts from './_components/intake-desk-facts'
 import IntakeDeskMembers from './_components/intake-desk-members'
 import IntakeDeskSettings from './_components/intake-desk-settings'
@@ -31,7 +32,7 @@ enum DeskSection {
   Settings = 'settings',
 }
 
-type DeskDialog = 'settings' | 'members' | 'delete'
+type DeskDialog = 'settings' | 'members' | 'triagers' | 'delete'
 
 /**
  * One desk, run from its own page rather than from Settings: a Desk Admin usually holds no administer
@@ -89,9 +90,14 @@ const IntakeDeskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
   const sectionActions =
     activeSection === DeskSection.Members && desk.canManage ? (
-      <Button size="small" onClick={() => setDialog('members')}>
-        Edit Members
-      </Button>
+      <Space size="small">
+        <Button size="small" onClick={() => setDialog('triagers')}>
+          Edit Triagers
+        </Button>
+        <Button size="small" onClick={() => setDialog('members')}>
+          Edit Members
+        </Button>
+      </Space>
     ) : activeSection === DeskSection.Settings && desk.canManage ? (
       <Button size="small" onClick={() => setDialog('settings')}>
         Edit Settings
@@ -155,6 +161,13 @@ const IntakeDeskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       )}
       {dialog === 'members' && desk.canManage && (
         <EditIntakeDeskMembersForm
+          desk={desk}
+          onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'triagers' && desk.canManage && (
+        <EditIntakeDeskTriagersForm
           desk={desk}
           onFormComplete={() => setDialog(null)}
           onFormCancel={() => setDialog(null)}

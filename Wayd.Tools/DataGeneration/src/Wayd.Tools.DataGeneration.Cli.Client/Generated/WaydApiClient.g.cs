@@ -126930,6 +126930,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IntakeDeskRole>))]
         public IntakeDeskRole Role { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the member triages the desk's new requests, and so is told about requests waiting on it unassigned.
+        /// <br/>Independent of the role.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("isTriager")]
+        public bool IsTriager { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -145857,6 +145864,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("members")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<IntakeDeskMemberRequest> Members { get; set; } = new System.Collections.ObjectModel.Collection<IntakeDeskMemberRequest>();
+
+        /// <summary>
+        /// The members who triage the desk's new requests — told about requests waiting on it unassigned — after the
+        /// <br/>change; empty means nobody, and the desk triages from its board. Leave it out to keep the desk's triagers.
+        /// <br/>Each must be in `members`; a member named in this change can triage at once, and a member removed stops.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("triagerIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? TriagerIds { get; set; } = default!;
 
         /// <summary>
         /// The desk's `revision` as it was read before making this change. A desk changed since refuses the

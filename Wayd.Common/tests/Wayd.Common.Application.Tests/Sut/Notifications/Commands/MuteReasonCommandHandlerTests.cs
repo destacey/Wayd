@@ -58,8 +58,8 @@ public sealed class MuteReasonCommandHandlerTests
     [Fact]
     public async Task Handle_ShouldFail_ForAReasonNothingProduces()
     {
-        // Act
-        var result = await CreateHandler().Handle(new MuteReasonCommand(NotificationReason.Desk), TestContext.Current.CancellationToken);
+        // Act — every defined reason is produced, so only a value outside the set is not
+        var result = await CreateHandler().Handle(new MuteReasonCommand((NotificationReason)256), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -86,7 +86,8 @@ public sealed class MuteReasonCommandHandlerTests
     [InlineData(NotificationReason.Participant, true)]
     [InlineData(NotificationReason.Requester, true)]
     [InlineData(NotificationReason.Assigned, true)]
-    [InlineData(NotificationReason.Desk, false)]
+    [InlineData(NotificationReason.Desk, true)]
+    [InlineData((NotificationReason)256, false)]
     [InlineData(NotificationReason.Mentioned, true)]
     [InlineData(NotificationReason.Thread, true)]
     [InlineData(NotificationReason.Following | NotificationReason.Role, false)]
@@ -103,10 +104,10 @@ public sealed class MuteReasonCommandHandlerTests
     public void Validator_ShouldNameEveryReasonThatCanBeMuted()
     {
         // Act
-        var result = new MuteReasonCommandValidator().Validate(new MuteReasonCommand(NotificationReason.Desk));
+        var result = new MuteReasonCommandValidator().Validate(new MuteReasonCommand((NotificationReason)256));
 
         // Assert
         result.Errors.Should().ContainSingle()
-            .Which.ErrorMessage.Should().Be("'Reason' must be one of: Following, Requester, Participant, Assigned, Mentioned, Role, Thread.");
+            .Which.ErrorMessage.Should().Be("'Reason' must be one of: Following, Requester, Participant, Assigned, Mentioned, Desk, Role, Thread.");
     }
 }

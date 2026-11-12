@@ -91,13 +91,21 @@ public static class IntakeDeskFakerExtensions
     /// Set through the backing list, so a test can arrange a desk's members without raising the event that
     /// <c>ChangeMembers</c> would.
     /// </remarks>
-    public static IntakeDeskFaker WithMembers(this IntakeDeskFaker faker, params IntakeDeskMemberDetails[] members)
+    public static IntakeDeskFaker WithMembers(this IntakeDeskFaker faker, params IntakeDeskMemberDetails[] members) =>
+        faker.WithMembersAndTriagers(members, triagers: []);
+
+    /// <summary>
+    /// Names the employees on the desk with their roles, replacing any members it had, and makes those in
+    /// <paramref name="triagers"/> its triagers.
+    /// </summary>
+    /// <remarks>One finisher sets both, because a faker keeps only the last one it is given.</remarks>
+    public static IntakeDeskFaker WithMembersAndTriagers(this IntakeDeskFaker faker, IntakeDeskMemberDetails[] members, Guid[] triagers)
     {
         faker.FinishWith((_, desk) =>
         {
             var list = (List<IntakeDeskMember>)MembersField.GetValue(desk)!;
             list.Clear();
-            list.AddRange(members.Select(m => new IntakeDeskMember(desk.Id, m.EmployeeId, m.Role)));
+            list.AddRange(members.Select(m => new IntakeDeskMember(desk.Id, m.EmployeeId, m.Role, triagers.Contains(m.EmployeeId))));
         });
 
         return faker;

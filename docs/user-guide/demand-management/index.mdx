@@ -198,7 +198,7 @@ Opening a request shows its number and title, with its status and [tags](#tags) 
 
 Anyone who can see a request can **follow** it with the eye at the top of the page, to keep it in their [Following](../following.mdx) list; the Following feature flag must be on. Following grants nothing: a follower reads exactly what the tiers below allow, and loses the request from their list the moment they can no longer see it — when it moves to a private desk they are not on, they are removed from a private desk's request, or it is deleted. Its history in their Following list shows only what the request's own Activity section shows them.
 
-The bell tells a request's people when it changes, without their having to follow it: its requester, its assignee, its participants and anyone who entered it on the requester's behalf, as well as its followers. Each is told for their own reason and can mute that reason, and nobody is told about their own change. The requester hears when its status changes, when it is reassigned or moved to another desk, when someone replies in its conversation, and when its title, details, need-by date or channel change; an agent hears when a request is assigned to them or taken off them. A follower who sees only a request's summary is not told about changes to its details or participants. [Notifications](../notifications.mdx#who-is-told) lists who is told about each change.
+The bell tells a request's people when it changes, without their having to follow it: its requester, its assignee, its participants and anyone who entered it on the requester's behalf, as well as its followers. Each is told for their own reason and can mute that reason, and nobody is told about their own change. The requester hears when its status changes, when it is reassigned or moved to another desk, when someone replies in its conversation, and when its title, details, need-by date or channel change; an agent hears when a request is assigned to them or taken off them. While a request waits unassigned, the desk's [triagers](#choosing-who-triages-a-desk) hear when it arrives, when its requester adds to it, and when it leaves the queue. A follower who sees only a request's summary is not told about changes to its details or participants. [Notifications](../notifications.mdx#who-is-told) lists who is told about each change.
 
 **Edit** appears in the actions menu when you can change the request: the requester while it is proposed, or an agent on its desk while it is open. The desk cannot be changed here.
 
@@ -359,7 +359,7 @@ The Demand Management Admin creates a desk from **Create Desk** on the **Desks**
 A desk is run from its own page, opened from **Desks** or from the desk named on any request. The page has three sections:
 
 - **Requests** — The requests on the desk that you can see
-- **Members** — Who works the desk, and in which role
+- **Members** — Who works the desk, in which role, and who [triages](#choosing-who-triages-a-desk) its new requests
 - **Settings** — Its name, what to bring here, its review workflow, who can see its requests (with what that exposes, in plain words), the channels and tag categories it offers, how its conversations work, whether it is open, and what requesters may do on it
 
 What you can change depends on your role:
@@ -372,12 +372,29 @@ What you can change depends on your role:
 | **Tag categories offered** | Yes | Yes |
 | **Conversations**: internal notes, mentions | Yes | Yes |
 | Name or remove **Agents** | Yes | Yes |
+| **Triagers** | Yes | Yes |
 | **Review workflow** | Yes | Yes |
 | Name or remove **Desk Admins** | No | Yes |
 | **Visibility** | No | Yes |
 | **Delete** the desk | No | Yes, while no request is on it |
 
 Removing someone from a desk unassigns them from the requests they own there.
+
+#### Choosing who triages a desk
+
+A desk's **triagers** are the members told about requests waiting on it with nobody assigned, so someone picks each one up. Who they are is chosen person by person, whatever their role: one agent on a rota, two agents, a Desk Admin, or everyone on the desk. **Edit Triagers** in the desk's **Members** section moves members between **Members** and **Triage**; the **Triages** column shows who does.
+
+Triagers are told when a request:
+
+- arrives on the desk unassigned, whether it was submitted there or moved there from another desk;
+- is moved from the desk to another while unassigned, so nobody goes looking for it;
+- is renamed, has its details or need-by date changed, or is replied to by its requester while unassigned;
+- is assigned, so they know someone took it;
+- is withdrawn, or moved to a done or removed status, while unassigned.
+
+Work an agent does on an unassigned request — editing it, tagging it, moving it between open statuses, replying or writing an internal note — tells the triagers nothing: it is their own work, and it shows on the board. Once a request is assigned, its assignee hears about it instead.
+
+A new desk starts with every member it was created with as a triager. A desk that existed before triagers were introduced starts with none, until a Desk Admin names them. Someone named on the desk later is not one until a Desk Admin adds them, and someone removed from the desk stops being one; changing a member's role leaves this alone. A desk with no triagers tells nobody about its new requests, and its **Members** section warns so: it is triaged from the board. Triagers who would rather not hear can [mute](../notifications.mdx#mute-a-reason) **Desks you triage** for themselves.
 
 #### Choosing the channels a desk offers
 

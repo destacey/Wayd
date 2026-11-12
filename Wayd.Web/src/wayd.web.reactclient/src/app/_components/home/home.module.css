@@ -249,7 +249,7 @@
   flex: 1 1 120px;
 }
 
-/* A team of teams' rows in the My teams widget: status, name, then its signal. */
+/* A team of teams' rows in the My teams of teams widget: status, name, then its signal. */
 .rollupRows {
   display: flex;
   flex-direction: column;

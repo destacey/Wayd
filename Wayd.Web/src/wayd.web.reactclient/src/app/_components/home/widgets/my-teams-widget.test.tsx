@@ -204,6 +204,20 @@ describe('MyTeamsWidget', () => {
     ).toBeInTheDocument()
   })
 
+  it('links View all to the Teams list', () => {
+    // Arrange
+    mockSummary.mockReturnValue(loaded({ teams: [team('a')] }))
+
+    // Act
+    render(<MyTeamsWidget title="My teams" />)
+
+    // Assert
+    expect(screen.getByRole('link', { name: 'View all' })).toHaveAttribute(
+      'href',
+      '/organizations/teams',
+    )
+  })
+
   it('says how it fills for someone on no team, without asking', () => {
     // Arrange
     mockHome.context = homeContext()
@@ -239,14 +253,14 @@ describe('MyTeamsWidget', () => {
   })
 })
 
-describe('MyTeamsWidget teams of teams', () => {
+describe('MyTeamsWidget alongside teams of teams', () => {
   beforeEach(() => {
     mockHome.context = homeContext({
       teams: { teamCount: 1, teamOfTeamsCount: 1 },
     })
   })
 
-  it('puts the rollup card before the team cards, and says which team of teams a team is part of', () => {
+  it('shows only the teams, saying which team of teams each is part of', () => {
     // Arrange
     mockSummary.mockReturnValue(
       loaded({
@@ -282,17 +296,16 @@ describe('MyTeamsWidget teams of teams', () => {
     render(<MyTeamsWidget title="My teams" />)
 
     // Assert
-    const names = screen
-      .getAllByRole('link')
-      .map((link) => link.textContent)
-      .filter((name) => name === 'Release Train' || name === 'Team pay')
-    expect(names).toEqual(['Release Train', 'Team pay', 'Release Train'])
+    expect(screen.getByRole('link', { name: 'Team pay' })).toBeInTheDocument()
+    expect(screen.getAllByRole('link', { name: 'Release Train' })).toHaveLength(
+      1,
+    )
     expect(screen.getByText(/Part of/)).toHaveTextContent(
       'Part of Release Train',
     )
   })
 
-  it('shows the rollup to a member of a team of teams only', () => {
+  it('says how it fills for a member of a team of teams only', () => {
     // Arrange
     mockHome.context = homeContext({ teams: { teamOfTeamsCount: 1 } })
     mockSummary.mockReturnValue(
@@ -319,8 +332,10 @@ describe('MyTeamsWidget teams of teams', () => {
 
     // Assert
     expect(
-      screen.getByRole('link', { name: 'Release Train' }),
+      screen.queryByRole('link', { name: 'Release Train' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByText(/You are not a member of a team/),
     ).toBeInTheDocument()
-    expect(screen.queryByText(/not a member of a team/)).not.toBeInTheDocument()
   })
 })

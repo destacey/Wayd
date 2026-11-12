@@ -21,7 +21,6 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 /// Operational incidents linked to products in the catalog.
 /// </summary>
 [Route("api/product-management/incidents")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(RequirementType.All, FeatureFlags.Names.ProductManagement, FeatureFlags.Names.IncidentManagement)]
 public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbContext) : ControllerBase

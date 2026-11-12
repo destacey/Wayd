@@ -1,11 +1,6 @@
 'use client'
 
-import dynamic from 'next/dynamic'
-const Area = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Area) as any,
-  { ssr: false },
-)
-import { AreaConfig } from '@ant-design/charts'
+import type { AreaConfig } from '@ant-design/charts'
 import useTheme from '../../contexts/theme'
 import { ChartCard } from '../metrics'
 import { useChartRemountOnResize } from '@/src/hooks'
@@ -14,6 +9,7 @@ import WaydEmpty from '../wayd-empty'
 import { getWorkStatusCategoryColorScale } from './work-status-category-colors'
 import { theme } from 'antd'
 import dayjs from 'dayjs'
+import { Area } from '@/src/components/common/charts'
 
 export interface WorkItemsCumulativeFlowChartProps {
   workItems: WorkItemProgressDailyRollupDto[]

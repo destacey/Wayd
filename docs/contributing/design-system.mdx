@@ -43,7 +43,7 @@ Reach for the house component before the library it wraps. A row marked **lint**
 | A date range as text | `WaydDateRange` | Formatting it inline |
 | A timeline or Gantt chart | `WaydTimeline` (`src/components/common/timeline`) | |
 | User markdown | `MarkdownRenderer`, `MarkdownEditor` | |
-| A chart | `@ant-design/charts`; on a record page also `autoFit` and `useChartRemountOnResize()` | |
+| A chart | `Pie`, `Line`, `Column`, `Area`, `Radar` from `src/components/common/charts`; on a record page also `autoFit` and `useChartRemountOnResize()` | Loading a chart from `@ant-design/charts` yourself (**lint**) |
 | Content that stacks on a phone | `ResponsiveFlex` | Hand-written breakpoint branching |
 
 The grid has its own guide: [WaydGrid](./wayd-grid.mdx). If a table needs something `WaydGrid` cannot do yet, the fix is a `WaydGrid` feature, not an antd `Table`.
@@ -57,6 +57,7 @@ The grid has its own guide: [WaydGrid](./wayd-grid.mdx). If a table needs someth
 - **Filter bars: unselected buttons are dashed, and colour means identity, never state.** See [Filter Bars](./frontend.mdx#filter-bars).
 - **Calendar dates go through `src/utils/calendar-date.ts`.** See [Dates and instants](./frontend.mdx#dates-and-instants).
 - **User-facing strings sort with `caseInsensitiveCompare`.**
+- **Charts load through `src/components/common/charts`.** G2's own tooltip writes its title, names and values into the page as HTML, and many are names users choose. The shared chart components replace it with `renderChartTooltip`, which sets every one as text, so a chart's `tooltip.title` and `items` return plain strings and never markup. A chart type not there yet is added there (one `dynamic` export) rather than loaded beside it. See [What lint enforces](#what-lint-enforces).
 
 ## What lint enforces
 
@@ -65,6 +66,10 @@ The grid has its own guide: [WaydGrid](./wayd-grid.mdx). If a table needs someth
 Files written before the rule existed are listed in `legacyAntdTableFiles` in the same config. That list only shrinks: migrate a file to `WaydGrid` and remove it from the list. Never add a file to it.
 
 Lint also rejects a component imported from inside antd (`antd/es/input/TextArea`, `antd/lib/statistic/Number`). Import it from `antd` — `const { TextArea } = Input` — because antd passes form-wide settings to its components through React contexts, and a deep path can load a second copy of them: the component then ignores `<Form disabled>`, `size` and `ConfigProvider`. Under Vitest it always does, because the suites load `antd` as one pre-bundled module and a deep path is a separate one; in the Next.js bundle an `antd/lib` path is the CommonJS build and can be a separate copy too. A type has no runtime module, so `import type` from a deep path is allowed; where `antd` exports the type, import it from there.
+
+Lint also rejects loading a chart anywhere but `src/components/common/charts`: an import of `@ant-design/charts`, `@ant-design/plots`, `@antv/g2` or `@antv/g2plot`, or any path inside them, static or dynamic. Each renders G2's HTML tooltip. `import type` of a config type is allowed, and so is `vi.mock(import('@ant-design/charts'), …)`, which loads nothing. `chart-imports.test.ts` runs the same check over the source, so a chart that silences the lint rule still fails the tests.
+
+Keep `renderChartTooltip` and the functions it calls free of `createElement`: `@ant-design/plots` takes any config function whose source holds `.createElement('<tag>'` for a React component, and the tooltip then throws on hover. The module builds its elements with `createElementNS`, and a test runs plots' check against the render.
 
 When a rule on this page can be checked by a tool, add it to lint. A rule in lint reaches every developer and every agent, whichever editor or tool they use; a rule only in prose reaches the ones who read it.
 

@@ -1,8 +1,7 @@
 'use client'
 
-import { ColumnConfig, LineConfig } from '@ant-design/charts'
+import type { ColumnConfig, LineConfig } from '@ant-design/charts'
 import { theme, Typography } from 'antd'
-import dynamic from 'next/dynamic'
 import { FC } from 'react'
 import useTheme from '@/src/components/contexts/theme'
 import { useChartRemountOnResize } from '@/src/hooks'
@@ -15,17 +14,9 @@ import {
   FlowDatum,
   OpenDatum,
 } from './dependency-analysis-over-time-data'
+import { Column, Line } from '@/src/components/common/charts'
 
 const { Text } = Typography
-
-const Column = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Column) as any,
-  { ssr: false },
-)
-const Line = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Line) as any,
-  { ssr: false },
-)
 
 const CHART_HEIGHT = 240
 

@@ -1,17 +1,13 @@
 'use client'
 
 import { FC } from 'react'
-import dynamic from 'next/dynamic'
-const Column = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Column) as any,
-  { ssr: false },
-)
-import { ColumnConfig } from '@ant-design/charts'
+import type { ColumnConfig } from '@ant-design/charts'
 import { Flex } from 'antd'
 import { ChartSkeleton } from '@/src/components/common/metrics'
 import WaydEmpty from '../wayd-empty'
 import useTheme from '../../contexts/theme'
 import { WorkItemListDto } from '@/src/services/wayd-api'
+import { Column } from '@/src/components/common/charts'
 
 export interface CycleTimeAnalysisChartProps {
   workItems: WorkItemListDto[]

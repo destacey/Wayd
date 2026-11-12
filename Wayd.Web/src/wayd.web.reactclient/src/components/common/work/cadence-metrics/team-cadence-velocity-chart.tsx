@@ -1,7 +1,6 @@
 'use client'
 
-import { ColumnConfig } from '@ant-design/charts'
-import dynamic from 'next/dynamic'
+import type { ColumnConfig } from '@ant-design/charts'
 import { FC } from 'react'
 import { TeamCadenceMetricsDto } from '@/src/services/wayd-api'
 import { formatCalendarDate } from '@/src/utils/calendar-date'
@@ -12,11 +11,7 @@ import {
   periodNote,
   periodVelocity,
 } from './team-cadence-metrics-formatting'
-
-const Column = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Column) as any,
-  { ssr: false },
-)
+import { Column } from '@/src/components/common/charts'
 
 export interface TeamCadenceVelocityChartProps {
   metrics: TeamCadenceMetricsDto

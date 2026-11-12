@@ -2,14 +2,9 @@
 
 import { ChartCard } from '../metrics'
 import dayjs from 'dayjs'
-import dynamic from 'next/dynamic'
 import useTheme from '../../contexts/theme'
 import WaydEmpty from '../wayd-empty'
-
-const Line = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Line) as any,
-  { ssr: false },
-)
+import { Line } from '@/src/components/common/charts'
 
 export interface HealthStatusHistoryItem {
   reportedOn: Date
@@ -154,4 +149,3 @@ const HealthStatusHistoryChart = ({
 }
 
 export default HealthStatusHistoryChart
-

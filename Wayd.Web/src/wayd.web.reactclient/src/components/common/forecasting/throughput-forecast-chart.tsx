@@ -1,16 +1,11 @@
 'use client'
 
-import { ColumnConfig } from '@ant-design/charts'
+import type { ColumnConfig } from '@ant-design/charts'
 import { TeamThroughputForecastDto } from '@/src/services/wayd-api'
-import dynamic from 'next/dynamic'
 import { FC } from 'react'
 import useTheme from '../../contexts/theme'
 import { formatPercent } from './forecast-formatting'
-
-const Column = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Column) as any,
-  { ssr: false },
-)
+import { Column } from '@/src/components/common/charts'
 
 export interface ThroughputForecastChartProps {
   forecast: TeamThroughputForecastDto

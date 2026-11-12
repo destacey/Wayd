@@ -19,6 +19,7 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@antv/component": "2.1.11",
     "@serwist/turbopack": "^9.5.13",
     "@testing-library/dom": "10.4.2",
     "@testing-library/jest-dom": "7.0.1",

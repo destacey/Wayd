@@ -6,6 +6,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Events.Discussions;
 using Wayd.Common.Domain.Notifications;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Domain;
 
 namespace Wayd.DemandManagement.Application.IntakeRequests.EventHandlers;
@@ -40,8 +41,17 @@ namespace Wayd.DemandManagement.Application.IntakeRequests.EventHandlers;
 /// decided when the list is read, by <see cref="IntakeRequestReadRule.VisibleNotifications"/>.
 /// </para>
 /// <para>
-/// Deletion does not notify: the request is gone, so its notification could never be shown. Creation, tags and
-/// a switch of workflow do not either: a submitter knows what they submitted, and tags and workflows are the
+/// A request waiting on its desk unassigned is the desk's, so the desk's triagers are told as
+/// <see cref="NotificationReason.Desk"/> when it enters that queue, when its requester adds to it, and when it
+/// leaves: created or rerouted in unassigned (the desk it left is told too), changed or replied to by its
+/// requester, withdrawn or closed while unassigned, and assigned. Agent work on it is the triagers' own, seen on
+/// the board, so it tells them nothing; anyone a message mentions is told as a mention. Which desks are told comes
+/// from the event, but whether the request is still unassigned is read as it is now, like every other audience
+/// here: a change delivered after the request was taken tells its triagers nothing, since it is no longer theirs.
+/// </para>
+/// <para>
+/// Deletion does not notify: the request is gone, so its notification could never be shown. Creation tells only
+/// the triagers, since a submitter knows what they submitted; tags and a switch of workflow tell nobody, being the
 /// desk's own filing.
 /// </para>
 /// <para>
@@ -58,34 +68,65 @@ public sealed class IntakeRequestNotificationEventHandler(
     private readonly IDiscussionsDbContext _discussionsDbContext = discussionsDbContext;
     private readonly INotificationWriter _notificationWriter = notificationWriter;
 
-    /// <summary>Tells the request's audience an agent moved it to another status.</summary>
+    /// <summary>Tells the desk's triagers a request arrived on it unassigned.</summary>
+    public Task Handle(IntakeRequestCreatedEventV2 @event, CancellationToken cancellationToken) =>
+        Notify(@event.Id, NotificationEvent.Created, @event, Audience.TriagersOnly with { TriageDeskIds = [@event.DeskId] },
+            cancellationToken);
+
+    /// <summary>
+    /// Tells the request's audience an agent moved it to another status, and the desk's triagers when that closed
+    /// it unassigned.
+    /// </summary>
     public Task Handle(IntakeRequestStatusChangedEvent @event, CancellationToken cancellationToken) =>
-        Notify(@event.Id, NotificationEvent.StatusChanged, @event, Audience.Everyone, cancellationToken);
+        Notify(@event.Id, NotificationEvent.StatusChanged, @event,
+            Audience.Everyone with { Triage = IsClosing(@event.FromCategory, @event.ToCategory) ? WhileUnassigned : null },
+            cancellationToken);
 
-    /// <summary>Tells the request's audience its requester withdrew it.</summary>
+    /// <summary>Tells the request's audience its requester withdrew it, and the desk's triagers while it is unassigned.</summary>
     public Task Handle(IntakeRequestWithdrawnEvent @event, CancellationToken cancellationToken) =>
-        Notify(@event.Id, NotificationEvent.Withdrawn, @event, Audience.Everyone, cancellationToken);
+        Notify(@event.Id, NotificationEvent.Withdrawn, @event, Audience.Everyone with { Triage = WhileUnassigned }, cancellationToken);
 
-    /// <summary>Tells the request's audience its title changed.</summary>
+    /// <summary>Tells the request's audience its title changed, and the desk's triagers when the requester changed it unassigned.</summary>
     public Task Handle(IntakeRequestRetitledEvent @event, CancellationToken cancellationToken) =>
-        Notify(@event.Id, NotificationEvent.Retitled, @event, Audience.Everyone, cancellationToken);
+        Notify(@event.Id, NotificationEvent.Retitled, @event, Audience.Everyone with { Triage = ByRequester(@event.Actor.EmployeeId) },
+            cancellationToken);
 
-    /// <summary>Tells the request's audience its description or expected benefits changed.</summary>
+    /// <summary>
+    /// Tells the request's audience its description or expected benefits changed, and the desk's triagers when the
+    /// requester changed them unassigned.
+    /// </summary>
     public Task Handle(IntakeRequestDetailsUpdatedEvent @event, CancellationToken cancellationToken) =>
-        Notify(@event.Id, NotificationEvent.DetailsChanged, @event, Audience.Everyone, cancellationToken);
+        Notify(@event.Id, NotificationEvent.DetailsChanged, @event, Audience.Everyone with { Triage = ByRequester(@event.Actor.EmployeeId) },
+            cancellationToken);
 
-    /// <summary>Tells the request's audience its need-by date changed.</summary>
+    /// <summary>
+    /// Tells the request's audience its need-by date changed, and the desk's triagers when the requester changed it
+    /// unassigned.
+    /// </summary>
     public Task Handle(IntakeRequestNeedByChangedEvent @event, CancellationToken cancellationToken) =>
-        Notify(@event.Id, NotificationEvent.TimelineChanged, @event, Audience.Everyone, cancellationToken);
+        Notify(@event.Id, NotificationEvent.TimelineChanged, @event, Audience.Everyone with { Triage = ByRequester(@event.Actor.EmployeeId) },
+            cancellationToken);
 
-    /// <summary>Tells the request's audience, and both the old and the new assignee, that its assignee changed.</summary>
+    /// <summary>
+    /// Tells the request's audience, and both the old and the new assignee, that its assignee changed, and the desk's
+    /// triagers when someone took it off the queue.
+    /// </summary>
     public Task Handle(IntakeRequestAssigneeChangedEvent @event, CancellationToken cancellationToken) =>
         Notify(@event.Id, NotificationEvent.AssigneeChanged, @event,
-            Audience.Everyone with { Assigned = [@event.FromAssigneeId, @event.ToAssigneeId] }, cancellationToken);
+            Audience.Everyone with
+            {
+                Assigned = [@event.FromAssigneeId, @event.ToAssigneeId],
+                Triage = @event.FromAssigneeId is null && @event.ToAssigneeId is not null ? Always : null,
+            },
+            cancellationToken);
 
-    /// <summary>Tells the request's audience it moved to another desk.</summary>
+    /// <summary>
+    /// Tells the request's audience it moved to another desk, and, while it is unassigned, the triagers of the desk
+    /// it arrived at and of the desk it left.
+    /// </summary>
     public Task Handle(IntakeRequestReroutedEvent @event, CancellationToken cancellationToken) =>
-        Notify(@event.Id, NotificationEvent.Reparented, @event, Audience.Everyone, cancellationToken);
+        Notify(@event.Id, NotificationEvent.Reparented, @event,
+            Audience.Everyone with { Triage = WhileUnassigned, TriageDeskIds = [@event.ToDeskId, @event.FromDeskId] }, cancellationToken);
 
     /// <summary>Tells the assignee, and the person added, that someone was given access to the request.</summary>
     public Task Handle(IntakeRequestParticipantAddedEvent @event, CancellationToken cancellationToken) =>
@@ -125,6 +166,7 @@ public sealed class IntakeRequestNotificationEventHandler(
         {
             Mentioned = @event.MentionedEmployeeIds,
             Thread = thread,
+            Triage = isNote ? null : ByRequester(@event.AuthorEmployeeId),
         };
 
         await Notify(requestId, isNote ? NotificationEvent.InternalNotePosted : NotificationEvent.MessagePosted,
@@ -140,6 +182,7 @@ public sealed class IntakeRequestNotificationEventHandler(
             .Where(r => r.Id == requestId)
             .Select(r => new
             {
+                r.DeskId,
                 r.RequesterId,
                 r.SubmittedById,
                 r.AssigneeId,
@@ -157,7 +200,7 @@ public sealed class IntakeRequestNotificationEventHandler(
         if (audience.IncludeRequester)
             involved.Add(new(request.RequesterId, NotificationReason.Requester));
 
-        if (request.AssigneeId is { } assigneeId)
+        if (audience.IncludeAssignee && request.AssigneeId is { } assigneeId)
             involved.Add(new(assigneeId, NotificationReason.Assigned));
         foreach (var id in audience.Assigned.OfType<Guid>())
             involved.Add(new(id, NotificationReason.Assigned));
@@ -174,6 +217,23 @@ public sealed class IntakeRequestNotificationEventHandler(
         involved.AddRange(NotificationRecipient.For(NotificationReason.Mentioned, audience.Mentioned ?? []));
         involved.AddRange(NotificationRecipient.For(NotificationReason.Thread, audience.Thread ?? []));
 
+        if (audience.Triage?.Invoke(new TriageFacts(request.RequesterId, request.AssigneeId)) == true)
+        {
+            // The writer drops inactive employees. Anyone told as the assignee is not also told as a triager:
+            // once a request is theirs the desk has dropped out, and muting Assigned must silence it.
+            Guid[] deskIds = [.. audience.TriageDeskIds ?? [request.DeskId]];
+            var assignedIds = involved.Where(r => r.Reason == NotificationReason.Assigned).Select(r => r.EmployeeId).ToHashSet();
+            var triagerIds = await _dbContext.IntakeDesks
+                .Where(d => deskIds.Contains(d.Id))
+                .SelectMany(d => d.Members.Where(m => m.IsTriager).Select(m => m.EmployeeId))
+                .Distinct()
+                .ToListAsync(cancellationToken);
+            involved.AddRange(NotificationRecipient.For(NotificationReason.Desk, triagerIds.Where(id => !assignedIds.Contains(id))));
+        }
+
+        if (involved.Count == 0 && !audience.FollowersAlone)
+            return;
+
         await _notificationWriter.Notify(
             new RecordChange(DemandManagementFollowOwners.IntakeRequest.Key, requestId, notificationEvent, @event),
             involved,
@@ -188,6 +248,18 @@ public sealed class IntakeRequestNotificationEventHandler(
     /// <param name="RemovedParticipant">A participant just removed, told only while the request's desk is open.</param>
     /// <param name="Mentioned">People a message mentions.</param>
     /// <param name="Thread">People who started or replied in the thread a message was posted in.</param>
+    /// <param name="Triage">
+    /// When the desk's triagers are told, decided from the request as it is now; null when they are not.
+    /// </param>
+    /// <param name="TriageDeskIds">
+    /// The desks whose triagers are told, taken from the event so a late or out-of-order delivery tells the desks
+    /// the change was about; null for the desk the request is on now.
+    /// </param>
+    /// <param name="IncludeAssignee">Whether its current assignee is told.</param>
+    /// <param name="FollowersAlone">
+    /// Whether its followers are told when nobody else is. The writer tells followers whenever it is called, so a
+    /// change that is only for the triagers skips it when there are none.
+    /// </param>
     private sealed record Audience(
         bool IncludeRequester,
         bool IncludeParticipants,
@@ -195,12 +267,35 @@ public sealed class IntakeRequestNotificationEventHandler(
         IReadOnlyCollection<Guid> Participants,
         Guid? RemovedParticipant = null,
         IReadOnlyCollection<Guid>? Mentioned = null,
-        IReadOnlyCollection<Guid>? Thread = null)
+        IReadOnlyCollection<Guid>? Thread = null,
+        Func<TriageFacts, bool>? Triage = null,
+        IReadOnlyCollection<Guid>? TriageDeskIds = null,
+        bool IncludeAssignee = true,
+        bool FollowersAlone = true)
     {
         /// <summary>The requester, the assignee and the participants.</summary>
         public static readonly Audience Everyone = new(true, true, [], []);
 
         /// <summary>The assignee alone.</summary>
         public static readonly Audience AssigneeOnly = new(false, false, [], []);
+
+        /// <summary>The desk's triagers alone, while the request is unassigned.</summary>
+        public static readonly Audience TriagersOnly = new(false, false, [], [], Triage: WhileUnassigned,
+            IncludeAssignee: false, FollowersAlone: false);
     }
+
+    /// <summary>What decides whether the desk's triagers are told: who asked for the request, and who has it now.</summary>
+    private sealed record TriageFacts(Guid RequesterId, Guid? AssigneeId);
+
+    private static readonly Func<TriageFacts, bool> Always = _ => true;
+
+    private static readonly Func<TriageFacts, bool> WhileUnassigned = facts => facts.AssigneeId is null;
+
+    /// <summary>While the request is unassigned, when the person who acted is its requester.</summary>
+    private static Func<TriageFacts, bool> ByRequester(Guid? actorEmployeeId) =>
+        facts => facts.AssigneeId is null && actorEmployeeId == facts.RequesterId;
+
+    /// <summary>Whether a status change takes the request out of the open statuses.</summary>
+    private static bool IsClosing(StatusCategory from, StatusCategory to) =>
+        to is StatusCategory.Done or StatusCategory.Removed && from is not (StatusCategory.Done or StatusCategory.Removed);
 }

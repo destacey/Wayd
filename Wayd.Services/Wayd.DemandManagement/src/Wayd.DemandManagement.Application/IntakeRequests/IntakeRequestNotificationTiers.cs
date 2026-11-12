@@ -18,6 +18,7 @@ internal static class IntakeRequestNotificationTiers
     private static readonly IReadOnlyDictionary<NotificationEvent, IntakeRequestReadTier> Tiers =
         new Dictionary<NotificationEvent, IntakeRequestReadTier>
         {
+            [NotificationEvent.Created] = IntakeRequestReadTier.Summary,
             [NotificationEvent.StatusChanged] = IntakeRequestReadTier.Summary,
             [NotificationEvent.Withdrawn] = IntakeRequestReadTier.Summary,
             [NotificationEvent.Retitled] = IntakeRequestReadTier.Summary,

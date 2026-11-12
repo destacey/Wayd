@@ -157,6 +157,7 @@ public static class DurableEventRoutes
         typeof(PlanningIntervalObjectiveStatusChangedEvent),
         typeof(PlanningIntervalObjectiveHealthCheckAddedEvent),
         typeof(PlanningIntervalObjectiveTimelineChangedEvent),
+        typeof(IntakeRequestCreatedEventV2),
         typeof(IntakeRequestStatusChangedEvent),
         typeof(IntakeRequestWithdrawnEvent),
         typeof(IntakeRequestRetitledEvent),

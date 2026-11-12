@@ -395,6 +395,280 @@ public sealed class IntakeRequestNotificationEventHandlerTests
         _notified.Should().BeEmpty();
     }
 
+    #region Triage
+
+    [Fact]
+    public async Task Handle_ShouldTellOnlyTheDesksTriagers_OfARequestCreatedUnassigned()
+    {
+        // Arrange
+        var (desk, triager, otherTriager) = AddDeskWithTriager();
+        var request = AddRequest(unassigned: true, deskId: desk.Id);
+
+        // Act
+        await CreateHandler().Handle(Created(request), TestContext.Current.CancellationToken);
+
+        // Assert — the submitter knows what they submitted, so nobody else on the request is told
+        var (change, involved) = _notified.Should().ContainSingle().Subject;
+        change.Event.Should().Be(NotificationEvent.Created);
+        involved.Should().BeEquivalentTo(new NotificationRecipient[]
+        {
+            new(triager, NotificationReason.Desk),
+            new(otherTriager, NotificationReason.Desk),
+        });
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotNotifyACreation_WhenTheDeskHasNoTriagers()
+    {
+        // Arrange — the writer would otherwise tell followers of a creation nobody else hears about
+        var desk = new IntakeDeskFaker().WithAgents(Guid.NewGuid()).Generate();
+        _dbContext.AddDesks(desk);
+        var request = AddRequest(unassigned: true, deskId: desk.Id);
+
+        // Act
+        await CreateHandler().Handle(Created(request), TestContext.Current.CancellationToken);
+
+        // Assert
+        _notified.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotNotifyACreation_WhenTheRequestIsAlreadyAssigned()
+    {
+        // Arrange
+        var (desk, _, _) = AddDeskWithTriager();
+        var request = AddRequest(deskId: desk.Id);
+
+        // Act
+        await CreateHandler().Handle(Created(request), TestContext.Current.CancellationToken);
+
+        // Assert
+        _notified.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void NotificationTier_OfACreation_ShouldMatchTheTierOfItsEvent()
+    {
+        // Act
+        var tier = IntakeRequestNotificationTiers.TierOf(NotificationEvent.Created);
+
+        // Assert
+        tier.Should().Be(IntakeRequestCreatedEventV2.ReadTier);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldTellEveryTriagerButNoOtherMember()
+    {
+        // Arrange
+        var (desk, triager, otherTriager) = AddDeskWithTriager();
+        var request = AddRequest(unassigned: true, deskId: desk.Id);
+
+        // Act
+        await CreateHandler().Handle(Created(request), TestContext.Current.CancellationToken);
+
+        // Assert — the desk's agent who does not triage is not told
+        Involved().Select(r => r.EmployeeId).Should().BeEquivalentTo([triager, otherTriager]);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldTellTheDesksTheRerouteNamed_WhenDeliveredAfterTheRequestMovedOn()
+    {
+        // Arrange — rerouted from one desk to another, then on to a third, with the first reroute delivered last
+        var (from, fromTriager, _) = AddDeskWithTriager();
+        var (to, toTriager, _) = AddDeskWithTriager();
+        var (now, nowTriager, _) = AddDeskWithTriager();
+        var request = AddRequest(unassigned: true, deskId: now.Id);
+        var @event = new IntakeRequestReroutedEvent(request.Id, request.Key, from.Id, to.Id,
+            IntakeDeskVisibility.Open, IntakeDeskVisibility.Open, Actor, Now);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        var told = Involved().Where(r => r.Reason == NotificationReason.Desk).Select(r => r.EmployeeId).ToList();
+        told.Should().Contain([fromTriager, toTriager]).And.NotContain(nowTriager);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldTellATriagerWhoTookTheRequest_OnlyAsItsAssignee()
+    {
+        // Arrange
+        var (desk, triager, otherTriager) = AddDeskWithTriager();
+        var request = new IntakeRequestFaker().WithDeskId(desk.Id).WithRequesterId(_requester).WithAssigneeId(triager).Generate();
+        _dbContext.AddRequests(request);
+        var @event = new IntakeRequestAssigneeChangedEvent(request.Id, request.Key, null, triager, Actor, Now);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert — muting Assigned must silence it for them, so it does not also arrive as Desk
+        var involved = Involved();
+        involved.Should().NotContain(new NotificationRecipient(triager, NotificationReason.Desk));
+        involved.Should().Contain(new NotificationRecipient(triager, NotificationReason.Assigned));
+        involved.Should().Contain(new NotificationRecipient(otherTriager, NotificationReason.Desk));
+    }
+
+    [Fact]
+    public async Task Handle_ShouldTellTheTriagersOfBothDesks_OfAnUnassignedReroute()
+    {
+        // Arrange
+        var (from, fromTriager, fromOther) = AddDeskWithTriager();
+        var (to, toTriager, toOther) = AddDeskWithTriager();
+        var request = AddRequest(unassigned: true, deskId: to.Id);
+        var @event = new IntakeRequestReroutedEvent(request.Id, request.Key, from.Id, to.Id,
+            IntakeDeskVisibility.Open, IntakeDeskVisibility.Open, Actor, Now);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        Involved().Where(r => r.Reason == NotificationReason.Desk).Select(r => r.EmployeeId)
+            .Should().BeEquivalentTo([fromTriager, fromOther, toTriager, toOther]);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldTellTheTriagers_WhenTheRequestIsTaken()
+    {
+        // Arrange
+        var (desk, triager, _) = AddDeskWithTriager();
+        var request = AddRequest(deskId: desk.Id);
+        var @event = new IntakeRequestAssigneeChangedEvent(request.Id, request.Key, null, _assignee, Actor, Now);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        Involved().Should().Contain(new NotificationRecipient(triager, NotificationReason.Desk));
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotTellTheTriagers_OfAHandOverBetweenAssignees()
+    {
+        // Arrange
+        var (desk, _, _) = AddDeskWithTriager();
+        var request = AddRequest(deskId: desk.Id);
+        var @event = new IntakeRequestAssigneeChangedEvent(request.Id, request.Key, Guid.NewGuid(), _assignee, Actor, Now);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        Involved().Should().NotContain(r => r.Reason == NotificationReason.Desk);
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public async Task Handle_ShouldTellTheTriagersOfAnUnassignedEdit_OnlyWhenTheRequesterMadeIt(bool byRequester, bool told)
+    {
+        // Arrange
+        var (desk, _, _) = AddDeskWithTriager();
+        var request = AddRequest(unassigned: true, deskId: desk.Id);
+        var actor = byRequester ? EventActor.User("requester-user", _requester) : Actor;
+        var @event = new IntakeRequestRetitledEvent(request.Id, request.Key, "Before", "After", actor, Now);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        Involved().Any(r => r.Reason == NotificationReason.Desk).Should().Be(told);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotTellTheTriagers_OfARequesterEditOnceAssigned()
+    {
+        // Arrange
+        var (desk, _, _) = AddDeskWithTriager();
+        var request = AddRequest(deskId: desk.Id);
+        var @event = new IntakeRequestDetailsUpdatedEvent(request.Id, request.Key, "After", null, "Before", null,
+            EventActor.User("requester-user", _requester), Now);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        Involved().Should().NotContain(r => r.Reason == NotificationReason.Desk);
+    }
+
+    [Theory]
+    [InlineData(DiscussionMessageKind.Public, true, true)]
+    [InlineData(DiscussionMessageKind.Public, false, false)]
+    [InlineData(DiscussionMessageKind.InternalNote, false, false)]
+    public async Task Handle_ShouldTellTheTriagersOfAMessage_OnlyWhenTheRequesterRepliedUnassigned(
+        DiscussionMessageKind kind, bool byRequester, bool told)
+    {
+        // Arrange
+        var (desk, _, _) = AddDeskWithTriager();
+        var request = AddRequest(unassigned: true, deskId: desk.Id);
+        var author = byRequester ? _requester : Actor.EmployeeId!.Value;
+        var @event = new DiscussionMessagePostedEvent(Guid.NewGuid(), Guid.NewGuid(), DemandManagementDiscussionChannels.IntakeRequest.Key,
+            request.Id, null, kind, author, [], Actor, Now);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        _notified.SelectMany(n => n.Involved).Any(r => r.Reason == NotificationReason.Desk).Should().Be(told);
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Proposed, StatusCategory.Done, true)]
+    [InlineData(StatusCategory.Active, StatusCategory.Removed, true)]
+    [InlineData(StatusCategory.Proposed, StatusCategory.Active, false)]
+    [InlineData(StatusCategory.Done, StatusCategory.Removed, false)]
+    public async Task Handle_ShouldTellTheTriagersOfAnUnassignedStatusChange_OnlyWhenItCloses(
+        StatusCategory from, StatusCategory to, bool told)
+    {
+        // Arrange
+        var (desk, _, _) = AddDeskWithTriager();
+        var request = AddRequest(unassigned: true, deskId: desk.Id);
+        var @event = new IntakeRequestStatusChangedEvent(request.Id, request.Key,
+            Guid.NewGuid(), from, IntakeRequestStatusAlias.Submitted, Guid.NewGuid(), to, IntakeRequestStatusAlias.Accepted,
+            null, null, Actor, Now);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        Involved().Any(r => r.Reason == NotificationReason.Desk).Should().Be(told);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldTellTheTriagers_OfAnUnassignedWithdrawal()
+    {
+        // Arrange
+        var (desk, triager, _) = AddDeskWithTriager();
+        var request = AddRequest(unassigned: true, deskId: desk.Id);
+        var @event = new IntakeRequestWithdrawnEvent(request.Id, request.Key,
+            Guid.NewGuid(), StatusCategory.Proposed, IntakeRequestStatusAlias.Submitted, Guid.NewGuid(), StatusCategory.Removed, Actor, Now);
+
+        // Act
+        await CreateHandler().Handle(@event, TestContext.Current.CancellationToken);
+
+        // Assert
+        Involved().Should().Contain(new NotificationRecipient(triager, NotificationReason.Desk));
+    }
+
+    /// <summary>A desk with an agent and an admin who triage, and an agent who does not.</summary>
+    private (IntakeDesk Desk, Guid Triager, Guid OtherTriager) AddDeskWithTriager()
+    {
+        var triager = Guid.NewGuid();
+        var otherTriager = Guid.NewGuid();
+        var desk = new IntakeDeskFaker()
+            .WithMembersAndTriagers(
+                [new(triager, IntakeDeskRole.Agent), new(otherTriager, IntakeDeskRole.Admin), new(Guid.NewGuid(), IntakeDeskRole.Agent)],
+                triagers: [triager, otherTriager])
+            .Generate();
+        _dbContext.AddDesks(desk);
+        return (desk, triager, otherTriager);
+    }
+
+    private static IntakeRequestCreatedEventV2 Created(IntakeRequest request) =>
+        new(request.Id, request.Key, "New request", request.DeskId, null, request.RequesterId, null,
+            Guid.NewGuid(), StatusCategory.Proposed, IntakeRequestStatusAlias.Submitted, Actor, Now);
+
+    #endregion Triage
+
     private static DiscussionMessagePostedEvent Posted(Guid requestId, DiscussionMessageKind kind, Guid? parentId = null,
         IReadOnlyList<Guid>? mentioned = null) =>
         new(Guid.NewGuid(), Guid.NewGuid(), DemandManagementDiscussionChannels.IntakeRequest.Key, requestId, parentId, kind,

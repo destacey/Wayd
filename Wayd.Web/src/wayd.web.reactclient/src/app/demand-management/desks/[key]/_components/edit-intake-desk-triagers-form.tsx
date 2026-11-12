@@ -94,7 +94,7 @@ const EditIntakeDeskTriagersForm: FC<EditIntakeDeskTriagersFormProps> = ({
         <Item
           name="triagerIds"
           valuePropName="targetKeys"
-          extra="Triagers are told when a request arrives on this desk unassigned, when its requester changes it or replies, and when it is taken, withdrawn or closed. Anyone on the desk can triage, whatever their role."
+          extra="Triagers are told when a request arrives on this desk unassigned, when its requester renames it, changes its details or need-by date, or replies, and when it is taken, withdrawn or closed. Anyone on the desk can triage, whatever their role."
         >
           <Transfer
             dataSource={members}

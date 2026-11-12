@@ -1,11 +1,5 @@
 ﻿{
     "HangfireSettings": {
-        "Route": "/jobs",
-        "Dashboard": {
-            "AppPath": null,
-            "StatsPollingInterval": 2000,
-            "DashboardTitle": "Wayd Jobs"
-        },
         "Server": {
             "HeartbeatInterval": "00:00:30",
             "Queues": [
@@ -30,10 +24,6 @@
                 "DisableGlobalLocks": true,
                 "EnableHeavyMigrations":  true
             }
-        },
-        "Credentials": {
-            "User": "admin",
-            "Password": "Test123$"
         }
     }
 }

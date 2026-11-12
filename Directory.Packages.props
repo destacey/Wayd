@@ -17,7 +17,6 @@
     <PackageVersion Include="JasperFx.Aspire" Version="2.92.0" />
     <PackageVersion Include="Hangfire.Console.Extensions" Version="2.1.2" />
     <PackageVersion Include="Hangfire.Console.Extensions.Serilog" Version="2.1.2" />
-    <PackageVersion Include="Hangfire.Dashboard.BasicAuthorization" Version="1.0.2" />
     <PackageVersion Include="Hangfire.SqlServer" Version="1.8.21" />
     <PackageVersion Include="Mapster" Version="10.0.13" />
     <PackageVersion Include="MicroElements.AspNetCore.OpenApi.FluentValidation" Version="7.2.2" />

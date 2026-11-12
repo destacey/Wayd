@@ -67747,7 +67747,7 @@ export enum IsoDayOfWeek {
     Sunday = "Sunday",
 }
 
-/** Full detail for one job, including the failure stack trace that was previously only visible in the Hangfire dashboard. */
+/** Full detail for one job, including the stack trace of the exception it last failed with. */
 export interface JobDetailResponse {
     id: string;
     state: string;

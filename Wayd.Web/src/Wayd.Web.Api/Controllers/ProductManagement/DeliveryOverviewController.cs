@@ -14,7 +14,6 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 /// recorded in Wayd at all.
 /// </remarks>
 [Route("api/product-management/delivery-overview")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
 [McpTools(McpToolset.Delivery, "wayd-products")]

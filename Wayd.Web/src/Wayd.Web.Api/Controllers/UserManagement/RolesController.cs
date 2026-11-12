@@ -5,7 +5,6 @@ using Wayd.Web.Api.Models.UserManagement.Roles;
 namespace Wayd.Web.Api.Controllers.UserManagement;
 
 [Route("api/user-management/roles")]
-[ApiVersionNeutral]
 [ApiController]
 public class RolesController(IRoleService roleService, IUserService userService, ILogger<RolesController> logger) : ControllerBase
 {

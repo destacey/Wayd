@@ -28,7 +28,6 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 /// </para>
 /// </remarks>
 [Route("api/product-management/products")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
 [McpTools(McpToolset.Products, "wayd-products")]

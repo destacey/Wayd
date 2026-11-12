@@ -15,7 +15,6 @@ namespace Wayd.Web.Api.Controllers;
 /// record is shown only while the caller can read that record, so it grants nothing.
 /// </summary>
 [Route("api/me/notifications")]
-[ApiVersionNeutral]
 [ApiController]
 [Authorize]
 [FeatureGate(FeatureFlags.Names.Following)]

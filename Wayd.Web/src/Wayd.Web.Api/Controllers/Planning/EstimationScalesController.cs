@@ -10,7 +10,6 @@ using Wayd.Web.Api.Models.Planning.EstimationScales;
 namespace Wayd.Web.Api.Controllers.Planning;
 
 [Route("api/planning/estimation-scales")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.PlanningPoker)]
 [McpTools(McpToolset.Planning, "wayd-estimation")]

@@ -17,7 +17,6 @@ using Wayd.Web.Api.Models.Ppm.Programs;
 namespace Wayd.Web.Api.Controllers.Ppm;
 
 [Route("api/ppm/[controller]")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Ppm, "wayd-ppm")]
 public class ProgramsController(ILogger<ProgramsController> logger, IDispatcher dispatcher, ICsvService csvService) : ControllerBase

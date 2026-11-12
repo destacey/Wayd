@@ -7,7 +7,6 @@ using Wayd.Web.Api.Models.Links;
 namespace Wayd.Web.Api.Controllers.Links;
 
 [Route("api/[controller]")]
-[ApiVersionNeutral]
 [ApiController]
 public class LinksController : ControllerBase
 {

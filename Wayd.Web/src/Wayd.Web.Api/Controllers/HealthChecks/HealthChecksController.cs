@@ -4,7 +4,6 @@ using Wayd.Common.Application.HealthChecks.Queries;
 namespace Wayd.Web.Api.Controllers.HealthChecks;
 
 [Route("api/health-checks")]
-[ApiVersionNeutral]
 [ApiController]
 public class HealthChecksController : ControllerBase
 {

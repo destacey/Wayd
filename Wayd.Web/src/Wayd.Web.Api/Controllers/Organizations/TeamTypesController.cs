@@ -4,7 +4,6 @@ using Wayd.Organization.Application.TeamTypes.Queries;
 namespace Wayd.Web.Api.Controllers.Organizations;
 
 [Route("api/organization/team-types")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Organization, "wayd-teams")]
 public class TeamTypesController : ControllerBase

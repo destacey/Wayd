@@ -13,7 +13,6 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 /// Severity scales incidents use and which scale the organization selects.
 /// </summary>
 [Route("api/product-management/incident-severity-sets")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(RequirementType.All, FeatureFlags.Names.ProductManagement, FeatureFlags.Names.IncidentManagement)]
 [McpTools(McpToolset.Incidents, "wayd-incidents")]

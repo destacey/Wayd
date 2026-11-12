@@ -18,7 +18,6 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 /// a category is the category's rule. A free tag has no category, so it is changed here.
 /// </remarks>
 [Route("api/product-management/product-tags")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
 [McpTools(McpToolset.Products, "wayd-products")]

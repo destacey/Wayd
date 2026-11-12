@@ -6,7 +6,6 @@ using Wayd.Web.Api.Extensions;
 namespace Wayd.Web.Api.Controllers;
 
 [Route("api/search")]
-[ApiVersionNeutral]
 [ApiController]
 [Authorize]
 public class SearchController(IDispatcher dispatcher) : ControllerBase

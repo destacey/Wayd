@@ -7,7 +7,6 @@ using Wayd.Web.Api.Models.Organizations.TeamMemberRoles;
 namespace Wayd.Web.Api.Controllers.Organizations;
 
 [Route("api/organization/team-member-roles")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Organization, "wayd-teams")]
 public class TeamMemberRolesController(IDispatcher dispatcher) : ControllerBase

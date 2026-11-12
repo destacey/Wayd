@@ -7,7 +7,6 @@ using Wayd.Web.Api.Models.Admin;
 namespace Wayd.Web.Api.Controllers.Admin;
 
 [Route("api/admin/feature-flags")]
-[ApiVersionNeutral]
 [ApiController]
 public class FeatureFlagsController(IDispatcher dispatcher) : ControllerBase
 {

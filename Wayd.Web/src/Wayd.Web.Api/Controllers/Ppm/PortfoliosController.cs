@@ -29,7 +29,6 @@ using Wayd.Web.Api.Models.Ppm.Portfolios;
 namespace Wayd.Web.Api.Controllers.Ppm;
 
 [Route("api/ppm/[controller]")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Ppm, "wayd-ppm")]
 public class PortfoliosController(ILogger<PortfoliosController> logger, IDispatcher dispatcher, ICsvService csvService)

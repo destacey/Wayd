@@ -17,7 +17,6 @@ using Wayd.Work.Domain.Models;
 namespace Wayd.Web.Api.Controllers.Work;
 
 [Route("api/work/workspaces")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Work, "wayd-work")]
 public class WorkspacesController(IDispatcher dispatcher) : ControllerBase

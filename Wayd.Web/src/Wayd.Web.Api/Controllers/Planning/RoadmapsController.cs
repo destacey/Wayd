@@ -11,7 +11,6 @@ using Wayd.Web.Api.Models.Planning.Roadmaps;
 namespace Wayd.Web.Api.Controllers.Planning;
 
 [Route("api/planning/[controller]")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Planning, "wayd-roadmaps")]
 public class RoadmapsController : ControllerBase

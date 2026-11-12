@@ -17,7 +17,6 @@ namespace Wayd.Web.Api.Controllers.UserManagement;
 /// permission set.
 /// </summary>
 [Route("api/user-management/oidc-providers")]
-[ApiVersionNeutral]
 [ApiController]
 public class OidcProvidersController(IDispatcher dispatcher, IUserService userService) : ControllerBase
 {

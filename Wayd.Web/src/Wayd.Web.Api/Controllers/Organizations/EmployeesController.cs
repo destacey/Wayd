@@ -23,7 +23,6 @@ using Wayd.Common.Domain.StatusWorkflows.Enums;
 namespace Wayd.Web.Api.Controllers.Organizations;
 
 [Route("api/organization/employees")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Organization, "wayd-employees")]
 public class EmployeesController(

@@ -15,7 +15,6 @@ using Wayd.Work.Application.WorkItems.Queries;
 namespace Wayd.Web.Api.Controllers.Work;
 
 [Route("api/work/sprints")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Work, "wayd-work")]
 public class SprintsController(ILogger<SprintsController> logger, IDispatcher dispatcher) : ControllerBase

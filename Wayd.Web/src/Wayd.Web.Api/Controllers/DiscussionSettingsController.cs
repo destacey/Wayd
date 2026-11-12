@@ -18,7 +18,6 @@ namespace Wayd.Web.Api.Controllers;
 /// is 404. Its tools join the discussions toolset, beside the conversations they shape.
 /// </remarks>
 [Route("api/discussion-settings/{channelType}")]
-[ApiVersionNeutral]
 [ApiController]
 [Authorize]
 [McpTools(McpToolset.Discussions, "wayd-discussions")]

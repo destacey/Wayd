@@ -9,7 +9,6 @@ using Wayd.Web.Api.Models.StrategicManagement.Strategies;
 namespace Wayd.Web.Api.Controllers.StrategicManagement;
 
 [Route("api/strategic-management/[controller]")]
-[ApiVersionNeutral]
 [ApiController]
 public class StrategiesController(ILogger<StrategiesController> logger, IDispatcher dispatcher) : ControllerBase
 {

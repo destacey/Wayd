@@ -6,7 +6,6 @@ using Wayd.Web.Api.Models.Ppm.Projects;
 namespace Wayd.Web.Api.Controllers.Ppm;
 
 [Route("api/ppm/projects")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Ppm, "wayd-ppm")]
 public class ProjectScoresController(ILogger<ProjectScoresController> logger, IDispatcher dispatcher) : ControllerBase

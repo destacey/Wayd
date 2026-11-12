@@ -5,7 +5,6 @@ using Wayd.Common.Application.TimeZones.Queries;
 namespace Wayd.Web.Api.Controllers;
 
 [Route("api/time-zones")]
-[ApiVersionNeutral]
 [ApiController]
 [Authorize]
 public class TimeZonesController(IDispatcher dispatcher) : ControllerBase

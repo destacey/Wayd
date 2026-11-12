@@ -30,7 +30,6 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 /// together.
 /// </remarks>
 [Route("api/product-management/release-packages")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
 [McpTools(McpToolset.Delivery, "wayd-delivery")]

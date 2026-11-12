@@ -16,7 +16,6 @@ live in `Wayd.Web.Api/Controllers/\{DomainArea\}/`; from `ProductsController`:
 
 ```csharp
 [Route("api/product-management/products")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
 [McpTools(McpToolset.Products, "wayd-products")]

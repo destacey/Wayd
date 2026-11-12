@@ -9,7 +9,6 @@ using Wayd.Web.Api.Models.Organizations.HolidayCalendars;
 namespace Wayd.Web.Api.Controllers.Organizations;
 
 [Route("api/organization/holiday-calendars")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Organization, "wayd-teams")]
 public class HolidayCalendarsController(IDispatcher dispatcher) : ControllerBase

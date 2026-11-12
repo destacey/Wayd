@@ -10,7 +10,6 @@ using Wayd.Web.Api.Models.UserManagement.Users;
 namespace Wayd.Web.Api.Controllers.UserManagement;
 
 [Route("api/auth")]
-[ApiVersionNeutral]
 [ApiController]
 // AllowAnonymous is applied per action, not to the controller: a controller-level
 // AllowAnonymous cannot be narrowed by an action-level Authorize (ASP0026), which would

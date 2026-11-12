@@ -20,7 +20,6 @@ namespace Wayd.Web.Api.Controllers.DemandManagement;
 /// Admin. Applying a tag to a request is on the intake requests endpoints.
 /// </remarks>
 [Route("api/demand-management/intake-request-tags")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.DemandManagement)]
 [McpTools(McpToolset.Intake, "wayd-intake")]

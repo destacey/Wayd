@@ -18,7 +18,6 @@ namespace Wayd.Web.Api.Controllers;
 /// read permission, and muting never changes access, following or participation.
 /// </summary>
 [Route("api/me/notification-mutes")]
-[ApiVersionNeutral]
 [ApiController]
 [Authorize]
 [FeatureGate(FeatureFlags.Names.Following)]

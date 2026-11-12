@@ -29,7 +29,6 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 /// organization can rename or reorder its workflow without breaking them.
 /// </remarks>
 [Route("api/product-management/versions")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
 [McpTools(McpToolset.Delivery, "wayd-delivery")]

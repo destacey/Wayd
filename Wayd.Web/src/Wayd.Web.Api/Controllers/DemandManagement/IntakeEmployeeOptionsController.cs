@@ -10,7 +10,6 @@ namespace Wayd.Web.Api.Controllers.DemandManagement;
 /// The employees an intake request can name, for anyone who works with requests.
 /// </summary>
 [Route("api/demand-management/employee-options")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.DemandManagement)]
 [McpTools(McpToolset.Intake, "wayd-intake")]

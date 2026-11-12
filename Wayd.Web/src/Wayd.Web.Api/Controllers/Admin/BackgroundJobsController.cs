@@ -11,7 +11,6 @@ using Wayd.Web.Api.Models.Admin.BackgroundJobs;
 namespace Wayd.Web.Api.Controllers.Admin;
 
 [Route("api/admin/background-jobs")]
-[ApiVersionNeutral]
 [ApiController]
 public class BackgroundJobsController(ILogger<BackgroundJobsController> logger, IJobService jobService, IDispatcher dispatcher) : ControllerBase
 {

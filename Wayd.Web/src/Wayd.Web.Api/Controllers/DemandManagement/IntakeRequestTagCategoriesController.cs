@@ -21,7 +21,6 @@ namespace Wayd.Web.Api.Controllers.DemandManagement;
 /// category is the category's rule to enforce. Applying a tag to a request is on the intake requests endpoints.
 /// </remarks>
 [Route("api/demand-management/intake-request-tag-categories")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.DemandManagement)]
 [McpTools(McpToolset.Intake, "wayd-intake")]

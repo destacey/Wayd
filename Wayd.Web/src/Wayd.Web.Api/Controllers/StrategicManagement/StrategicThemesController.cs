@@ -14,7 +14,6 @@ using Wayd.Web.Api.Models.StrategicManagement.StrategicThemes;
 namespace Wayd.Web.Api.Controllers.StrategicManagement;
 
 [Route("api/strategic-management/strategic-themes")]
-[ApiVersionNeutral]
 [ApiController]
 public class StrategicThemesController(ILogger<StrategicThemesController> logger, IDispatcher dispatcher, ICsvService csvService) : ControllerBase
 {

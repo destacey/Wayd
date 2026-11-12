@@ -14,7 +14,6 @@ using Wayd.Web.Api.Models.Admin.SystemSettings;
 namespace Wayd.Web.Api.Controllers.Admin;
 
 [Route("api/admin/settings")]
-[ApiVersionNeutral]
 [ApiController]
 public class SystemSettingsController(IDispatcher dispatcher) : ControllerBase
 {

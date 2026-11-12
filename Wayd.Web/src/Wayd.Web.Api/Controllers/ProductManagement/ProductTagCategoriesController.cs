@@ -17,7 +17,6 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 /// within a category is the category's rule to enforce: a tag cannot see its siblings.
 /// </remarks>
 [Route("api/product-management/product-tag-categories")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
 [McpTools(McpToolset.Products, "wayd-products")]

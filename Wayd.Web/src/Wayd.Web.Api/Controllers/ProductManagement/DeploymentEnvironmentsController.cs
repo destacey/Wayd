@@ -21,7 +21,6 @@ namespace Wayd.Web.Api.Controllers.ProductManagement;
 /// on, because names are free text and endlessly varied.
 /// </remarks>
 [Route("api/product-management/deployment-environments")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.ProductManagement)]
 [McpTools(McpToolset.Delivery, "wayd-products")]

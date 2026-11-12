@@ -7,7 +7,6 @@ using Wayd.Web.Api.Models.Admin.StatusWorkflows;
 namespace Wayd.Web.Api.Controllers.Admin;
 
 [Route("api/record-types")]
-[ApiVersionNeutral]
 [ApiController]
 public class RecordTypesController(ILogger<RecordTypesController> logger, IDispatcher dispatcher) : ControllerBase
 {

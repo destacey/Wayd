@@ -16,7 +16,6 @@ namespace Wayd.Web.Api.Controllers;
 /// can be followed only through its own read permission, and drops out of the list when that is lost.
 /// </summary>
 [Route("api/me/follows")]
-[ApiVersionNeutral]
 [ApiController]
 [Authorize]
 [FeatureGate(FeatureFlags.Names.Following)]

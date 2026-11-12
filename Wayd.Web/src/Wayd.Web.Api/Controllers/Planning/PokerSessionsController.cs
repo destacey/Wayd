@@ -12,7 +12,6 @@ using Wayd.Web.Api.Models.Planning.PokerSessions;
 namespace Wayd.Web.Api.Controllers.Planning;
 
 [Route("api/planning/poker-sessions")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.PlanningPoker)]
 [McpTools(McpToolset.Planning, "wayd-estimation")]

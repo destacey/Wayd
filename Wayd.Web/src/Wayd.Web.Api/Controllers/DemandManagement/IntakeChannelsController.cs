@@ -15,7 +15,6 @@ namespace Wayd.Web.Api.Controllers.DemandManagement;
 /// Intake channels: the company's list of where requests come from, managed by the Demand Management Admin.
 /// </summary>
 [Route("api/demand-management/intake-channels")]
-[ApiVersionNeutral]
 [ApiController]
 [FeatureGate(FeatureFlags.Names.DemandManagement)]
 [McpTools(McpToolset.Intake, "wayd-intake")]

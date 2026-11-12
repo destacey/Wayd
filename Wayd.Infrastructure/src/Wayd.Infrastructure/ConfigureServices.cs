@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Reflection;
-using Asp.Versioning;
 using Mapster;
 using Mapster.Utils;
 using Microsoft.AspNetCore.Builder;
@@ -159,7 +158,6 @@ public static class ConfigureServices
         services.AddSingleton(sp => WebClientUrl.From(sp.GetRequiredService<IConfiguration>()));
 
         return services
-            .AddApiVersioning()
             .AddAuth(config, environment)
             .AddBackgroundJobs(config)
             .AddCorsPolicy(config)
@@ -185,14 +183,6 @@ public static class ConfigureServices
             .AddRouting(options => options.LowercaseUrls = true)
             .AddServices();
     }
-
-    private static IServiceCollection AddApiVersioning(this IServiceCollection services) =>
-        services.AddApiVersioning(config =>
-        {
-            config.DefaultApiVersion = new ApiVersion(1, 0);
-            config.AssumeDefaultVersionWhenUnspecified = true;
-            config.ReportApiVersions = true;
-        }).Services;
 
     private static TBuilder AddDefaultHealthChecks<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {

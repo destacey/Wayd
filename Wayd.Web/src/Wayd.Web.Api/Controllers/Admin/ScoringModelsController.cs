@@ -10,7 +10,6 @@ using Wayd.Web.Api.Models.Admin.ScoringModels;
 namespace Wayd.Web.Api.Controllers.Admin;
 
 [Route("api/scoring-models")]
-[ApiVersionNeutral]
 [ApiController]
 [McpTools(McpToolset.Ppm, "wayd-ppm")]
 public class ScoringModelsController(ILogger<ScoringModelsController> logger, IDispatcher dispatcher) : ControllerBase

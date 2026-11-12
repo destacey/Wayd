@@ -39,6 +39,9 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     private readonly List<IncidentSeveritySet> _incidentSeveritySets = [];
     private readonly List<IncidentSeverityLevel> _incidentSeverityLevels = [];
     private readonly List<IncidentSeveritySetAssignment> _incidentSeveritySetAssignments = [];
+    private readonly List<Incident> _incidents = [];
+    private readonly List<IncidentTimelineNote> _incidentTimelineNotes = [];
+    private readonly List<IncidentTimelineLinkEntry> _incidentTimelineLinkEntries = [];
 
     private readonly List<StatusWorkflow> _statusWorkflows = [];
     private readonly List<WorkflowAssignment> _workflowAssignments = [];
@@ -75,6 +78,10 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public DbSet<IncidentSeverityLevel> IncidentSeverityLevels => _incidentSeverityLevels.AsDbSet();
     public DbSet<IncidentSeveritySetAssignment> IncidentSeveritySetAssignments =>
         _incidentSeveritySetAssignments.AsDbSet();
+    public DbSet<Incident> Incidents => _incidents.AsDbSet();
+    public DbSet<IncidentTimelineNote> IncidentTimelineNotes => _incidentTimelineNotes.AsDbSet();
+    public DbSet<IncidentTimelineLinkEntry> IncidentTimelineLinkEntries =>
+        _incidentTimelineLinkEntries.AsDbSet();
 
     public DbSet<StatusWorkflow> StatusWorkflows => _statusWorkflows.AsDbSet();
     public DbSet<WorkflowAssignment> WorkflowAssignments => _workflowAssignments.AsDbSet();
@@ -160,9 +167,15 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
     public void AddDeploymentEnvironment(DeploymentEnvironment environment) => _deploymentEnvironments.Add(environment);
     public void AddDeployment(Deployment deployment) => _deployments.Add(deployment);
 
-    public void AddIncidentSeveritySet(IncidentSeveritySet set) => _incidentSeveritySets.Add(set);
+    public void AddIncidentSeveritySet(IncidentSeveritySet set)
+    {
+        _incidentSeveritySets.Add(set);
+        _incidentSeverityLevels.AddRange(set.Levels);
+    }
     public void AddIncidentSeveritySetAssignment(IncidentSeveritySetAssignment assignment) =>
         _incidentSeveritySetAssignments.Add(assignment);
+
+    public void AddIncident(Incident incident) => _incidents.Add(incident);
 
     public void AddStatusWorkflow(StatusWorkflow workflow) => _statusWorkflows.Add(workflow);
     public void AddWorkflowAssignment(WorkflowAssignment assignment) => _workflowAssignments.Add(assignment);
@@ -190,6 +203,8 @@ public class FakeProductManagementDbContext : IProductManagementDbContext, IStat
         _incidentSeveritySets.Clear();
         _incidentSeverityLevels.Clear();
         _incidentSeveritySetAssignments.Clear();
+        _incidents.Clear();
+        _incidentTimelineNotes.Clear();
         _statusWorkflows.Clear();
         _workflowAssignments.Clear();
         _statusTransitions.Clear();

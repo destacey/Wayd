@@ -119,6 +119,7 @@ public partial class EventCoverageTests
         typeof(Release),
         typeof(ReleasePackage),
         typeof(Version),
+        typeof(Incident),
 
         // Project Portfolio Management
         typeof(Program),
@@ -155,6 +156,10 @@ public partial class EventCoverageTests
             "In Common, so it cannot be internal to the aggregates that own a health check; only their UpdateHealthCheck calls it, and that raises.",
         ["HealthCheckBase.ChangeExpiration(Instant)"] =
             "Called only by HealthReport when a new check supersedes the latest, inside the owning aggregate's AddHealthCheck, which raises.",
+        ["IncidentTimelineNote.Create(Guid, String, Guid, Instant)"] =
+            "Called only from Incident.AddTimelineNote, which raises IncidentTimelineNoteAddedEvent.",
+        ["IncidentTimelineLinkEntry.Create(Guid, IncidentTimelineLinkKind, IncidentTimelineLinkAction, String, Guid, Instant, Nullable<Guid>, Nullable<Guid>)"] =
+            "Called only from Incident.RecordLinkTimelineEntry, which raises IncidentTimelineLinkRecordedEvent.",
 
         // Not yet evented: each awaits the issue it names.
         ["Project.CreateTask(Int32, String, String, ProjectTaskType, TaskStatus, TaskPriority, Progress, Guid, FlexibleDateRange, Nullable<LocalDate>, Nullable<Decimal>, Dictionary<TaskRole, HashSet<Guid>>)"] = "#950.",
@@ -275,6 +280,8 @@ public partial class EventCoverageTests
         [typeof(ProductDependency)] = typeof(Product),
         [typeof(ProductTeamLink)] = typeof(Product),
         [typeof(IncidentSeverityLevel)] = typeof(IncidentSeveritySet),
+        [typeof(IncidentTimelineNote)] = typeof(Incident),
+        [typeof(IncidentTimelineLinkEntry)] = typeof(Incident),
         [typeof(ProductTagAssignment)] = typeof(Product),
         [typeof(ProjectDeliverable)] = typeof(Project),
         [typeof(ProjectDeliverableTask)] = typeof(Project),
@@ -307,14 +314,14 @@ public partial class EventCoverageTests
             "Retypes ReleasedDate to the ReleasedAt instant, carrying each value across; no fact about a package changed: #929.",
         ["20260926212850_Store-Version-Cut-And-Released-As-Instants.cs"] =
             "Retypes CutDate and ReleasedDate to the CutAt and ReleasedAt instants, carrying each value across; no fact about a version changed: #929.",
-        ["20261101221206_Version-Estimation-Scales.cs"] =
-            "Moves each scale's values onto version 1, and Down moves the current version's back, before the scale raised any event; no fact about a scale changed: #1254.",
         ["20260926172623_Add-TeamOperatingModel-TimeZone-And-Grace.cs"] =
             "Gives a team that predates operating models, and that their backfill missed, its first model; shipped without an activity log entry for it: #914.",
         ["20260927023231_Add-TeamOfTeamsOperatingModels.cs"] =
             "Gives each existing team of teams its first operating model, and records each in the activity log itself: #915.",
         ["20261108141829_Retire-WorkStatus-Admin.cs"] =
             "Copies each shared work status's description onto the managed statuses made from it, which already held it in Work; no status changed meaning: #1237.",
+        ["20261101221206_Version-Estimation-Scales.cs"] =
+            "Moves each scale's values onto version 1, and Down moves the current version's back, before the scale raised any event; no fact about a scale changed: #1254.",
     };
 
     /// <summary>

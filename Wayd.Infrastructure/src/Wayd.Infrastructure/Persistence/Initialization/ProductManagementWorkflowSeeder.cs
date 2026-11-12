@@ -1,11 +1,15 @@
+using CSharpFunctionalExtensions;
+using NodaTime;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain;
 
 namespace Wayd.Infrastructure.Persistence.Initialization;
 
 /// <summary>
-/// Seeds the default status workflows for Product Management's five owner types.
+/// Seeds the default status workflows for Product Management's status-tracked owner types.
 /// </summary>
 /// <remarks>
 /// Deliberately minimal: each workflow carries the aliases its aggregates cannot work without, plus a
@@ -71,9 +75,36 @@ public class ProductManagementWorkflowSeeder : ICustomSeeder
                 ("Rolled Back", "Reached its environment and was reverted.", StatusCategory.Removed, ProductStatusAlias.RolledBack),
             ], dateTimeProvider, cancellationToken);
 
+        seeded |= await seeding.SeedIfAbsent(dbContext, ProductWorkflowOwners.Incident, "Default Incident Workflow",
+            "The lifecycle of an operational incident.",
+            [
+                ("Open", "Under investigation.", StatusCategory.Active, ProductStatusAlias.Open),
+                ("Responding", "Active response is under way.", StatusCategory.Active, ProductStatusAlias.Responding),
+                ("Recovered", "Service restored.", StatusCategory.Done, ProductStatusAlias.Resolved),
+                ("Closed", "Closed after recovery.", StatusCategory.Done, ProductStatusAlias.Closed),
+                ("Canceled", "Closed without treating as a real incident.", StatusCategory.Removed, ProductStatusAlias.Canceled),
+            ],
+            dateTimeProvider,
+            cancellationToken,
+            ConfigureIncidentSystemLifecycle);
+
         if (seeded)
         {
             await seeding.Save(dbContext, cancellationToken);
         }
+    }
+
+    private static Result ConfigureIncidentSystemLifecycle(StatusWorkflow workflow, EventActor actor, Instant timestamp)
+    {
+        WorkflowStatus StatusFor(ProductStatusAlias alias) =>
+            workflow.Statuses.Single(s => s.Alias == (int)alias);
+
+        var moves = ProductWorkflowOwners.Incident.Moves
+            .Select(m => new WorkflowTransitionDefinition(
+                StatusFor((ProductStatusAlias)m.FromAlias!.Value).Id,
+                StatusFor((ProductStatusAlias)m.ToAlias!.Value).Id))
+            .ToList();
+
+        return workflow.ConfigureSystemLifecycle(TransitionMode.Restricted, moves, actor, timestamp);
     }
 }

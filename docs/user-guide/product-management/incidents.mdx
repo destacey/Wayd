@@ -1,0 +1,45 @@
+---
+title: Incidents
+description: Opening and following an operational incident, and how an active one shows on the products and releases it points at.
+sidebar_position: 4
+audience: [user, agent]
+---
+
+# Incidents
+
+An incident is an operational problem tied to the catalog: something responders are working, with a severity and the products and releases it points at. It is not a project and not a work item. Work items and links can be recorded on it, and they stay work items and links.
+
+:::note[Feature flags]
+Incidents need both **Product Management** and **Incident Management**. Each is disabled when first deployed. An administrator enables them under [Settings → System → Feature Flags](../settings/index.mdx). While either is off, the incidents list and record are not reachable.
+:::
+
+Severity comes from the set selected under **Settings → Product Management → Incident Severity Sets**. Opening an incident uses that set's levels.
+
+## The list
+
+**Product Management → Incidents** lists incidents, highest key first. **State** and **Severity** sit above the grid. Every chip starts lit, which is the whole list; turn one off to narrow it. The list pages on the server, and the page controls in the toolbar use the full count.
+
+The grid also filters the page it is showing — products, releases, who reported it, the commander, and the rest. Those filters do not reach rows on another page. State and severity do, because they are sent with the request.
+
+**Open incident** needs **Create Incidents** and an account linked to an employee. That employee is recorded as who submitted it, and that cannot be changed later. **Reported by** starts as that same person and can be changed before the incident is opened. **Commander** is optional and starts empty. Title, severity, who reported it, and when it was noticed are required. Symptoms, root cause, products, and releases can be left empty. Noticed at defaults to now.
+
+## The record
+
+The record page shows the title, key, severity, and status. The details panel holds when it was noticed, when response started, when it recovered, who submitted it, who reported it, the commander when one is assigned, the products and releases, and the incident's links. The overview starts with the incident's workflow statuses in the workflow's order, the current one marked, and then symptoms and root cause, written in Markdown and read that way. Discussion and work items are their own sections.
+
+**Edit**, under **Actions**, needs **Update Incidents**. Who reported it and the commander can be changed there. Who submitted it cannot. The same permission runs the lifecycle:
+
+| Action | What it records |
+| --- | --- |
+| Begin responding | Response has started. When response start is empty, the confirmation asks for that time, preset to now, and the chosen time is what gets recorded. The start cannot be before the incident was noticed. |
+| Mark recovered | Service is restored. When recovery is empty, the confirmation asks for that time, preset to now. If response start is empty too, that same time is recorded as both. Recovery cannot be before response started. |
+| Close | The incident is finished, after recovery. The confirmation writes no date. |
+| Cancel | The incident is set aside. A reason is optional. |
+
+Which of those the page offers depends on the incident's [status workflow](../settings/status-workflows.mdx). A move the workflow does not allow is not offered.
+
+An active incident — one that is not closed, canceled, done, or removed — shows on each product and release it points at, as a count. Hovering the count lists those incidents; each row opens the incident.
+
+## Following and notifications
+
+The eye on the record follows the incident, when [Following](../following.mdx) is on and you can view incidents. The commander, when one is assigned, and anyone following it, is told when it is opened, changes status, changes its noticed, response, or recovery time, or gains a discussion note. Editing the title, symptoms, root cause, severity, who reported it, the commander, or links does not send a notification. See [Notifications](../notifications.mdx).

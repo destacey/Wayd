@@ -718,6 +718,7 @@ public class IncidentSeverityLevelConfiguration : IEntityTypeConfiguration<Incid
         builder.Property(l => l.SetId).IsRequired();
         builder.Property(l => l.Name).IsRequired().HasMaxLength(64);
         builder.Property(l => l.SortOrder).IsRequired();
+        builder.Property(l => l.Color).IsRequired().HasMaxLength(9);
     }
 }
 
@@ -730,5 +731,156 @@ public class IncidentSeveritySetAssignmentConfiguration : IEntityTypeConfigurati
         builder.HasKey(a => a.Id);
         builder.Property(a => a.Id).ValueGeneratedNever();
         builder.Property(a => a.SeveritySetId).IsRequired();
+    }
+}
+
+public class IncidentConfiguration : IEntityTypeConfiguration<Incident>
+{
+    public void Configure(EntityTypeBuilder<Incident> builder)
+    {
+        builder.ToTable("Incidents", SchemaNames.ProductManagement);
+
+        builder.HasKey(i => i.Id);
+        builder.HasAlternateKey(i => i.Key);
+
+        builder.Property(i => i.Id).ValueGeneratedNever();
+        builder.Property(i => i.Key).ValueGeneratedOnAdd();
+
+        builder.Property(i => i.Title).IsRequired().HasMaxLength(256);
+        builder.Property(i => i.Symptoms).HasMaxLength(4096);
+        builder.Property(i => i.RootCause).HasMaxLength(4096);
+        builder.Property(i => i.SubmittedByEmployeeId).IsRequired();
+        builder.Property(i => i.ReportedByEmployeeId).IsRequired();
+        builder.Property(i => i.CommanderEmployeeId);
+        builder.Property(i => i.SeverityLevelId).IsRequired();
+        builder.Property(i => i.NoticedAt).IsRequired();
+        builder.Property(i => i.StartedAt);
+        builder.Property(i => i.RecoveredAt);
+
+        builder.Property(i => i.StatusId).IsRequired();
+        builder.Property(i => i.StatusWorkflowId).IsRequired();
+        builder.HasIndex(i => i.StatusWorkflowId);
+        builder.Property(i => i.StatusName).IsRequired().HasMaxLength(64);
+        builder.Property(i => i.StatusCategory).IsRequired()
+            .HasConversion<EnumConverter<StatusCategory>>()
+            .HasColumnType("varchar")
+            .HasMaxLength(32);
+        builder.Property(i => i.StatusAliasValue).IsRequired();
+        builder.Property(i => i.StatusTransitionCount).IsRequired();
+
+        builder.ConfigureStatusHistory();
+
+        builder.HasMany(i => i.ProductLinks)
+            .WithOne()
+            .HasForeignKey(l => l.IncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(i => i.ProductLinks).HasField("_productLinks").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(i => i.ReleaseLinks)
+            .WithOne()
+            .HasForeignKey(l => l.IncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(i => i.ReleaseLinks).HasField("_releaseLinks").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(i => i.TimelineNotes)
+            .WithOne()
+            .HasForeignKey(n => n.IncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(i => i.TimelineNotes).HasField("_timelineNotes").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(i => i.TimelineLinkEntries)
+            .WithOne()
+            .HasForeignKey(e => e.IncidentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(i => i.TimelineLinkEntries)
+            .HasField("_timelineLinkEntries")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasOne<IncidentSeverityLevel>()
+            .WithMany()
+            .HasForeignKey(i => i.SeverityLevelId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Ignore(i => i.StatusAlias);
+    }
+}
+
+public class IncidentProductLinkConfiguration : IEntityTypeConfiguration<IncidentProductLink>
+{
+    public void Configure(EntityTypeBuilder<IncidentProductLink> builder)
+    {
+        builder.ToTable("IncidentProductLinks", SchemaNames.ProductManagement);
+
+        builder.HasKey(l => l.Id);
+        builder.HasIndex(l => new { l.IncidentId, l.ProductId }).IsUnique();
+
+        builder.Property(l => l.Id).ValueGeneratedNever();
+        builder.Property(l => l.IncidentId).IsRequired();
+        builder.Property(l => l.ProductId).IsRequired();
+
+        builder.HasOne(l => l.Product)
+            .WithMany()
+            .HasForeignKey(l => l.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class IncidentReleaseLinkConfiguration : IEntityTypeConfiguration<IncidentReleaseLink>
+{
+    public void Configure(EntityTypeBuilder<IncidentReleaseLink> builder)
+    {
+        builder.ToTable("IncidentReleaseLinks", SchemaNames.ProductManagement);
+
+        builder.HasKey(l => l.Id);
+        builder.HasIndex(l => new { l.IncidentId, l.ReleaseId }).IsUnique();
+
+        builder.Property(l => l.Id).ValueGeneratedNever();
+        builder.Property(l => l.IncidentId).IsRequired();
+        builder.Property(l => l.ReleaseId).IsRequired();
+
+        builder.HasOne(l => l.Release)
+            .WithMany()
+            .HasForeignKey(l => l.ReleaseId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class IncidentTimelineNoteConfiguration : IEntityTypeConfiguration<IncidentTimelineNote>
+{
+    public void Configure(EntityTypeBuilder<IncidentTimelineNote> builder)
+    {
+        builder.ToTable("IncidentTimelineNotes", SchemaNames.ProductManagement);
+
+        builder.HasKey(n => n.Id);
+        builder.Property(n => n.Id).ValueGeneratedNever();
+        builder.Property(n => n.IncidentId).IsRequired();
+        builder.Property(n => n.Body).IsRequired().HasMaxLength(4096);
+        builder.Property(n => n.AuthorEmployeeId).IsRequired();
+        builder.Property(n => n.RecordedAt).IsRequired();
+
+        builder.HasIndex(n => new { n.IncidentId, n.RecordedAt });
+    }
+}
+
+public class IncidentTimelineLinkEntryConfiguration : IEntityTypeConfiguration<IncidentTimelineLinkEntry>
+{
+    public void Configure(EntityTypeBuilder<IncidentTimelineLinkEntry> builder)
+    {
+        builder.ToTable("IncidentTimelineLinkEntries", SchemaNames.ProductManagement);
+
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.Id).ValueGeneratedNever();
+        builder.Property(e => e.IncidentId).IsRequired();
+        builder.Property(e => e.Kind).IsRequired();
+        builder.Property(e => e.Action).IsRequired();
+        builder.Property(e => e.Label).IsRequired().HasMaxLength(256);
+        builder.Property(e => e.ActorEmployeeId).IsRequired();
+        builder.Property(e => e.RecordedAt).IsRequired();
+
+        builder.HasIndex(e => new { e.IncidentId, e.RecordedAt });
     }
 }

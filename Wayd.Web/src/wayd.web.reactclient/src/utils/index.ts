@@ -2,6 +2,7 @@ export {
   dayOfPeriod,
   daysRemaining,
   formatInstantInZone,
+  formatInstantTimeInZone,
   percentageElapsed,
   pickerTimeZoneNote,
 } from './dates'

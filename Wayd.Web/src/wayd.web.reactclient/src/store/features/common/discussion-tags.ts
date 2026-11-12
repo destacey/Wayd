@@ -7,6 +7,7 @@ import { QueryTags } from '../query-tags'
 export const DiscussionChannelTypes = {
   IntakeRequest: 'demand.intake-request',
   Project: 'ppm.project',
+  Incident: 'product.incident',
 } as const
 
 export type DiscussionChannelType =

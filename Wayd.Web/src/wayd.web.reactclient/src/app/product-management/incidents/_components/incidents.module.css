@@ -1,0 +1,31 @@
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fieldHeading {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+
+/* The record page keeps the heavier weight. The list does not. */
+.listRank {
+  font-weight: normal;
+}
+
+.rank b {
+  width: 3px;
+  height: 0.72em;
+  align-self: center;
+  border-radius: 1px;
+  flex-shrink: 0;
+}

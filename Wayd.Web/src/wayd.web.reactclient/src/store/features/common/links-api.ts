@@ -64,6 +64,7 @@ export const linksApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, { objectId }) => [
         { type: QueryTags.Links, id: result?.id },
         { type: QueryTags.Links, id: objectId },
+        { type: QueryTags.IncidentTimelineLinkEntries, id: objectId },
       ],
     }),
 
@@ -80,6 +81,7 @@ export const linksApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.Links, id: arg.request.id },
         { type: QueryTags.Links, id: arg.objectId },
+        { type: QueryTags.IncidentTimelineLinkEntries, id: arg.objectId },
       ],
     }),
 
@@ -95,6 +97,8 @@ export const linksApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.Links, id: arg.id },
+        { type: QueryTags.Links, id: arg.objectId },
+        { type: QueryTags.IncidentTimelineLinkEntries, id: arg.objectId },
       ],
     }),
   }),

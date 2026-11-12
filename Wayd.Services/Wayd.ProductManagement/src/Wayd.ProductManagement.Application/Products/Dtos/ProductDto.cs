@@ -2,6 +2,7 @@
 using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Domain.Models;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Domain;
@@ -63,6 +64,20 @@ public sealed record ProductDto
     public IReadOnlyCollection<ProductTeamNavigationDto> Teams { get; init; } = [];
 
     /// <summary>
+    /// Name of the highest-severity incident that is still active on this product.
+    /// </summary>
+    /// <remarks>Null when the product has no active incident.</remarks>
+    public string? ActiveIncidentSeverityName { get; init; }
+
+    /// <summary>Color of <see cref="ActiveIncidentSeverityName"/>, from the severity level.</summary>
+    public string? ActiveIncidentSeverityColor { get; init; }
+
+    /// <summary>
+    /// Active incidents on this product, highest severity first. Each one is a link to its record.
+    /// </summary>
+    public IReadOnlyList<ActiveIncidentLinkDto> ActiveIncidents { get; init; } = [];
+
+    /// <summary>
     /// Maps a product and its tag assignments, for <c>ProjectToType</c>.
     /// </summary>
     /// <remarks>
@@ -110,7 +125,11 @@ public sealed record ProductDto
                 Category = p.StatusCategory,
                 CategoryLabel = WorkflowOwners.CategoryLabel(ProductWorkflowOwners.Product.Key, p.StatusCategory),
                 Alias = p.StatusAliasValue,
-            });
+            })
+            // Filled after the projection from the product's active incidents.
+            .Ignore(dto => dto.ActiveIncidentSeverityName!)
+            .Ignore(dto => dto.ActiveIncidentSeverityColor!)
+            .Ignore(dto => dto.ActiveIncidents);
 
         return config;
     }

@@ -1,0 +1,16 @@
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.chip {
+  font-size: 12px;
+}

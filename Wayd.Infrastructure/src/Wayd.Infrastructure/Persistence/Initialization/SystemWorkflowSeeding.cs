@@ -1,4 +1,7 @@
+using CSharpFunctionalExtensions;
 using Microsoft.EntityFrameworkCore;
+using NodaTime;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Infrastructure.Persistence.Activities;
@@ -41,7 +44,8 @@ internal sealed class SystemWorkflowSeeding
         string description,
         (string Name, string Description, StatusCategory Category, TAlias Alias)[] statuses,
         IDateTimeProvider dateTimeProvider,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        Func<StatusWorkflow, EventActor, Instant, Result>? configureBeforePublish = null)
         where TAlias : struct, Enum
     {
         // Guarded on the assignment rather than the workflow: the assignment is what the resolver
@@ -67,6 +71,15 @@ internal sealed class SystemWorkflowSeeding
             foreach (var (statusName, statusDescription, category, alias) in statuses)
             {
                 workflow.AddSystemStatus(statusName, statusDescription, category, Convert.ToInt32(alias), EventActor.System, timestamp);
+            }
+
+            if (configureBeforePublish is not null)
+            {
+                var configured = configureBeforePublish(workflow, EventActor.System, timestamp);
+                if (configured.IsFailure)
+                {
+                    throw new InvalidOperationException($"The seeded '{name}' could not be configured: {configured.Error}");
+                }
             }
 
             // A seeded workflow that cannot satisfy its own owner type is a bug in the seeder, not a

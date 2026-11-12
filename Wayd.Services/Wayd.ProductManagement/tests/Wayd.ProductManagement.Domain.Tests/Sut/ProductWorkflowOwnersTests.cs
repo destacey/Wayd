@@ -93,6 +93,7 @@ public sealed class ProductWorkflowOwnersTests
         { ProductWorkflowOwners.Release.Key, [StatusCategory.Proposed, StatusCategory.Active, StatusCategory.Done, StatusCategory.Removed] },
         { ProductWorkflowOwners.ReleasePackage.Key, [StatusCategory.Proposed, StatusCategory.Done, StatusCategory.Removed] },
         { ProductWorkflowOwners.Deployment.Key, [StatusCategory.Active, StatusCategory.Done, StatusCategory.Removed] },
+        { ProductWorkflowOwners.Incident.Key, [StatusCategory.Active, StatusCategory.Done, StatusCategory.Removed] },
     };
 
     [Theory]
@@ -127,6 +128,11 @@ public sealed class ProductWorkflowOwnersTests
         { ProductWorkflowOwners.Deployment.Key, ProductStatusAlias.Succeeded, StatusCategory.Done },
         { ProductWorkflowOwners.Deployment.Key, ProductStatusAlias.Failed, StatusCategory.Removed },
         { ProductWorkflowOwners.Deployment.Key, ProductStatusAlias.RolledBack, StatusCategory.Removed },
+        { ProductWorkflowOwners.Incident.Key, ProductStatusAlias.Open, StatusCategory.Active },
+        { ProductWorkflowOwners.Incident.Key, ProductStatusAlias.Responding, StatusCategory.Active },
+        { ProductWorkflowOwners.Incident.Key, ProductStatusAlias.Resolved, StatusCategory.Done },
+        { ProductWorkflowOwners.Incident.Key, ProductStatusAlias.Closed, StatusCategory.Done },
+        { ProductWorkflowOwners.Incident.Key, ProductStatusAlias.Canceled, StatusCategory.Removed },
     };
 
     [Theory]

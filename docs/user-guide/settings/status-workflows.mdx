@@ -19,9 +19,9 @@ Renaming a status changes what people read; it does not change what Wayd does. T
 
 ### Record types
 
-Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Version, Release, Release Package, Deployment, Intake Request, Project Deliverable and Work Item. The screens call it the **Owner Type** in the create form and **Owner** in the workflow list.
+Every workflow governs exactly one **record type**, chosen when the workflow is created and fixed thereafter. Today those are Product, Version, Release, Release Package, Deployment, Incident, Intake Request, Project Deliverable and Work Item. The screens call it the **Owner Type** in the create form and **Owner** in the workflow list.
 
-A record type whose module is switched off is absent here: while the **Demand Management** feature flag is off, no Intake Request workflow is listed, and none can be created, cloned or reassigned.
+A record type whose module is switched off is absent here: while the **Demand Management** feature flag is off, no Intake Request workflow is listed, and none can be created, cloned or reassigned. Incident is absent unless both **Product Management** and **Incident Management** are on.
 
 The record type also decides the vocabulary available to the workflow's statuses — a Release has a meaning for "Released" that a Product does not.
 
@@ -57,6 +57,7 @@ Each record type also declares the categories it cannot do without, and a workfl
 | Release | Proposed, Active, Done, Removed |
 | Release Package | Proposed, Done, Removed |
 | Deployment | Active, Done, Removed |
+| Incident | Active, Done, Removed |
 | Intake Request | Proposed, Active, Done, Removed |
 | Project Deliverable | Proposed, Done, Removed |
 
@@ -75,6 +76,7 @@ Each alias belongs to one category, and the editor offers only the aliases of th
 | Release | Ready, Released, Withdrawn |
 | Release Package | Released, Withdrawn |
 | Deployment | In Progress, Succeeded, Failed, Rolled Back |
+| Incident | Open, Responding, Resolved, Closed, Canceled |
 | Intake Request | Submitted, Waiting on Requester, Duplicate, Withdrawn |
 | Project Deliverable | Not Started, Accepted, Descoped |
 
@@ -85,6 +87,7 @@ The category each alias belongs to:
 | Product | | Active, Sunset | Retired | |
 | Version, Release, Release Package | | Ready | Released | Withdrawn |
 | Deployment | | In Progress | Succeeded | Failed, Rolled Back |
+| Incident | | Open, Responding | Resolved, Closed | Canceled |
 | Intake Request | Submitted, Waiting on Requester | Accepted | Fulfilled | Duplicate, Withdrawn |
 | Project Deliverable | Not Started | In Progress | Accepted | Descoped |
 
@@ -161,6 +164,10 @@ Some moves are **required**: the actions, imports and delivery figures depend on
 | Deployment | Record Success | In Progress → Succeeded | Required |
 | Deployment | Record Failure | In Progress → Failed | Required |
 | Deployment | Roll Back | Succeeded → Rolled Back | Required |
+| Incident | Begin Responding | Open → Responding | Required |
+| Incident | Mark Recovered | Responding → Resolved | Required |
+| Incident | Close | Resolved → Closed | Required |
+| Incident | Cancel | Open → Canceled, Responding → Canceled | Required |
 
 *Initial* is the workflow's initial status — Planned in the default workflows. Releasing a version that was never cut is required because a production deployment releases the version it shipped, and an import records versions that shipped without being cut. Every deployment move is required so that every outcome can be recorded whatever the workflow: change failure rate counts failures and rollbacks, and would be meaningless if a company could forbid recording them.
 

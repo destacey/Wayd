@@ -5551,9 +5551,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("SubmittedByEmployeeId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<int>("StatusAliasValue")
                         .HasColumnType("int");
 
@@ -5574,6 +5571,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("int");
 
                     b.Property<Guid>("StatusWorkflowId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SubmittedByEmployeeId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Symptoms")

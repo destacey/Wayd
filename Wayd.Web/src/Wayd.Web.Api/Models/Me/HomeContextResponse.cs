@@ -36,6 +36,9 @@ public sealed record HomeContextResponse
     /// product-management feature flag is off.
     /// </summary>
     public int TeamProductCount { get; init; }
+
+    /// <summary>How many active roadmaps the caller is an owner of; archived roadmaps never count.</summary>
+    public int OwnedRoadmapCount { get; init; }
 }
 
 /// <summary>The active teams and teams of teams the caller is a direct member of, each counted once.</summary>

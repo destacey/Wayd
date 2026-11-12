@@ -2,6 +2,7 @@ using Moq;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Models;
 using Wayd.Planning.Application.Roadmaps;
 using Wayd.Planning.Application.Roadmaps.Queries;
@@ -155,6 +156,60 @@ public class GetRoadmapsQueryHandlerTests
         // Assert
         result.Single(r => r.Name == "Mine").CanManage.Should().BeTrue();
         result.Single(r => r.Name == "Public one").CanManage.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnOnlyRoadmapsTheUserOwns_WhenOwnedByMe()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        AddRoadmap("Public one", Visibility.Public);
+        AddRoadmap("Mine", Visibility.Private, employeeId);
+        AddRoadmap("Shared", Visibility.Public, employeeId, Guid.NewGuid());
+        GivenEmployeeId(employeeId);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new GetRoadmapsQuery(OwnedByMe: true), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Select(r => r.Name).Should().BeEquivalentTo(["Mine", "Shared"]);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldExcludeArchivedRoadmaps_WhenOwnedByMeAndActiveOnly()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        AddRoadmap("Active", Visibility.Public, employeeId);
+        var archived = AddRoadmap("Archived", Visibility.Public, employeeId);
+        archived.Archive(new RoadmapActor(employeeId, false), Actor, Now).IsSuccess.Should().BeTrue();
+        GivenEmployeeId(employeeId);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new GetRoadmapsQuery([RoadmapState.Active], OwnedByMe: true), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().ContainSingle().Which.Name.Should().Be("Active");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnNothing_WhenOwnedByMeAndUserHasNoEmployeeLink()
+    {
+        // Arrange
+        AddRoadmap("Public one", Visibility.Public);
+        GivenEmployeeId(null);
+
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.Handle(new GetRoadmapsQuery(OwnedByMe: true), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().BeEmpty();
     }
 
     [Fact]

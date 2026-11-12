@@ -6,7 +6,7 @@ namespace Wayd.Common.Domain.Events.ProductManagement.Incidents;
 /// <summary>The one Teams chat stored on an incident was linked or replaced.</summary>
 /// <remarks>
 /// A pasted link does not mean Wayd created the chat or joined it. <c>CreatedByWayd</c> stays false
-/// for that path. Null on either end means nothing was stored.
+/// for that path. The title is the chat's own name, not a person. Null on either end means nothing was stored.
 /// </remarks>
 public sealed record IncidentTeamsChatLinkedEvent
     : DomainEvent<IncidentTeamsChatLinkedEvent>, IDomainEventDescriptor, IProductManagementEvent
@@ -18,11 +18,11 @@ public sealed record IncidentTeamsChatLinkedEvent
         Guid id,
         int key,
         string? fromTeamsChatId,
-        string? fromTeamsChatDisplayName,
+        string? fromTeamsChatTitle,
         string? fromTeamsChatLink,
         bool fromTeamsChatCreatedByWayd,
         string? toTeamsChatId,
-        string? toTeamsChatDisplayName,
+        string? toTeamsChatTitle,
         string? toTeamsChatLink,
         bool toTeamsChatCreatedByWayd,
         EventActor actor,
@@ -32,11 +32,11 @@ public sealed record IncidentTeamsChatLinkedEvent
         Id = id;
         Key = key;
         FromTeamsChatId = fromTeamsChatId;
-        FromTeamsChatDisplayName = fromTeamsChatDisplayName;
+        FromTeamsChatTitle = fromTeamsChatTitle;
         FromTeamsChatLink = fromTeamsChatLink;
         FromTeamsChatCreatedByWayd = fromTeamsChatCreatedByWayd;
         ToTeamsChatId = toTeamsChatId;
-        ToTeamsChatDisplayName = toTeamsChatDisplayName;
+        ToTeamsChatTitle = toTeamsChatTitle;
         ToTeamsChatLink = toTeamsChatLink;
         ToTeamsChatCreatedByWayd = toTeamsChatCreatedByWayd;
 
@@ -46,11 +46,11 @@ public sealed record IncidentTeamsChatLinkedEvent
     public Guid Id { get; }
     public int Key { get; }
     public string? FromTeamsChatId { get; }
-    public string? FromTeamsChatDisplayName { get; }
+    public string? FromTeamsChatTitle { get; }
     public string? FromTeamsChatLink { get; }
     public bool FromTeamsChatCreatedByWayd { get; }
     public string? ToTeamsChatId { get; }
-    public string? ToTeamsChatDisplayName { get; }
+    public string? ToTeamsChatTitle { get; }
     public string? ToTeamsChatLink { get; }
     public bool ToTeamsChatCreatedByWayd { get; }
 

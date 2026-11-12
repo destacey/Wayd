@@ -874,8 +874,8 @@ public sealed class IncidentTests
             .Which.Should().BeOfType<IncidentTeamsChatLinkedEvent>().Subject;
         linked.FromTeamsChatLink.Should().BeNull();
         linked.ToTeamsChatLink.Should().Be(incident.TeamsChatLink);
-        linked.FromTeamsChatDisplayName.Should().BeNull();
-        linked.ToTeamsChatDisplayName.Should().Be("Bridge");
+        linked.FromTeamsChatTitle.Should().BeNull();
+        linked.ToTeamsChatTitle.Should().Be("Bridge");
         linked.FromTeamsChatCreatedByWayd.Should().BeFalse();
         linked.ToTeamsChatCreatedByWayd.Should().BeFalse();
         linked.EventVersion.Should().Be("1.0");

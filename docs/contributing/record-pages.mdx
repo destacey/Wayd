@@ -426,7 +426,7 @@ An Overview section's metric tiles use `MetricCard` (or a specific metric like `
 
 ## Charts on an Overview
 
-Charts come from `@ant-design/charts` (G2 v5), wrapped in **`ChartCard`** so the title, skeleton and card chrome match the metric tiles beside them. Never pass `title` into the chart config — G2 would draw a second heading inside the canvas.
+Charts come from `@ant-design/charts` (G2 v5), loaded through `src/components/common/charts` so their tooltips render text (see [Design System](./design-system.mdx#rules-every-page-follows)), wrapped in **`ChartCard`** so the title, skeleton and card chrome match the metric tiles beside them. Never pass `title` into the chart config — G2 would draw a second heading inside the canvas.
 
 :::danger[`autoFit` is not enough on its own]
 `autoFit: true` sizes a chart when it mounts and afterwards re-fits **only on the window's `resize` event**. Anything else that changes its width — opening or dragging the record facts rail, collapsing the app sider, a `Col` settling after first paint — never reaches it, so the canvas keeps its old size and overflows its card, or renders at zero width and appears blank.

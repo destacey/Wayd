@@ -17,6 +17,7 @@ import { Button, Flex } from 'antd'
 import Link from 'next/link'
 import { Fragment, ReactElement } from 'react'
 import { buildProductTree, ProductTreeNode } from '../../_components'
+import { activeIncidentColumn } from '../../_components/active-incident-links'
 
 export interface ProductsGridProps {
   products: ProductDto[]
@@ -99,6 +100,7 @@ const buildColumns = <T extends ProductDto>(
     size: 130,
     meta: { filterType: 'set' },
   },
+  activeIncidentColumn<T>(),
   // The tree already shows the parent by position, so repeating it as a column is noise there.
   ...(asTree
     ? []

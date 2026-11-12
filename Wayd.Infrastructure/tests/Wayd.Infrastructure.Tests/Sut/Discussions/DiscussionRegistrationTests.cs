@@ -8,6 +8,8 @@ using Wayd.Common.Domain.Discussions;
 using Wayd.DemandManagement.Application;
 using Wayd.DemandManagement.Domain;
 using Wayd.Infrastructure.Discussions;
+using Wayd.ProductManagement.Application;
+using Wayd.ProductManagement.Domain;
 using Wayd.ProjectPortfolioManagement.Application;
 using Wayd.ProjectPortfolioManagement.Domain;
 
@@ -23,7 +25,10 @@ namespace Wayd.Infrastructure.Tests.Sut.Discussions;
 public sealed class DiscussionRegistrationTests
 {
     private static readonly string[] ApplicationChannelTypes =
-        [.. DemandManagementDiscussionChannels.All.Concat(PpmDiscussionChannels.All).Select(d => d.Key)];
+        [.. DemandManagementDiscussionChannels.All
+            .Concat(PpmDiscussionChannels.All)
+            .Concat(ProductManagementDiscussionChannels.All)
+            .Select(d => d.Key)];
 
     private static ServiceProvider BuildProvider()
     {
@@ -31,6 +36,7 @@ public sealed class DiscussionRegistrationTests
 
         services.AddScoped(_ => new Mock<IDemandManagementDbContext>().Object);
         services.AddScoped(_ => new Mock<IDiscussionsDbContext>().Object);
+        services.AddScoped(_ => new Mock<IProductManagementDbContext>().Object);
         services.AddScoped(_ => new Mock<IProjectPortfolioManagementDbContext>().Object);
         services.AddScoped(_ => new Mock<IFeatureFlags>().Object);
         services.AddScoped(_ => new Mock<ICurrentPrincipal>().Object);

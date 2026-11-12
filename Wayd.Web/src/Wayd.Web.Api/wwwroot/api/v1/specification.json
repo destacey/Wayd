@@ -11221,6 +11221,679 @@
         ]
       }
     },
+    "/api/product-management/incidents": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "List incidents, highest key first.",
+        "operationId": "Incidents_GetIncidents",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            },
+            "x-position": 1
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            },
+            "x-position": 2
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ProductStatusAlias"
+              },
+              "nullable": true
+            },
+            "x-position": 3
+          },
+          {
+            "name": "severityLevelId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "nullable": true
+            },
+            "x-position": 4
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponseOfIncidentSummaryDto"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Open an incident.",
+        "description": "Requires a linked employee, who becomes the commander. NoticedAt defaults to now when omitted.",
+        "operationId": "Incidents_Create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIncidentRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 1
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectIdAndKey"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{idOrKey}": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Get one incident by id or key.",
+        "operationId": "Incidents_GetIncident",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{idOrKey}/status-workflow": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Get the status workflow an incident moves through.",
+        "description": "The workflow the incident holds, with its statuses in the order that workflow lays out. Readable by anyone who can view the incident, so the record can show that order without the settings permission.",
+        "operationId": "Incidents_GetStatusWorkflow",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusWorkflowDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{id}": {
+      "put": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Update an incident's details.",
+        "operationId": "Incidents_UpdateDetails",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIncidentDetailsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{idOrKey}/work-items": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Get work items linked to an incident.",
+        "operationId": "Incidents_GetIncidentWorkItems",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkItemsSummaryDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{id}/work-items": {
+      "post": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Set the complete list of work items linked to an incident.",
+        "description": "Replaces the links: `workItemIds` is every work item that should be linked; a linked item left out is unlinked and an empty list unlinks them all. Read the current links with GET work-items first and pass back every one that should stay. `incidentId` in the body must match the route id.",
+        "operationId": "Incidents_ManageIncidentWorkItems",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManageIncidentWorkItemsRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{idOrKey}/timeline-notes": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "List commander timeline notes for an incident.",
+        "operationId": "Incidents_GetIncidentTimelineNotes",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentTimelineNoteDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{idOrKey}/timeline-link-entries": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "List link change entries on an incident timeline.",
+        "operationId": "Incidents_GetIncidentTimelineLinkEntries",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentTimelineLinkEntryDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{id}/timeline-notes": {
+      "post": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Add a note to an incident's operational timeline.",
+        "operationId": "Incidents_AddIncidentTimelineNote",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddIncidentTimelineNoteRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{idOrKey}/workflow-actions": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "List lifecycle actions allowed for an incident from its current status.",
+        "operationId": "Incidents_GetIncidentWorkflowActions",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IncidentWorkflowActionDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/{id}/workflow-actions": {
+      "post": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Apply a lifecycle action to an incident.",
+        "operationId": "Incidents_ApplyIncidentWorkflowAction",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyIncidentWorkflowActionRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/incident-severity-sets": {
       "get": {
         "tags": [
@@ -55182,6 +55855,41 @@
   },
   "components": {
     "schemas": {
+      "ActiveIncidentLinkDto": {
+        "required": [
+          "key",
+          "title",
+          "severityName",
+          "severityColor",
+          "statusName"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "integer",
+            "description": "Incident key. The record is addressed by this key.",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string",
+            "description": "Incident title, the name in the hover list."
+          },
+          "severityName": {
+            "type": "string",
+            "description": "Severity name shown beside the title."
+          },
+          "severityColor": {
+            "type": "string",
+            "description": "Severity color, the accent beside the severity name."
+          },
+          "statusName": {
+            "type": "string",
+            "description": "The incident's current status name."
+          }
+        },
+        "additionalProperties": false,
+        "description": "An active incident a product or release row links to."
+      },
       "ActivityCategory": {
         "enum": [
           "Created",
@@ -55309,6 +56017,35 @@
           }
         },
         "additionalProperties": false
+      },
+      "AddIncidentTimelineNoteRequest": {
+        "required": [
+          "incidentId",
+          "body"
+        ],
+        "type": "object",
+        "properties": {
+          "incidentId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The incident id, repeated from the route.",
+            "format": "uuid"
+          },
+          "body": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string",
+            "description": "What happened or what responders should know."
+          },
+          "recordedAt": {
+            "type": "string",
+            "description": "When the event occurred; defaults to now when omitted.",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Records a note on an incident's operational timeline."
       },
       "AddIntakeRequestOutcomeRequest": {
         "required": [
@@ -55763,6 +56500,35 @@
           }
         },
         "additionalProperties": false
+      },
+      "ApplyIncidentWorkflowActionRequest": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IncidentWorkflowAction"
+              }
+            ],
+            "description": "The action to apply."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why the incident was canceled, when IncidentWorkflowAction ApplyIncidentWorkflowActionRequest.Action is Cancel.",
+            "nullable": true
+          },
+          "occurredAt": {
+            "type": "string",
+            "description": "The instant written onto a date this action fills in. Begin responding uses it for response start\nwhen that is empty. Mark recovered uses it for recovery, and for response start when that is also empty.\nEmpty means now. Close and cancel ignore it.",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Applies a lifecycle action to an incident."
       },
       "ApproveOAuthAuthorizationRequest": {
         "type": "object",
@@ -58195,10 +58961,93 @@
         },
         "additionalProperties": false
       },
+      "CreateIncidentRequest": {
+        "required": [
+          "title",
+          "severityLevelId",
+          "reportedByEmployeeId",
+          "productIds",
+          "releaseIds"
+        ],
+        "type": "object",
+        "properties": {
+          "title": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "symptoms": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "What responders are seeing. Empty when nothing has been recorded yet.",
+            "nullable": true
+          },
+          "remediation": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "What was done to restore service or stop the impact. Empty until a remediation is recorded.",
+            "nullable": true
+          },
+          "rootCause": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "Why it happened, once that is known. Empty until a cause is recorded.",
+            "nullable": true
+          },
+          "severityLevelId": {
+            "minLength": 1,
+            "type": "string",
+            "format": "uuid"
+          },
+          "reportedByEmployeeId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The employee who reported the incident. Required, and not inferred from who opened it.",
+            "format": "uuid"
+          },
+          "commanderEmployeeId": {
+            "type": "string",
+            "description": "The employee commanding the response. Empty when nobody is assigned.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "noticedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "recoveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "productIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "releaseIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Releases this incident points at. One incident may point at several."
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateIncidentSeveritySetRequest": {
         "required": [
           "name",
-          "levelNames"
+          "levels"
         ],
         "type": "object",
         "properties": {
@@ -58212,13 +59061,11 @@
             "type": "string",
             "nullable": true
           },
-          "levelNames": {
+          "levels": {
             "minItems": 1,
             "type": "array",
             "items": {
-              "maxLength": 64,
-              "minLength": 1,
-              "type": "string"
+              "$ref": "#/components/schemas/IncidentSeveritySetLevelRequest"
             }
           }
         },
@@ -66330,9 +67177,117 @@
         "additionalProperties": false,
         "description": "A single CSV row for the version import.\nThe product is referenced by id, and a version is identified by that product together with its\n`Number` — version strings are free text and only meaningful within one product, so two\nproducts may each hold a `1.0.0`.\nThere is no status column: the moments decide where the version ends up. A row with neither is\nplanned, a `CutAt` makes it ready, and a `ReleasedAt` makes it\nreleased. A released moment without a cut moment is legitimate — a version recorded after the fact\noften has no record of when scope froze.\nBoth moments are instants and must carry their offset (see `OffsetTimestamp`): copy the\nCI/CD timestamps as-is."
       },
+      "IncidentDto": {
+        "required": [
+          "id",
+          "key",
+          "title",
+          "submittedBy",
+          "reportedBy",
+          "severityLevel",
+          "noticedAt",
+          "products",
+          "releases",
+          "status",
+          "statusAlias"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "symptoms": {
+            "type": "string",
+            "description": "What responders are seeing. Null when nothing has been recorded yet.",
+            "nullable": true
+          },
+          "remediation": {
+            "type": "string",
+            "description": "What was done to restore service or stop the impact. Null until a remediation is recorded.",
+            "nullable": true
+          },
+          "rootCause": {
+            "type": "string",
+            "description": "Why it happened, once that is known. Null until a cause is recorded.",
+            "nullable": true
+          },
+          "submittedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The employee who opened the incident."
+          },
+          "reportedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The employee who reported the incident."
+          },
+          "commander": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The employee commanding the response, when one is assigned.",
+            "nullable": true
+          },
+          "severityLevel": {
+            "$ref": "#/components/schemas/IncidentSeverityLevelNavigationDto"
+          },
+          "noticedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "recoveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            }
+          },
+          "releases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            },
+            "description": "Releases this incident points at. One incident may point at several."
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
+          },
+          "statusAlias": {
+            "$ref": "#/components/schemas/ProductStatusAlias"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One incident in full."
+      },
       "IncidentSeverityLevelDto": {
         "required": [
           "name",
+          "color",
           "id",
           "sortOrder"
         ],
@@ -66348,9 +67303,41 @@
           "sortOrder": {
             "type": "integer",
             "format": "int32"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex accent color (e.g. \"#E07A4C\")."
           }
         },
         "additionalProperties": false
+      },
+      "IncidentSeverityLevelNavigationDto": {
+        "required": [
+          "name",
+          "color",
+          "id",
+          "sortOrder"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex accent color (e.g. \"#E07A4C\")."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Severity level shown on incident pages."
       },
       "IncidentSeveritySetDto": {
         "required": [
@@ -66406,10 +67393,224 @@
           },
           "name": {
             "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex accent color (e.g. \"#E07A4C\"). Defaults by rank when omitted on create.",
+            "nullable": true
           }
         },
         "additionalProperties": false,
         "description": "One level in a severity set payload."
+      },
+      "IncidentSummaryDto": {
+        "required": [
+          "id",
+          "key",
+          "title",
+          "noticedAt",
+          "submittedBy",
+          "reportedBy",
+          "severityLevel",
+          "status",
+          "statusAlias",
+          "products",
+          "releases"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "key": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "noticedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "recoveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "submittedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The employee who opened the incident."
+          },
+          "reportedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The employee who reported the incident."
+          },
+          "commander": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/NavigationDto"
+              }
+            ],
+            "description": "The employee commanding the response, when one is assigned.",
+            "nullable": true
+          },
+          "severityLevel": {
+            "$ref": "#/components/schemas/IncidentSeverityLevelNavigationDto"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusNavigationDto"
+          },
+          "statusAlias": {
+            "$ref": "#/components/schemas/ProductStatusAlias"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            }
+          },
+          "releases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NavigationDto"
+            },
+            "description": "Releases this incident points at. One incident may point at several."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One incident on a list page."
+      },
+      "IncidentTimelineLinkAction": {
+        "enum": [
+          "Added",
+          "Updated",
+          "Removed"
+        ],
+        "type": "string"
+      },
+      "IncidentTimelineLinkEntryDto": {
+        "required": [
+          "label",
+          "id",
+          "kind",
+          "action",
+          "recordedAt",
+          "actor"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/IncidentTimelineLinkKind"
+          },
+          "action": {
+            "$ref": "#/components/schemas/IncidentTimelineLinkAction"
+          },
+          "label": {
+            "type": "string"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "$ref": "#/components/schemas/NavigationDto"
+          },
+          "targetId": {
+            "type": "string",
+            "description": "The work item or link this entry is about.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fromTargetId": {
+            "type": "string",
+            "description": "The work item or link replaced, when the entry records an update.",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One link add, update, or remove entry on an incident timeline."
+      },
+      "IncidentTimelineLinkKind": {
+        "enum": [
+          "WorkItem",
+          "Generic"
+        ],
+        "type": "string"
+      },
+      "IncidentTimelineNoteDto": {
+        "required": [
+          "body",
+          "id",
+          "recordedAt",
+          "author"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "body": {
+            "type": "string"
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "author": {
+            "$ref": "#/components/schemas/NavigationDto"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One commander-authored entry on an incident timeline."
+      },
+      "IncidentWorkflowAction": {
+        "enum": [
+          "BeginResponding",
+          "MarkRecovered",
+          "Close",
+          "Cancel"
+        ],
+        "type": "string",
+        "description": "A lifecycle action on an incident that moves its status."
+      },
+      "IncidentWorkflowActionDto": {
+        "required": [
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "action": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/IncidentWorkflowAction"
+              }
+            ],
+            "description": "The action."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A lifecycle action whose move an incident's workflow allows from the status it holds."
       },
       "InitWorkspaceIntegrationRequest": {
         "required": [
@@ -68922,6 +70123,30 @@
         "additionalProperties": false,
         "description": "Identifies which of the caller's sessions a request concerns. Optional, but a request that\nomits it does less: logout revokes nothing, and the sessions list cannot mark \"this device\".\nUse `logout-all` to end every session."
       },
+      "ManageIncidentWorkItemsRequest": {
+        "required": [
+          "incidentId",
+          "workItemIds"
+        ],
+        "type": "object",
+        "properties": {
+          "incidentId": {
+            "type": "string",
+            "description": "The incident id, repeated from the route.",
+            "format": "uuid"
+          },
+          "workItemIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Every work item that should stay linked; omitted ids are unlinked."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Replaces every work item linked to an incident."
+      },
       "ManagePlanningIntervalDatesRequest": {
         "required": [
           "id",
@@ -71223,6 +72448,50 @@
         "additionalProperties": false,
         "description": "One page of results, with the paging position and the total across all pages."
       },
+      "PagedResponseOfIncidentSummaryDto": {
+        "required": [
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPreviousPage",
+          "hasNextPage"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IncidentSummaryDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of results, with the paging position and the total across all pages."
+      },
       "PagedResponseOfJobSummaryResponse": {
         "required": [
           "items",
@@ -73362,7 +74631,8 @@
           "isReleasable",
           "status",
           "tags",
-          "teams"
+          "teams",
+          "activeIncidents"
         ],
         "type": "object",
         "properties": {
@@ -73426,6 +74696,23 @@
               "$ref": "#/components/schemas/ProductTeamNavigationDto"
             },
             "description": "The teams and teams of teams linked to this product, by name."
+          },
+          "activeIncidentSeverityName": {
+            "type": "string",
+            "description": "Name of the highest-severity incident that is still active on this product.",
+            "nullable": true
+          },
+          "activeIncidentSeverityColor": {
+            "type": "string",
+            "description": "Color of string? ProductDto.ActiveIncidentSeverityName, from the severity level.",
+            "nullable": true
+          },
+          "activeIncidents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActiveIncidentLinkDto"
+            },
+            "description": "Active incidents on this product, highest severity first. Each one is a link to its record."
           }
         },
         "additionalProperties": false,
@@ -73443,7 +74730,12 @@
           "InProgress",
           "Succeeded",
           "Failed",
-          "RolledBack"
+          "RolledBack",
+          "Open",
+          "Resolved",
+          "Canceled",
+          "Responding",
+          "Closed"
         ],
         "type": "string"
       },
@@ -76487,7 +77779,8 @@
           "version",
           "status",
           "versions",
-          "packages"
+          "packages",
+          "activeIncidents"
         ],
         "type": "object",
         "properties": {
@@ -76558,6 +77851,23 @@
               "$ref": "#/components/schemas/ReleasePackageSummaryDto"
             },
             "description": "The packages this release shipped."
+          },
+          "activeIncidentSeverityName": {
+            "type": "string",
+            "description": "Name of the highest-severity incident that is still active on this release.",
+            "nullable": true
+          },
+          "activeIncidentSeverityColor": {
+            "type": "string",
+            "description": "Color of string? ReleaseDto.ActiveIncidentSeverityName, from the severity level.",
+            "nullable": true
+          },
+          "activeIncidents": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActiveIncidentLinkDto"
+            },
+            "description": "Active incidents on this release, highest severity first. Each one is a link to its record."
           }
         },
         "additionalProperties": false,
@@ -86256,6 +87566,95 @@
         "additionalProperties": false,
         "description": "The signed-in user's home page arrangement, replacing the one saved. Send no widgets to clear it and use\nthe default again. Widget ids are the client's; the server checks only the layout's shape."
       },
+      "UpdateIncidentDetailsRequest": {
+        "required": [
+          "id",
+          "title",
+          "severityLevelId",
+          "reportedByEmployeeId",
+          "noticedAt",
+          "productIds",
+          "releaseIds"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          },
+          "symptoms": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "What responders are seeing. Empty when nothing has been recorded yet.",
+            "nullable": true
+          },
+          "remediation": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "What was done to restore service or stop the impact. Empty until a remediation is recorded.",
+            "nullable": true
+          },
+          "rootCause": {
+            "maxLength": 4096,
+            "type": "string",
+            "description": "Why it happened, once that is known. Empty until a cause is recorded.",
+            "nullable": true
+          },
+          "severityLevelId": {
+            "minLength": 1,
+            "type": "string",
+            "format": "uuid"
+          },
+          "reportedByEmployeeId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The employee who reported the incident.",
+            "format": "uuid"
+          },
+          "commanderEmployeeId": {
+            "type": "string",
+            "description": "The employee commanding the response. Empty when nobody is assigned.",
+            "format": "uuid",
+            "nullable": true
+          },
+          "noticedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "recoveredAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "productIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "releaseIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Releases this incident points at. One incident may point at several."
+          }
+        },
+        "additionalProperties": false
+      },
       "UpdateIncidentSeveritySetRequest": {
         "required": [
           "id",
@@ -92008,6 +93407,9 @@
     },
     {
       "name": "Deployments"
+    },
+    {
+      "name": "Incidents"
     },
     {
       "name": "IncidentSeveritySets"

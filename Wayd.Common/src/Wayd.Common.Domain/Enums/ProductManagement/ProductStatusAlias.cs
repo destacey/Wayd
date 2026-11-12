@@ -49,5 +49,20 @@ public enum ProductStatusAlias
     /// A deployment reached its environment and was then reverted. Counts toward change failure rate,
     /// and is the signal time-to-restore measures from.
     /// </summary>
-    RolledBack = 23
+    RolledBack = 23,
+
+    /// <summary>An incident is open and being worked.</summary>
+    Open = 30,
+
+    /// <summary>An incident has been resolved.</summary>
+    Resolved = 31,
+
+    /// <summary>An incident was canceled without resolution.</summary>
+    Canceled = 32,
+
+    /// <summary>Active response to an incident is under way.</summary>
+    Responding = 33,
+
+    /// <summary>An incident is closed after recovery.</summary>
+    Closed = 34,
 }

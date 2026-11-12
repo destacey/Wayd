@@ -1,5 +1,6 @@
 ﻿using System.Linq.Expressions;
 using Wayd.Common.Application.Models;
+using Wayd.ProductManagement.Application.Incidents;
 using Wayd.ProductManagement.Application.Products.Dtos;
 using Wayd.ProductManagement.Domain.Models;
 
@@ -29,10 +30,29 @@ public sealed class GetProductQueryHandler(IProductManagementDbContext productMa
 
     public async Task<ProductDto?> Handle(GetProductQuery query, CancellationToken cancellationToken)
     {
-        return await _productManagementDbContext.Products
+        var product = await _productManagementDbContext.Products
             .Where(query.IdOrKeyFilter)
             .ProjectToType<ProductDto>(
                 ProductDto.CreateTypeAdapterConfig(_productManagementDbContext))
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (product is null)
+        {
+            return null;
+        }
+
+        var severity = await IncidentActivity.ForProducts(
+            _productManagementDbContext,
+            [product.Id],
+            cancellationToken);
+
+        return severity.TryGetValue(product.Id, out var top)
+            ? product with
+            {
+                ActiveIncidentSeverityName = top.Name,
+                ActiveIncidentSeverityColor = top.Color,
+                ActiveIncidents = top.ToLinkDtos(),
+            }
+            : product;
     }
 }

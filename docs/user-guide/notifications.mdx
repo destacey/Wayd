@@ -7,7 +7,7 @@ audience: [user, agent]
 
 # Notifications
 
-The bell at the top right of every page tells you when something changes on a project, program or PI objective you [follow](./following.mdx) or work on, and on an [intake request](./demand-management/index.mdx) you follow, asked for, are assigned or take part in. Notifications are behind the **Following** feature flag; an administrator turns it on in **Settings → System → Feature Flags**. They are in-app only. Wayd never sends them by email, Teams or push.
+The bell at the top right of every page tells you when something changes on a project, program or PI objective you [follow](./following.mdx) or work on, on an [intake request](./demand-management/index.mdx) you follow, asked for, are assigned or take part in, and on an [incident](./product-management/incidents.mdx) you follow or command. Notifications are behind the **Following** feature flag; an administrator turns it on in **Settings → System → Feature Flags**. They are in-app only. Wayd never sends them by email, Teams or push.
 
 The bell needs your account to be linked to an employee. An account with no linked employee does not see it.
 
@@ -81,6 +81,8 @@ An intake request tells its people for different reasons, read from the request 
 | Channel changed | Yes | Yes | No | Yes |
 | Message posted | Yes | Yes | Yes | Yes |
 | Internal note posted | No | Yes | No | Only those who can read internal notes |
+
+An incident tells its commander and anyone following it when it is opened, changes status, changes when it was noticed or when response or recovery was recorded, or gains a discussion note. Editing its title, symptoms, remediation, root cause, severity, products, or releases does not. You are not told about your own change.
 
 Someone who entered a request on the requester's behalf is told as a participant. Tagging and deleting a request tells nobody, and creating one tells only the desk's triagers.
 

@@ -13892,6 +13892,803 @@ export class DeploymentsClient {
     }
 }
 
+export class IncidentsClient {
+    protected instance: AxiosInstance;
+    protected baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(baseUrl?: string, instance?: AxiosInstance) {
+
+        this.instance = instance || axios.create();
+
+        this.baseUrl = baseUrl ?? "";
+
+    }
+
+    /**
+     * List incidents, highest key first.
+     * @param page (optional) 
+     * @param pageSize (optional) 
+     * @param status (optional) 
+     * @param severityLevelId (optional) 
+     * @return OK
+     */
+    getIncidents(page?: number | undefined, pageSize?: number | undefined, status?: ProductStatusAlias[] | null | undefined, severityLevelId?: string[] | null | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfIncidentSummaryDto> {
+        let url_ = this.baseUrl + "/api/product-management/incidents?";
+        if (page === null)
+            throw new globalThis.Error("The parameter 'page' cannot be null.");
+        else if (page !== undefined)
+            url_ += "page=" + encodeURIComponent("" + page) + "&";
+        if (pageSize === null)
+            throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
+        else if (pageSize !== undefined)
+            url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (status !== undefined && status !== null)
+            status && status.forEach(item => { url_ += "status=" + encodeURIComponent("" + item) + "&"; });
+        if (severityLevelId !== undefined && severityLevelId !== null)
+            severityLevelId && severityLevelId.forEach(item => { url_ += "severityLevelId=" + encodeURIComponent("" + item) + "&"; });
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIncidents(_response);
+        });
+    }
+
+    protected processGetIncidents(response: AxiosResponse): Promise<PagedResponseOfIncidentSummaryDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PagedResponseOfIncidentSummaryDto>(result200);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PagedResponseOfIncidentSummaryDto>(null as any);
+    }
+
+    /**
+     * Open an incident.
+     * @return Created
+     */
+    create(request: CreateIncidentRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
+        let url_ = this.baseUrl + "/api/product-management/incidents";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processCreate(_response);
+        });
+    }
+
+    protected processCreate(response: AxiosResponse): Promise<ObjectIdAndKey> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<ObjectIdAndKey>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ObjectIdAndKey>(null as any);
+    }
+
+    /**
+     * Get one incident by id or key.
+     * @return OK
+     */
+    getIncident(idOrKey: string, cancelToken?: CancelToken): Promise<IncidentDto> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{idOrKey}";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIncident(_response);
+        });
+    }
+
+    protected processGetIncident(response: AxiosResponse): Promise<IncidentDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IncidentDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IncidentDto>(null as any);
+    }
+
+    /**
+     * Get the status workflow an incident moves through.
+     * @return OK
+     */
+    getStatusWorkflow(idOrKey: string, cancelToken?: CancelToken): Promise<StatusWorkflowDetailsDto> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{idOrKey}/status-workflow";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetStatusWorkflow(_response);
+        });
+    }
+
+    protected processGetStatusWorkflow(response: AxiosResponse): Promise<StatusWorkflowDetailsDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<StatusWorkflowDetailsDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<StatusWorkflowDetailsDto>(null as any);
+    }
+
+    /**
+     * Update an incident's details.
+     * @return No Content
+     */
+    updateDetails(id: string, request: UpdateIncidentDetailsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{id}";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "PUT",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processUpdateDetails(_response);
+        });
+    }
+
+    protected processUpdateDetails(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * Get work items linked to an incident.
+     * @return OK
+     */
+    getIncidentWorkItems(idOrKey: string, cancelToken?: CancelToken): Promise<WorkItemsSummaryDto> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{idOrKey}/work-items";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIncidentWorkItems(_response);
+        });
+    }
+
+    protected processGetIncidentWorkItems(response: AxiosResponse): Promise<WorkItemsSummaryDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<WorkItemsSummaryDto>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<WorkItemsSummaryDto>(null as any);
+    }
+
+    /**
+     * Set the complete list of work items linked to an incident.
+     * @return No Content
+     */
+    manageIncidentWorkItems(id: string, request: ManageIncidentWorkItemsRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{id}/work-items";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processManageIncidentWorkItems(_response);
+        });
+    }
+
+    protected processManageIncidentWorkItems(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * List commander timeline notes for an incident.
+     * @return OK
+     */
+    getIncidentTimelineNotes(idOrKey: string, cancelToken?: CancelToken): Promise<IncidentTimelineNoteDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{idOrKey}/timeline-notes";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIncidentTimelineNotes(_response);
+        });
+    }
+
+    protected processGetIncidentTimelineNotes(response: AxiosResponse): Promise<IncidentTimelineNoteDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IncidentTimelineNoteDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IncidentTimelineNoteDto[]>(null as any);
+    }
+
+    /**
+     * List link change entries on an incident timeline.
+     * @return OK
+     */
+    getIncidentTimelineLinkEntries(idOrKey: string, cancelToken?: CancelToken): Promise<IncidentTimelineLinkEntryDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{idOrKey}/timeline-link-entries";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIncidentTimelineLinkEntries(_response);
+        });
+    }
+
+    protected processGetIncidentTimelineLinkEntries(response: AxiosResponse): Promise<IncidentTimelineLinkEntryDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IncidentTimelineLinkEntryDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IncidentTimelineLinkEntryDto[]>(null as any);
+    }
+
+    /**
+     * Add a note to an incident's operational timeline.
+     * @return Created
+     */
+    addIncidentTimelineNote(id: string, request: AddIncidentTimelineNoteRequest, cancelToken?: CancelToken): Promise<string> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{id}/timeline-notes";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAddIncidentTimelineNote(_response);
+        });
+    }
+
+    protected processAddIncidentTimelineNote(response: AxiosResponse): Promise<string> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 201) {
+            const _responseText = response.data;
+            let result201: any = null;
+            let resultData201  = _responseText;
+            result201 = resultData201;
+            return Promise.resolve<string>(result201);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<string>(null as any);
+    }
+
+    /**
+     * List lifecycle actions allowed for an incident from its current status.
+     * @return OK
+     */
+    getIncidentWorkflowActions(idOrKey: string, cancelToken?: CancelToken): Promise<IncidentWorkflowActionDto[]> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{idOrKey}/workflow-actions";
+        if (idOrKey === undefined || idOrKey === null)
+            throw new globalThis.Error("The parameter 'idOrKey' must be defined.");
+        url_ = url_.replace("{idOrKey}", encodeURIComponent("" + idOrKey));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIncidentWorkflowActions(_response);
+        });
+    }
+
+    protected processGetIncidentWorkflowActions(response: AxiosResponse): Promise<IncidentWorkflowActionDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IncidentWorkflowActionDto[]>(result200);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IncidentWorkflowActionDto[]>(null as any);
+    }
+
+    /**
+     * Apply a lifecycle action to an incident.
+     * @return No Content
+     */
+    applyIncidentWorkflowAction(id: string, request: ApplyIncidentWorkflowActionRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/{id}/workflow-actions";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processApplyIncidentWorkflowAction(_response);
+        });
+    }
+
+    protected processApplyIncidentWorkflowAction(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+}
+
 export class IncidentSeveritySetsClient {
     protected instance: AxiosInstance;
     protected baseUrl: string;
@@ -63287,6 +64084,20 @@ export class WorkflowSchemesClient {
     }
 }
 
+/** An active incident a product or release row links to. */
+export interface ActiveIncidentLinkDto {
+    /** Incident key. The record is addressed by this key. */
+    key: number;
+    /** Incident title, the name in the hover list. */
+    title: string;
+    /** Severity name shown beside the title. */
+    severityName: string;
+    /** Severity color, the accent beside the severity name. */
+    severityColor: string;
+    /** The incident's current status name. */
+    statusName: string;
+}
+
 export enum ActivityCategory {
     Created = "Created",
     Updated = "Updated",
@@ -63330,6 +64141,16 @@ export interface AddChecklistItemRequest {
 
 export interface AddGoalRequest {
     name: string;
+}
+
+/** Records a note on an incident's operational timeline. */
+export interface AddIncidentTimelineNoteRequest {
+    /** The incident id, repeated from the route. */
+    incidentId: string;
+    /** What happened or what responders should know. */
+    body: string;
+    /** When the event occurred; defaults to now when omitted. */
+    recordedAt?: Date | undefined;
 }
 
 /** A project or work item an accepted intake request became. */
@@ -63471,6 +64292,18 @@ export interface ApplicationPermission {
     category: string;
     isRoot: boolean;
     name: string;
+}
+
+/** Applies a lifecycle action to an incident. */
+export interface ApplyIncidentWorkflowActionRequest {
+    /** The action to apply. */
+    action: IncidentWorkflowAction;
+    /** Why the incident was canceled, when IncidentWorkflowAction ApplyIncidentWorkflowActionRequest.Action is Cancel. */
+    reason?: string | undefined;
+    /** The instant written onto a date this action fills in. Begin responding uses it for response start
+when that is empty. Mark recovered uses it for recovery, and for response start when that is also empty.
+Empty means now. Close and cancel ignore it. */
+    occurredAt?: Date | undefined;
 }
 
 /** The user's approval of a connection request. */
@@ -64234,10 +65067,31 @@ export interface CreateHolidayCalendarRequest {
     description?: string | undefined;
 }
 
+export interface CreateIncidentRequest {
+    title: string;
+    /** What responders are seeing. Empty when nothing has been recorded yet. */
+    symptoms?: string | undefined;
+    /** What was done to restore service or stop the impact. Empty until a remediation is recorded. */
+    remediation?: string | undefined;
+    /** Why it happened, once that is known. Empty until a cause is recorded. */
+    rootCause?: string | undefined;
+    severityLevelId: string;
+    /** The employee who reported the incident. Required, and not inferred from who opened it. */
+    reportedByEmployeeId: string;
+    /** The employee commanding the response. Empty when nobody is assigned. */
+    commanderEmployeeId?: string | undefined;
+    noticedAt?: Date | undefined;
+    startedAt?: Date | undefined;
+    recoveredAt?: Date | undefined;
+    productIds: string[];
+    /** Releases this incident points at. One incident may point at several. */
+    releaseIds: string[];
+}
+
 export interface CreateIncidentSeveritySetRequest {
     name: string;
     description?: string | undefined;
-    levelNames: string[];
+    levels: IncidentSeveritySetLevelRequest[];
 }
 
 /** A channel to add to the end of the company's list of where requests come from. */
@@ -66977,10 +67831,49 @@ column itself must be in the file. */
     notes?: string | undefined;
 }
 
+/** One incident in full. */
+export interface IncidentDto {
+    id: string;
+    key: number;
+    title: string;
+    /** What responders are seeing. Null when nothing has been recorded yet. */
+    symptoms?: string | undefined;
+    /** What was done to restore service or stop the impact. Null until a remediation is recorded. */
+    remediation?: string | undefined;
+    /** Why it happened, once that is known. Null until a cause is recorded. */
+    rootCause?: string | undefined;
+    /** The employee who opened the incident. */
+    submittedBy: NavigationDto;
+    /** The employee who reported the incident. */
+    reportedBy: NavigationDto;
+    /** The employee commanding the response, when one is assigned. */
+    commander?: NavigationDto | undefined;
+    severityLevel: IncidentSeverityLevelNavigationDto;
+    noticedAt: Date;
+    startedAt?: Date | undefined;
+    recoveredAt?: Date | undefined;
+    products: NavigationDto[];
+    /** Releases this incident points at. One incident may point at several. */
+    releases: NavigationDto[];
+    status: StatusNavigationDto;
+    statusAlias: ProductStatusAlias;
+}
+
 export interface IncidentSeverityLevelDto {
     id: string;
     name: string;
     sortOrder: number;
+    /** Hex accent color (e.g. "#E07A4C"). */
+    color: string;
+}
+
+/** Severity level shown on incident pages. */
+export interface IncidentSeverityLevelNavigationDto {
+    id: string;
+    name: string;
+    sortOrder: number;
+    /** Hex accent color (e.g. "#E07A4C"). */
+    color: string;
 }
 
 export interface IncidentSeveritySetDto {
@@ -66998,6 +67891,77 @@ export interface IncidentSeveritySetLevelRequest {
     /** Existing level id, or omitted when adding a level. */
     id?: string | undefined;
     name: string;
+    /** Hex accent color (e.g. "#E07A4C"). Defaults by rank when omitted on create. */
+    color?: string | undefined;
+}
+
+/** One incident on a list page. */
+export interface IncidentSummaryDto {
+    id: string;
+    key: number;
+    title: string;
+    noticedAt: Date;
+    startedAt?: Date | undefined;
+    recoveredAt?: Date | undefined;
+    /** The employee who opened the incident. */
+    submittedBy: NavigationDto;
+    /** The employee who reported the incident. */
+    reportedBy: NavigationDto;
+    /** The employee commanding the response, when one is assigned. */
+    commander?: NavigationDto | undefined;
+    severityLevel: IncidentSeverityLevelNavigationDto;
+    status: StatusNavigationDto;
+    statusAlias: ProductStatusAlias;
+    products: NavigationDto[];
+    /** Releases this incident points at. One incident may point at several. */
+    releases: NavigationDto[];
+}
+
+export enum IncidentTimelineLinkAction {
+    Added = "Added",
+    Updated = "Updated",
+    Removed = "Removed",
+}
+
+/** One link add, update, or remove entry on an incident timeline. */
+export interface IncidentTimelineLinkEntryDto {
+    id: string;
+    kind: IncidentTimelineLinkKind;
+    action: IncidentTimelineLinkAction;
+    label: string;
+    recordedAt: Date;
+    actor: NavigationDto;
+    /** The work item or link this entry is about. */
+    targetId?: string | undefined;
+    /** The work item or link replaced, when the entry records an update. */
+    fromTargetId?: string | undefined;
+}
+
+export enum IncidentTimelineLinkKind {
+    WorkItem = "WorkItem",
+    Generic = "Generic",
+}
+
+/** One commander-authored entry on an incident timeline. */
+export interface IncidentTimelineNoteDto {
+    id: string;
+    body: string;
+    recordedAt: Date;
+    author: NavigationDto;
+}
+
+/** A lifecycle action on an incident that moves its status. */
+export enum IncidentWorkflowAction {
+    BeginResponding = "BeginResponding",
+    MarkRecovered = "MarkRecovered",
+    Close = "Close",
+    Cancel = "Cancel",
+}
+
+/** A lifecycle action whose move an incident's workflow allows from the status it holds. */
+export interface IncidentWorkflowActionDto {
+    /** The action. */
+    action: IncidentWorkflowAction;
 }
 
 export interface InitWorkspaceIntegrationRequest {
@@ -67937,6 +68901,14 @@ export interface LogoutRequest {
     refreshToken?: string | undefined;
 }
 
+/** Replaces every work item linked to an incident. */
+export interface ManageIncidentWorkItemsRequest {
+    /** The incident id, repeated from the route. */
+    incidentId: string;
+    /** Every work item that should stay linked; omitted ids are unlinked. */
+    workItemIds: string[];
+}
+
 export interface ManagePlanningIntervalDatesRequest {
     id: string;
     /** Gets or sets the start. */
@@ -68717,6 +69689,17 @@ export interface PagedResponseOfImportProcessRowDto {
 }
 
 /** One page of results, with the paging position and the total across all pages. */
+export interface PagedResponseOfIncidentSummaryDto {
+    items: IncidentSummaryDto[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+/** One page of results, with the paging position and the total across all pages. */
 export interface PagedResponseOfJobSummaryResponse {
     items: JobSummaryResponse[];
     pageNumber: number;
@@ -69385,6 +70368,12 @@ export interface ProductDto {
     tags: ProductTagDto[];
     /** The teams and teams of teams linked to this product, by name. */
     teams: ProductTeamNavigationDto[];
+    /** Name of the highest-severity incident that is still active on this product. */
+    activeIncidentSeverityName?: string | undefined;
+    /** Color of string? ProductDto.ActiveIncidentSeverityName, from the severity level. */
+    activeIncidentSeverityColor?: string | undefined;
+    /** Active incidents on this product, highest severity first. Each one is a link to its record. */
+    activeIncidents: ActiveIncidentLinkDto[];
 }
 
 export enum ProductStatusAlias {
@@ -69399,6 +70388,11 @@ export enum ProductStatusAlias {
     Succeeded = "Succeeded",
     Failed = "Failed",
     RolledBack = "RolledBack",
+    Open = "Open",
+    Resolved = "Resolved",
+    Canceled = "Canceled",
+    Responding = "Responding",
+    Closed = "Closed",
 }
 
 /** A tag category and the tags on it. */
@@ -70360,6 +71354,12 @@ export interface ReleaseDto {
     versions: ReleaseVersionDto[];
     /** The packages this release shipped. */
     packages: ReleasePackageSummaryDto[];
+    /** Name of the highest-severity incident that is still active on this release. */
+    activeIncidentSeverityName?: string | undefined;
+    /** Color of string? ReleaseDto.ActiveIncidentSeverityName, from the severity level. */
+    activeIncidentSeverityColor?: string | undefined;
+    /** Active incidents on this release, highest severity first. Each one is a link to its record. */
+    activeIncidents: ActiveIncidentLinkDto[];
 }
 
 /** How often versions shipped. */
@@ -73515,6 +74515,28 @@ export interface UpdateHolidayCalendarRequest {
 export interface UpdateHomeLayoutRequest {
     /** The placed widgets, in the order they show within their columns. */
     widgets: HomeLayoutWidgetRequest[];
+}
+
+export interface UpdateIncidentDetailsRequest {
+    id: string;
+    title: string;
+    /** What responders are seeing. Empty when nothing has been recorded yet. */
+    symptoms?: string | undefined;
+    /** What was done to restore service or stop the impact. Empty until a remediation is recorded. */
+    remediation?: string | undefined;
+    /** Why it happened, once that is known. Empty until a cause is recorded. */
+    rootCause?: string | undefined;
+    severityLevelId: string;
+    /** The employee who reported the incident. */
+    reportedByEmployeeId: string;
+    /** The employee commanding the response. Empty when nobody is assigned. */
+    commanderEmployeeId?: string | undefined;
+    noticedAt: Date;
+    startedAt?: Date | undefined;
+    recoveredAt?: Date | undefined;
+    productIds: string[];
+    /** Releases this incident points at. One incident may point at several. */
+    releaseIds: string[];
 }
 
 export interface UpdateIncidentSeveritySetRequest {

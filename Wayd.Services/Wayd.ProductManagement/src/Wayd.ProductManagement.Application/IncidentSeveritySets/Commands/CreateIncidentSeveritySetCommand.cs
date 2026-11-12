@@ -3,7 +3,7 @@ namespace Wayd.ProductManagement.Application.IncidentSeveritySets.Commands;
 public sealed record CreateIncidentSeveritySetCommand(
     string Name,
     string? Description,
-    IReadOnlyList<string> LevelNames) : ICommand<Guid>;
+    IReadOnlyList<IncidentSeveritySetLevelPayload> Levels) : ICommand<Guid>;
 
 public sealed class CreateIncidentSeveritySetCommandValidator : AbstractValidator<CreateIncidentSeveritySetCommand>
 {
@@ -11,8 +11,12 @@ public sealed class CreateIncidentSeveritySetCommandValidator : AbstractValidato
     {
         RuleFor(c => c.Name).NotEmpty().MaximumLength(64);
         RuleFor(c => c.Description).MaximumLength(512);
-        RuleFor(c => c.LevelNames).NotEmpty();
-        RuleForEach(c => c.LevelNames).NotEmpty().MaximumLength(64);
+        RuleFor(c => c.Levels).NotEmpty().Must(v => v.Count >= 2);
+        RuleForEach(c => c.Levels).ChildRules(level =>
+        {
+            level.RuleFor(l => l.Name).NotEmpty().MaximumLength(64);
+            level.RuleFor(l => l.Color).MaximumLength(9);
+        });
     }
 }
 
@@ -36,7 +40,12 @@ public sealed class CreateIncidentSeveritySetCommandHandler(
                 return Result.Failure<Guid>($"A severity set named '{name}' already exists.");
             }
 
-            var create = IncidentSeveritySet.CreateCustom(name, request.Description, request.LevelNames);
+            var create = IncidentSeveritySet.CreateCustom(
+                name,
+                request.Description,
+                request.Levels
+                    .Select((l, i) => (l.Name, l.Color ?? IncidentSeverityLevel.DefaultColorForSortOrder(i)))
+                    .ToList());
             if (create.IsFailure)
             {
                 return Result.Failure<Guid>(create.Error);

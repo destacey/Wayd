@@ -19,6 +19,8 @@ export const recordHref = (
         : null
     case FollowOwnerTypes.IntakeRequest:
       return `/demand-management/requests/${record.key}`
+    case FollowOwnerTypes.Incident:
+      return `/product-management/incidents/${record.key}`
     default:
       return null
   }

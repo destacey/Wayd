@@ -11,6 +11,7 @@ import { ReleaseDto } from '@/src/services/wayd-api'
 import { Tooltip, Typography } from 'antd'
 import Link from 'next/link'
 import { ReactElement } from 'react'
+import { activeIncidentColumn } from '../../_components/active-incident-links'
 
 const { Text } = Typography
 
@@ -109,6 +110,7 @@ export const buildReleaseColumns = (
       </Tooltip>
     ),
   },
+  activeIncidentColumn<ReleaseDto>(),
   {
     id: 'targetDate',
     accessorKey: 'targetDate',

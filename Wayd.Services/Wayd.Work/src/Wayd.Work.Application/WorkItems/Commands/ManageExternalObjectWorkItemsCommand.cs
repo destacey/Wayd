@@ -17,7 +17,7 @@ public sealed class ManageExternalObjectWorkItemsCommandHandler(IWorkDbContext w
         try
         {
             var workItemLinks = await _workDbContext.WorkItemReferences
-                .Where(w => w.ObjectId == request.ObjectiveId)
+                .Where(w => w.ObjectId == request.ObjectiveId && w.Context == request.Context)
                 .ToListAsync(cancellationToken);
 
             var existingWorkItemIds = workItemLinks.Select(x => x.WorkItemId).ToHashSet();

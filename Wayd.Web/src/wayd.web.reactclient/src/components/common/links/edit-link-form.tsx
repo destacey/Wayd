@@ -46,10 +46,18 @@ const EditLinkForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditLinkFormValues>({
       onSubmit: async (values: EditLinkFormValues, form) => {
+        if (!linkData) {
+          messageApi.error('Link could not be loaded.')
+          return false
+        }
+
         try {
           const request = mapToRequestValues(values)
           request.id = id
-          const response = await updateLink({ request, objectId: id })
+          const response = await updateLink({
+            request,
+            objectId: linkData.objectId,
+          })
           if (response.error) {
             throw response.error
           }

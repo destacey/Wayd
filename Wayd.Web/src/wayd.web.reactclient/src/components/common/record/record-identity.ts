@@ -7,6 +7,7 @@ const typeLabels: Record<string, string> = {
   [FollowOwnerTypes.Program]: 'Program',
   [FollowOwnerTypes.PlanningIntervalObjective]: 'PI Objective',
   [FollowOwnerTypes.IntakeRequest]: 'Request',
+  [FollowOwnerTypes.Incident]: 'Incident',
 }
 
 /** What to call a kind of record: its short name, else the name the API gives it. */

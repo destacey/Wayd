@@ -1,6 +1,6 @@
 ---
 title: Product Management
-description: Managing the product catalog, product types, tags, releases, versions, packages, deployments, and delivery metrics in Wayd.
+description: Managing the product catalog, product types, tags, incidents, releases, versions, packages, deployments, and delivery metrics in Wayd.
 sidebar_position: 6
 audience: [user, agent]
 ---
@@ -70,6 +70,7 @@ Every area of Product Management has both a screen and an API, except product ty
 | Area | Interface | API |
 | --- | --- | --- |
 | Products and tags | Yes | Yes |
+| Incidents | Yes | Yes |
 | Product types | No — seeded, and managed through the API | Yes |
 | Product dependencies | Yes | Yes |
 | Releases and versions | Yes | Yes |
@@ -86,6 +87,7 @@ Delivery metrics reports the two DORA measures this module can compute from what
 ## Sections
 
 - **[Products](./products.mdx)** — The catalog: creating products, the tree, types, statuses, tags, moving, external links, and the dependencies between products
+- **[Incidents](./incidents.mdx)** — Operational incidents, their response lifecycle, and the count on the products and releases they point at
 - **[Delivery](./delivery.mdx)** — Releases, versions, packages, deployments, environments, the rollout and version-activity views, and the delivery metrics computed from them
 - **[Bulk Import](./bulk-import.mdx)** — Loading the catalog, dependencies and delivery records from CSV
 
@@ -95,6 +97,9 @@ Every action in this area is granted by permission claim alone; unlike PPM, ther
 
 | Permission | Grants |
 | --- | --- |
+| `Permissions.Incidents.View` | See [incidents](./incidents.mdx) |
+| `Permissions.Incidents.Create` | Open an incident |
+| `Permissions.Incidents.Update` | Edit an incident, move it through its lifecycle, and manage its work items and links |
 | `Permissions.Products.View` | See the catalog and product details |
 | `Permissions.Products.Create` | Add products |
 | `Permissions.Products.Update` | Edit, retype, move, tag, change status, link externally, record [dependencies](./products.mdx#dependencies) |

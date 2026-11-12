@@ -2,9 +2,11 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import useAuth from '@/src/components/contexts/auth'
+import WaydColorPicker from '@/src/components/common/wayd-color-picker'
 import {
   CreateIncidentSeveritySetRequest,
   IncidentSeveritySetDto,
+  IncidentSeveritySetLevelRequest,
   UpdateIncidentSeveritySetRequest,
 } from '@/src/services/wayd-api'
 import {
@@ -16,6 +18,11 @@ import {
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Button, Form, Input, Modal, Space, Typography } from 'antd'
 import { useState } from 'react'
+import { IncidentSeverityRank } from '@/src/app/product-management/incidents/_components/incident-severity-rank'
+
+const DEFAULT_LEVEL_COLORS = ['#E07A4C', '#D4A017', '#7FA3BF', '#8E9E98']
+
+type LevelFormValue = IncidentSeveritySetLevelRequest
 
 type Props = {
   open: boolean
@@ -40,12 +47,17 @@ export function CreateIncidentSeveritySetForm({ open, onClose, onCreated }: Prop
       <Form
         form={form}
         layout="vertical"
-        initialValues={{ levelNames: ['', ''] }}
+        initialValues={{
+          levels: [
+            { name: '', color: DEFAULT_LEVEL_COLORS[0] },
+            { name: '', color: DEFAULT_LEVEL_COLORS[1] },
+          ],
+        }}
         onFinish={async (values) => {
           try {
             await create({
               ...values,
-              levelNames: values.levelNames.filter((n) => n.trim()),
+              levels: values.levels.filter((l) => l.name.trim()),
             }).unwrap()
             messageApi.success('Severity set created.')
             form.resetFields()
@@ -69,21 +81,24 @@ export function CreateIncidentSeveritySetForm({ open, onClose, onCreated }: Prop
         <Typography.Text type="secondary">
           Enter levels from most severe to least severe.
         </Typography.Text>
-        <Form.List name="levelNames">
+        <Form.List name="levels">
           {(fields, { add, remove }) => (
             <>
-              {fields.map((field) => (
+              {fields.map((field, index) => (
                 <Space.Compact
                   key={field.key}
                   block
-                  style={{ width: '100%', marginBottom: 8 }}
+                  style={{ width: '100%', marginBottom: 8, marginTop: 8 }}
                 >
                   <Form.Item
-                    name={field.name}
+                    name={[field.name, 'name']}
                     noStyle
                     rules={[{ required: true, message: 'Level name is required' }]}
                   >
-                    <Input placeholder="Level name" />
+                    <Input placeholder="Level name" style={{ flex: 1 }} />
+                  </Form.Item>
+                  <Form.Item name={[field.name, 'color']} noStyle>
+                    <WaydColorPicker />
                   </Form.Item>
                   {fields.length > 2 ? (
                     <Button type="link" onClick={() => remove(field.name)}>
@@ -92,7 +107,19 @@ export function CreateIncidentSeveritySetForm({ open, onClose, onCreated }: Prop
                   ) : null}
                 </Space.Compact>
               ))}
-              <Button type="dashed" onClick={() => add('')} block>
+              <Button
+                type="dashed"
+                onClick={() =>
+                  add({
+                    name: '',
+                    color:
+                      DEFAULT_LEVEL_COLORS[
+                        Math.min(fields.length, DEFAULT_LEVEL_COLORS.length - 1)
+                      ],
+                  })
+                }
+                block
+              >
                 Add level
               </Button>
             </>
@@ -119,9 +146,14 @@ export function IncidentSeveritySetPanel({ set, onChanged, onDeleted }: PanelPro
   const [setActive] = useSetIncidentSeveritySetActiveStatusMutation()
   const [deleteSet, { isLoading: deleting }] = useDeleteIncidentSeveritySetMutation()
 
-  const [editedNames, setEditedNames] = useState(() =>
-    set.levels.map((l) => l.name),
+  const [editedLevels, setEditedLevels] = useState<LevelFormValue[]>(() =>
+    set.levels.map((l) => ({ id: l.id, name: l.name, color: l.color })),
   )
+  const [sourceSet, setSourceSet] = useState(set)
+  if (sourceSet !== set) {
+    setSourceSet(set)
+    setEditedLevels(set.levels.map((l) => ({ id: l.id, name: l.name, color: l.color })))
+  }
 
   const saveLevels = async () => {
     if (set.isSystem) {
@@ -132,9 +164,10 @@ export function IncidentSeveritySetPanel({ set, onChanged, onDeleted }: PanelPro
       id: set.id,
       name: set.name,
       description: set.description,
-      levels: set.levels.map((level, index) => ({
-        id: level.id,
-        name: (editedNames[index] ?? level.name).trim(),
+      levels: editedLevels.map((level, index) => ({
+        id: set.levels[index]?.id ?? level.id,
+        name: level.name.trim(),
+        color: level.color,
       })),
     }
 
@@ -151,23 +184,38 @@ export function IncidentSeveritySetPanel({ set, onChanged, onDeleted }: PanelPro
     <Space direction="vertical" style={{ width: '100%' }} size="middle">
       <Typography.Title level={5}>{set.name}</Typography.Title>
       {set.description ? <Typography.Paragraph>{set.description}</Typography.Paragraph> : null}
-      <Typography.Text>
-        Levels (most severe first): {set.levels.map((l) => l.name).join(' → ')}
-      </Typography.Text>
+      <Space direction="vertical" size={4}>
+        {set.levels.map((level) => (
+          <IncidentSeverityRank
+            key={level.id}
+            name={level.name}
+            color={level.color}
+          />
+        ))}
+      </Space>
 
       {!set.isSystem && canUpdate ? (
         <>
-          {editedNames.map((name, index) => (
-            <Input
-              key={set.levels[index]?.id ?? index}
-              value={name}
-              style={{ marginBottom: 8 }}
-              onChange={(e) => {
-                const next = [...editedNames]
-                next[index] = e.target.value
-                setEditedNames(next)
-              }}
-            />
+          {editedLevels.map((level, index) => (
+            <Space.Compact key={set.levels[index]?.id ?? index} block style={{ width: '100%' }}>
+              <Input
+                value={level.name}
+                style={{ flex: 1 }}
+                onChange={(e) => {
+                  const next = [...editedLevels]
+                  next[index] = { ...next[index]!, name: e.target.value }
+                  setEditedLevels(next)
+                }}
+              />
+              <WaydColorPicker
+                value={level.color}
+                onChange={(color) => {
+                  const next = [...editedLevels]
+                  next[index] = { ...next[index]!, color: color ?? level.color }
+                  setEditedLevels(next)
+                }}
+              />
+            </Space.Compact>
           ))}
           <Button type="primary" loading={saving} onClick={() => void saveLevels()}>
             Save levels
@@ -203,7 +251,7 @@ export function IncidentSeveritySetPanel({ set, onChanged, onDeleted }: PanelPro
               )
           }
         >
-          Delete set
+          Delete
         </Button>
       ) : null}
     </Space>

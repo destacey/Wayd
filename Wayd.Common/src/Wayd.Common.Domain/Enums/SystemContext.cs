@@ -20,4 +20,8 @@ public enum SystemContext
     // 3000 - 3999: Work
     [Display(Name = "Work.WorkProcess", Description = "Work Process", Order = 2)]
     WorkWorkProcess = 3010,
+
+    // 4000 - 4999: Product Management
+    [Display(Name = "ProductManagement.Incident", Description = "Incident", Order = 3)]
+    ProductManagementIncident = 4010,
 }

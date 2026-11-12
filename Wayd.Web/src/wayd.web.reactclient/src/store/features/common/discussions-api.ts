@@ -88,6 +88,9 @@ const ownerTags: Record<
   // Posting changes nothing on a project: access comes from its roles, never
   // from a conversation.
   [DiscussionChannelTypes.Project]: () => [],
+  [DiscussionChannelTypes.Incident]: (ownerId) => [
+    { type: QueryTags.Incident, id: ownerId },
+  ],
 }
 
 /** What writing a message changes: its conversation, and its record's caches. */

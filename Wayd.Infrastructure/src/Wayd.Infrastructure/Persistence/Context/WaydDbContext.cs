@@ -191,6 +191,9 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<IncidentSeveritySet> IncidentSeveritySets => Set<IncidentSeveritySet>();
     public DbSet<IncidentSeverityLevel> IncidentSeverityLevels => Set<IncidentSeverityLevel>();
     public DbSet<IncidentSeveritySetAssignment> IncidentSeveritySetAssignments => Set<IncidentSeveritySetAssignment>();
+    public DbSet<Incident> Incidents => Set<Incident>();
+    public DbSet<IncidentTimelineNote> IncidentTimelineNotes => Set<IncidentTimelineNote>();
+    public DbSet<IncidentTimelineLinkEntry> IncidentTimelineLinkEntries => Set<IncidentTimelineLinkEntry>();
 
     #endregion ProductManagement
 

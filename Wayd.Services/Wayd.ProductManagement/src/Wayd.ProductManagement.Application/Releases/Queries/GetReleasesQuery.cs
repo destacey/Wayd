@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.StatusWorkflows.Enums;
+using Wayd.ProductManagement.Application.Incidents;
 using Wayd.ProductManagement.Application.Releases.Dtos;
 
 namespace Wayd.ProductManagement.Application.Releases.Queries;
@@ -67,11 +68,28 @@ public sealed class GetReleasesQueryHandler(IProductManagementDbContext productM
         // products — 2026.07 of one has no position relative to R4 of another beyond the date they
         // were announced. Applying it to a mixed list would let an ordering set for one product move
         // a second product's release that happens to share a released date.
-        return await (query.ProductId is not null
+        var list = await (query.ProductId is not null
                 ? ordered.ThenByDescending(r => r.Sequence)
                 : ordered)
             // Key last, so an MCP caller's offset slices the same list on every call.
             .ThenByDescending(r => r.Key)
             .ToListAsync(cancellationToken);
+
+        var severity = await IncidentActivity.ForReleases(
+            _productManagementDbContext,
+            list.Select(release => release.Id).ToList(),
+            cancellationToken);
+        IncidentActivity.Apply(
+            list,
+            severity,
+            release => release.Id,
+            (release, top) => release with
+            {
+                ActiveIncidentSeverityName = top.Name,
+                ActiveIncidentSeverityColor = top.Color,
+                ActiveIncidents = top.ToLinkDtos(),
+            });
+
+        return list;
     }
 }

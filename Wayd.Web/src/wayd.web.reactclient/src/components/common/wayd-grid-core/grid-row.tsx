@@ -288,6 +288,10 @@ export interface FlatGridRowProps<T extends RowData>
   numericColumnIds?: ReadonlySet<string>
 }
 
+const cellStyle = (pinned: {
+  style?: CSSProperties
+}): CSSProperties | undefined => pinned.style
+
 /**
  * The FLAT form of the row-renderer seam: a plain `<tr>` of the row's visible
  * cells plus the trailing filler cell that keeps the zebra/hover band
@@ -329,7 +333,7 @@ export function FlatGridRow<T extends RowData>({
             key={cell.id}
             data-column-id={cell.column.id}
             className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}${editState.className}`}
-            style={pinned.style}
+            style={cellStyle(pinned)}
             {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
             {...editState.attrs}
           >
@@ -338,7 +342,10 @@ export function FlatGridRow<T extends RowData>({
         )
       })}
       {/* Filler data cell keeps the zebra/hover band edge-to-edge. */}
-      <td aria-hidden="true" className={classes.td} />
+      <td
+        aria-hidden="true"
+        className={classes.td}
+      />
     </tr>
   )
 }
@@ -396,7 +403,7 @@ export function SortableFlatGridRow<T extends RowData>({
             key={cell.id}
             data-column-id={cell.column.id}
             className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}${editState.className}`}
-            style={pinned.style}
+            style={cellStyle(pinned)}
             {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
             {...editState.attrs}
           >
@@ -405,7 +412,10 @@ export function SortableFlatGridRow<T extends RowData>({
         )
       })}
       {/* Filler data cell keeps the zebra/hover band edge-to-edge. */}
-      <td aria-hidden="true" className={classes.td} />
+      <td
+        aria-hidden="true"
+        className={classes.td}
+      />
     </GridSortableRow>
   )
 }
@@ -477,7 +487,7 @@ export function TreeGridRow<T extends RowData>({
             key={cell.id}
             data-column-id={cell.column.id}
             className={`${classes.td}${numericTdClass(cell, classes, numericColumnIds)}${pinned.className}${editState.className}`}
-            style={pinned.style}
+            style={cellStyle(pinned)}
             {...gridCellProps(cell.column.id, colIndex, focusColumnId)}
             {...editState.attrs}
           >
@@ -492,7 +502,10 @@ export function TreeGridRow<T extends RowData>({
         )
       })}
       {/* Filler data cell keeps the zebra/hover band edge-to-edge. */}
-      <td aria-hidden="true" className={classes.td} />
+      <td
+        aria-hidden="true"
+        className={classes.td}
+      />
     </GridSortableRow>
   )
 }

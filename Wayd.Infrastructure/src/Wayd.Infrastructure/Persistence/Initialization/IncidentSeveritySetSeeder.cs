@@ -19,12 +19,22 @@ public class IncidentSeveritySetSeeder : ICustomSeeder
         var sevScale = IncidentSeveritySet.CreateSystem(
             "SEV",
             "Four-level SEV scale with SEV-1 as the highest severity.",
-            ["SEV-1", "SEV-2", "SEV-3", "SEV-4"]);
+            [
+                ("SEV-1", IncidentSeverityLevel.DefaultColorForSortOrder(0)),
+                ("SEV-2", IncidentSeverityLevel.DefaultColorForSortOrder(1)),
+                ("SEV-3", IncidentSeverityLevel.DefaultColorForSortOrder(2)),
+                ("SEV-4", IncidentSeverityLevel.DefaultColorForSortOrder(3)),
+            ]);
 
         var criticalScale = IncidentSeveritySet.CreateSystem(
             "Critical / High / Medium / Low",
             "Four-level scale from Critical down to Low.",
-            ["Critical", "High", "Medium", "Low"]);
+            [
+                ("Critical", IncidentSeverityLevel.DefaultColorForSortOrder(0)),
+                ("High", IncidentSeverityLevel.DefaultColorForSortOrder(1)),
+                ("Medium", IncidentSeverityLevel.DefaultColorForSortOrder(2)),
+                ("Low", IncidentSeverityLevel.DefaultColorForSortOrder(3)),
+            ]);
 
         if (sevScale.IsFailure || criticalScale.IsFailure)
         {

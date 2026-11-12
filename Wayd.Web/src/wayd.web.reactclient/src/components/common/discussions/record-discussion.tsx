@@ -8,7 +8,7 @@ import {
 } from '@ant-design/icons'
 import { Alert, Button, Segmented, Spin, Tooltip, Typography } from 'antd'
 import { useState } from 'react'
-import { formatEventTitle } from '@/src/components/common/activities'
+import { formatDiscussionActivityTitle } from '@/src/components/common/activities/format-discussion-activity-title'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useLocalStorageState } from '@/src/hooks'
 import {
@@ -63,7 +63,7 @@ const ActivityEntry = ({ activity }: { activity: ActivityLogDto }) => (
       {activity.employee && (
         <span className={styles.activityActor}>{activity.employee.name} </span>
       )}
-      {formatEventTitle(activity.eventType, activity.summary)}
+      {formatDiscussionActivityTitle(activity)}
       {' · '}
       {formatTimeAgo(activity.timestamp)}
     </span>

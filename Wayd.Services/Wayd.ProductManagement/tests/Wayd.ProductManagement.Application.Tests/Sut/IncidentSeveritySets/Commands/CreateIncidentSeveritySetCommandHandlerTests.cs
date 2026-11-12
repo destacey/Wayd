@@ -17,7 +17,13 @@ public sealed class CreateIncidentSeveritySetCommandHandlerTests : IncidentSever
 
         // Act
         var result = await sut.Handle(
-            new CreateIncidentSeveritySetCommand("Ops", "On-call scale.", ["P0", "P1"]),
+            new CreateIncidentSeveritySetCommand(
+                "Ops",
+                "On-call scale.",
+                [
+                    new IncidentSeveritySetLevelPayload(null, "P0", "#E07A4C"),
+                    new IncidentSeveritySetLevelPayload(null, "P1", "#D4A017"),
+                ]),
             TestContext.Current.CancellationToken);
 
         // Assert
@@ -35,7 +41,13 @@ public sealed class CreateIncidentSeveritySetCommandHandlerTests : IncidentSever
 
         // Act
         var result = await sut.Handle(
-            new CreateIncidentSeveritySetCommand("Ops", null, ["A", "B"]),
+            new CreateIncidentSeveritySetCommand(
+                "Ops",
+                null,
+                [
+                    new IncidentSeveritySetLevelPayload(null, "A", null),
+                    new IncidentSeveritySetLevelPayload(null, "B", null),
+                ]),
             TestContext.Current.CancellationToken);
 
         // Assert

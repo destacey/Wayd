@@ -5,6 +5,9 @@ public sealed class IncidentSeverityLevelDto
     public Guid Id { get; set; }
     public required string Name { get; set; }
     public int SortOrder { get; set; }
+
+    /// <summary>Hex accent color (e.g. "#E07A4C").</summary>
+    public required string Color { get; set; }
 }
 
 public sealed class IncidentSeveritySetDto

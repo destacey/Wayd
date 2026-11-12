@@ -148,7 +148,7 @@ describe('MutedNotifications', () => {
   it('leaves out a reason it has no words for', () => {
     // Arrange
     mockUseReasons.mockReturnValue({
-      data: [{ reason: NotificationReason.Desk, isMuted: false }],
+      data: [{ reason: 'Unknown' as NotificationReason, isMuted: false }],
       isLoading: false,
       isError: false,
     })

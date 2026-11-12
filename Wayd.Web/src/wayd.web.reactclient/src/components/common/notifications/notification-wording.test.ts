@@ -112,7 +112,7 @@ describe('notificationReasonText', () => {
       [NotificationReason.Following, NotificationReason.Role],
       'You follow and work on this',
     ],
-    [[NotificationReason.Desk], 'It is waiting on your desk'],
+    [[NotificationReason.Desk], 'You triage its desk'],
     [
       [NotificationReason.Following, NotificationReason.Thread],
       'You follow this · You are in the thread',

@@ -7,7 +7,7 @@ import {
   IntakeDeskMemberDto,
   IntakeDeskRole,
 } from '@/src/services/wayd-api'
-import { Typography } from 'antd'
+import { Alert, Typography } from 'antd'
 import { FC } from 'react'
 
 const { Paragraph } = Typography
@@ -22,6 +22,12 @@ const columns: ColumnDef<IntakeDeskMemberDto, any>[] = [
     accessorFn: (member) => roleName(member.role),
     header: 'Role',
     size: 160,
+  },
+  {
+    id: 'triages',
+    accessorFn: (member) => (member.isTriager ? 'Yes' : ''),
+    header: 'Triages',
+    size: 120,
   },
 ]
 
@@ -38,8 +44,17 @@ const IntakeDeskMembers: FC<IntakeDeskMembersProps> = ({ desk }) => (
     <Paragraph type="secondary">
       Agents act on this desk&apos;s requests. Desk Admins also run the desk and
       are the only ones who can delete its requests. Being named here is all it
-      takes, and working this desk gives nothing on any other.
+      takes, and working this desk gives nothing on any other. Triagers, of any
+      role, are told about requests waiting here unassigned.
     </Paragraph>
+    {desk.members.length > 0 && !desk.members.some((m) => m.isTriager) && (
+      <Alert
+        type="warning"
+        showIcon
+        title="Nobody triages this desk, so nobody is told about its new requests."
+        style={{ marginBottom: 12 }}
+      />
+    )}
     <WaydGrid
       variant="simple"
       columns={columns}

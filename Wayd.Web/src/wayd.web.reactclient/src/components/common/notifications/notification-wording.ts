@@ -66,7 +66,7 @@ const youVerbs: Partial<Record<NotificationReason, string>> = {
 const otherReasons: Partial<Record<NotificationReason, string>> = {
   [NotificationReason.Assigned]: 'It is assigned to you',
   [NotificationReason.Mentioned]: 'You were mentioned',
-  [NotificationReason.Desk]: 'It is waiting on your desk',
+  [NotificationReason.Desk]: 'You triage its desk',
   [NotificationReason.Thread]: 'You are in the thread',
 }
 

@@ -10,12 +10,12 @@ import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-ma
 import { useCreateIncidentMutation } from '@/src/store/features/product-management/incidents-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { toApiError, toFormErrors } from '@/src/utils'
-import { DatePicker, Form, Modal, Select } from 'antd'
-import TextArea from 'antd/es/input/TextArea'
+import { DatePicker, Form, Input, Modal, Select } from 'antd'
 import { Dayjs } from 'dayjs'
 import { useRouter } from 'next/navigation'
 
 const { Item } = Form
+const { TextArea } = Input
 
 export interface CreateIncidentFormProps {
   onFormComplete: () => void

@@ -17,7 +17,7 @@ import {
 } from '@/src/store/features/product-management/incident-severity-sets-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Button, Form, Input, Modal, Space, Typography } from 'antd'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { IncidentSeverityRank } from '@/src/app/product-management/incidents/_components/incident-severity-rank'
 
 const DEFAULT_LEVEL_COLORS = ['#E07A4C', '#D4A017', '#7FA3BF', '#8E9E98']
@@ -149,12 +149,11 @@ export function IncidentSeveritySetPanel({ set, onChanged, onDeleted }: PanelPro
   const [editedLevels, setEditedLevels] = useState<LevelFormValue[]>(() =>
     set.levels.map((l) => ({ id: l.id, name: l.name, color: l.color })),
   )
-
-  useEffect(() => {
-    setEditedLevels(
-      set.levels.map((l) => ({ id: l.id, name: l.name, color: l.color })),
-    )
-  }, [set])
+  const [sourceSet, setSourceSet] = useState(set)
+  if (sourceSet !== set) {
+    setSourceSet(set)
+    setEditedLevels(set.levels.map((l) => ({ id: l.id, name: l.name, color: l.color })))
+  }
 
   const saveLevels = async () => {
     if (set.isSystem) {

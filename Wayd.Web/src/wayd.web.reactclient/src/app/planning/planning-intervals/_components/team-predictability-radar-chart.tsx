@@ -4,12 +4,7 @@ import { ChartCard } from '@/src/components/common/metrics'
 import useTheme from '@/src/components/contexts/theme'
 import { PlanningIntervalTeamPredictabilityDto } from '@/src/services/wayd-api'
 import { useChartRemountOnResize } from '@/src/hooks'
-import dynamic from 'next/dynamic'
-
-const Radar = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Radar) as any,
-  { ssr: false },
-)
+import { Radar } from '@/src/components/common/charts'
 
 interface TeamPredictabilityRadarChartProps {
   teamPredictabilities?: PlanningIntervalTeamPredictabilityDto[]

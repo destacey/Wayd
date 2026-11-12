@@ -5,14 +5,9 @@ import { healthCheckTagColor } from '@/src/components/common/health-check/health
 import useTheme from '@/src/components/contexts/theme'
 import { PlanningIntervalObjectiveListDto } from '@/src/services/wayd-api'
 import { getSemanticChartColor, softenChartColor } from '@/src/utils'
-import dynamic from 'next/dynamic'
 import type { PieConfig } from '@ant-design/charts'
 import { theme } from 'antd'
-
-const Pie = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Pie) as any,
-  { ssr: false },
-)
+import { Pie } from '@/src/components/common/charts'
 
 export interface ObjectiveHealthChartProps {
   objectivesData: PlanningIntervalObjectiveListDto[]

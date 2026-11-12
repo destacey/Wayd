@@ -7,12 +7,7 @@ import { useChartRemountOnResize } from '@/src/hooks'
 import { softenChartColor } from '@/src/utils'
 import type { PieConfig } from '@ant-design/charts'
 import { theme } from 'antd'
-import dynamic from 'next/dynamic'
-
-const Pie = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Pie) as any,
-  { ssr: false },
-)
+import { Pie } from '@/src/components/common/charts'
 
 /** Plot area for a breakdown donut, legend excluded. */
 export const BREAKDOWN_CHART_HEIGHT = 280

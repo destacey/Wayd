@@ -5,14 +5,9 @@ import WaydEmpty from '@/src/components/common/wayd-empty'
 import useTheme from '@/src/components/contexts/theme'
 import { useChartRemountOnResize } from '@/src/hooks'
 import { Flex } from 'antd'
-import dynamic from 'next/dynamic'
 import { FC } from 'react'
 import { BurnChartPoint, BurnSeries } from './sprint-burn-series'
-
-const Line = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Line) as any,
-  { ssr: false },
-)
+import { Line } from '@/src/components/common/charts'
 
 const CHART_HEIGHT = 260
 const COMPACT_HEIGHT = 180

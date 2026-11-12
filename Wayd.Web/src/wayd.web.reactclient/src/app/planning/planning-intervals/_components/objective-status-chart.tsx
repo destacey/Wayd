@@ -8,14 +8,9 @@ import {
   getSemanticChartColor,
   softenChartColor,
 } from '@/src/utils'
-import dynamic from 'next/dynamic'
 import type { PieConfig } from '@ant-design/charts'
 import { theme } from 'antd'
-
-const Pie = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Pie) as any,
-  { ssr: false },
-)
+import { Pie } from '@/src/components/common/charts'
 
 export interface ObjectiveStatusChartProps {
   objectivesData: PlanningIntervalObjectiveListDto[]

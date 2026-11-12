@@ -1,6 +1,5 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import { WorkItemProgressDailyRollupDto } from '@/src/services/wayd-api'
 import useTheme from '@/src/components/contexts/theme'
 import {
@@ -11,11 +10,7 @@ import { ChartCard } from '@/src/components/common/metrics'
 import { getWorkStatusCategoryColorScale } from '@/src/components/common/work'
 import { useChartRemountOnResize } from '@/src/hooks'
 import { theme } from 'antd'
-
-const Pie = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Pie) as any,
-  { ssr: false },
-)
+import { Pie } from '@/src/components/common/charts'
 
 export interface WorkItemProgressPieChartProps {
   progress?: WorkItemProgressDailyRollupDto | null

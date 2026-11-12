@@ -1,9 +1,8 @@
 'use client'
 
-import { ColumnConfig } from '@ant-design/charts'
+import type { ColumnConfig } from '@ant-design/charts'
 import { WorkItemForecastDto } from '@/src/services/wayd-api'
 import { CalendarDate, compareCalendarDates } from '@/src/utils/calendar-date'
-import dynamic from 'next/dynamic'
 import { FC } from 'react'
 import useTheme from '../../contexts/theme'
 import {
@@ -11,11 +10,7 @@ import {
   formatPercent,
   formatShortForecastDate,
 } from './forecast-formatting'
-
-const Column = dynamic(
-  () => import('@ant-design/charts').then((mod) => mod.Column) as any,
-  { ssr: false },
-)
+import { Column } from '@/src/components/common/charts'
 
 export interface CompletionForecastChartProps {
   forecast: WorkItemForecastDto

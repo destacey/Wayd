@@ -37,6 +37,24 @@ const restrictedAntdDeepImports = {
     "Import the component from 'antd' (const { TextArea } = Input). A deep path can load a second copy of antd's contexts, so the component ignores <Form disabled>, size and ConfigProvider. Only `import type` may use a deep path.",
 }
 
+// Every chart loads through @/src/components/common/charts, whose components render tooltip text as
+// text: G2's own tooltip writes it into the page as HTML, and much of it is names users choose. The
+// packages beneath @ant-design/charts render the same tooltip, so they and every deep path are covered.
+const chartPackages = String.raw`^(@ant-design/(charts|plots)|@antv/(g2|g2plot))(/|$)`
+const chartsMessage =
+  "Import the chart from '@/src/components/common/charts' so its tooltip renders text, not HTML. See docs/contributing/design-system.mdx#what-lint-enforces."
+const restrictedChartsImport = {
+  regex: chartPackages,
+  allowTypeImports: true,
+  message: `${chartsMessage} Only \`import type\` may name the chart packages.`,
+}
+// A dynamic import, by string or template literal; `vi.mock(import('…'))` names a module to mock and loads nothing.
+const chartPackagesSelector = chartPackages.replaceAll('/', '\\/')
+const restrictedChartsDynamicImport = [
+  `ImportExpression[source.value=/${chartPackagesSelector}/]:not(CallExpression[callee.object.name='vi'] > ImportExpression)`,
+  `ImportExpression[source.type='TemplateLiteral'][source.quasis.0.value.raw=/${chartPackagesSelector}/]:not(CallExpression[callee.object.name='vi'] > ImportExpression)`,
+].map((selector) => ({ selector, message: chartsMessage }))
+
 /**
  * Tables written before the WaydGrid rule was enforced. Migrate a file to WaydGrid and remove it here;
  * never add one.
@@ -91,10 +109,28 @@ const eslintConfig = [
         'error',
         {
           paths: [restrictedAntdTable, restrictedAntdList],
-          patterns: [restrictedAntdTableTypes, restrictedAntdDeepImports],
+          patterns: [
+            restrictedAntdTableTypes,
+            restrictedAntdDeepImports,
+            restrictedChartsImport,
+          ],
         },
       ],
     },
+  },
+  {
+    // Like no-restricted-imports above, a later block replaces these options whole, so a file-scoped
+    // block must repeat every selector it keeps.
+    rules: {
+      'no-restricted-syntax': ['error', ...restrictedChartsDynamicImport],
+    },
+  },
+  {
+    // The one module that loads @ant-design/charts, wrapping each chart in the text-only tooltip.
+    // A severity alone would keep the selectors above, so this turns the rule off; a selector added
+    // later that this file must obey needs re-enabling here.
+    files: ['src/components/common/charts/charts.tsx'],
+    rules: { 'no-restricted-syntax': 'off' },
   },
   {
     files: legacyAntdTableFiles,
@@ -103,7 +139,7 @@ const eslintConfig = [
         'error',
         {
           paths: [restrictedAntdList],
-          patterns: [restrictedAntdDeepImports],
+          patterns: [restrictedAntdDeepImports, restrictedChartsImport],
         },
       ],
     },
@@ -116,7 +152,11 @@ const eslintConfig = [
         'error',
         {
           paths: [restrictedAntdTable],
-          patterns: [restrictedAntdTableTypes, restrictedAntdDeepImports],
+          patterns: [
+            restrictedAntdTableTypes,
+            restrictedAntdDeepImports,
+            restrictedChartsImport,
+          ],
         },
       ],
     },

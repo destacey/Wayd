@@ -4,7 +4,6 @@ import PageTitle from '@/src/components/common/page-title'
 import { useState } from 'react'
 import { Button, Dropdown, Flex, MenuProps, Tabs } from 'antd'
 import { DownOutlined } from '@ant-design/icons'
-import Link from 'next/link'
 import type { ItemType } from 'antd/es/menu/interface'
 import { authorizePage } from '@/src/components/hoc'
 import useAuth from '@/src/components/contexts/auth'
@@ -49,9 +48,6 @@ const BackgroundJobsListPage = () => {
   const canRunBackgroundJobs = hasPermissionClaim(
     'Permissions.BackgroundJobs.Run',
   )
-  // Kept until the Hangfire dashboard is retired, so this UI can be cross-checked
-  // against it. Removed together with the dashboard mount.
-  const canViewHangfire = hasPermissionClaim('Permissions.Hangfire.View')
 
   const { data: statistics, isLoading: statisticsLoading } =
     useGetJobStatisticsQuery(undefined, {
@@ -106,7 +102,6 @@ const BackgroundJobsListPage = () => {
   })()
 
   const actionsMenuItems: MenuProps['items'] = (() => {
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL
     const items: ItemType[] = []
 
     if (canRunBackgroundJobs && jobTypeData.length > 0) {
@@ -114,22 +109,6 @@ const BackgroundJobsListPage = () => {
         label: 'Create Recurring Job',
         key: 'create-recurring-job',
         onClick: () => setOpenCreateRecurringJobForm(true),
-      })
-    }
-
-    // Guarded on the base URL as well as the permission: without it the link would
-    // resolve to "undefined/jobs" (same treatment as the API Specification link in profile-menu).
-    if (canViewHangfire && apiBaseUrl) {
-      if (items.length > 0) {
-        items.push({ type: 'divider' })
-      }
-      items.push({
-        label: (
-          <Link href={`${apiBaseUrl}/jobs`} target="_blank">
-            Hangfire Dashboard
-          </Link>
-        ),
-        key: 'view-hangfire',
       })
     }
 

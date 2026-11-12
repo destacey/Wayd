@@ -23,9 +23,9 @@ public sealed class ExceptionMiddleware(IProblemDetailsService problemDetailsSer
         {
             // The client gave up mid-request: it either sent a truncated body (BadHttpRequestException,
             // "Unexpected end of request content") or cancelled an in-flight request (RequestAborted).
-            // This is not a server fault — most commonly it's the Hangfire dashboard's stats poller or
-            // a browser navigating away. Log it quietly and don't try to write a response: the socket is
-            // already gone, so a write would throw a second, more confusing exception.
+            // This is not a server fault — most commonly a poller or a browser navigating away. Log it
+            // quietly and don't try to write a response: the socket is already gone, so a write would
+            // throw a second, more confusing exception.
             Log.Debug(ex, "Request aborted by the client before completion ({Method} {Path}).",
                 httpContext.Request.Method, httpContext.Request.Path);
         }

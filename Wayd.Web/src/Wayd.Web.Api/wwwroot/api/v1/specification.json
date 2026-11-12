@@ -68415,7 +68415,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Full detail for one job, including the failure stack trace that was previously only visible in\nthe Hangfire dashboard."
+        "description": "Full detail for one job, including the stack trace of the exception it last failed with."
       },
       "JobServerResponse": {
         "required": [

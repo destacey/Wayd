@@ -604,8 +604,6 @@ Tick the jobs — or the header checkbox for every job shown — and use **Reque
 
 **Create Recurring Job**, in the **Actions** menu, schedules a job with a cron expression. It offers only the job types that can run on a schedule — the cross-domain replication syncs (Projects, Teams, Iterations, Strategic Themes) are driven by the changes that trigger them, so they are available to run on demand but not to schedule. No sync is scheduled out of the box: to sync connections on a timetable, create a recurring **Work** or **People** sync job here.
 
-With `Permissions.Hangfire.View`, **Actions** also links to the **Hangfire Dashboard**, the scheduler's own console.
-
 ### Permissions
 
 | To do this | You need |
@@ -613,7 +611,6 @@ With `Permissions.Hangfire.View`, **Actions** also links to the **Hangfire Dashb
 | Open the page and browse jobs | `Permissions.BackgroundJobs.View` |
 | Run a job, create a schedule, requeue a job | `Permissions.BackgroundJobs.Run` |
 | Delete a job or remove a recurring schedule | `Permissions.BackgroundJobs.Delete` |
-| Open the Hangfire Dashboard | `Permissions.Hangfire.View` |
 
 ## Messaging
 

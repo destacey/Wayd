@@ -41,7 +41,6 @@ public static class ApplicationAction
 
 public static class ApplicationResource
 {
-    public const string Hangfire = nameof(Hangfire);
     public const string BackgroundJobs = nameof(BackgroundJobs);
 
     public const string Messaging = nameof(Messaging);
@@ -156,7 +155,6 @@ public static class ApplicationPermissions
     private const string BackgroundJobsCategory = "Background Jobs";
     private static readonly ApplicationPermission[] _backgroundJobs =
     [
-        new("View Hangfire", ApplicationAction.View, ApplicationResource.Hangfire, BackgroundJobsCategory),
         new("View Background Jobs", ApplicationAction.View, ApplicationResource.BackgroundJobs, BackgroundJobsCategory),
         new("Create Background Jobs", ApplicationAction.Create, ApplicationResource.BackgroundJobs, BackgroundJobsCategory),
         new("Run Background Jobs", ApplicationAction.Run, ApplicationResource.BackgroundJobs, BackgroundJobsCategory),

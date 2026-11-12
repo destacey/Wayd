@@ -1,9 +1,7 @@
 ﻿using Hangfire;
 using Hangfire.Console;
 using Hangfire.Console.Extensions;
-using Hangfire.Dashboard.BasicAuthorization;
 using Hangfire.SqlServer;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -57,35 +55,4 @@ internal static class ConfigureServices
             //    hangfireConfig.UsePostgreSqlStorage(connectionString, config.GetSection("HangfireSettings:Storage:Options").Get<PostgreSqlStorageOptions>()),
             _ => throw new Exception($"Hangfire Storage Provider {dbProvider} is not supported.")
         };
-
-    internal static IApplicationBuilder UseHangfireDashboard(this IApplicationBuilder app, IConfiguration config)
-    {
-        // The dashboard middleware resolves JobStorage when the pipeline is built; skip it for the
-        // same reason AddHangfireServer is skipped above.
-        if (HostIntrospection.SkipsDatabaseInitialization(config)) return app;
-
-        var dashboardOptions = config.GetSection("HangfireSettings:Dashboard").Get<DashboardOptions>()!;
-        var appPath = config["HangfireSettings:Dashboard:AppPath"];
-        dashboardOptions.AppPath = string.IsNullOrWhiteSpace(appPath) ? null : appPath;
-
-        dashboardOptions.Authorization = new[]
-        {
-            new BasicAuthAuthorizationFilter(new BasicAuthAuthorizationFilterOptions
-            {
-                SslRedirect = false,
-                RequireSsl = false,
-                LoginCaseSensitive = true,
-                Users = new[]
-                {
-                    new BasicAuthAuthorizationUser
-                    {
-                        Login = config.GetSection("HangfireSettings:Credentials:User").Value,
-                        PasswordClear = config.GetSection("HangfireSettings:Credentials:Password").Value
-                    }
-                }
-            })
-        };
-
-        return app.UseHangfireDashboard(config["HangfireSettings:Route"], dashboardOptions);
-    }
 }

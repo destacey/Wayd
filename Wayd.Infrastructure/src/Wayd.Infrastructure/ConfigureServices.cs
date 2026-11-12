@@ -229,8 +229,7 @@ public static class ConfigureServices
             .UseAuthorization()
             .UseRateLimiting()
             .UseUserActivityTracking()
-            .UseRequestLogging(config) // TODO: we currently don't log 403 logs because it is lower in the middleware pipeline. It should be above UseRouting, but then we don't get user information.
-            .UseHangfireDashboard(config);
+            .UseRequestLogging(config); // TODO: we currently don't log 403 logs because it is lower in the middleware pipeline. It should be above UseRouting, but then we don't get user information.
 
 
 

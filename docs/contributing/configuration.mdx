@@ -443,7 +443,7 @@ Password policy is validated before the transaction opens — a bad password ret
 
 **Operators:** these are on by default and need no setup. You only need this section if Wayd must be embedded in an iframe, or your edge already sets these headers — see [when to change them](#when-you-need-to-change-these). After deploying, verify they survive your ingress with the check in [First-Run Setup → Step 4](./first-run-setup.mdx#step-4--verify-security-headers-deployed-environments).
 
-Every API response carries a fixed set of security headers, applied by middleware early in the pipeline (`UseSecurityHeaders`, before routing so it covers the Scalar API reference and the Hangfire dashboard as well as controllers).
+Every API response carries a fixed set of security headers, applied by middleware early in the pipeline (`UseSecurityHeaders`, before routing so it covers the Scalar API reference as well as controllers).
 
 **Most of these are not configurable, deliberately.** `X-Content-Type-Options`, `X-Frame-Options` and the CSP each have exactly one correct value for this application, so they are constants in `Wayd.Infrastructure/SecurityHeaders/SecurityHeaderDefaults.cs`. A setting for them would only be a way to get them wrong.
 
@@ -488,7 +488,7 @@ Framing is blocked deliberately: Wayd exposes destructive controls behind a perm
 
 ### The CSP deliberately omits `default-src` and `script-src`
 
-The API host also serves the Scalar API reference and the Hangfire dashboard, both of which rely on inline scripts. A `script-src 'self'` breaks both, and relaxing it with `'unsafe-inline'` would defeat the point. The four directives above are script-agnostic and safe for every response the API emits.
+The API host also serves the Scalar API reference, which relies on inline scripts. A `script-src 'self'` breaks it, and relaxing it with `'unsafe-inline'` would defeat the point. The four directives above are script-agnostic and safe for every response the API emits.
 
 This means the CSP mitigates clickjacking and injected-form/base-tag attacks, but is **not** a script-injection defence. That job belongs to output sanitization — see `sanitize-schema.ts` on the client, which strips raw HTML out of user-supplied markdown.
 
@@ -680,17 +680,12 @@ Hangfire is configured under `HangfireSettings` in `Configurations/hangfire.json
 
 | Setting | Default | What it does |
 |---|---|---|
-| `Route` | `/jobs` | Where the API serves the Hangfire dashboard. |
 | `Storage:StorageProvider` | `mssql` | The only provider wired up. |
 | `Storage:ConnectionString` | — | Hangfire's own connection string, separate from `DatabaseSettings:ConnectionString`; both must be set. |
 | `Storage:Options` | — | Hangfire's `SqlServerStorageOptions`. |
 | `Server` | — | Hangfire's `BackgroundJobServerOptions` (`WorkerCount` 5, queues `default` and `notdefault`). |
-| `Dashboard` | — | Hangfire's `DashboardOptions` (`DashboardTitle`, `StatsPollingInterval`, `AppPath`). |
-| `Credentials:User` / `Credentials:Password` | `admin` / `Test123$` | Basic-auth login for the dashboard. |
 
-:::warning[Change the dashboard credentials]
-The checked-in `Credentials` are public. Override `HangfireSettings__Credentials__User` and `HangfireSettings__Credentials__Password` in any deployment reachable by anyone but you. Jobs are scheduled and re-timed in the app under **Settings → System → Background Jobs**, so the dashboard is a diagnostic surface only.
-:::
+The API serves no Hangfire dashboard. Jobs are monitored, run, requeued and scheduled in the app under **Settings → System → Background Jobs** — see [Background Jobs](../user-guide/settings/index.mdx#background-jobs).
 
 ## OpenAPI and the API reference
 
@@ -722,5 +717,5 @@ The planning poker and story map hubs (`/hubs/planning-poker`, `/hubs/story-maps
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Application Insights                    |
 | `ASPNETCORE_ENVIRONMENT`                | Runtime environment (Development, Production) |
 | `WAYD_STATIC_HANDLERS`                  | Build-time: `true` compiles the generated Wolverine handler tree into a local build (CI and the Dockerfile set it) |
-| `WAYD_SKIP_DB_INIT`                     | `true` skips startup database work (migrations and seeding, the first-run check, recurring-job registration, the Hangfire server and dashboard); the Debug build sets it while it boots the API to read the OpenAPI document |
+| `WAYD_SKIP_DB_INIT`                     | `true` skips startup database work (migrations and seeding, the first-run check, recurring-job registration, the Hangfire server); the Debug build sets it while it boots the API to read the OpenAPI document |
 | `WAYD_NO_LAUNCH_BROWSER`                | AppHost only: `true` or `1` stops it opening the Aspire dashboard |

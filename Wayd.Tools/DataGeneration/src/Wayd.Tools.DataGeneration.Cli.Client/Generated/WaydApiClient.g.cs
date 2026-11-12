@@ -128660,8 +128660,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Full detail for one job, including the failure stack trace that was previously only visible in
-    /// <br/>the Hangfire dashboard.
+    /// Full detail for one job, including the stack trace of the exception it last failed with.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class JobDetailResponse

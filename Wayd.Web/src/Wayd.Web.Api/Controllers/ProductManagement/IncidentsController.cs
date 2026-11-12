@@ -1,6 +1,7 @@
 using Microsoft.FeatureManagement;
 using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Application.StatusWorkflows.Dtos;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.ProductManagement.Application.Incidents;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -57,6 +58,22 @@ public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbCo
         var incident = await _dispatcher.Send(new GetIncidentQuery(new IdOrKey(idOrKey)), cancellationToken);
 
         return incident is not null ? Ok(incident) : NotFound();
+    }
+
+    [HttpGet("{idOrKey}/status-workflow")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
+    [EndpointSummary("Get the status workflow an incident moves through.")]
+    [EndpointDescription(
+        "The workflow the incident holds, with its statuses in the order that workflow lays out. Readable by anyone who can view the incident, so the record can show that order without the settings permission.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<StatusWorkflowDetailsDto>> GetStatusWorkflow(
+        string idOrKey, CancellationToken cancellationToken)
+    {
+        var workflow = await _dispatcher.Send(
+            new GetIncidentStatusWorkflowQuery(new IdOrKey(idOrKey)), cancellationToken);
+
+        return workflow is not null ? Ok(workflow) : NotFound();
     }
 
     [HttpPost]

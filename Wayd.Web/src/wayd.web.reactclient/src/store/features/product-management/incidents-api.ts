@@ -15,6 +15,7 @@ import type {
   IncidentWorkflowActionDto,
   ApplyIncidentWorkflowActionRequest,
   ProductStatusAlias,
+  StatusWorkflowDetailsDto,
 } from '@/src/services/wayd-api'
 
 export interface GetIncidentsRequest {
@@ -107,8 +108,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey }) => {
         try {
-          const data =
-            await getIncidentsClient().getIncidentWorkItems(idOrKey)
+          const data = await getIncidentsClient().getIncidentWorkItems(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -200,6 +200,23 @@ export const incidentsApi = apiSlice.injectEndpoints({
         { type: QueryTags.Incident, id: request.incidentId },
       ],
     }),
+    getIncidentStatusWorkflow: builder.query<StatusWorkflowDetailsDto, string>({
+      queryFn: async (incidentId) => {
+        try {
+          const data = await getIncidentsClient().getStatusWorkflow(incidentId)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: (result, _error, incidentId) => [
+        ...(result
+          ? [{ type: QueryTags.StatusWorkflow as const, id: result.id }]
+          : []),
+        { type: QueryTags.Incident, id: incidentId },
+      ],
+    }),
     getIncidentWorkflowActions: builder.query<
       IncidentWorkflowActionDto[],
       string
@@ -255,6 +272,7 @@ export const {
   useGetIncidentTimelineNotesQuery,
   useGetIncidentTimelineLinkEntriesQuery,
   useAddIncidentTimelineNoteMutation,
+  useGetIncidentStatusWorkflowQuery,
   useGetIncidentWorkflowActionsQuery,
   useApplyIncidentWorkflowActionMutation,
 } = incidentsApi

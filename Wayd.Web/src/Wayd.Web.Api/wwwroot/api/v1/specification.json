@@ -11398,6 +11398,54 @@
         ]
       }
     },
+    "/api/product-management/incidents/{idOrKey}/status-workflow": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Get the status workflow an incident moves through.",
+        "description": "The workflow the incident holds, with its statuses in the order that workflow lays out. Readable by anyone who can view the incident, so the record can show that order without the settings permission.",
+        "operationId": "Incidents_GetStatusWorkflow",
+        "parameters": [
+          {
+            "name": "idOrKey",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "x-position": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusWorkflowDetailsDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/incidents/{id}": {
       "put": {
         "tags": [

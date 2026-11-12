@@ -42,6 +42,7 @@ import {
   MarkdownRenderer,
 } from '@/src/components/common/markdown'
 import IncidentDiscussion from '@/src/app/product-management/incidents/_components/incident-discussion'
+import IncidentStatusStepper from '@/src/app/product-management/incidents/_components/incident-status-stepper'
 import IncidentWorkItemsSection from '@/src/app/product-management/incidents/_components/incident-work-items-section'
 import { IncidentSeverityRank } from '@/src/app/product-management/incidents/_components/incident-severity-rank'
 import IncidentFacts from '@/src/app/product-management/incidents/_components/incident-facts'
@@ -404,52 +405,70 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
 
           if (editing) {
             return (
-              <Form form={form} layout="vertical">
-                <Form.Item
-                  name="title"
-                  label="Title"
-                  rules={[{ required: true }]}
-                >
-                  <TextArea rows={2} />
-                </Form.Item>
-                <Form.Item name="symptoms" label="Symptoms">
-                  <MarkdownEditor maxLength={4096} />
-                </Form.Item>
-                <Form.Item name="rootCause" label="Root cause">
-                  <MarkdownEditor maxLength={4096} />
-                </Form.Item>
-                <Form.Item
-                  name="severityLevelId"
-                  label="Severity"
-                  rules={[{ required: true }]}
-                >
-                  <Select options={severityOptions} />
-                </Form.Item>
-                <Form.Item name="productIds" label="Products">
-                  <Select mode="multiple" options={productOptions} allowClear />
-                </Form.Item>
-                <Form.Item name="releaseIds" label="Releases">
-                  <Select mode="multiple" options={releaseOptions} allowClear />
-                </Form.Item>
-                <Form.Item
-                  name="noticedAt"
-                  label="Noticed at"
-                  rules={[{ required: true }]}
-                >
-                  <DatePicker showTime className="w-full" />
-                </Form.Item>
-                <Form.Item name="startedAt" label="Response started at">
-                  <DatePicker showTime className="w-full" />
-                </Form.Item>
-                <Form.Item name="recoveredAt" label="Recovered at">
-                  <DatePicker showTime className="w-full" />
-                </Form.Item>
-              </Form>
+              <div className={styles.overview}>
+                <IncidentStatusStepper
+                  incidentId={incident.id}
+                  currentStatusId={incident.status.id}
+                />
+                <Form form={form} layout="vertical">
+                  <Form.Item
+                    name="title"
+                    label="Title"
+                    rules={[{ required: true }]}
+                  >
+                    <TextArea rows={2} />
+                  </Form.Item>
+                  <Form.Item name="symptoms" label="Symptoms">
+                    <MarkdownEditor maxLength={4096} />
+                  </Form.Item>
+                  <Form.Item name="rootCause" label="Root cause">
+                    <MarkdownEditor maxLength={4096} />
+                  </Form.Item>
+                  <Form.Item
+                    name="severityLevelId"
+                    label="Severity"
+                    rules={[{ required: true }]}
+                  >
+                    <Select options={severityOptions} />
+                  </Form.Item>
+                  <Form.Item name="productIds" label="Products">
+                    <Select
+                      mode="multiple"
+                      options={productOptions}
+                      allowClear
+                    />
+                  </Form.Item>
+                  <Form.Item name="releaseIds" label="Releases">
+                    <Select
+                      mode="multiple"
+                      options={releaseOptions}
+                      allowClear
+                    />
+                  </Form.Item>
+                  <Form.Item
+                    name="noticedAt"
+                    label="Noticed at"
+                    rules={[{ required: true }]}
+                  >
+                    <DatePicker showTime className="w-full" />
+                  </Form.Item>
+                  <Form.Item name="startedAt" label="Response started at">
+                    <DatePicker showTime className="w-full" />
+                  </Form.Item>
+                  <Form.Item name="recoveredAt" label="Recovered at">
+                    <DatePicker showTime className="w-full" />
+                  </Form.Item>
+                </Form>
+              </div>
             )
           }
 
           return (
             <div className={styles.overview}>
+              <IncidentStatusStepper
+                incidentId={incident.id}
+                currentStatusId={incident.status.id}
+              />
               {incident.symptoms ? (
                 <div>
                   <h2 className={styles.fieldHeading}>Symptoms</h2>

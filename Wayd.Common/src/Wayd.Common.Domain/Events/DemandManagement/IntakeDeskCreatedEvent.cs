@@ -25,9 +25,10 @@ public sealed record IntakeDeskCreatedEvent : DomainEvent<IntakeDeskCreatedEvent
         bool isOpen,
         bool requesterMayAddParticipants,
         IReadOnlyList<IntakeDeskMemberDetails> members,
+        IReadOnlyList<Guid>? triagers,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;
@@ -38,6 +39,7 @@ public sealed record IntakeDeskCreatedEvent : DomainEvent<IntakeDeskCreatedEvent
         IsOpen = isOpen;
         RequesterMayAddParticipants = requesterMayAddParticipants;
         Members = members;
+        Triagers = triagers ?? [];
 
         Timestamp = timestamp;
     }
@@ -55,6 +57,12 @@ public sealed record IntakeDeskCreatedEvent : DomainEvent<IntakeDeskCreatedEvent
 
     /// <summary>The employees named on the desk when it was defined, with their roles.</summary>
     public IReadOnlyList<IntakeDeskMemberDetails> Members { get; }
+
+    /// <summary>
+    /// The members who triaged the desk's new requests when it was defined. Empty before 1.1, when no desk had
+    /// triagers.
+    /// </summary>
+    public IReadOnlyList<Guid> Triagers { get; }
 
     [JsonIgnore]
     public string AggregateType => "IntakeDesk";

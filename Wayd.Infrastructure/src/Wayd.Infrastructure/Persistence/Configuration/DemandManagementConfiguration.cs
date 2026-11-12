@@ -149,6 +149,8 @@ public class IntakeDeskMemberConfiguration : IEntityTypeConfiguration<IntakeDesk
             .HasColumnType("varchar")
             .HasMaxLength(32);
 
+        builder.Property(m => m.IsTriager).IsRequired();
+
         builder.HasOne<Employee>()
             .WithMany()
             .HasForeignKey(m => m.EmployeeId)

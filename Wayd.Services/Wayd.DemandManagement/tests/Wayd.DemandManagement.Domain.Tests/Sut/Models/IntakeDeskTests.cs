@@ -144,10 +144,137 @@ public sealed class IntakeDeskTests
         created.IsOpen.Should().BeTrue();
         created.RequesterMayAddParticipants.Should().BeFalse();
         created.Members.Should().Equal(new IntakeDeskMemberDetails(adminId, IntakeDeskRole.Admin));
+        created.Triagers.Should().Equal(adminId);
         created.Timestamp.Should().Be(timestamp);
     }
 
+    [Fact]
+    public void Create_MakesEveryInitialMemberATriager()
+    {
+        // Arrange
+        var adminId = Guid.NewGuid();
+        var agentId = Guid.NewGuid();
+
+        // Act
+        var sut = IntakeDesk.Create("IT", "Internal tools", IntakeDeskVisibility.Open, true, true, true,
+            [new(adminId, IntakeDeskRole.Admin), new(agentId, IntakeDeskRole.Agent)], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.TriagerIds.Should().BeEquivalentTo([adminId, agentId]);
+    }
+
     #endregion Create
+
+    #region ChangeTriagers
+
+    [Fact]
+    public void ChangeTriagers_AddingAndRemoving_RaisesWithBothEndsAndTheResult()
+    {
+        // Arrange
+        var staying = Guid.NewGuid();
+        var leaving = Guid.NewGuid();
+        var joining = Guid.NewGuid();
+        var sut = new IntakeDeskFaker()
+            .WithMembersAndTriagers([new(staying, IntakeDeskRole.Agent), new(leaving, IntakeDeskRole.Admin), new(joining, IntakeDeskRole.Agent)],
+                triagers: [staying, leaving])
+            .Generate();
+
+        // Act
+        var result = sut.ChangeTriagers([staying, joining], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.TriagerIds.Should().BeEquivalentTo([staying, joining]);
+        var changed = sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskTriagersChangedEvent>().Subject;
+        changed.Added.Should().Equal(joining);
+        changed.Removed.Should().Equal(leaving);
+        changed.Triagers.Should().BeEquivalentTo([staying, joining]);
+    }
+
+    [Fact]
+    public void ChangeTriagers_ToNobody_LeavesTheDeskWithNoTriagers()
+    {
+        // Arrange
+        var agent = Guid.NewGuid();
+        var sut = new IntakeDeskFaker().WithMembersAndTriagers([new(agent, IntakeDeskRole.Agent)], triagers: [agent]).Generate();
+
+        // Act
+        var result = sut.ChangeTriagers([], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.TriagerIds.Should().BeEmpty();
+        sut.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<IntakeDeskTriagersChangedEvent>()
+            .Which.Removed.Should().Equal(agent);
+    }
+
+    [Fact]
+    public void ChangeTriagers_ToTheSameTriagers_RaisesNothing()
+    {
+        // Arrange
+        var agent = Guid.NewGuid();
+        var sut = new IntakeDeskFaker().WithMembersAndTriagers([new(agent, IntakeDeskRole.Agent)], triagers: [agent]).Generate();
+
+        // Act
+        var result = sut.ChangeTriagers([agent, agent], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+        sut.Revision.Should().Be(0);
+    }
+
+    [Fact]
+    public void ChangeTriagers_NamingSomeoneNotOnTheDesk_FailsAndChangesNothing()
+    {
+        // Arrange
+        var agent = Guid.NewGuid();
+        var sut = new IntakeDeskFaker().WithAgents(agent).Generate();
+
+        // Act
+        var result = sut.ChangeTriagers([agent, Guid.NewGuid()], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only members of the desk can triage its requests.");
+        sut.TriagerIds.Should().BeEmpty();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ChangeMembers_AddingAMember_DoesNotMakeThemATriager_AndARoleChangeKeepsTheFlag()
+    {
+        // Arrange
+        var triager = Guid.NewGuid();
+        var joining = Guid.NewGuid();
+        var sut = new IntakeDeskFaker().WithMembersAndTriagers([new(triager, IntakeDeskRole.Agent)], triagers: [triager]).Generate();
+
+        // Act
+        sut.ChangeMembers([new(triager, IntakeDeskRole.Admin), new(joining, IntakeDeskRole.Agent)],
+            EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.TriagerIds.Should().Equal(triager);
+    }
+
+    [Fact]
+    public void ChangeMembers_RemovingATriager_LeavesTheDeskWithoutThem()
+    {
+        // Arrange
+        var staying = Guid.NewGuid();
+        var leaving = Guid.NewGuid();
+        var sut = new IntakeDeskFaker()
+            .WithMembersAndTriagers([new(staying, IntakeDeskRole.Admin), new(leaving, IntakeDeskRole.Agent)], triagers: [staying, leaving])
+            .Generate();
+
+        // Act
+        sut.ChangeMembers([new(staying, IntakeDeskRole.Admin)], EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        sut.TriagerIds.Should().Equal(staying);
+    }
+
+    #endregion ChangeTriagers
 
     #region RoleOf
 

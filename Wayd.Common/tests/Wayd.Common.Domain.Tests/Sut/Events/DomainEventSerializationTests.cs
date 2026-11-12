@@ -609,6 +609,41 @@ public sealed class DomainEventSerializationTests
         var original = new IntakeDeskCreatedEvent(Guid.NewGuid(), 3, "IT", "Internal tools", IntakeDeskVisibility.Private,
             true, true, false,
             [new IntakeDeskMemberDetails(Guid.NewGuid(), IntakeDeskRole.Admin), new IntakeDeskMemberDetails(Guid.NewGuid(), IntakeDeskRole.Agent)],
+            [Guid.NewGuid()],
+            EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Should().BeEquivalentTo(original, o => o.Excluding(e => e.EventId));
+    }
+
+    [Fact]
+    public void IntakeDeskCreatedEvent_WrittenBeforeTriagers_ReadsAsNoTriagers()
+    {
+        // Arrange — a 1.0 payload, from before desks had triagers
+        var original = new IntakeDeskCreatedEvent(Guid.NewGuid(), 3, "IT", "Internal tools", IntakeDeskVisibility.Open,
+            true, true, true, [new IntakeDeskMemberDetails(Guid.NewGuid(), IntakeDeskRole.Agent)], [Guid.NewGuid()],
+            EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
+        var payload = JsonNode.Parse(JsonSerializer.Serialize(original, Options))!.AsObject();
+        payload.Remove(nameof(IntakeDeskCreatedEvent.Triagers)).Should().BeTrue();
+
+        // Act
+        var read = JsonSerializer.Deserialize<IntakeDeskCreatedEvent>(payload.ToJsonString(), Options)!;
+
+        // Assert
+        read.Triagers.Should().BeEmpty();
+        read.Members.Should().BeEquivalentTo(original.Members);
+    }
+
+    [Fact]
+    public void IntakeDeskTriagersChangedEvent_RoundTripsThroughDurableSerializer()
+    {
+        // Arrange
+        var staying = Guid.NewGuid();
+        var added = Guid.NewGuid();
+        var original = new IntakeDeskTriagersChangedEvent(Guid.NewGuid(), 3, [added], [Guid.NewGuid()], [staying, added],
             EventActor.System, Instant.FromUtc(2026, 10, 1, 8, 0, 0));
 
         // Act

@@ -61,12 +61,13 @@ internal static class IntakeDeskProjections
                 .FirstOrDefault(),
             Revision = d.Revision,
             Members = d.Members
-                .Join(employees, m => m.EmployeeId, e => e.Id, (m, e) => new { m.Role, Employee = e })
+                .Join(employees, m => m.EmployeeId, e => e.Id, (m, e) => new { m.Role, m.IsTriager, Employee = e })
                 .OrderBy(x => x.Role).ThenBy(x => x.Employee.Name.FirstName).ThenBy(x => x.Employee.Name.LastName).ThenBy(x => x.Employee.Id)
                 .Select(x => new IntakeDeskMemberDto
                 {
                     Employee = new EmployeeNavigationDto { Id = x.Employee.Id, Key = x.Employee.Key, Name = x.Employee.Name.FirstName + " " + x.Employee.Name.LastName },
                     Role = x.Role,
+                    IsTriager = x.IsTriager,
                 })
                 .ToList(),
         };

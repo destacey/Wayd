@@ -32,8 +32,14 @@ export const toUpdateRequest = (
     employeeId: m.employee.id,
     role: m.role,
   })),
+  // Left out unless a form changes it, so the server keeps the triagers and drops any member removed here.
+  triagerIds: undefined,
   ...changes,
 })
+
+/** The ids of the desk's members who triage its new requests. */
+export const triagerIds = (desk: IntakeDeskDto) =>
+  desk.members.filter((m) => m.isTriager).map((m) => m.employee.id)
 
 /** The ids of the desk's members holding the role. */
 export const memberIds = (desk: IntakeDeskDto, role: IntakeDeskRole) =>

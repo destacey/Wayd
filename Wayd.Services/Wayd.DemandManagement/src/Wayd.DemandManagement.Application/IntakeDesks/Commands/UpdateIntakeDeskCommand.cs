@@ -11,7 +11,7 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 /// </summary>
 /// <remarks>
 /// A Desk Admin on the desk changes its details, whether it is open, its requester settings, the channels and
-/// tag categories it offers and its agents.
+/// tag categories it offers, its agents and who triages its new requests.
 /// Its visibility, and who its Desk Admins are, only the Demand Management Admin changes: a Desk Admin who
 /// could open their own desk could publish everything on it, and one who could name Desk Admins could raise
 /// anyone's access. A member removed while owning requests on the desk is unassigned from them, because the
@@ -53,6 +53,10 @@ namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 /// Whether the desk's agents may add free tags — tags in no category, typed in while tagging; null keeps the desk's
 /// setting.
 /// </param>
+/// <param name="TriagerIds">
+/// The members who triage the desk's new requests after the change; empty means nobody, and null keeps the desk's
+/// triagers. Each must be in <paramref name="Members"/>, so a member named in the same change can triage.
+/// </param>
 public sealed record UpdateIntakeDeskCommand(
     Guid Id,
     string Name,
@@ -67,7 +71,8 @@ public sealed record UpdateIntakeDeskCommand(
     int ExpectedRevision,
     bool? OffersAllTagCategories = null,
     IReadOnlyList<Guid>? TagCategoryIds = null,
-    bool? AllowsFreeTags = null) : ICommand;
+    bool? AllowsFreeTags = null,
+    IReadOnlyList<Guid>? TriagerIds = null) : ICommand;
 
 public sealed class UpdateIntakeDeskCommandValidator : CustomValidator<UpdateIntakeDeskCommand>
 {
@@ -79,6 +84,7 @@ public sealed class UpdateIntakeDeskCommandValidator : CustomValidator<UpdateInt
         RuleFor(c => c.Visibility).IsInEnum();
         RuleForEach(c => c.ChannelIds).NotEmpty();
         RuleForEach(c => c.TagCategoryIds).NotEmpty();
+        RuleForEach(c => c.TriagerIds).NotEmpty();
         RuleFor(c => c.Members).NotNull()
             .Must(members => members.Select(m => m.EmployeeId).Distinct().Count() == members.Count)
             .WithMessage("An employee can hold only one role on a desk.");
@@ -180,7 +186,9 @@ public sealed class UpdateIntakeDeskCommandHandler(
             desk.ChangeChannels(offersAllChannels, channelIds, actor, now),
             desk.ChangeTagCategories(offersAllTagCategories, tagCategoryIds, actor, now),
             desk.ChangeFreeTags(request.AllowsFreeTags ?? desk.AllowsFreeTags, actor, now),
-            desk.ChangeMembers(request.Members, actor, now));
+            desk.ChangeMembers(request.Members, actor, now),
+            // After the members, so someone named in this change can triage and someone removed already has.
+            request.TriagerIds is { } triagerIds ? desk.ChangeTriagers(triagerIds, actor, now) : Result.Success());
         if (result.IsFailure)
             return result;
 

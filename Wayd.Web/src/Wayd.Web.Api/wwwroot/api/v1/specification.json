@@ -66695,7 +66695,8 @@
       "IntakeDeskMemberDto": {
         "required": [
           "employee",
-          "role"
+          "role",
+          "isTriager"
         ],
         "type": "object",
         "properties": {
@@ -66714,6 +66715,10 @@
               }
             ],
             "description": "What the member may do on the desk: Admin or Agent."
+          },
+          "isTriager": {
+            "type": "boolean",
+            "description": "Whether the member triages the desk's new requests, and so is told about requests waiting on it unassigned.\nIndependent of the role."
           }
         },
         "additionalProperties": false,
@@ -86309,7 +86314,8 @@
           "members",
           "expectedRevision",
           "channelIds",
-          "tagCategoryIds"
+          "tagCategoryIds",
+          "triagerIds"
         ],
         "type": "object",
         "properties": {
@@ -86392,6 +86398,16 @@
               "$ref": "#/components/schemas/IntakeDeskMemberRequest"
             },
             "description": "Everyone on the desk after the change, each with their role. Naming, removing or re-roling a Desk Admin\nneeds the Demand Management Admin."
+          },
+          "triagerIds": {
+            "type": "array",
+            "items": {
+              "minLength": 1,
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The members who triage the desk's new requests — told about requests waiting on it unassigned — after the\nchange; empty means nobody, and the desk triages from its board. Leave it out to keep the desk's triagers.\nEach must be in `members`; a member named in this change can triage at once, and a member removed stops.",
+            "nullable": true
           },
           "expectedRevision": {
             "type": "integer",

@@ -67106,6 +67106,9 @@ export interface IntakeDeskMemberDto {
     employee: EmployeeNavigationDto;
     /** What the member may do on the desk: Admin or Agent. */
     role: IntakeDeskRole;
+    /** Whether the member triages the desk's new requests, and so is told about requests waiting on it unassigned.
+Independent of the role. */
+    isTriager: boolean;
 }
 
 /** One employee to name on an intake desk, with their role. */
@@ -73562,6 +73565,10 @@ Leave it out to keep the desk's setting. Requests already carrying free tags kee
     /** Everyone on the desk after the change, each with their role. Naming, removing or re-roling a Desk Admin
 needs the Demand Management Admin. */
     members: IntakeDeskMemberRequest[];
+    /** The members who triage the desk's new requests — told about requests waiting on it unassigned — after the
+change; empty means nobody, and the desk triages from its board. Leave it out to keep the desk's triagers.
+Each must be in `members`; a member named in this change can triage at once, and a member removed stops. */
+    triagerIds: string[] | undefined;
     /** The desk's `revision` as it was read before making this change. A desk changed since refuses the
 update with 409, so a stale page never undoes what someone else changed. */
     expectedRevision: number;

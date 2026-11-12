@@ -82,6 +82,7 @@ describe('UnownedDeskAlert', () => {
             {
               employee: { id: 'e-1', key: 1, name: 'Avery' },
               role: 'Agent' as any,
+              isTriager: false,
             },
           ],
         })}

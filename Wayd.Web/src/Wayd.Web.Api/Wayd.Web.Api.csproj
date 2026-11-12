@@ -14,7 +14,6 @@
 
     <ItemGroup>
         <PackageReference Include="CsvHelper" />
-        <PackageReference Include="FluentValidation.AspNetCore" />
         <PackageReference Include="Hangfire.Console.Extensions.Serilog" />
         <PackageReference Include="Microsoft.AspNetCore.JsonPatch.SystemTextJson" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" />

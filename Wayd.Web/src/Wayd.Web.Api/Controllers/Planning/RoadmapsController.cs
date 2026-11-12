@@ -29,12 +29,13 @@ public class RoadmapsController : ControllerBase
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Roadmaps)]
     [EndpointSummary("Get a list of roadmaps.")]
+    [EndpointDescription("Lists the roadmaps you can see, ordered by key. `state` keeps only roadmaps in those states. `ownedByMe` keeps only roadmaps you are an owner of, and returns none when your account is not linked to an employee.")]
     [McpTool("Roadmaps_GetRoadmaps", "List roadmaps")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<RoadmapListDto>>> GetRoadmaps([FromQuery] RoadmapState[]? state, CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<RoadmapListDto>>> GetRoadmaps([FromQuery] RoadmapState[]? state, [FromQuery] bool ownedByMe = false, CancellationToken cancellationToken = default)
     {
-        var roadmaps = await _dispatcher.Send(new GetRoadmapsQuery(state), cancellationToken);
+        var roadmaps = await _dispatcher.Send(new GetRoadmapsQuery(state, ownedByMe), cancellationToken);
         return Ok(roadmaps);
     }
 

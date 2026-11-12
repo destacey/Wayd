@@ -1658,7 +1658,7 @@ export class MeClient {
     }
 
     /**
-     * Get what you are involved in: counts of your teams, projects, intake desks, requests, risks and products.
+     * Get what you are involved in: counts of your teams, projects, intake desks, requests, risks, products and roadmaps.
      * @return OK
      */
     getHomeContext( cancelToken?: CancelToken): Promise<HomeContextResponse> {
@@ -37157,12 +37157,17 @@ export class RoadmapsClient {
     /**
      * Get a list of roadmaps.
      * @param state (optional) 
+     * @param ownedByMe (optional) 
      * @return OK
      */
-    getRoadmaps(state?: RoadmapState[] | null | undefined, cancelToken?: CancelToken): Promise<RoadmapListDto[]> {
+    getRoadmaps(state?: RoadmapState[] | null | undefined, ownedByMe?: boolean | undefined, cancelToken?: CancelToken): Promise<RoadmapListDto[]> {
         let url_ = this.baseUrl + "/api/planning/roadmaps?";
         if (state !== undefined && state !== null)
             state && state.forEach(item => { url_ += "state=" + encodeURIComponent("" + item) + "&"; });
+        if (ownedByMe === null)
+            throw new globalThis.Error("The parameter 'ownedByMe' cannot be null.");
+        else if (ownedByMe !== undefined)
+            url_ += "ownedByMe=" + encodeURIComponent("" + ownedByMe) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -66102,6 +66107,8 @@ demand-management feature flag is off. */
     /** How many proposed or active products the caller's teams are linked to, each counted once. Zero when the
 product-management feature flag is off. */
     teamProductCount: number;
+    /** How many active roadmaps the caller is an owner of; archived roadmaps never count. */
+    ownedRoadmapCount: number;
 }
 
 /** A column of the home page. Saved layouts store the member name, and every user load reads it, so a member is never renamed or removed. */

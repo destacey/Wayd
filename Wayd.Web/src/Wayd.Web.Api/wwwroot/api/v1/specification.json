@@ -1419,8 +1419,8 @@
         "tags": [
           "Me"
         ],
-        "summary": "Get what you are involved in: counts of your teams, projects, intake desks, requests, risks and products.",
-        "description": "One call for an overview of where you work: active teams and teams of teams you are a member of; approved and active projects you hold a role on, by role; intake desks you are on, by role, and open requests you raised; open risks assigned to you; and proposed or active products your teams are linked to. Counts only, worked out from your records each time. Needs no permission beyond signing in. An area whose module's feature flag is off counts zero. Returns zeros with `hasLinkedEmployee` false, not 404, when your account is not linked to an employee. To list the records behind a count use Me_GetTeamMemberships, Projects_GetProjects with `role`, IntakeRequests_GetList with `mine` and `openOnly`, or Risks_GetMyRisks.",
+        "summary": "Get what you are involved in: counts of your teams, projects, intake desks, requests, risks, products and roadmaps.",
+        "description": "One call for an overview of where you work: active teams and teams of teams you are a member of; approved and active projects you hold a role on, by role; intake desks you are on, by role, and open requests you raised; open risks assigned to you; proposed or active products your teams are linked to; and active roadmaps you own. Counts only, worked out from your records each time. Needs no permission beyond signing in. An area whose module's feature flag is off counts zero. Returns zeros with `hasLinkedEmployee` false, not 404, when your account is not linked to an employee. To list the records behind a count use Me_GetTeamMemberships, Projects_GetProjects with `role`, IntakeRequests_GetList with `mine` and `openOnly`, Risks_GetMyRisks, or Roadmaps_GetRoadmaps with `ownedByMe` and `state` Active.",
         "operationId": "Me_GetHomeContext",
         "responses": {
           "200": {
@@ -32008,6 +32008,7 @@
           "Roadmaps"
         ],
         "summary": "Get a list of roadmaps.",
+        "description": "Lists the roadmaps you can see, ordered by key. `state` keeps only roadmaps in those states. `ownedByMe` keeps only roadmaps you are an owner of, and returns none when your account is not linked to an employee.",
         "operationId": "Roadmaps_GetRoadmaps",
         "parameters": [
           {
@@ -32021,6 +32022,15 @@
               "nullable": true
             },
             "x-position": 1
+          },
+          {
+            "name": "ownedByMe",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "x-position": 2
           }
         ],
         "responses": {
@@ -63706,7 +63716,8 @@
           "projects",
           "intake",
           "assignedRiskCount",
-          "teamProductCount"
+          "teamProductCount",
+          "ownedRoadmapCount"
         ],
         "type": "object",
         "properties": {
@@ -63746,6 +63757,11 @@
           "teamProductCount": {
             "type": "integer",
             "description": "How many proposed or active products the caller's teams are linked to, each counted once. Zero when the\nproduct-management feature flag is off.",
+            "format": "int32"
+          },
+          "ownedRoadmapCount": {
+            "type": "integer",
+            "description": "How many active roadmaps the caller is an owner of; archived roadmaps never count.",
             "format": "int32"
           }
         },

@@ -27,6 +27,7 @@ vi.mock('./widgets/my-risks-widget', () => ({
   default: () => null,
   RiskFollowUpsTile: () => null,
 }))
+vi.mock('./widgets/my-roadmaps-widget', () => ({ default: () => null }))
 vi.mock('./widgets/my-teams-widget', () => ({ default: () => null }))
 vi.mock('./widgets/my-teams-tile', () => ({
   CrossTeamDependenciesTile: () => null,
@@ -342,6 +343,17 @@ describe('HomeWidgets involvement rules', () => {
 
     // Assert
     expect(layout.main[0]).toBe('desk-queue')
+  })
+
+  it('shows My roadmaps only to someone who owns an active roadmap', () => {
+    // Arrange / Act
+    const owner = defaultFor({ ownedRoadmapCount: 1 })
+    const nonOwner = defaultFor({})
+
+    // Assert
+    expect(owner.side[0]).toBe('my-roadmaps')
+    expect(owner.main).not.toContain('my-roadmaps')
+    expect([...nonOwner.main, ...nonOwner.side]).not.toContain('my-roadmaps')
   })
 
   it('puts My requests first in the side column for someone with an open request', () => {

@@ -2933,10 +2933,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get what you are involved in: counts of your teams, projects, intake desks, requests, risks and products.
+        /// Get what you are involved in: counts of your teams, projects, intake desks, requests, risks, products and roadmaps.
         /// </summary>
         /// <remarks>
-        /// One call for an overview of where you work: active teams and teams of teams you are a member of; approved and active projects you hold a role on, by role; intake desks you are on, by role, and open requests you raised; open risks assigned to you; and proposed or active products your teams are linked to. Counts only, worked out from your records each time. Needs no permission beyond signing in. An area whose module's feature flag is off counts zero. Returns zeros with `hasLinkedEmployee` false, not 404, when your account is not linked to an employee. To list the records behind a count use Me_GetTeamMemberships, Projects_GetProjects with `role`, IntakeRequests_GetList with `mine` and `openOnly`, or Risks_GetMyRisks.
+        /// One call for an overview of where you work: active teams and teams of teams you are a member of; approved and active projects you hold a role on, by role; intake desks you are on, by role, and open requests you raised; open risks assigned to you; proposed or active products your teams are linked to; and active roadmaps you own. Counts only, worked out from your records each time. Needs no permission beyond signing in. An area whose module's feature flag is off counts zero. Returns zeros with `hasLinkedEmployee` false, not 404, when your account is not linked to an employee. To list the records behind a count use Me_GetTeamMemberships, Projects_GetProjects with `role`, IntakeRequests_GetList with `mine` and `openOnly`, Risks_GetMyRisks, or Roadmaps_GetRoadmaps with `ownedByMe` and `state` Active.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3367,10 +3367,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
-        /// Get what you are involved in: counts of your teams, projects, intake desks, requests, risks and products.
+        /// Get what you are involved in: counts of your teams, projects, intake desks, requests, risks, products and roadmaps.
         /// </summary>
         /// <remarks>
-        /// One call for an overview of where you work: active teams and teams of teams you are a member of; approved and active projects you hold a role on, by role; intake desks you are on, by role, and open requests you raised; open risks assigned to you; and proposed or active products your teams are linked to. Counts only, worked out from your records each time. Needs no permission beyond signing in. An area whose module's feature flag is off counts zero. Returns zeros with `hasLinkedEmployee` false, not 404, when your account is not linked to an employee. To list the records behind a count use Me_GetTeamMemberships, Projects_GetProjects with `role`, IntakeRequests_GetList with `mine` and `openOnly`, or Risks_GetMyRisks.
+        /// One call for an overview of where you work: active teams and teams of teams you are a member of; approved and active projects you hold a role on, by role; intake desks you are on, by role, and open requests you raised; open risks assigned to you; proposed or active products your teams are linked to; and active roadmaps you own. Counts only, worked out from your records each time. Needs no permission beyond signing in. An area whose module's feature flag is off counts zero. Returns zeros with `hasLinkedEmployee` false, not 404, when your account is not linked to an employee. To list the records behind a count use Me_GetTeamMemberships, Projects_GetProjects with `role`, IntakeRequests_GetList with `mine` and `openOnly`, Risks_GetMyRisks, or Roadmaps_GetRoadmaps with `ownedByMe` and `state` Active.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -69092,9 +69092,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a list of roadmaps.
         /// </summary>
+        /// <remarks>
+        /// Lists the roadmaps you can see, ordered by key. `state` keeps only roadmaps in those states. `ownedByMe` keeps only roadmaps you are an owner of, and returns none when your account is not linked to an employee.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoadmapListDto>> GetRoadmapsAsync(System.Collections.Generic.IEnumerable<RoadmapState>? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoadmapListDto>> GetRoadmapsAsync(System.Collections.Generic.IEnumerable<RoadmapState>? state = null, bool? ownedByMe = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -69341,9 +69344,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Get a list of roadmaps.
         /// </summary>
+        /// <remarks>
+        /// Lists the roadmaps you can see, ordered by key. `state` keeps only roadmaps in those states. `ownedByMe` keeps only roadmaps you are an owner of, and returns none when your account is not linked to an employee.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoadmapListDto>> GetRoadmapsAsync(System.Collections.Generic.IEnumerable<RoadmapState>? state = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<RoadmapListDto>> GetRoadmapsAsync(System.Collections.Generic.IEnumerable<RoadmapState>? state = null, bool? ownedByMe = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -69362,6 +69368,10 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (state != null)
                     {
                             foreach (var item_ in state) { urlBuilder_.Append(System.Uri.EscapeDataString("state")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
+                    }
+                    if (ownedByMe != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("ownedByMe")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ownedByMe, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -123980,6 +123990,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamProductCount")]
         public int TeamProductCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many active roadmaps the caller is an owner of; archived roadmaps never count.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ownedRoadmapCount")]
+        public int OwnedRoadmapCount { get; set; } = default!;
 
     }
 

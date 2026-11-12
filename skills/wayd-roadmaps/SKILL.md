@@ -46,7 +46,7 @@ Roadmaps contain three distinct item types:
 
 ### Navigating a roadmap
 
-1. List all roadmaps: `Roadmaps_GetRoadmaps`
+1. List all roadmaps: `Roadmaps_GetRoadmaps` — add `ownedByMe: true` for "my roadmaps", the ones the user is an owner of
 2. Get roadmap details: `Roadmaps_GetRoadmap` with `idOrKey`
 3. Get all items: `Roadmaps_GetItems` with `idOrKey`
 4. Get one item's details (adds `description`): `Roadmaps_GetItem` with `roadmapIdOrKey` + `itemId`

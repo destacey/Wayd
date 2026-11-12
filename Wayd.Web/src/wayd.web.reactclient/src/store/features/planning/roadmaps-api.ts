@@ -74,12 +74,13 @@ export const roadmapApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getRoadmaps: builder.query<
       RoadmapListDto[],
-      { state?: RoadmapState[] } | undefined
+      { state?: RoadmapState[]; ownedByMe?: boolean } | undefined
     >({
       queryFn: async (request = undefined) => {
         try {
           const data = await getRoadmapsClient().getRoadmaps(
             (request?.state?.length ?? 0) > 0 ? request!.state : undefined,
+            request?.ownedByMe,
           )
           return { data }
         } catch (error) {

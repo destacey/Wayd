@@ -287,7 +287,7 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 
         if (detailsChanged)
         {
-            AddDomainEvent(new IncidentDetailsUpdatedEventV2(
+            AddDomainEvent(new IncidentDetailsUpdatedEvent(
                 Id,
                 Key,
                 previousTitle,

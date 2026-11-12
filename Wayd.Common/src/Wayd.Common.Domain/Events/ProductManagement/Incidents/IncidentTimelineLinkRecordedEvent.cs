@@ -5,10 +5,6 @@ using Wayd.Common.Domain.Enums.ProductManagement;
 namespace Wayd.Common.Domain.Events.ProductManagement.Incidents;
 
 /// <summary>A work item or generic link was added, updated, or removed on an incident.</summary>
-/// <remarks>
-/// <see cref="TargetId"/> and <see cref="FromTargetId"/> name the work item or link, the way a product
-/// team link names the team. A payload written before them deserializes both as null.
-/// </remarks>
 public sealed record IncidentTimelineLinkRecordedEvent
     : DomainEvent<IncidentTimelineLinkRecordedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
@@ -27,9 +23,9 @@ public sealed record IncidentTimelineLinkRecordedEvent
         Instant recordedAt,
         EventActor actor,
         Instant timestamp,
-        Guid? targetId = null,
-        Guid? fromTargetId = null)
-        : base(actor, "1.1")
+        Guid? targetId,
+        Guid? fromTargetId)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;
@@ -56,7 +52,7 @@ public sealed record IncidentTimelineLinkRecordedEvent
     public string? ToLabel { get; }
     public Instant RecordedAt { get; }
 
-    /// <summary>The work item or link this entry is about. Null on a payload written before the id was kept.</summary>
+    /// <summary>The work item or link this entry is about. Null when the entry names no record.</summary>
     public Guid? TargetId { get; }
 
     /// <summary>The work item or link replaced, when the entry records an update.</summary>

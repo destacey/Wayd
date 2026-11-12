@@ -6,10 +6,6 @@ using Wayd.Common.Domain.StatusWorkflows.Enums;
 namespace Wayd.Common.Domain.Events.ProductManagement.Incidents;
 
 /// <summary>An incident moved to a different status.</summary>
-/// <remarks>
-/// Response and recovery instants ride on this event when the move records them. A payload written
-/// before those instants deserializes them as null: the move did not record a timeline change.
-/// </remarks>
 public sealed record IncidentStatusChangedEvent : DomainEvent<IncidentStatusChangedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.StatusChanged;
@@ -26,11 +22,11 @@ public sealed record IncidentStatusChangedEvent : DomainEvent<IncidentStatusChan
         ProductStatusAlias toAlias,
         EventActor actor,
         Instant timestamp,
-        Instant? fromStartedAt = null,
-        Instant? toStartedAt = null,
-        Instant? fromRecoveredAt = null,
-        Instant? toRecoveredAt = null)
-        : base(actor, "1.1")
+        Instant? fromStartedAt,
+        Instant? toStartedAt,
+        Instant? fromRecoveredAt,
+        Instant? toRecoveredAt)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;

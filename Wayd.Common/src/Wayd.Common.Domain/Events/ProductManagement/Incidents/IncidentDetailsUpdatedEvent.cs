@@ -3,13 +3,10 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement.Incidents;
 
-/// <summary>An incident's title, description, or severity changed.</summary>
+/// <summary>An incident's title, symptoms, root cause, or severity changed.</summary>
 /// <remarks>
-/// Frozen at its published shape and never raised; <see cref="IncidentDetailsUpdatedEventV2"/> replaced it
-/// when description split into symptoms and root cause. Kept so every payload written as this type still
-/// deserializes into it — its name and members are the contract those payloads were written against.
+/// Symptoms are what responders are seeing; root cause is why, and stays null until someone records it.
 /// </remarks>
-[Obsolete("Superseded by IncidentDetailsUpdatedEventV2. Kept only to deserialize payloads already written as this type.")]
 public sealed record IncidentDetailsUpdatedEvent : DomainEvent<IncidentDetailsUpdatedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Updated;
@@ -18,36 +15,42 @@ public sealed record IncidentDetailsUpdatedEvent : DomainEvent<IncidentDetailsUp
     public IncidentDetailsUpdatedEvent(
         Guid id,
         int key,
-        string previousTitle,
-        string? previousDescription,
-        Guid previousSeverityLevelId,
-        string title,
-        string? description,
-        Guid severityLevelId,
+        string fromTitle,
+        string? fromSymptoms,
+        string? fromRootCause,
+        Guid fromSeverityLevelId,
+        string toTitle,
+        string? toSymptoms,
+        string? toRootCause,
+        Guid toSeverityLevelId,
         EventActor actor,
         Instant timestamp)
         : base(actor, "1.0")
     {
         Id = id;
         Key = key;
-        PreviousTitle = previousTitle;
-        PreviousDescription = previousDescription;
-        PreviousSeverityLevelId = previousSeverityLevelId;
-        Title = title;
-        Description = description;
-        SeverityLevelId = severityLevelId;
+        FromTitle = fromTitle;
+        FromSymptoms = fromSymptoms;
+        FromRootCause = fromRootCause;
+        FromSeverityLevelId = fromSeverityLevelId;
+        ToTitle = toTitle;
+        ToSymptoms = toSymptoms;
+        ToRootCause = toRootCause;
+        ToSeverityLevelId = toSeverityLevelId;
 
         Timestamp = timestamp;
     }
 
     public Guid Id { get; }
     public int Key { get; }
-    public string PreviousTitle { get; }
-    public string? PreviousDescription { get; }
-    public Guid PreviousSeverityLevelId { get; }
-    public string Title { get; }
-    public string? Description { get; }
-    public Guid SeverityLevelId { get; }
+    public string FromTitle { get; }
+    public string? FromSymptoms { get; }
+    public string? FromRootCause { get; }
+    public Guid FromSeverityLevelId { get; }
+    public string ToTitle { get; }
+    public string? ToSymptoms { get; }
+    public string? ToRootCause { get; }
+    public Guid ToSeverityLevelId { get; }
 
     [JsonIgnore]
     public string AggregateType => "Incident";

@@ -172,7 +172,7 @@ public sealed class IncidentTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         var details = incident.DomainEvents.Should().ContainSingle()
-            .Which.Should().BeOfType<IncidentDetailsUpdatedEventV2>().Subject;
+            .Which.Should().BeOfType<IncidentDetailsUpdatedEvent>().Subject;
         details.FromTitle.Should().Be("Checkout unavailable");
         details.ToTitle.Should().Be("Checkout recovered");
         details.FromSymptoms.Should().Be("Payments failing in production.");
@@ -322,7 +322,7 @@ public sealed class IncidentTests
         result.IsSuccess.Should().BeTrue();
         incident.RootCause.Should().Be("A bad deploy");
         var details = incident.DomainEvents.Should().ContainSingle()
-            .Which.Should().BeOfType<IncidentDetailsUpdatedEventV2>().Subject;
+            .Which.Should().BeOfType<IncidentDetailsUpdatedEvent>().Subject;
         details.FromRootCause.Should().BeNull();
         details.ToRootCause.Should().Be("A bad deploy");
         details.FromSymptoms.Should().Be("Payments failing in production.");

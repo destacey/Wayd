@@ -5,12 +5,6 @@ using Wayd.Common.Domain.Enums.ProductManagement;
 namespace Wayd.Common.Domain.Events.ProductManagement.Incidents;
 
 /// <summary>An incident was opened.</summary>
-/// <remarks>
-/// <see cref="Symptoms"/> and <see cref="RootCause"/> were added after the first payloads. A payload
-/// written before them deserializes both as null, which is what an incident opened with neither recorded.
-/// <see cref="ProductIds"/> and <see cref="ReleaseIds"/> were added later still. A payload written before
-/// them deserializes both as null, stored here as an empty set: the incident was opened with nothing linked.
-/// </remarks>
 public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, IDomainEventDescriptor, IProductManagementEvent
 {
     public static ActivityCategory ActivityCategory => ActivityCategory.Created;
@@ -28,11 +22,11 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
         ProductStatusAlias statusAlias,
         EventActor actor,
         Instant timestamp,
-        string? symptoms = null,
-        string? rootCause = null,
-        IReadOnlyCollection<Guid>? productIds = null,
-        IReadOnlyCollection<Guid>? releaseIds = null)
-        : base(actor, "1.2")
+        string? symptoms,
+        string? rootCause,
+        IReadOnlyCollection<Guid> productIds,
+        IReadOnlyCollection<Guid> releaseIds)
+        : base(actor, "1.0")
     {
         Id = id;
         Key = key;
@@ -45,8 +39,8 @@ public sealed record IncidentCreatedEvent : DomainEvent<IncidentCreatedEvent>, I
         StatusAlias = statusAlias;
         Symptoms = symptoms;
         RootCause = rootCause;
-        ProductIds = productIds ?? [];
-        ReleaseIds = releaseIds ?? [];
+        ProductIds = productIds;
+        ReleaseIds = releaseIds;
 
         Timestamp = timestamp;
     }

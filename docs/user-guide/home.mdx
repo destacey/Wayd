@@ -7,7 +7,7 @@ audience: [user, agent]
 
 # Home
 
-The home page is a briefing on your work: what needs your attention today, what has changed on the records you follow or work on, and the projects, tasks, deliverables, risks, planning intervals, teams, intake desks and requests you are part of.
+The home page is a briefing on your work: what needs your attention today, what has changed on the records you follow or work on, and the work items, projects, tasks, deliverables, risks, planning intervals, teams, intake desks and requests you are part of.
 
 It opens with a greeting and today's date, then a row of counts across the top, then the widgets in two columns: a wider main column and a narrower side column. On a tablet the side column's widgets sit two abreast below the main column; on a phone everything is one column, with the side column's widgets last.
 
@@ -17,12 +17,12 @@ The page appears straight away. Each widget loads on its own and shows a placeho
 
 You see only the widgets that apply to you. A widget needs some or all of:
 
-- **A permission.** My projects needs permission to view projects, for example. Without it the widget is not shown.
+- **A permission.** My projects needs permission to view projects, and My work items permission to view work items, for example. Without it the widget is not shown.
 - **A feature flag.** What's changed and Following need the **Following** feature flag, and Desk queue and My requests the **Demand Management** flag, which an administrator turns on in **Settings → System → Feature Flags**.
-- **An account linked to an employee.** Anything about "my" work — projects, risks, tasks, teams, notifications, the records you follow — comes from the employee record your account is linked to.
+- **An account linked to an employee.** Anything about "my" work — work items, projects, risks, tasks, teams, notifications, the records you follow — comes from the employee record your account is linked to.
 - **A duty only some people hold.** My project tasks shows only once you have a task assigned on an approved or active project. Project health checks due shows only if you are an Owner or Manager on an approved or active project, since reporting a project's health falls to them; being a sponsor, member or task assignee, or leading the project's program or portfolio, does not add it. Each appears once you take that on.
 
-If your account is not linked to an employee, a banner at the top says so. Your projects, risks, tasks, teams, notifications and the records you follow appear once an administrator links your account in **Settings → Access → Users**.
+If your account is not linked to an employee, a banner at the top says so. Your work items, projects, risks, tasks, teams, notifications and the records you follow appear once an administrator links your account in **Settings → Access → Users**.
 
 Every widget is a card with its title at the top left and, where there is a full list behind it, **View all** at the top right. A widget that applies to you but has nothing to show says, in one line, how it fills — it does not disappear.
 
@@ -55,6 +55,7 @@ This is each widget's usual place. Until you [customize](#customizing) the page,
 
 - **What's changed** — your five latest [notifications](./notifications.mdx): what changed, on which record, and why you were told. Opening one goes to the record and marks it read. **View all** opens the full list.
 - **My projects** — how many approved and active projects you hold a role on, broken down by role (Sponsor, Owner, PM, Member, Task Assignee). **View all** opens the Projects Dashboard.
+- **My work items** — the backlog-level [work items](./work-management/work-items.mdx) assigned to you, across every workspace, that are in progress or proposed: in progress first, then proposed, each in backlog order. Epics, features and tasks are left out. It lists up to eight and says how many more there are. Each shows its status, its type and its sprint (or, outside a sprint, its team), and opens the work item. Below them is how many you finished in the last seven days, today included, when you finished any.
 - **My project tasks** — the open project plan tasks and milestones assigned to you on approved and active projects that are overdue or due by the end of next week: overdue first, then by due date. It lists up to five, and says how many more are due in that time and how many open tasks are due later or have no due date; when nothing is due by the end of next week, it says so and how many are due later. Each shows its due date and its project; the task opens the project's plan. A task's due date is its planned end, a milestone's its planned date. Only tasks assigned to you are listed: owning or managing a project does not add its tasks. Shown only once you have a project task assigned.
 - **My risks** — the open [risks](./planning/risks.mdx) assigned to you, with their exposure and follow-up date, soonest follow-up first. A follow-up that is today or past is highlighted.
 - **Desk queue** — what waits on the [intake desks](./demand-management/index.mdx) you are a Desk Admin or Agent on. Each desk shows your role and its open requests, with how many no one is assigned to and, on a desk that scores or estimates, how many have no score from the desk's model or no estimate. Below the desks are the open requests **Assigned to me** and those you are **Participating** in, five of each, with a link to the rest of those assigned to you. Being the Demand Management Admin does not put every desk here: only the desks you are a member of. **View all** opens Requests filtered to your desks.
@@ -91,9 +92,9 @@ This is each widget's usual place. Until you [customize](#customizing) the page,
 
 The columns above are the starting point. Until you customize the page, Wayd reorders them around what you are involved in, so you land on your own work without setting anything up. It works this out from your records each time you open the page — your team memberships, the roles you hold and tasks assigned to you on approved and active projects, the risks assigned to you, the intake desks you work and the open requests you raised — and never asks or stores what your job is.
 
-- **What you lead or do every day comes first.** If you sponsor, own or manage a project, My projects and Deliverables I own move to the top of the main column, and if you own or manage one, so does Project health checks due. If you have a project task assigned, My project tasks moves up too. If you are a member of a team or a team of teams, My teams moves to the top of the main column too, and if you work an intake desk, so does Desk queue.
+- **What you lead or do every day comes first.** If you sponsor, own or manage a project, My projects and Deliverables I own move to the top of the main column, and if you own or manage one, so does Project health checks due. If you have a project task assigned, My project tasks moves up too. If you are a member of a team or a team of teams, My teams moves to the top of the main column too; a team member's My work items follows it. If you work an intake desk, Desk queue moves up as well.
 - **Areas you work in come next.** My projects and Deliverables I own for a project member or task assignee, My risks when risks are assigned to you, My requests when you have an open request, and Planning intervals when you are on a team or a team of teams.
-- **Shared widgets follow** — What's changed and Following.
+- **Shared widgets follow** — What's changed and Following, and My work items for someone who is not a member of a team (being on a team of teams alone does not count), since Wayd does not count your work items to decide.
 - **Areas you are not part of go last.** They still show, with a line saying how they fill.
 
 Someone involved in several areas gets them interleaved in that order; widgets that rank the same keep their usual order. The **Needs attention** counts do not follow this order: they always go most urgent first.

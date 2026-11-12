@@ -22,12 +22,12 @@ import { useGetProductsQuery } from '@/src/store/features/product-management/pro
 import { useGetReleasesQuery } from '@/src/store/features/product-management/releases-api'
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
 import {
+  App,
   Button,
   DatePicker,
   Flex,
   Form,
   Input,
-  Modal,
   Result,
   Select,
 } from 'antd'
@@ -77,6 +77,8 @@ const incidentSections: RecordSection[] = [
 const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const { key } = use(props.params)
   const messageApi = useMessage()
+  // A confirm opened from the app context paints with the theme.
+  const { modal } = App.useApp()
   const [editing, setEditing] = useState(false)
   const [cancelOpen, setCancelOpen] = useState(false)
   const [form] = Form.useForm()
@@ -236,7 +238,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     action: IncidentWorkflowAction,
     successMessage: string,
   ) => {
-    Modal.confirm({
+    modal.confirm({
       title,
       content,
       okText: title,

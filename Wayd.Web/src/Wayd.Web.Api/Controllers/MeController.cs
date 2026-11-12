@@ -19,6 +19,7 @@ using Wayd.Organization.Application.Teams.Queries;
 using Wayd.Planning.Application.PlanningIntervals.Dtos;
 using Wayd.Planning.Application.PlanningIntervals.Queries;
 using Wayd.Planning.Application.Risks.Queries;
+using Wayd.Planning.Application.Roadmaps.Queries;
 using Wayd.ProductManagement.Application.Products.Queries;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Dtos;
 using Wayd.ProjectPortfolioManagement.Application.Projects.Queries;
@@ -149,9 +150,9 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
     }
 
     [HttpGet("home-context")]
-    [EndpointSummary("Get what you are involved in: counts of your teams, projects, intake desks, requests, risks and products.")]
+    [EndpointSummary("Get what you are involved in: counts of your teams, projects, intake desks, requests, risks, products and roadmaps.")]
     [EndpointDescription(
-        "One call for an overview of where you work: active teams and teams of teams you are a member of; approved and active projects you hold a role on, by role; intake desks you are on, by role, and open requests you raised; open risks assigned to you; and proposed or active products your teams are linked to. Counts only, worked out from your records each time. Needs no permission beyond signing in. An area whose module's feature flag is off counts zero. Returns zeros with `hasLinkedEmployee` false, not 404, when your account is not linked to an employee. To list the records behind a count use Me_GetTeamMemberships, Projects_GetProjects with `role`, IntakeRequests_GetList with `mine` and `openOnly`, or Risks_GetMyRisks.")]
+        "One call for an overview of where you work: active teams and teams of teams you are a member of; approved and active projects you hold a role on, by role; intake desks you are on, by role, and open requests you raised; open risks assigned to you; proposed or active products your teams are linked to; and active roadmaps you own. Counts only, worked out from your records each time. Needs no permission beyond signing in. An area whose module's feature flag is off counts zero. Returns zeros with `hasLinkedEmployee` false, not 404, when your account is not linked to an employee. To list the records behind a count use Me_GetTeamMemberships, Projects_GetProjects with `role`, IntakeRequests_GetList with `mine` and `openOnly`, Risks_GetMyRisks, or Roadmaps_GetRoadmaps with `ownedByMe` and `state` Active.")]
     [McpTool("Me_GetHomeContext", "Get what I am involved in")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<HomeContextResponse>> GetHomeContext(CancellationToken cancellationToken)
@@ -171,6 +172,8 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
             ? await _dispatcher.Send(new GetTeamsProductCountQuery(teams.TeamIds), cancellationToken)
             : 0;
 
+        var roadmapCount = await _dispatcher.Send(new GetEmployeeOwnedRoadmapCountQuery(employeeId), cancellationToken);
+
         return Ok(new HomeContextResponse
         {
             HasLinkedEmployee = true,
@@ -179,6 +182,7 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
             Intake = intake,
             AssignedRiskCount = riskCount,
             TeamProductCount = productCount,
+            OwnedRoadmapCount = roadmapCount,
         });
     }
 

@@ -13,6 +13,9 @@ internal static class ConfigureServices
         {
             config.ReadFrom.Configuration(builder.Configuration);
 
+            // In code because logger.json cannot pass the enricher its destructurer and filter.
+            config.Enrich.WithWaydExceptionDetails();
+
             // Add version enricher
             var version = Environment.GetEnvironmentVariable("version")
                 ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString()

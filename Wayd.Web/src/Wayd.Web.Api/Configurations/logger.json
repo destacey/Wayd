@@ -9,7 +9,6 @@
       "WithProcessId",
       "WithThreadId",
       "WithHangfireContext",
-      "WithExceptionDetails",
       {
         "Name": "WithSpan",
         "Args": {

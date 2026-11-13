@@ -16,12 +16,8 @@ public interface IImportPayloadSerializer : IScopedService
 /// Serializes import row payloads.
 /// </summary>
 /// <remarks>
-/// Deliberately its own serializer rather than the shared <see cref="ISerializerService"/>. Two reasons:
-/// that one is asymmetric — it serializes with a camel-case policy and deserializes with none, which is
-/// harmless for its only other caller (<c>PerformanceBehavior</c> serializes for logging and never reads
-/// back) but silently returns an empty object here. And an import payload has a requirement a
-/// general-purpose serializer does not: it is written at submission and read back by a worker that may run
-/// days later, after a resume, so its format must not move because someone tuned the options for logging.
+/// A payload is written at submission and read back by a worker that may run days later, after a resume,
+/// so its format must not move for the sake of any other caller; keep this serializer to imports alone.
 /// <para>
 /// One options instance, used for both directions, with case-insensitive reads so a payload stays readable
 /// even if the write policy is ever changed.

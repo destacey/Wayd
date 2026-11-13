@@ -1,5 +1,6 @@
 import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import {
   CrossTeamDependenciesTile,
   DependenciesAtRiskTile,
@@ -10,6 +11,7 @@ import {
   MyTeamsSummaryResponse,
 } from '@/src/services/wayd-api'
 import { homeContext } from '../home-context-test-utils'
+import { widgetAnchorId } from '../widget-registry'
 
 const mockHome: { context?: HomeContextResponse } = {}
 
@@ -164,5 +166,38 @@ describe('team of teams tiles', () => {
         name: 'Unhealthy dependencies across your teams of teams: 0',
       }),
     ).toBeInTheDocument()
+  })
+})
+
+describe('team tile targets', () => {
+  beforeEach(() => {
+    mockHome.context = homeContext({
+      teams: { teamCount: 1, teamOfTeamsCount: 1 },
+    })
+    mockSummary.mockReturnValue(loaded({}))
+  })
+
+  it.each([
+    ['DependenciesAtRiskTile', DependenciesAtRiskTile, 'my-teams'],
+    ['SprintsToCompleteTile', SprintsToCompleteTile, 'my-teams-of-teams'],
+    [
+      'CrossTeamDependenciesTile',
+      CrossTeamDependenciesTile,
+      'my-teams-of-teams',
+    ],
+  ] as const)('%s scrolls to the %s widget', async (_, Tile, widgetId) => {
+    // Arrange
+    const target = document.createElement('section')
+    target.id = widgetAnchorId(widgetId)
+    target.scrollIntoView = vi.fn()
+    document.body.appendChild(target)
+    render(<Tile />)
+
+    // Act
+    await userEvent.click(screen.getByRole('button'))
+
+    // Assert
+    expect(target.scrollIntoView).toHaveBeenCalled()
+    target.remove()
   })
 })

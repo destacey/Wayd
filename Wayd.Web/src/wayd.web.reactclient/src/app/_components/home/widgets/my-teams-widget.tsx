@@ -13,9 +13,8 @@ import Link from 'next/link'
 import { FC } from 'react'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
 import { HomeWidgetProps } from '../widget-registry'
-import { useMyTeamsSummary } from './my-teams-tile'
+import { TEAMS_HREF, useMyTeamsSummary } from './my-teams-tile'
 import { daysSince, plural } from './team-figures'
-import TeamOfTeamsRollup from './team-of-teams-rollup'
 import styles from '../home.module.css'
 
 const { Text } = Typography
@@ -155,28 +154,21 @@ const TeamSection: FC<{ summary: MyTeamSummaryResponse }> = ({ summary }) => {
 }
 
 /**
- * A card for each team of teams and team the caller is a member of: teams of
- * teams first, as the rollup over teams the caller may also be on.
+ * A section for each team the caller is a member of directly. Teams of teams
+ * have a widget of their own.
  */
 const MyTeamsWidget: FC<HomeWidgetProps> = ({ title }) => {
   const { data, isLoading, isError, isOnNoTeam } = useMyTeamsSummary()
 
   const body = () => {
     if (isError) return <WidgetError message="Could not load your teams." />
-    if (
-      isOnNoTeam ||
-      !data ||
-      (data.teams.length === 0 && data.teamsOfTeams.length === 0)
-    ) {
+    if (isOnNoTeam || !data || data.teams.length === 0) {
       return (
         <WidgetEmpty message="You are not a member of a team. Your teams appear here once you join one." />
       )
     }
     return (
       <Flex vertical gap="middle">
-        {data.teamsOfTeams.map((rollup) => (
-          <TeamOfTeamsRollup key={rollup.team.id} rollup={rollup} />
-        ))}
         {data.teams.map((summary) => (
           <TeamSection key={summary.team.id} summary={summary} />
         ))}
@@ -185,7 +177,7 @@ const MyTeamsWidget: FC<HomeWidgetProps> = ({ title }) => {
   }
 
   return (
-    <WidgetCard title={title} loading={isLoading}>
+    <WidgetCard title={title} viewAllHref={TEAMS_HREF} loading={isLoading}>
       {body()}
     </WidgetCard>
   )

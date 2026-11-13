@@ -12,7 +12,6 @@ import {
   todayCalendarDate,
 } from '@/src/utils'
 import { Tag, Typography } from 'antd'
-import Link from 'next/link'
 import { FC } from 'react'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
 import { HomeWidgetProps } from '../widget-registry'
@@ -20,8 +19,10 @@ import styles from '../home.module.css'
 
 const { Text } = Typography
 
-/** The most roadmaps the widget lists; the rest are counted below them, linking to the Roadmaps list. */
+/** The most roadmaps the widget lists; past it, "View all" counts them all. */
 export const MY_ROADMAPS_LIMIT = 5
+
+const ROADMAPS_HREF = '/planning/roadmaps'
 
 /** The caller's roadmaps by start date, ties by name, so the one under way longest comes first. */
 export const sortRoadmaps = (roadmaps: RoadmapListDto[]): RoadmapListDto[] =>
@@ -55,18 +56,14 @@ const MyRoadmapsWidget: FC<HomeWidgetProps> = ({ title }) => {
     if (isError) return <WidgetError message="Could not load your roadmaps." />
     if (!roadmaps || roadmaps.length === 0) {
       return (
-        <WidgetEmpty
-          message="You own no active roadmaps. They appear here when a roadmap names you as an owner."
-          link={{ href: '/planning/roadmaps', label: 'Browse roadmaps' }}
-        />
+        <WidgetEmpty message="You own no active roadmaps. They appear here when a roadmap names you as an owner." />
       )
     }
-    const sorted = sortRoadmaps(roadmaps)
-    const more = sorted.length - MY_ROADMAPS_LIMIT
     return (
-      <>
-        <WaydList size="small">
-          {sorted.slice(0, MY_ROADMAPS_LIMIT).map((roadmap) => (
+      <WaydList size="small">
+        {sortRoadmaps(roadmaps)
+          .slice(0, MY_ROADMAPS_LIMIT)
+          .map((roadmap) => (
             <WaydList.Item key={roadmap.id} className={styles.listItem}>
               <div className={styles.listItemBody}>
                 <EntityLink href={`/planning/roadmaps/${roadmap.key}`}>
@@ -79,19 +76,19 @@ const MyRoadmapsWidget: FC<HomeWidgetProps> = ({ title }) => {
               </div>
             </WaydList.Item>
           ))}
-        </WaydList>
-        {more > 0 ? (
-          <Text type="secondary" className={styles.widgetEmpty}>
-            And {more} more.{' '}
-            <Link href="/planning/roadmaps">See all roadmaps</Link>
-          </Text>
-        ) : null}
-      </>
+      </WaydList>
     )
   }
 
+  const total = roadmaps?.length ?? 0
+
   return (
-    <WidgetCard title={title} loading={isLoading}>
+    <WidgetCard
+      title={title}
+      viewAllHref={ROADMAPS_HREF}
+      viewAllCount={total > MY_ROADMAPS_LIMIT ? total : undefined}
+      loading={isLoading}
+    >
       {body()}
     </WidgetCard>
   )

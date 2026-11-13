@@ -34,6 +34,11 @@ import {
 // Loaded after the page: each sprint draws a burn-up chart, and the charting
 // library is the heaviest code the home page would otherwise carry up front.
 const MyTeamsWidget = lazy(() => import('./widgets/my-teams-widget'))
+// Its rollup is lighter, but it waits with My teams so neither team widget
+// holds up the page.
+const MyTeamsOfTeamsWidget = lazy(
+  () => import('./widgets/my-teams-of-teams-widget'),
+)
 
 /**
  * How urgent each attention tile is when above zero: the strip shows the
@@ -240,14 +245,37 @@ export const HomeWidgets: HomeWidget[] = [
     id: 'my-teams',
     title: 'My teams',
     description:
-      "Each team you are a member of: a Scrum team's active sprint or a Kanban team's flow, with its dependencies and risks. Each team of teams you belong to directly is one card, its teams needing attention first.",
+      "Each team you are a member of: a Scrum team's active sprint or a Kanban team's flow, with its dependencies and risks.",
     defaultColumn: 'side',
     defaultOrder: 20,
     requires: { linkedEmployee: true },
     Component: MyTeamsWidget,
-    // A team member's team, or a team of teams they answer for, is their day-to-day work.
-    involvement: (context) =>
-      teamCount(context) > 0 ? Involvement.Leads : Involvement.None,
+    // A team member's team is their day-to-day work.
+    involvement: ({ teams }) =>
+      teams.teamCount > 0 ? Involvement.Leads : Involvement.None,
+    tiles: [
+      {
+        id: 'dependencies-at-risk',
+        priority: TilePriority.DependenciesAtRisk,
+        Tile: DependenciesAtRiskTile,
+      },
+    ],
+  },
+  {
+    id: 'my-teams-of-teams',
+    title: 'My teams of teams',
+    description:
+      'Each team of teams you are a member of directly, its teams needing attention first, with its cross-team dependencies and risks.',
+    defaultColumn: 'side',
+    defaultOrder: 21,
+    requires: {
+      linkedEmployee: true,
+      // Membership of a team of teams is a role few hold; for anyone else it would only ever be empty.
+      involved: ({ teams }) => teams.teamOfTeamsCount > 0,
+    },
+    Component: MyTeamsOfTeamsWidget,
+    // A team of teams its member answers for is their day-to-day work, and everyone it is shown to has one.
+    involvement: () => Involvement.Leads,
     tiles: [
       {
         id: 'sprints-to-complete',
@@ -258,11 +286,6 @@ export const HomeWidgets: HomeWidget[] = [
         id: 'cross-team-dependencies',
         priority: TilePriority.CrossTeamDependencies,
         Tile: CrossTeamDependenciesTile,
-      },
-      {
-        id: 'dependencies-at-risk',
-        priority: TilePriority.DependenciesAtRisk,
-        Tile: DependenciesAtRiskTile,
       },
     ],
   },

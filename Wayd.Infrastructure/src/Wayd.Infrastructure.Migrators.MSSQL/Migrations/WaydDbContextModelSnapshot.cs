@@ -976,7 +976,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<string>("TokenHash")
                         .IsRequired()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("nvarchar(255)")
+                        .HasAnnotation("Wayd:AuditTrailValue", "Excluded");
 
                     b.Property<string>("TokenIdentifier")
                         .IsRequired()
@@ -3568,7 +3569,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<string>("Reason")
                         .IsRequired()
                         .HasMaxLength(32)
-                        .HasColumnType("varchar");
+                        .HasColumnType("varchar")
+                        .HasAnnotation("Wayd:AuditTrailValue", "Excluded");
 
                     b.Property<DateTime>("Start")
                         .HasColumnType("date");
@@ -9522,7 +9524,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<string>("Configuration")
                         .ValueGeneratedOnUpdateSometimes()
                         .HasColumnType("nvarchar(max)")
-                        .HasColumnName("Configuration");
+                        .HasColumnName("Configuration")
+                        .HasAnnotation("Wayd:AuditTrailValue", "Stored");
 
                     b.Property<string>("SystemId")
                         .HasMaxLength(64)
@@ -9538,7 +9541,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<string>("Configuration")
                         .ValueGeneratedOnUpdateSometimes()
                         .HasColumnType("nvarchar(max)")
-                        .HasColumnName("Configuration");
+                        .HasColumnName("Configuration")
+                        .HasAnnotation("Wayd:AuditTrailValue", "Stored");
 
                     b.HasDiscriminator().HasValue("AzureOpenAI");
                 });
@@ -9550,7 +9554,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<string>("Configuration")
                         .ValueGeneratedOnUpdateSometimes()
                         .HasColumnType("nvarchar(max)")
-                        .HasColumnName("Configuration");
+                        .HasColumnName("Configuration")
+                        .HasAnnotation("Wayd:AuditTrailValue", "Stored");
 
                     b.HasDiscriminator().HasValue("Entra");
                 });
@@ -9562,7 +9567,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<string>("Configuration")
                         .ValueGeneratedOnUpdateSometimes()
                         .HasColumnType("nvarchar(max)")
-                        .HasColumnName("Configuration");
+                        .HasColumnName("Configuration")
+                        .HasAnnotation("Wayd:AuditTrailValue", "Stored");
 
                     b.HasDiscriminator().HasValue("Teams");
                 });
@@ -9574,7 +9580,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<string>("Configuration")
                         .ValueGeneratedOnUpdateSometimes()
                         .HasColumnType("nvarchar(max)")
-                        .HasColumnName("Configuration");
+                        .HasColumnName("Configuration")
+                        .HasAnnotation("Wayd:AuditTrailValue", "Stored");
 
                     b.HasDiscriminator().HasValue("Workday");
                 });

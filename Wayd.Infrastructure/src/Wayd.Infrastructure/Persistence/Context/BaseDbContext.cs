@@ -535,16 +535,20 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
                     continue;
                 }
 
+                // Values go through AuditTrailValues, never straight from the entry: a property protected in its
+                // own column is recorded as the column stores it, and an excluded one is not recorded at all.
                 switch (entry.State)
                 {
                     // Added and Deleted no longer set the type here — it is settled from the state above,
                     // so that an entity with nothing but key properties still records which one it was.
                     case EntityState.Added:
-                        trailEntry.NewValues[propertyName] = property.CurrentValue;
+                        if (AuditTrailValues.TryGet(property, current: true, out var addedValue))
+                            trailEntry.NewValues[propertyName] = addedValue;
                         break;
 
                     case EntityState.Deleted:
-                        trailEntry.OldValues[propertyName] = property.OriginalValue;
+                        if (AuditTrailValues.TryGet(property, current: false, out var deletedValue))
+                            trailEntry.OldValues[propertyName] = deletedValue;
                         break;
 
                     case EntityState.Modified:
@@ -553,8 +557,10 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
                         {
                             trailEntry.ChangedColumns.Add(propertyName);
                             trailEntry.TrailType = TrailType.Update;
-                            trailEntry.OldValues[propertyName] = property.OriginalValue;
-                            trailEntry.NewValues[propertyName] = property.CurrentValue;
+                            if (AuditTrailValues.TryGet(property, current: false, out var originalValue))
+                                trailEntry.OldValues[propertyName] = originalValue;
+                            if (AuditTrailValues.TryGet(property, current: true, out var currentValue))
+                                trailEntry.NewValues[propertyName] = currentValue;
                         }
                         break;
                 }
@@ -757,9 +763,10 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         foreach (var property in ownedEntry.Properties)
         {
             // Skip primary keys and foreign keys for owned entities
-            if (!property.Metadata.IsPrimaryKey() && !property.Metadata.IsForeignKey())
+            if (!property.Metadata.IsPrimaryKey() && !property.Metadata.IsForeignKey()
+                && AuditTrailValues.TryGet(property, isCurrentValue, out var value))
             {
-                values[property.Metadata.Name] = isCurrentValue ? property.CurrentValue : property.OriginalValue;
+                values[property.Metadata.Name] = value;
             }
         }
         return values;
@@ -770,7 +777,8 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
         var values = new Dictionary<string, object?>();
         foreach (var property in complexProperty.Properties)
         {
-            values[property.Metadata.Name] = isCurrentValue ? property.CurrentValue : property.OriginalValue;
+            if (AuditTrailValues.TryGet(property, isCurrentValue, out var value))
+                values[property.Metadata.Name] = value;
         }
         return values;
     }
@@ -790,9 +798,9 @@ public abstract class BaseDbContext : IdentityDbContext<ApplicationUser, Applica
                 {
                     entry.KeyValues[prop.Metadata.Name] = prop.CurrentValue;
                 }
-                else
+                else if (AuditTrailValues.TryGet(prop, current: true, out var value))
                 {
-                    entry.NewValues[prop.Metadata.Name] = prop.CurrentValue;
+                    entry.NewValues[prop.Metadata.Name] = value;
                 }
             }
 

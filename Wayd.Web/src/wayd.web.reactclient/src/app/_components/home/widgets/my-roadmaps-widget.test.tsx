@@ -135,10 +135,10 @@ describe('MyRoadmapsWidget', () => {
     expect(screen.queryByRole('link', { name: 'Roadmap 1' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'Roadmap 2' })).toBeNull()
     expect(screen.getByRole('link', { name: 'Roadmap 7' })).toBeInTheDocument()
-    expect(screen.getByText(/And 2 more/)).toBeInTheDocument()
-    expect(
-      screen.getByRole('link', { name: 'See all roadmaps' }),
-    ).toHaveAttribute('href', '/planning/roadmaps')
+    expect(screen.getByRole('link', { name: 'View all 7' })).toHaveAttribute(
+      'href',
+      '/planning/roadmaps',
+    )
   })
 
   it('says how it fills when the caller owns no active roadmaps', () => {
@@ -150,9 +150,10 @@ describe('MyRoadmapsWidget', () => {
 
     // Assert
     expect(screen.getByText(/You own no active roadmaps/)).toBeInTheDocument()
-    expect(
-      screen.getByRole('link', { name: 'Browse roadmaps' }),
-    ).toHaveAttribute('href', '/planning/roadmaps')
+    expect(screen.getByRole('link', { name: 'View all' })).toHaveAttribute(
+      'href',
+      '/planning/roadmaps',
+    )
   })
 
   it('says when the roadmaps could not load', () => {

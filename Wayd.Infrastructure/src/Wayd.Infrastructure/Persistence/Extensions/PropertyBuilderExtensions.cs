@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Wayd.Infrastructure.Auditing;
 using Wayd.Infrastructure.DataProtection;
 using Wayd.Infrastructure.Persistence.Converters;
 
@@ -20,7 +21,8 @@ public static class PropertyBuilderExtensions
     /// <summary>
     /// JSON-serializes the property to a string column and encrypts any string
     /// fields marked <c>[Encrypted]</c> (including nested objects/collections)
-    /// at rest via <see cref="ISecretProtector"/>.
+    /// at rest via <see cref="ISecretProtector"/>. The audit trail records the property as the column stores it,
+    /// so those fields reach the trail encrypted too.
     /// </summary>
     public static PropertyBuilder<TProperty> HasEncryptedJsonConversion<TProperty>(
         this PropertyBuilder<TProperty> builder,
@@ -28,6 +30,18 @@ public static class PropertyBuilderExtensions
     {
         builder.HasConversion(new EncryptingJsonValueConverter<TProperty>(options));
         builder.Metadata.SetValueComparer(CreateJsonValueComparer<TProperty>(options));
+        builder.HasAnnotation(AuditTrailValues.AnnotationName, AuditTrailValues.AnnotationValue(AuditTrailValue.Stored));
+        return builder;
+    }
+
+    /// <summary>
+    /// Keeps the property's value out of audit trail payloads. A change still names it among the trail row's
+    /// affected columns. For a value that is kept out of domain events and logs, such as the reason for an
+    /// employee's time away.
+    /// </summary>
+    public static PropertyBuilder<TProperty> ExcludeFromAuditTrail<TProperty>(this PropertyBuilder<TProperty> builder)
+    {
+        builder.HasAnnotation(AuditTrailValues.AnnotationName, AuditTrailValues.AnnotationValue(AuditTrailValue.Excluded));
         return builder;
     }
 

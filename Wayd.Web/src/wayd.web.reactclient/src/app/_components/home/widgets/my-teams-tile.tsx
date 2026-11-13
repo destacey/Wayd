@@ -6,12 +6,15 @@ import AttentionTile from '../attention-tile'
 import { useHomeContext } from '../use-home-context'
 import { widgetAnchorId } from '../widget-registry'
 
+/** The Teams list, where both team widgets' "View all" goes. */
+export const TEAMS_HREF = '/organizations/teams'
+
 /**
- * The summary both the My teams widget and its tile read; RTK Query shares the
- * request. Skipped when the home context says the caller is on no team and
- * no team of teams.
- * Kept apart from the widget, which loads after the page, so the tile can
- * count without pulling the widget's charts in with it.
+ * The summary the My teams and My teams of teams widgets and their tiles read;
+ * RTK Query shares the request. Skipped when the home context says the caller
+ * is on no team and no team of teams.
+ * Kept apart from the widgets, which load after the page, so the tiles can
+ * count without pulling the widgets' code in with them.
  */
 export const useMyTeamsSummary = () => {
   const { context } = useHomeContext()
@@ -60,7 +63,7 @@ export const CrossTeamDependenciesTile: FC = () => {
       context="across your teams of teams"
       value={value}
       tooltip="Open dependencies between teams in your teams of teams that are unhealthy: planned to finish after they are needed, or whose successor started first. A dependency shared by two of them counts once."
-      href={`#${widgetAnchorId('my-teams')}`}
+      href={`#${widgetAnchorId('my-teams-of-teams')}`}
       alert="error"
       loading={isLoading}
     />
@@ -81,7 +84,7 @@ export const SprintsToCompleteTile: FC = () => {
       context="in your teams of teams"
       value={value}
       tooltip="Sprints a team in your teams of teams started that are past their end and not yet completed. Open the team's sprint to complete it."
-      href={`#${widgetAnchorId('my-teams')}`}
+      href={`#${widgetAnchorId('my-teams-of-teams')}`}
       alert="error"
       loading={isLoading}
     />

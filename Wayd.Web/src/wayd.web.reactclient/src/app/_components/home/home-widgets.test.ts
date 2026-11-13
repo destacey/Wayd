@@ -29,6 +29,7 @@ vi.mock('./widgets/my-risks-widget', () => ({
 }))
 vi.mock('./widgets/my-roadmaps-widget', () => ({ default: () => null }))
 vi.mock('./widgets/my-teams-widget', () => ({ default: () => null }))
+vi.mock('./widgets/my-teams-of-teams-widget', () => ({ default: () => null }))
 vi.mock('./widgets/my-teams-tile', () => ({
   CrossTeamDependenciesTile: () => null,
   DependenciesAtRiskTile: () => null,
@@ -46,13 +47,20 @@ const everything: WidgetAccess = {
   hasLinkedEmployee: true,
 }
 
-/** Every permission and flag, as a project manager with tasks: everything a widget can require. */
+/**
+ * Every permission and flag, as a project manager with tasks on a team of
+ * teams: everything a widget can require.
+ */
 const everythingAsAManager: WidgetAccess = {
   ...everything,
   context: homeContext({
     projects: { totalCount: 1, managerCount: 1, assigneeCount: 1 },
+    teams: { teamOfTeamsCount: 1 },
   }),
 }
+
+/** The tiles of the widget shown only to members of a team of teams. */
+const teamOfTeamsTiles = ['sprints-to-complete', 'cross-team-dependencies']
 
 /** The tiles of widgets shown only to some people: project task assignees, owners and managers. */
 const projectDutyTiles = [
@@ -177,18 +185,18 @@ describe('HomeWidgets involvement rules', () => {
       // Arrange / Act
       const layout = defaultFor(overrides)
 
-      // Assert — the project task and health check tiles belong to people who hold those duties.
-      expect(layout.tiles.filter((t) => !projectDutyTiles.includes(t))).toEqual(
-        [
-          'sprints-to-complete',
-          'risk-follow-ups',
-          'cross-team-dependencies',
-          'dependencies-at-risk',
-          'unassigned-requests',
-          'requests-assigned-to-me',
-          'unread-notifications',
-        ],
-      )
+      // Assert — the project task, health check and team of teams tiles belong to people who hold those duties.
+      expect(
+        layout.tiles.filter(
+          (t) => !projectDutyTiles.includes(t) && !teamOfTeamsTiles.includes(t),
+        ),
+      ).toEqual([
+        'risk-follow-ups',
+        'dependencies-at-risk',
+        'unassigned-requests',
+        'requests-assigned-to-me',
+        'unread-notifications',
+      ])
     },
   )
 
@@ -310,24 +318,45 @@ describe('HomeWidgets involvement rules', () => {
     ])
   })
 
-  it('puts My teams first for a member of a team of teams only, whose rollup it shows', () => {
+  it('puts My teams of teams first for a member of a team of teams only', () => {
     // Arrange / Act
     const layout = defaultFor({ teams: { teamOfTeamsCount: 1 } })
 
     // Assert
     // Their own work items are not raised: the rollup is about teams beneath them.
     expect(layout.main.slice(0, 3)).toEqual([
-      'my-teams',
+      'my-teams-of-teams',
       'whats-changed',
       'my-work-items',
     ])
+    expect(layout.tiles).toEqual(expect.arrayContaining(teamOfTeamsTiles))
+    // On no team themselves, their My teams is an area they are not part of.
     expect(layout.side).toEqual([
       'planning-intervals',
       'following',
+      'my-teams',
       'my-requests',
       'my-deliverables',
     ])
   })
+
+  it.each([
+    ['a team member', { teams: { teamCount: 2 } }],
+    ['someone on no team', {}],
+  ] as [string, HomeContextOverrides][])(
+    'leaves out My teams of teams and its tiles for %s',
+    (_, overrides) => {
+      // Arrange / Act
+      const layout = defaultFor(overrides)
+
+      // Assert
+      expect([...layout.main, ...layout.side]).not.toContain(
+        'my-teams-of-teams',
+      )
+      for (const tile of teamOfTeamsTiles)
+        expect(layout.tiles).not.toContain(tile)
+    },
+  )
 
   it('ranks work items as shared for someone on no team', () => {
     // Arrange / Act

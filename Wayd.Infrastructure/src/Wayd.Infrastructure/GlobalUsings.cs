@@ -1,6 +1,5 @@
 ﻿global using Wayd.AppIntegration.Application.Persistence;
 global using Wayd.AppIntegration.Domain.Models;
-global using Wayd.Common.Application.Auditing;
 global using Wayd.Common.Application.Events;
 global using Wayd.Common.Application.Exceptions;
 global using Wayd.Common.Application.Identity.Roles;

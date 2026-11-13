@@ -274,7 +274,7 @@ describe('FollowingPage', () => {
 
     // Assert
     expect(lastListQuery()).toEqual(
-      expect.objectContaining({ view: undefined, ownerType: undefined }),
+      expect.objectContaining({ view: undefined, ownerTypes: undefined }),
     )
   })
 

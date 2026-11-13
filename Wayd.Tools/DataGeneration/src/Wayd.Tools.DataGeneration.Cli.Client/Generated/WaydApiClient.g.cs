@@ -3667,11 +3667,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// List the records you follow.
         /// </summary>
         /// <remarks>
-        /// Returns one page of the records you follow — projects, programs, planning interval objectives and intake requests together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` (`ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for records that have finished, whatever the outcome: completed, canceled, or a missed objective) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending. `page` starts at 1; `pageSize` is at most 500. Following a record tells you about its changes through your notifications. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one page of the records you follow — projects, programs, planning interval objectives and intake requests together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` (`ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; repeat it to list several kinds together, and any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for records that have finished, whatever the outcome: completed, canceled, or a missed objective) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending. `page` starts at 1; `pageSize` is at most 500. Following a record tells you about its changes through your notifications. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PagedResponseOfFollowedRecordDto> GetFollowsAsync(string? ownerType = null, FollowView? view = null, string? search = null, FollowSort? sort = null, int? page = null, int? pageSize = null, SortDirection? direction = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<PagedResponseOfFollowedRecordDto> GetFollowsAsync(System.Collections.Generic.IEnumerable<string>? ownerType = null, FollowView? view = null, string? search = null, FollowSort? sort = null, int? page = null, int? pageSize = null, SortDirection? direction = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -3689,7 +3689,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a record you follow, with what has happened since you followed it.
         /// </summary>
         /// <remarks>
-        /// Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role`, a `name` and the `employeeId` of a person, null for a team: a project's or program's owners then managers, an objective's team, an intake request's assignee then requester), `start` and `end` (an intake request's `end` is its need-by date), and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.
+        /// Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role`, a `name` and the `employeeId` of a person, null for a team: a project's or program's owners then managers, an objective's team, an intake request's assignee then requester), `start` and `end` (an intake request's `end` is its need-by date), and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3700,7 +3700,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get whether you follow a record.
         /// </summary>
         /// <remarks>
-        /// Returns `isFollowing` and, when true, `followedOn`. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it — even if you followed it before losing access — and 400 for an owner type that cannot be followed. Requires the following feature flag.
+        /// Returns `isFollowing` and, when true, `followedOn`. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it — even if you followed it before losing access — and 400 for an owner type that cannot be followed. Requires the following feature flag.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3711,7 +3711,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Follow a record.
         /// </summary>
         /// <remarks>
-        /// Follows the record for you. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Following a record you already follow changes nothing and still succeeds. You can follow only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Following grants no access; it tells you about the record's changes through your notifications. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Follows the record for you. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Following a record you already follow changes nothing and still succeeds. You can follow only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Following grants no access; it tells you about the record's changes through your notifications. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3722,7 +3722,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Stop following a record.
         /// </summary>
         /// <remarks>
-        /// Removes your follow of the record. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you followed it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Removes your follow of the record. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you followed it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -3783,11 +3783,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// List the records you follow.
         /// </summary>
         /// <remarks>
-        /// Returns one page of the records you follow — projects, programs, planning interval objectives and intake requests together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` (`ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for records that have finished, whatever the outcome: completed, canceled, or a missed objective) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending. `page` starts at 1; `pageSize` is at most 500. Following a record tells you about its changes through your notifications. Requires the following feature flag; returns 404 when it is off.
+        /// Returns one page of the records you follow — projects, programs, planning interval objectives and intake requests together — with each record's `ownerType`, `id`, `key`, `name`, `statusName`, `lifecycle` (`NotStarted`, `Active`, `Completed`, `Canceled`), `health` (`Healthy`, `AtRisk`, `Unhealthy`, or null when it has none), when you followed it and when it `lastChangedOn`; an objective also carries `parentKey` and `parentName`, its planning interval, and an intake request its desk. A record you can no longer read is left out of the page and the total. Narrow with `ownerType` (`ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; repeat it to list several kinds together, and any other value returns 400), `view` (`Unhealthy`, `ChangedRecently` for the last seven days, `Closed` for records that have finished, whatever the outcome: completed, canceled, or a missed objective) and `search` (matched against the name, or the key exactly). `sort` is `LastChanged` (default) or `Followed`, and `direction` is `Descending` (default, most recent first) or `Ascending`; a record with no activity counts as the least recently changed, so it comes last when descending and first when ascending. `page` starts at 1; `pageSize` is at most 500. Following a record tells you about its changes through your notifications. Requires the following feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<PagedResponseOfFollowedRecordDto> GetFollowsAsync(string? ownerType = null, FollowView? view = null, string? search = null, FollowSort? sort = null, int? page = null, int? pageSize = null, SortDirection? direction = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<PagedResponseOfFollowedRecordDto> GetFollowsAsync(System.Collections.Generic.IEnumerable<string>? ownerType = null, FollowView? view = null, string? search = null, FollowSort? sort = null, int? page = null, int? pageSize = null, SortDirection? direction = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -3805,7 +3805,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     urlBuilder_.Append('?');
                     if (ownerType != null)
                     {
-                        urlBuilder_.Append(System.Uri.EscapeDataString("ownerType")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(ownerType, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                            foreach (var item_ in ownerType) { urlBuilder_.Append(System.Uri.EscapeDataString("ownerType")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
                     }
                     if (view != null)
                     {
@@ -3987,7 +3987,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a record you follow, with what has happened since you followed it.
         /// </summary>
         /// <remarks>
-        /// Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role`, a `name` and the `employeeId` of a person, null for a team: a project's or program's owners then managers, an objective's team, an intake request's assignee then requester), `start` and `end` (an intake request's `end` is its need-by date), and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.
+        /// Returns the record as `Me_GetFollows` lists it (`record`), plus `progress` (0–100, objectives only), `people` (each with a `role`, a `name` and the `employeeId` of a person, null for a team: a project's or program's owners then managers, an objective's team, an intake request's assignee then requester), `start` and `end` (an intake request's `end` is its need-by date), and `changesSinceFollowed`: its activity since you followed it, newest first, at most 20 — `hasMoreChanges` says whether there is more. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Returns 404 when you do not follow the record or can no longer read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -4104,7 +4104,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get whether you follow a record.
         /// </summary>
         /// <remarks>
-        /// Returns `isFollowing` and, when true, `followedOn`. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it — even if you followed it before losing access — and 400 for an owner type that cannot be followed. Requires the following feature flag.
+        /// Returns `isFollowing` and, when true, `followedOn`. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it — even if you followed it before losing access — and 400 for an owner type that cannot be followed. Requires the following feature flag.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -4220,7 +4220,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Follow a record.
         /// </summary>
         /// <remarks>
-        /// Follows the record for you. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Following a record you already follow changes nothing and still succeeds. You can follow only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Following grants no access; it tells you about the record's changes through your notifications. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Follows the record for you. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Following a record you already follow changes nothing and still succeeds. You can follow only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Following grants no access; it tells you about the record's changes through your notifications. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -4341,7 +4341,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Stop following a record.
         /// </summary>
         /// <remarks>
-        /// Removes your follow of the record. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you followed it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Removes your follow of the record. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you followed it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -4595,7 +4595,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get whether you have muted a record.
         /// </summary>
         /// <remarks>
-        /// Returns `isMuted` and, when true, `mutedOn`. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.
+        /// Returns `isMuted` and, when true, `mutedOn`. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -4606,7 +4606,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Mute a record.
         /// </summary>
         /// <remarks>
-        /// Mutes the record for you: you are told nothing more about it, whether you follow it, take part in it, or both, and your unread notifications about it are marked read. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Muting a record you already muted changes nothing and still succeeds; `wasAlreadyMuted` says which happened, so an undo unmutes only a mute this call made. Muting changes nothing else: you keep your access and your roles, and you still follow the record if you did. Unmuting brings back nothing that happened while it was muted. You can mute only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Mutes the record for you: you are told nothing more about it, whether you follow it, take part in it, or both, and your unread notifications about it are marked read. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Muting a record you already muted changes nothing and still succeeds; `wasAlreadyMuted` says which happened, so an undo unmutes only a mute this call made. Muting changes nothing else: you keep your access and your roles, and you still follow the record if you did. Unmuting brings back nothing that happened while it was muted. You can mute only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -4617,7 +4617,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Unmute a record.
         /// </summary>
         /// <remarks>
-        /// Removes your mute of the record, so its later changes notify you again. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you had muted it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Removes your mute of the record, so its later changes notify you again. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you had muted it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -4808,7 +4808,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get whether you have muted a record.
         /// </summary>
         /// <remarks>
-        /// Returns `isMuted` and, when true, `mutedOn`. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.
+        /// Returns `isMuted` and, when true, `mutedOn`. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires the following feature flag.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -4924,7 +4924,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Mute a record.
         /// </summary>
         /// <remarks>
-        /// Mutes the record for you: you are told nothing more about it, whether you follow it, take part in it, or both, and your unread notifications about it are marked read. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Muting a record you already muted changes nothing and still succeeds; `wasAlreadyMuted` says which happened, so an undo unmutes only a mute this call made. Muting changes nothing else: you keep your access and your roles, and you still follow the record if you did. Unmuting brings back nothing that happened while it was muted. You can mute only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Mutes the record for you: you are told nothing more about it, whether you follow it, take part in it, or both, and your unread notifications about it are marked read. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Muting a record you already muted changes nothing and still succeeds; `wasAlreadyMuted` says which happened, so an undo unmutes only a mute this call made. Muting changes nothing else: you keep your access and your roles, and you still follow the record if you did. Unmuting brings back nothing that happened while it was muted. You can mute only what you can read: returns 404 when the record does not exist or you cannot read it, and 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -5051,7 +5051,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Unmute a record.
         /// </summary>
         /// <remarks>
-        /// Removes your mute of the record, so its later changes notify you again. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you had muted it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Removes your mute of the record, so its later changes notify you again. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Succeeds whether or not you had muted it, and works on a record you can no longer read. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -5615,7 +5615,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Mark your notifications about one record read.
         /// </summary>
         /// <remarks>
-        /// Marks every notification you have about the record read — the whole entry the list shows for it. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Succeeds whether or not anything was unread. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Marks every notification you have about the record read — the whole entry the list shows for it. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Succeeds whether or not anything was unread. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -5972,7 +5972,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Mark your notifications about one record read.
         /// </summary>
         /// <remarks>
-        /// Marks every notification you have about the record read — the whole entry the list shows for it. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`; `ownerId` is the record's UUID, not its key. Succeeds whether or not anything was unread. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
+        /// Marks every notification you have about the record read — the whole entry the list shows for it. `ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`; `ownerId` is the record's UUID, not its key. Succeeds whether or not anything was unread. Returns 400 for an owner type that cannot be followed. Requires your account to be linked to an employee (403 otherwise) and the following feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>

@@ -142194,10 +142194,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public SprintScopeOutcome Outcome { get; set; } = default!;
 
         /// <summary>
-        /// When an added item was added to the sprint; null for a committed one.
+        /// When the item was added to the sprint: during the sprint for an added item, or before its commitment
+        /// <br/>point for a committed one.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("addedAt")]
-        public System.DateTimeOffset? AddedAt { get; set; } = default!;
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset AddedAt { get; set; } = default!;
 
         /// <summary>
         /// When the item was last removed from the sprint — moved to another iteration or out of the requirement

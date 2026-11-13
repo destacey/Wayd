@@ -169,8 +169,11 @@ public sealed record SprintScopeItemDto
     /// <summary>What became of the item: completed, completed as Removed, carried over, descoped or remaining.</summary>
     public SprintScopeOutcome Outcome { get; init; }
 
-    /// <summary>When an added item was added to the sprint; null for a committed one.</summary>
-    public Instant? AddedAt { get; init; }
+    /// <summary>
+    /// When the item was added to the sprint: during the sprint for an added item, or before its commitment
+    /// point for a committed one.
+    /// </summary>
+    public Instant AddedAt { get; init; }
 
     /// <summary>
     /// When the item was last removed from the sprint — moved to another iteration or out of the requirement

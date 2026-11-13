@@ -3,7 +3,10 @@ using NodaTime;
 namespace Wayd.Work.Domain.Models.SprintScope;
 
 /// <summary>A work item that was in a sprint's scope: how it came in, and what became of it.</summary>
-/// <param name="AddedAt">When an added item was added to the sprint; null for a committed one.</param>
+/// <param name="AddedAt">
+/// When the item was added to the sprint: for an added item, when it entered during the sprint; for a committed
+/// one, when it was put in the sprint before the commitment point.
+/// </param>
 /// <param name="RemovedAt">
 /// When the item was last removed from the sprint — moved to another iteration or out of the requirement tier;
 /// not when it reached a Removed status. Null if it was still in at the effective end, or is still in a sprint
@@ -14,7 +17,7 @@ namespace Wayd.Work.Domain.Models.SprintScope;
 public sealed record SprintScopeItem(
     Guid WorkItemId,
     SprintScopeEntry Entry,
-    Instant? AddedAt,
+    Instant AddedAt,
     SprintScopeOutcome Outcome,
     Instant? RemovedAt,
     double? EntryEstimate,

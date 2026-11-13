@@ -72617,8 +72617,9 @@ export interface SprintScopeItemDto {
     entry: SprintScopeEntry;
     /** What became of the item: completed, completed as Removed, carried over, descoped or remaining. */
     outcome: SprintScopeOutcome;
-    /** When an added item was added to the sprint; null for a committed one. */
-    addedAt?: Date | undefined;
+    /** When the item was added to the sprint: during the sprint for an added item, or before its commitment
+point for a committed one. */
+    addedAt: Date;
     /** When the item was last removed from the sprint — moved to another iteration or out of the requirement
 tier; not when it reached a Removed status. Null if it was still in at the effective end, or is still
 in a sprint that has not ended. */

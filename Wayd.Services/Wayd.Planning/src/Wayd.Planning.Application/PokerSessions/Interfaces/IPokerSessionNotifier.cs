@@ -13,6 +13,11 @@ public interface IPokerSessionNotifier
     Task NotifyVotesRevealed(Guid sessionId, Guid roundId, IEnumerable<PokerVoteDto> votes);
     Task NotifyConsensusSet(Guid sessionId, Guid roundId, string estimate);
     Task NotifyRoundReset(Guid sessionId, Guid roundId);
+
+    /// <summary>
+    /// Tells the session's participants what came of publishing a round's consensus to the record it estimates.
+    /// </summary>
+    Task NotifyRoundPublicationChanged(Guid sessionId, Guid roundId, PokerRoundPublicationDto publication);
     Task NotifyRoundLabelUpdated(Guid sessionId, Guid roundId, string? label);
     /// <summary>
     /// Tells the session's participants a round's description changed. The text is not sent, since it can

@@ -33,6 +33,7 @@ vi.mock('@/src/components/contexts/messaging', () => ({
 let mockEmployeeId: string | null = 'e-1'
 vi.mock('@/src/hooks', () => ({
   useDocumentTitle: vi.fn(),
+  useFeatureFlag: () => ({ isEnabled: false, isLoading: false }),
   useLinkedEmployee: () => ({
     employeeId: mockEmployeeId,
     hasLinkedEmployee: mockEmployeeId !== null,

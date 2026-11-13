@@ -4,7 +4,8 @@ using Wayd.Planning.Domain.Models.PlanningPoker;
 namespace Wayd.Planning.Application.PokerSessions.Dtos;
 
 /// <summary>
-/// The record a poker round estimates, as it read when the round was added.
+/// The record a poker round estimates. Its title and description, as they read when the round was added, are the
+/// round's own label and description.
 /// </summary>
 public sealed record PokerRoundSubjectDto : IMapFrom<PokerRoundSubject>
 {
@@ -16,10 +17,4 @@ public sealed record PokerRoundSubjectDto : IMapFrom<PokerRoundSubject>
 
     /// <summary>The key people know the record by.</summary>
     public required string DisplayKey { get; set; }
-
-    /// <summary>The record's title when the round was added.</summary>
-    public required string Title { get; set; }
-
-    /// <summary>The record's description when the round was added, or null when it had none.</summary>
-    public string? Description { get; set; }
 }

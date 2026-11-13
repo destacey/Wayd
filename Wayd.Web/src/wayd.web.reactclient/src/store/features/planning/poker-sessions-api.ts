@@ -9,6 +9,7 @@ import {
   ObjectIdAndKey,
   PokerRoundDto,
   PokerSessionDetailsDto,
+  PokerSessionHostKind,
   PokerSessionListDto,
   PokerSessionMemberDto,
   PokerSessionStatus,
@@ -33,6 +34,27 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
       queryFn: async (status) => {
         try {
           const data = await getPokerSessionsClient().getList(status)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: () => [{ type: QueryTags.PokerSession, id: 'LIST' }],
+    }),
+
+    /** The sessions one host holds, such as an intake desk's, newest first. */
+    getHostedPokerSessions: builder.query<
+      PokerSessionListDto[],
+      { hostKind: PokerSessionHostKind; hostId: string }
+    >({
+      queryFn: async ({ hostKind, hostId }) => {
+        try {
+          const data = await getPokerSessionsClient().getList(
+            undefined,
+            hostKind,
+            hostId,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -233,6 +255,37 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.PokerSessionRound, id: arg.sessionKey },
+      ],
+    }),
+
+    /**
+     * Publishes one accepted round, or every unpublished accepted round when
+     * no round is named, to the records they estimate. Succeeds even when a
+     * record's area refuses: each returned round's `publication` says which.
+     */
+    publishPokerRounds: builder.mutation<
+      PokerRoundDto[],
+      { sessionId: string; sessionKey: number; roundId?: string }
+    >({
+      queryFn: async ({ sessionId, roundId }) => {
+        try {
+          const client = getPokerSessionsClient()
+          const data = roundId
+            ? [await client.publishRound(sessionId, roundId)]
+            : await client.publishRounds(sessionId)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // A published round changes its request's estimate, and with it the
+      // desk's unestimated count.
+      invalidatesTags: () => [
+        QueryTags.PokerSessionRound,
+        QueryTags.IntakeRequest,
+        QueryTags.IntakeRequestEstimate,
+        QueryTags.IntakeDesk,
       ],
     }),
 
@@ -544,6 +597,8 @@ export const setCachedFocusedRound = (
 export const {
   useGetPokerSessionsQuery,
   useGetPokerSessionQuery,
+  useGetHostedPokerSessionsQuery,
+  usePublishPokerRoundsMutation,
   useCreatePokerSessionMutation,
   useUpdatePokerSessionMutation,
   useDeletePokerSessionMutation,

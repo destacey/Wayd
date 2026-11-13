@@ -1,4 +1,7 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import type { RowSelectionState } from '@tanstack/react-table'
+import { useState } from 'react'
 import {
   IntakeRequestSummaryDto,
   NeedByBasis,
@@ -67,9 +70,88 @@ const renderGrid = (requests: IntakeRequestSummaryDto[]) =>
     />,
   )
 
+/** Holds the selection as a page does, showing which requests are selected. */
+const SelectableGrid = ({
+  requests,
+}: {
+  requests: IntakeRequestSummaryDto[]
+}) => {
+  const [selection, setSelection] = useState<RowSelectionState>({})
+  return (
+    <>
+      <div data-testid="selected">
+        {Object.keys(selection)
+          .filter((id) => selection[id])
+          .join(',')}
+      </div>
+      <IntakeRequestsGrid
+        requests={requests}
+        isLoading={false}
+        refetch={() => {}}
+        needByBases={BASES}
+        persistStateKey="test-selectable-requests"
+        csvFileName="requests"
+        rowSelection={selection}
+        onRowSelectionChange={setSelection}
+      />
+    </>
+  )
+}
+
 describe('IntakeRequestsGrid', () => {
   beforeEach(() => {
     mockClaims = new Set()
+  })
+
+  describe('selection', () => {
+    it('offers no checkboxes unless the page asks for a selection', () => {
+      // Arrange / Act
+      renderGrid([request(41, 'Export invoices')])
+
+      // Assert
+      expect(
+        screen.queryByRole('checkbox', { name: 'Select request 41' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('selects the requests ticked, by id', async () => {
+      // Arrange
+      render(
+        <SelectableGrid
+          requests={[
+            request(41, 'Export invoices'),
+            request(42, 'Archive invoices'),
+          ]}
+        />,
+      )
+
+      // Act
+      await userEvent.click(
+        screen.getByRole('checkbox', { name: 'Select request 42' }),
+      )
+
+      // Assert
+      expect(screen.getByTestId('selected')).toHaveTextContent('r-42')
+    })
+
+    it('drops a selected request that is no longer shown', async () => {
+      // Arrange
+      const kept = request(41, 'Export invoices')
+      const leaving = request(42, 'Archive invoices')
+      const { rerender } = render(<SelectableGrid requests={[kept, leaving]} />)
+      await userEvent.click(
+        screen.getByRole('checkbox', { name: 'Select request 41' }),
+      )
+      await userEvent.click(
+        screen.getByRole('checkbox', { name: 'Select request 42' }),
+      )
+
+      // Act
+      rerender(<SelectableGrid requests={[kept]} />)
+
+      // Assert
+      expect(await screen.findByTestId('selected')).toHaveTextContent(/^r-41$/)
+    })
   })
 
   it('shows an Estimate column only when given the estimates', () => {

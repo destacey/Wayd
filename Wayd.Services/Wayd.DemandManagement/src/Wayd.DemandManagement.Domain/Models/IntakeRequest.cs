@@ -200,6 +200,16 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// </summary>
     public IntakeRequestEstimate? Estimate { get; private set; }
 
+    /// <summary>
+    /// The card a planning poker round settled on in place of an estimate, such as <c>?</c> for a request that
+    /// needs clarifying or <c>∞</c> for one that needs splitting, or null. Substance tier, like the estimate.
+    /// </summary>
+    /// <remarks>
+    /// Held only while <see cref="Estimate"/> is null: publishing the round cleared the estimate, and any later
+    /// change to the estimate clears the card.
+    /// </remarks>
+    public string? EstimateCard { get; private set; }
+
     /// <inheritdoc/>
     public override string StatusOwnerType => DemandManagementWorkflowOwners.IntakeRequest.Key;
 
@@ -395,7 +405,7 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// a move to a more private desk is silent. An assignee who is not a member of the destination is
     /// unassigned in the same move, because an assignee is always a member of the request's desk, and an estimate on a
     /// version the destination does not pin is cleared, because a size from another desk's scale says nothing beside
-    /// the destination's own estimates.
+    /// the destination's own estimates. A card held in an estimate's place is cleared too.
     /// <para>
     /// The request arrives in a status of the destination's workflow, which the mover chooses: an open one
     /// needing no reason, since what to decide about it is the new desk's call. When the destination follows a
@@ -446,8 +456,9 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         DeskId = to.Id;
         RaiseWhenKeyed(() => new IntakeRequestReroutedEvent(Id, Key, from.Id, to.Id, from.Visibility, to.Visibility, actor, timestamp));
 
-        // A size from another desk's scale says nothing beside the destination's own estimates.
-        if (Estimate is { } estimate && estimate.ScaleVersionId != to.EstimationScaleVersionId)
+        // A size from another desk's scale says nothing beside the destination's own estimates, and a card is
+        // what a session of the desk it left settled on.
+        if ((Estimate is { } estimate && estimate.ScaleVersionId != to.EstimationScaleVersionId) || EstimateCard is not null)
             SetEstimate(null, IntakeRequestEstimateSource.Rerouted, actor, timestamp);
 
         if (AssigneeId is { } assigneeId && to.RoleOf(assigneeId) is null)
@@ -1088,8 +1099,9 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
             to = new IntakeRequestEstimate(estimate.Value.Value, version.Id, estimate.Position, scale!.Name, version.Number);
         }
 
-        // Compared on what the estimate is, not on the frozen name, which a rename since would make differ.
-        if (to?.Value == Estimate?.Value && to?.ScaleVersionId == Estimate?.ScaleVersionId)
+        // Compared on what the estimate is, not on the frozen name, which a rename since would make differ. A card
+        // held in the estimate's place is a difference: clearing takes it off.
+        if (to?.Value == Estimate?.Value && to?.ScaleVersionId == Estimate?.ScaleVersionId && EstimateCard is null)
             return Result.Success();
 
         SetEstimate(to, source, editor.Actor, timestamp);
@@ -1098,7 +1110,63 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Clears the estimate of an open request because its desk changed estimation scale and chose to clear them.
+    /// Writes the consensus of a planning poker round about the request: an estimate value sets the estimate, and
+    /// a card such as <c>?</c> clears it and is held in its place (<see cref="EstimateCard"/>).
+    /// </summary>
+    /// <remarks>
+    /// Decided again at the moment of publishing, whatever held when the round was added: the publisher must be on
+    /// the desk team, the request open, and its desk must still pin the version the session voted on. A refusal
+    /// changes nothing. Whatever the request held before is overwritten, a manual estimate included. Publishing
+    /// what the request already holds changes nothing and raises nothing.
+    /// </remarks>
+    /// <param name="value">The round's consensus: an estimate value or a card of the session's version.</param>
+    /// <param name="desk">The request's desk.</param>
+    /// <param name="scale">
+    /// The scale the desk's pinned version belongs to, with its versions loaded, or null when the desk pins none.
+    /// </param>
+    /// <param name="sessionScaleVersionId">The scale version the round's session voted on.</param>
+    /// <param name="round">The round being published.</param>
+    public Result PublishPokerRound(string value, IntakeDesk desk, DemandEstimationScale? scale, Guid sessionScaleVersionId,
+        IntakeRequestEstimatePokerRound round, IntakeRequestEditor editor, Instant timestamp)
+    {
+        Guard.Against.Null(desk);
+        Guard.Against.Null(round);
+        Guard.Against.Null(editor);
+        if (desk.Id != DeskId)
+            throw new ArgumentException("The desk must be the request's own.", nameof(desk));
+        var version = scale?.Versions.FirstOrDefault(v => v.Id == desk.EstimationScaleVersionId);
+        if ((scale is null) != (desk.EstimationScaleVersionId is null) || version?.Id != desk.EstimationScaleVersionId)
+            throw new ArgumentException("The scale must be the one the request's desk pins a version of.", nameof(scale));
+
+        if (!editor.IsDeskAgent)
+            return Result.Failure(NotAnEstimatorError);
+
+        if (!IsOpen)
+            return Result.Failure(ClosedEstimateError);
+
+        if (version is null || version.Id != sessionScaleVersionId)
+            return Result.Failure(DeskLeftSessionScaleError);
+
+        IntakeRequestEstimate? to = null;
+        string? toCard = null;
+        if (version.FindEstimate(value) is { } estimate)
+            to = new IntakeRequestEstimate(estimate.Value.Value, version.Id, estimate.Position, scale!.Name, version.Number);
+        else if (version.FindCard(value) is { } card)
+            toCard = card.Value;
+        else
+            return Result.Failure(NotAScaleValueError);
+
+        if (to?.Value == Estimate?.Value && to?.ScaleVersionId == Estimate?.ScaleVersionId && toCard == EstimateCard)
+            return Result.Success();
+
+        SetEstimate(to, IntakeRequestEstimateSource.PokerRound, editor.Actor, timestamp, toCard, round);
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Clears the estimate of an open request, or the card held in its place, because its desk changed estimation
+    /// scale and chose to clear them.
     /// </summary>
     /// <remarks>
     /// Only <see cref="IntakeDesk.ChangeEstimationScale"/> calls it, so the desk's decision and the clears it causes
@@ -1106,20 +1174,40 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
     /// </remarks>
     internal void ClearEstimateForScaleChange(EventActor actor, Instant timestamp)
     {
-        if (!IsOpen || Estimate is null)
+        if (!IsOpen || (Estimate is null && EstimateCard is null))
             return;
 
         SetEstimate(null, IntakeRequestEstimateSource.ScaleChange, actor, timestamp);
     }
 
-    private void SetEstimate(IntakeRequestEstimate? to, IntakeRequestEstimateSource source, EventActor actor, Instant timestamp)
+    /// <summary>
+    /// Replaces the estimate and the card held in its place together, so a change to either clears the other.
+    /// </summary>
+    private void SetEstimate(IntakeRequestEstimate? to, IntakeRequestEstimateSource source, EventActor actor, Instant timestamp,
+        string? toCard = null, IntakeRequestEstimatePokerRound? pokerRound = null)
     {
         var from = Estimate?.ToDetails();
+        var fromCard = EstimateCard;
         Estimate = to;
+        EstimateCard = to is null ? toCard : null;
         var toDetails = to?.ToDetails();
+        var heldCard = EstimateCard;
 
-        RaiseWhenKeyed(() => new IntakeRequestEstimateChangedEvent(Id, Key, from, toDetails, source, actor, timestamp));
+        RaiseWhenKeyed(() => new IntakeRequestEstimateChangedEvent(Id, Key, from, toDetails, source, actor, timestamp,
+            fromCard, heldCard, pokerRound));
     }
+
+    /// <summary>
+    /// The failure for publishing a poker round after the request's desk moved off the scale version its session
+    /// voted on.
+    /// </summary>
+    public const string DeskLeftSessionScaleError =
+        "The request's desk no longer estimates on the scale version this session voted on.";
+
+    /// <summary>
+    /// The failure for publishing a consensus that is neither an estimate value nor a card of the desk's scale version.
+    /// </summary>
+    public const string NotAScaleValueError = "The consensus is not a value on the desk's estimation scale.";
 
     /// <summary>
     /// The failure for estimating a request on a desk that has no estimation scale.

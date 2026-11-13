@@ -43,7 +43,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Get poker session details using the Id or key.")]
     [EndpointDescription(
-        "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator, someone who manages its host, or a poker administrator), `host` (the area the session belongs to, its `kind` and `id`, or null for a standalone session), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `subject` (the record it estimates, its `kind`, `id`, `displayKey`, and the `title` and `description` it had when the round was added, or null), `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.")]
+        "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator, someone who manages its host, or a poker administrator), `host` (the area the session belongs to, its `kind` and `id`, or null for a standalone session), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `description`, `subject` (the record it estimates, its `kind`, `id` and `displayKey`, or null; for such a round `label` and `description` are the record's title and description as they read when the round was added), `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.")]
     [McpTool("PokerSessions_GetSession", "Get poker session")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -138,7 +138,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Add a round to a poker session.")]
     [EndpointDescription(
-        "A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.")]
+        "A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 4000 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.")]
     [McpTool("PokerSessions_AddRound", "Add poker round", Destructive = false)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -229,11 +229,43 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPost("{id}/rounds/{roundId}/publish")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
+    [EndpointSummary("Publish a round's consensus to the record it estimates.")]
+    [EndpointDescription(
+        "Writes an Accepted round's `consensusEstimate` to the round's `subject`, such as an intake request, as the caller. Only a round about a record can be published, and only once; a free-text round cannot. The record's own area decides again whether it takes the estimate: for an intake request the caller must be an agent on its desk, the request open and still on the desk hosting the session, and the desk still on the scale version the session votes on. The round's `publication` records what came of it: `outcome` Published, or Refused with a `refusalReason` when nothing was written; a refused round can be published again. A consensus that is a card, such as `?`, clears the request's estimate and is recorded on the request in its place. Resetting a round clears its `publication` but leaves what was written. Allowed on an Active or a Completed session." + OnlyFacilitators + " Both ids are UUIDs. Returns the round.")]
+    [McpTool("PokerSessions_PublishRound", "Publish poker round estimate")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PokerRoundDto>> PublishRound(Guid id, Guid roundId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new PublishPokerRoundsCommand(id, roundId), cancellationToken);
+        return result.IsSuccess
+            ? Ok(result.Value[0])
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("{id}/publish")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
+    [EndpointSummary("Publish every unpublished accepted round of a session.")]
+    [EndpointDescription(
+        "Publishes, as PokerSessions_PublishRound does, each Accepted round about a record that has not already been published, in round order. Each round is decided on its own, so some may be Published and others Refused; read each returned round's `publication`. Returns the rounds it tried, which is empty when none could be published. Allowed on an Active or a Completed session." + OnlyFacilitators + " Takes the session's UUID.")]
+    [McpTool("PokerSessions_PublishRounds", "Publish poker session estimates")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IEnumerable<PokerRoundDto>>> PublishRounds(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new PublishPokerRoundsCommand(id), cancellationToken);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpPut("{id}/rounds/{roundId}/label")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Update the label for a round.")]
     [EndpointDescription(
-        "Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.")]
+        "Replaces the round's `label`; an omitted or null label clears it. A round about a record (one with a `subject`) takes its label and description from the record, so this is refused for it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.")]
     [McpTool("PokerSessions_UpdateRoundLabel", "Update poker round label")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -249,7 +281,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Update the description for a round.")]
     [EndpointDescription(
-        "Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.")]
+        "Replaces the round's `description` (at most 4000 characters); an omitted, null or blank description clears it. The label is unchanged. A round about a record (one with a `subject`) takes its label and description from the record, so this is refused for it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.")]
     [McpTool("PokerSessions_UpdateRoundDescription", "Update poker round description")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

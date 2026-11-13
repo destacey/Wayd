@@ -27,7 +27,7 @@ public sealed class PokerRoundSubjectInputValidatorTests
     public void ALongDescription_Passes()
     {
         // Arrange — the subject keeps its start rather than refusing the record
-        var input = ARequest(description: new string('a', PokerRoundSubject.DescriptionMaxLength * 2));
+        var input = ARequest(description: new string('a', PokerRound.DescriptionMaxLength * 2));
 
         // Act
         var result = _validator.TestValidate(input);
@@ -50,7 +50,7 @@ public sealed class PokerRoundSubjectInputValidatorTests
     public void TitleTooLong_Fails()
     {
         // Act
-        var result = _validator.TestValidate(ARequest(title: new string('a', PokerRoundSubject.TitleMaxLength + 1)));
+        var result = _validator.TestValidate(ARequest(title: new string('a', PokerRound.LabelMaxLength + 1)));
 
         // Assert
         result.ShouldHaveValidationErrorFor(s => s.Title);

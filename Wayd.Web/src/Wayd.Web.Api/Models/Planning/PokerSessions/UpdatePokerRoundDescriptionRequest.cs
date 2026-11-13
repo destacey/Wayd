@@ -9,7 +9,7 @@ namespace Wayd.Web.Api.Models.Planning.PokerSessions;
 public class UpdatePokerRoundDescriptionRequest
 {
     /// <summary>
-    /// Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. Null or blank clears it.
+    /// Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 4000 characters. Null or blank clears it.
     /// </summary>
     public string? Description { get; set; }
 

@@ -43,7 +43,7 @@ describe('PokerLobbyState', () => {
       render(<PokerLobbyState {...defaultProps} canManage={true} />)
 
       expect(
-        screen.getByPlaceholderText('Work item ID or label (optional)'),
+        screen.getByPlaceholderText('What are you estimating? (optional)'),
       ).toBeInTheDocument()
       expect(screen.getByText('Start')).toBeInTheDocument()
     })
@@ -62,7 +62,7 @@ describe('PokerLobbyState', () => {
       render(<PokerLobbyState {...defaultProps} />)
 
       const input = screen.getByPlaceholderText(
-        'Work item ID or label (optional)',
+        'What are you estimating? (optional)',
       )
       await user.type(input, 'ITEM-123')
       await user.click(screen.getByText('Start'))
@@ -119,7 +119,7 @@ describe('PokerLobbyState', () => {
 
       expect(screen.queryByText('Start')).not.toBeInTheDocument()
       expect(
-        screen.queryByPlaceholderText('Work item ID or label (optional)'),
+        screen.queryByPlaceholderText('What are you estimating? (optional)'),
       ).not.toBeInTheDocument()
     })
 

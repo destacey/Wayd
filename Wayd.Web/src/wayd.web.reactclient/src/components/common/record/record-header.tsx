@@ -15,7 +15,8 @@ const { Text, Title } = Typography
 
 export interface RecordParentLink {
   label: string
-  href: string
+  /** Absent for a hop the reader is told about but cannot open, which renders as text. */
+  href?: string
 }
 
 /**

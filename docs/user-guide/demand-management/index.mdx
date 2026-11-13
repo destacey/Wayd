@@ -247,6 +247,18 @@ A desk can size its requests on one of the company's [estimation scales](../plan
 
 The requester and participants see the estimate on their own request but cannot change it, and changing it does not notify them; it is recorded in the request's activity. This is a request's size as the desk sees it, separate from the estimates teams give work items.
 
+#### Estimating requests in a poker session
+
+The people who can size a request are often in delivery, not on the desk. A desk gathers them in a [planning poker](../planning/planning-poker.mdx) session with a round for each request, and publishes what the team settles on. This needs the Planning Poker feature and the **View Poker Sessions** permission, for the agents and for everyone they invite.
+
+- **Starting a session.** An agent on a desk with an estimation scale chooses **Start Poker Session** on the desk's **Poker Sessions** or **Requests** section and picks the desk's open requests. Ticking requests first, on the desk's **Requests** section or on the Requests page, starts the session with those: **Estimate in Poker** on the Requests page needs open requests of one desk you work.
+- **The desk hosts it.** The session is private, absent from the Planning Poker page, and listed in the desk's **Poker Sessions** section. Every agent and Desk Admin on the desk facilitates it, and it votes on the desk's scale version. Facilitators invite the voters from the session's **Edit** form; voters need not be on the desk.
+- **What voters see.** Each round shows its request's number, title and description as they read when the round was added, whatever the desk's visibility. Agents on the desk can follow the number or title to the request; invited voters see them as text. Adding a request to a session shares that much with everyone in it, for as long as the session exists. Nothing else on the request is shown.
+- **Adding more.** In the session, **Add requests** adds rounds about more of the desk's open requests. A request has one round per session. Free-text rounds work as in any session.
+- **Publishing.** Nothing changes on a request until a facilitator [publishes](../planning/planning-poker.mdx#publishing-an-estimate) its accepted round. Publishing replaces whatever estimate the request had, a manual one included, and the request's activity shows both.
+- **Checked when published.** The facilitator who publishes must be an agent on the request's desk, and the request must still be open, visible to them and on the desk hosting the session, which must still estimate on the session's scale version. Otherwise nothing is written and the round says why.
+- **A card clears the estimate.** When the team settles on a card rather than a size, publishing clears the request's estimate, which then reads as not estimated: an estimate is only ever a size. The request's activity records the card: *?* for a request that needs clarifying, *∞* for one that needs splitting.
+
 ### Changing a request's status
 
 **Move to**, beside the actions menu, is offered to an agent on its desk. It lists the statuses of the desk's workflow, in the order the desk laid them out, apart from the one the request holds and Withdrawn. A status that needs nothing more moves the request at once; one that does opens a form asking for it:

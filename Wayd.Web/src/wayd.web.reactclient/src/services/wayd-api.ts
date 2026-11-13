@@ -36577,6 +36577,133 @@ export class PokerSessionsClient {
     }
 
     /**
+     * Publish a round's consensus to the record it estimates.
+     * @return OK
+     */
+    publishRound(id: string, roundId: string, cancelToken?: CancelToken): Promise<PokerRoundDto> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/rounds/{roundId}/publish";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (roundId === undefined || roundId === null)
+            throw new globalThis.Error("The parameter 'roundId' must be defined.");
+        url_ = url_.replace("{roundId}", encodeURIComponent("" + roundId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPublishRound(_response);
+        });
+    }
+
+    protected processPublishRound(response: AxiosResponse): Promise<PokerRoundDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PokerRoundDto>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PokerRoundDto>(null as any);
+    }
+
+    /**
+     * Publish every unpublished accepted round of a session.
+     * @return OK
+     */
+    publishRounds(id: string, cancelToken?: CancelToken): Promise<PokerRoundDto[]> {
+        let url_ = this.baseUrl + "/api/planning/poker-sessions/{id}/publish";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "POST",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processPublishRounds(_response);
+        });
+    }
+
+    protected processPublishRounds(response: AxiosResponse): Promise<PokerRoundDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<PokerRoundDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<PokerRoundDto[]>(null as any);
+    }
+
+    /**
      * Update the label for a round.
      * @return No Content
      */
@@ -52694,6 +52821,165 @@ export class IntakeDesksClient {
     }
 
     /**
+     * Start a planning poker session on a desk to estimate its requests.
+     * @return OK
+     */
+    startPokerSession(id: string, request: StartIntakeDeskPokerSessionRequest, cancelToken?: CancelToken): Promise<ObjectIdAndKey> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/{id}/poker-sessions";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processStartPokerSession(_response);
+        });
+    }
+
+    protected processStartPokerSession(response: AxiosResponse): Promise<ObjectIdAndKey> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<ObjectIdAndKey>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<ObjectIdAndKey>(null as any);
+    }
+
+    /**
+     * Add rounds about more of a desk's requests to a poker session it hosts.
+     * @return No Content
+     */
+    addRequestsToPokerSession(id: string, sessionId: string, request: AddIntakeRequestsToPokerSessionRequest, cancelToken?: CancelToken): Promise<void> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/{id}/poker-sessions/{sessionId}/rounds";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (sessionId === undefined || sessionId === null)
+            throw new globalThis.Error("The parameter 'sessionId' must be defined.");
+        url_ = url_.replace("{sessionId}", encodeURIComponent("" + sessionId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: AxiosRequestConfig = {
+            data: content_,
+            method: "POST",
+            url: url_,
+            headers: {
+                "Content-Type": "application/json",
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processAddRequestsToPokerSession(_response);
+        });
+    }
+
+    protected processAddRequestsToPokerSession(response: AxiosResponse): Promise<void> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 204) {
+            const _responseText = response.data;
+            return Promise.resolve<void>(null as any);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status === 422) {
+            const _responseText = response.data;
+            let result422: any = null;
+            let resultData422  = _responseText;
+            result422 = resultData422;
+            return throwException("Unprocessable Entity", status, _responseText, _headers, result422);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * Get the published intake request workflows a desk can follow.
      * @return OK
      */
@@ -64194,6 +64480,12 @@ export interface AddIntakeRequestParticipantRequest {
     employeeId: string;
 }
 
+/** The requests to add to a planning poker session a desk hosts. */
+export interface AddIntakeRequestsToPokerSessionRequest {
+    /** The ids of open requests on the desk to estimate, one round each, in this order. */
+    requestIds: string[];
+}
+
 /** A tag to add to a tag category. */
 export interface AddIntakeRequestTagRequest {
     /** The label, unique within the category. */
@@ -64210,7 +64502,7 @@ export interface AddPersonaRequest {
 
 export interface AddPokerRoundRequest {
     label?: string | undefined;
-    /** Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. */
+    /** Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 4000 characters. */
     description?: string | undefined;
 }
 
@@ -68585,6 +68877,10 @@ or finishing it, or the requester's note on withdrawing. Null when the move reco
     statusReason?: string | undefined;
     /** How big the ask is, on the scale the desk team estimated it on, or null when it has not been estimated. */
     estimate?: IntakeRequestEstimateDto | undefined;
+    /** The card a planning poker round settled on in place of an estimate, such as `?` for an ask that needs
+clarifying or `∞` for one that needs splitting. Set only while IntakeRequestEstimateDto? IntakeRequestSubstanceDto.Estimate is null; any
+later change to the estimate clears it. */
+    estimateCard?: string | undefined;
 }
 
 /** The summary tier of an intake request: enough to recognise that an ask exists. */
@@ -70232,20 +70528,47 @@ Free text, never parsed: nothing sorts or compares it, so any convention works. 
 
 export interface PokerRoundDto {
     id: string;
+    /** What is being estimated, in a line. For a round about a record, the record's title as it read when the
+round was added. */
     label?: string | undefined;
-    /** The record the round estimates, as it read when the round was added, or null for a round about whatever
-its label describes. */
+    /** The record the round estimates, or null for a round about whatever its label describes. A round about a
+record takes its label and description from the record, and neither can be edited. */
     subject?: PokerRoundSubjectDto | undefined;
-    /** Optional detail about what is being estimated, such as acceptance criteria or notes for the team. */
+    /** Optional detail about what is being estimated, such as acceptance criteria or notes for the team. For a
+round about a record, the record's description as it read when the round was added. */
     description?: string | undefined;
     status: string;
     consensusEstimate?: string | undefined;
+    /** What came of last publishing the consensus to the record the round estimates, or null when it has not been
+published since the round was last accepted. */
+    publication?: PokerRoundPublicationDto | undefined;
     order: number;
     voteCount: number;
     votes: PokerVoteDto[];
 }
 
-/** The record a poker round estimates, as it read when the round was added. */
+/** What came of last publishing a poker round's consensus to the record it estimates. */
+export interface PokerRoundPublicationDto {
+    /** `Published` when the consensus was written to the record; `Refused` when the record's area
+refused it and nothing was written. */
+    outcome: PokerRoundPublicationOutcome;
+    /** When the facilitator published, or tried to. */
+    at: Date;
+    /** The id of the employee who published, or tried to. */
+    byEmployeeId: string;
+    /** The employee who published, or tried to. Null in a live update, which carries only
+Guid PokerRoundPublicationDto.ByEmployeeId. */
+    by?: EmployeeNavigationDto | undefined;
+    /** Why the record's area refused the consensus, or null when it was written. */
+    refusalReason?: string | undefined;
+}
+
+export enum PokerRoundPublicationOutcome {
+    Published = "Published",
+    Refused = "Refused",
+}
+
+/** The record a poker round estimates. Its title and description, as they read when the round was added, are the round's own label and description. */
 export interface PokerRoundSubjectDto {
     /** The kind of record the round estimates. */
     kind: PokerRoundSubjectKind;
@@ -70253,10 +70576,6 @@ export interface PokerRoundSubjectDto {
     id: string;
     /** The key people know the record by. */
     displayKey: string;
-    /** The record's title when the round was added. */
-    title: string;
-    /** The record's description when the round was added, or null when it had none. */
-    description?: string | undefined;
 }
 
 export enum PokerRoundSubjectKind {
@@ -72907,6 +73226,18 @@ one version are two deployments. Free text, never parsed. */
     startedAt?: Date | undefined;
 }
 
+/** A planning poker session to start on a desk, with the requests it will estimate. */
+export interface StartIntakeDeskPokerSessionRequest {
+    /** The session's name, at most 256 characters. */
+    name: string;
+    /** The ids of open requests on the desk to estimate, one round each, in this order. May be empty; requests can
+be added to the session later. */
+    requestIds: string[];
+    /** The ids of employees invited to vote, beside the desk's agents and Desk Admins, who all facilitate the
+session. */
+    invitedEmployeeIds?: string[] | undefined;
+}
+
 /** Starts a sprint. */
 export interface StartSprintRequest {
     /** The team's open sprint, named to confirm completing it at the same moment. A team has one open sprint
@@ -74779,7 +75110,7 @@ export interface UpdatePlanningIntervalRequest {
 
 /** The new description for a poker round. */
 export interface UpdatePokerRoundDescriptionRequest {
-    /** Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. Null or blank clears it. */
+    /** Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 4000 characters. Null or blank clears it. */
     description?: string | undefined;
 }
 

@@ -38,6 +38,10 @@ internal sealed class PlanningPokerNotifier(
         await _hubContext.Clients.Group(sessionId.ToString())
             .SendAsync("RoundReset", sessionId, roundId);
 
+    public async Task NotifyRoundPublicationChanged(Guid sessionId, Guid roundId, PokerRoundPublicationDto publication) =>
+        await _hubContext.Clients.Group(sessionId.ToString())
+            .SendAsync("RoundPublicationChanged", sessionId, roundId, publication);
+
     public async Task NotifyConsensusSet(Guid sessionId, Guid roundId, string estimate) =>
         await _hubContext.Clients.Group(sessionId.ToString())
             .SendAsync("ConsensusSet", sessionId, roundId, estimate);

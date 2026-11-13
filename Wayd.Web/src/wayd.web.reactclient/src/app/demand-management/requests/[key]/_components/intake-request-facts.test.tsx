@@ -11,6 +11,13 @@ vi.mock('../../../_components/employee-name', () => ({
   default: ({ employee }: { employee: { name: string } }) => employee.name,
 }))
 
+const substance = (overrides: Record<string, unknown> = {}) => ({
+  description: 'Export invoices monthly',
+  submittedBy: { id: 'e-1', key: 1, name: 'Riley Requester' },
+  participants: [],
+  ...overrides,
+})
+
 const request = (
   category: StatusCategory,
   deliveryState?: DeliverySignal,
@@ -29,6 +36,22 @@ const request = (
   }) as unknown as IntakeRequestDetailsDto
 
 describe('IntakeRequestFacts', () => {
+  it('shows no estimate for a request a poker round settled on a card for', () => {
+    // Arrange
+    const withCard = {
+      ...request(StatusCategory.Active),
+      substance: substance({ estimateCard: '?' }),
+    } as unknown as IntakeRequestDetailsDto
+
+    // Act
+    render(<IntakeRequestFacts request={withCard} />)
+
+    // Assert
+    expect(screen.getByText('Estimate')).toBeInTheDocument()
+    expect(screen.getByText('Not estimated')).toBeInTheDocument()
+    expect(screen.queryByText('?')).not.toBeInTheDocument()
+  })
+
   it('shows the request’s delivery state', () => {
     // Arrange / Act
     render(

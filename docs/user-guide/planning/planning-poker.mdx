@@ -23,7 +23,7 @@ A **Poker Session** is a real-time estimation event:
 - Run by one or more **Facilitators** — the person who created it first, and anyone they add
 - **Public** or **Private** — see [who can see and join a session](#who-can-see-and-join-a-session)
 - Uses a specific **Estimation Scale**, pinned to one of its versions (the scale cannot be changed after rounds begin)
-- Contains **Rounds** — each round represents one item being estimated, with an optional label such as a work item ID and an optional description (up to 2,048 characters) for detail the team should read before voting, such as acceptance criteria
+- Contains **Rounds** — each round represents one item being estimated, with an optional label saying what is being estimated and an optional description (up to 4,000 characters) for detail the team should read before voting, such as acceptance criteria
 - Has **Participants** — the people who joined it. Each participant is either **Voting** or not, and a participant can also be a **Facilitator**
 - Sessions are immediately **Active** on creation, and stay Active until completed
 
@@ -61,8 +61,21 @@ Some sessions are started from another area of Wayd to estimate that area's reco
 
 - **Listed only where they belong.** They never appear on the Planning Poker page, even for a holder of **Administer Poker Sessions**; open one from the area that started it, or from its link.
 - **Always private.** Their visibility cannot be made public. Besides their facilitators and invitees, the people who manage the area they belong to can see and join them, and run them as facilitators.
-- **Rounds about a record.** Each round can be about a record of that area, and shows its key, title and description as they read when the round was added. Everyone in the session can read them. A facilitator's own description of the round still sits below.
+- **Rounds about a record.** Each round can be about a record of that area. Its label is the record's title and its description the record's description, as they read when the round was added, shown with the record's key. Everyone in the session can read them, and neither can be edited in the session. For those who work the area, the key and title link to the record.
 - **On the area's scale version.** They vote on the version of the scale the area estimates with, even when the scale has published a newer one or been deactivated since.
+
+An intake desk hosts sessions this way: an agent starts one from the desk to size its requests. See [Estimating requests in a poker session](../demand-management/index.mdx#estimating-requests-in-a-poker-session).
+
+### Publishing an estimate
+
+Accepting an estimate stays inside the session. For a round about a record, a facilitator then **publishes** it, which writes the accepted estimate to the record:
+
+- **One round or all of them.** **Publish to request** sits under an accepted round; **Publish estimates** in the session's sidebar publishes every accepted round not yet published. Both work while the session is active and after it is completed.
+- **Only a published round writes.** A round that is reset, removed, or accepted but never published changes nothing on its record.
+- **The record's area decides again.** Publishing is checked when it happens, as the facilitator who publishes. If the area refuses, nothing is written, and the round shows **Not published** with the reason; it can be published again once the reason is dealt with.
+- **Each round shows what came of it.** Not published, published with who published it and when, or refused with the reason. The timeline marks published and refused rounds.
+- **Resetting clears it.** A round that is reset can be published again once it is accepted again. What the earlier publish wrote stays until then.
+- **Free-text rounds are not published.** A round that is not about a record has nowhere to publish to, and shows no publish action.
 
 ## Poker Session Detail Page
 
@@ -128,6 +141,7 @@ stateDiagram-v2
 - The estimation scale cannot change after rounds begin. Changing it before then pins the session to the chosen scale's current version
 - Votes and the accepted estimate must be values on the session's version of its scale
 - A session stays on its version when the scale publishes a new one or is deactivated
+- Only an accepted round about a record can be published, by a facilitator, in an active or a completed session
 - Only active sessions can be completed. Completing a session deletes its empty rounds — those with no record, no label, no description and no votes, such as the round started automatically after the last estimate was accepted
 - A session always has at least one facilitator. A facilitator can remove themselves while others remain
 - Only facilitators run a session: starting, revealing, re-voting and accepting rounds, selecting the round shown to those following them, editing it, changing its facilitators, visibility and invites, completing it and deleting it. The **Administer Poker Sessions** permission lets its holder do the same in every session, private ones included

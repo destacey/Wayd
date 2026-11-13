@@ -48,9 +48,12 @@ const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
           </LabeledContent>
         )}
         {/* Shown once there is an estimate, or to the team that can give one; a desk that does not
-            estimate would otherwise read "Not estimated" on every request. */}
+            estimate would otherwise read "Not estimated" on every request. An estimate is only ever a
+            size: a card a poker round settled on leaves it empty. */}
         {substance &&
-          (substance.estimate || request.estimateValues.length > 0) && (
+          (substance.estimate ||
+            substance.estimateCard ||
+            request.estimateValues.length > 0) && (
             <LabeledContent label="Estimate">
               {substance.estimate ? (
                 <EstimateValue estimate={substance.estimate} />

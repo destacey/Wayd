@@ -8,7 +8,7 @@ public class AddPokerRoundRequest
     public string? Label { get; set; }
 
     /// <summary>
-    /// Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters.
+    /// Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 4000 characters.
     /// </summary>
     public string? Description { get; set; }
 
@@ -22,7 +22,7 @@ public sealed class AddPokerRoundRequestValidator : CustomValidator<AddPokerRoun
 {
     public AddPokerRoundRequestValidator()
     {
-        RuleFor(r => r.Label).MaximumLength(512);
+        RuleFor(r => r.Label).MaximumLength(PokerRound.LabelMaxLength);
         RuleFor(r => r.Description).MaximumLength(PokerRound.DescriptionMaxLength);
     }
 }

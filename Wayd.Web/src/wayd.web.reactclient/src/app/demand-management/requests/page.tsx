@@ -1,9 +1,10 @@
 'use client'
 
 import { PageTitle } from '@/src/components/common'
+import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { requireFeatureFlag } from '@/src/components/hoc'
-import { useDocumentTitle, useLinkedEmployee } from '@/src/hooks'
+import { useDocumentTitle, useFeatureFlag, useLinkedEmployee } from '@/src/hooks'
 import {
   useGetIntakeChannelsQuery,
   useGetIntakeRequestTagCategoriesQuery,
@@ -18,8 +19,11 @@ import { MenuOutlined } from '@ant-design/icons'
 import { Button, ConfigProvider, Flex, Grid, Segmented, Skeleton } from 'antd'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { FC, Suspense, useEffect, useRef } from 'react'
+import type { RowSelectionState } from '@tanstack/react-table'
+import { FC, Suspense, useEffect, useRef, useState } from 'react'
 import IntakeRequestsGrid from '../_components/intake-requests-grid'
+import { POKER_VIEW_PERMISSION } from '../_components/desk-poker'
+import StartPokerSessionButton from '../_components/start-poker-session-button'
 import { TOUCH_THEME } from '../_components/touch-theme'
 import RequestBoardView from './_components/request-board-view'
 import RequestFilterBar from './_components/request-filter-bar'
@@ -129,6 +133,17 @@ const IntakeRequestsPage: FC = () => {
     : data
   const ranked = filters.order !== 'usual'
 
+  // Offered to someone who works a desk and can open Planning Poker; the server decides the rest.
+  const { hasPermissionClaim } = useAuth()
+  const { isEnabled: pokerEnabled } = useFeatureFlag('planning-poker')
+  const canStartPoker =
+    pokerEnabled &&
+    myDeskIds.length > 0 &&
+    hasPermissionClaim(POKER_VIEW_PERMISSION)
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  // Only requests still shown count: a filter change must not leave hidden ones selected.
+  const selectedRequests = (visible ?? []).filter((r) => rowSelection[r.id])
+
   const viewSelector = (
     <ConfigProvider theme={phone ? TOUCH_THEME : undefined}>
       <Segmented<RequestView>
@@ -188,6 +203,18 @@ const IntakeRequestsPage: FC = () => {
           persistStateKey="demand-management-requests"
           csvFileName="requests"
           emptyMessage="No requests match these filters"
+          rowSelection={canStartPoker ? rowSelection : undefined}
+          onRowSelectionChange={canStartPoker ? setRowSelection : undefined}
+          leftSlot={
+            canStartPoker ? (
+              <StartPokerSessionButton
+                selected={selectedRequests}
+                desks={desks}
+                employeeId={employeeId}
+                onStarted={() => setRowSelection({})}
+              />
+            ) : undefined
+          }
           rightSlot={viewSelector}
         />
       ) : (

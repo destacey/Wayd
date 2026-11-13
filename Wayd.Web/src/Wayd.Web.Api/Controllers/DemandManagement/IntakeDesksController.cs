@@ -218,6 +218,37 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
         return Ok(choices);
     }
 
+    [HttpPost("{id}/poker-sessions")]
+    [Authorize]
+    [FeatureGate(FeatureFlags.Names.PlanningPoker)]
+    [McpTool("IntakeDesks_StartPokerSession", "Start intake desk poker session", Destructive = false)]
+    [EndpointSummary("Start a planning poker session on a desk to estimate its requests.")]
+    [EndpointDescription("Needs an agent on the desk who also holds the poker View permission, and a desk with an estimation scale. The session is hosted by the desk: Private, absent from the main poker list (list a desk's with PokerSessions_GetSessions, `hostKind` IntakeDesk and `hostId` the desk), facilitated by every agent and Desk Admin on the desk, and voting on the scale version the desk pins. Each of `requestIds`, open requests on the desk, gets a round labelled with its title and described by its description, as they read now, which everyone in the session sees whatever the desk's visibility. `invitedEmployeeIds` invites voters who are not on the desk; they need the poker View permission. Nothing is written to a request until a facilitator publishes its round with PokerSessions_PublishRound. Returns the new session's `id` and `key`. Needs the planning-poker feature flag.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult<ObjectIdAndKey>> StartPokerSession(Guid id, [FromBody] StartIntakeDeskPokerSessionRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(request.ToStartIntakeDeskPokerSessionCommand(id), cancellationToken);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : ErrorFor(result.Error);
+    }
+
+    [HttpPost("{id}/poker-sessions/{sessionId}/rounds")]
+    [Authorize]
+    [FeatureGate(FeatureFlags.Names.PlanningPoker)]
+    [McpTool("IntakeDesks_AddRequestsToPokerSession", "Add intake requests to desk poker session", Destructive = false)]
+    [EndpointSummary("Add rounds about more of a desk's requests to a poker session it hosts.")]
+    [EndpointDescription("Needs an agent on the desk, who facilitates its sessions. `requestIds` are open requests on the desk; each gets a round after the session's others, labelled with its title and described by its description, which everyone in the session sees. Refused as a whole when any is not an open request on the desk or already has a round in the session, when the session is not hosted by this desk, or when it is completed. Both ids are UUIDs. Needs the planning-poker feature flag.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<ActionResult> AddRequestsToPokerSession(Guid id, Guid sessionId, [FromBody] AddIntakeRequestsToPokerSessionRequest request, CancellationToken cancellationToken) =>
+        NoContentOrError(await _dispatcher.Send(new AddIntakeRequestsToPokerSessionCommand(id, sessionId, request.RequestIds), cancellationToken));
+
     [HttpGet("workflow-choices")]
     [McpTool("IntakeDesks_GetWorkflowChoices", "List intake desk workflow choices")]
     [Authorize]

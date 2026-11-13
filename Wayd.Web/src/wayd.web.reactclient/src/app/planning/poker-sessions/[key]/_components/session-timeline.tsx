@@ -1,10 +1,26 @@
 'use client'
 
-import { PokerRoundDto } from '@/src/services/wayd-api'
+import {
+  PokerRoundDto,
+  PokerRoundPublicationOutcome,
+} from '@/src/services/wayd-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useAddPokerRoundMutation } from '@/src/store/features/planning/poker-sessions-api'
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
-import { Button, Flex, Input, Popconfirm, Tag, Typography } from 'antd'
+import {
+  CheckCircleOutlined,
+  DeleteOutlined,
+  ExclamationCircleOutlined,
+  PlusOutlined,
+} from '@ant-design/icons'
+import {
+  Button,
+  Flex,
+  Input,
+  Popconfirm,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd'
 import { FC, useState } from 'react'
 import styles from './poker-session.module.css'
 import { roundTitle } from './round-title'
@@ -130,7 +146,7 @@ const SessionTimeline: FC<SessionTimelineProps> = ({
           <Flex gap={8} style={{ padding: '8px 16px' }}>
             <Input
               size="small"
-              placeholder="Type a work item ID or title…"
+              placeholder="Add a round: what are you estimating?"
               value={newRoundLabel}
               onChange={(e) => setNewRoundLabel(e.target.value)}
               onPressEnter={handleAddRound}
@@ -173,6 +189,24 @@ const SessionTimeline: FC<SessionTimelineProps> = ({
                 {roundTitle(round) ?? 'Untitled round'}
               </Text>
               <Flex align="center" gap={4}>
+                {round.publication?.outcome ===
+                  PokerRoundPublicationOutcome.Published && (
+                  <Tooltip title="Published">
+                    <CheckCircleOutlined
+                      aria-label="Published"
+                      style={{ color: 'var(--poker-success)' }}
+                    />
+                  </Tooltip>
+                )}
+                {round.publication?.outcome ===
+                  PokerRoundPublicationOutcome.Refused && (
+                  <Tooltip title={round.publication.refusalReason}>
+                    <ExclamationCircleOutlined
+                      aria-label="Not published"
+                      style={{ color: 'var(--poker-warning)' }}
+                    />
+                  </Tooltip>
+                )}
                 {round.consensusEstimate && (
                   <Tag color="green" style={{ margin: 0, fontSize: 11 }}>
                     {round.consensusEstimate}

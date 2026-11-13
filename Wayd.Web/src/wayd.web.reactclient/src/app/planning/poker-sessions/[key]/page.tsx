@@ -15,6 +15,7 @@ import {
   useSubmitPokerVoteMutation,
   useWithdrawPokerVoteMutation,
 } from '@/src/store/features/planning/poker-sessions-api'
+import { useGetIntakeDeskQuery } from '@/src/store/features/demand-management/demand-management-api'
 import { useGetProfileQuery } from '@/src/store/features/user-management/profile-api'
 import { Button, Divider, Drawer, Flex, Grid, Tag } from 'antd'
 import {
@@ -48,6 +49,10 @@ import {
   VotingActions,
 } from './_components'
 import { buildExportRows, EXPORT_HEADERS } from './_components/session-export'
+import AddDeskRequestsButton, {
+  hostDeskId,
+} from './_components/add-desk-requests-button'
+import { sessionParent, worksDesk } from './_components/session-parent'
 import { shownRound } from './_components/shown-round'
 import PokerSessionDetailsLoading from './loading'
 
@@ -82,6 +87,13 @@ const PokerSessionDetailPage: FC = () => {
   // Facilitators and poker administrators run the session; the server decides who they are.
   const canManage = session?.canManage ?? false
   const { data: profile } = useGetProfileQuery()
+  // The desk hosting the session, read only to name it in the trail back.
+  const deskId = session ? hostDeskId(session) : undefined
+  const { data: hostDesk } = useGetIntakeDeskQuery(deskId ?? '', {
+    skip: !deskId,
+  })
+  // Whoever works the desk gets links back to it and to its requests; an invited voter reads text.
+  const worksHostDesk = worksDesk(hostDesk, currentEmployeeId)
 
   const [connectedParticipants, setConnectedParticipants] = useState<
     PresenceParticipant[]
@@ -367,7 +379,11 @@ const PokerSessionDetailPage: FC = () => {
         name: session.name,
         recordKey: String(session.key),
         subtitle: 'Planning Poker',
-        parent: { label: 'Planning Poker', href: '/planning/poker-sessions' },
+        parent: sessionParent(
+          session.host,
+          hostDesk,
+          worksHostDesk,
+        ),
         tags: pageTitleTags,
         actions: pageTitleActions,
       }}
@@ -400,12 +416,20 @@ const PokerSessionDetailPage: FC = () => {
         >
           <div className={styles.centerColumn}>
             {centerViewMode === 'lobby' && (
-              <PokerLobbyState
-                isActive={isActive}
-                canManage={canManage}
-                sessionId={session.id}
-                sessionKey={session.key}
-              />
+              <>
+                <PokerLobbyState
+                  isActive={isActive}
+                  canManage={canManage}
+                  sessionId={session.id}
+                  sessionKey={session.key}
+                />
+                {/* The sidebar that offers this is not shown until a round exists. */}
+                {isActive && canManage && (
+                  <Flex justify="center" style={{ paddingTop: 12 }}>
+                    <AddDeskRequestsButton session={session} />
+                  </Flex>
+                )}
+              </>
             )}
 
             {centerViewMode === 'active' && activeRound && (
@@ -422,6 +446,7 @@ const PokerSessionDetailPage: FC = () => {
                   sessionId={session.id}
                   sessionKey={session.key}
                   canManage={canManage && isActive}
+                  linkSubject={worksHostDesk}
                 />
 
                 <div className={styles.votingCardPanel}>
@@ -489,6 +514,13 @@ const PokerSessionDetailPage: FC = () => {
                 sessionId={session.id}
                 sessionKey={session.key}
                 canManage={canManage && isActive}
+                canPublish={canManage}
+                linkSubject={worksHostDesk}
+                consensusIsCard={
+                  session.estimationScaleVersion?.values.find(
+                    (v) => v.value === activeRound.consensusEstimate,
+                  )?.isEstimate === false
+                }
                 participants={roundParticipants}
               />
             )}

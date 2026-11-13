@@ -324,6 +324,8 @@ public class IntakeRequestConfiguration : IEntityTypeConfiguration<IntakeRequest
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        builder.Property(r => r.EstimateCard).HasMaxLength(32);
+
         builder.HasMany(r => r.Scores)
             .WithOne()
             .HasForeignKey(s => s.RequestId)

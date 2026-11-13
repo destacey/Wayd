@@ -46,9 +46,20 @@ vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
 }))
 
+let mockPokerEnabled = false
 vi.mock(import('@/src/hooks'), async (importOriginal) => ({
   ...(await importOriginal()),
   useDocumentTitle: vi.fn(),
+  useFeatureFlag: () => ({ isEnabled: mockPokerEnabled, isLoading: false }),
+  useLinkedEmployee: () => ({ employeeId: 'e-1', hasLinkedEmployee: true }),
+}))
+
+// Lists sessions from the poker API, which this suite does not provide.
+vi.mock('./_components/intake-desk-poker-sessions', () => ({
+  default: () => <div data-testid="poker-sessions" />,
+}))
+vi.mock('../../_components/desk-poker-session-form', () => ({
+  default: () => <div data-testid="poker-session-form" />,
 }))
 
 vi.mock('@/src/components/hoc', () => ({
@@ -120,6 +131,76 @@ describe('IntakeDeskDetailsPage', () => {
   beforeEach(() => {
     mockSearchParams = new URLSearchParams()
     mockDesk = desk()
+    mockPokerEnabled = false
+  })
+
+  describe('poker sessions', () => {
+    const estimating = { estimationScale: { id: 's-1', name: 'T-Shirt' } }
+
+    it('lists the desk’s sessions and lets a member start one', async () => {
+      // Arrange
+      mockPokerEnabled = true
+      mockDesk = desk(estimating)
+      mockSearchParams = new URLSearchParams('section=poker-sessions')
+
+      // Act
+      await renderPage()
+
+      // Assert
+      expect(await screen.findByTestId('poker-sessions')).toBeInTheDocument()
+      expect(
+        screen.getByRole('button', { name: 'Start Poker Session' }),
+      ).toBeInTheDocument()
+    })
+
+    it('withholds starting one from someone who does not work the desk', async () => {
+      // Arrange
+      mockPokerEnabled = true
+      mockDesk = desk({
+        ...estimating,
+        members: [{ employee: { id: 'e-9', key: 9, name: 'Blair' }, role: 'Agent' }],
+      })
+      mockSearchParams = new URLSearchParams('section=poker-sessions')
+
+      // Act
+      await renderPage()
+
+      // Assert
+      expect(await screen.findByTestId('poker-sessions')).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Start Poker Session' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('withholds starting one on a desk with no estimation scale', async () => {
+      // Arrange
+      mockPokerEnabled = true
+      mockSearchParams = new URLSearchParams('section=poker-sessions')
+
+      // Act
+      await renderPage()
+
+      // Assert
+      expect(await screen.findByTestId('poker-sessions')).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Start Poker Session' }),
+      ).not.toBeInTheDocument()
+    })
+
+    it('has no poker sessions section while Planning Poker is off', async () => {
+      // Arrange
+      mockDesk = desk(estimating)
+
+      // Act
+      await renderPage()
+
+      // Assert
+      expect(await screen.findByTestId('requests-grid')).toBeInTheDocument()
+      expect(screen.queryByText('Poker Sessions')).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Start Poker Session' }),
+      ).not.toBeInTheDocument()
+    })
   })
 
   it('offers no change to someone who does not run the desk', async () => {

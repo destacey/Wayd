@@ -30,18 +30,27 @@ internal static class FollowReadRules
     }
 
     /// <summary>
-    /// Every registered owner type that a module answers for, ordered by display name; or just the one
-    /// named, failing when it cannot be followed.
+    /// Every registered owner type that a module answers for, ordered by display name, when none is named;
+    /// otherwise just those named, each once, failing when any of them cannot be followed.
     /// </summary>
     public static Result<List<(FollowOwnerDescriptor Descriptor, IRecordReadRule ReadRule)>> Select(
-        IEnumerable<IRecordReadRule> readRules, string? ownerType)
+        IEnumerable<IRecordReadRule> readRules, IReadOnlyCollection<string>? ownerTypes)
     {
-        if (ownerType is not null)
+        if (ownerTypes is { Count: > 0 })
         {
-            var resolved = Resolve(readRules, ownerType);
-            return resolved.IsFailure
-                ? Result.Failure<List<(FollowOwnerDescriptor, IRecordReadRule)>>(resolved.Error)
-                : new List<(FollowOwnerDescriptor, IRecordReadRule)> { resolved.Value };
+            var selected = new List<(FollowOwnerDescriptor, IRecordReadRule)>();
+            foreach (var ownerType in ownerTypes.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                var resolved = Resolve(readRules, ownerType);
+                if (resolved.IsFailure)
+                {
+                    return Result.Failure<List<(FollowOwnerDescriptor, IRecordReadRule)>>(resolved.Error);
+                }
+
+                selected.Add(resolved.Value);
+            }
+
+            return selected;
         }
 
         return FollowOwners.All

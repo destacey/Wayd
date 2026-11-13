@@ -6,28 +6,46 @@ import { arrangeWidgets, attentionTiles, WidgetAccess } from './widget-registry'
 // The widget modules load RTK Query hooks; these tests read only the registry entries.
 vi.mock('./widgets/desk-queue-widget', () => ({
   default: () => null,
+  DESK_QUEUE_LIMIT: 5,
   RequestsAssignedToMeTile: () => null,
   UnassignedRequestsTile: () => null,
 }))
-vi.mock('./widgets/following-widget', () => ({ default: () => null }))
-vi.mock('./widgets/my-requests-widget', () => ({ default: () => null }))
+vi.mock('./widgets/following-widget', () => ({
+  default: () => null,
+  FOLLOWING_COUNT: 8,
+}))
+vi.mock('./widgets/my-requests-widget', () => ({
+  default: () => null,
+  MY_REQUESTS_LIMIT: 8,
+}))
 vi.mock('./widgets/my-projects-widget', () => ({ default: () => null }))
 vi.mock('./widgets/my-project-tasks-widget', () => ({
   default: () => null,
+  MY_PROJECT_TASKS_LIMIT: 5,
   OverdueTasksTile: () => null,
   DueThisWeekTile: () => null,
 }))
 vi.mock('./widgets/project-health-checks-due-widget', () => ({
   default: () => null,
+  HEALTH_CHECKS_DUE_LIMIT: 5,
   ProjectHealthChecksDueTile: () => null,
 }))
-vi.mock('./widgets/my-deliverables-widget', () => ({ default: () => null }))
-vi.mock('./widgets/my-work-items-widget', () => ({ default: () => null }))
+vi.mock('./widgets/my-deliverables-widget', () => ({
+  default: () => null,
+  MY_DELIVERABLES_LIMIT: 5,
+}))
+vi.mock('./widgets/my-work-items-widget', () => ({
+  default: () => null,
+  MY_WORK_ITEMS_LIMIT: 8,
+}))
 vi.mock('./widgets/my-risks-widget', () => ({
   default: () => null,
   RiskFollowUpsTile: () => null,
 }))
-vi.mock('./widgets/my-roadmaps-widget', () => ({ default: () => null }))
+vi.mock('./widgets/my-roadmaps-widget', () => ({
+  default: () => null,
+  MY_ROADMAPS_LIMIT: 5,
+}))
 vi.mock('./widgets/my-teams-widget', () => ({ default: () => null }))
 vi.mock('./widgets/my-teams-of-teams-widget', () => ({ default: () => null }))
 vi.mock('./widgets/my-teams-tile', () => ({
@@ -38,6 +56,7 @@ vi.mock('./widgets/my-teams-tile', () => ({
 vi.mock('./widgets/planning-intervals-widget', () => ({ default: () => null }))
 vi.mock('./widgets/whats-changed-widget', () => ({
   default: () => null,
+  WHATS_CHANGED_COUNT: 5,
   UnreadNotificationsTile: () => null,
 }))
 
@@ -70,6 +89,22 @@ const projectDutyTiles = [
 ]
 
 describe('HomeWidgets', () => {
+  it('gives each widget unique setting keys, and each choice a default it offers', () => {
+    // Arrange
+    const withSettings = HomeWidgets.filter((w) => w.settings)
+
+    // Act & Assert
+    expect(withSettings.length).toBeGreaterThan(0)
+    for (const widget of withSettings) {
+      const keys = widget.settings!.map((s) => s.key)
+      expect(new Set(keys).size).toBe(keys.length)
+      for (const setting of widget.settings!) {
+        if (setting.kind !== 'choice') continue
+        expect(setting.options.map((o) => o.value)).toContain(setting.default)
+      }
+    }
+  })
+
   it('gives every widget a unique id, since saved layouts refer to them', () => {
     // Arrange
     const ids = HomeWidgets.map((w) => w.id)

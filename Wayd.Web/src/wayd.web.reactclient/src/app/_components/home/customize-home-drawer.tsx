@@ -1,6 +1,11 @@
 'use client'
 
-import { HolderOutlined, MoreOutlined } from '@ant-design/icons'
+import {
+  DownOutlined,
+  HolderOutlined,
+  MoreOutlined,
+  UpOutlined,
+} from '@ant-design/icons'
 import {
   Announcements,
   closestCorners,
@@ -23,7 +28,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Button, Drawer, Dropdown, Grid, Switch, Typography } from 'antd'
+import { Button, Drawer, Dropdown, Grid, Switch, Tag, Typography } from 'antd'
 import type { MenuProps } from 'antd'
 import { FC, useState } from 'react'
 import {
@@ -31,11 +36,14 @@ import {
   HomeLayout,
   LayoutSlot,
   moveWidget,
+  setWidgetSettings,
   setWidgetVisible,
   WIDGET_COLUMNS,
 } from './home-layout'
 import styles from './home.module.css'
 import { HomeWidget, WidgetColumn } from './widget-registry'
+import { hasCustomSettings, WidgetSettingValues } from './widget-settings'
+import WidgetSettingsForm from './widget-settings-form'
 
 const { Text } = Typography
 
@@ -63,6 +71,7 @@ interface WidgetRowProps {
   isLast: boolean
   onToggle: (visible: boolean) => void
   onMove: (action: MoveAction) => void
+  onSettingsChange: (settings: WidgetSettingValues) => void
 }
 
 const WidgetRow: FC<WidgetRowProps> = ({
@@ -73,7 +82,11 @@ const WidgetRow: FC<WidgetRowProps> = ({
   isLast,
   onToggle,
   onMove,
+  onSettingsChange,
 }) => {
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const hasSettings = (widget.settings?.length ?? 0) > 0
+  const settingsId = `customize-home-settings-${widget.id}`
   const {
     attributes,
     listeners,
@@ -99,46 +112,73 @@ const WidgetRow: FC<WidgetRowProps> = ({
       // dnd-kit positions the row while it moves; nothing else is inline.
       style={{ transform: CSS.Translate.toString(transform), transition }}
       // While dragged, the overlay carries the row and this one marks where it will land.
-      className={`${styles.customizeRow} ${isDragging ? styles.customizeRowPlaceholder : ''}`}
+      className={`${styles.customizeItem} ${isDragging ? styles.customizeRowPlaceholder : ''}`}
     >
-      <Button
-        ref={setActivatorNodeRef}
-        type="text"
-        size="small"
-        icon={<HolderOutlined />}
-        className={styles.customizeHandle}
-        {...attributes}
-        {...listeners}
-        aria-label={`Drag ${widget.title}`}
-      />
-      <div className={styles.customizeRowText}>
-        <Text type={slot.visible ? undefined : 'secondary'}>
-          {widget.title}
-        </Text>
-        <Text type="secondary" className={styles.customizeRowDescription}>
-          {widget.description}
-        </Text>
-      </div>
-      <Dropdown
-        trigger={['click']}
-        menu={{
-          items: moveItems,
-          onClick: ({ key }) => onMove(key as MoveAction),
-        }}
-      >
+      <div className={styles.customizeRow}>
         <Button
+          ref={setActivatorNodeRef}
           type="text"
           size="small"
-          icon={<MoreOutlined />}
-          aria-label={`Move ${widget.title}`}
+          icon={<HolderOutlined />}
+          className={styles.customizeHandle}
+          {...attributes}
+          {...listeners}
+          aria-label={`Drag ${widget.title}`}
         />
-      </Dropdown>
-      <Switch
-        size="small"
-        checked={slot.visible}
-        onChange={onToggle}
-        aria-label={`Show ${widget.title}`}
-      />
+        <div className={styles.customizeRowText}>
+          <span className={styles.customizeRowTitle}>
+            <Text type={slot.visible ? undefined : 'secondary'}>
+              {widget.title}
+            </Text>
+            {hasCustomSettings(widget.settings, slot.settings) && (
+              <Tag color="processing">Customized</Tag>
+            )}
+          </span>
+          <Text type="secondary" className={styles.customizeRowDescription}>
+            {widget.description}
+          </Text>
+        </div>
+        {hasSettings && (
+          <Button
+            type="text"
+            size="small"
+            icon={settingsOpen ? <UpOutlined /> : <DownOutlined />}
+            onClick={() => setSettingsOpen(!settingsOpen)}
+            aria-expanded={settingsOpen}
+            aria-controls={settingsId}
+            aria-label={`${widget.title} settings`}
+          />
+        )}
+        <Dropdown
+          trigger={['click']}
+          menu={{
+            items: moveItems,
+            onClick: ({ key }) => onMove(key as MoveAction),
+          }}
+        >
+          <Button
+            type="text"
+            size="small"
+            icon={<MoreOutlined />}
+            aria-label={`Move ${widget.title}`}
+          />
+        </Dropdown>
+        <Switch
+          size="small"
+          checked={slot.visible}
+          onChange={onToggle}
+          aria-label={`Show ${widget.title}`}
+        />
+      </div>
+      {hasSettings && settingsOpen && (
+        <div id={settingsId} className={styles.customizeRowSettings}>
+          <WidgetSettingsForm
+            widget={widget}
+            stored={slot.settings ?? {}}
+            onChange={onSettingsChange}
+          />
+        </div>
+      )}
     </li>
   )
 }
@@ -165,6 +205,7 @@ interface ColumnListProps {
   widgetsById: Map<string, HomeWidget>
   onToggle: (id: string, visible: boolean) => void
   onMove: (id: string, action: MoveAction) => void
+  onSettingsChange: (id: string, settings: WidgetSettingValues) => void
 }
 
 const ColumnList: FC<ColumnListProps> = ({
@@ -173,6 +214,7 @@ const ColumnList: FC<ColumnListProps> = ({
   widgetsById,
   onToggle,
   onMove,
+  onSettingsChange,
 }) => {
   // The list is a drop target too, so a widget can be dropped into an empty column.
   const { setNodeRef } = useDroppable({ id: columnDropId(column) })
@@ -214,6 +256,9 @@ const ColumnList: FC<ColumnListProps> = ({
                 isLast={index === slots.length - 1}
                 onToggle={(visible) => onToggle(slot.id, visible)}
                 onMove={(action) => onMove(slot.id, action)}
+                onSettingsChange={(settings) =>
+                  onSettingsChange(slot.id, settings)
+                }
               />
             )
           })}
@@ -238,7 +283,8 @@ export interface CustomizeHomeDrawerProps {
 /**
  * Where a user arranges their home page: each widget listed under its column,
  * dragged within and between columns (or moved from its menu, by keyboard or
- * on a phone), and switched on or off. The page behind it follows each change.
+ * on a phone), switched on or off, and opened to change what it shows. The
+ * page behind it follows each change.
  */
 const CustomizeHomeDrawer: FC<CustomizeHomeDrawerProps> = ({
   open,
@@ -357,10 +403,11 @@ const CustomizeHomeDrawer: FC<CustomizeHomeDrawerProps> = ({
       }
     >
       <Text type="secondary" className={styles.customizeIntro}>
-        Drag widgets to reorder them or move them between columns, and switch
-        off the ones you do not need. The attention strip stays at the top and
-        shows the tiles of the widgets you keep. Your layout saves when you
-        close this panel.
+        Drag widgets to reorder them or move them between columns, switch off
+        the ones you do not need, and open a widget to change what it shows. The
+        attention strip stays at the top and shows the tiles of the widgets you
+        keep. Your layout saves when you close this panel. Reset to default also
+        clears each widget&apos;s settings.
       </Text>
       <DndContext
         sensors={sensors}
@@ -381,6 +428,9 @@ const CustomizeHomeDrawer: FC<CustomizeHomeDrawerProps> = ({
               onChange(setWidgetVisible(layout, id, visible))
             }
             onMove={handleMove}
+            onSettingsChange={(id, settings) =>
+              onChange(setWidgetSettings(layout, id, settings))
+            }
           />
         ))}
         {/* Carries the row across columns, where the list item itself remounts. */}

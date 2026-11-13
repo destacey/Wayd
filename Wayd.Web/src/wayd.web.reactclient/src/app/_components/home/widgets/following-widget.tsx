@@ -8,10 +8,14 @@ import {
 } from '@/src/components/common/record/record-identity'
 import { FollowSort, SortDirection } from '@/src/services/wayd-api'
 import { useGetMyFollowsInfiniteQuery } from '@/src/store/features/common/follows-api'
+import { Typography } from 'antd'
 import { FC } from 'react'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
+import { MAX_ROWS, rowsToShow } from '../widget-settings'
 import { HomeWidgetProps } from '../widget-registry'
 import styles from '../home.module.css'
+
+const { Text } = Typography
 
 /** How many followed records the widget lists; the Following page has the rest. */
 export const FOLLOWING_COUNT = 8
@@ -21,20 +25,21 @@ export const FOLLOWING_COUNT = 8
  * Following page's own rows — without its search, sort or paging, and each
  * row a link to the record rather than a selection.
  */
-const FollowingWidget: FC<HomeWidgetProps> = ({ title }) => {
-  // One page of just what it shows: the widget is a glance, and the Following page pages the rest.
+const FollowingWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
+  const rowCount = rowsToShow(settings, FOLLOWING_COUNT)
+  // One page, of the most the setting offers: the widget is a glance, and the Following page pages the rest.
   const { data, isLoading, isError } = useGetMyFollowsInfiniteQuery({
     sort: FollowSort.LastChanged,
     direction: SortDirection.Descending,
-    pageSize: FOLLOWING_COUNT,
+    pageSize: MAX_ROWS,
   })
   const firstPage = data?.pages[0]
   // A record type the client has no page for yet cannot be a link, so it is left out.
   const rows = (firstPage?.items ?? [])
     .map((record) => ({ record, href: recordHref(record) }))
     .filter((row): row is typeof row & { href: string } => row.href !== null)
-    .slice(0, FOLLOWING_COUNT)
-  const total = firstPage?.totalCount ?? 0
+    .slice(0, rowCount)
+  const more = (firstPage?.totalCount ?? 0) - rows.length
 
   const body = () => {
     if (isError) {
@@ -46,21 +51,28 @@ const FollowingWidget: FC<HomeWidgetProps> = ({ title }) => {
       )
     }
     return (
-      <div
-        role="list"
-        aria-label="Followed records"
-        className={styles.flushRows}
-      >
-        {rows.map(({ record, href }) => (
-          <div key={recordId(record)} role="listitem">
-            <FollowedRecordRow
-              record={record}
-              typeName={typeLabel(record.ownerType)}
-              href={href}
-            />
-          </div>
-        ))}
-      </div>
+      <>
+        <div
+          role="list"
+          aria-label="Followed records"
+          className={styles.flushRows}
+        >
+          {rows.map(({ record, href }) => (
+            <div key={recordId(record)} role="listitem">
+              <FollowedRecordRow
+                record={record}
+                typeName={typeLabel(record.ownerType)}
+                href={href}
+              />
+            </div>
+          ))}
+        </div>
+        {more > 0 ? (
+          <Text type="secondary" className={styles.flushMore}>
+            And {more} more.
+          </Text>
+        ) : null}
+      </>
     )
   }
 
@@ -68,7 +80,6 @@ const FollowingWidget: FC<HomeWidgetProps> = ({ title }) => {
     <WidgetCard
       title={title}
       viewAllHref="/account/following"
-      viewAllCount={total > rows.length ? total : undefined}
       loading={isLoading}
       flush={!isError && rows.length > 0}
     >

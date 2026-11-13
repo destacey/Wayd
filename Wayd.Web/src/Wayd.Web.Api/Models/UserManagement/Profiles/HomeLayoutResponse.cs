@@ -14,6 +14,7 @@ public sealed record HomeLayoutResponse
             WidgetId = w.WidgetId,
             Column = w.Column,
             Visible = w.Visible,
+            Settings = w.Settings,
         })],
     };
 }
@@ -29,4 +30,10 @@ public sealed record HomeLayoutWidgetResponse
 
     /// <summary>Whether the widget shows; false when the user turned it off.</summary>
     public required bool Visible { get; init; }
+
+    /// <summary>
+    /// What the user changed about what the widget shows, by setting key; empty when they changed nothing.
+    /// Keys and values are the client's, like the widget id.
+    /// </summary>
+    public required Dictionary<string, string> Settings { get; init; }
 }

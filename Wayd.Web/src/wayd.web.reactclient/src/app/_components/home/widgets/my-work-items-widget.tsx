@@ -10,6 +10,7 @@ import { useGetMyWorkItemsQuery } from '@/src/store/features/user-management/me-
 import { Typography } from 'antd'
 import { FC } from 'react'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
+import { rowsToShow } from '../widget-settings'
 import { HomeWidgetProps } from '../widget-registry'
 import styles from '../home.module.css'
 
@@ -90,7 +91,8 @@ const WorkItemRow: FC<{ workItem: WorkItemListDto }> = ({ workItem }) => (
  * The backlog-level work items assigned to the caller that are in progress or
  * proposed, Active first, with how many they finished in the last week.
  */
-const MyWorkItemsWidget: FC<HomeWidgetProps> = ({ title }) => {
+const MyWorkItemsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
+  const rows = rowsToShow(settings, MY_WORK_ITEMS_LIMIT)
   const open = useGetMyWorkItemsQuery({ statusCategories: OPEN_CATEGORIES })
   // The done count is extra: without it the open work still shows. Like the
   // other widgets' counts, it shows only above zero.
@@ -119,11 +121,11 @@ const MyWorkItemsWidget: FC<HomeWidgetProps> = ({ title }) => {
         </>
       )
     }
-    const more = workItems.length - MY_WORK_ITEMS_LIMIT
+    const more = workItems.length - rows
     return (
       <>
         <WaydList size="small">
-          {workItems.slice(0, MY_WORK_ITEMS_LIMIT).map((workItem) => (
+          {workItems.slice(0, rows).map((workItem) => (
             <WorkItemRow key={workItem.id} workItem={workItem} />
           ))}
         </WaydList>

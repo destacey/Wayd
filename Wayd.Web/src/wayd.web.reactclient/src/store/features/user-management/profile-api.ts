@@ -76,17 +76,25 @@ export const profileApi = apiSlice.injectEndpoints({
       // the cache keeps it there between the drawer closing and the refetch,
       // rather than flashing the old one. Rolled back on failure.
       onQueryStarted: async (request, { dispatch, queryFulfilled }) => {
-        const patch = dispatch(
-          profileApi.util.updateQueryData(
-            'getHomeLayout',
-            undefined,
-            (draft) => {
-              draft.widgets = request.widgets
-            },
-          ),
-        )
+        const patchCache = () =>
+          dispatch(
+            profileApi.util.updateQueryData(
+              'getHomeLayout',
+              undefined,
+              (draft) => {
+                draft.widgets = request.widgets.map((w) => ({
+                  ...w,
+                  settings: w.settings ?? {},
+                }))
+              },
+            ),
+          )
+        const patch = patchCache()
         try {
           await queryFulfilled
+          // An earlier save's refetch may have landed since the patch and put
+          // the cache back to what the server held before this save.
+          patchCache()
         } catch {
           patch.undo()
         }

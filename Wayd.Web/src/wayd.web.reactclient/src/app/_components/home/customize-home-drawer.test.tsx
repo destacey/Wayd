@@ -4,6 +4,7 @@ import { useState } from 'react'
 import CustomizeHomeDrawer from './customize-home-drawer'
 import { HomeLayout } from './home-layout'
 import { HomeWidget } from './widget-registry'
+import { rowsSetting } from './widget-settings'
 
 // antd's Drawer reaches for Next's server-side AsyncLocalStorage, which jsdom
 // has no runtime for. Only the Drawer is stubbed, so the rows under test stay real.
@@ -62,7 +63,11 @@ const drag = async (
 
 const Nothing = () => null
 
-const widget = (id: string, title: string): HomeWidget => ({
+const widget = (
+  id: string,
+  title: string,
+  overrides: Partial<HomeWidget> = {},
+): HomeWidget => ({
   id,
   title,
   description: `${title} description.`,
@@ -70,13 +75,14 @@ const widget = (id: string, title: string): HomeWidget => ({
   defaultOrder: 10,
   requires: {},
   Component: Nothing,
+  ...overrides,
 })
 
 const widgets = [
   widget('a', 'Alpha'),
   widget('b', 'Bravo'),
   widget('c', 'Charlie'),
-  widget('x', 'X-ray'),
+  widget('x', 'X-ray', { settings: [rowsSetting(5)] }),
   widget('hidden-from-account', 'Not offered'),
 ]
 
@@ -221,6 +227,37 @@ describe('CustomizeHomeDrawer', () => {
       ],
       side: [{ id: 'x', visible: true }],
     })
+  })
+
+  it('offers settings only on a widget that declares them', () => {
+    // Act
+    render(<Harness onChange={vi.fn()} />)
+
+    // Assert
+    expect(
+      screen.getByRole('button', { name: 'X-ray settings' }),
+    ).toHaveAttribute('aria-expanded', 'false')
+    expect(
+      screen.queryByRole('button', { name: 'Alpha settings' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('changes a widget’s settings from its opened row, and marks it customized', () => {
+    // Arrange
+    const onChange = vi.fn()
+    render(<Harness onChange={onChange} />)
+    fireEvent.click(screen.getByRole('button', { name: 'X-ray settings' }))
+
+    // Act
+    fireEvent.click(screen.getByRole('radio', { name: '10' }))
+
+    // Assert
+    expect(onChange).toHaveBeenLastCalledWith({
+      ...initialLayout,
+      side: [{ id: 'x', visible: true, settings: { rows: '10' } }],
+    })
+    expect(screen.getByText('Customized')).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: '10' })).toBeChecked()
   })
 
   it('resets through Reset to default', () => {

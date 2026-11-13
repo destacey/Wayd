@@ -20,6 +20,7 @@ import { FC } from 'react'
 import AttentionTile from '../attention-tile'
 import { useHomeContext } from '../use-home-context'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
+import { rowsToShow } from '../widget-settings'
 import { HomeWidgetProps } from '../widget-registry'
 import styles from '../home.module.css'
 
@@ -119,11 +120,12 @@ const DeskCounts: FC<{ desk: IntakeDeskDto }> = ({ desk }) => {
   )
 }
 
-const RequestRows: FC<{ requests: IntakeRequestSummaryDto[] }> = ({
-  requests,
-}) => (
+const RequestRows: FC<{
+  requests: IntakeRequestSummaryDto[]
+  rows: number
+}> = ({ requests, rows }) => (
   <WaydList size="small">
-    {requests.slice(0, DESK_QUEUE_LIMIT).map((request) => (
+    {requests.slice(0, rows).map((request) => (
       <WaydList.Item key={request.id} className={styles.listItem}>
         <div className={styles.listItemBody}>
           <EntityLink href={`${REQUESTS}/${request.key}`}>
@@ -149,8 +151,10 @@ const RequestSection: FC<{
   isLoading: boolean
   isError: boolean
   empty: string
+  /** The most requests the list shows. */
+  rows: number
   moreHref?: string
-}> = ({ heading, requests, isLoading, isError, empty, moreHref }) => (
+}> = ({ heading, requests, isLoading, isError, empty, rows, moreHref }) => (
   <Flex vertical gap={4}>
     <Text strong>{heading}</Text>
     {isError ? (
@@ -161,8 +165,8 @@ const RequestSection: FC<{
       <WidgetEmpty message={empty} />
     ) : (
       <>
-        <RequestRows requests={requests} />
-        {moreHref && requests.length > DESK_QUEUE_LIMIT ? (
+        <RequestRows requests={requests} rows={rows} />
+        {moreHref && requests.length > rows ? (
           <Link href={moreHref}>All {requests.length}</Link>
         ) : null}
       </>
@@ -174,7 +178,8 @@ const RequestSection: FC<{
  * What waits on the desks the caller works: each desk's open requests and what
  * still needs triage, the requests assigned to them, and those they take part in.
  */
-const DeskQueueWidget: FC<HomeWidgetProps> = ({ title }) => {
+const DeskQueueWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
+  const rows = rowsToShow(settings, DESK_QUEUE_LIMIT)
   const desks = useMyDesks()
   const assigned = useAssignedToMe()
   const { context } = useHomeContext()
@@ -213,6 +218,7 @@ const DeskQueueWidget: FC<HomeWidgetProps> = ({ title }) => {
           requests={assigned.data}
           isLoading={assigned.isLoading}
           isError={assigned.isError}
+          rows={rows}
           empty="No open request is assigned to you."
           moreHref={ASSIGNED_TO_ME_HREF}
         />
@@ -221,6 +227,7 @@ const DeskQueueWidget: FC<HomeWidgetProps> = ({ title }) => {
           requests={participating.data}
           isLoading={participating.isLoading}
           isError={participating.isError}
+          rows={rows}
           empty="You take part in no open request."
         />
       </Flex>

@@ -85,6 +85,59 @@
   display: block;
 }
 
+.widgetCardExtra {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Where a pointer can hover, the gear waits for the card to be hovered or
+   focused, or for its own popover; on touch it always shows. Doubled to
+   outrank antd's button colour. */
+.widgetSettingsButton.widgetSettingsButton {
+  color: var(--ant-color-text-tertiary);
+}
+
+@media (hover: hover) {
+  .widgetSettingsButton {
+    opacity: 0;
+    transition: opacity var(--ant-motion-duration-fast);
+  }
+
+  .widgetCard:hover .widgetSettingsButton,
+  .widgetCard:focus-within .widgetSettingsButton,
+  .widgetSettingsButtonOpen {
+    opacity: 1;
+  }
+}
+
+/* The settings form, in the card's popover and in the Customize drawer. */
+.settingsForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 200px;
+}
+
+.settingsField {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.settingsToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settingsReset {
+  align-self: flex-start;
+  padding-inline: 0;
+}
+
 .projectSummary {
   display: flex;
   flex-wrap: wrap;
@@ -117,6 +170,14 @@
 /* The card's own border closes the list; the last row's would double it. */
 .flushRows > :last-child > * {
   border-bottom: 0;
+}
+
+/* The line under flush rows saying how many more there are: the rows' own
+   inset, since the card body has none, and the rule the last row gave up. */
+.flushMore {
+  display: block;
+  padding: var(--ant-padding-xs) var(--ant-padding-sm);
+  border-top: var(--ant-line-width) var(--ant-line-type) var(--ant-color-split);
 }
 
 /* Rows line up with the card's title; doubled to outrank antd's list item padding. */
@@ -180,14 +241,32 @@
   border-radius: var(--ant-border-radius);
 }
 
+/* A widget in the drawer: its row, and beneath it its settings when opened. */
+.customizeItem,
+.customizeRowDragging {
+  background: var(--ant-color-bg-container);
+  border: 1px solid var(--ant-color-border-secondary);
+  border-radius: var(--ant-border-radius);
+}
+
 .customizeRow {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 8px;
-  background: var(--ant-color-bg-container);
-  border: 1px solid var(--ant-color-border-secondary);
-  border-radius: var(--ant-border-radius);
+}
+
+.customizeRowTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+
+/* Indented to start under the widget's title, past the drag handle. */
+.customizeRowSettings {
+  padding: 12px 12px 12px 40px;
+  border-top: 1px dashed var(--ant-color-border-secondary);
 }
 
 .customizeRowPlaceholder {

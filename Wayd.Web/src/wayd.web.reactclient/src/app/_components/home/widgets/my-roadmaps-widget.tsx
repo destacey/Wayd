@@ -14,12 +14,13 @@ import {
 import { Tag, Typography } from 'antd'
 import { FC } from 'react'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
+import { rowsToShow } from '../widget-settings'
 import { HomeWidgetProps } from '../widget-registry'
 import styles from '../home.module.css'
 
 const { Text } = Typography
 
-/** The most roadmaps the widget lists; past it, "View all" counts them all. */
+/** The most roadmaps the widget lists; past it, it says how many more there are. */
 export const MY_ROADMAPS_LIMIT = 5
 
 const ROADMAPS_HREF = '/planning/roadmaps'
@@ -44,7 +45,8 @@ const DateRange: FC<{ roadmap: RoadmapListDto; today: CalendarDate }> = ({
 }
 
 /** The active roadmaps the caller is an owner of, earliest start first. */
-const MyRoadmapsWidget: FC<HomeWidgetProps> = ({ title }) => {
+const MyRoadmapsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
+  const rows = rowsToShow(settings, MY_ROADMAPS_LIMIT)
   const {
     data: roadmaps,
     isLoading,
@@ -59,36 +61,37 @@ const MyRoadmapsWidget: FC<HomeWidgetProps> = ({ title }) => {
         <WidgetEmpty message="You own no active roadmaps. They appear here when a roadmap names you as an owner." />
       )
     }
+    const more = roadmaps.length - rows
     return (
-      <WaydList size="small">
-        {sortRoadmaps(roadmaps)
-          .slice(0, MY_ROADMAPS_LIMIT)
-          .map((roadmap) => (
-            <WaydList.Item key={roadmap.id} className={styles.listItem}>
-              <div className={styles.listItemBody}>
-                <EntityLink href={`/planning/roadmaps/${roadmap.key}`}>
-                  {roadmap.name}
-                </EntityLink>
-                <span className={styles.listItemMeta}>
-                  <DateRange roadmap={roadmap} today={today} />
-                  <Tag>{roadmap.visibility.name}</Tag>
-                </span>
-              </div>
-            </WaydList.Item>
-          ))}
-      </WaydList>
+      <>
+        <WaydList size="small">
+          {sortRoadmaps(roadmaps)
+            .slice(0, rows)
+            .map((roadmap) => (
+              <WaydList.Item key={roadmap.id} className={styles.listItem}>
+                <div className={styles.listItemBody}>
+                  <EntityLink href={`/planning/roadmaps/${roadmap.key}`}>
+                    {roadmap.name}
+                  </EntityLink>
+                  <span className={styles.listItemMeta}>
+                    <DateRange roadmap={roadmap} today={today} />
+                    <Tag>{roadmap.visibility.name}</Tag>
+                  </span>
+                </div>
+              </WaydList.Item>
+            ))}
+        </WaydList>
+        {more > 0 ? (
+          <Text type="secondary" className={styles.widgetEmpty}>
+            And {more} more.
+          </Text>
+        ) : null}
+      </>
     )
   }
 
-  const total = roadmaps?.length ?? 0
-
   return (
-    <WidgetCard
-      title={title}
-      viewAllHref={ROADMAPS_HREF}
-      viewAllCount={total > MY_ROADMAPS_LIMIT ? total : undefined}
-      loading={isLoading}
-    >
+    <WidgetCard title={title} viewAllHref={ROADMAPS_HREF} loading={isLoading}>
       {body()}
     </WidgetCard>
   )

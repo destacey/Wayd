@@ -48,6 +48,12 @@ public sealed class UserHomeLayoutWidget
 
     /// <summary>Whether the widget shows; false when the user turned it off.</summary>
     public bool Visible { get; set; } = true;
+
+    /// <summary>
+    /// What the user changed about what the widget shows, by setting key; null when nothing. Keys and values
+    /// belong to the client's widget registry, like the widget id, and the server stores them unread.
+    /// </summary>
+    public Dictionary<string, string>? Settings { get; set; }
 }
 
 /// <summary>

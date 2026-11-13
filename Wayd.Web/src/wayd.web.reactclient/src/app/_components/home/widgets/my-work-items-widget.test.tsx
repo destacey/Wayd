@@ -7,6 +7,7 @@ import MyWorkItemsWidget, {
 } from './my-work-items-widget'
 import { StatusCategoryId } from '@/src/components/types'
 import { StatusCategory, WorkItemListDto } from '@/src/services/wayd-api'
+import { renderReportingWidget } from '../widget-display-test-utils'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -281,5 +282,75 @@ describe('MyWorkItemsWidget', () => {
       screen.getByText('Could not load your work items.'),
     ).toBeInTheDocument()
     expect(screen.queryByText(/Nothing is assigned/)).not.toBeInTheDocument()
+  })
+
+  describe('reported state', () => {
+    it('reports loading while the open work items load', () => {
+      // Arrange
+      respond({ data: undefined, isLoading: true, isError: false })
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyWorkItemsWidget title="My work items" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('loading')
+    })
+
+    it('reports failed, though there is no data, when the open query errors', () => {
+      // Arrange
+      respond({ data: undefined, isLoading: false, isError: true })
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyWorkItemsWidget title="My work items" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('failed')
+    })
+
+    it('reports empty when nothing is open, even though work was done', () => {
+      // Arrange
+      respond(loaded([]), loaded([workItem('CORE-8', StatusCategoryId.Done)]))
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyWorkItemsWidget title="My work items" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('empty')
+    })
+
+    it('reports empty when the open query returns only other categories', () => {
+      // Arrange
+      respond(loaded([workItem('CORE-8', StatusCategoryId.Done)]))
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyWorkItemsWidget title="My work items" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('empty')
+    })
+
+    it.each([
+      ['Active', StatusCategoryId.Active],
+      ['Proposed', StatusCategoryId.Proposed],
+    ])('reports rows when a work item is %s', (_, category) => {
+      // Arrange
+      respond(loaded([workItem('CORE-1', category)]))
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyWorkItemsWidget title="My work items" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('rows')
+    })
   })
 })

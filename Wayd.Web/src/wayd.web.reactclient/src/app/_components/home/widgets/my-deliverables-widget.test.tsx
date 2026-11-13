@@ -8,6 +8,7 @@ import {
   MyProjectDeliverableDto,
   StatusCategory,
 } from '@/src/services/wayd-api'
+import { renderReportingWidget } from '../widget-display-test-utils'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -168,5 +169,82 @@ describe('MyDeliverablesWidget', () => {
       screen.getByText('Could not load your deliverables.'),
     ).toBeInTheDocument()
     expect(screen.queryByText(/You own no/)).not.toBeInTheDocument()
+  })
+
+  describe('reported state', () => {
+    it('reports loading while the deliverables load', () => {
+      // Arrange
+      mockDeliverables.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+      })
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyDeliverablesWidget title="Deliverables I own" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('loading')
+    })
+
+    it('reports failed, though there is no data, when the query errors', () => {
+      // Arrange
+      mockDeliverables.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      })
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyDeliverablesWidget title="Deliverables I own" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('failed')
+    })
+
+    it('reports empty when the caller owns no deliverables', () => {
+      // Arrange
+      mockDeliverables.mockReturnValue(loaded([]))
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyDeliverablesWidget title="Deliverables I own" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('empty')
+    })
+
+    it('reports rows when a deliverable is due soon', () => {
+      // Arrange
+      mockDeliverables.mockReturnValue(
+        loaded([deliverable(1, 'Portal', '2026-11-12')]),
+      )
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyDeliverablesWidget title="Deliverables I own" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('rows')
+    })
+
+    it('reports rows, not empty, when every deliverable is due later', () => {
+      // Arrange
+      mockDeliverables.mockReturnValue(loaded([deliverable(1, 'Training')]))
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyDeliverablesWidget title="Deliverables I own" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('rows')
+    })
   })
 })

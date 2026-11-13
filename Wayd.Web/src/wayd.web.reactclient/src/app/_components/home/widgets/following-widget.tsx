@@ -82,6 +82,9 @@ const FollowingWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
       viewAllHref="/account/following"
       loading={isLoading}
       flush={!isError && rows.length > 0}
+      failed={isError}
+      empty={rows.length === 0}
+      emptySummary="Not following anything"
     >
       {body()}
     </WidgetCard>

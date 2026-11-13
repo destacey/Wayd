@@ -66,9 +66,17 @@ const AttentionTile: FC<AttentionTileProps> = ({
 
   const open = () => {
     if (href.startsWith('#')) {
-      document
-        .getElementById(href.slice(1))
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      const target = document.getElementById(href.slice(1))
+      const scroll = () =>
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      if (target?.hidden && slot?.revealHiddenWidgets) {
+        // A widget hidden as empty has no box to scroll to until it shows,
+        // which takes the render the reveal starts.
+        slot.revealHiddenWidgets()
+        requestAnimationFrame(scroll)
+        return
+      }
+      scroll()
       return
     }
     router.push(href)

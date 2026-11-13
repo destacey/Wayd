@@ -18,6 +18,7 @@ import {
 } from '@/src/services/wayd-api'
 import { tileValueStyle } from '../attention-tile-test-utils'
 import { homeContext } from '../home-context-test-utils'
+import { renderReportingWidget } from '../widget-display-test-utils'
 
 const mockHome: { context?: HomeContextResponse } = {}
 
@@ -210,6 +211,163 @@ describe('DeskQueueWidget', () => {
     expect(
       screen.getByRole('link', { name: '43 · New laptop' }),
     ).toBeInTheDocument()
+  })
+
+  describe('reported state', () => {
+    const onDesk = () =>
+      mockDesks.mockReturnValue(
+        loaded([desk(1, 'Finance', [['me', IntakeDeskRole.Agent]], {})]),
+      )
+
+    const list = (
+      overrides: Partial<{
+        data: IntakeRequestSummaryDto[] | undefined
+        isLoading: boolean
+        isError: boolean
+      }> = {},
+    ) => ({ data: [], isLoading: false, isError: false, ...overrides })
+
+    /** Answers the assigned and participating lists with their own query state. */
+    const listsReturn = (
+      assigned: ReturnType<typeof list>,
+      participating: ReturnType<typeof list>,
+    ) =>
+      mockRequests.mockImplementation((args: { assignedToMe?: boolean }) =>
+        args.assignedToMe ? assigned : participating,
+      )
+
+    it('reports loading while the desks load', () => {
+      // Arrange
+      mockDesks.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+      })
+      requestsReturn([])
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <DeskQueueWidget title="Desk queue" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('loading')
+    })
+
+    it.each([
+      ['assigned to me', true],
+      ['participating', false],
+    ])(
+      'reports loading while the %s list loads for someone on a desk',
+      (_, assignedLoads) => {
+        // Arrange
+        onDesk()
+        listsReturn(
+          list({ data: undefined, isLoading: assignedLoads }),
+          list({ data: undefined, isLoading: !assignedLoads }),
+        )
+
+        // Act
+        const { reportedState } = renderReportingWidget(
+          <DeskQueueWidget title="Desk queue" />,
+        )
+
+        // Assert
+        expect(reportedState()).toBe('loading')
+      },
+    )
+
+    it('reports failed, though there is no data, when the desks query errors', () => {
+      // Arrange
+      mockDesks.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      })
+      requestsReturn([])
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <DeskQueueWidget title="Desk queue" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('failed')
+    })
+
+    it('reports empty when the caller is on no desk', () => {
+      // Arrange
+      mockHome.context = homeContext()
+      mockDesks.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: false,
+      })
+      requestsReturn([])
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <DeskQueueWidget title="Desk queue" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('empty')
+    })
+
+    it('reports empty when the caller is on a desk but both request lists are empty', () => {
+      // Arrange
+      onDesk()
+      requestsReturn([], [])
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <DeskQueueWidget title="Desk queue" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('empty')
+    })
+
+    it.each([
+      ['assigned to the caller', [request(1, 'One')], []],
+      ['the caller takes part in', [], [request(2, 'Two')]],
+    ])('reports rows when a request is %s', (_, assigned, participating) => {
+      // Arrange
+      onDesk()
+      requestsReturn(assigned, participating)
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <DeskQueueWidget title="Desk queue" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('rows')
+    })
+
+    it.each([
+      ['assigned to me', true],
+      ['participating', false],
+    ])(
+      'reports rows, not empty, when the %s list errored and the other is empty',
+      (_, assignedErrors) => {
+        // Arrange
+        onDesk()
+        const errored = list({ data: undefined, isError: true })
+        listsReturn(
+          assignedErrors ? errored : list(),
+          assignedErrors ? list() : errored,
+        )
+
+        // Act
+        const { reportedState } = renderReportingWidget(
+          <DeskQueueWidget title="Desk queue" />,
+        )
+
+        // Assert
+        expect(reportedState()).toBe('rows')
+      },
+    )
   })
 })
 

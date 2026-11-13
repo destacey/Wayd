@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import FollowingWidget, { FOLLOWING_COUNT } from './following-widget'
 import { FollowSort, SortDirection } from '@/src/services/wayd-api'
 import { MAX_ROWS } from '../widget-settings'
+import { renderReportingWidget } from '../widget-display-test-utils'
 
 vi.mock(
   import('@/src/store/features/common/follows-api'),
@@ -114,5 +115,55 @@ describe('FollowingWidget', () => {
       screen.getByText('Could not load what you follow.'),
     ).toBeInTheDocument()
     expect(screen.queryByText(/not following/)).not.toBeInTheDocument()
+  })
+
+  it.each([
+    [
+      'loading',
+      { data: undefined, isLoading: true, isError: false },
+      'loading',
+    ],
+    ['failed', { data: undefined, isLoading: false, isError: true }, 'failed'],
+    [
+      'empty when nothing is followed',
+      { data: { pages: [{ items: [] }] }, isLoading: false, isError: false },
+      'empty',
+    ],
+    [
+      'empty when every followed record has no page to link to',
+      {
+        data: {
+          pages: [
+            {
+              items: [{ ...followed(1), ownerType: 'unknown.type' }],
+              totalCount: 1,
+            },
+          ],
+        },
+        isLoading: false,
+        isError: false,
+      },
+      'empty',
+    ],
+    [
+      'rows when a followed record can be linked',
+      {
+        data: { pages: [{ items: [followed(1)], totalCount: 1 }] },
+        isLoading: false,
+        isError: false,
+      },
+      'rows',
+    ],
+  ])('reports %s to the page', (_name, query, expected) => {
+    // Arrange
+    mockFollows.mockReturnValue(query)
+
+    // Act
+    const { reportedState } = renderReportingWidget(
+      <FollowingWidget title="Following" />,
+    )
+
+    // Assert
+    expect(reportedState()).toBe(expected)
   })
 })

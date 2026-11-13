@@ -5,6 +5,7 @@ import MyRoadmapsWidget, {
   sortRoadmaps,
 } from './my-roadmaps-widget'
 import { RoadmapListDto, RoadmapState } from '@/src/services/wayd-api'
+import { renderReportingWidget } from '../widget-display-test-utils'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -172,5 +173,31 @@ describe('MyRoadmapsWidget', () => {
     expect(
       screen.getByText('Could not load your roadmaps.'),
     ).toBeInTheDocument()
+  })
+
+  it.each([
+    [
+      'loading',
+      { data: undefined, isLoading: true, isError: false },
+      'loading',
+    ],
+    ['failed', { data: undefined, isLoading: false, isError: true }, 'failed'],
+    ['empty when the caller owns no active roadmaps', loaded([]), 'empty'],
+    [
+      'rows when the caller owns a roadmap',
+      loaded([roadmap(7, 'Platform 2026', '2026-01-01', '2026-12-31')]),
+      'rows',
+    ],
+  ])('reports %s to the page', (_name, query, expected) => {
+    // Arrange
+    mockRoadmaps.mockReturnValue(query)
+
+    // Act
+    const { reportedState } = renderReportingWidget(
+      <MyRoadmapsWidget title="My roadmaps" />,
+    )
+
+    // Assert
+    expect(reportedState()).toBe(expected)
   })
 })

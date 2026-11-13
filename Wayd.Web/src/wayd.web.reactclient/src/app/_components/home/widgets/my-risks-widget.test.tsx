@@ -8,6 +8,7 @@ import MyRisksWidget, {
 import { HomeContextResponse, RiskListDto } from '@/src/services/wayd-api'
 import { tileValueStyle } from '../attention-tile-test-utils'
 import { homeContext } from '../home-context-test-utils'
+import { renderReportingWidget } from '../widget-display-test-utils'
 
 const mockHome: { context?: HomeContextResponse } = {}
 
@@ -188,6 +189,87 @@ describe('MyRisksWidget', () => {
     // Assert
     expect(container.querySelector('.ant-skeleton')).toBeInTheDocument()
     expect(screen.queryByText(/No open risks/)).not.toBeInTheDocument()
+  })
+
+  describe('reported state', () => {
+    it('reports loading while the risks load', () => {
+      // Arrange
+      mockRisks.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+      })
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyRisksWidget title="My risks" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('loading')
+    })
+
+    it('reports failed, though there is no data, when the query errors', () => {
+      // Arrange
+      mockRisks.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      })
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyRisksWidget title="My risks" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('failed')
+    })
+
+    it('reports empty when no risk is assigned', () => {
+      // Arrange
+      mockRisks.mockReturnValue(loaded([]))
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyRisksWidget title="My risks" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('empty')
+    })
+
+    it('reports empty when the home context says none are assigned and the query is skipped', () => {
+      // Arrange
+      mockHome.context = homeContext({ assignedRiskCount: 0 })
+      mockRisks.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: false,
+      })
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyRisksWidget title="My risks" />,
+      )
+
+      // Assert
+      expect(mockRisks).toHaveBeenCalledWith('alex@example.com', { skip: true })
+      expect(reportedState()).toBe('empty')
+    })
+
+    it('reports rows when a risk is assigned', () => {
+      // Arrange
+      mockRisks.mockReturnValue(loaded([risk(1, 'Vendor slips')]))
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyRisksWidget title="My risks" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('rows')
+    })
   })
 })
 

@@ -29,7 +29,14 @@ const MyTeamsOfTeamsWidget: FC<HomeWidgetProps> = ({ title }) => {
   }
 
   return (
-    <WidgetCard title={title} viewAllHref={TEAMS_HREF} loading={isLoading}>
+    <WidgetCard
+      title={title}
+      viewAllHref={TEAMS_HREF}
+      loading={isLoading}
+      failed={isError}
+      empty={isOnNoTeam || !data || data.teamsOfTeams.length === 0}
+      emptySummary="Not on a team of teams"
+    >
       {body()}
     </WidgetCard>
   )

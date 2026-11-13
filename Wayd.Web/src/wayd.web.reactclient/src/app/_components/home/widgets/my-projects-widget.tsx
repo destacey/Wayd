@@ -95,7 +95,14 @@ const MyProjectsWidget: FC<HomeWidgetProps> = ({ title }) => {
   }
 
   return (
-    <WidgetCard title={title} viewAllHref={DASHBOARD_HREF} loading={isLoading}>
+    <WidgetCard
+      title={title}
+      viewAllHref={DASHBOARD_HREF}
+      loading={isLoading}
+      failed={isError}
+      empty={!summary || summary.totalCount === 0}
+      emptySummary="No active projects"
+    >
       {body()}
     </WidgetCard>
   )

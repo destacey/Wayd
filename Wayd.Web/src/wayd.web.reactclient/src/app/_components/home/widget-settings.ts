@@ -115,6 +115,41 @@ export const rowsSetting = (
   default: String(defaultRows),
 })
 
+/** The key of the setting every widget with an empty state shares. */
+export const EMPTY_SETTING_KEY = 'empty'
+
+/**
+ * What a widget does when it has nothing to show: explain how it fills, say so
+ * in one line beside its title, or leave the page.
+ */
+export type EmptyDisplay = 'explain' | 'line' | 'hide'
+
+const EMPTY_DISPLAYS: EmptyDisplay[] = ['explain', 'line', 'hide']
+
+/**
+ * What a widget does when it has nothing to show. Explain is the default, so a
+ * new user learns how each widget fills; Hide is only ever the user's choice.
+ */
+export const emptySetting: WidgetChoiceSetting = {
+  kind: 'choice',
+  key: EMPTY_SETTING_KEY,
+  label: 'When there is nothing to show',
+  options: [
+    { value: 'explain', label: 'Explain' },
+    { value: 'line', label: 'One line' },
+    { value: 'hide', label: 'Hide' },
+  ],
+  default: 'explain',
+}
+
+/** The empty display in effect: the setting's value, or Explain for a widget rendered without settings. */
+export const emptyDisplayOf = (
+  settings: WidgetSettingValues | undefined,
+): EmptyDisplay => {
+  const value = settings?.[EMPTY_SETTING_KEY]
+  return EMPTY_DISPLAYS.find((d) => d === value) ?? 'explain'
+}
+
 /**
  * The rows a list widget shows: its setting's value, or `defaultRows` for a
  * widget rendered without settings.

@@ -126,6 +126,9 @@ const PlanningIntervalsWidget: FC<HomeWidgetProps> = ({ title }) => {
       title={title}
       viewAllHref="/planning/planning-intervals"
       loading={isLoading}
+      failed={isError}
+      empty={planningIntervals.length === 0}
+      emptySummary="None active or starting soon"
     >
       {body()}
     </WidgetCard>

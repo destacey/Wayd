@@ -1,10 +1,13 @@
 import {
+  emptyDisplayOf,
+  emptySetting,
   hasCustomSettings,
   resolveSettings,
   rowsSetting,
   rowsToShow,
   settingsToStore,
   WidgetSetting,
+  WidgetSettingValues,
 } from './widget-settings'
 
 const settings: WidgetSetting[] = [
@@ -108,5 +111,35 @@ describe('rowsToShow', () => {
     expect(rowsToShow({ rows: '10' }, 5)).toBe(10)
     expect(rowsToShow({}, 5)).toBe(5)
     expect(rowsToShow(undefined, 5)).toBe(5)
+  })
+})
+
+describe('emptyDisplayOf', () => {
+  it.each(['explain', 'line', 'hide'] as const)('reads %s', (value) => {
+    // Act
+    const result = emptyDisplayOf({ empty: value })
+
+    // Assert
+    expect(result).toBe(value)
+  })
+
+  it.each<WidgetSettingValues | undefined>([
+    undefined,
+    {},
+    { empty: 'vanish' },
+  ])('explains when the value is missing or unknown: %o', (values) => {
+    // Act
+    const result = emptyDisplayOf(values)
+
+    // Assert
+    expect(result).toBe('explain')
+  })
+
+  it('defaults the setting to Explain, never Hide', () => {
+    // Act
+    const resolved = resolveSettings([emptySetting], undefined)
+
+    // Assert
+    expect(resolved).toEqual({ empty: 'explain' })
   })
 })

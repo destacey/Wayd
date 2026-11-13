@@ -7,6 +7,7 @@ import {
   ProjectStatus,
 } from '@/src/services/wayd-api'
 import { homeContext } from '../home-context-test-utils'
+import { renderReportingWidget } from '../widget-display-test-utils'
 
 const mockHome: { context?: HomeContextResponse } = {}
 
@@ -172,5 +173,49 @@ describe('MyProjectsWidget', () => {
       screen.getByText('Could not load your projects.'),
     ).toBeInTheDocument()
     expect(screen.queryByText(/You have no/)).not.toBeInTheDocument()
+  })
+
+  it.each([
+    [
+      'loading',
+      { data: undefined, isLoading: true, isError: false },
+      'loading',
+    ],
+    ['failed', { data: undefined, isLoading: false, isError: true }, 'failed'],
+    [
+      'empty when the caller has no projects',
+      loaded(summary({ totalCount: 0 })),
+      'empty',
+    ],
+    ['rows when the caller has projects', loaded(summary()), 'rows'],
+  ])('reports %s to the page', (_name, query, expected) => {
+    // Arrange
+    mockSummary.mockReturnValue(query)
+
+    // Act
+    const { reportedState } = renderReportingWidget(
+      <MyProjectsWidget title="My projects" />,
+    )
+
+    // Assert
+    expect(reportedState()).toBe(expected)
+  })
+
+  it('reports empty when the home context says there are no projects and the request is skipped', () => {
+    // Arrange
+    mockHome.context = homeContext()
+    mockSummary.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+    })
+
+    // Act
+    const { reportedState } = renderReportingWidget(
+      <MyProjectsWidget title="My projects" />,
+    )
+
+    // Assert
+    expect(reportedState()).toBe('empty')
   })
 })

@@ -208,6 +208,16 @@ A widget declares what its user can change as `settings` on its registry entry (
 - **Never rename or reuse** a setting key or an option's value: the stored value would stop matching and read as the default. A stored key the widget no longer declares, or a value it no longer offers, is ignored, so removing one is safe.
 - **The server checks size only** (`UpdateHomeLayoutRequestValidator`): how many settings a widget holds, key and value lengths, and the total across the layout. Whether a key or value means anything is the client's to decide.
 
+### Empty widgets
+
+Every widget with an empty state adds `emptySetting` to its `settings`: Explain (the default), One line or Hide. The widget does nothing else with it — it tells `WidgetCard` its state, and the card and the page do the rest:
+
+- **`loading`, `failed`, `empty`** on `WidgetCard` decide the state it reports to the page (`useWidgetState` in `widget-display.ts`). Pass `failed` whenever the data failed to load, so a failure is never hidden as empty.
+- **`emptySummary`** is the few words the One line form shows beside the title ("No open risks"). The `WidgetEmpty` line stays the body, shown under Explain.
+- **`empty`** means the user has none of what the widget is about. Work that is counted rather than listed (tasks due later) is not empty: hiding the widget would hide it.
+- **Hide** waits for the data: a loading widget keeps its skeleton. The page hides that widget's section rather than unmounting it, so it keeps loading, reports when it fills, and its attention tiles still count; a tile pointing at it reveals the hidden widgets first. The page names every widget hidden as empty in a line at the foot of the page.
+- **Testing**: `renderReportingWidget` (`widget-display-test-utils.tsx`) renders a widget as the page does and returns the state it reported, so each widget's test pins its `loading`, `failed` and `empty`.
+
 ## Filter Bars
 
 A filter bar is the row of small toggle buttons above a list — statuses, roles, personas. Two rules

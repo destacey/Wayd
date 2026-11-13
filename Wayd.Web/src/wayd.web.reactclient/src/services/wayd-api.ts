@@ -67927,8 +67927,8 @@ export interface IncidentDto {
     teamsChatLink?: string | undefined;
     /** True only when Wayd created the stored chat. */
     teamsChatCreatedByWayd: boolean;
-    /** True when a Teams connector is configured. The chat control is hidden when this is false.
-This is not stored on the incident. */
+    /** True when a Teams connector is present, its configuration is valid, and it is active.
+The add control is hidden when this is false. This is not stored on the incident. */
     teamsConnectorConfigured: boolean;
 }
 

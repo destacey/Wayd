@@ -128334,8 +128334,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public bool TeamsChatCreatedByWayd { get; set; } = default!;
 
         /// <summary>
-        /// True when a Teams connector is configured. The chat control is hidden when this is false.
-        /// <br/>This is not stored on the incident.
+        /// True when a Teams connector is present, its configuration is valid, and it is active.
+        /// <br/>The add control is hidden when this is false. This is not stored on the incident.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("teamsConnectorConfigured")]
         public bool TeamsConnectorConfigured { get; set; } = default!;

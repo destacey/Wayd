@@ -85,7 +85,11 @@ export const connectionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      invalidatesTags: [{ type: QueryTags.Connection }],
+      // Creating a connector changes whether an incident may offer a Teams chat.
+      invalidatesTags: [
+        { type: QueryTags.Connection },
+        { type: QueryTags.Incident },
+      ],
     }),
 
     updateConnection: builder.mutation<void, UpdateConnectionRequest>({
@@ -105,6 +109,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
         { type: QueryTags.Connection, id: arg.id },
         { type: QueryTags.ConnectionDetail, id: arg.id },
         { type: QueryTags.ActivityLog, id: arg.id },
+        { type: QueryTags.Incident },
       ],
     }),
 
@@ -121,6 +126,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         { type: QueryTags.Connection },
         { type: QueryTags.ActivityLog, id },
+        { type: QueryTags.Incident },
       ],
     }),
 
@@ -134,10 +140,12 @@ export const connectionsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
+      // Active state decides whether incidents offer a Teams chat, so refetch them.
       invalidatesTags: (result, error, id) => [
         { type: QueryTags.Connection, id },
         { type: QueryTags.ConnectionDetail, id },
         { type: QueryTags.ActivityLog, id },
+        { type: QueryTags.Incident },
       ],
     }),
 
@@ -155,6 +163,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
         { type: QueryTags.Connection, id },
         { type: QueryTags.ConnectionDetail, id },
         { type: QueryTags.ActivityLog, id },
+        { type: QueryTags.Incident },
       ],
     }),
 

@@ -5598,23 +5598,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<bool>("TeamsChatCreatedByWayd")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("TeamsChatDisplayName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("TeamsChatId")
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)");
-
-                    b.Property<string>("TeamsChatLink")
-                        .HasMaxLength(2048)
-                        .HasColumnType("nvarchar(2048)");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(256)
@@ -12645,9 +12628,38 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Incident", b =>
                 {
+                    b.OwnsOne("Wayd.Common.Domain.Integrations.RecordIntegration", "TeamsChat", b1 =>
+                        {
+                            b1.Property<Guid>("IncidentId");
+
+                            b1.Property<string>("Connector")
+                                .IsRequired();
+
+                            b1.Property<bool>("CreatedByWayd");
+
+                            b1.Property<string>("ExternalId");
+
+                            b1.Property<string>("Link");
+
+                            b1.Property<string>("Title");
+
+                            b1.HasKey("IncidentId");
+
+                            b1.ToTable("Incidents", "ProductManagement");
+
+                            b1
+                                .ToJson("TeamsChat")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.WithOwner()
+                                .HasForeignKey("IncidentId");
+                        });
+
                     b.Navigation("ProductLinks");
 
                     b.Navigation("ReleaseLinks");
+
+                    b.Navigation("TeamsChat");
 
                     b.Navigation("TimelineLinkEntries");
 

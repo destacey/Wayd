@@ -21,7 +21,9 @@ export interface IncidentTeamsChatProps {
 }
 
 /**
- * The incident's one Teams chat. Hidden unless a Teams connector is configured.
+ * The incident's one Teams chat. The add control is hidden unless a Teams connector
+ * is present, active, and has a valid stored configuration. The Graph test is not
+ * stored, so a saved connection counts as valid without a recorded verification.
  * Linking stores a pasted link, and an empty link removes it. Creating a chat is
  * shown and does not call Graph.
  */

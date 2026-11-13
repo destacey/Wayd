@@ -169,7 +169,10 @@ public sealed class GetIncidentQueryHandler(IProductManagementDbContext context,
             : await _context.Releases.AsNoTracking().Where(r => releaseIds.Contains(r.Id)).ToListAsync(cancellationToken);
 
         var connections = await _dispatcher.Send(new GetActiveCommunicationConnectionsQuery(), cancellationToken);
-        var teamsConnectorConfigured = connections.Any(connection => connection.Connector == Connector.Teams);
+        var teamsConnectorConfigured = connections.Any(connection =>
+            connection.Connector == Connector.Teams
+            && connection.IsActive
+            && connection.IsValidConfiguration);
 
         return IncidentProjections.Details(
             incident,

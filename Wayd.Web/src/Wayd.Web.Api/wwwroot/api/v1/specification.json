@@ -67357,7 +67357,7 @@
           },
           "teamsConnectorConfigured": {
             "type": "boolean",
-            "description": "True when a Teams connector is configured. The chat control is hidden when this is false.\nThis is not stored on the incident."
+            "description": "True when a Teams connector is present, its configuration is valid, and it is active.\nThe add control is hidden when this is false. This is not stored on the incident."
           }
         },
         "additionalProperties": false,

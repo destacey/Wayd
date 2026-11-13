@@ -126,8 +126,15 @@ public sealed class UpdateIncidentDetailsCommandHandlerTests : IncidentSeverityS
                     reportedById),
                 TestContext.Current.CancellationToken);
         var incident = DbContext.Incidents.Should().ContainSingle().Subject;
-        typeof(Incident).GetProperty(nameof(Incident.TeamsChatCreatedByWayd))!
-            .SetValue(incident, true);
+        typeof(Incident).GetProperty(nameof(Incident.TeamsChat))!
+            .SetValue(
+                incident,
+                Wayd.Common.Domain.Integrations.RecordIntegration.Create(
+                    Wayd.Common.Domain.Enums.AppIntegrations.Connector.Teams,
+                    null,
+                    null,
+                    "https://teams.microsoft.com/l/chat/1",
+                    true));
         var logger = new Mock<ILogger<UpdateIncidentDetailsCommandHandler>>();
 
         // Act
@@ -156,7 +163,7 @@ public sealed class UpdateIncidentDetailsCommandHandlerTests : IncidentSeverityS
         opened.IsSuccess.Should().BeTrue();
         result.IsSuccess.Should().BeTrue();
         incident.ReportedByEmployeeId.Should().Be(nextReportedById);
-        incident.TeamsChatCreatedByWayd.Should().BeTrue();
+        incident.TeamsChat!.CreatedByWayd.Should().BeTrue();
         logger.Verify(
             log => log.Log(
                 LogLevel.Information,

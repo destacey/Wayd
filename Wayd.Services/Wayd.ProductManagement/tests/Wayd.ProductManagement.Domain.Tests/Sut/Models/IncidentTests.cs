@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NodaTime;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement.Incidents;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -866,14 +867,16 @@ public sealed class IncidentTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        incident.TeamsChatId.Should().BeNull();
-        incident.TeamsChatDisplayName.Should().Be("Bridge");
-        incident.TeamsChatLink.Should().Be("https://teams.microsoft.com/l/chat/19%3Aabc/0");
-        incident.TeamsChatCreatedByWayd.Should().BeFalse();
+        incident.TeamsChat.Should().NotBeNull();
+        incident.TeamsChat!.Connector.Should().Be(Connector.Teams);
+        incident.TeamsChat.ExternalId.Should().BeNull();
+        incident.TeamsChat.Title.Should().Be("Bridge");
+        incident.TeamsChat.Link.Should().Be("https://teams.microsoft.com/l/chat/19%3Aabc/0");
+        incident.TeamsChat.CreatedByWayd.Should().BeFalse();
         var linked = incident.DomainEvents.Should().ContainSingle()
             .Which.Should().BeOfType<IncidentTeamsChatLinkedEvent>().Subject;
         linked.FromTeamsChatLink.Should().BeNull();
-        linked.ToTeamsChatLink.Should().Be(incident.TeamsChatLink);
+        linked.ToTeamsChatLink.Should().Be(incident.TeamsChat.Link);
         linked.FromTeamsChatTitle.Should().BeNull();
         linked.ToTeamsChatTitle.Should().Be("Bridge");
         linked.FromTeamsChatCreatedByWayd.Should().BeFalse();
@@ -914,10 +917,7 @@ public sealed class IncidentTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        incident.TeamsChatLink.Should().BeNull();
-        incident.TeamsChatDisplayName.Should().BeNull();
-        incident.TeamsChatId.Should().BeNull();
-        incident.TeamsChatCreatedByWayd.Should().BeFalse();
+        incident.TeamsChat.Should().BeNull();
         var linked = incident.DomainEvents.Should().ContainSingle()
             .Which.Should().BeOfType<IncidentTeamsChatLinkedEvent>().Subject;
         linked.FromTeamsChatLink.Should().Be("https://teams.microsoft.com/l/chat/19%3Aabc/0");
@@ -939,7 +939,7 @@ public sealed class IncidentTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        incident.TeamsChatLink.Should().BeNull();
+        incident.TeamsChat.Should().BeNull();
         incident.DomainEvents.Should().BeEmpty();
     }
 
@@ -955,7 +955,7 @@ public sealed class IncidentTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        incident.TeamsChatLink.Should().BeNull();
+        incident.TeamsChat.Should().BeNull();
         incident.DomainEvents.Should().BeEmpty();
     }
 

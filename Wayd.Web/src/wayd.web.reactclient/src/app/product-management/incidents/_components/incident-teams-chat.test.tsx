@@ -65,6 +65,25 @@ const incident = (teamsChatLink: string | null, teamsChatDisplayName: string | n
   }) as unknown as IncidentDto
 
 describe('IncidentTeamsChat', () => {
+  it('hides the add control unless a Teams connector is ready', () => {
+    // Arrange
+    const stored = incident(null)
+
+    // Act
+    renderChat(
+      <IncidentTeamsChat
+        incident={{ ...stored, teamsConnectorConfigured: false }}
+        canUpdate
+        employees={[]}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.queryByRole('button', { name: 'Add Teams chat for this incident' }),
+    ).not.toBeInTheDocument()
+  })
+
   beforeEach(() => {
     linkChat.mockClear()
   })
@@ -150,10 +169,12 @@ describe('IncidentTeamsChat', () => {
     )
     const mark = title?.querySelector('img')
     const label = within(title as HTMLElement).getByText('Teams chat')
+    expect(mark).toBeInstanceOf(HTMLImageElement)
     expect(mark).toHaveAttribute('src', '/icons/teams-logo.svg')
     expect(title?.firstElementChild).toHaveStyle({ display: 'inline-flex' })
     expect(
-      mark?.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING,
+      (mark as HTMLImageElement).compareDocumentPosition(label) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 

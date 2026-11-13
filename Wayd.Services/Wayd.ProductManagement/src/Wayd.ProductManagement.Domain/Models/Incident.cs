@@ -1,8 +1,10 @@
 using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using NodaTime;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Integrations;
 using Wayd.Common.Domain.Events.ProductManagement.Incidents;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -103,20 +105,11 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     /// <summary>When service was restored, if recorded.</summary>
     public Instant? RecoveredAt { get; private set; }
 
-    /// <summary>The Teams chat id, when Wayd created the chat. A pasted link does not have one.</summary>
-    public string? TeamsChatId { get; private set; }
-
-    /// <summary>The name shown for the incident's Teams chat. Null when the link stands alone.</summary>
-    public string? TeamsChatDisplayName { get; private set; }
-
-    /// <summary>The link that opens the incident's one Teams chat. Null when none is stored.</summary>
-    public string? TeamsChatLink { get; private set; }
-
     /// <summary>
-    /// True only when Wayd created the chat. Later invites are limited to those chats.
-    /// A pasted link is not one Wayd created.
+    /// The one Teams chat stored on the incident. Null when none is.
+    /// The same <see cref="RecordIntegration"/> shape can hold a link to another system.
     /// </summary>
-    public bool TeamsChatCreatedByWayd { get; private set; }
+    public RecordIntegration? TeamsChat { get; private set; }
 
     /// <summary>The products implicated in the incident.</summary>
     public IReadOnlyCollection<IncidentProductLink> ProductLinks => _productLinks.AsReadOnly();
@@ -449,54 +442,54 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         {
             return Result.Failure("A Teams chat link must be an https URL.");
         }
-        else if (httpsLink.Length > 2048)
-        {
-            return Result.Failure("A Teams chat link cannot be longer than 2048 characters.");
-        }
-        else
-        {
-            normalizedLink = httpsLink;
-            normalizedName = Normalize(displayName);
-            if (normalizedName is not null && normalizedName.Length > 256)
+            else if (httpsLink.Length > RecordIntegration.LinkMaxLength)
             {
-                return Result.Failure("A Teams chat name cannot be longer than 256 characters.");
+                return Result.Failure("A Teams chat link cannot be longer than 2048 characters.");
             }
-        }
+            else
+            {
+                normalizedLink = httpsLink;
+                normalizedName = Normalize(displayName);
+                if (normalizedName is not null && normalizedName.Length > RecordIntegration.TitleMaxLength)
+                {
+                    return Result.Failure("A Teams chat name cannot be longer than 256 characters.");
+                }
+            }
 
-        if (TeamsChatId is null
-            && !TeamsChatCreatedByWayd
-            && TeamsChatLink == normalizedLink
-            && TeamsChatDisplayName == normalizedName)
+        var next = normalizedLink is null
+            ? null
+            : RecordIntegration.Create(Connector.Teams, null, normalizedName, normalizedLink, createdByWayd: false);
+        if (SameIntegration(TeamsChat, next))
         {
             return Result.Success();
         }
 
-        var fromId = TeamsChatId;
-        var fromName = TeamsChatDisplayName;
-        var fromLink = TeamsChatLink;
-        var fromCreatedByWayd = TeamsChatCreatedByWayd;
-
-        TeamsChatId = null;
-        TeamsChatDisplayName = normalizedName;
-        TeamsChatLink = normalizedLink;
-        TeamsChatCreatedByWayd = false;
+        var previous = TeamsChat;
+        TeamsChat = next;
 
         AddDomainEvent(new IncidentTeamsChatLinkedEvent(
             Id,
             Key,
-            fromId,
-            fromName,
-            fromLink,
-            fromCreatedByWayd,
-            TeamsChatId,
-            TeamsChatDisplayName,
-            TeamsChatLink,
-            TeamsChatCreatedByWayd,
+            previous?.ExternalId,
+            previous?.Title,
+            previous?.Link,
+            previous?.CreatedByWayd ?? false,
+            TeamsChat?.ExternalId,
+            TeamsChat?.Title,
+            TeamsChat?.Link,
+            TeamsChat?.CreatedByWayd ?? false,
             actor,
             timestamp));
 
         return Result.Success();
     }
+
+    private static bool SameIntegration(RecordIntegration? left, RecordIntegration? right) =>
+        left?.Connector == right?.Connector
+        && left?.ExternalId == right?.ExternalId
+        && left?.Title == right?.Title
+        && left?.Link == right?.Link
+        && (left?.CreatedByWayd ?? false) == (right?.CreatedByWayd ?? false);
 
     /// <summary>Records active response has begun.</summary>
     public Result BeginResponding(

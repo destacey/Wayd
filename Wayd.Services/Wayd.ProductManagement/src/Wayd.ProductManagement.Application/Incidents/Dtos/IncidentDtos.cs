@@ -118,8 +118,8 @@ public sealed record IncidentDto
     public bool TeamsChatCreatedByWayd { get; init; }
 
     /// <summary>
-    /// True when a Teams connector is configured. The chat control is hidden when this is false.
-    /// This is not stored on the incident.
+    /// True when a Teams connector is present, its configuration is valid, and it is active.
+    /// The add control is hidden when this is false. This is not stored on the incident.
     /// </summary>
     public bool TeamsConnectorConfigured { get; init; }
 }
@@ -234,10 +234,10 @@ internal static class IncidentProjections
             Releases = releases.Select(Release).ToList(),
             Status = Status(incident),
             StatusAlias = incident.StatusAlias,
-            TeamsChatId = incident.TeamsChatId,
-            TeamsChatDisplayName = incident.TeamsChatDisplayName,
-            TeamsChatLink = incident.TeamsChatLink,
-            TeamsChatCreatedByWayd = incident.TeamsChatCreatedByWayd,
+            TeamsChatId = incident.TeamsChat?.ExternalId,
+            TeamsChatDisplayName = incident.TeamsChat?.Title,
+            TeamsChatLink = incident.TeamsChat?.Link,
+            TeamsChatCreatedByWayd = incident.TeamsChat?.CreatedByWayd ?? false,
             TeamsConnectorConfigured = teamsConnectorConfigured,
         };
 }

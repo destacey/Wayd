@@ -38,10 +38,11 @@ public sealed class LinkIncidentTeamsChatCommandHandlerTests : IncidentSeverityS
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        incident.TeamsChatLink.Should().Be("https://teams.microsoft.com/l/chat/19%3Aabc/0");
-        incident.TeamsChatDisplayName.Should().Be("Bridge");
-        incident.TeamsChatCreatedByWayd.Should().BeFalse();
-        incident.TeamsChatId.Should().BeNull();
+        incident.TeamsChat!.Link.Should().Be("https://teams.microsoft.com/l/chat/19%3Aabc/0");
+        incident.TeamsChat.Title.Should().Be("Bridge");
+        incident.TeamsChat.CreatedByWayd.Should().BeFalse();
+        incident.TeamsChat.ExternalId.Should().BeNull();
+        incident.TeamsChat.Connector.Should().Be(Wayd.Common.Domain.Enums.AppIntegrations.Connector.Teams);
         DbContext.SaveChangesCallCount.Should().Be(savesBefore + 1);
     }
 
@@ -94,10 +95,7 @@ public sealed class LinkIncidentTeamsChatCommandHandlerTests : IncidentSeverityS
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        incident.TeamsChatLink.Should().BeNull();
-        incident.TeamsChatDisplayName.Should().BeNull();
-        incident.TeamsChatId.Should().BeNull();
-        incident.TeamsChatCreatedByWayd.Should().BeFalse();
+        incident.TeamsChat.Should().BeNull();
         DbContext.SaveChangesCallCount.Should().Be(savesAfterLink + 1);
     }
 
@@ -121,7 +119,7 @@ public sealed class LinkIncidentTeamsChatCommandHandlerTests : IncidentSeverityS
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        incident.TeamsChatLink.Should().BeNull();
+        incident.TeamsChat.Should().BeNull();
         DbContext.SaveChangesCallCount.Should().Be(savesBefore);
     }
 

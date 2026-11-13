@@ -109,7 +109,7 @@ public sealed class UpdateIncidentDetailsCommandHandler(
         var timestamp = _dateTimeProvider.Now;
         var previousReportedBy = incident.ReportedByEmployeeId;
         var previousCommander = incident.CommanderEmployeeId;
-        var createdByWayd = incident.TeamsChatCreatedByWayd;
+        var createdByWayd = incident.TeamsChat?.CreatedByWayd ?? false;
 
         var updated = incident.UpdateDetails(
             request.Title,

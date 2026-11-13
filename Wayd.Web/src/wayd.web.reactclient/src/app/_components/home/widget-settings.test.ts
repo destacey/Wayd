@@ -2,6 +2,7 @@ import {
   emptyDisplayOf,
   emptySetting,
   hasCustomSettings,
+  pickedValues,
   resolveSettings,
   rowsSetting,
   rowsToShow,
@@ -81,6 +82,60 @@ describe('settingsToStore', () => {
 
     // Assert
     expect(stored).toEqual({})
+  })
+})
+
+describe('a multi-select setting', () => {
+  const types: WidgetSetting[] = [
+    {
+      kind: 'multiSelect',
+      key: 'types',
+      label: 'Record types',
+      options: [
+        { value: 'a', label: 'A' },
+        { value: 'b', label: 'B' },
+        { value: 'c', label: 'C' },
+      ],
+      default: ['c', 'a', 'b'],
+    },
+  ]
+
+  it('resolves its default in option order', () => {
+    // Act
+    const values = resolveSettings(types, undefined)
+
+    // Assert
+    expect(values).toEqual({ types: 'a,b,c' })
+  })
+
+  it('keeps the stored values it still offers, in option order', () => {
+    // Act
+    const values = resolveSettings(types, { types: 'c,retired,a,a' })
+
+    // Assert
+    expect(values).toEqual({ types: 'a,c' })
+  })
+
+  it('reads a stored value naming nothing it offers as its default', () => {
+    // Act
+    const values = resolveSettings(types, { types: 'retired' })
+
+    // Assert
+    expect(values).toEqual({ types: 'a,b,c' })
+  })
+
+  it('stores nothing for its default picked in another order', () => {
+    // Act
+    const stored = settingsToStore(types, { types: 'b,c,a' })
+
+    // Assert
+    expect(stored).toEqual({})
+  })
+
+  it('splits a resolved value into the values picked', () => {
+    // Act & Assert
+    expect(pickedValues('a,c')).toEqual(['a', 'c'])
+    expect(pickedValues(undefined)).toEqual([])
   })
 })
 

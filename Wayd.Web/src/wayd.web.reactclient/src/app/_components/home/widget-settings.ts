@@ -25,8 +25,24 @@ export interface WidgetToggleSetting {
   default: boolean
 }
 
+/**
+ * A setting the user picks one or more values for, from a fixed list. Stored
+ * as the picked values joined by {@link MULTI_SELECT_SEPARATOR}, in option
+ * order, so option values never contain it.
+ */
+export interface WidgetMultiSelectSetting {
+  kind: 'multiSelect'
+  /** The key the value is stored under; like a widget id, never renamed or reused once shipped. */
+  key: string
+  label: string
+  options: WidgetSettingOption[]
+  /** The values picked until the user picks others; each one of the options, at least one. */
+  default: string[]
+}
+
 /** Something about what a widget shows that its user can change. */
-export type WidgetSetting = WidgetChoiceSetting | WidgetToggleSetting
+export type WidgetSetting =
+  WidgetChoiceSetting | WidgetToggleSetting | WidgetMultiSelectSetting
 
 /**
  * Setting values by key, as strings. Stored values hold only what the user
@@ -34,13 +50,56 @@ export type WidgetSetting = WidgetChoiceSetting | WidgetToggleSetting
  */
 export type WidgetSettingValues = Record<string, string>
 
-const defaultOf = (setting: WidgetSetting): string =>
-  setting.kind === 'toggle' ? String(setting.default) : setting.default
+/** What joins a multi-select setting's values in the one string it is stored as. */
+export const MULTI_SELECT_SEPARATOR = ','
 
-const accepts = (setting: WidgetSetting, value: string): boolean =>
-  setting.kind === 'toggle'
-    ? value === 'true' || value === 'false'
-    : setting.options.some((o) => o.value === value)
+/**
+ * The values a multi-select stores, in option order, without duplicates or
+ * values the setting does not offer — so the same pick is always the same
+ * string, and a default compares equal however it was reached.
+ */
+const joinPicked = (
+  setting: WidgetMultiSelectSetting,
+  values: Iterable<string>,
+): string => {
+  const picked = new Set(values)
+  return setting.options
+    .filter((o) => picked.has(o.value))
+    .map((o) => o.value)
+    .join(MULTI_SELECT_SEPARATOR)
+}
+
+const defaultOf = (setting: WidgetSetting): string => {
+  switch (setting.kind) {
+    case 'toggle':
+      return String(setting.default)
+    case 'multiSelect':
+      return joinPicked(setting, setting.default)
+    default:
+      return setting.default
+  }
+}
+
+/**
+ * The stored value in effect for a setting, or undefined when the setting no
+ * longer accepts it. A multi-select keeps the values it still offers, so an
+ * option dropped later does not undo the rest of the user's pick.
+ */
+const acceptedValue = (
+  setting: WidgetSetting,
+  value: string,
+): string | undefined => {
+  switch (setting.kind) {
+    case 'toggle':
+      return value === 'true' || value === 'false' ? value : undefined
+    case 'multiSelect':
+      return (
+        joinPicked(setting, value.split(MULTI_SELECT_SEPARATOR)) || undefined
+      )
+    default:
+      return setting.options.some((o) => o.value === value) ? value : undefined
+  }
+}
 
 /**
  * Every declared setting's value in effect: the stored one when the setting
@@ -56,12 +115,21 @@ export const resolveSettings = (
       const value = stored?.[setting.key]
       return [
         setting.key,
-        value !== undefined && accepts(setting, value)
-          ? value
-          : defaultOf(setting),
+        (value !== undefined && acceptedValue(setting, value)) ||
+          defaultOf(setting),
       ]
     }),
   )
+
+/** A resolved multi-select value as the values picked. */
+export const pickedValues = (value: string | undefined): string[] =>
+  value ? value.split(MULTI_SELECT_SEPARATOR) : []
+
+/** The values picked, as the one string a multi-select setting stores. */
+export const multiSelectValue = (
+  setting: WidgetMultiSelectSetting,
+  picked: string[],
+): string => joinPicked(setting, picked)
 
 /**
  * The values worth storing: those that differ from their default. A default
@@ -160,4 +228,60 @@ export const rowsToShow = (
 ): number => {
   const rows = Number(settings?.[ROWS_SETTING_KEY])
   return Number.isInteger(rows) && rows > 0 ? rows : defaultRows
+}
+
+/**
+ * A choice of how many days a widget looks ahead or back, each labelled
+ * "14 days".
+ */
+export const daysSetting = (
+  key: string,
+  label: string,
+  days: number[],
+  defaultDays: number,
+): WidgetChoiceSetting => ({
+  kind: 'choice',
+  key,
+  label,
+  options: days.map((d) => ({ value: String(d), label: `${d} days` })),
+  default: String(defaultDays),
+})
+
+/**
+ * The days a window setting is set to, or `defaultDays` for a widget rendered
+ * without settings.
+ */
+export const daysOf = (
+  settings: WidgetSettingValues | undefined,
+  key: string,
+  defaultDays: number,
+): number => {
+  const days = Number(settings?.[key])
+  return Number.isInteger(days) && days > 0 ? days : defaultDays
+}
+
+/**
+ * Whether a toggle setting is on, or `defaultOn` for a widget rendered without
+ * settings.
+ */
+export const isOn = (
+  settings: WidgetSettingValues | undefined,
+  key: string,
+  defaultOn: boolean,
+): boolean => {
+  const value = settings?.[key]
+  return value === undefined ? defaultOn : value === 'true'
+}
+
+/**
+ * The values a multi-select setting has picked, or `defaults` for a widget
+ * rendered without settings.
+ */
+export const pickedOf = (
+  settings: WidgetSettingValues | undefined,
+  key: string,
+  defaults: string[],
+): string[] => {
+  const picked = pickedValues(settings?.[key])
+  return picked.length > 0 ? picked : defaults
 }

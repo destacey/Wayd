@@ -31,6 +31,7 @@ import {
   IntakeRequestCurrentEstimateDto,
   IntakeRequestOutcomesDto,
   IntakeRequestCurrentScoreDto,
+  IntakeDeskOpenEstimateCountDto,
   IntakeEstimationScaleChoiceDto,
   IntakeRequestScoringDto,
   IntakeScoringModelChoiceDto,
@@ -60,6 +61,7 @@ import {
   UpdateIntakeChannelRequest,
   UpdateIntakeDeskRequest,
   UpdateIntakeRequestRequest,
+  ScaleChangeEstimateHandling,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
@@ -242,6 +244,8 @@ export interface ChangeIntakeDeskEstimationScaleArgs {
   deskId: string
   /** An active scale, or undefined to stop estimating the desk's requests. */
   estimationScaleId?: string
+  /** Whether the desk's open requests keep their estimates or have them cleared. */
+  openEstimates: ScaleChangeEstimateHandling
 }
 
 export interface ChangeIntakeRequestEstimateArgs {
@@ -1093,11 +1097,11 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       void,
       ChangeIntakeDeskEstimationScaleArgs
     >({
-      queryFn: async ({ deskId, estimationScaleId }) => {
+      queryFn: async ({ deskId, estimationScaleId, openEstimates }) => {
         try {
           const data = await getIntakeDesksClient().changeEstimationScale(
             deskId,
-            { estimationScaleId },
+            { estimationScaleId, openEstimates },
           )
           return { data }
         } catch (error) {
@@ -1108,7 +1112,24 @@ export const demandManagementApi = apiSlice.injectEndpoints({
         { type: QueryTags.IntakeDesk, id: deskId },
         deskListTag,
         QueryTags.IntakeRequest,
+        QueryTags.IntakeRequestEstimate,
       ],
+    }),
+
+    // Not cached: the counts are read for one change, and an estimate given meanwhile must show.
+    getIntakeDeskOpenEstimates: builder.query<
+      IntakeDeskOpenEstimateCountDto[],
+      string
+    >({
+      queryFn: async (deskId) => {
+        try {
+          const data = await getIntakeDesksClient().getOpenEstimates(deskId)
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      keepUnusedDataFor: 0,
     }),
 
     getIntakeDeskRoles: builder.query<IntakeDeskRoleDto[], void>({
@@ -1630,4 +1651,5 @@ export const {
   useChangeIntakeRequestEstimateMutation,
   useGetIntakeEstimationScaleChoicesQuery,
   useChangeIntakeDeskEstimationScaleMutation,
+  useGetIntakeDeskOpenEstimatesQuery,
 } = demandManagementApi

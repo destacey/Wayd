@@ -2,7 +2,7 @@ import { HomeContextResponse } from '@/src/services/wayd-api'
 import { lazy } from 'react'
 import { Involvement } from './home-involvement'
 import { HomeWidget } from './widget-registry'
-import { rowsSetting } from './widget-settings'
+import { emptySetting, rowsSetting } from './widget-settings'
 import DeskQueueWidget, {
   DESK_QUEUE_LIMIT,
   RequestsAssignedToMeTile,
@@ -95,7 +95,7 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 10,
     requires: { featureFlag: 'following', linkedEmployee: true },
     Component: WhatsChangedWidget,
-    settings: [rowsSetting(WHATS_CHANGED_COUNT)],
+    settings: [rowsSetting(WHATS_CHANGED_COUNT), emptySetting],
     tiles: [
       {
         id: 'unread-notifications',
@@ -117,7 +117,7 @@ export const HomeWidgets: HomeWidget[] = [
       linkedEmployee: true,
     },
     Component: MyWorkItemsWidget,
-    settings: [rowsSetting(MY_WORK_ITEMS_LIMIT)],
+    settings: [rowsSetting(MY_WORK_ITEMS_LIMIT), emptySetting],
     // A team member's assigned work items are their day-to-day work; a member
     // of a team of teams alone holds a role above the work. The home context
     // counts no work items, so for anyone else it ranks as shared.
@@ -136,6 +136,7 @@ export const HomeWidgets: HomeWidget[] = [
       linkedEmployee: true,
     },
     Component: MyProjectsWidget,
+    settings: [emptySetting],
     involvement: projectInvolvement,
   },
   {
@@ -152,7 +153,7 @@ export const HomeWidgets: HomeWidget[] = [
       involved: ({ projects }) => projects.assigneeCount > 0,
     },
     Component: MyProjectTasksWidget,
-    settings: [rowsSetting(MY_PROJECT_TASKS_LIMIT)],
+    settings: [rowsSetting(MY_PROJECT_TASKS_LIMIT), emptySetting],
     // Assigned tasks are day-to-day work, and everyone it is shown to has some.
     involvement: () => Involvement.Leads,
     tiles: [
@@ -183,7 +184,7 @@ export const HomeWidgets: HomeWidget[] = [
         projects.ownerCount + projects.managerCount > 0,
     },
     Component: ProjectHealthChecksDueWidget,
-    settings: [rowsSetting(HEALTH_CHECKS_DUE_LIMIT)],
+    settings: [rowsSetting(HEALTH_CHECKS_DUE_LIMIT), emptySetting],
     // Everyone it is shown to leads a project.
     involvement: () => Involvement.Leads,
     tiles: [
@@ -206,7 +207,7 @@ export const HomeWidgets: HomeWidget[] = [
       linkedEmployee: true,
     },
     Component: MyDeliverablesWidget,
-    settings: [rowsSetting(MY_DELIVERABLES_LIMIT)],
+    settings: [rowsSetting(MY_DELIVERABLES_LIMIT), emptySetting],
     // An owner need hold no role on the project, so this is a guess from the roles held.
     involvement: projectInvolvement,
   },
@@ -218,6 +219,7 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 30,
     requires: { permissions: ['Permissions.Risks.View'], linkedEmployee: true },
     Component: MyRisksWidget,
+    settings: [emptySetting],
     involvement: (context) =>
       context.assignedRiskCount > 0 ? Involvement.Involved : Involvement.None,
     tiles: [
@@ -242,7 +244,7 @@ export const HomeWidgets: HomeWidget[] = [
       involved: ({ ownedRoadmapCount }) => ownedRoadmapCount > 0,
     },
     Component: MyRoadmapsWidget,
-    settings: [rowsSetting(MY_ROADMAPS_LIMIT)],
+    settings: [rowsSetting(MY_ROADMAPS_LIMIT), emptySetting],
     // Owning a roadmap is involvement, not day-to-day work, so it stays in the side column.
     involvement: () => Involvement.Involved,
   },
@@ -256,6 +258,7 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 10,
     requires: { permissions: ['Permissions.PlanningIntervals.View'] },
     Component: PlanningIntervalsWidget,
+    settings: [emptySetting],
     // Teams plan in planning intervals, so they are context for team members.
     involvement: (context) =>
       teamCount(context) > 0 ? Involvement.Involved : Involvement.None,
@@ -269,6 +272,7 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 20,
     requires: { linkedEmployee: true },
     Component: MyTeamsWidget,
+    settings: [emptySetting],
     // A team member's team is their day-to-day work.
     involvement: ({ teams }) =>
       teams.teamCount > 0 ? Involvement.Leads : Involvement.None,
@@ -293,6 +297,7 @@ export const HomeWidgets: HomeWidget[] = [
       involved: ({ teams }) => teams.teamOfTeamsCount > 0,
     },
     Component: MyTeamsOfTeamsWidget,
+    settings: [emptySetting],
     // A team of teams its member answers for is their day-to-day work, and everyone it is shown to has one.
     involvement: () => Involvement.Leads,
     tiles: [
@@ -318,7 +323,10 @@ export const HomeWidgets: HomeWidget[] = [
     requires: { featureFlag: 'demand-management', linkedEmployee: true },
     Component: DeskQueueWidget,
     // Its two request lists share the one count.
-    settings: [rowsSetting(DESK_QUEUE_LIMIT, 'Requests per list')],
+    settings: [
+      rowsSetting(DESK_QUEUE_LIMIT, 'Requests per list'),
+      emptySetting,
+    ],
     // Working a desk is day-to-day work.
     involvement: ({ intake }) =>
       intake.deskCount > 0 ? Involvement.Leads : Involvement.None,
@@ -344,7 +352,7 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 25,
     requires: { featureFlag: 'demand-management', linkedEmployee: true },
     Component: MyRequestsWidget,
-    settings: [rowsSetting(MY_REQUESTS_LIMIT)],
+    settings: [rowsSetting(MY_REQUESTS_LIMIT), emptySetting],
     involvement: ({ intake }) =>
       intake.openRequestsRaisedCount > 0
         ? Involvement.Involved
@@ -358,6 +366,6 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 30,
     requires: { featureFlag: 'following', linkedEmployee: true },
     Component: FollowingWidget,
-    settings: [rowsSetting(FOLLOWING_COUNT)],
+    settings: [rowsSetting(FOLLOWING_COUNT), emptySetting],
   },
 ]

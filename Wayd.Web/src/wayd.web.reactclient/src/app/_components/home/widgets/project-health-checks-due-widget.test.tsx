@@ -14,6 +14,7 @@ import {
 } from '@/src/services/wayd-api'
 import { tileValueStyle } from '../attention-tile-test-utils'
 import { homeContext } from '../home-context-test-utils'
+import { renderReportingWidget } from '../widget-display-test-utils'
 
 const mockHome: { context?: HomeContextResponse } = {}
 
@@ -228,6 +229,65 @@ describe('ProjectHealthChecksDueWidget', () => {
     // Assert
     expect(screen.queryAllByRole('listitem')).toHaveLength(0)
     expect(screen.getByText(/has a current health check/)).toBeInTheDocument()
+  })
+
+  it.each([
+    [
+      'loading',
+      { data: undefined, isLoading: true, isError: false },
+      'loading',
+    ],
+    ['failed', { data: undefined, isLoading: false, isError: true }, 'failed'],
+    ['empty when no active project is led', loaded([]), 'empty'],
+    [
+      'empty when every led project has a check lasting beyond the expiring window',
+      loaded([
+        project('APOLLO', 'Apollo', inDays(EXPIRING_SOON_DAYS + 1)),
+        project('GEMINI', 'Gemini', inDays(30)),
+      ]),
+      'empty',
+    ],
+    [
+      'rows when a led project has no current check',
+      loaded([project('APOLLO', 'Apollo')]),
+      'rows',
+    ],
+    [
+      'rows when a led project has a check expiring within the window',
+      loaded([project('APOLLO', 'Apollo', inDays(EXPIRING_SOON_DAYS))]),
+      'rows',
+    ],
+  ])('reports %s to the page', (_name, query, expected) => {
+    // Arrange
+    mockProjects.mockReturnValue(query)
+
+    // Act
+    const { reportedState } = renderReportingWidget(
+      <ProjectHealthChecksDueWidget title="Project health checks due" />,
+    )
+
+    // Assert
+    expect(reportedState()).toBe(expected)
+  })
+
+  it('reports empty when the home context says the caller leads no project and the request is skipped', () => {
+    // Arrange
+    mockHome.context = homeContext({
+      projects: { totalCount: 2, memberCount: 2 },
+    })
+    mockProjects.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false,
+    })
+
+    // Act
+    const { reportedState } = renderReportingWidget(
+      <ProjectHealthChecksDueWidget title="Project health checks due" />,
+    )
+
+    // Assert
+    expect(reportedState()).toBe('empty')
   })
 })
 

@@ -179,7 +179,14 @@ const MyProjectTasksWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
   }
 
   return (
-    <WidgetCard title={title} loading={isLoading}>
+    <WidgetCard
+      title={title}
+      loading={isLoading}
+      failed={isError}
+      // Not when only later tasks remain: they are counted, and hiding them would hide work.
+      empty={!tasks || tasks.length === 0}
+      emptySummary="No open tasks"
+    >
       {body()}
     </WidgetCard>
   )

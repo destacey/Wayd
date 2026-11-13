@@ -164,7 +164,13 @@ const ProjectHealthChecksDueWidget: FC<HomeWidgetProps> = ({
   }
 
   return (
-    <WidgetCard title={title} loading={isLoading}>
+    <WidgetCard
+      title={title}
+      loading={isLoading}
+      failed={isError}
+      empty={healthChecksDue(projects ?? []).length === 0}
+      emptySummary="None due"
+    >
       {body()}
     </WidgetCard>
   )

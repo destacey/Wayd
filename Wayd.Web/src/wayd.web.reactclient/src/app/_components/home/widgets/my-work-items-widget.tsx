@@ -140,7 +140,14 @@ const MyWorkItemsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
   }
 
   return (
-    <WidgetCard title={title} loading={open.isLoading}>
+    <WidgetCard
+      title={title}
+      loading={open.isLoading}
+      failed={open.isError}
+      // The done count is extra, so with no open work the widget is empty.
+      empty={groupMyWorkItems(open.data ?? []).length === 0}
+      emptySummary="Nothing in progress or proposed"
+    >
       {body()}
     </WidgetCard>
   )

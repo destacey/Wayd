@@ -91,7 +91,14 @@ const MyRoadmapsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
   }
 
   return (
-    <WidgetCard title={title} viewAllHref={ROADMAPS_HREF} loading={isLoading}>
+    <WidgetCard
+      title={title}
+      viewAllHref={ROADMAPS_HREF}
+      loading={isLoading}
+      failed={isError}
+      empty={!roadmaps || roadmaps.length === 0}
+      emptySummary="No active roadmaps"
+    >
       {body()}
     </WidgetCard>
   )

@@ -29,6 +29,9 @@ const WhatsChangedWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
       title={title}
       viewAllHref={NOTIFICATIONS_HREF}
       loading={isLoading}
+      failed={isError}
+      empty={notifications.length === 0}
+      emptySummary="Nothing has changed"
     >
       {!isError && notifications.length === 0 ? (
         <WidgetEmpty message="Nothing has changed yet. Follow a project, program or PI objective, or take a role on one, and its changes appear here." />

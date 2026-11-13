@@ -6,6 +6,7 @@ import WhatsChangedWidget, {
 } from './whats-changed-widget'
 import { tileValueStyle } from '../attention-tile-test-utils'
 import { MAX_ROWS } from '../widget-settings'
+import { renderReportingWidget } from '../widget-display-test-utils'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -106,6 +107,40 @@ describe('WhatsChangedWidget', () => {
     // Assert
     expect(screen.getByText('Apollo')).toBeInTheDocument()
     expect(screen.queryByText(/Nothing has changed/)).not.toBeInTheDocument()
+  })
+
+  it.each([
+    [
+      'loading',
+      { data: undefined, isLoading: true, isError: false },
+      'loading',
+    ],
+    ['failed', { data: undefined, isLoading: false, isError: true }, 'failed'],
+    [
+      'empty when there are no notifications',
+      { data: { pages: [{ items: [] }] }, isLoading: false, isError: false },
+      'empty',
+    ],
+    [
+      'rows when there are notifications',
+      {
+        data: { pages: [{ items: [{ record: { name: 'Apollo' } }] }] },
+        isLoading: false,
+        isError: false,
+      },
+      'rows',
+    ],
+  ])('reports %s to the page', (_name, query, expected) => {
+    // Arrange
+    mockNotifications.mockReturnValue(query)
+
+    // Act
+    const { reportedState } = renderReportingWidget(
+      <WhatsChangedWidget title="What's changed" />,
+    )
+
+    // Assert
+    expect(reportedState()).toBe(expected)
   })
 })
 

@@ -136,7 +136,14 @@ const MyDeliverablesWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
   }
 
   return (
-    <WidgetCard title={title} loading={isLoading}>
+    <WidgetCard
+      title={title}
+      loading={isLoading}
+      failed={isError}
+      // Not when only later deliverables remain: they are counted, and hiding them would hide work.
+      empty={!deliverables || deliverables.length === 0}
+      emptySummary="No open deliverables"
+    >
       {body()}
     </WidgetCard>
   )

@@ -174,6 +174,17 @@ const RequestSection: FC<{
   </Flex>
 )
 
+/** Whether a request list loaded with nothing in it; a failed one is not empty. */
+const isListEmpty = ({
+  data,
+  isLoading,
+  isError,
+}: {
+  data?: unknown[]
+  isLoading: boolean
+  isError: boolean
+}) => !isLoading && !isError && (!data || data.length === 0)
+
 /**
  * What waits on the desks the caller works: each desk's open requests and what
  * still needs triage, the requests assigned to them, and those they take part in.
@@ -187,6 +198,8 @@ const DeskQueueWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
     { participating: true, openOnly: true },
     { skip: context?.intake.deskCount === 0 },
   )
+
+  const hasNoDesks = !desks.data || desks.data.length === 0
 
   const body = () => {
     if (desks.isError)
@@ -238,7 +251,16 @@ const DeskQueueWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
     <WidgetCard
       title={title}
       viewAllHref={`${REQUESTS}?desk=mine`}
-      loading={desks.isLoading}
+      // Waits for the request lists too: whether the widget is empty depends on them.
+      loading={
+        desks.isLoading ||
+        (!hasNoDesks && (assigned.isLoading || participating.isLoading))
+      }
+      failed={desks.isError}
+      empty={
+        hasNoDesks || (isListEmpty(assigned) && isListEmpty(participating))
+      }
+      emptySummary={hasNoDesks ? 'Not on any desk' : 'No requests for you'}
     >
       {body()}
     </WidgetCard>

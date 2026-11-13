@@ -1,5 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import WidgetCard from './widget-card'
+import WidgetCard, { WidgetCardProps } from './widget-card'
+import { WidgetDisplay, WidgetDisplayContext } from './widget-display'
+import {
+  renderReportingWidget,
+  widgetDisplay,
+} from './widget-display-test-utils'
 import { HomeWidget } from './widget-registry'
 import { rowsSetting } from './widget-settings'
 import { WidgetSettingsContext } from './widget-settings-form'
@@ -64,4 +69,144 @@ describe('WidgetCard', () => {
     expect(onChange).toHaveBeenCalledWith({ rows: '10' })
     expect(screen.getByRole('link', { name: 'View all' })).toBeInTheDocument()
   })
+})
+
+describe('WidgetCard empty display', () => {
+  const display = widgetDisplay
+
+  const body = () => screen.queryByText('How it fills.')
+
+  const card = (props: Partial<WidgetCardProps>) => (
+    <WidgetCard title="Alpha" emptySummary="No alphas" {...props}>
+      How it fills.
+    </WidgetCard>
+  )
+
+  const renderCard = (
+    value: WidgetDisplay | null,
+    props: Partial<WidgetCardProps> = {},
+  ) =>
+    render(
+      <WidgetDisplayContext value={value}>{card(props)}</WidgetDisplayContext>,
+    )
+
+  it.each([
+    ['loading', { loading: true }],
+    ['failed', { failed: true, empty: true }],
+    ['empty', { empty: true }],
+    ['rows', {}],
+  ] as const)('reports %s to the page', (state, props) => {
+    // Act
+    const { reportedState } = renderReportingWidget(card(props))
+
+    // Assert
+    expect(reportedState()).toBe(state)
+  })
+
+  it('withdraws its report when it leaves the page', () => {
+    // Arrange
+    const value = display()
+    const { unmount } = renderReportingWidget(card({ empty: true }), value)
+
+    // Act
+    unmount()
+
+    // Assert
+    expect(value.onReport).toHaveBeenLastCalledWith({
+      widgetId: 'widget',
+      state: undefined,
+    })
+  })
+
+  it.each(['loading', 'failed', 'rows'] as const)(
+    'draws a widget left on Explain in full while %s',
+    (state) => {
+      // Act
+      const { container } = renderCard(display('explain'), {
+        loading: state === 'loading',
+        failed: state === 'failed',
+      })
+
+      // Assert
+      expect(screen.getByText('Alpha')).toBeInTheDocument()
+      expect(screen.queryByText('No alphas')).not.toBeInTheDocument()
+      if (state === 'loading')
+        expect(container.querySelector('.ant-skeleton')).toBeInTheDocument()
+      else expect(body()).toBeInTheDocument()
+    },
+  )
+
+  it('explains an empty widget by default, away from the page', () => {
+    // Act
+    renderCard(null, { empty: true })
+
+    // Assert
+    expect(body()).toBeInTheDocument()
+    expect(screen.queryByText('No alphas')).not.toBeInTheDocument()
+  })
+
+  it('draws an empty widget set to One line as its title and summary alone', () => {
+    // Act
+    renderCard(display('line'), { empty: true, viewAllHref: '/alpha' })
+
+    // Assert
+    expect(screen.getByText('Alpha')).toBeInTheDocument()
+    expect(screen.getByText('No alphas')).toBeInTheDocument()
+    expect(body()).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View all' })).toBeInTheDocument()
+  })
+
+  it('draws nothing for an empty widget set to Hide', () => {
+    // Act
+    const { container } = renderCard(display('hide'), { empty: true })
+
+    // Assert
+    expect(container).toBeEmptyDOMElement()
+  })
+
+  it('draws an empty widget set to Hide in full once the user shows the hidden', () => {
+    // Act
+    renderCard(display('hide', true), { empty: true })
+
+    // Assert
+    expect(body()).toBeInTheDocument()
+  })
+
+  it.each(['line', 'hide'] as const)(
+    'keeps a widget set to %s on its skeleton while it loads',
+    (emptyDisplay) => {
+      // Act
+      const { container } = renderCard(display(emptyDisplay), {
+        loading: true,
+        empty: true,
+      })
+
+      // Assert
+      expect(screen.getByText('Alpha')).toBeInTheDocument()
+      expect(container.querySelector('.ant-skeleton')).toBeInTheDocument()
+    },
+  )
+
+  it.each(['line', 'hide'] as const)(
+    'shows a failed widget set to %s in full',
+    (emptyDisplay) => {
+      // Act
+      renderCard(display(emptyDisplay), { failed: true, empty: true })
+
+      // Assert
+      expect(body()).toBeInTheDocument()
+      expect(screen.queryByText('No alphas')).not.toBeInTheDocument()
+    },
+  )
+
+  it.each(['line', 'hide'] as const)(
+    'shows a widget with rows set to %s in full',
+    (emptyDisplay) => {
+      // Act
+      renderCard(display(emptyDisplay))
+
+      // Assert
+      expect(body()).toBeInTheDocument()
+    },
+  )
 })

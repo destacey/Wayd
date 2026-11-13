@@ -167,6 +167,29 @@
   padding: 0;
 }
 
+/* An empty widget drawn as one line: the title row says it all, so the body goes. */
+.lineCard > :global(.ant-card-body) {
+  display: none;
+}
+
+/* With no body beneath it, the head's rule would sit on the card's own border. */
+.lineCard > :global(.ant-card-head) {
+  border-bottom: 0;
+}
+
+/* The line at the foot of the page naming the widgets hidden as empty. */
+.hiddenWidgets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 16px;
+}
+
+.hiddenWidgetsToggle.hiddenWidgetsToggle {
+  padding-inline: 0;
+}
+
 /* The card's own border closes the list; the last row's would double it. */
 .flushRows > :last-child > * {
   border-bottom: 0;

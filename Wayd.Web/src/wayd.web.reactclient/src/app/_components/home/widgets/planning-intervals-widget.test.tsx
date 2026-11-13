@@ -6,6 +6,7 @@ import PlanningIntervalsWidget, {
 } from './planning-intervals-widget'
 import { PlanningIntervalListDto } from '@/src/services/wayd-api'
 import { IterationState } from '@/src/components/types'
+import { renderReportingWidget } from '../widget-display-test-utils'
 
 vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
   useGetPlanningIntervalsQuery: vi.fn(),
@@ -125,5 +126,51 @@ describe('PlanningIntervalsWidget', () => {
       'href',
       '/planning/planning-intervals/7?section=plan-review',
     )
+  })
+
+  it.each([
+    [
+      'loading',
+      { data: undefined, isLoading: true, isError: false },
+      'loading',
+    ],
+    ['failed', { data: undefined, isLoading: false, isError: true }, 'failed'],
+    [
+      'empty when the query returned nothing',
+      { data: [], isLoading: false, isError: false },
+      'empty',
+    ],
+    [
+      'empty when only past and far-future planning intervals came back',
+      {
+        data: [
+          pi(1, IterationState.Completed, '2025-05-01', '2025-08-01'),
+          pi(2, IterationState.Future, '2099-01-01', '2099-04-01'),
+        ],
+        isLoading: false,
+        isError: false,
+      },
+      'empty',
+    ],
+    [
+      'rows when a planning interval is active',
+      {
+        data: [pi(7, IterationState.Active, '2020-01-01', '2099-01-01')],
+        isLoading: false,
+        isError: false,
+      },
+      'rows',
+    ],
+  ])('reports %s to the page', (_name, query, expected) => {
+    // Arrange
+    mockPlanningIntervals.mockReturnValue(query)
+
+    // Act
+    const { reportedState } = renderReportingWidget(
+      <PlanningIntervalsWidget title="Planning intervals" />,
+    )
+
+    // Assert
+    expect(reportedState()).toBe(expected)
   })
 })

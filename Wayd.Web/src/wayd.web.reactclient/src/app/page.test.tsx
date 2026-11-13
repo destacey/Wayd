@@ -69,6 +69,12 @@ vi.mock('@/src/store/features/user-management/profile-api', () => ({
   ],
 }))
 
+/** The state each stand-in widget reports, by its label; 'rows' when unset. */
+let mockWidgetStates: Record<
+  string,
+  import('./_components/home/widget-display').WidgetState
+> = {}
+
 const mockHome = {
   context: undefined as HomeContextResponse | undefined,
   isLoading: false,
@@ -107,6 +113,12 @@ vi.mock('./_components/home/home-widgets', async () => {
   const { WidgetSettingsContext } = await vi.importActual<
     typeof import('./_components/home/widget-settings-form')
   >('./_components/home/widget-settings-form')
+  const { useWidgetState } = await vi.importActual<
+    typeof import('./_components/home/widget-display')
+  >('./_components/home/widget-display')
+  const { emptySetting } = await vi.importActual<
+    typeof import('./_components/home/widget-settings')
+  >('./_components/home/widget-settings')
   const stand = (label: string) => {
     const Stand = ({
       title,
@@ -117,6 +129,8 @@ vi.mock('./_components/home/home-widgets', async () => {
     }) => {
       // Stands in for the gear a real widget's card offers.
       const access = useContext(WidgetSettingsContext)
+      // Reports as a real widget's card does.
+      useWidgetState(mockWidgetStates[label] ?? 'rows')
       return (
         <div>
           <span data-rows={settings?.rows}>
@@ -158,6 +172,7 @@ vi.mock('./_components/home/home-widgets', async () => {
             ],
             default: '5',
           },
+          emptySetting,
         ],
         tiles: [{ id: 'personal-tile', Tile: stand('Personal tile') }],
       },
@@ -169,6 +184,7 @@ vi.mock('./_components/home/home-widgets', async () => {
         defaultOrder: 10,
         requires: { featureFlag: 'following' },
         Component: stand('Flagged widget'),
+        settings: [emptySetting],
       },
       {
         id: 'permitted',
@@ -178,6 +194,7 @@ vi.mock('./_components/home/home-widgets', async () => {
         defaultOrder: 20,
         requires: { permissions: ['Permissions.PlanningIntervals.View'] },
         Component: stand('Permitted widget'),
+        settings: [emptySetting],
         // Leads, so moves to the top of main, for a member of a team.
         involvement: (context: HomeContextResponse) =>
           context.teams.teamCount > 0 ? 3 : 1,
@@ -743,5 +760,200 @@ describe('HomePage customizing', () => {
     expect(mockMessage.error).toHaveBeenCalledWith(
       expect.stringMatching(/could not be saved/),
     )
+  })
+})
+
+describe('HomePage empty widgets', () => {
+  const saved = (
+    widgetId: string,
+    column: HomeLayoutColumn,
+    settings: Record<string, string> = {},
+  ): HomeLayoutWidgetResponse => ({ widgetId, column, visible: true, settings })
+
+  const sectionOf = (text: string) => screen.getByText(text).closest('section')
+
+  const hiddenLine = () => screen.queryByText(/nothing to show:/)
+
+  beforeEach(() => {
+    mockAuth.employeeId = 'emp-1'
+    mockAuth.claims = new Set(['Permissions.Projects.View'])
+    mockAuth.flags = new Set(['following'])
+    mockAuth.flagsLoading = false
+    mockLayout.widgets = [
+      saved('personal', HomeLayoutColumn.Main, { empty: 'hide' }),
+      saved('flagged', HomeLayoutColumn.Side),
+    ]
+    mockLayout.isLoading = false
+    mockLayout.saveFails = false
+    mockLayout.saveHeld = null
+    mockLayout.loadFails = false
+    mockHome.context = undefined
+    mockHome.isLoading = false
+    mockWidgetStates = {}
+  })
+
+  afterAll(() => {
+    mockWidgetStates = {}
+  })
+
+  it('hides an empty widget set to Hide and names it at the foot of the page', () => {
+    // Arrange
+    mockWidgetStates = { 'Personal widget': 'empty' }
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(sectionOf('Personal widget (Personal)')).not.toBeVisible()
+    expect(sectionOf('Flagged widget (Flagged)')).toBeVisible()
+    expect(hiddenLine()).toHaveTextContent(
+      '1 widget has nothing to show: Personal.',
+    )
+  })
+
+  it.each(['loading', 'failed', 'rows'] as const)(
+    'shows a widget set to Hide while it is %s',
+    (state) => {
+      // Arrange
+      mockWidgetStates = { 'Personal widget': state }
+
+      // Act
+      render(<HomePage />)
+
+      // Assert
+      expect(sectionOf('Personal widget (Personal)')).toBeVisible()
+      expect(hiddenLine()).not.toBeInTheDocument()
+    },
+  )
+
+  it('shows an empty widget left on Explain', () => {
+    // Arrange
+    mockWidgetStates = { 'Flagged widget': 'empty' }
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(sectionOf('Flagged widget (Flagged)')).toBeVisible()
+    expect(hiddenLine()).not.toBeInTheDocument()
+  })
+
+  it('keeps a hidden widget mounted, so it comes back when it fills', () => {
+    // Arrange
+    mockWidgetStates = { 'Personal widget': 'empty' }
+    const { rerender } = render(<HomePage />)
+
+    // Act
+    mockWidgetStates = { 'Personal widget': 'rows' }
+    rerender(<HomePage />)
+
+    // Assert
+    expect(sectionOf('Personal widget (Personal)')).toBeVisible()
+    expect(hiddenLine()).not.toBeInTheDocument()
+  })
+
+  it('does not name a widget drawn as one line', () => {
+    // Arrange
+    mockLayout.widgets = [
+      saved('personal', HomeLayoutColumn.Main, { empty: 'line' }),
+      saved('flagged', HomeLayoutColumn.Side),
+    ]
+    mockWidgetStates = { 'Personal widget': 'empty' }
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(sectionOf('Personal widget (Personal)')).toBeVisible()
+    expect(hiddenLine()).not.toBeInTheDocument()
+  })
+
+  it('names three or more widgets as a list', () => {
+    // Arrange
+    mockAuth.claims = new Set([
+      'Permissions.Projects.View',
+      'Permissions.PlanningIntervals.View',
+    ])
+    mockLayout.widgets = [
+      saved('personal', HomeLayoutColumn.Main, { empty: 'hide' }),
+      saved('permitted', HomeLayoutColumn.Main, { empty: 'hide' }),
+      saved('flagged', HomeLayoutColumn.Side, { empty: 'hide' }),
+    ]
+    mockWidgetStates = {
+      'Personal widget': 'empty',
+      'Permitted widget': 'empty',
+      'Flagged widget': 'empty',
+    }
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(hiddenLine()).toHaveTextContent(
+      '3 widgets have nothing to show: Personal, Permitted and Flagged.',
+    )
+  })
+
+  it('gives the side column the full width when every main widget is hidden', () => {
+    // Arrange
+    mockWidgetStates = { 'Personal widget': 'empty' }
+
+    // Act
+    render(<HomePage />)
+
+    // Assert: the wrapper drops its two-column grid.
+    const columns = sectionOf('Flagged widget (Flagged)')?.parentElement
+      ?.parentElement
+    expect(columns?.className).toBe('')
+  })
+
+  it('shows the hidden widgets on Show, and hides them again on Hide', () => {
+    // Arrange
+    mockWidgetStates = { 'Personal widget': 'empty' }
+    render(<HomePage />)
+
+    // Act
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Show the widgets with nothing to show',
+      }),
+    )
+
+    // Assert: still named, so the user can hide them again.
+    expect(sectionOf('Personal widget (Personal)')).toBeVisible()
+    expect(hiddenLine()).toBeInTheDocument()
+
+    // Act
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Hide the widgets with nothing to show',
+      }),
+    )
+
+    // Assert
+    expect(sectionOf('Personal widget (Personal)')).not.toBeVisible()
+  })
+
+  it('is the line alone when every widget is hidden as empty', () => {
+    // Arrange
+    mockLayout.widgets = [
+      saved('personal', HomeLayoutColumn.Main, { empty: 'hide' }),
+      saved('flagged', HomeLayoutColumn.Side, { empty: 'hide' }),
+    ]
+    mockWidgetStates = {
+      'Personal widget': 'empty',
+      'Flagged widget': 'empty',
+    }
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(sectionOf('Personal widget (Personal)')).not.toBeVisible()
+    expect(sectionOf('Flagged widget (Flagged)')).not.toBeVisible()
+    expect(hiddenLine()).toHaveTextContent(
+      '2 widgets have nothing to show: Personal and Flagged.',
+    )
+    expect(screen.queryByText(/Every widget is switched off/)).toBeNull()
   })
 })

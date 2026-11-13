@@ -7,6 +7,7 @@ import { Button, Flex, Tag, Typography } from 'antd'
 import { FC } from 'react'
 import ResultsPanel from './results-panel'
 import RoundLabelHeader from './round-label-header'
+import RoundPublication from './round-publication'
 import styles from './poker-session.module.css'
 
 const { Text } = Typography
@@ -16,6 +17,10 @@ export interface PokerReviewViewProps {
   sessionId: string
   sessionKey: number
   canManage: boolean
+  /** Whether the viewer runs the session, active or completed: who may publish. */
+  canPublish: boolean
+  /** Whether the consensus is a card such as `?` rather than an estimate value. */
+  consensusIsCard: boolean
   participants: { id: string; name: string }[]
 }
 
@@ -24,6 +29,8 @@ const PokerReviewView: FC<PokerReviewViewProps> = ({
   sessionId,
   sessionKey,
   canManage,
+  canPublish,
+  consensusIsCard,
   participants,
 }) => {
   const messageApi = useMessage()
@@ -131,6 +138,14 @@ const PokerReviewView: FC<PokerReviewViewProps> = ({
           </Tag>
         </Flex>
       )}
+
+      <RoundPublication
+        round={round}
+        sessionId={sessionId}
+        sessionKey={sessionKey}
+        canManage={canPublish}
+        consensusIsCard={consensusIsCard}
+      />
 
       {/* Stats panel */}
       <ResultsPanel votes={round.votes} />

@@ -2,8 +2,13 @@
 
 import { PageActions } from '@/src/components/common'
 import { RecordLayout, RecordSection } from '@/src/components/common/record'
+import useAuth from '@/src/components/contexts/auth'
 import { requireFeatureFlag } from '@/src/components/hoc'
-import { useDocumentTitle } from '@/src/hooks'
+import {
+  useDocumentTitle,
+  useFeatureFlag,
+  useLinkedEmployee,
+} from '@/src/hooks'
 import {
   useGetIntakeDeskQuery,
   useGetIntakeDeskVisibilitiesQuery,
@@ -14,7 +19,15 @@ import { toApiError } from '@/src/utils'
 import { Alert, Button, Space } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
 import { notFound, useRouter, useSearchParams } from 'next/navigation'
+import type { RowSelectionState } from '@tanstack/react-table'
 import { use, useState } from 'react'
+import {
+  canRunDeskPoker,
+  POKER_VIEW_PERMISSION,
+  pokerSessionHref,
+} from '../../_components/desk-poker'
+import DeskPokerSessionForm from '../../_components/desk-poker-session-form'
+import StartPokerSessionButton from '../../_components/start-poker-session-button'
 import IntakeRequestsGrid from '../../_components/intake-requests-grid'
 import { UnownedDeskAlert } from '../../_components/desk-status'
 import DeleteIntakeDeskForm from './_components/delete-intake-desk-form'
@@ -23,16 +36,18 @@ import EditIntakeDeskSettingsForm from './_components/edit-intake-desk-settings-
 import EditIntakeDeskTriagersForm from './_components/edit-intake-desk-triagers-form'
 import IntakeDeskFacts from './_components/intake-desk-facts'
 import IntakeDeskMembers from './_components/intake-desk-members'
+import IntakeDeskPokerSessions from './_components/intake-desk-poker-sessions'
 import IntakeDeskSettings from './_components/intake-desk-settings'
 import IntakeDeskDetailsLoading from './loading'
 
 enum DeskSection {
   Requests = 'requests',
+  PokerSessions = 'poker-sessions',
   Members = 'members',
   Settings = 'settings',
 }
 
-type DeskDialog = 'settings' | 'members' | 'triagers' | 'delete'
+type DeskDialog = 'settings' | 'members' | 'triagers' | 'delete' | 'poker'
 
 /**
  * One desk, run from its own page rather than from Settings: a Desk Admin usually holds no administer
@@ -49,13 +64,25 @@ const IntakeDeskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const activeSection = searchParams.get('section') ?? DeskSection.Requests
 
   const [dialog, setDialog] = useState<DeskDialog | null>(null)
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+  const { employeeId } = useLinkedEmployee()
+  const { hasPermissionClaim } = useAuth()
+  const { isEnabled: pokerEnabled } = useFeatureFlag('planning-poker')
+  // Sessions are Planning Poker's, so the section needs what opening one needs.
+  const showPoker = pokerEnabled && hasPermissionClaim(POKER_VIEW_PERMISSION)
 
   const { data: desk, error, refetch } = useGetIntakeDeskQuery(key)
   const { data: visibilities } = useGetIntakeDeskVisibilitiesQuery()
   const { data: needByBases } = useGetNeedByBasesQuery()
   const requestsQuery = useGetIntakeRequestsQuery(
     { deskId: desk?.id },
-    { skip: !desk || activeSection !== DeskSection.Requests },
+    {
+      // Also loaded for the poker section's address where Planning Poker is off, which shows the requests.
+      skip:
+        !desk ||
+        (activeSection !== DeskSection.Requests &&
+          (activeSection !== DeskSection.PokerSessions || showPoker)),
+    },
   )
 
   if (error && toApiError(error).status === 404) {
@@ -78,8 +105,16 @@ const IntakeDeskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     return <IntakeDeskDetailsLoading />
   }
 
+  const canStartPoker = showPoker && canRunDeskPoker(desk, employeeId)
+  const selectedRequests = (requestsQuery.data ?? []).filter(
+    (r) => rowSelection[r.id],
+  )
+
   const sections: RecordSection[] = [
     { id: DeskSection.Requests, label: 'Requests' },
+    ...(showPoker
+      ? [{ id: DeskSection.PokerSessions, label: 'Poker Sessions' }]
+      : []),
     { id: DeskSection.Members, label: 'Members', count: desk.members.length },
     { id: DeskSection.Settings, label: 'Settings' },
   ]
@@ -89,7 +124,23 @@ const IntakeDeskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
     : []
 
   const sectionActions =
-    activeSection === DeskSection.Members && desk.canManage ? (
+    canStartPoker &&
+    activeSection === DeskSection.Requests &&
+    selectedRequests.length > 0 ? (
+      // Says why when the selection cannot be estimated, such as a closed request.
+      <StartPokerSessionButton
+        selected={selectedRequests}
+        desks={[desk]}
+        employeeId={employeeId}
+        onStarted={() => setRowSelection({})}
+      />
+    ) : canStartPoker &&
+      (activeSection === DeskSection.PokerSessions ||
+        activeSection === DeskSection.Requests) ? (
+      <Button size="small" onClick={() => setDialog('poker')}>
+        Start Poker Session
+      </Button>
+    ) : activeSection === DeskSection.Members && desk.canManage ? (
       <Space size="small">
         <Button size="small" onClick={() => setDialog('triagers')}>
           Edit Triagers
@@ -104,7 +155,7 @@ const IntakeDeskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       </Button>
     ) : undefined
 
-  const renderSection = (section: string) => {
+  const renderSection = (section: string): React.ReactNode => {
     switch (section) {
       case DeskSection.Requests:
         return (
@@ -118,8 +169,19 @@ const IntakeDeskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               persistStateKey="demand-management-desk-requests"
               csvFileName={`desk-${desk.key}-requests`}
               emptyMessage="No requests you can see on this desk"
+              rowSelection={canStartPoker ? rowSelection : undefined}
+              onRowSelectionChange={
+                canStartPoker ? setRowSelection : undefined
+              }
             />
           </>
+        )
+      case DeskSection.PokerSessions:
+        // An address naming the section, opened where Planning Poker is off, shows the desk's requests.
+        return showPoker ? (
+          <IntakeDeskPokerSessions desk={desk} />
+        ) : (
+          renderSection(DeskSection.Requests)
         )
       case DeskSection.Members:
         return (
@@ -170,6 +232,16 @@ const IntakeDeskDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         <EditIntakeDeskTriagersForm
           desk={desk}
           onFormComplete={() => setDialog(null)}
+          onFormCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog === 'poker' && canStartPoker && (
+        <DeskPokerSessionForm
+          desk={desk}
+          onFormComplete={(started) => {
+            setDialog(null)
+            if (started) router.push(pokerSessionHref(started.key))
+          }}
           onFormCancel={() => setDialog(null)}
         />
       )}

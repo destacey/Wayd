@@ -351,6 +351,53 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       ],
     }),
 
+    /** Starts a poker session hosted by the desk, with a round per request. */
+    startIntakeDeskPokerSession: builder.mutation<
+      ObjectIdAndKey,
+      {
+        deskId: string
+        name: string
+        requestIds: string[]
+        invitedEmployeeIds?: string[]
+      }
+    >({
+      queryFn: async ({ deskId, ...request }) => {
+        try {
+          const data = await getIntakeDesksClient().startPokerSession(
+            deskId,
+            request,
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: () => [{ type: QueryTags.PokerSession, id: 'LIST' }],
+    }),
+
+    /** Adds a round per request to a poker session the desk hosts. */
+    addIntakeRequestsToPokerSession: builder.mutation<
+      void,
+      { deskId: string; sessionId: string; requestIds: string[] }
+    >({
+      queryFn: async ({ deskId, sessionId, requestIds }) => {
+        try {
+          const data = await getIntakeDesksClient().addRequestsToPokerSession(
+            deskId,
+            sessionId,
+            { requestIds },
+          )
+          return { data }
+        } catch (error) {
+          return toError(error)
+        }
+      },
+      invalidatesTags: () => [
+        { type: QueryTags.PokerSession, id: 'LIST' },
+        QueryTags.PokerSessionRound,
+      ],
+    }),
+
     changeIntakeRequestEstimate: builder.mutation<
       void,
       ChangeIntakeRequestEstimateArgs
@@ -1648,6 +1695,8 @@ export const {
   useChangeIntakeDeskScoringModelMutation,
   useGetIntakeRequestEstimatesQuery,
   useGetIntakeRequestOutcomesQuery,
+  useStartIntakeDeskPokerSessionMutation,
+  useAddIntakeRequestsToPokerSessionMutation,
   useChangeIntakeRequestEstimateMutation,
   useGetIntakeEstimationScaleChoicesQuery,
   useChangeIntakeDeskEstimationScaleMutation,

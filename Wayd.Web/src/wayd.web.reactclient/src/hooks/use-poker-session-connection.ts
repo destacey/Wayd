@@ -104,6 +104,7 @@ export function usePokerSessionConnection(
           'VotesRevealed',
           'ConsensusSet',
           'RoundReset',
+          'RoundPublicationChanged',
           'SessionUpdated',
           'SessionCompleted',
           'RoundAdded',

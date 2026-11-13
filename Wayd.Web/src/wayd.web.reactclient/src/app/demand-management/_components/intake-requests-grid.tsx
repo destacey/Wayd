@@ -6,6 +6,7 @@ import type {
   ColumnDef,
   SortingState,
 } from '@/src/components/common/wayd-grid-core'
+import type { RowSelectionState } from '@tanstack/react-table'
 import EntityLink from '@/src/components/common/entity-link'
 import { tagText } from '@/src/components/common/tags'
 import {
@@ -18,7 +19,7 @@ import {
   NeedByBasisFamily,
 } from '@/src/services/wayd-api'
 import { formatCalendarDate } from '@/src/utils'
-import { Tooltip } from 'antd'
+import { Checkbox, Tooltip } from 'antd'
 import Link from 'next/link'
 import { FC, ReactNode } from 'react'
 import { NeedByTag } from './need-by'
@@ -55,6 +56,16 @@ export interface IntakeRequestsGridProps {
   estimates?: RequestEstimates
   /** The sort the grid opens on; newest first unless given. Empty keeps the order the requests arrive in. */
   initialSorting?: SortingState
+  /**
+   * The selected requests, keyed by request id. Adds a checkbox column when given with
+   * `onRowSelectionChange`, for a page that acts on several requests at once.
+   */
+  rowSelection?: RowSelectionState
+  onRowSelectionChange?: (
+    updater:
+      | RowSelectionState
+      | ((previous: RowSelectionState) => RowSelectionState),
+  ) => void
 }
 
 export const requestHref = (key: number) => `/demand-management/requests/${key}`
@@ -94,11 +105,61 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
   scores,
   estimates,
   initialSorting = [{ id: 'key', desc: true }],
+  rowSelection,
+  onRowSelectionChange,
 }) => {
+  const selectable = !!rowSelection && !!onRowSelectionChange
+
+  // A request hidden by a filter or a search is dropped from the selection, so nothing off screen is
+  // counted or acted on.
+  const pruneSelection = (shown: IntakeRequestSummaryDto[]) => {
+    const shownIds = new Set(shown.map((request) => request.id))
+    onRowSelectionChange?.((previous) => {
+      const kept = Object.keys(previous).filter(
+        (id) => previous[id] && shownIds.has(id),
+      )
+      return kept.length === Object.keys(previous).length
+        ? previous
+        : Object.fromEntries(kept.map((id) => [id, true]))
+    })
+  }
+
+  const selectColumn: ColumnDef<IntakeRequestSummaryDto, any> = {
+    id: 'select',
+    size: 40,
+    enableSorting: false,
+    enableColumnFilter: false,
+    enableResizing: false,
+    enableGlobalFilter: false,
+    // A control column: holds its position and has no column menu.
+    meta: { enableReordering: false },
+    header: ({ table }) => (
+      <Checkbox
+        aria-label="Select all requests shown"
+        tabIndex={-1}
+        checked={table.getIsAllRowsSelected()}
+        // getIsSomeRowsSelected() is "at least one", so exclude all-selected for the dash state.
+        indeterminate={
+          !table.getIsAllRowsSelected() && table.getIsSomeRowsSelected()
+        }
+        onChange={() => table.toggleAllRowsSelected()}
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        aria-label={`Select request ${row.original.key}`}
+        tabIndex={-1}
+        checked={row.getIsSelected()}
+        onChange={() => row.toggleSelected()}
+      />
+    ),
+  }
+
   const basisName = (code: string | undefined) =>
     code ? (needByBases?.find((b) => b.code === code)?.name ?? code) : ''
 
   const columns: ColumnDef<IntakeRequestSummaryDto, any>[] = [
+    ...(selectable ? [selectColumn] : []),
     {
       id: 'key',
       accessorKey: 'key',
@@ -288,6 +349,10 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       leftSlot={leftSlot}
       rightSlot={rightSlot}
       initialSorting={initialSorting}
+      getRowId={(request) => request.id}
+      rowSelection={selectable ? rowSelection : undefined}
+      onRowSelectionChange={selectable ? onRowSelectionChange : undefined}
+      onDisplayedRowsChange={selectable ? pruneSelection : undefined}
     />
   )
 }

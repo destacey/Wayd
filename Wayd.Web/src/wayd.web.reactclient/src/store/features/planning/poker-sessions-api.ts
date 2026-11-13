@@ -8,10 +8,13 @@ import {
   EmployeeNavigationDto,
   ObjectIdAndKey,
   PokerRoundDto,
+  PokerRoundSubjectKind,
   PokerSessionDetailsDto,
+  PokerSessionHostKind,
   PokerSessionListDto,
   PokerSessionMemberDto,
   PokerSessionStatus,
+  PokerSubjectRoundDto,
   SetConsensusRequest,
   SubmitVoteRequest,
   UpdatePokerRoundDescriptionRequest,
@@ -40,6 +43,55 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
         }
       },
       providesTags: () => [{ type: QueryTags.PokerSession, id: 'LIST' }],
+    }),
+
+    /** The sessions one host holds, such as an intake desk's, newest first. */
+    getHostedPokerSessions: builder.query<
+      PokerSessionListDto[],
+      { hostKind: PokerSessionHostKind; hostId: string }
+    >({
+      queryFn: async ({ hostKind, hostId }) => {
+        try {
+          const data = await getPokerSessionsClient().getList(
+            undefined,
+            hostKind,
+            hostId,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      providesTags: () => [{ type: QueryTags.PokerSession, id: 'LIST' }],
+    }),
+
+    /** The rounds that estimated a record, in the sessions the caller can see. */
+    getPokerRoundsForSubject: builder.query<
+      PokerSubjectRoundDto[],
+      { subjectKind: PokerRoundSubjectKind; subjectId: string }
+    >({
+      queryFn: async ({ subjectKind, subjectId }) => {
+        try {
+          const data = await getPokerSessionsClient().getRoundsForSubject(
+            subjectKind,
+            subjectId,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // Each session's own tags, since its mutations name the session; the list tag covers a round
+      // added in a session not listed yet, and a session deleted.
+      providesTags: (result) => [
+        { type: QueryTags.PokerSession, id: 'LIST' },
+        ...(result ?? []).flatMap((round) => [
+          { type: QueryTags.PokerSession, id: round.session.key },
+          { type: QueryTags.PokerSessionRound, id: round.session.key },
+        ]),
+      ],
     }),
 
     getPokerSession: builder.query<PokerSessionDetailsDto, string>({
@@ -233,6 +285,37 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
       },
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.PokerSessionRound, id: arg.sessionKey },
+      ],
+    }),
+
+    /**
+     * Publishes one accepted round, or every unpublished accepted round when
+     * no round is named, to the records they estimate. Succeeds even when a
+     * record's area refuses: each returned round's `publication` says which.
+     */
+    publishPokerRounds: builder.mutation<
+      PokerRoundDto[],
+      { sessionId: string; sessionKey: number; roundId?: string }
+    >({
+      queryFn: async ({ sessionId, roundId }) => {
+        try {
+          const client = getPokerSessionsClient()
+          const data = roundId
+            ? [await client.publishRound(sessionId, roundId)]
+            : await client.publishRounds(sessionId)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // A published round changes its request's estimate, and with it the
+      // desk's unestimated count.
+      invalidatesTags: () => [
+        QueryTags.PokerSessionRound,
+        QueryTags.IntakeRequest,
+        QueryTags.IntakeRequestEstimate,
+        QueryTags.IntakeDesk,
       ],
     }),
 
@@ -544,6 +627,9 @@ export const setCachedFocusedRound = (
 export const {
   useGetPokerSessionsQuery,
   useGetPokerSessionQuery,
+  useGetHostedPokerSessionsQuery,
+  useGetPokerRoundsForSubjectQuery,
+  usePublishPokerRoundsMutation,
   useCreatePokerSessionMutation,
   useUpdatePokerSessionMutation,
   useDeletePokerSessionMutation,

@@ -48,6 +48,7 @@ import {
   VotingActions,
 } from './_components'
 import { buildExportRows, EXPORT_HEADERS } from './_components/session-export'
+import AddDeskRequestsButton from './_components/add-desk-requests-button'
 import { shownRound } from './_components/shown-round'
 import PokerSessionDetailsLoading from './loading'
 
@@ -400,12 +401,20 @@ const PokerSessionDetailPage: FC = () => {
         >
           <div className={styles.centerColumn}>
             {centerViewMode === 'lobby' && (
-              <PokerLobbyState
-                isActive={isActive}
-                canManage={canManage}
-                sessionId={session.id}
-                sessionKey={session.key}
-              />
+              <>
+                <PokerLobbyState
+                  isActive={isActive}
+                  canManage={canManage}
+                  sessionId={session.id}
+                  sessionKey={session.key}
+                />
+                {/* The sidebar that offers this is not shown until a round exists. */}
+                {isActive && canManage && (
+                  <Flex justify="center" style={{ paddingTop: 12 }}>
+                    <AddDeskRequestsButton session={session} />
+                  </Flex>
+                )}
+              </>
             )}
 
             {centerViewMode === 'active' && activeRound && (
@@ -489,6 +498,12 @@ const PokerSessionDetailPage: FC = () => {
                 sessionId={session.id}
                 sessionKey={session.key}
                 canManage={canManage && isActive}
+                canPublish={canManage}
+                consensusIsCard={
+                  session.estimationScaleVersion?.values.find(
+                    (v) => v.value === activeRound.consensusEstimate,
+                  )?.isEstimate === false
+                }
                 participants={roundParticipants}
               />
             )}

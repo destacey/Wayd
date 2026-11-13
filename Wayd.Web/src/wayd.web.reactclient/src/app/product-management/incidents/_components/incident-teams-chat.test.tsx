@@ -157,7 +157,8 @@ describe('IncidentTeamsChat', () => {
       screen.getByRole('button', { name: 'Remove Teams chat' }),
     )
     expect(actions).toHaveClass(styles.actions)
-    expect(actions).toHaveStyle({ opacity: '0' })
+    expect(actions).toHaveStyle({ marginLeft: 'auto', opacity: '0' })
+    expect(actions?.parentElement).toHaveStyle({ width: '100%' })
   })
 
   it('saves an edited Teams link through the chat endpoint', async () => {

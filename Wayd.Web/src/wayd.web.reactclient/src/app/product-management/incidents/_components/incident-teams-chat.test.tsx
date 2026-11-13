@@ -42,6 +42,34 @@ describe('IncidentTeamsChat', () => {
     linkChat.mockClear()
   })
 
+  it('gives the extra-people picker the modal body width', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    renderChat(
+      <IncidentTeamsChat
+        incident={incident(null)}
+        canUpdate
+        employees={[{ value: 'e1', label: 'Casey Submitter' }]}
+      />,
+    )
+
+    // Act
+    await user.click(
+      screen.getByRole('button', { name: 'Add Teams chat for this incident' }),
+    )
+
+    // Assert
+    const picker = screen.getByRole('combobox').closest('.ant-select')
+    expect(picker).toHaveStyle({ width: '100%' })
+    expect(picker?.parentElement).toHaveStyle({
+      display: 'block',
+      width: '100%',
+    })
+    expect(
+      screen.getByText('Creating a Teams chat from Wayd is not available yet.'),
+    ).toBeInTheDocument()
+  })
+
   it('opens the stored chat without giving the new tab access back', () => {
     // Arrange
     renderChat(

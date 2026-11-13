@@ -1,4 +1,5 @@
 import { Select } from 'antd'
+import type { CSSProperties } from 'react'
 import type { BaseOptionType } from 'antd/es/select'
 
 interface EmployeeSelectProps {
@@ -9,6 +10,8 @@ interface EmployeeSelectProps {
   id?: string // required by antd for custom form controls
   value?: string | string[] // required by antd for custom form controls
   onChange?: (value: string | string[]) => void // required by antd for custom form controls
+  /** Width for a select that is not inside a form item, which otherwise sizes to its search box. */
+  style?: CSSProperties
 }
 
 const EmployeeSelect: React.FC<EmployeeSelectProps> = ({
@@ -19,14 +22,16 @@ const EmployeeSelect: React.FC<EmployeeSelectProps> = ({
   id,
   value,
   onChange,
+  style,
 }) => {
   const selectPlaceholder =
     placeholder ??
     (allowMultiple ? 'Select one or more employees' : 'Select an employee')
 
   return (
-    <span id={id}>
+    <span id={id} style={style && { display: 'block', ...style }}>
       <Select
+        style={style}
         mode={allowMultiple ? 'multiple' : undefined}
         allowClear
         disabled={disabled}

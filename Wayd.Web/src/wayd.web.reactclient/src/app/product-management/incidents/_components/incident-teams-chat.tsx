@@ -108,6 +108,7 @@ const IncidentTeamsChat = ({
                   <EmployeeSelect
                     employees={employees}
                     allowMultiple
+                    style={{ width: '100%' }}
                     placeholder="Add other people for this chat only"
                     value={extraPeople}
                     onChange={(value) =>

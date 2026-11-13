@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wayd.Common.Domain.Employees;
+using Wayd.Infrastructure.Persistence.Extensions;
 
 namespace Wayd.Infrastructure.Persistence.Configuration;
 
@@ -420,7 +421,8 @@ public class PersonalAccessTokenConfig : IEntityTypeConfiguration<PersonalAccess
 
         builder.Property(p => p.TokenHash)
             .HasMaxLength(255)
-            .IsRequired();
+            .IsRequired()
+            .ExcludeFromAuditTrail();
 
         builder.Property(p => p.UserId)
             .HasMaxLength(450)

@@ -111,6 +111,23 @@ public class WorkItemConfiguration : IEntityTypeConfiguration<WorkItem>
 }
 ```
 
+## Audit Trail
+
+Every save of an `ISystemAuditable` entity writes a row to `Auditing.AuditTrails` with the old and new values of
+the properties that changed. **A trail row never holds a value in a weaker form than the column it describes.**
+How the trail records a property is set in its entity configuration:
+
+| Configuration | The trail records |
+|---|---|
+| Nothing (the default) | The value as the application sees it |
+| `HasEncryptedJsonConversion()` | The value as the column stores it, after the converter runs: `[Encrypted]` fields stay encrypted |
+| `ExcludeFromAuditTrail()` | No value. A change still names the property among the row's affected columns |
+
+Give a new property `ExcludeFromAuditTrail()` when its value is kept out of domain events and logs: the reason for
+an employee's time away and a personal access token's hash are excluded. A converter that protects its column
+must record the stored form too — set the `AuditTrailValues` annotation as `HasEncryptedJsonConversion` does —
+because the audit loop otherwise reads the value before the converter runs. `AuditTrailValueTests` covers both.
+
 ## Soft Deletes
 
 An entity that implements `ISoftDelete` is never physically removed: deleting it marks it as deleted. Soft

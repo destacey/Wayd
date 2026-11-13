@@ -155,13 +155,4 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
-
-    [HttpGet("logs")]
-    [EndpointSummary("Get audit logs of currently logged in user.")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public Task<List<AuditDto>> GetLogs(CancellationToken cancellationToken)
-    {
-        return _dispatcher.Send(new GetMyAuditLogsQuery(), cancellationToken);
-    }
 }

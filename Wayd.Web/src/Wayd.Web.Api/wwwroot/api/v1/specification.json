@@ -7069,45 +7069,6 @@
         ]
       }
     },
-    "/api/user-management/profiles/logs": {
-      "get": {
-        "tags": [
-          "Profile"
-        ],
-        "summary": "Get audit logs of currently logged in user.",
-        "operationId": "Profile_GetLogs",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AuditDto"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": [ ]
-          }
-        ]
-      }
-    },
     "/api/user-management/roles": {
       "get": {
         "tags": [
@@ -56662,52 +56623,6 @@
           "NeedsAttention"
         ],
         "type": "string"
-      },
-      "AuditDto": {
-        "required": [
-          "userId",
-          "id",
-          "dateTime"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "userId": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string",
-            "nullable": true
-          },
-          "tableName": {
-            "type": "string",
-            "nullable": true
-          },
-          "dateTime": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "oldValues": {
-            "type": "string",
-            "nullable": true
-          },
-          "newValues": {
-            "type": "string",
-            "nullable": true
-          },
-          "affectedColumns": {
-            "type": "string",
-            "nullable": true
-          },
-          "primaryKey": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
       },
       "AuthProvidersResponse": {
         "required": [

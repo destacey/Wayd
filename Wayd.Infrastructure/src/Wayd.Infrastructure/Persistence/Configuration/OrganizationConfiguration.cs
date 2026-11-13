@@ -4,6 +4,7 @@ using Wayd.Common.Domain.Employees;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Models.Organizations;
 using Wayd.Infrastructure.Persistence.Converters;
+using Wayd.Infrastructure.Persistence.Extensions;
 
 namespace Wayd.Infrastructure.Persistence.Configuration;
 
@@ -226,10 +227,12 @@ public class EmployeeTimeAwayConfig : IEntityTypeConfiguration<EmployeeTimeAway>
         builder.Property(t => t.End).IsRequired();
         builder.Property(t => t.PercentAway).IsRequired();
 
+        // The reason is shown only to those who may manage the employee's time away, and is in no event or log.
         builder.Property(t => t.Reason)
             .HasConversion<EnumConverter<TimeAwayReason>>()
             .HasColumnType("varchar")
-            .HasMaxLength(32);
+            .HasMaxLength(32)
+            .ExcludeFromAuditTrail();
 
         // A team's capacity over a date range reads the time away of everyone allocated to it.
         builder.HasIndex(t => new { t.EmployeeId, t.Start })

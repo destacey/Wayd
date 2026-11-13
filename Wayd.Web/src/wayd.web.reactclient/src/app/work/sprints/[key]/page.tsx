@@ -49,8 +49,8 @@ import { SprintSections, sprintSections } from './_components/sprint-sections'
 import SprintCapacitySection from '../_components/sprint-capacity-section'
 
 enum BacklogView {
+  Backlog = 'backlog',
   Scope = 'scope',
-  Current = 'current',
 }
 
 const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
@@ -91,7 +91,7 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
   const scopeAvailable =
     sprint?.state.id === IterationState.Active ||
     sprint?.state.id === IterationState.Completed
-  const [backlogView, setBacklogView] = useState(BacklogView.Scope)
+  const [backlogView, setBacklogView] = useState(BacklogView.Backlog)
   const onBacklog = !!sprintKey && activeSection === SprintSections.Backlog
 
   // Read whenever scope could show, so incomplete history is known before
@@ -260,18 +260,18 @@ const SprintDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                   onChange={setBacklogView}
                   options={[
                     {
-                      value: BacklogView.Scope,
+                      value: BacklogView.Backlog,
                       label: (
-                        <WaydTooltip title="Every item that was in the sprint between its commitment point and its end, from work item history">
-                          Sprint Scope
+                        <WaydTooltip title="The items in the sprint right now">
+                          Backlog
                         </WaydTooltip>
                       ),
                     },
                     {
-                      value: BacklogView.Current,
+                      value: BacklogView.Scope,
                       label: (
-                        <WaydTooltip title="The items in the sprint right now">
-                          Current Items
+                        <WaydTooltip title="Every item that was in the sprint between its commitment point and its end, from work item history">
+                          Sprint Scope
                         </WaydTooltip>
                       ),
                     },

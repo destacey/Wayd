@@ -243,7 +243,7 @@ A desk can size its requests on one of the company's [estimation scales](../plan
 - **A size, never a card.** Only the scale's estimate values can be chosen; cards such as *?* or *☕* belong to planning poker, not to a request.
 - **An estimate keeps its scale.** Each estimate records the version of the scale it was given on, so a later change to the scale never changes what an estimate means. A request moved to a desk that estimates on another scale or another version of it, or not at all, loses its estimate, since a size on one desk's scale says nothing beside another's.
 - **A desk without a scale does not estimate.** That is a normal setting; the request's actions menu offers no **Change Estimate**, unless the request still carries an estimate from before, which an agent can clear.
-- **An earlier version's estimate can be kept.** A request estimated before the desk moved to a newer version keeps its estimate, shown with that version in **Change Estimate**; choosing a value there gives it on the desk's version instead.
+- **An earlier version's estimate can be kept.** A request estimated before the desk [changed its scale](#choosing-a-desks-estimation-scale) can keep its estimate, shown with that version in **Change Estimate** and in its tooltip; choosing a value there gives it on the desk's version instead. On the Requests list and board, estimates sort by size within each version, and each version sorts as its own group.
 
 The requester and participants see the estimate on their own request but cannot change it, and changing it does not notify them; it is recorded in the request's activity. This is a request's size as the desk sees it, separate from the estimates teams give work items.
 
@@ -431,7 +431,14 @@ Changing the model changes only what the next score uses. Scores already recorde
 
 **Estimation Scale** in the desk's Settings names the scale the desk's agents [estimate its requests](#estimating-a-request) on, with the version the desk uses, or **None**. **Change Estimation Scale** lets a Desk Admin or the Demand Management Admin choose any active scale, each listed with its values, or clear it to stop estimating. Scales are built in [Settings → Estimation Scales](../settings/index.mdx#estimation-scales).
 
-The desk uses the scale's version current when it was chosen. When the scale's values change later, the desk stays on its version until a Desk Admin chooses the scale again. The scale can be changed only while no open request on the desk has an estimate on the version the desk uses now; clear those estimates first. Estimates on closed requests, and on an earlier version, keep the version they were given on. A scale deactivated after it was chosen stays on the desk until a Desk Admin chooses another, and a scale a desk or an estimate uses cannot be deleted.
+The desk uses the scale's version current when it was chosen. When the scale's values change later, the desk stays on its version, and its Settings say a newer version exists; choosing the same scale again moves the desk to it. Moving to a newer version and moving to another scale are the same change.
+
+When open requests on the desk carry estimates, **Change Estimation Scale** lists them, counted by value and by version, and asks once what happens to all of them:
+
+- **Keep** (the default). Each request keeps its estimate on the version it was given on until an agent estimates it again. New estimates use the new version.
+- **Clear.** Every estimate on an open request is cleared, whatever version it was given on. Each request's activity records the clear as caused by the scale change.
+
+Done and removed requests keep their estimates whichever you choose. A scale deactivated after it was chosen stays on the desk until a Desk Admin chooses another, and a scale a desk or an estimate uses cannot be deleted.
 
 #### Choosing a desk's review workflow
 

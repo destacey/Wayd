@@ -27,6 +27,8 @@ A **Poker Session** is a real-time estimation event:
 - Has **Participants** — the people who joined it. Each participant is either **Voting** or not, and a participant can also be a **Facilitator**
 - Sessions are immediately **Active** on creation, and stay Active until completed
 
+A session can also belong to another area of Wayd, which runs it to estimate its own records — see [Sessions that belong to another area](#sessions-that-belong-to-another-area).
+
 The **Planning Poker** page lists the sessions you can see, with Name, Status, Facilitators, Participants (everyone who joined), Visibility and Rounds. Completed sessions are hidden until **Include Completed** is switched on. For the sessions you facilitate, the row menu offers **Edit**, **Complete** while the session is active, and **Delete**.
 
 ### Who can see and join a session
@@ -52,6 +54,15 @@ Everyone in a session is a participant. Some participants are **Facilitators**, 
 Opening an active session joins you, voting. Turn voting on or off at any time while the session is active; your choice stays when you come back, as there is no leaving a session. An assistant voting for you through the [MCP server](../../getting-started/mcp-server.mdx) joins you, voting, on its first vote. Facilitators join like anyone else, and can run a session without voting.
 
 Joining needs an account linked to an employee. Without one you can watch an active session but not join it or vote.
+
+### Sessions that belong to another area
+
+Some sessions are started from another area of Wayd to estimate that area's records, and belong to it rather than to the Planning Poker page:
+
+- **Listed only where they belong.** They never appear on the Planning Poker page, even for a holder of **Administer Poker Sessions**; open one from the area that started it, or from its link.
+- **Always private.** Their visibility cannot be made public. Besides their facilitators and invitees, the people who manage the area they belong to can see and join them, and run them as facilitators.
+- **Rounds about a record.** Each round can be about a record of that area, and shows its key, title and description as they read when the round was added. Everyone in the session can read them. A facilitator's own description of the round still sits below.
+- **On the area's scale version.** They vote on the version of the scale the area estimates with, even when the scale has published a newer one or been deactivated since.
 
 ## Poker Session Detail Page
 
@@ -117,7 +128,7 @@ stateDiagram-v2
 - The estimation scale cannot change after rounds begin. Changing it before then pins the session to the chosen scale's current version
 - Votes and the accepted estimate must be values on the session's version of its scale
 - A session stays on its version when the scale publishes a new one or is deactivated
-- Only active sessions can be completed. Completing a session deletes its empty rounds — those with no label, no description and no votes, such as the round started automatically after the last estimate was accepted
+- Only active sessions can be completed. Completing a session deletes its empty rounds — those with no record, no label, no description and no votes, such as the round started automatically after the last estimate was accepted
 - A session always has at least one facilitator. A facilitator can remove themselves while others remain
 - Only facilitators run a session: starting, revealing, re-voting and accepting rounds, selecting the round shown to those following them, editing it, changing its facilitators, visibility and invites, completing it and deleting it. The **Administer Poker Sessions** permission lets its holder do the same in every session, private ones included
 - Only voting participants vote; a participant who is not voting must turn voting on first

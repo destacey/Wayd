@@ -131,7 +131,7 @@ const SprintScopeGrid = ({
       meta: {
         columnType: 'dateTime',
         headerTooltip:
-          'When an added item was added to the sprint, on your clock',
+          'When the item was added to the sprint — before the commitment point if committed — on your clock',
       },
       cell: ({ row }) => formatInstant(row.original.addedAt),
     },

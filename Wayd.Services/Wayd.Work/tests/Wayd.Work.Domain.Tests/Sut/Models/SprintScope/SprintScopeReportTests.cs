@@ -227,6 +227,44 @@ public class SprintScopeReportTests
     }
 
     [Fact]
+    public void Build_CommittedItemChangedBeforeTheStart_IsAddedWhenItEnteredTheSprint()
+    {
+        // Arrange — planned into the sprint, then started before the commitment point
+        var (sprint1, _, window) = TwoSprints();
+        var planned = At(Sprint1Start.PlusDays(-3), 10);
+        var item = new ScopeItemHistory()
+            .Then(At(Sprint1Start.PlusDays(-10)), null, StatusCategory.Proposed)
+            .Then(planned, sprint1.Id, StatusCategory.Proposed)
+            .Then(At(Sprint1Start.PlusDays(-1)), sprint1.Id, StatusCategory.Active);
+
+        // Act
+        var report = Build(window, item);
+
+        // Assert
+        var result = report.Items.Should().ContainSingle().Subject;
+        result.Entry.Should().Be(SprintScopeEntry.Committed);
+        result.AddedAt.Should().Be(planned);
+    }
+
+    [Fact]
+    public void Build_CommittedItemPutBackBeforeTheStart_IsAddedWhenItLastEnteredTheSprint()
+    {
+        // Arrange — in the sprint, taken out, and put back before the commitment point
+        var (sprint1, _, window) = TwoSprints();
+        var putBack = At(Sprint1Start.PlusDays(-2), 10);
+        var item = new ScopeItemHistory()
+            .Then(At(Sprint1Start.PlusDays(-10)), sprint1.Id, StatusCategory.Proposed)
+            .Then(At(Sprint1Start.PlusDays(-5)), null, StatusCategory.Proposed)
+            .Then(putBack, sprint1.Id, StatusCategory.Proposed);
+
+        // Act
+        var report = Build(window, item);
+
+        // Assert
+        report.Items.Should().ContainSingle().Which.AddedAt.Should().Be(putBack);
+    }
+
+    [Fact]
     public void Build_ItemDescopedOnDay5_IsDescoped()
     {
         // Arrange

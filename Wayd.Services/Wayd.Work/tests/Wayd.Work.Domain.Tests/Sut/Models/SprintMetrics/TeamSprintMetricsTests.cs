@@ -38,7 +38,7 @@ public class TeamSprintMetricsTests
     /// <summary>A sprint's scope of three-point items: so many committed, so many of those completed, and so many added and completed.</summary>
     private static SprintScopeTotals Totals(int committed, int completedOfCommitted, int addedCompleted = 0)
     {
-        SprintScopeItem Item(SprintScopeEntry entry, SprintScopeOutcome outcome) => new(Guid.NewGuid(), entry, null, outcome, null, 3, 3);
+        SprintScopeItem Item(SprintScopeEntry entry, SprintScopeOutcome outcome) => new(Guid.NewGuid(), entry, Instant.MinValue, outcome, null, 3, 3);
 
         return SprintScopeTotals.Of(
         [

@@ -1,3 +1,4 @@
+using NodaTime;
 using Wayd.Work.Domain.Models.SprintScope;
 
 namespace Wayd.Work.Domain.Tests.Sut.Models.SprintScope;
@@ -5,7 +6,7 @@ namespace Wayd.Work.Domain.Tests.Sut.Models.SprintScope;
 public class SprintScopeTotalsTests
 {
     private static SprintScopeItem Item(SprintScopeEntry entry, SprintScopeOutcome outcome, double? estimate = 3) =>
-        new(Guid.NewGuid(), entry, null, outcome, null, estimate, estimate);
+        new(Guid.NewGuid(), entry, Instant.MinValue, outcome, null, estimate, estimate);
 
     [Fact]
     public void Predictability_PartOfTheCommitmentDelivered_IsCompletedOverCommitted()

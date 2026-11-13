@@ -194,7 +194,8 @@ public static class SprintScopeHistoryLoader
 
     /// <summary>
     /// The history, from the commitment point to the effective end, of every item that was in the sprint
-    /// between them. The period an item left into is included, since where it went decides its outcome.
+    /// between them. The period an item left into is included, since where it went decides its outcome, as are
+    /// its earlier periods in the sprint, since they say when a committed item was added.
     /// </summary>
     private static async Task<List<SprintScopePeriod>> LoadPeriods(IWorkDbContext workDbContext, SprintScopeWindow window, CancellationToken cancellationToken)
     {
@@ -208,7 +209,7 @@ public static class SprintScopeHistoryLoader
             .Distinct();
 
         return await workDbContext.WorkItemStateHistory
-            .Where(h => workItemIds.Contains(h.WorkItemId) && h.ValidFrom <= end && (h.ValidTo == null || h.ValidTo > start))
+            .Where(h => workItemIds.Contains(h.WorkItemId) && h.ValidFrom <= end && (h.ValidTo == null || h.ValidTo > start || h.IterationId == sprintId))
             .Select(h => new SprintScopePeriod(
                 h.WorkItemId,
                 h.ValidFrom,

@@ -97,6 +97,14 @@ Referrer-Policy: strict-origin-when-cross-origin
 Permissions-Policy: geolocation=(), camera=(), microphone=()
 ```
 
+The client sets its own headers; check a page there too:
+
+```bash
+curl -sI https://<client-url>/login | grep -iE 'x-frame|x-content|referrer|permissions|content-security'
+```
+
+Expect `X-Content-Type-Options`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, `Permissions-Policy`, and a `Content-Security-Policy` whose `script-src` names a nonce that changes on every request. A policy whose `connect-src` lists no API origin means `NEXT_PUBLIC_API_BASE_URL` did not parse; see [Configuration → The web client](./configuration.mdx#the-web-client).
+
 If any are missing, your edge is stripping them — fix it there rather than working around it in the app.
 
 Two things you may need to change, both covered in [Configuration → Security Headers](./configuration.mdx#security-headers):

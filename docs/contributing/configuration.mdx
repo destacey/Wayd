@@ -212,7 +212,7 @@ sequenceDiagram
     U->>F: Click provider button
     F->>O: signinRedirect(provider)
     O->>P: PKCE authorization redirect
-    P-->>F: Redirect back with ?code=...
+    P-->>F: Redirect back with #code=... (fragment)
     F->>O: signinRedirectCallback()
     O->>P: Exchange code for tokens
     P-->>O: access_token
@@ -234,9 +234,21 @@ sequenceDiagram
     F->>W: POST /api/auth/logout<br/>{ refreshToken }
     W->>W: Revoke that session only
     F->>F: clearAuth()
+    F->>F: OIDC only: go to /login?signout={provider}
+    F->>O: signoutRedirect(provider)
+    O->>P: End-session redirect with client_id
 ```
 
 Permissions travel as `permission` claims inside the Wayd JWT — no separate `/permissions` round-trip. An admin permission change takes effect on the user's next refresh (within the access-token TTL).
+
+#### Where the browser keeps tokens
+
+- **The Wayd JWT and refresh token** are in `localStorage`, or `sessionStorage` when the user clears **Remember me** (`getAuthStorage` in `src/services/clients.ts`).
+- **The provider's tokens are never stored.** oidc-client-ts holds them in memory (`InMemoryWebStorage`) for the exchange, and `completeSignin` removes them right after. Its redirect state, including the PKCE verifier of an abandoned sign-in, is in `oidc.*` keys, which `clearAuth` removes.
+- **The authorization code comes back in the URL fragment** (`response_mode: 'fragment'`). The browser never sends a fragment to a server, so the code stays out of request logs and traces.
+- **Provider sign-out runs on `/login`.** It fetches the provider's discovery document from the browser, and `/login` is the only page whose Content-Security-Policy allows that (see [The web client](#the-web-client)). With no ID token kept, the end-session request sends `client_id` instead of `id_token_hint`, so some providers ask the user to confirm.
+
+The refresh token stays in web storage rather than an `HttpOnly` cookie. The client and the API are different origins, so a cookie would need `SameSite=None`, credentialed CORS and CSRF protection on refresh and sign-out. That is a larger change to identity than the risk warrants while the nonce-based CSP blocks injected scripts, which is the way storage gets read. Revisit it if the client and the API come to share an origin, where a `SameSite=Strict` cookie needs none of that.
 
 ### Sessions
 
@@ -443,7 +455,7 @@ Password policy is validated before the transaction opens — a bad password ret
 
 **Operators:** these are on by default and need no setup. You only need this section if Wayd must be embedded in an iframe, or your edge already sets these headers — see [when to change them](#when-you-need-to-change-these). After deploying, verify they survive your ingress with the check in [First-Run Setup → Step 4](./first-run-setup.mdx#step-4--verify-security-headers-deployed-environments).
 
-Every API response carries a fixed set of security headers, applied by middleware early in the pipeline (`UseSecurityHeaders`, before routing so it covers the Scalar API reference as well as controllers).
+Every API response carries a fixed set of security headers, applied by middleware early in the pipeline (`UseSecurityHeaders`, before routing so it covers the Scalar API reference as well as controllers). The web client sets its own; see [The web client](#the-web-client).
 
 **Most of these are not configurable, deliberately.** `X-Content-Type-Options`, `X-Frame-Options` and the CSP each have exactly one correct value for this application, so they are constants in `Wayd.Infrastructure/SecurityHeaders/SecurityHeaderDefaults.cs`. A setting for them would only be a way to get them wrong.
 
@@ -490,7 +502,7 @@ Framing is blocked deliberately: Wayd exposes destructive controls behind a perm
 
 The API host also serves the Scalar API reference, which relies on inline scripts. A `script-src 'self'` breaks it, and relaxing it with `'unsafe-inline'` would defeat the point. The four directives above are script-agnostic and safe for every response the API emits.
 
-This means the CSP mitigates clickjacking and injected-form/base-tag attacks, but is **not** a script-injection defence. That job belongs to output sanitization — see `sanitize-schema.ts` on the client, which strips raw HTML out of user-supplied markdown.
+This means the API's CSP mitigates clickjacking and injected-form/base-tag attacks, but is **not** a script-injection defence. On the client, that job belongs to output sanitization — see `sanitize-schema.ts`, which strips raw HTML out of user-supplied markdown — backed by the client's own nonce-based policy (see [The web client](#the-web-client)).
 
 ### HSTS is off by default
 
@@ -501,6 +513,36 @@ The middleware also gates it on `context.Request.IsHttps`, so it is never emitte
 :::note[No component currently sends HSTS]
 Container Apps ingress terminates TLS and redirects HTTP→HTTPS, but does not add the header, and there is no Front Door or Application Gateway in `.iac/`. If HSTS is needed, ramp `max-age` (300 → 86400 → 63072000) rather than starting at two years, and only add `preload` if you mean it — that list is effectively permanent.
 :::
+
+### The web client
+
+The Next.js client sets its own headers, separate from the API's above. Every response carries:
+
+| Header | Value |
+|---|---|
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), payment=()` |
+
+They are set in `next.config.mjs`, which also turns off `X-Powered-By`. Every page also carries a `Content-Security-Policy` and `X-Frame-Options`, set by `src/proxy.ts` from `src/lib/content-security-policy.ts`:
+
+| Directive | Sources | Why |
+|---|---|---|
+| `script-src` | `'self' 'nonce-…' 'strict-dynamic'` | Only scripts carrying the request's nonce run, and the chunks they load. An injected script is blocked, so this *is* a script-injection defence, unlike the API's policy. |
+| `style-src` | `'self' 'unsafe-inline'` | antd, the charts and the editor write `<style>` elements and `style` attributes at run time. |
+| `img-src` | `'self' data: blob: https:` and the API | User markdown links remote images. |
+| `connect-src` | `'self'`, the API and its `wss://` hubs | Plus `https:` on `/login` only, which reaches identity providers configured at run time. `/login` renders no user content. |
+| `frame-ancestors` | `'self'` | `'none'` on `/oauth/consent`, whose Approve button must not be overlaid. `X-Frame-Options` matches (`SAMEORIGIN`, or `DENY`). |
+| `object-src`, `base-uri`, `form-action` | `'none'`, `'self'`, `'self'` | As on the API. |
+
+Things to know before changing it:
+
+- **Every page renders per request.** Next.js puts the nonce on the scripts it renders, reading it from the policy on the request, and a prerendered page would carry none. The root layout calls `connection()` to make that so. Nearly every page is a client component that prerendered to an empty shell anyway, and the docs pages cache their compiled MDX per process.
+- **Nothing may evaluate code in the browser.** The dev server adds `'unsafe-eval'` for React's debugging aids; production does not. That is why the docs viewer compiles MDX on the server.
+- **An inline script needs the nonce.** A `<Script>` or third-party tag that does not carry it is blocked. Add a source to the policy only for a specific origin, never a whole scheme; `/login`'s `https:` is the one exception.
+- **The API origin comes from `NEXT_PUBLIC_API_BASE_URL`**, built into the proxy and substituted at container start like the rest of the client. A value that does not parse names no API, which blocks every API call: it fails closed.
+
+`src/lib/content-security-policy.test.ts` covers the policy. To see it on a running client, check the response headers of any page, and the browser console for `Refused to …` messages.
 
 ### Deprecated headers
 

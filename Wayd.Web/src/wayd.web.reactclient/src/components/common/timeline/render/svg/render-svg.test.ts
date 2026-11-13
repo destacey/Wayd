@@ -1,4 +1,10 @@
-import { renderTimelineSvg, escapeXml, fitLabel, wrapLabel } from './render-svg'
+import {
+  renderTimelineSvg,
+  escapeXml,
+  fitLabel,
+  svgColor,
+  wrapLabel,
+} from './render-svg'
 import { createTimeScale } from '../../core/scale'
 import type { GeometryConfig } from '../../core/geometry'
 import type { ResolvedRow, TimelineGroup, TimelineItem } from '../../core/types'
@@ -97,6 +103,36 @@ describe('escapeXml', () => {
   })
 })
 
+describe('svgColor', () => {
+  test.each([
+    '#1677ff',
+    '#abc',
+    '#11223344',
+    'rgb(22, 119, 255)',
+    'hsla(210 100% 54% / 0.5)',
+    'teal',
+  ])('keeps %s', (value) => {
+    // Act
+    const color = svgColor(value, '#000000')
+
+    // Assert
+    expect(color).toBe(value)
+  })
+
+  test.each([
+    '"/><script>alert(1)</script><rect fill="',
+    'url(https://evil.example/x)',
+    '#12345',
+    '',
+  ])('falls back for %j', (value) => {
+    // Act
+    const color = svgColor(value, '#000000')
+
+    // Assert
+    expect(color).toBe('#000000')
+  })
+})
+
 describe('fitLabel', () => {
   test('returns a short label unchanged', () => {
     // Arrange / Act / Assert
@@ -189,6 +225,19 @@ describe('renderTimelineSvg', () => {
     // Assert
     expect(svg).toContain('Alpha')
     expect(svg).toContain('<rect')
+  })
+
+  test('writes no item colour that would close its attribute', () => {
+    // Arrange
+    const input = buildInput()
+    input.rows[0].items[0].item.color = '"/><script>alert(1)</script><rect x="'
+
+    // Act
+    const svg = renderTimelineSvg(input)
+
+    // Assert
+    expect(svg).not.toContain('<script')
+    expect(svg).toContain(`fill="${THEME.primary}"`)
   })
 
   test('draws the group label in the left column', () => {

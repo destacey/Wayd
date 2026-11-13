@@ -20,7 +20,12 @@ const ExternalIconLink = ({
       {content}
       &nbsp;
       {
-        <Link href={url} target="_blank" title={tooltip}>
+        <Link
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={tooltip}
+        >
           <ExportOutlined style={{ width: '12px' }} />
         </Link>
       }

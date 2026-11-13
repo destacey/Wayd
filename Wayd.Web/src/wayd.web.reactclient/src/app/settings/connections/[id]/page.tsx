@@ -249,6 +249,7 @@ const ConnectionDetailsPage = (props: { params: Promise<{ id: string }> }) => {
                   <Link
                     href={externalUrl}
                     target="_blank"
+                    rel="noopener noreferrer"
                     title={`Open in ${connection.connector?.name}`}
                   >
                     <ExportOutlined />

@@ -167,6 +167,11 @@ export function clearAuth(): void {
     storage.removeItem(AUTH_REFRESH_TOKEN_KEY)
     storage.removeItem(AUTH_TOKEN_EXPIRY_KEY)
     storage.removeItem(AUTH_MUST_CHANGE_PASSWORD_KEY)
+    // oidc-client-ts's redirect state, such as the PKCE verifier of a sign-in
+    // that was started and never completed.
+    for (const key of Object.keys(storage)) {
+      if (key.startsWith('oidc.')) storage.removeItem(key)
+    }
   }
   localStorage.removeItem(AUTH_REMEMBER_KEY)
 }

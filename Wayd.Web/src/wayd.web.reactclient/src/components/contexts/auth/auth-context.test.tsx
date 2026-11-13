@@ -16,16 +16,15 @@ vi.mock('../../common/forms/change-password-form', () => ({
   ),
 }))
 
-// oidc-client-registry mock — logout path may call signoutRedirect; the
-// session-reading behavior we're actually testing doesn't touch it.
+// oidc-client-registry mock — an OIDC logout hands off to /login with the
+// provider named, built by providerSignoutPath.
 vi.mock('./oidc-client-registry', () => ({
-  signoutRedirect: vi.fn().mockResolvedValue(undefined),
+  providerSignoutPath: (name: string) => `/login?signout=${name}`,
 }))
 
-// auth-providers-api mock — AuthProvider queries this to resolve the OIDC
-// provider for logout. Not relevant to the session-reading tests.
-vi.mock('../../../store/features/common/auth-providers-api', () => ({
-  useGetAuthProvidersQuery: () => ({ data: undefined }),
+const mockNavigate = vi.fn()
+vi.mock('@/src/utils/window-utils', () => ({
+  navigateWithFullReload: (url: string) => mockNavigate(url),
 }))
 
 vi.mock('./../../contexts/theme/use-theme', () => ({
@@ -342,11 +341,11 @@ describe('logout', () => {
     )
   }
 
-  function signIn() {
+  function signIn(loginProvider = 'Wayd') {
     storeAuth({
       token: makeWaydJwt({
         given_name: 'Alice',
-        loginProvider: 'Wayd',
+        loginProvider,
         permission: [],
       }),
       refreshToken: 'refresh-token-value',
@@ -395,5 +394,46 @@ describe('logout', () => {
 
     expect(mockLogout).toHaveBeenCalledTimes(1)
     expect(getAuthRefreshToken()).toBeNull()
+  })
+
+  it('sends a provider sign-in to /login to end the provider session', async () => {
+    // Arrange
+    mockLogout.mockResolvedValue(undefined)
+    mockNavigate.mockClear()
+    signIn('Okta')
+    render(
+      <AuthProvider>
+        <TestLogoutConsumer />
+      </AuthProvider>,
+    )
+
+    // Act
+    await act(async () => {
+      screen.getByTestId('do-logout').click()
+    })
+
+    // Assert
+    expect(getAuthRefreshToken()).toBeNull()
+    expect(mockNavigate).toHaveBeenCalledWith('/login?signout=Okta')
+  })
+
+  it('sends a local sign-in straight to /login', async () => {
+    // Arrange
+    mockLogout.mockResolvedValue(undefined)
+    mockNavigate.mockClear()
+    signIn()
+    render(
+      <AuthProvider>
+        <TestLogoutConsumer />
+      </AuthProvider>,
+    )
+
+    // Act
+    await act(async () => {
+      screen.getByTestId('do-logout').click()
+    })
+
+    // Assert
+    expect(mockNavigate).toHaveBeenCalledWith('/login')
   })
 })

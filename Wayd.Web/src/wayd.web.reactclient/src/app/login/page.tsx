@@ -17,7 +17,9 @@ import {
   clearChosenProvider,
   completeSignin,
   getChosenProviderName,
+  readProviderSignout,
   signinRedirect,
+  signoutRedirect,
 } from '@/src/components/contexts/auth/oidc-client-registry'
 import { navigateWithFullReload } from '@/src/utils/window-utils'
 import { takeReturnUrl } from '@/src/utils/return-url'
@@ -500,7 +502,8 @@ interface OidcCallback {
 const readOidcCallback = (): OidcCallback | null => {
   if (typeof window === 'undefined' || isAuthActive()) return null
 
-  const params = new URL(window.location.href).searchParams
+  // The provider answers in the fragment (response_mode=fragment).
+  const params = new URLSearchParams(window.location.hash.slice(1))
   const hasError = params.has('error')
   if (!params.has('code') && !hasError) return null
 
@@ -555,6 +558,23 @@ export default function LoginPage() {
     }
   }, [router])
 
+  // Signing out of a provider: the app has already ended the Wayd session and
+  // sent the user here, since this is the one page allowed to reach a provider.
+  const [signoutProviderName] = useState(readProviderSignout)
+  const signoutStartedRef = useRef(false)
+  useEffect(() => {
+    if (!signoutProviderName || !providers) return
+    if (signoutStartedRef.current) return
+    signoutStartedRef.current = true
+
+    const provider = providers.oidc.find((p) => p.name === signoutProviderName)
+    if (provider) {
+      signoutRedirect(provider)
+    } else {
+      router.replace('/login')
+    }
+  }, [signoutProviderName, providers, router])
+
   // Waits for the providers to load, since the provider is matched by name.
   useEffect(() => {
     if (!oidcCallback || !callbackProvider) return
@@ -604,6 +624,10 @@ export default function LoginPage() {
 
   if (exchangeRunning) {
     return <LoadingAccount message="Completing sign-in…" />
+  }
+
+  if (signoutProviderName) {
+    return <LoadingAccount message="Signing out…" />
   }
 
   return (

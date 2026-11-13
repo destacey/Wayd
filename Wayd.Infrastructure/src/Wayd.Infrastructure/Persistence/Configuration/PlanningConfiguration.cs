@@ -858,6 +858,18 @@ public class PokerRoundConfig : IEntityTypeConfiguration<PokerRound>
             subject.HasIndex(s => s.Id);
         });
 
+        builder.OwnsOne(r => r.Publication, publication =>
+        {
+            publication.Property(p => p.Outcome).HasColumnName("PublicationOutcome").IsRequired()
+                .HasConversion<EnumConverter<PokerRoundPublicationOutcome>>()
+                .HasColumnType("varchar")
+                .HasMaxLength(32);
+            publication.Property(p => p.At).HasColumnName("PublicationAt").IsRequired();
+            publication.Property(p => p.ByEmployeeId).HasColumnName("PublicationByEmployeeId").IsRequired();
+            publication.Property(p => p.RefusalReason).HasColumnName("PublicationRefusalReason")
+                .HasMaxLength(PokerRoundPublication.RefusalReasonMaxLength);
+        });
+
         // Relationships
         builder.HasMany(r => r.Votes)
             .WithOne()

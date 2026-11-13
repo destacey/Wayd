@@ -45,6 +45,21 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     public const string SubjectAlreadyInSessionError = "A record can be estimated only once in a session.";
 
+    /// <summary>
+    /// The failure for publishing a free-text round, which estimates no record to publish to.
+    /// </summary>
+    public const string RoundHasNoSubjectError = "Only a round about a record can be published.";
+
+    /// <summary>
+    /// The failure for publishing a round whose estimate has not been accepted.
+    /// </summary>
+    public const string RoundNotAcceptedError = "A round can be published once its estimate is accepted.";
+
+    /// <summary>
+    /// The failure for publishing a round whose consensus was already written to its record.
+    /// </summary>
+    public const string RoundAlreadyPublishedError = "This round is already published. Reset it to estimate the record again.";
+
     private const string InactiveScaleError = "The estimation scale is inactive and cannot be chosen for a session.";
 
     private readonly List<PokerRound> _rounds = [];
@@ -501,6 +516,56 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
             FocusedRoundId = null;
 
         return result;
+    }
+
+    /// <summary>
+    /// The rounds whose consensus the actor may publish now to the records they estimate: the named round, or every
+    /// round that can be published when none is named. Allowed on a completed session as well as an active one.
+    /// </summary>
+    /// <remarks>
+    /// Running the session is all this checks. Whether the record takes the consensus is its own area's decision,
+    /// made when the caller sends it there, and recorded with <see cref="RecordRoundPublication"/>.
+    /// </remarks>
+    /// <param name="roundId">The round to publish, or null for every round that can be.</param>
+    public Result<IReadOnlyList<PokerRound>> RoundsToPublish(Guid? roundId, PokerSessionActor actor)
+    {
+        var canManage = EnsureCanManage(actor);
+        if (canManage.IsFailure)
+            return Result.Failure<IReadOnlyList<PokerRound>>(canManage.Error);
+
+        if (roundId is null)
+            return Result.Success<IReadOnlyList<PokerRound>>([.. _rounds.Where(r => r.CanPublish).OrderBy(r => r.Order)]);
+
+        var round = _rounds.FirstOrDefault(r => r.Id == roundId);
+        if (round is null)
+            return Result.Failure<IReadOnlyList<PokerRound>>("Round not found.");
+
+        if (round.Subject is null)
+            return Result.Failure<IReadOnlyList<PokerRound>>(RoundHasNoSubjectError);
+
+        if (round.Status != PokerRoundStatus.Accepted)
+            return Result.Failure<IReadOnlyList<PokerRound>>(RoundNotAcceptedError);
+
+        if (!round.CanPublish)
+            return Result.Failure<IReadOnlyList<PokerRound>>(RoundAlreadyPublishedError);
+
+        return Result.Success<IReadOnlyList<PokerRound>>([round]);
+    }
+
+    /// <summary>
+    /// Records what came of publishing a round returned by <see cref="RoundsToPublish"/>: taken by the record's
+    /// area, or refused with its reason.
+    /// </summary>
+    /// <param name="outcome">The record's area's answer; a failure's error is the refusal reason.</param>
+    public void RecordRoundPublication(Guid roundId, Result outcome, PokerSessionActor actor, Instant timestamp)
+    {
+        Guard.Against.Null(actor, nameof(actor));
+        var round = _rounds.FirstOrDefault(r => r.Id == roundId)
+            ?? throw new ArgumentException($"Round {roundId} is not in the session.", nameof(roundId));
+
+        round.RecordPublication(outcome.IsSuccess
+            ? PokerRoundPublication.Published(actor.EmployeeId, timestamp)
+            : PokerRoundPublication.Refused(outcome.Error, actor.EmployeeId, timestamp));
     }
 
     /// <summary>

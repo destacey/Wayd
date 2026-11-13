@@ -66714,6 +66714,39 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Publish a round's consensus to the record it estimates.
+        /// </summary>
+        /// <remarks>
+        /// Writes an Accepted round's `consensusEstimate` to the round's `subject`, such as an intake request, as the caller. Only a round about a record can be published, and only once; a free-text round cannot. The record's own area decides again whether it takes the estimate: for an intake request the caller must be an agent on its desk, the request open and still on the desk hosting the session, and the desk still on the scale version the session votes on. The round's `publication` records what came of it: `outcome` Published, or Refused with a `refusalReason` when nothing was written; a refused round can be published again. A consensus that is a card, such as `?`, clears the request's estimate and is recorded on the request in its place. Resetting a round clears its `publication` but leaves what was written. Allowed on an Active or a Completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs. Returns the round.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<PokerRoundDto> PublishRoundAsync(System.Guid id, System.Guid roundId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Publish every unpublished accepted round of a session.
+        /// </summary>
+        /// <remarks>
+        /// Publishes, as PokerSessions_PublishRound does, each Accepted round about a record that has not already been published, in round order. Each round is decided on its own, so some may be Published and others Refused; read each returned round's `publication`. Returns the rounds it tried, which is empty when none could be published. Allowed on an Active or a Completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PokerRoundDto>> PublishRoundsAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the poker rounds that estimated a record.
+        /// </summary>
+        /// <remarks>
+        /// Lists the rounds about one record, such as an intake request (`subjectKind` IntakeRequest, `subjectId` its UUID), in the sessions the caller can see, newest session first. Each has its `session` (`id`, `key`, `name`), `roundId`, `status`, `consensusEstimate` and `publication` (null until published; `outcome` Published or Refused, `at`, `by`, `refusalReason`). A round in a session the caller cannot see is absent.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PokerSubjectRoundDto>> GetRoundsForSubjectAsync(PokerRoundSubjectKind? subjectKind = null, System.Guid? subjectId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Update the label for a round.
         /// </summary>
         /// <remarks>
@@ -68041,6 +68074,294 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         if (status_ == 204)
                         {
                             return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Publish a round's consensus to the record it estimates.
+        /// </summary>
+        /// <remarks>
+        /// Writes an Accepted round's `consensusEstimate` to the round's `subject`, such as an intake request, as the caller. Only a round about a record can be published, and only once; a free-text round cannot. The record's own area decides again whether it takes the estimate: for an intake request the caller must be an agent on its desk, the request open and still on the desk hosting the session, and the desk still on the scale version the session votes on. The round's `publication` records what came of it: `outcome` Published, or Refused with a `refusalReason` when nothing was written; a refused round can be published again. A consensus that is a card, such as `?`, clears the request's estimate and is recorded on the request in its place. Resetting a round clears its `publication` but leaves what was written. Allowed on an Active or a Completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs. Returns the round.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<PokerRoundDto> PublishRoundAsync(System.Guid id, System.Guid roundId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (roundId == null)
+                throw new System.ArgumentNullException("roundId");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/rounds/{roundId}/publish"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/rounds/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(roundId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/publish");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<PokerRoundDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Publish every unpublished accepted round of a session.
+        /// </summary>
+        /// <remarks>
+        /// Publishes, as PokerSessions_PublishRound does, each Accepted round about a record that has not already been published, in round order. Each round is decided on its own, so some may be Published and others Refused; read each returned round's `publication`. Returns the rounds it tried, which is empty when none could be published. Allowed on an Active or a Completed session. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PokerRoundDto>> PublishRoundsAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Content = new System.Net.Http.StringContent(string.Empty, System.Text.Encoding.UTF8, "application/json");
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/{id}/publish"
+                    urlBuilder_.Append("api/planning/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/publish");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<PokerRoundDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the poker rounds that estimated a record.
+        /// </summary>
+        /// <remarks>
+        /// Lists the rounds about one record, such as an intake request (`subjectKind` IntakeRequest, `subjectId` its UUID), in the sessions the caller can see, newest session first. Each has its `session` (`id`, `key`, `name`), `roundId`, `status`, `consensusEstimate` and `publication` (null until published; `outcome` Published or Refused, `at`, `by`, `refusalReason`). A round in a session the caller cannot see is absent.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PokerSubjectRoundDto>> GetRoundsForSubjectAsync(PokerRoundSubjectKind? subjectKind = null, System.Guid? subjectId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/planning/poker-sessions/rounds"
+                    urlBuilder_.Append("api/planning/poker-sessions/rounds");
+                    urlBuilder_.Append('?');
+                    if (subjectKind != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("subjectKind")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(subjectKind, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (subjectId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("subjectId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(subjectId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<PokerSubjectRoundDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         if (status_ == 400)
@@ -95098,6 +95419,28 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
+        /// Start a planning poker session on a desk to estimate its requests.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the desk who also holds the poker View permission, and a desk with an estimation scale. The session is hosted by the desk: Private, absent from the main poker list (list a desk's with PokerSessions_GetSessions, `hostKind` IntakeDesk and `hostId` the desk), facilitated by every agent and Desk Admin on the desk, and voting on the scale version the desk pins. Each of `requestIds`, open requests on the desk, gets a round showing its key, title and description to everyone in the session, whatever the desk's visibility. `invitedEmployeeIds` invites voters who are not on the desk; they need the poker View permission. Nothing is written to a request until a facilitator publishes its round with PokerSessions_PublishRound. Returns the new session's `id` and `key`. Needs the planning-poker feature flag.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<ObjectIdAndKey> StartPokerSessionAsync(System.Guid id, StartIntakeDeskPokerSessionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Add rounds about more of a desk's requests to a poker session it hosts.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the desk, who facilitates its sessions. `requestIds` are open requests on the desk; each gets a round after the session's others, showing its key, title and description to everyone in the session. Refused as a whole when any is not an open request on the desk or already has a round in the session, when the session is not hosted by this desk, or when it is completed. Both ids are UUIDs. Needs the planning-poker feature flag.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task AddRequestsToPokerSessionAsync(System.Guid id, System.Guid sessionId, AddIntakeRequestsToPokerSessionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
         /// Get the published intake request workflows a desk can follow.
         /// </summary>
         /// <remarks>
@@ -96535,6 +96878,243 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             return objectResponse_.Object;
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Start a planning poker session on a desk to estimate its requests.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the desk who also holds the poker View permission, and a desk with an estimation scale. The session is hosted by the desk: Private, absent from the main poker list (list a desk's with PokerSessions_GetSessions, `hostKind` IntakeDesk and `hostId` the desk), facilitated by every agent and Desk Admin on the desk, and voting on the scale version the desk pins. Each of `requestIds`, open requests on the desk, gets a round showing its key, title and description to everyone in the session, whatever the desk's visibility. `invitedEmployeeIds` invites voters who are not on the desk; they need the poker View permission. Nothing is written to a request until a facilitator publishes its round with PokerSessions_PublishRound. Returns the new session's `id` and `key`. Needs the planning-poker feature flag.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<ObjectIdAndKey> StartPokerSessionAsync(System.Guid id, StartIntakeDeskPokerSessionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-desks/{id}/poker-sessions"
+                    urlBuilder_.Append("api/demand-management/intake-desks/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/poker-sessions");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ObjectIdAndKey>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Add rounds about more of a desk's requests to a poker session it hosts.
+        /// </summary>
+        /// <remarks>
+        /// Needs an agent on the desk, who facilitates its sessions. `requestIds` are open requests on the desk; each gets a round after the session's others, showing its key, title and description to everyone in the session. Refused as a whole when any is not an open request on the desk or already has a round in the session, when the session is not hosted by this desk, or when it is completed. Both ids are UUIDs. Needs the planning-poker feature flag.
+        /// </remarks>
+        /// <returns>No Content</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task AddRequestsToPokerSessionAsync(System.Guid id, System.Guid sessionId, AddIntakeRequestsToPokerSessionRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            if (sessionId == null)
+                throw new System.ArgumentNullException("sessionId");
+
+            if (request == null)
+                throw new System.ArgumentNullException("request");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    var json_ = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(request, JsonSerializerSettings);
+                    var content_ = new System.Net.Http.ByteArrayContent(json_);
+                    content_.Headers.ContentType = System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json");
+                    request_.Content = content_;
+                    request_.Method = new System.Net.Http.HttpMethod("POST");
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-desks/{id}/poker-sessions/{sessionId}/rounds"
+                    urlBuilder_.Append("api/demand-management/intake-desks/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/poker-sessions/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(sessionId, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/rounds");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 204)
+                        {
+                            return;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 422)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<HttpValidationProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -117481,6 +118061,23 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// The requests to add to a planning poker session a desk hosts.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class AddIntakeRequestsToPokerSessionRequest
+    {
+
+        /// <summary>
+        /// The ids of open requests on the desk to estimate, one round each, in this order.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("requestIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(1)]
+        public System.Collections.Generic.ICollection<System.Guid> RequestIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+    }
+
+    /// <summary>
     /// A tag to add to a tag category.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -130185,6 +130782,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("estimate")]
         public IntakeRequestEstimateDto? Estimate { get; set; } = default!;
 
+        /// <summary>
+        /// The card a planning poker round settled on in place of an estimate, such as `?` for an ask that needs
+        /// <br/>clarifying or `∞` for one that needs splitting. Set only while IntakeRequestEstimateDto? IntakeRequestSubstanceDto.Estimate is null; any
+        /// <br/>later change to the estimate clears it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("estimateCard")]
+        public string? EstimateCard { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -135105,6 +135710,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("consensusEstimate")]
         public string? ConsensusEstimate { get; set; } = default!;
 
+        /// <summary>
+        /// What came of last publishing the consensus to the record the round estimates, or null when it has not been
+        /// <br/>published since the round was last accepted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("publication")]
+        public PokerRoundPublicationDto? Publication { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("order")]
         public int Order { get; set; } = default!;
 
@@ -135114,6 +135726,63 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("votes")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<PokerVoteDto> Votes { get; set; } = new System.Collections.ObjectModel.Collection<PokerVoteDto>();
+
+    }
+
+    /// <summary>
+    /// What came of last publishing a poker round's consensus to the record it estimates.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PokerRoundPublicationDto
+    {
+
+        /// <summary>
+        /// `Published` when the consensus was written to the record; `Refused` when the record's area
+        /// <br/>refused it and nothing was written.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("outcome")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PokerRoundPublicationOutcome>))]
+        public PokerRoundPublicationOutcome Outcome { get; set; } = default!;
+
+        /// <summary>
+        /// When the facilitator published, or tried to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("at")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset At { get; set; } = default!;
+
+        /// <summary>
+        /// The id of the employee who published, or tried to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("byEmployeeId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid ByEmployeeId { get; set; } = default!;
+
+        /// <summary>
+        /// The employee who published, or tried to. Null in a live update, which carries only
+        /// <br/>Guid PokerRoundPublicationDto.ByEmployeeId.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("by")]
+        public EmployeeNavigationDto? By { get; set; } = default!;
+
+        /// <summary>
+        /// Why the record's area refused the consensus, or null when it was written.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("refusalReason")]
+        public string? RefusalReason { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum PokerRoundPublicationOutcome
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Published")]
+        Published = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Refused")]
+        Refused = 1,
 
     }
 
@@ -135399,6 +136068,48 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Runtime.Serialization.EnumMember(Value = @"Completed")]
         Completed = 1,
+
+    }
+
+    /// <summary>
+    /// A poker round that estimated a record, with the session it belongs to, as the record's own page lists it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PokerSubjectRoundDto
+    {
+
+        /// <summary>
+        /// The session the round belongs to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("session")]
+        public NavigationDto Session { get; set; } = default!;
+
+        /// <summary>
+        /// The round.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("roundId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid RoundId { get; set; } = default!;
+
+        /// <summary>
+        /// The round's status: Voting, Revealed or Accepted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("status")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Status { get; set; } = default!;
+
+        /// <summary>
+        /// The consensus the team settled on, a card such as `?` included, or null until one is accepted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("consensusEstimate")]
+        public string? ConsensusEstimate { get; set; } = default!;
+
+        /// <summary>
+        /// What came of last publishing the consensus to the record, or null when it has not been published since
+        /// <br/>the round was last accepted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("publication")]
+        public PokerRoundPublicationDto? Publication { get; set; } = default!;
 
     }
 
@@ -142889,6 +143600,38 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("startedAt")]
         public System.DateTimeOffset? StartedAt { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A planning poker session to start on a desk, with the requests it will estimate.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class StartIntakeDeskPokerSessionRequest
+    {
+
+        /// <summary>
+        /// The session's name, at most 256 characters.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.StringLength(256, MinimumLength = 1)]
+        public string Name { get; set; } = default!;
+
+        /// <summary>
+        /// The ids of open requests on the desk to estimate, one round each, in this order. May be empty; requests can
+        /// <br/>be added to the session later.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("requestIds")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<System.Guid> RequestIds { get; set; } = new System.Collections.ObjectModel.Collection<System.Guid>();
+
+        /// <summary>
+        /// The ids of employees invited to vote, beside the desk's agents and Desk Admins, who all facilitate the
+        /// <br/>session.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("invitedEmployeeIds")]
+        public System.Collections.Generic.ICollection<System.Guid>? InvitedEmployeeIds { get; set; } = default!;
 
     }
 

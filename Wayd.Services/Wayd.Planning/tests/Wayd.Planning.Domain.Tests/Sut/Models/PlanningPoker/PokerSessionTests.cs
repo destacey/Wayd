@@ -1,4 +1,5 @@
-﻿using Wayd.Common.Domain.Enums;
+﻿using CSharpFunctionalExtensions;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events;
 using Wayd.Planning.Domain.Enums;
@@ -1628,6 +1629,173 @@ public class PokerSessionTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         hosted.Rounds.Should().ContainSingle().Which.Subject.Should().NotBeNull();
+    }
+
+    #endregion
+
+    #region Publishing
+
+    /// <summary>A hosted session with one round about a request, accepted at <paramref name="consensus"/>.</summary>
+    private static (PokerSession Session, PokerRound Round) AHostedSessionWithAnAcceptedRound(string consensus = "5")
+    {
+        var hosted = CreateHostedSession();
+        var round = hosted.AddSubjectRounds([ARequest()], PokerSessionActors.HostManager).Value.Single();
+        hosted.RevealRound(round.Id, PokerSessionActors.HostManager);
+        hosted.SetConsensus(round.Id, consensus, Scale.CurrentVersion, PokerSessionActors.HostManager);
+        return (hosted, round);
+    }
+
+    [Fact]
+    public void RoundsToPublish_WithNoRoundNamed_ShouldReturnEveryAcceptedSubjectRoundNotYetPublished()
+    {
+        // Arrange — one accepted, one already published, one still voting, one free-text and accepted
+        var (hosted, accepted) = AHostedSessionWithAnAcceptedRound();
+        var added = hosted.AddSubjectRounds([ARequest("43"), ARequest("44")], PokerSessionActors.HostManager).Value;
+        var published = added[0];
+        hosted.RevealRound(published.Id, PokerSessionActors.HostManager);
+        hosted.SetConsensus(published.Id, "8", Scale.CurrentVersion, PokerSessionActors.HostManager);
+        hosted.RecordRoundPublication(published.Id, Result.Success(), PokerSessionActors.HostManager, Now);
+        var freeText = hosted.AddRound("Spike", null, PokerSessionActors.HostManager).Value;
+        hosted.RevealRound(freeText.Id, PokerSessionActors.HostManager);
+        hosted.SetConsensus(freeText.Id, "3", Scale.CurrentVersion, PokerSessionActors.HostManager);
+
+        // Act
+        var result = hosted.RoundsToPublish(null, PokerSessionActors.HostManager);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().ContainSingle().Which.Id.Should().Be(accepted.Id);
+    }
+
+    [Fact]
+    public void RoundsToPublish_OnACompletedSession_ShouldStillReturnTheRound()
+    {
+        // Arrange
+        var (hosted, round) = AHostedSessionWithAnAcceptedRound();
+        hosted.Complete(PokerSessionActors.HostManager, Now);
+
+        // Act
+        var result = hosted.RoundsToPublish(round.Id, PokerSessionActors.HostManager);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().ContainSingle().Which.Id.Should().Be(round.Id);
+    }
+
+    [Fact]
+    public void RoundsToPublish_FreeTextRound_ShouldFail()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+        var round = hosted.AddRound("Spike", null, PokerSessionActors.HostManager).Value;
+        hosted.RevealRound(round.Id, PokerSessionActors.HostManager);
+        hosted.SetConsensus(round.Id, "3", Scale.CurrentVersion, PokerSessionActors.HostManager);
+
+        // Act
+        var result = hosted.RoundsToPublish(round.Id, PokerSessionActors.HostManager);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PokerSession.RoundHasNoSubjectError);
+    }
+
+    [Fact]
+    public void RoundsToPublish_RoundNotAccepted_ShouldFail()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+        var round = hosted.AddSubjectRounds([ARequest()], PokerSessionActors.HostManager).Value.Single();
+        hosted.RevealRound(round.Id, PokerSessionActors.HostManager);
+
+        // Act
+        var result = hosted.RoundsToPublish(round.Id, PokerSessionActors.HostManager);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PokerSession.RoundNotAcceptedError);
+    }
+
+    [Fact]
+    public void RoundsToPublish_BySomeoneWhoDoesNotRunTheSession_ShouldReadAsNotFound()
+    {
+        // Arrange
+        var (hosted, round) = AHostedSessionWithAnAcceptedRound();
+
+        // Act
+        var result = hosted.RoundsToPublish(round.Id, PokerSessionActors.Voter("someone"));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PokerSession.NotFoundError);
+    }
+
+    [Fact]
+    public void RecordRoundPublication_Taken_ShouldMarkTheRoundPublishedAndStopItPublishingAgain()
+    {
+        // Arrange
+        var (hosted, round) = AHostedSessionWithAnAcceptedRound();
+
+        // Act
+        hosted.RecordRoundPublication(round.Id, Result.Success(), PokerSessionActors.HostManager, Now);
+
+        // Assert
+        round.Publication!.Outcome.Should().Be(PokerRoundPublicationOutcome.Published);
+        round.Publication.At.Should().Be(Now);
+        round.Publication.ByEmployeeId.Should().Be(PokerSessionActors.HostManager.EmployeeId);
+        round.Publication.RefusalReason.Should().BeNull();
+        var again = hosted.RoundsToPublish(round.Id, PokerSessionActors.HostManager);
+        again.IsFailure.Should().BeTrue();
+        again.Error.Should().Be(PokerSession.RoundAlreadyPublishedError);
+    }
+
+    [Fact]
+    public void RecordRoundPublication_Refused_ShouldKeepTheReasonAndLetTheRoundPublishAgain()
+    {
+        // Arrange
+        var (hosted, round) = AHostedSessionWithAnAcceptedRound();
+
+        // Act
+        hosted.RecordRoundPublication(round.Id, Result.Failure("The request has moved to another desk."), PokerSessionActors.HostManager, Now);
+
+        // Assert
+        round.Publication!.Outcome.Should().Be(PokerRoundPublicationOutcome.Refused);
+        round.Publication.RefusalReason.Should().Be("The request has moved to another desk.");
+        hosted.RoundsToPublish(round.Id, PokerSessionActors.HostManager).IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void SetConsensus_OnARoundStillMarkedPublished_ShouldClearThePublication()
+    {
+        // Arrange — a publish under way during a reset saves its outcome onto the round after the reset
+        var (hosted, round) = AHostedSessionWithAnAcceptedRound();
+        hosted.ResetRound(round.Id, PokerSessionActors.HostManager);
+        hosted.RevealRound(round.Id, PokerSessionActors.HostManager);
+        typeof(PokerRound).GetProperty(nameof(PokerRound.Publication))!
+            .SetValue(round, PokerRoundPublication.Published(PokerSessionActors.HostManager.EmployeeId, Now));
+
+        // Act
+        hosted.SetConsensus(round.Id, "8", Scale.CurrentVersion, PokerSessionActors.HostManager);
+
+        // Assert
+        round.Publication.Should().BeNull();
+        hosted.RoundsToPublish(round.Id, PokerSessionActors.HostManager).IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void ResetRound_PublishedRound_ShouldClearThePublicationSoItCanBePublishedOnceAcceptedAgain()
+    {
+        // Arrange
+        var (hosted, round) = AHostedSessionWithAnAcceptedRound();
+        hosted.RecordRoundPublication(round.Id, Result.Success(), PokerSessionActors.HostManager, Now);
+
+        // Act
+        hosted.ResetRound(round.Id, PokerSessionActors.HostManager);
+
+        // Assert
+        round.Publication.Should().BeNull();
+        hosted.RevealRound(round.Id, PokerSessionActors.HostManager);
+        hosted.SetConsensus(round.Id, "8", Scale.CurrentVersion, PokerSessionActors.HostManager);
+        hosted.RoundsToPublish(round.Id, PokerSessionActors.HostManager).IsSuccess.Should().BeTrue();
     }
 
     #endregion

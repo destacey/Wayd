@@ -30,4 +30,11 @@ public enum IntakeRequestEstimateSource
     /// </summary>
     [Display(Name = "Scale Change", Description = "Cleared when the desk changed its estimation scale.", Order = 4)]
     ScaleChange = 4,
+
+    /// <summary>
+    /// A facilitator published the consensus of a planning poker round about the request: an estimate value, or a
+    /// card such as <c>?</c>, which cleared the estimate.
+    /// </summary>
+    [Display(Name = "Poker Round", Description = "Published from a planning poker round.", Order = 5)]
+    PokerRound = 5,
 }

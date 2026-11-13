@@ -45,4 +45,16 @@ public sealed class DemandEstimationScaleVersion
         var position = _values.FindIndex(v => v.IsEstimate && string.Equals(v.Value, trimmed, StringComparison.Ordinal));
         return position < 0 ? null : (_values[position], position);
     }
+
+    /// <summary>
+    /// The card on this version whose text is exactly <paramref name="value"/> once trimmed, such as <c>?</c>, or
+    /// null when there is none or it is an estimate value.
+    /// </summary>
+    public DemandEstimationScaleValue? FindCard(string? value)
+    {
+        var trimmed = value?.Trim();
+        return string.IsNullOrEmpty(trimmed)
+            ? null
+            : _values.FirstOrDefault(v => !v.IsEstimate && string.Equals(v.Value, trimmed, StringComparison.Ordinal));
+    }
 }

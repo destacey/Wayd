@@ -17,6 +17,11 @@ namespace Wayd.Common.Domain.Events.DemandManagement;
 /// <para>
 /// Version 1.1 can carry <see cref="IntakeRequestEstimateSource.ScaleChange"/> as its <see cref="Source"/>.
 /// </para>
+/// <para>
+/// Version 1.2 can carry <see cref="IntakeRequestEstimateSource.PokerRound"/> as its <see cref="Source"/>, with
+/// the <see cref="PokerRound"/> it was published from, and the card either end held in place of an estimate
+/// (<see cref="FromCard"/>, <see cref="ToCard"/>). All three are null on an earlier version.
+/// </para>
 /// </remarks>
 public sealed record IntakeRequestEstimateChangedEvent : DomainEvent<IntakeRequestEstimateChangedEvent>, IDomainEventDescriptor, IIntakeRequestEvent
 {
@@ -32,14 +37,20 @@ public sealed record IntakeRequestEstimateChangedEvent : DomainEvent<IntakeReque
         IntakeRequestEstimateDetails? to,
         IntakeRequestEstimateSource source,
         EventActor actor,
-        Instant timestamp)
-        : base(actor, "1.1")
+        Instant timestamp,
+        string? fromCard = null,
+        string? toCard = null,
+        IntakeRequestEstimatePokerRound? pokerRound = null)
+        : base(actor, "1.2")
     {
         Id = id;
         Key = key;
         From = from;
         To = to;
         Source = source;
+        FromCard = fromCard;
+        ToCard = toCard;
+        PokerRound = pokerRound;
 
         Timestamp = timestamp;
     }
@@ -55,6 +66,21 @@ public sealed record IntakeRequestEstimateChangedEvent : DomainEvent<IntakeReque
 
     /// <summary>How the estimate came to change.</summary>
     public IntakeRequestEstimateSource Source { get; }
+
+    /// <summary>
+    /// The card the request held in place of an estimate before the change, such as <c>?</c>, or null when it
+    /// held none. Never set together with <see cref="From"/>.
+    /// </summary>
+    public string? FromCard { get; }
+
+    /// <summary>
+    /// The card a poker round settled on in place of an estimate, which the request holds after the change, or
+    /// null. Never set together with <see cref="To"/>.
+    /// </summary>
+    public string? ToCard { get; }
+
+    /// <summary>The poker round the change was published from, or null for any other source.</summary>
+    public IntakeRequestEstimatePokerRound? PokerRound { get; }
 
     [JsonIgnore]
     public string AggregateType => "IntakeRequest";

@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Models;
 using Wayd.Planning.Application.PokerSessions.Dtos;
 using Wayd.Planning.Domain.Models.PlanningPoker;
@@ -41,7 +42,24 @@ public sealed class GetPokerSessionQueryHandler(IPlanningDbContext planningDbCon
 
         session.CanManage = reader.CanManage(session.Facilitators.Select(f => f.Id), session.Host?.Id);
         session.HideUnrevealedVotes(_currentUser.GetUserId());
+        await NamePublishers(session, cancellationToken);
 
         return session;
+    }
+
+    private async Task NamePublishers(PokerSessionDetailsDto session, CancellationToken cancellationToken)
+    {
+        var publications = session.Rounds.Select(r => r.Publication).OfType<PokerRoundPublicationDto>().ToList();
+        if (publications.Count == 0)
+            return;
+
+        var publisherIds = publications.Select(p => p.ByEmployeeId).Distinct().ToList();
+        var publishers = await _planningDbContext.Employees
+            .Where(e => publisherIds.Contains(e.Id))
+            .ProjectToType<EmployeeNavigationDto>()
+            .ToDictionaryAsync(e => e.Id, cancellationToken);
+
+        foreach (var publication in publications)
+            publication.By = publishers.GetValueOrDefault(publication.ByEmployeeId);
     }
 }

@@ -2460,6 +2460,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<Guid?>("DuplicateOfId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("EstimateCard")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<string>("ExpectedBenefits")
                         .HasColumnType("nvarchar(max)");
 
@@ -10830,6 +10834,38 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.OwnsOne("Wayd.Planning.Domain.Models.PlanningPoker.PokerRoundPublication", "Publication", b1 =>
+                        {
+                            b1.Property<Guid>("PokerRoundId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<DateTime>("At")
+                                .HasColumnType("datetime2")
+                                .HasColumnName("PublicationAt");
+
+                            b1.Property<Guid>("ByEmployeeId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("PublicationByEmployeeId");
+
+                            b1.Property<string>("Outcome")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("varchar")
+                                .HasColumnName("PublicationOutcome");
+
+                            b1.Property<string>("RefusalReason")
+                                .HasMaxLength(512)
+                                .HasColumnType("nvarchar(512)")
+                                .HasColumnName("PublicationRefusalReason");
+
+                            b1.HasKey("PokerRoundId");
+
+                            b1.ToTable("PokerRounds", "Planning");
+
+                            b1.WithOwner()
+                                .HasForeignKey("PokerRoundId");
+                        });
+
                     b.OwnsOne("Wayd.Planning.Domain.Models.PlanningPoker.PokerRoundSubject", "Subject", b1 =>
                         {
                             b1.Property<Guid>("PokerRoundId")
@@ -10871,6 +10907,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("PokerRoundId");
                         });
+
+                    b.Navigation("Publication");
 
                     b.Navigation("Subject");
                 });

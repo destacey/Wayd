@@ -2655,6 +2655,34 @@ public sealed class DomainEventSerializationTests
         roundTripped.From.Should().Be(original.From);
         roundTripped.To.Should().BeNull();
         roundTripped.Source.Should().Be(IntakeRequestEstimateSource.Rerouted);
+        roundTripped.FromCard.Should().BeNull();
+        roundTripped.ToCard.Should().BeNull();
+        roundTripped.PokerRound.Should().BeNull();
+    }
+
+    [Fact]
+    public void IntakeRequestEstimateChangedEvent_FromAPokerRound_RoundTripsItsCardsAndRound()
+    {
+        // Arrange - a card replaced by another card, published from a round.
+        var round = new IntakeRequestEstimatePokerRound(Guid.NewGuid(), Guid.NewGuid());
+        var original = new IntakeRequestEstimateChangedEvent(
+            Guid.NewGuid(), 12, null, null,
+            IntakeRequestEstimateSource.PokerRound,
+            EventActor.System,
+            Instant.FromUtc(2026, 1, 2, 12, 0, 0),
+            fromCard: "?",
+            toCard: "∞",
+            pokerRound: round);
+
+        // Act
+        var roundTripped = RoundTrip(original);
+
+        // Assert
+        roundTripped.Source.Should().Be(IntakeRequestEstimateSource.PokerRound);
+        roundTripped.FromCard.Should().Be("?");
+        roundTripped.ToCard.Should().Be("∞");
+        roundTripped.PokerRound.Should().Be(round);
+        roundTripped.EventVersion.Should().Be("1.2");
     }
 
     [Fact]

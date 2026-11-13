@@ -229,6 +229,52 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
             : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPost("{id}/rounds/{roundId}/publish")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
+    [EndpointSummary("Publish a round's consensus to the record it estimates.")]
+    [EndpointDescription(
+        "Writes an Accepted round's `consensusEstimate` to the round's `subject`, such as an intake request, as the caller. Only a round about a record can be published, and only once; a free-text round cannot. The record's own area decides again whether it takes the estimate: for an intake request the caller must be an agent on its desk, the request open and still on the desk hosting the session, and the desk still on the scale version the session votes on. The round's `publication` records what came of it: `outcome` Published, or Refused with a `refusalReason` when nothing was written; a refused round can be published again. A consensus that is a card, such as `?`, clears the request's estimate and is recorded on the request in its place. Resetting a round clears its `publication` but leaves what was written. Allowed on an Active or a Completed session." + OnlyFacilitators + " Both ids are UUIDs. Returns the round.")]
+    [McpTool("PokerSessions_PublishRound", "Publish poker round estimate")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PokerRoundDto>> PublishRound(Guid id, Guid roundId, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new PublishPokerRoundsCommand(id, roundId), cancellationToken);
+        return result.IsSuccess
+            ? Ok(result.Value[0])
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpPost("{id}/publish")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
+    [EndpointSummary("Publish every unpublished accepted round of a session.")]
+    [EndpointDescription(
+        "Publishes, as PokerSessions_PublishRound does, each Accepted round about a record that has not already been published, in round order. Each round is decided on its own, so some may be Published and others Refused; read each returned round's `publication`. Returns the rounds it tried, which is empty when none could be published. Allowed on an Active or a Completed session." + OnlyFacilitators + " Takes the session's UUID.")]
+    [McpTool("PokerSessions_PublishRounds", "Publish poker session estimates")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IEnumerable<PokerRoundDto>>> PublishRounds(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new PublishPokerRoundsCommand(id), cancellationToken);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
+    [HttpGet("rounds")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
+    [EndpointSummary("Get the poker rounds that estimated a record.")]
+    [EndpointDescription(
+        "Lists the rounds about one record, such as an intake request (`subjectKind` IntakeRequest, `subjectId` its UUID), in the sessions the caller can see, newest session first. Each has its `session` (`id`, `key`, `name`), `roundId`, `status`, `consensusEstimate` and `publication` (null until published; `outcome` Published or Refused, `at`, `by`, `refusalReason`). A round in a session the caller cannot see is absent.")]
+    [McpTool("PokerSessions_GetRoundsForSubject", "List poker rounds for a record")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IEnumerable<PokerSubjectRoundDto>>> GetRoundsForSubject([FromQuery] PokerRoundSubjectKind subjectKind, [FromQuery] Guid subjectId, CancellationToken cancellationToken)
+    {
+        var rounds = await _dispatcher.Send(new GetPokerRoundsForSubjectQuery(subjectKind, subjectId), cancellationToken);
+        return Ok(rounds);
+    }
+
     [HttpPut("{id}/rounds/{roundId}/label")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Update the label for a round.")]

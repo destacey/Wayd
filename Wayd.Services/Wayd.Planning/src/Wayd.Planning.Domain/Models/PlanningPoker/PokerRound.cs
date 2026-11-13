@@ -53,6 +53,20 @@ public sealed class PokerRound : BaseEntity
     public string? ConsensusEstimate { get; private set; }
 
     /// <summary>
+    /// What came of last publishing the consensus to the round's <see cref="Subject"/>, or null when it has not
+    /// been published since the round was last accepted. Cleared when the round is reset.
+    /// </summary>
+    public PokerRoundPublication? Publication { get; private set; }
+
+    /// <summary>
+    /// Whether the consensus can be published now: the round is about a record, its estimate is accepted, and it
+    /// has not already been written to the record.
+    /// </summary>
+    public bool CanPublish => Subject is not null
+        && Status == PokerRoundStatus.Accepted
+        && Publication?.Outcome != PokerRoundPublicationOutcome.Published;
+
+    /// <summary>
     /// The display order of this round within the session.
     /// </summary>
     public int Order { get; private set; }
@@ -78,7 +92,8 @@ public sealed class PokerRound : BaseEntity
     }
 
     /// <summary>
-    /// Reset the round to allow re-voting. Clears all existing votes.
+    /// Reset the round to allow re-voting. Clears all existing votes, and what came of publishing the consensus,
+    /// so the round can be published again once it is accepted again. What an earlier publish wrote stays written.
     /// </summary>
     internal Result Reset()
     {
@@ -87,12 +102,14 @@ public sealed class PokerRound : BaseEntity
 
         _votes.Clear();
         ConsensusEstimate = null;
+        Publication = null;
         Status = PokerRoundStatus.Voting;
         return Result.Success();
     }
 
     /// <summary>
-    /// Set the consensus estimate for this round.
+    /// Set the consensus estimate for this round. A newly accepted estimate has never been published, whatever
+    /// the round held before.
     /// </summary>
     internal Result SetConsensus(string estimate)
     {
@@ -100,8 +117,22 @@ public sealed class PokerRound : BaseEntity
             return Result.Failure("Consensus can only be set after votes are revealed.");
 
         ConsensusEstimate = Guard.Against.NullOrWhiteSpace(estimate, nameof(estimate)).Trim();
+        // A publish that was under way when another facilitator reset the round saves its outcome after the
+        // reset cleared it, which would otherwise stop this estimate ever being published.
+        Publication = null;
         Status = PokerRoundStatus.Accepted;
         return Result.Success();
+    }
+
+    /// <summary>
+    /// Records what came of publishing the consensus, replacing an earlier refusal.
+    /// </summary>
+    internal void RecordPublication(PokerRoundPublication publication)
+    {
+        if (!CanPublish)
+            throw new InvalidOperationException("Only an accepted round about a record, not yet published, can record a publication.");
+
+        Publication = Guard.Against.Null(publication, nameof(publication));
     }
 
     /// <summary>

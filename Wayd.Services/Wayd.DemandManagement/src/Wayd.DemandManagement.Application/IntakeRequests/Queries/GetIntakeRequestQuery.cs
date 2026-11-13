@@ -67,10 +67,10 @@ public sealed class GetIntakeRequestQueryHandler(
         var record = await visible.FirstAsync(cancellationToken);
 
         // The estimate command needs a linked employee, so the flag does too. Without a scale the command can only
-        // clear, so the flag needs an estimate to clear.
+        // clear, so the flag needs an estimate, or a card in its place, to clear.
         var deskEstimates = await _dbContext.IntakeDesks.AnyAsync(d => d.Id == record.DeskId && d.EstimationScaleVersionId != null, cancellationToken);
         var canChangeEstimate = !_currentPrincipal.IsReadOnly && reader.EmployeeId is not null && reader.IsAgentOn(summary.Desk.Id)
-            && record.IsOpen && (deskEstimates || record.Estimate is not null);
+            && record.IsOpen && (deskEstimates || record.Estimate is not null || record.EstimateCard is not null);
         var (pinnedVersionId, estimateValues) = canChangeEstimate
             ? await PinnedVersion(summary.Desk.Id, cancellationToken)
             : (null, []);

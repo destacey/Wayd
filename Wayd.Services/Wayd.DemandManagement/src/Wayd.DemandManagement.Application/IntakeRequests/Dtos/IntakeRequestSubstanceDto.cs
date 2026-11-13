@@ -34,4 +34,11 @@ public sealed record IntakeRequestSubstanceDto
 
     /// <summary>How big the ask is, on the scale the desk team estimated it on, or null when it has not been estimated.</summary>
     public IntakeRequestEstimateDto? Estimate { get; init; }
+
+    /// <summary>
+    /// The card a planning poker round settled on in place of an estimate, such as <c>?</c> for an ask that needs
+    /// clarifying or <c>∞</c> for one that needs splitting. Set only while <see cref="Estimate"/> is null; any
+    /// later change to the estimate clears it.
+    /// </summary>
+    public string? EstimateCard { get; init; }
 }

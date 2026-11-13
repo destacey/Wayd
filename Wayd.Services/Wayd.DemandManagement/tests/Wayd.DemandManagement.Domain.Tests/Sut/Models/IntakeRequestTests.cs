@@ -3036,6 +3036,210 @@ public sealed class IntakeRequestTests
         act.Should().Throw<ArgumentException>();
     }
 
+    private static readonly IntakeRequestEstimatePokerRound ARound = new(Guid.NewGuid(), Guid.NewGuid());
+
+    [Fact]
+    public void PublishPokerRound_WithAnEstimateValue_OverwritesTheEstimateAndNamesTheRound()
+    {
+        // Arrange — a manual estimate made before publishing is overwritten
+        var (sut, desk, scale) = AnEstimatedRequest("S");
+        var agent = ADeskAgent();
+
+        // Act
+        var result = sut.PublishPokerRound(" L ", desk, scale, scale.CurrentVersion.Id, ARound, agent, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        sut.Estimate!.Value.Should().Be("L");
+        sut.Estimate.Position.Should().Be(2);
+        sut.EstimateCard.Should().BeNull();
+        var raised = sut.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Should().ContainSingle().Subject;
+        raised.From.Should().Be(Details(scale, "S"));
+        raised.To.Should().Be(Details(scale, "L"));
+        raised.Source.Should().Be(IntakeRequestEstimateSource.PokerRound);
+        raised.PokerRound.Should().Be(ARound);
+        raised.FromCard.Should().BeNull();
+        raised.ToCard.Should().BeNull();
+        raised.Actor.Should().Be(agent.Actor);
+    }
+
+    [Fact]
+    public void PublishPokerRound_WithACard_ClearsTheEstimateAndHoldsTheCard()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatedRequest("M");
+
+        // Act
+        var result = sut.PublishPokerRound("?", desk, scale, scale.CurrentVersion.Id, ARound, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        sut.Estimate.Should().BeNull();
+        sut.EstimateCard.Should().Be("?");
+        var raised = sut.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Should().ContainSingle().Subject;
+        raised.From.Should().Be(Details(scale, "M"));
+        raised.To.Should().BeNull();
+        raised.ToCard.Should().Be("?");
+        raised.PokerRound.Should().Be(ARound);
+    }
+
+    [Fact]
+    public void PublishPokerRound_WithWhatTheRequestAlreadyHolds_ChangesNothing()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatedRequest("M");
+
+        // Act
+        var result = sut.PublishPokerRound("M", desk, scale, scale.CurrentVersion.Id, ARound, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void PublishPokerRound_WithAValueNotOnTheVersion_FailsAndChangesNothing()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatedRequest("M");
+
+        // Act
+        var result = sut.PublishPokerRound("13", desk, scale, scale.CurrentVersion.Id, ARound, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.NotAScaleValueError);
+        sut.Estimate!.Value.Should().Be("M");
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void PublishPokerRound_AfterTheDeskMovedToAnotherVersion_FailsAndChangesNothing()
+    {
+        // Arrange — the session voted on version 1; the desk now pins version 2
+        var (sut, _, scale) = AnEstimatingDeskRequest();
+        var sessionVersionId = scale.CurrentVersion.Id;
+        var next = scale.PublishNext();
+        var desk = new IntakeDeskFaker().WithId(sut.DeskId).WithEstimationScaleVersion(next).Generate();
+
+        // Act
+        var result = sut.PublishPokerRound("L", desk, scale, sessionVersionId, ARound, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.DeskLeftSessionScaleError);
+        sut.Estimate.Should().BeNull();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void PublishPokerRound_OnADeskThatNoLongerEstimates_Fails()
+    {
+        // Arrange
+        var (sut, _, scale) = AnEstimatingDeskRequest();
+        var desk = new IntakeDeskFaker().WithId(sut.DeskId).Generate();
+
+        // Act
+        var result = sut.PublishPokerRound("L", desk, null, scale.CurrentVersion.Id, ARound, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.DeskLeftSessionScaleError);
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(StatusCategory.Done)]
+    [InlineData(StatusCategory.Removed)]
+    public void PublishPokerRound_WhenClosed_FailsAndChangesNothing(StatusCategory category)
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatingDeskRequest(category);
+
+        // Act
+        var result = sut.PublishPokerRound("L", desk, scale, scale.CurrentVersion.Id, ARound, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.ClosedEstimateError);
+        sut.Estimate.Should().BeNull();
+        sut.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void PublishPokerRound_BySomeoneOffTheDesk_Fails()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatingDeskRequest();
+        var outsider = new IntakeRequestEditor(Guid.NewGuid(), IsDeskAgent: false, EventActor.System);
+
+        // Act
+        var result = sut.PublishPokerRound("L", desk, scale, scale.CurrentVersion.Id, ARound, outsider, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(IntakeRequest.NotAnEstimatorError);
+        sut.Estimate.Should().BeNull();
+    }
+
+    [Fact]
+    public void ChangeEstimate_AfterACard_ClearsTheCardAndCarriesIt()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatingDeskRequest();
+        sut.PublishPokerRound("?", desk, scale, scale.CurrentVersion.Id, ARound, ADeskAgent(), _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.ChangeEstimate("S", desk, scale, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.EstimateCard.Should().BeNull();
+        sut.Estimate!.Value.Should().Be("S");
+        var raised = sut.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Should().ContainSingle().Subject;
+        raised.FromCard.Should().Be("?");
+        raised.ToCard.Should().BeNull();
+        raised.PokerRound.Should().BeNull();
+    }
+
+    [Fact]
+    public void ChangeEstimate_ToNullWhileHoldingACard_ClearsTheCard()
+    {
+        // Arrange
+        var (sut, desk, scale) = AnEstimatingDeskRequest();
+        sut.PublishPokerRound("?", desk, scale, scale.CurrentVersion.Id, ARound, ADeskAgent(), _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+
+        // Act
+        var result = sut.ChangeEstimate(null, desk, scale, IntakeRequestEstimateSource.Manual, ADeskAgent(), _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.EstimateCard.Should().BeNull();
+        sut.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Should().ContainSingle().Which.FromCard.Should().Be("?");
+    }
+
+    [Fact]
+    public void Reroute_WhileHoldingACard_ClearsTheCard()
+    {
+        // Arrange — the destination pins the same version, which would keep an estimate
+        var (sut, from, scale) = AnEstimatingDeskRequest();
+        sut.PublishPokerRound("?", from, scale, scale.CurrentVersion.Id, ARound, ADeskAgent(), _dateTimeProvider.Now);
+        sut.ClearDomainEvents();
+        var to = new IntakeDeskFaker().WithEstimationScaleVersion(scale.CurrentVersion).Generate();
+
+        // Act
+        var result = sut.Reroute(from, to, StayingPut(sut), widerVisibilityConfirmed: false, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.EstimateCard.Should().BeNull();
+        var cleared = sut.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Should().ContainSingle().Subject;
+        cleared.FromCard.Should().Be("?");
+        cleared.Source.Should().Be(IntakeRequestEstimateSource.Rerouted);
+    }
+
     [Fact]
     public void Reroute_ToADeskOnAnotherScale_ClearsTheEstimateAfterTheMove()
     {

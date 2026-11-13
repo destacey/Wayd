@@ -253,6 +253,106 @@ public sealed class PokerSessionPersistenceTests(SqlServerDbContextFixture fixtu
     }
 
     [Fact]
+    public async Task RoundPublication_SavesARefusalThenItsReplacement_AndReadsBackThroughBothQueries()
+    {
+        // Arrange — a refusal saved first, so publishing replaces a stored publication rather than adding one
+        var ct = TestContext.Current.CancellationToken;
+        _ = PlanningMappings.Value;
+        var agent = await PlanningTestData.SeedEmployee(_fixture, ct);
+        var deskId = Guid.NewGuid();
+        var subject = new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), "42", "Export invoices", null);
+        var hosted = await SaveHostedSession(deskId, agent.Id, subject, ct);
+        var actor = new PokerSessionActor(agent.Id, "facilitator-user", false, new HashSet<Guid>(), ManagesHost: true);
+        var reader = new PokerSessionReader(agent.Id, false, [], false, [deskId]);
+        var refusedAt = Now + Duration.FromMinutes(5);
+        var publishedAt = Now + Duration.FromMinutes(10);
+
+        async Task Change(Action<PokerSession, PokerRound> change)
+        {
+            await using var context = _fixture.CreateContext();
+            var session = await context.PokerSessions.IncludeAccess().Include(s => s.Rounds).ThenInclude(r => r.Votes)
+                .SingleAsync(s => s.Id == hosted.Id, ct);
+            change(session, session.Rounds.Single());
+            await context.SaveChangesAsync(ct);
+        }
+
+        await Change((session, round) => session.RevealRound(round.Id, actor).IsSuccess.Should().BeTrue());
+        await using (var context = _fixture.CreateContext())
+        {
+            var session = await context.PokerSessions.IncludeAccess().Include(s => s.Rounds).SingleAsync(s => s.Id == hosted.Id, ct);
+            var version = await context.EstimationScaleVersions.SingleAsync(v => v.Id == session.EstimationScaleVersionId, ct);
+            session.SetConsensus(session.Rounds.Single().Id, "M", version, actor).IsSuccess.Should().BeTrue();
+            await context.SaveChangesAsync(ct);
+        }
+        await Change((session, round) =>
+            session.RecordRoundPublication(round.Id, CSharpFunctionalExtensions.Result.Failure("The request has moved to another desk."), actor, refusedAt));
+
+        async Task<IReadOnlyList<PokerSubjectRoundDto>> RoundsOfTheRequest()
+        {
+            await using var read = _fixture.CreateContext();
+            return await new GetPokerRoundsForSubjectQueryHandler(read, ReaderOf(reader).Object)
+                .Handle(new GetPokerRoundsForSubjectQuery(PokerRoundSubjectKind.IntakeRequest, subject.Id), ct);
+        }
+
+        // Act
+        var whileRefused = await RoundsOfTheRequest();
+        await Change((session, round) =>
+            session.RecordRoundPublication(round.Id, CSharpFunctionalExtensions.Result.Success(), actor, publishedAt));
+        var oncePublished = await RoundsOfTheRequest();
+        await using var detailsContext = _fixture.CreateContext();
+        var details = await new GetPokerSessionQueryHandler(detailsContext, ReaderOf(reader).Object, Mock.Of<ICurrentUser>())
+            .Handle(new GetPokerSessionQuery(hosted.Key.ToString()), ct);
+        var forAnOutsider = await new GetPokerRoundsForSubjectQueryHandler(detailsContext, ReaderOf(new(Guid.NewGuid(), false, [], false)).Object)
+            .Handle(new GetPokerRoundsForSubjectQuery(PokerRoundSubjectKind.IntakeRequest, subject.Id), ct);
+
+        // Assert
+        var refused = whileRefused.Should().ContainSingle().Subject;
+        refused.Session.Id.Should().Be(hosted.Id);
+        refused.Session.Key.Should().Be(hosted.Key);
+        refused.ConsensusEstimate.Should().Be("M");
+        refused.Status.Should().Be("Accepted");
+        refused.Publication!.Outcome.Should().Be(PokerRoundPublicationOutcome.Refused);
+        refused.Publication.RefusalReason.Should().Be("The request has moved to another desk.");
+        refused.Publication.At.Should().Be(refusedAt);
+
+        var published = oncePublished.Should().ContainSingle().Subject.Publication!;
+        published.Outcome.Should().Be(PokerRoundPublicationOutcome.Published);
+        published.RefusalReason.Should().BeNull();
+        published.At.Should().Be(publishedAt);
+        published.By!.Id.Should().Be(agent.Id);
+
+        var inDetails = details!.Rounds.Should().ContainSingle().Subject.Publication!;
+        inDetails.Outcome.Should().Be(PokerRoundPublicationOutcome.Published);
+        inDetails.By!.Id.Should().Be(agent.Id);
+
+        forAnOutsider.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RoundsForSubject_ARoundNeverPublished_ReadsBackWithNoPublication()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        _ = PlanningMappings.Value;
+        var agent = await PlanningTestData.SeedEmployee(_fixture, ct);
+        var deskId = Guid.NewGuid();
+        var subject = new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), "43", "Archive invoices", null);
+        var hosted = await SaveHostedSession(deskId, agent.Id, subject, ct);
+
+        // Act
+        await using var read = _fixture.CreateContext();
+        var rounds = await new GetPokerRoundsForSubjectQueryHandler(read, ReaderOf(new(agent.Id, false, [], false, [deskId])).Object)
+            .Handle(new GetPokerRoundsForSubjectQuery(PokerRoundSubjectKind.IntakeRequest, subject.Id), ct);
+
+        // Assert
+        var round = rounds.Should().ContainSingle().Subject;
+        round.Session.Id.Should().Be(hosted.Id);
+        round.Status.Should().Be("Voting");
+        round.ConsensusEstimate.Should().BeNull();
+        round.Publication.Should().BeNull();
+    }
+
+    [Fact]
     public async Task StandaloneSession_ReadsBackWithNoHostAndNoRoundSubject()
     {
         // Arrange

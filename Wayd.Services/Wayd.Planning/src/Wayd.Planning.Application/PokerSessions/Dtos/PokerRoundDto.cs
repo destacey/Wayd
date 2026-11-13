@@ -19,6 +19,12 @@ public sealed record PokerRoundDto : IMapFrom<PokerRound>
     public string? Description { get; set; }
     public required string Status { get; set; }
     public string? ConsensusEstimate { get; set; }
+
+    /// <summary>
+    /// What came of last publishing the consensus to the record the round estimates, or null when it has not been
+    /// published since the round was last accepted.
+    /// </summary>
+    public PokerRoundPublicationDto? Publication { get; set; }
     public int Order { get; set; }
     public int VoteCount { get; set; }
     public required List<PokerVoteDto> Votes { get; set; }

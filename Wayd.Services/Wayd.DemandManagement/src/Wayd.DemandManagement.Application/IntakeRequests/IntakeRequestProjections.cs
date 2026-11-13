@@ -122,6 +122,7 @@ internal static class IntakeRequestProjections
                     Url = r.Origin.Url,
                 },
             StatusReason = r.StatusReason,
+            EstimateCard = r.EstimateCard,
         };
     }
 

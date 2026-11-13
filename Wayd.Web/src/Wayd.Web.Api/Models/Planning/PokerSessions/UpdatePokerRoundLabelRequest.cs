@@ -1,4 +1,5 @@
 ﻿using Wayd.Planning.Application.PokerSessions.Commands;
+using Wayd.Planning.Domain.Models.PlanningPoker;
 
 namespace Wayd.Web.Api.Models.Planning.PokerSessions;
 
@@ -16,6 +17,6 @@ public sealed class UpdatePokerRoundLabelRequestValidator : CustomValidator<Upda
 {
     public UpdatePokerRoundLabelRequestValidator()
     {
-        RuleFor(r => r.Label).MaximumLength(512);
+        RuleFor(r => r.Label).MaximumLength(PokerRound.LabelMaxLength);
     }
 }

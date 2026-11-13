@@ -8,14 +8,14 @@ namespace Wayd.Planning.Application.PokerSessions.Commands;
 /// </summary>
 internal static class PokerRoundSubjectInputs
 {
-    /// <summary>The round subject for a record, its description cut to what a subject holds.</summary>
-    public static PokerRoundSubject ToSubject(PokerRoundSubjectInput input) =>
-        new(input.Kind, input.Id, input.DisplayKey, input.Title, input.Description);
+    /// <summary>The record as a round is added about it: its reference, title and description.</summary>
+    public static PokerRoundRecord ToRecord(PokerRoundSubjectInput input) =>
+        new(new PokerRoundSubject(input.Kind, input.Id, input.DisplayKey), input.Title, input.Description);
 }
 
 /// <summary>
-/// Checks a record to estimate against what a round subject can hold. A long description is not refused: the
-/// subject keeps its start, since refusing would stop a session starting over one request's length.
+/// Checks a record to estimate against what a round can hold. A long description is not refused: the round
+/// keeps its start, since refusing would stop a session starting over one request's length.
 /// </summary>
 public sealed class PokerRoundSubjectInputValidator : CustomValidator<PokerRoundSubjectInput>
 {
@@ -27,6 +27,6 @@ public sealed class PokerRoundSubjectInputValidator : CustomValidator<PokerRound
         RuleFor(s => s.Kind).IsInEnum();
         RuleFor(s => s.Id).NotEmpty();
         RuleFor(s => s.DisplayKey).NotEmpty().MaximumLength(PokerRoundSubject.DisplayKeyMaxLength);
-        RuleFor(s => s.Title).NotEmpty().MaximumLength(PokerRoundSubject.TitleMaxLength);
+        RuleFor(s => s.Title).NotEmpty().MaximumLength(PokerRound.LabelMaxLength);
     }
 }

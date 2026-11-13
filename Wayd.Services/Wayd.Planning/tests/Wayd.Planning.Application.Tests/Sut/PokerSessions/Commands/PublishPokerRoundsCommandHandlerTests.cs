@@ -49,8 +49,8 @@ public sealed class PublishPokerRoundsCommandHandlerTests : IDisposable
 
     private PokerRound AnAcceptedRequestRound(PokerSession session, string key, string consensus)
     {
-        var subject = new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), key, $"Request {key}", null);
-        var round = session.AddSubjectRounds([subject], PokerSessionActors.HostManager).Value.Single();
+        var record = new PokerRoundRecord(new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), key), $"Request {key}", null);
+        var round = session.AddSubjectRounds([record], PokerSessionActors.HostManager).Value.Single();
         session.RevealRound(round.Id, PokerSessionActors.HostManager);
         session.SetConsensus(round.Id, consensus, _scale.CurrentVersion, PokerSessionActors.HostManager);
         return round;
@@ -106,7 +106,7 @@ public sealed class PublishPokerRoundsCommandHandlerTests : IDisposable
         var first = AnAcceptedRequestRound(session, "41", "S");
         var second = AnAcceptedRequestRound(session, "42", "?");
         var voting = session.AddSubjectRounds(
-            [new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), "43", "Request 43", null)],
+            [new PokerRoundRecord(new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), "43"), "Request 43", null)],
             PokerSessionActors.HostManager).Value.Single();
 
         // Act

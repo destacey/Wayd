@@ -87,7 +87,7 @@ public sealed class StartHostedPokerSessionCommandHandler(
         var creator = new PokerSessionActor(employeeId.Value, _currentUser.GetUserId(), false, new HashSet<Guid>(), ManagesHost: true);
         var setUp = Result.Combine(
             session.SetInvitees(invitedEmployeeIds, [], creator),
-            session.AddSubjectRounds(request.Subjects.Select(PokerRoundSubjectInputs.ToSubject), creator));
+            session.AddSubjectRounds(request.Subjects.Select(PokerRoundSubjectInputs.ToRecord), creator));
         if (setUp.IsFailure)
             return Result.Failure<ObjectIdAndKey>(setUp.Error);
 

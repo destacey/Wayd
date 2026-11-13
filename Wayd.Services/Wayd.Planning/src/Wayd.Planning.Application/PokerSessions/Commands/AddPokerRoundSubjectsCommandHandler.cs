@@ -61,7 +61,7 @@ public sealed class AddPokerRoundSubjectsCommandHandler(
 
         var actor = await _access.ResolveActor(session, cancellationToken);
 
-        var result = session.AddSubjectRounds(request.Subjects.Select(PokerRoundSubjectInputs.ToSubject), actor);
+        var result = session.AddSubjectRounds(request.Subjects.Select(PokerRoundSubjectInputs.ToRecord), actor);
         if (result.IsFailure)
             return Result.Failure(result.Error);
 

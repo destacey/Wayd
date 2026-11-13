@@ -4464,8 +4464,8 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasColumnType("nvarchar(32)");
 
                     b.Property<string>("Description")
-                        .HasMaxLength(2048)
-                        .HasColumnType("nvarchar(2048)");
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
 
                     b.Property<string>("Label")
                         .HasMaxLength(512)
@@ -10871,11 +10871,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                             b1.Property<Guid>("PokerRoundId")
                                 .HasColumnType("uniqueidentifier");
 
-                            b1.Property<string>("Description")
-                                .HasMaxLength(4000)
-                                .HasColumnType("nvarchar(4000)")
-                                .HasColumnName("SubjectDescription");
-
                             b1.Property<string>("DisplayKey")
                                 .IsRequired()
                                 .HasMaxLength(64)
@@ -10891,12 +10886,6 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                                 .HasMaxLength(32)
                                 .HasColumnType("varchar")
                                 .HasColumnName("SubjectKind");
-
-                            b1.Property<string>("Title")
-                                .IsRequired()
-                                .HasMaxLength(512)
-                                .HasColumnType("nvarchar(512)")
-                                .HasColumnName("SubjectTitle");
 
                             b1.HasKey("PokerRoundId");
 

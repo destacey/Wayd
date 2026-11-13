@@ -831,7 +831,7 @@ public class PokerRoundConfig : IEntityTypeConfiguration<PokerRound>
 
         builder.Property(r => r.Id).ValueGeneratedNever();
         builder.Property(r => r.PokerSessionId).IsRequired();
-        builder.Property(r => r.Label).HasMaxLength(512);
+        builder.Property(r => r.Label).HasMaxLength(PokerRound.LabelMaxLength);
         builder.Property(r => r.Description).HasMaxLength(PokerRound.DescriptionMaxLength);
         builder.Property(r => r.Status).IsRequired()
             .HasConversion<EnumConverter<PokerRoundStatus>>()
@@ -849,10 +849,6 @@ public class PokerRoundConfig : IEntityTypeConfiguration<PokerRound>
             subject.Property(s => s.Id).HasColumnName("SubjectId").IsRequired();
             subject.Property(s => s.DisplayKey).HasColumnName("SubjectDisplayKey").IsRequired()
                 .HasMaxLength(PokerRoundSubject.DisplayKeyMaxLength);
-            subject.Property(s => s.Title).HasColumnName("SubjectTitle").IsRequired()
-                .HasMaxLength(PokerRoundSubject.TitleMaxLength);
-            subject.Property(s => s.Description).HasColumnName("SubjectDescription")
-                .HasMaxLength(PokerRoundSubject.DescriptionMaxLength);
 
             // "The rounds that estimated this record": what the record's own page asks.
             subject.HasIndex(s => s.Id);

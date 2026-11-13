@@ -407,13 +407,14 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Add a round about each record, in the order given, such as the requests a desk chose to estimate. Refused
-    /// as a whole when any record already has a round in the session, or appears twice.
+    /// Add a round about each record, in the order given, such as the requests a desk chose to estimate. Each
+    /// round takes the record's title as its label and the record's description as its own. Refused as a whole
+    /// when any record already has a round in the session, or appears twice.
     /// </summary>
-    public Result<IReadOnlyList<PokerRound>> AddSubjectRounds(IEnumerable<PokerRoundSubject> subjects, PokerSessionActor actor)
+    public Result<IReadOnlyList<PokerRound>> AddSubjectRounds(IEnumerable<PokerRoundRecord> records, PokerSessionActor actor)
     {
-        Guard.Against.Null(subjects, nameof(subjects));
-        var toAdd = subjects.ToList();
+        Guard.Against.Null(records, nameof(records));
+        var toAdd = records.ToList();
 
         var canManage = EnsureCanManage(actor);
         if (canManage.IsFailure)
@@ -422,16 +423,16 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         if (Status != PokerSessionStatus.Active)
             return Result.Failure<IReadOnlyList<PokerRound>>("Rounds can only be added to an active session.");
 
-        var keys = toAdd.Select(s => (s.Kind, s.Id)).ToList();
+        var keys = toAdd.Select(r => (r.Subject.Kind, r.Subject.Id)).ToList();
         if (keys.Distinct().Count() != keys.Count
             || _rounds.Any(r => r.Subject is { } existing && keys.Contains((existing.Kind, existing.Id))))
             return Result.Failure<IReadOnlyList<PokerRound>>(SubjectAlreadyInSessionError);
 
         var nextOrder = _rounds.Count > 0 ? _rounds.Max(r => r.Order) + 1 : 0;
         List<PokerRound> added = [];
-        foreach (var subject in toAdd)
+        foreach (var record in toAdd)
         {
-            var round = new PokerRound(Id, label: null, description: null, nextOrder++, subject);
+            var round = new PokerRound(Id, record, nextOrder++);
             _rounds.Add(round);
             added.Add(round);
         }

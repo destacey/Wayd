@@ -6,49 +6,36 @@ namespace Wayd.Planning.Domain.Tests.Sut.Models.PlanningPoker;
 public sealed class PokerRoundSubjectTests
 {
     [Fact]
-    public void Constructor_ShouldTrimAndTreatABlankDescriptionAsNone()
+    public void Constructor_ShouldTrimTheKey()
     {
+        // Arrange
+        var id = Guid.NewGuid();
+
         // Act
-        var subject = new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), " 42 ", " Export invoices ", "  ");
+        var subject = new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, id, " 42 ");
 
         // Assert
+        subject.Kind.Should().Be(PokerRoundSubjectKind.IntakeRequest);
+        subject.Id.Should().Be(id);
         subject.DisplayKey.Should().Be("42");
-        subject.Title.Should().Be("Export invoices");
-        subject.Description.Should().BeNull();
     }
 
     [Fact]
-    public void Constructor_LongDescription_ShouldKeepItsStart()
-    {
-        // Arrange
-        var description = new string('a', PokerRoundSubject.DescriptionMaxLength) + "tail";
-
-        // Act
-        var subject = new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), "42", "Export invoices", description);
-
-        // Assert
-        subject.Description.Should().HaveLength(PokerRoundSubject.DescriptionMaxLength);
-        subject.Description.Should().NotContain("tail");
-    }
-
-    [Theory]
-    [InlineData(" ", "Export invoices")]
-    [InlineData("42", " ")]
-    public void Constructor_BlankKeyOrTitle_ShouldThrow(string displayKey, string title)
+    public void Constructor_BlankKey_ShouldThrow()
     {
         // Act
-        var act = () => new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), displayKey, title, null);
+        var act = () => new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), " ");
 
         // Assert
         act.Should().Throw<ArgumentException>();
     }
 
     [Fact]
-    public void Constructor_TitleTooLong_ShouldThrow()
+    public void Constructor_KeyTooLong_ShouldThrow()
     {
         // Act
-        var act = () => new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), "42",
-            new string('a', PokerRoundSubject.TitleMaxLength + 1), null);
+        var act = () => new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(),
+            new string('4', PokerRoundSubject.DisplayKeyMaxLength + 1));
 
         // Assert
         act.Should().Throw<ArgumentException>();
@@ -58,7 +45,7 @@ public sealed class PokerRoundSubjectTests
     public void Constructor_EmptyId_ShouldThrow()
     {
         // Act
-        var act = () => new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.Empty, "42", "Export invoices", null);
+        var act = () => new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.Empty, "42");
 
         // Assert
         act.Should().Throw<ArgumentException>();

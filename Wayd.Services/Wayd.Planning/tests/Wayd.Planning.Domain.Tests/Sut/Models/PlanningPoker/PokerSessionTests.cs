@@ -1456,8 +1456,8 @@ public class PokerSessionTests
     private static PokerSession CreateHostedSession() =>
         PokerSession.CreateHosted("Desk Refinement", Scale.CurrentVersion, DeskHost, PokerSessionActors.FacilitatorEmployeeId, Now).Value;
 
-    private static PokerRoundSubject ARequest(string key = "42", string title = "Export invoices") =>
-        new(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), key, title, "Finance needs a monthly export.");
+    private static PokerRoundRecord ARequest(string key = "42", string title = "Export invoices") =>
+        new(new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), key), title, "Finance needs a monthly export.");
 
     [Fact]
     public void CreateHosted_ShouldBePrivateAndHeldByItsHost()
@@ -1543,11 +1543,12 @@ public class PokerSessionTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value.Select(r => r.Subject).Should().Equal(first, second);
+        result.Value.Select(r => r.Subject).Should().Equal(first.Subject, second.Subject);
+        result.Value.Select(r => r.Label).Should().Equal("First", "Second");
         result.Value.Select(r => r.Order).Should().Equal(1, 2);
         result.Value.Should().AllSatisfy(r =>
         {
-            r.Label.Should().BeNull();
+            r.Description.Should().Be("Finance needs a monthly export.");
             r.Status.Should().Be(PokerRoundStatus.Voting);
         });
         hosted.Rounds.Should().HaveCount(3);
@@ -1629,6 +1630,68 @@ public class PokerSessionTests
         // Assert
         result.IsSuccess.Should().BeTrue();
         hosted.Rounds.Should().ContainSingle().Which.Subject.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void AddSubjectRounds_LongDescription_ShouldKeepItsStart()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+        var record = ARequest() with { Description = new string('a', PokerRound.DescriptionMaxLength) + "tail" };
+
+        // Act
+        var round = hosted.AddSubjectRounds([record], PokerSessionActors.HostManager).Value.Single();
+
+        // Assert
+        round.Description.Should().HaveLength(PokerRound.DescriptionMaxLength);
+        round.Description.Should().NotContain("tail");
+    }
+
+    [Fact]
+    public void AddSubjectRounds_ShouldTrimTheTitleAndTreatABlankDescriptionAsNone()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+        var record = ARequest() with { Title = " Export invoices ", Description = "  " };
+
+        // Act
+        var round = hosted.AddSubjectRounds([record], PokerSessionActors.HostManager).Value.Single();
+
+        // Assert
+        round.Label.Should().Be("Export invoices");
+        round.Description.Should().BeNull();
+    }
+
+    [Fact]
+    public void UpdateRoundLabel_OnARoundAboutARecord_ShouldFailAndKeepTheTitle()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+        var round = hosted.AddSubjectRounds([ARequest()], PokerSessionActors.HostManager).Value.Single();
+
+        // Act
+        var result = hosted.UpdateRoundLabel(round.Id, "Something else", PokerSessionActors.HostManager);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PokerRound.TextComesFromRecordError);
+        round.Label.Should().Be("Export invoices");
+    }
+
+    [Fact]
+    public void UpdateRoundDescription_OnARoundAboutARecord_ShouldFailAndKeepTheDescription()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+        var round = hosted.AddSubjectRounds([ARequest()], PokerSessionActors.HostManager).Value.Single();
+
+        // Act
+        var result = hosted.UpdateRoundDescription(round.Id, "Our own notes", PokerSessionActors.HostManager);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PokerRound.TextComesFromRecordError);
+        round.Description.Should().Be("Finance needs a monthly export.");
     }
 
     #endregion

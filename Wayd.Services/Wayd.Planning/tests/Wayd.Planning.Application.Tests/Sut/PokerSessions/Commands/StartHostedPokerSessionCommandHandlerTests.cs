@@ -64,7 +64,7 @@ public sealed class StartHostedPokerSessionCommandHandlerTests : IDisposable
         session.Visibility.Should().Be(Visibility.Private);
         session.EstimationScaleVersionId.Should().Be(_scale.CurrentVersion.Id);
         session.Facilitators.Should().ContainSingle().Which.EmployeeId.Should().Be(_caller.Id);
-        session.Rounds.OrderBy(r => r.Order).Select(r => r.Subject!.Title).Should().Equal("Export invoices", "Single sign-on");
+        session.Rounds.OrderBy(r => r.Order).Select(r => r.Label).Should().Equal("Export invoices", "Single sign-on");
         _dbContext.SaveChangesCallCount.Should().Be(1);
     }
 

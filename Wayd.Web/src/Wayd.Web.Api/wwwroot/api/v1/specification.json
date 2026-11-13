@@ -30964,7 +30964,7 @@
           "PokerSessions"
         ],
         "summary": "Get poker session details using the Id or key.",
-        "description": "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator, someone who manages its host, or a poker administrator), `host` (the area the session belongs to, its `kind` and `id`, or null for a standalone session), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `subject` (the record it estimates, its `kind`, `id`, `displayKey`, and the `title` and `description` it had when the round was added, or null), `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
+        "description": "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator, someone who manages its host, or a poker administrator), `host` (the area the session belongs to, its `kind` and `id`, or null for a standalone session), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `description`, `subject` (the record it estimates, its `kind`, `id` and `displayKey`, or null; for such a round `label` and `description` are the record's title and description as they read when the round was added), `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
         "operationId": "PokerSessions_GetSession",
         "parameters": [
           {
@@ -31210,7 +31210,7 @@
           "PokerSessions"
         ],
         "summary": "Add a round to a poker session.",
-        "description": "A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.",
+        "description": "A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 4000 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.",
         "operationId": "PokerSessions_AddRound",
         "parameters": [
           {
@@ -31650,72 +31650,13 @@
         ]
       }
     },
-    "/api/planning/poker-sessions/rounds": {
-      "get": {
-        "tags": [
-          "PokerSessions"
-        ],
-        "summary": "Get the poker rounds that estimated a record.",
-        "description": "Lists the rounds about one record, such as an intake request (`subjectKind` IntakeRequest, `subjectId` its UUID), in the sessions the caller can see, newest session first. Each has its `session` (`id`, `key`, `name`), `roundId`, `status`, `consensusEstimate` and `publication` (null until published; `outcome` Published or Refused, `at`, `by`, `refusalReason`). A round in a session the caller cannot see is absent.",
-        "operationId": "PokerSessions_GetRoundsForSubject",
-        "parameters": [
-          {
-            "name": "subjectKind",
-            "in": "query",
-            "schema": {
-              "$ref": "#/components/schemas/PokerRoundSubjectKind"
-            },
-            "x-position": 1
-          },
-          {
-            "name": "subjectId",
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "x-position": 2
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PokerSubjectRoundDto"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": [ ]
-          }
-        ]
-      }
-    },
     "/api/planning/poker-sessions/{id}/rounds/{roundId}/label": {
       "put": {
         "tags": [
           "PokerSessions"
         ],
         "summary": "Update the label for a round.",
-        "description": "Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
+        "description": "Replaces the round's `label`; an omitted or null label clears it. A round about a record (one with a `subject`) takes its label and description from the record, so this is refused for it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_UpdateRoundLabel",
         "parameters": [
           {
@@ -31779,7 +31720,7 @@
           "PokerSessions"
         ],
         "summary": "Update the description for a round.",
-        "description": "Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
+        "description": "Replaces the round's `description` (at most 4000 characters); an omitted, null or blank description clears it. The label is unchanged. A round about a record (one with a `subject`) takes its label and description from the record, so this is refused for it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.",
         "operationId": "PokerSessions_UpdateRoundDescription",
         "parameters": [
           {
@@ -46285,7 +46226,7 @@
           "IntakeDesks"
         ],
         "summary": "Start a planning poker session on a desk to estimate its requests.",
-        "description": "Needs an agent on the desk who also holds the poker View permission, and a desk with an estimation scale. The session is hosted by the desk: Private, absent from the main poker list (list a desk's with PokerSessions_GetSessions, `hostKind` IntakeDesk and `hostId` the desk), facilitated by every agent and Desk Admin on the desk, and voting on the scale version the desk pins. Each of `requestIds`, open requests on the desk, gets a round showing its key, title and description to everyone in the session, whatever the desk's visibility. `invitedEmployeeIds` invites voters who are not on the desk; they need the poker View permission. Nothing is written to a request until a facilitator publishes its round with PokerSessions_PublishRound. Returns the new session's `id` and `key`. Needs the planning-poker feature flag.",
+        "description": "Needs an agent on the desk who also holds the poker View permission, and a desk with an estimation scale. The session is hosted by the desk: Private, absent from the main poker list (list a desk's with PokerSessions_GetSessions, `hostKind` IntakeDesk and `hostId` the desk), facilitated by every agent and Desk Admin on the desk, and voting on the scale version the desk pins. Each of `requestIds`, open requests on the desk, gets a round labelled with its title and described by its description, as they read now, which everyone in the session sees whatever the desk's visibility. `invitedEmployeeIds` invites voters who are not on the desk; they need the poker View permission. Nothing is written to a request until a facilitator publishes its round with PokerSessions_PublishRound. Returns the new session's `id` and `key`. Needs the planning-poker feature flag.",
         "operationId": "IntakeDesks_StartPokerSession",
         "parameters": [
           {
@@ -46366,7 +46307,7 @@
           "IntakeDesks"
         ],
         "summary": "Add rounds about more of a desk's requests to a poker session it hosts.",
-        "description": "Needs an agent on the desk, who facilitates its sessions. `requestIds` are open requests on the desk; each gets a round after the session's others, showing its key, title and description to everyone in the session. Refused as a whole when any is not an open request on the desk or already has a round in the session, when the session is not hosted by this desk, or when it is completed. Both ids are UUIDs. Needs the planning-poker feature flag.",
+        "description": "Needs an agent on the desk, who facilitates its sessions. `requestIds` are open requests on the desk; each gets a round after the session's others, labelled with its title and described by its description, which everyone in the session sees. Refused as a whole when any is not an open request on the desk or already has a round in the session, when the session is not hosted by this desk, or when it is completed. Both ids are UUIDs. Needs the planning-poker feature flag.",
         "operationId": "IntakeDesks_AddRequestsToPokerSession",
         "parameters": [
           {
@@ -56565,9 +56506,9 @@
             "nullable": true
           },
           "description": {
-            "maxLength": 2048,
+            "maxLength": 4000,
             "type": "string",
-            "description": "Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters.",
+            "description": "Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 4000 characters.",
             "nullable": true
           }
         },
@@ -74554,6 +74495,7 @@
           },
           "label": {
             "type": "string",
+            "description": "What is being estimated, in a line. For a round about a record, the record's title as it read when the\nround was added.",
             "nullable": true
           },
           "subject": {
@@ -74562,12 +74504,12 @@
                 "$ref": "#/components/schemas/PokerRoundSubjectDto"
               }
             ],
-            "description": "The record the round estimates, as it read when the round was added, or null for a round about whatever\nits label describes.",
+            "description": "The record the round estimates, or null for a round about whatever its label describes. A round about a\nrecord takes its label and description from the record, and neither can be edited.",
             "nullable": true
           },
           "description": {
             "type": "string",
-            "description": "Optional detail about what is being estimated, such as acceptance criteria or notes for the team.",
+            "description": "Optional detail about what is being estimated, such as acceptance criteria or notes for the team. For a\nround about a record, the record's description as it read when the round was added.",
             "nullable": true
           },
           "status": {
@@ -74657,7 +74599,6 @@
       "PokerRoundSubjectDto": {
         "required": [
           "displayKey",
-          "title",
           "kind",
           "id"
         ],
@@ -74679,19 +74620,10 @@
           "displayKey": {
             "type": "string",
             "description": "The key people know the record by."
-          },
-          "title": {
-            "type": "string",
-            "description": "The record's title when the round was added."
-          },
-          "description": {
-            "type": "string",
-            "description": "The record's description when the round was added, or null when it had none.",
-            "nullable": true
           }
         },
         "additionalProperties": false,
-        "description": "The record a poker round estimates, as it read when the round was added."
+        "description": "The record a poker round estimates. Its title and description, as they read when the round was added, are the\nround's own label and description."
       },
       "PokerRoundSubjectKind": {
         "enum": [
@@ -74955,49 +74887,6 @@
           "Completed"
         ],
         "type": "string"
-      },
-      "PokerSubjectRoundDto": {
-        "required": [
-          "session",
-          "status",
-          "roundId"
-        ],
-        "type": "object",
-        "properties": {
-          "session": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/NavigationDto"
-              }
-            ],
-            "description": "The session the round belongs to."
-          },
-          "roundId": {
-            "type": "string",
-            "description": "The round.",
-            "format": "uuid"
-          },
-          "status": {
-            "type": "string",
-            "description": "The round's status: Voting, Revealed or Accepted."
-          },
-          "consensusEstimate": {
-            "type": "string",
-            "description": "The consensus the team settled on, a card such as `?` included, or null until one is accepted.",
-            "nullable": true
-          },
-          "publication": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/PokerRoundPublicationDto"
-              }
-            ],
-            "description": "What came of last publishing the consensus to the record, or null when it has not been published since\nthe round was last accepted.",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false,
-        "description": "A poker round that estimated a record, with the session it belongs to, as the record's own page lists it."
       },
       "PokerVoteDto": {
         "required": [
@@ -88896,9 +88785,9 @@
         "type": "object",
         "properties": {
           "description": {
-            "maxLength": 2048,
+            "maxLength": 4000,
             "type": "string",
-            "description": "Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. Null or blank clears it.",
+            "description": "Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 4000 characters. Null or blank clears it.",
             "nullable": true
           }
         },

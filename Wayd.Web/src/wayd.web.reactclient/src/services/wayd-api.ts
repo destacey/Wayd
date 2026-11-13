@@ -36704,75 +36704,6 @@ export class PokerSessionsClient {
     }
 
     /**
-     * Get the poker rounds that estimated a record.
-     * @param subjectKind (optional) 
-     * @param subjectId (optional) 
-     * @return OK
-     */
-    getRoundsForSubject(subjectKind?: PokerRoundSubjectKind | undefined, subjectId?: string | undefined, cancelToken?: CancelToken): Promise<PokerSubjectRoundDto[]> {
-        let url_ = this.baseUrl + "/api/planning/poker-sessions/rounds?";
-        if (subjectKind === null)
-            throw new globalThis.Error("The parameter 'subjectKind' cannot be null.");
-        else if (subjectKind !== undefined)
-            url_ += "subjectKind=" + encodeURIComponent("" + subjectKind) + "&";
-        if (subjectId === null)
-            throw new globalThis.Error("The parameter 'subjectId' cannot be null.");
-        else if (subjectId !== undefined)
-            url_ += "subjectId=" + encodeURIComponent("" + subjectId) + "&";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetRoundsForSubject(_response);
-        });
-    }
-
-    protected processGetRoundsForSubject(response: AxiosResponse): Promise<PokerSubjectRoundDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<PokerSubjectRoundDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<PokerSubjectRoundDto[]>(null as any);
-    }
-
-    /**
      * Update the label for a round.
      * @return No Content
      */
@@ -64571,7 +64502,7 @@ export interface AddPersonaRequest {
 
 export interface AddPokerRoundRequest {
     label?: string | undefined;
-    /** Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. */
+    /** Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 4000 characters. */
     description?: string | undefined;
 }
 
@@ -70597,11 +70528,14 @@ Free text, never parsed: nothing sorts or compares it, so any convention works. 
 
 export interface PokerRoundDto {
     id: string;
+    /** What is being estimated, in a line. For a round about a record, the record's title as it read when the
+round was added. */
     label?: string | undefined;
-    /** The record the round estimates, as it read when the round was added, or null for a round about whatever
-its label describes. */
+    /** The record the round estimates, or null for a round about whatever its label describes. A round about a
+record takes its label and description from the record, and neither can be edited. */
     subject?: PokerRoundSubjectDto | undefined;
-    /** Optional detail about what is being estimated, such as acceptance criteria or notes for the team. */
+    /** Optional detail about what is being estimated, such as acceptance criteria or notes for the team. For a
+round about a record, the record's description as it read when the round was added. */
     description?: string | undefined;
     status: string;
     consensusEstimate?: string | undefined;
@@ -70634,7 +70568,7 @@ export enum PokerRoundPublicationOutcome {
     Refused = "Refused",
 }
 
-/** The record a poker round estimates, as it read when the round was added. */
+/** The record a poker round estimates. Its title and description, as they read when the round was added, are the round's own label and description. */
 export interface PokerRoundSubjectDto {
     /** The kind of record the round estimates. */
     kind: PokerRoundSubjectKind;
@@ -70642,10 +70576,6 @@ export interface PokerRoundSubjectDto {
     id: string;
     /** The key people know the record by. */
     displayKey: string;
-    /** The record's title when the round was added. */
-    title: string;
-    /** The record's description when the round was added, or null when it had none. */
-    description?: string | undefined;
 }
 
 export enum PokerRoundSubjectKind {
@@ -70730,21 +70660,6 @@ voting is left out of them but still takes part. */
 export enum PokerSessionStatus {
     Active = "Active",
     Completed = "Completed",
-}
-
-/** A poker round that estimated a record, with the session it belongs to, as the record's own page lists it. */
-export interface PokerSubjectRoundDto {
-    /** The session the round belongs to. */
-    session: NavigationDto;
-    /** The round. */
-    roundId: string;
-    /** The round's status: Voting, Revealed or Accepted. */
-    status: string;
-    /** The consensus the team settled on, a card such as `?` included, or null until one is accepted. */
-    consensusEstimate?: string | undefined;
-    /** What came of last publishing the consensus to the record, or null when it has not been published since
-the round was last accepted. */
-    publication?: PokerRoundPublicationDto | undefined;
 }
 
 export interface PokerVoteDto {
@@ -75195,7 +75110,7 @@ export interface UpdatePlanningIntervalRequest {
 
 /** The new description for a poker round. */
 export interface UpdatePokerRoundDescriptionRequest {
-    /** Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. Null or blank clears it. */
+    /** Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 4000 characters. Null or blank clears it. */
     description?: string | undefined;
 }
 

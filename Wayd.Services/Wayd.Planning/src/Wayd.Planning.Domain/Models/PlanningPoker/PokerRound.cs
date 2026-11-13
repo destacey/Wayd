@@ -8,20 +8,42 @@ namespace Wayd.Planning.Domain.Models.PlanningPoker;
 public sealed class PokerRound : BaseEntity
 {
     /// <summary>
-    /// The longest description a round can hold.
+    /// The longest label a round can hold.
     /// </summary>
-    public const int DescriptionMaxLength = 2048;
+    public const int LabelMaxLength = 512;
+
+    /// <summary>
+    /// The longest description a round can hold. A record's description longer than this keeps its start, since a
+    /// round shows it for voters to read before they estimate, not as the record.
+    /// </summary>
+    public const int DescriptionMaxLength = 4000;
 
     private readonly List<PokerVote> _votes = [];
 
     private PokerRound() { }
 
-    internal PokerRound(Guid pokerSessionId, string? label, string? description, int order, PokerRoundSubject? subject = null)
+    internal PokerRound(Guid pokerSessionId, string? label, string? description, int order)
     {
         PokerSessionId = pokerSessionId;
-        Subject = subject;
         Label = label?.Trim();
         Description = NormalizeDescription(description);
+        Order = order;
+        Status = PokerRoundStatus.Voting;
+    }
+
+    /// <summary>
+    /// A round about a record, labelled with its title and described by its description as they read now.
+    /// </summary>
+    /// <exception cref="ArgumentException">The record's title is blank or longer than a label.</exception>
+    internal PokerRound(Guid pokerSessionId, PokerRoundRecord record, int order)
+    {
+        Guard.Against.Null(record, nameof(record));
+
+        PokerSessionId = pokerSessionId;
+        Subject = Guard.Against.Null(record.Subject, nameof(record.Subject));
+        Label = Guard.Against.StringTooLong(Guard.Against.NullOrWhiteSpace(record.Title, nameof(record.Title)).Trim(),
+            LabelMaxLength, nameof(record.Title));
+        Description = Shorten(NormalizeDescription(record.Description));
         Order = order;
         Status = PokerRoundStatus.Voting;
     }
@@ -29,19 +51,22 @@ public sealed class PokerRound : BaseEntity
     public Guid PokerSessionId { get; private set; }
 
     /// <summary>
-    /// Free-text label describing what is being estimated (e.g., a work item key + title, or any descriptive text).
+    /// What is being estimated, in a line: free text a facilitator writes, or the title of the round's
+    /// <see cref="Subject"/> as it read when the round was added.
     /// </summary>
     public string? Label { get; private set; }
 
     /// <summary>
-    /// Optional free-text detail about what is being estimated, such as acceptance criteria or notes the team
-    /// should read before voting. Blank text is stored as no description.
+    /// Optional detail about what is being estimated, such as acceptance criteria or notes the team should read
+    /// before voting, or the description of the round's <see cref="Subject"/> as it read when the round was added.
+    /// Blank text is stored as no description.
     /// </summary>
     public string? Description { get; private set; }
 
     /// <summary>
     /// The record the round estimates, or null for a round about whatever its <see cref="Label"/> describes. Set
-    /// when the round is added and never changed.
+    /// when the round is added and never changed. A round about a record takes its label and description from the
+    /// record, and neither can be edited.
     /// </summary>
     public PokerRoundSubject? Subject { get; private set; }
 
@@ -140,6 +165,9 @@ public sealed class PokerRound : BaseEntity
     /// </summary>
     internal Result UpdateLabel(string? newLabel)
     {
+        if (Subject is not null)
+            return Result.Failure(TextComesFromRecordError);
+
         Label = newLabel?.Trim();
         return Result.Success();
     }
@@ -149,12 +177,26 @@ public sealed class PokerRound : BaseEntity
     /// </summary>
     internal Result UpdateDescription(string? newDescription)
     {
+        if (Subject is not null)
+            return Result.Failure(TextComesFromRecordError);
+
         Description = NormalizeDescription(newDescription);
         return Result.Success();
     }
 
+    /// <summary>
+    /// The failure for editing the label or description of a round about a record.
+    /// </summary>
+    public const string TextComesFromRecordError =
+        "A round about a record takes its label and description from the record, so they cannot be edited.";
+
     private static string? NormalizeDescription(string? description) =>
         string.IsNullOrWhiteSpace(description) ? null : description.Trim();
+
+    private static string? Shorten(string? description) =>
+        description is null || description.Length <= DescriptionMaxLength
+            ? description
+            : description[..DescriptionMaxLength].TrimEnd();
 
     /// <summary>
     /// Remove a participant's vote from this round.

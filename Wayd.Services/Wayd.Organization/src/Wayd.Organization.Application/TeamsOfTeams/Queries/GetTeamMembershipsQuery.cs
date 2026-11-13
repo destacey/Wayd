@@ -57,7 +57,7 @@ public sealed class GetTeamMembershipsQueryHandler : IQueryHandler<GetTeamMember
             var requestName = request.GetType().Name;
             var exception = new InternalServerException("No team id or local id provided.");
 
-            _logger.LogError(exception, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);
+            _logger.LogError(exception, "Wayd Request: Exception for Request {Name}", requestName);
             throw exception;
         }
 

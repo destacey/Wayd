@@ -46,8 +46,8 @@ public sealed class RemovePokerRoundCommandHandler(IPlanningDbContext planningDb
         catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);
-            return Result.Failure($"Wayd Request: Exception for Request {requestName} {request}");
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
+            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
         }
     }
 }

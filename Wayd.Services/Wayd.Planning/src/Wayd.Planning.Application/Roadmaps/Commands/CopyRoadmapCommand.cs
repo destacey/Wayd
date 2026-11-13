@@ -83,8 +83,8 @@ public sealed class CopyRoadmapCommandHandler(
 
             if (copyResult.IsFailure)
             {
-                _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}",
-                    request.GetType().Name, request, copyResult.Error);
+                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}",
+                    request.GetType().Name, copyResult.Error);
                 return Result.Failure<ObjectIdAndKey>(copyResult.Error);
             }
 
@@ -97,9 +97,9 @@ public sealed class CopyRoadmapCommandHandler(
         {
             var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
 
-            return Result.Failure<ObjectIdAndKey>($"Wayd Request: Exception for Request {requestName} {request}");
+            return Result.Failure<ObjectIdAndKey>($"Wayd Request: Exception for Request {requestName}");
         }
     }
 }

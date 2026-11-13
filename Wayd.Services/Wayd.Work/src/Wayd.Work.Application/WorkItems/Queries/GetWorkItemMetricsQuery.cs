@@ -49,7 +49,7 @@ public sealed class GetWorkItemMetricsQueryHandler(IWorkDbContext workDbContext,
         }
         else
         {
-            _logger.LogError("{AppRequestName}: No workspace id or key provided. {@Request}", AppRequestName, request);
+            _logger.LogError("{AppRequestName}: No workspace id or key provided.", AppRequestName);
             return Result.Failure<IReadOnlyCollection<WorkItemProgressDailyRollupDto>>("No valid workspace id or key provided.");
         }
 
@@ -58,7 +58,7 @@ public sealed class GetWorkItemMetricsQueryHandler(IWorkDbContext workDbContext,
             .FirstOrDefaultAsync(cancellationToken);
         if (workItem is null)
         {
-            _logger.LogError("{AppRequestName}: Work item not found. {@Request}", AppRequestName, request);
+            _logger.LogError("{AppRequestName}: Work item not found.", AppRequestName);
             return Result.Failure<IReadOnlyCollection<WorkItemProgressDailyRollupDto>>("Work item not found.");
         }
 

@@ -51,7 +51,7 @@ public sealed class GetWorkdayOrgsByTypeCommandHandler(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", nameof(GetWorkdayOrgsByTypeCommandHandler), request);
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", nameof(GetWorkdayOrgsByTypeCommandHandler));
             return Result.Failure<IReadOnlyList<DiscoveredOrg>>($"Failed to load orgs: {ex.Message}");
         }
     }

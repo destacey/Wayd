@@ -40,8 +40,8 @@ public sealed class DeactivateConnectionCommandHandler(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, request);
-            return Result.Failure($"Wayd Request: Exception for Request {AppRequestName} {request}");
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
+            return Result.Failure($"Wayd Request: Exception for Request {AppRequestName}");
         }
     }
 }

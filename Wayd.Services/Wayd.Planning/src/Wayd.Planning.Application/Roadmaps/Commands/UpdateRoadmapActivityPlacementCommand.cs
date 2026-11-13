@@ -103,7 +103,7 @@ public sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbCont
 
             if (placementResult.IsFailure)
             {
-                _logger.LogError("Unable to update roadmap activity placement {RoadmapActivityId} for request {@Request}.  Error message: {Error}", request.ItemId, request, placementResult.Error);
+                _logger.LogError("Unable to update roadmap activity placement {RoadmapActivityId}.  Error message: {Error}", request.ItemId, placementResult.Error);
                 return Result.Failure(placementResult.Error);
             }
 
@@ -113,7 +113,7 @@ public sealed class UpdateRoadmapActivityPlacementCommandHandler(IPlanningDbCont
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command for request {@Request}.", AppRequestName, request);
+            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
             return Result.Failure($"Error handling {AppRequestName} command.");
         }
     }

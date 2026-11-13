@@ -41,7 +41,7 @@ public sealed class GetWorkProcessQueryHandler(IWorkDbContext workDbContext, ILo
         }
         else
         {
-            _logger.LogError("{AppRequestName}: No work process id or key provided. {@Request}", AppRequestName, request);
+            _logger.LogError("{AppRequestName}: No work process id or key provided.", AppRequestName);
             return Result.Failure<WorkProcessDto?>("No valid work process id or key provided.");
         }
 

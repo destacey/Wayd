@@ -28,7 +28,7 @@ public sealed class GetWorkspaceWorkTypesQueryHandler(IWorkDbContext workDbConte
         //}
         //else
         //{
-        //    _logger.LogError("{AppRequestName}: No workspace id or key provided. {@Request}", AppRequestName, request);
+        //    _logger.LogError("{AppRequestName}: No workspace id or key provided.", AppRequestName);
         //    return Result.Failure<IReadOnlyList<WorkTypeDto>>("No valid workspace id or key provided.");
         //}
 

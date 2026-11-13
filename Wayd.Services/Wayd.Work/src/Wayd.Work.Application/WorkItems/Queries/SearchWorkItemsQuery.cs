@@ -21,7 +21,7 @@ public sealed class SearchWorkItemsQueryHandler(IWorkDbContext workDbContext, IL
     {
         if (string.IsNullOrWhiteSpace(request.SearchTerm))
         {
-            _logger.LogWarning("{AppRequestName}: No search term provided. {@Request}", AppRequestName, request);
+            _logger.LogWarning("{AppRequestName}: No search term provided.", AppRequestName);
             return Result.Failure<IReadOnlyCollection<WorkItemListDto>>("No search term provided.");
         }
 

@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Wayd.AppIntegration.Application.Logging;
 using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -102,7 +101,7 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
             {
                 await _appIntegrationDbContext.Entry(connection).ReloadAsync(cancellationToken);
                 connection.ClearDomainEvents();
-                _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", AppRequestName, request.Redact(), updateResult.Error);
+                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
                 return Result.Failure<Guid>(updateResult.Error);
             }
 
@@ -116,9 +115,8 @@ public sealed class UpdateWorkdayConnectionCommandHandler(
         }
         catch (Exception ex)
         {
-            var redactedRequest = request.Redact();
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, redactedRequest);
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName} {redactedRequest}");
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
+            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName}");
         }
     }
 

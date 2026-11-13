@@ -1,5 +1,4 @@
 using FluentValidation;
-using Wayd.AppIntegration.Application.Logging;
 using Wayd.AppIntegration.Domain.Models.Teams;
 using NodaTime;
 
@@ -66,9 +65,8 @@ public sealed class CreateTeamsConnectionCommandHandler(
         }
         catch (Exception ex)
         {
-            var redactedRequest = request.Redact();
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, redactedRequest);
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName} {redactedRequest}");
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
+            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName}");
         }
     }
 }

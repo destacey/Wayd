@@ -60,7 +60,7 @@ public sealed class UpdateLinkCommandHandler : ICommandHandler<UpdateLinkCommand
                 link.ClearDomainEvents();
 
                 var requestName = request.GetType().Name;
-                _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", requestName, request, updateResult.Error);
+                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, updateResult.Error);
                 return Result.Failure<LinkDto>(updateResult.Error);
             }
 
@@ -72,9 +72,9 @@ public sealed class UpdateLinkCommandHandler : ICommandHandler<UpdateLinkCommand
         {
             var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
 
-            return Result.Failure<LinkDto>($"Wayd Request: Exception for Request {requestName} {request}");
+            return Result.Failure<LinkDto>($"Wayd Request: Exception for Request {requestName}");
         }
     }
 }

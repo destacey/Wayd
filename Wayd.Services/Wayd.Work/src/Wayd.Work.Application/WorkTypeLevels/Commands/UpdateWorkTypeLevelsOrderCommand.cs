@@ -32,7 +32,7 @@ public sealed class UpdateWorkTypeLevelsOrderCommandHandler : ICommandHandler<Up
             var updateResult = hierarchy.UpdatePortfolioTierLevelsOrder(request.Levels);
             if (updateResult.IsFailure)
             {
-                _logger.LogError("Failure handling {CommandName} command for request {@Request}. Error message: {Error}", AppRequestName, request, updateResult.Error);
+                _logger.LogError("Failure handling {CommandName} command. Error message: {Error}", AppRequestName, updateResult.Error);
                 return Result.Failure(updateResult.Error);
             }
 
@@ -42,7 +42,7 @@ public sealed class UpdateWorkTypeLevelsOrderCommandHandler : ICommandHandler<Up
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command for request {@Request}.", AppRequestName, request);
+            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
             return Result.Failure($"Error handling {AppRequestName} command.");
         }
     }

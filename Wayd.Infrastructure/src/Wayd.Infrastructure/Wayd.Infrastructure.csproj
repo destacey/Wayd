@@ -41,7 +41,6 @@
         <PackageReference Include="Microsoft.Identity.Web" />
         <PackageReference Include="NodaTime" />
         <PackageReference Include="NodaTime.Serialization.SystemTextJson" />
-        <PackageReference Include="OneOf.Serialization.SystemTextJson" />
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
         <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
         <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />

@@ -58,7 +58,7 @@ public sealed class UpdateRoadmapRootActivityOrderCommandHandler(IPlanningDbCont
                 await _planningDbContext.Entry(roadmap).ReloadAsync(cancellationToken);
                 roadmap.ClearDomainEvents();
 
-                _logger.LogError("Failure for Request {CommandName} {@Request}.  Error message: {Error}", AppRequestName, request, updateResult.Error);
+                _logger.LogError("Failure for Request {CommandName}.  Error message: {Error}", AppRequestName, updateResult.Error);
                 return Result.Failure(updateResult.Error);
             }
 
@@ -68,7 +68,7 @@ public sealed class UpdateRoadmapRootActivityOrderCommandHandler(IPlanningDbCont
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command for request {@Request}.", AppRequestName, request);
+            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
             return Result.Failure($"Error handling {AppRequestName} command.");
         }
     }

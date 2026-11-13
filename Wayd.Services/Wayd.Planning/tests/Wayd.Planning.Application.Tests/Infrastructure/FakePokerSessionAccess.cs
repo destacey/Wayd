@@ -20,6 +20,9 @@ public sealed class FakePokerSessionAccess : IPokerSessionAccess
     /// <summary>What <see cref="CanUserAccess"/> answers.</summary>
     public bool UserAccess { get; set; } = true;
 
+    /// <summary>The hosts <see cref="ManagesHost"/> says the caller manages; none unless set.</summary>
+    public HashSet<Guid> ManagedHostIds { get; } = [];
+
     public Task<PokerSessionActor> ResolveActor(PokerSession session, CancellationToken cancellationToken) =>
         Task.FromResult(Actor);
 
@@ -28,4 +31,7 @@ public sealed class FakePokerSessionAccess : IPokerSessionAccess
 
     public Task<bool> CanUserAccess(Guid sessionId, string userId, CancellationToken cancellationToken) =>
         Task.FromResult(UserAccess);
+
+    public Task<bool> ManagesHost(PokerSessionHost? host, Guid employeeId, CancellationToken cancellationToken) =>
+        Task.FromResult(host is not null && ManagedHostIds.Contains(host.Id));
 }

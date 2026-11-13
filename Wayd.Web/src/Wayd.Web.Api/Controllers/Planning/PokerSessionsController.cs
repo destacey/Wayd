@@ -1,6 +1,7 @@
 ﻿using Microsoft.FeatureManagement.Mvc;
 using Wayd.Common.Application.Employees.Dtos;
 using Wayd.Common.Application.Models;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Planning.Application.PokerSessions.Commands;
 using Wayd.Planning.Application.PokerSessions.Dtos;
@@ -25,13 +26,16 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Get a list of poker sessions.")]
     [EndpointDescription(
-        "Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.")]
+        "Lists the standalone sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). A session hosted by another area of Wayd, such as an intake desk, is never among them; pass `hostKind` (IntakeDesk) and `hostId` together to list one host's sessions instead. Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `host` (its `kind` and `id`, or null for a standalone session), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.")]
     [McpTool("PokerSessions_GetSessions", "List poker sessions")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<IEnumerable<PokerSessionListDto>>> GetList(CancellationToken cancellationToken, [FromQuery] PokerSessionStatus? status = null)
+    public async Task<ActionResult<IEnumerable<PokerSessionListDto>>> GetList(CancellationToken cancellationToken,
+        [FromQuery] PokerSessionStatus? status = null,
+        [FromQuery] PokerSessionHostKind? hostKind = null,
+        [FromQuery] Guid? hostId = null)
     {
-        var sessions = await _dispatcher.Send(new GetPokerSessionsQuery(status), cancellationToken);
+        var sessions = await _dispatcher.Send(new GetPokerSessionsQuery(status, hostKind, hostId), cancellationToken);
         return Ok(sessions);
     }
 
@@ -39,7 +43,7 @@ public class PokerSessionsController(IDispatcher dispatcher) : ControllerBase
     [MustHavePermission(ApplicationAction.View, ApplicationResource.PokerSessions)]
     [EndpointSummary("Get poker session details using the Id or key.")]
     [EndpointDescription(
-        "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.")]
+        "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator, someone who manages its host, or a poker administrator), `host` (the area the session belongs to, its `kind` and `id`, or null for a standalone session), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `subject` (the record it estimates, its `kind`, `id`, `displayKey`, and the `title` and `description` it had when the round was added, or null), `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.")]
     [McpTool("PokerSessions_GetSession", "Get poker session")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

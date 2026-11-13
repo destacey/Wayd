@@ -1,9 +1,11 @@
 using Mapster;
 using Mapster.Utils;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using NodaTime;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Planning.Application.PokerSessions;
@@ -183,5 +185,89 @@ public sealed class PokerSessionPersistenceTests(SqlServerDbContextFixture fixtu
         var invited = details!.InvitedTeams.Should().ContainSingle().Subject;
         invited.Id.Should().Be(team.Id);
         invited.Name.Should().Be(team.Name);
+    }
+
+    private async Task<PokerSession> SaveHostedSession(Guid deskId, Guid facilitatorId, PokerRoundSubject subject, CancellationToken ct)
+    {
+        var scale = EstimationScale.Create($"Scale {Guid.NewGuid():N}"[..20], null,
+            [new("S", true), new("M", true), new("?", false)], EventActor.System, Now).Value;
+        var host = new PokerSessionHost(PokerSessionHostKind.IntakeDesk, deskId);
+        var session = PokerSession.CreateHosted($"Session {Guid.NewGuid():N}", scale.CurrentVersion, host, facilitatorId, Now).Value;
+        var actor = new PokerSessionActor(facilitatorId, "facilitator-user", false, new HashSet<Guid>(), ManagesHost: true);
+        session.AddSubjectRounds([subject], actor).IsSuccess.Should().BeTrue();
+
+        await using var context = _fixture.CreateContext();
+        context.EstimationScales.Add(scale);
+        context.PokerSessions.Add(session);
+        await context.SaveChangesAsync(ct);
+        return session;
+    }
+
+    [Fact]
+    public async Task HostedSession_SavesItsHostAndRoundSubjects_AndListsOnlyUnderItsHost()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        _ = PlanningMappings.Value;
+        var creator = await PlanningTestData.SeedEmployee(_fixture, ct);
+        var deskAgent = await PlanningTestData.SeedEmployee(_fixture, ct);
+        var outsider = await PlanningTestData.SeedEmployee(_fixture, ct);
+        var deskId = Guid.NewGuid();
+        var subject = new PokerRoundSubject(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), "42", "Export invoices", "Finance needs a monthly export.");
+        var hosted = await SaveHostedSession(deskId, creator.Id, subject, ct);
+        var agentReader = new PokerSessionReader(deskAgent.Id, false, [], false, [deskId]);
+
+        async Task<IReadOnlyCollection<Guid>> Listed(PokerSessionReader reader, GetPokerSessionsQuery query)
+        {
+            await using var read = _fixture.CreateContext();
+            var sessions = await new GetPokerSessionsQueryHandler(read, ReaderOf(reader).Object).Handle(query, ct);
+            return [.. sessions.Select(s => s.Id)];
+        }
+
+        var underTheDesk = new GetPokerSessionsQuery(HostKind: PokerSessionHostKind.IntakeDesk, HostId: deskId);
+
+        // Act
+        await using var read = _fixture.CreateContext();
+        var details = await new GetPokerSessionQueryHandler(read, ReaderOf(agentReader).Object, Mock.Of<ICurrentUser>())
+            .Handle(new GetPokerSessionQuery(hosted.Key.ToString()), ct);
+        var standaloneForAdministrator = await Listed(new(outsider.Id, true, [], false), new GetPokerSessionsQuery());
+        var underTheDeskForAgent = await Listed(agentReader, underTheDesk);
+        var underTheDeskForOutsider = await Listed(new(outsider.Id, false, [], false), underTheDesk);
+
+        // Assert
+        details.Should().NotBeNull();
+        details!.Host.Should().BeEquivalentTo(new PokerSessionHostDto { Kind = PokerSessionHostKind.IntakeDesk, Id = deskId });
+        details.CanManage.Should().BeTrue();
+        var round = details.Rounds.Should().ContainSingle().Subject;
+        round.Subject.Should().BeEquivalentTo(new PokerRoundSubjectDto
+        {
+            Kind = PokerRoundSubjectKind.IntakeRequest,
+            Id = subject.Id,
+            DisplayKey = "42",
+            Title = "Export invoices",
+            Description = "Finance needs a monthly export.",
+        });
+        standaloneForAdministrator.Should().NotContain(hosted.Id);
+        underTheDeskForAgent.Should().Equal(hosted.Id);
+        underTheDeskForOutsider.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task StandaloneSession_ReadsBackWithNoHostAndNoRoundSubject()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        _ = PlanningMappings.Value;
+        var facilitator = await PlanningTestData.SeedEmployee(_fixture, ct);
+        var session = await SaveSession(Visibility.Public, facilitator.Id, (s, actor) =>
+            s.AddRound("Story", null, actor).IsSuccess.Should().BeTrue(), ct);
+
+        // Act
+        await using var read = _fixture.CreateContext();
+        var stored = await read.PokerSessions.Include(s => s.Rounds).SingleAsync(s => s.Id == session.Id, ct);
+
+        // Assert
+        stored.Host.Should().BeNull();
+        stored.Rounds.Should().ContainSingle().Which.Subject.Should().BeNull();
     }
 }

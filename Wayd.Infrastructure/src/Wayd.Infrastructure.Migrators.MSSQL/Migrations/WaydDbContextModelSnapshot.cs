@@ -10822,6 +10822,50 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasForeignKey("PokerSessionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.OwnsOne("Wayd.Planning.Domain.Models.PlanningPoker.PokerRoundSubject", "Subject", b1 =>
+                        {
+                            b1.Property<Guid>("PokerRoundId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Description")
+                                .HasMaxLength(4000)
+                                .HasColumnType("nvarchar(4000)")
+                                .HasColumnName("SubjectDescription");
+
+                            b1.Property<string>("DisplayKey")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("nvarchar(64)")
+                                .HasColumnName("SubjectDisplayKey");
+
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("SubjectId");
+
+                            b1.Property<string>("Kind")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("varchar")
+                                .HasColumnName("SubjectKind");
+
+                            b1.Property<string>("Title")
+                                .IsRequired()
+                                .HasMaxLength(512)
+                                .HasColumnType("nvarchar(512)")
+                                .HasColumnName("SubjectTitle");
+
+                            b1.HasKey("PokerRoundId");
+
+                            b1.HasIndex("Id");
+
+                            b1.ToTable("PokerRounds", "Planning");
+
+                            b1.WithOwner()
+                                .HasForeignKey("PokerRoundId");
+                        });
+
+                    b.Navigation("Subject");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSession", b =>
@@ -10838,9 +10882,36 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.OwnsOne("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionHost", "Host", b1 =>
+                        {
+                            b1.Property<Guid>("PokerSessionId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("HostId");
+
+                            b1.Property<string>("Kind")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("varchar")
+                                .HasColumnName("HostKind");
+
+                            b1.HasKey("PokerSessionId");
+
+                            b1.HasIndex("Id");
+
+                            b1.ToTable("PokerSessions", "Planning");
+
+                            b1.WithOwner()
+                                .HasForeignKey("PokerSessionId");
+                        });
+
                     b.Navigation("EstimationScale");
 
                     b.Navigation("EstimationScaleVersion");
+
+                    b.Navigation("Host");
                 });
 
             modelBuilder.Entity("Wayd.Planning.Domain.Models.PlanningPoker.PokerSessionFacilitator", b =>

@@ -16,9 +16,10 @@ public sealed class PokerRound : BaseEntity
 
     private PokerRound() { }
 
-    internal PokerRound(Guid pokerSessionId, string? label, string? description, int order)
+    internal PokerRound(Guid pokerSessionId, string? label, string? description, int order, PokerRoundSubject? subject = null)
     {
         PokerSessionId = pokerSessionId;
+        Subject = subject;
         Label = label?.Trim();
         Description = NormalizeDescription(description);
         Order = order;
@@ -38,6 +39,12 @@ public sealed class PokerRound : BaseEntity
     /// </summary>
     public string? Description { get; private set; }
 
+    /// <summary>
+    /// The record the round estimates, or null for a round about whatever its <see cref="Label"/> describes. Set
+    /// when the round is added and never changed.
+    /// </summary>
+    public PokerRoundSubject? Subject { get; private set; }
+
     public PokerRoundStatus Status { get; private set; }
 
     /// <summary>
@@ -53,10 +60,10 @@ public sealed class PokerRound : BaseEntity
     public IReadOnlyCollection<PokerVote> Votes => _votes.AsReadOnly();
 
     /// <summary>
-    /// True for a round that holds nothing: no label, no description and no votes, such as the round opened
-    /// automatically after an estimate is accepted. Requires <see cref="Votes"/> to be loaded.
+    /// True for a round that holds nothing: no subject, no label, no description and no votes, such as the round
+    /// opened automatically after an estimate is accepted. Requires <see cref="Votes"/> to be loaded.
     /// </summary>
-    public bool IsEmpty => string.IsNullOrWhiteSpace(Label) && Description is null && _votes.Count == 0;
+    public bool IsEmpty => Subject is null && string.IsNullOrWhiteSpace(Label) && Description is null && _votes.Count == 0;
 
     /// <summary>
     /// Reveal all votes for this round.

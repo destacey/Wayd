@@ -4,7 +4,9 @@ using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Requests.Organization;
+using Wayd.Common.Application.Requests.Planning;
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Application.PokerSessions;
 using Wayd.Planning.Application.Tests.Infrastructure;
 using Wayd.Planning.Domain.Models.PlanningPoker;
@@ -29,6 +31,8 @@ public class PokerSessionAccessTests : IDisposable
 
     private readonly Guid _employeeId = Guid.NewGuid();
     private readonly Guid _teamId = Guid.NewGuid();
+    private readonly Guid _deskId = Guid.NewGuid();
+    private readonly Mock<IPokerSessionHostAccess> _deskAccess = new();
 
     public PokerSessionAccessTests()
     {
@@ -42,8 +46,11 @@ public class PokerSessionAccessTests : IDisposable
         _dispatcher
             .Setup(d => d.Send(It.IsAny<GetTeamsWithMemberQuery>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new HashSet<Guid>());
+        _deskAccess.Setup(a => a.Kind).Returns(PokerSessionHostKind.IntakeDesk);
+        _deskAccess.Setup(a => a.HostsManagedBy(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync(new HashSet<Guid>());
 
-        _access = new PokerSessionAccess(_dbContext, _currentPrincipal.Object, _currentUser.Object, _userService.Object, _dispatcher.Object, dateTimeProvider.Object);
+        _access = new PokerSessionAccess(_dbContext, _currentPrincipal.Object, _currentUser.Object, _userService.Object, _dispatcher.Object, dateTimeProvider.Object,
+            [_deskAccess.Object]);
     }
 
     private void MemberOfTeam(Guid teamId) =>
@@ -193,10 +200,120 @@ public class PokerSessionAccessTests : IDisposable
         Guid[] facilitatorIds = isFacilitator ? [_employeeId] : [Guid.NewGuid()];
 
         // Act
-        var canManage = reader.CanManage(facilitatorIds);
+        var canManage = reader.CanManage(facilitatorIds, hostId: null);
 
         // Assert
         canManage.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void Reader_CanManage_HostManager_ShouldRunTheHostsSessionsUnlessReadOnly(bool isReadOnly, bool expected)
+    {
+        // Arrange
+        var reader = new PokerSessionReader(_employeeId, false, [], isReadOnly, [_deskId]);
+
+        // Act
+        var canManage = reader.CanManage([Guid.NewGuid()], _deskId);
+
+        // Assert
+        canManage.Should().Be(expected);
+        reader.CanManage([Guid.NewGuid()], Guid.NewGuid()).Should().BeFalse();
+    }
+
+    private void ManagesDesk() =>
+        _deskAccess.Setup(a => a.HostsManagedBy(_employeeId, It.IsAny<CancellationToken>())).ReturnsAsync(new HashSet<Guid> { _deskId });
+
+    [Fact]
+    public async Task ResolveActor_DeskAgentOnAHostedSession_ShouldManageItsHost()
+    {
+        // Arrange
+        var session = AddPrivateSession(f => f.WithDeskHost(_deskId));
+        ManagesDesk();
+
+        // Act
+        var actor = await _access.ResolveActor(session, TestContext.Current.CancellationToken);
+
+        // Assert
+        actor.ManagesHost.Should().BeTrue();
+        session.CanManage(actor).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ResolveActor_SomeoneOffTheDesk_ShouldNotManageItsHost()
+    {
+        // Arrange
+        var session = AddPrivateSession(f => f.WithDeskHost(_deskId));
+
+        // Act
+        var actor = await _access.ResolveActor(session, TestContext.Current.CancellationToken);
+
+        // Assert
+        actor.ManagesHost.Should().BeFalse();
+        session.CanAccess(actor).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ResolveActor_StandaloneSession_ShouldNotAskAnyHost()
+    {
+        // Arrange
+        var session = AddPrivateSession();
+        ManagesDesk();
+
+        // Act
+        var actor = await _access.ResolveActor(session, TestContext.Current.CancellationToken);
+
+        // Assert
+        actor.ManagesHost.Should().BeFalse();
+        _deskAccess.Verify(a => a.HostsManagedBy(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ResolveReader_ShouldCarryTheHostsTheReaderManages()
+    {
+        // Arrange
+        ManagesDesk();
+        var hosted = AddPrivateSession(f => f.WithDeskHost(_deskId).WithFacilitators(Guid.NewGuid()));
+        var otherDesk = AddPrivateSession(f => f.WithDeskHost(Guid.NewGuid()).WithFacilitators(Guid.NewGuid()));
+
+        // Act
+        var reader = await _access.ResolveReader(TestContext.Current.CancellationToken);
+
+        // Assert
+        reader.ManagedHostIds.Should().Equal(_deskId);
+        var filter = reader.Filter.Compile();
+        filter(hosted).Should().BeTrue();
+        filter(otherDesk).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CanUserAccess_HostedSession_ShouldAdmitWhoeverManagesItsHost()
+    {
+        // Arrange
+        var cancellationToken = TestContext.Current.CancellationToken;
+        var hosted = AddPrivateSession(f => f.WithDeskHost(_deskId).WithFacilitators(Guid.NewGuid()));
+
+        // Act & Assert
+        (await _access.CanUserAccess(hosted.Id, UserId, cancellationToken)).Should().BeFalse();
+
+        ManagesDesk();
+        (await _access.CanUserAccess(hosted.Id, UserId, cancellationToken)).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ManagesHost_KindNoModuleAnswersFor_ShouldBeFalse()
+    {
+        // Arrange
+        var access = new PokerSessionAccess(_dbContext, _currentPrincipal.Object, _currentUser.Object, _userService.Object, _dispatcher.Object,
+            Mock.Of<IDateTimeProvider>(), []);
+
+        // Act
+        var managesHost = await access.ManagesHost(new PokerSessionHost(PokerSessionHostKind.IntakeDesk, _deskId), _employeeId,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        managesHost.Should().BeFalse();
     }
 
     [Fact]
@@ -206,7 +323,7 @@ public class PokerSessionAccessTests : IDisposable
         var reader = new PokerSessionReader(null, true, [], false);
 
         // Act
-        var canManage = reader.CanManage([Guid.NewGuid()]);
+        var canManage = reader.CanManage([Guid.NewGuid()], hostId: null);
 
         // Assert
         canManage.Should().BeFalse();

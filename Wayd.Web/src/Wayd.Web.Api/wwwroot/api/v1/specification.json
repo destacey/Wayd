@@ -30878,7 +30878,7 @@
           "PokerSessions"
         ],
         "summary": "Get a list of poker sessions.",
-        "description": "Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.",
+        "description": "Lists the standalone sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). A session hosted by another area of Wayd, such as an intake desk, is never among them; pass `hostKind` (IntakeDesk) and `hostId` together to list one host's sessions instead. Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `host` (its `kind` and `id`, or null for a standalone session), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.",
         "operationId": "PokerSessions_GetList",
         "parameters": [
           {
@@ -30893,6 +30893,29 @@
               "nullable": true
             },
             "x-position": 1
+          },
+          {
+            "name": "hostKind",
+            "in": "query",
+            "schema": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/PokerSessionHostKind"
+                }
+              ],
+              "nullable": true
+            },
+            "x-position": 2
+          },
+          {
+            "name": "hostId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "nullable": true
+            },
+            "x-position": 3
           }
         ],
         "responses": {
@@ -30980,7 +31003,7 @@
           "PokerSessions"
         ],
         "summary": "Get poker session details using the Id or key.",
-        "description": "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
+        "description": "Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator, someone who manages its host, or a poker administrator), `host` (the area the session belongs to, its `kind` and `id`, or null for a standalone session), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `subject` (the record it estimates, its `kind`, `id`, `displayKey`, and the `title` and `description` it had when the round was added, or null), `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.",
         "operationId": "PokerSessions_GetSession",
         "parameters": [
           {
@@ -74134,6 +74157,15 @@
             "type": "string",
             "nullable": true
           },
+          "subject": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PokerRoundSubjectDto"
+              }
+            ],
+            "description": "The record the round estimates, as it read when the round was added, or null for a round about whatever\nits label describes.",
+            "nullable": true
+          },
           "description": {
             "type": "string",
             "description": "Optional detail about what is being estimated, such as acceptance criteria or notes for the team.",
@@ -74162,6 +74194,51 @@
           }
         },
         "additionalProperties": false
+      },
+      "PokerRoundSubjectDto": {
+        "required": [
+          "displayKey",
+          "title",
+          "kind",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PokerRoundSubjectKind"
+              }
+            ],
+            "description": "The kind of record the round estimates."
+          },
+          "id": {
+            "type": "string",
+            "description": "The record's id.",
+            "format": "uuid"
+          },
+          "displayKey": {
+            "type": "string",
+            "description": "The key people know the record by."
+          },
+          "title": {
+            "type": "string",
+            "description": "The record's title when the round was added."
+          },
+          "description": {
+            "type": "string",
+            "description": "The record's description when the round was added, or null when it had none.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "The record a poker round estimates, as it read when the round was added."
+      },
+      "PokerRoundSubjectKind": {
+        "enum": [
+          "IntakeRequest"
+        ],
+        "type": "string"
       },
       "PokerSessionDetailsDto": {
         "required": [
@@ -74201,6 +74278,15 @@
             ],
             "description": "Public: anyone with the poker View permission can see and join the session. Private: only its\nfacilitators, invited employees and the members of invited teams."
           },
+          "host": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PokerSessionHostDto"
+              }
+            ],
+            "description": "The record the session belongs to, such as an intake desk, or null for a standalone session.",
+            "nullable": true
+          },
           "facilitators": {
             "type": "array",
             "items": {
@@ -74231,7 +74317,7 @@
           },
           "canManage": {
             "type": "boolean",
-            "description": "Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a\nread-only token."
+            "description": "Whether the caller runs the session, as a facilitator, a manager of its host or a poker administrator.\nAlways false for a read-only token."
           },
           "estimationScale": {
             "oneOf": [
@@ -74275,6 +74361,36 @@
         },
         "additionalProperties": false
       },
+      "PokerSessionHostDto": {
+        "required": [
+          "kind",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PokerSessionHostKind"
+              }
+            ],
+            "description": "The kind of record that hosts the session."
+          },
+          "id": {
+            "type": "string",
+            "description": "The hosting record's id.",
+            "format": "uuid"
+          }
+        },
+        "additionalProperties": false,
+        "description": "The record a poker session belongs to, such as an intake desk, which lists the session and whose managers\nfacilitate it."
+      },
+      "PokerSessionHostKind": {
+        "enum": [
+          "IntakeDesk"
+        ],
+        "type": "string"
+      },
       "PokerSessionListDto": {
         "required": [
           "name",
@@ -74311,6 +74427,15 @@
             ],
             "description": "Public: anyone with the poker View permission can see and join the session. Private: only the people on it."
           },
+          "host": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PokerSessionHostDto"
+              }
+            ],
+            "description": "The record the session belongs to, such as an intake desk, or null for a standalone session.",
+            "nullable": true
+          },
           "facilitators": {
             "type": "array",
             "items": {
@@ -74331,7 +74456,7 @@
           },
           "canManage": {
             "type": "boolean",
-            "description": "Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a\nread-only token."
+            "description": "Whether the caller runs the session, as a facilitator, a manager of its host or a poker administrator.\nAlways false for a read-only token."
           }
         },
         "additionalProperties": false

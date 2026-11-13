@@ -10,4 +10,9 @@ namespace Wayd.Planning.Domain.Models.PlanningPoker;
 /// The session's invited teams the employee belongs to, as <c>IsTeamMemberQuery</c> decides membership. Teams the
 /// session does not invite may be left out, since only invited teams grant access.
 /// </param>
-public sealed record PokerSessionActor(Guid EmployeeId, string UserId, bool IsAdministrator, IReadOnlySet<Guid> TeamIds);
+/// <param name="ManagesHost">
+/// Whether the employee manages the record hosting the session, such as an agent on its intake desk, which makes
+/// them one of its facilitators. False for a session with no host.
+/// </param>
+public sealed record PokerSessionActor(Guid EmployeeId, string UserId, bool IsAdministrator, IReadOnlySet<Guid> TeamIds,
+    bool ManagesHost = false);

@@ -39,7 +39,7 @@ public sealed class GetPokerSessionQueryHandler(IPlanningDbContext planningDbCon
         if (session is null)
             return null;
 
-        session.CanManage = reader.CanManage(session.Facilitators.Select(f => f.Id));
+        session.CanManage = reader.CanManage(session.Facilitators.Select(f => f.Id), session.Host?.Id);
         session.HideUnrevealedVotes(_currentUser.GetUserId());
 
         return session;

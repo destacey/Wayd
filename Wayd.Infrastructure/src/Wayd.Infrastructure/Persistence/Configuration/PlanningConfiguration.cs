@@ -687,6 +687,18 @@ public class PokerSessionConfig : IEntityTypeConfiguration<PokerSession>
         // the round goes, and a reader treats an id that matches no round as none.
         builder.Property(s => s.FocusedRoundId);
 
+        builder.OwnsOne(s => s.Host, host =>
+        {
+            host.Property(h => h.Kind).HasColumnName("HostKind").IsRequired()
+                .HasConversion<EnumConverter<PokerSessionHostKind>>()
+                .HasColumnType("varchar")
+                .HasMaxLength(32);
+            host.Property(h => h.Id).HasColumnName("HostId").IsRequired();
+
+            // "The sessions this desk holds": how a host lists its sessions.
+            host.HasIndex(h => h.Id);
+        });
+
         // Relationships
         builder.HasOne(s => s.EstimationScale)
             .WithMany()
@@ -827,6 +839,24 @@ public class PokerRoundConfig : IEntityTypeConfiguration<PokerRound>
             .HasMaxLength(32);
         builder.Property(r => r.ConsensusEstimate).HasMaxLength(32);
         builder.Property(r => r.Order).IsRequired();
+
+        builder.OwnsOne(r => r.Subject, subject =>
+        {
+            subject.Property(s => s.Kind).HasColumnName("SubjectKind").IsRequired()
+                .HasConversion<EnumConverter<PokerRoundSubjectKind>>()
+                .HasColumnType("varchar")
+                .HasMaxLength(32);
+            subject.Property(s => s.Id).HasColumnName("SubjectId").IsRequired();
+            subject.Property(s => s.DisplayKey).HasColumnName("SubjectDisplayKey").IsRequired()
+                .HasMaxLength(PokerRoundSubject.DisplayKeyMaxLength);
+            subject.Property(s => s.Title).HasColumnName("SubjectTitle").IsRequired()
+                .HasMaxLength(PokerRoundSubject.TitleMaxLength);
+            subject.Property(s => s.Description).HasColumnName("SubjectDescription")
+                .HasMaxLength(PokerRoundSubject.DescriptionMaxLength);
+
+            // "The rounds that estimated this record": what the record's own page asks.
+            subject.HasIndex(s => s.Id);
+        });
 
         // Relationships
         builder.HasMany(r => r.Votes)

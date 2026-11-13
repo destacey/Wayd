@@ -132,6 +132,41 @@ describe('AttentionTile', () => {
     expect(mockPush).not.toHaveBeenCalled()
     target.remove()
   })
+
+  it('shows the widgets hidden as empty before scrolling to one of them', async () => {
+    // Arrange
+    const target = document.createElement('section')
+    target.id = 'home-widget-my-risks'
+    target.hidden = true
+    target.scrollIntoView = vi.fn()
+    document.body.appendChild(target)
+    const revealHiddenWidgets = vi.fn(() => {
+      target.hidden = false
+    })
+    render(
+      <AttentionSlotContext.Provider
+        value={{ visible: true, report: vi.fn(), revealHiddenWidgets }}
+      >
+        <AttentionTile
+          title="Risk follow-ups"
+          value={1}
+          tooltip="Follow-ups due."
+          href="#home-widget-my-risks"
+          alert="warning"
+          loading={false}
+        />
+      </AttentionSlotContext.Provider>,
+    )
+
+    // Act
+    await userEvent.click(screen.getByRole('button'))
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+
+    // Assert
+    expect(revealHiddenWidgets).toHaveBeenCalled()
+    expect(target.scrollIntoView).toHaveBeenCalled()
+    target.remove()
+  })
 })
 
 describe('AttentionTile in a strip slot', () => {

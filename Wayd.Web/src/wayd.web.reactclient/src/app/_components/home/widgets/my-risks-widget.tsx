@@ -102,7 +102,13 @@ const MyRisksWidget: FC<HomeWidgetProps> = ({ title }) => {
   }
 
   return (
-    <WidgetCard title={title} loading={isLoading}>
+    <WidgetCard
+      title={title}
+      loading={isLoading}
+      failed={isError}
+      empty={!risks || risks.length === 0}
+      emptySummary="No open risks"
+    >
       {body()}
     </WidgetCard>
   )

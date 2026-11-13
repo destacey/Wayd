@@ -16,6 +16,7 @@ import {
 } from '@/src/services/wayd-api'
 import { tileValueStyle } from '../attention-tile-test-utils'
 import { homeContext } from '../home-context-test-utils'
+import { renderReportingWidget } from '../widget-display-test-utils'
 
 const mockHome: { context?: HomeContextResponse } = {}
 
@@ -277,6 +278,100 @@ describe('MyProjectTasksWidget', () => {
     expect(
       screen.queryByText(/You have no open project tasks/),
     ).not.toBeInTheDocument()
+  })
+
+  describe('reported state', () => {
+    it('reports loading while the tasks load', () => {
+      // Arrange
+      mockTasks.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+      })
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyProjectTasksWidget title="My project tasks" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('loading')
+    })
+
+    it('reports failed, though there is no data, when the query errors', () => {
+      // Arrange
+      mockTasks.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      })
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyProjectTasksWidget title="My project tasks" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('failed')
+    })
+
+    it('reports empty when there are no tasks at all', () => {
+      // Arrange
+      mockTasks.mockReturnValue(loaded([]))
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyProjectTasksWidget title="My project tasks" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('empty')
+    })
+
+    it('reports empty when the home context says no task is assigned and the query is skipped', () => {
+      // Arrange
+      mockHome.context = homeContext()
+      mockTasks.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: false,
+      })
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyProjectTasksWidget title="My project tasks" />,
+      )
+
+      // Assert
+      expect(mockTasks).toHaveBeenCalledWith(expect.anything(), { skip: true })
+      expect(reportedState()).toBe('empty')
+    })
+
+    it('reports rows when a task is due soon', () => {
+      // Arrange
+      mockTasks.mockReturnValue(loaded([task(1, 'Build', '2026-11-13')]))
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyProjectTasksWidget title="My project tasks" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('rows')
+    })
+
+    it('reports rows, not empty, when every task is due later than next week', () => {
+      // Arrange
+      mockTasks.mockReturnValue(loaded([task(1, 'Rollout', '2026-12-01')]))
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyProjectTasksWidget title="My project tasks" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('rows')
+    })
   })
 })
 

@@ -187,6 +187,9 @@ const MyRequestsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
       title={title}
       viewAllHref="/demand-management/my-requests"
       loading={requests.isLoading}
+      failed={requests.isError}
+      empty={!requests.data || requests.data.length === 0}
+      emptySummary="No recent requests"
     >
       {body()}
     </WidgetCard>

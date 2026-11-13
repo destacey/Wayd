@@ -6,6 +6,7 @@ import { Button, Card, Popover, Skeleton, Typography } from 'antd'
 import Link from 'next/link'
 import { FC, ReactNode, useContext, useState } from 'react'
 import styles from './home.module.css'
+import { useWidgetState, WidgetState } from './widget-display'
 import WidgetSettingsForm, {
   WidgetSettingsAccess,
   WidgetSettingsContext,
@@ -24,8 +25,21 @@ export interface WidgetCardProps {
    * edge. Only while there are rows: a skeleton or a one-line state needs it.
    */
   flush?: boolean
+  /** The widget's data failed to load; it then shows in full whatever its empty setting. */
+  failed?: boolean
+  /** The widget has nothing to show; its empty setting decides how it draws. */
+  empty?: boolean
+  /** The few words the one-line form says beside the title when empty, such as "No open risks". */
+  emptySummary?: string
   children?: ReactNode
 }
+
+const stateOf = ({
+  loading,
+  failed,
+  empty,
+}: Pick<WidgetCardProps, 'loading' | 'failed' | 'empty'>): WidgetState =>
+  loading ? 'loading' : failed ? 'failed' : empty ? 'empty' : 'rows'
 
 /** The gear that opens a widget's settings from its card. */
 const WidgetSettingsButton: FC<WidgetSettingsAccess> = (access) => {
@@ -57,23 +71,32 @@ const WidgetSettingsButton: FC<WidgetSettingsAccess> = (access) => {
 /**
  * The frame every home widget sits in: a titled card, with a link to the full
  * list and, for a widget that declares settings, the gear that changes them.
+ * It reports the widget's state to the page and, when the widget is empty,
+ * draws it as its empty setting says: in full, as one line, or not at all.
  */
 const WidgetCard: FC<WidgetCardProps> = ({
   title,
   viewAllHref,
   loading = false,
   flush = false,
+  failed = false,
+  empty = false,
+  emptySummary = 'Nothing to show',
   children,
 }) => {
   const settings = useContext(WidgetSettingsContext)
   const hasSettings = (settings?.widget.settings?.length ?? 0) > 0
+  const form = useWidgetState(stateOf({ loading, failed, empty }))
+  if (form === 'hidden') return null
+  const isLine = form === 'line'
   return (
     <Card
       size="small"
       title={title}
       extra={
-        viewAllHref || hasSettings ? (
+        viewAllHref || hasSettings || isLine ? (
           <span className={styles.widgetCardExtra}>
+            {isLine ? <Text type="secondary">{emptySummary}</Text> : null}
             {/* Before the link, so "View all" ends at the same edge on every card. */}
             {settings && hasSettings ? (
               <WidgetSettingsButton {...settings} />
@@ -82,9 +105,9 @@ const WidgetCard: FC<WidgetCardProps> = ({
           </span>
         ) : undefined
       }
-      className={`${styles.widgetCard} ${flush && !loading ? styles.flushCard : ''}`}
+      className={`${styles.widgetCard} ${flush && !loading ? styles.flushCard : ''} ${isLine ? styles.lineCard : ''}`}
     >
-      {loading ? (
+      {isLine ? null : loading ? (
         <Skeleton active title={false} paragraph={{ rows: 3 }} />
       ) : (
         children

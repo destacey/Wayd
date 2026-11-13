@@ -8,6 +8,7 @@ import {
   MyTeamsSummaryResponse,
 } from '@/src/services/wayd-api'
 import { homeContext } from '../home-context-test-utils'
+import { renderReportingWidget } from '../widget-display-test-utils'
 
 const mockHome: { context?: HomeContextResponse } = {}
 
@@ -250,6 +251,86 @@ describe('MyTeamsWidget', () => {
 
     // Assert
     expect(screen.getByText('Could not load your teams.')).toBeInTheDocument()
+  })
+
+  describe('reported state', () => {
+    it('reports loading while the summary loads', () => {
+      // Arrange
+      mockSummary.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        isError: false,
+      })
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyTeamsWidget title="My teams" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('loading')
+    })
+
+    it('reports failed, though there is no data, when the query errors', () => {
+      // Arrange
+      mockSummary.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: true,
+      })
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyTeamsWidget title="My teams" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('failed')
+    })
+
+    it('reports empty when the home context says the caller is on no team', () => {
+      // Arrange
+      mockHome.context = homeContext()
+      mockSummary.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        isError: false,
+      })
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyTeamsWidget title="My teams" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('empty')
+    })
+
+    it('reports empty when the summary lists no teams', () => {
+      // Arrange
+      mockSummary.mockReturnValue(loaded({}))
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyTeamsWidget title="My teams" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('empty')
+    })
+
+    it('reports rows when the summary lists a team', () => {
+      // Arrange
+      mockSummary.mockReturnValue(loaded({ teams: [team('a')] }))
+
+      // Act
+      const { reportedState } = renderReportingWidget(
+        <MyTeamsWidget title="My teams" />,
+      )
+
+      // Assert
+      expect(reportedState()).toBe('rows')
+    })
   })
 })
 

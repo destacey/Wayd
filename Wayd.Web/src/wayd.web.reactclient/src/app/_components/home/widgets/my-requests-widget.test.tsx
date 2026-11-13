@@ -14,6 +14,7 @@ import {
   ProjectDeliverableStatusAlias,
   StatusCategory,
 } from '@/src/services/wayd-api'
+import { renderReportingWidget } from '../widget-display-test-utils'
 
 vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
   useGetIntakeRequestsQuery: vi.fn(),
@@ -306,5 +307,74 @@ describe('MyRequestsWidget', () => {
     // Assert
     expect(screen.getByRole('listitem')).toBeInTheDocument()
     expect(screen.queryByText('In Progress')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    [
+      'loading',
+      { data: undefined, isLoading: true, isError: false },
+      'loading',
+    ],
+    ['failed', { data: undefined, isLoading: false, isError: true }, 'failed'],
+    ['empty when there are no requests', loaded([]), 'empty'],
+    [
+      'rows when there are requests',
+      loaded([
+        request(42, 'Export invoices', StatusCategory.Active, '2026-11-01'),
+      ]),
+      'rows',
+    ],
+  ])('reports %s to the page', (_name, query, expected) => {
+    // Arrange
+    mockRequests.mockReturnValue(query)
+    mockOutcomes.mockReturnValue(loaded([]))
+
+    // Act
+    const { reportedState } = renderReportingWidget(
+      <MyRequestsWidget title="My requests" />,
+    )
+
+    // Assert
+    expect(reportedState()).toBe(expected)
+  })
+
+  it('reports rows even when the outcomes failed to load', () => {
+    // Arrange
+    mockRequests.mockReturnValue(
+      loaded([
+        request(42, 'Export invoices', StatusCategory.Active, '2026-11-01'),
+      ]),
+    )
+    mockOutcomes.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+    })
+
+    // Act
+    const { reportedState } = renderReportingWidget(
+      <MyRequestsWidget title="My requests" />,
+    )
+
+    // Assert
+    expect(reportedState()).toBe('rows')
+  })
+
+  it('reports empty, not failed, when the outcomes failed and there are no requests', () => {
+    // Arrange
+    mockRequests.mockReturnValue(loaded([]))
+    mockOutcomes.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+    })
+
+    // Act
+    const { reportedState } = renderReportingWidget(
+      <MyRequestsWidget title="My requests" />,
+    )
+
+    // Assert
+    expect(reportedState()).toBe('empty')
   })
 })

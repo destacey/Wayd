@@ -467,7 +467,7 @@ describe('HomePage customizing', () => {
     ])
   })
 
-  it('draws no widget until the involvement the default is ordered by has loaded', () => {
+  it('draws placeholder cards, not widgets, until the involvement the default is ordered by has loaded', () => {
     // Arrange
     mockHome.isLoading = true
 
@@ -476,9 +476,10 @@ describe('HomePage customizing', () => {
 
     // Assert
     expect(screen.queryByText(/widget/)).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Loading home')).toBeInTheDocument()
   })
 
-  it('draws no widget or tile until the saved layout has loaded', () => {
+  it('draws placeholder cards, not widgets or tiles, until the saved layout has loaded', () => {
     // Arrange
     mockLayout.isLoading = true
 
@@ -488,7 +489,22 @@ describe('HomePage customizing', () => {
     // Assert
     expect(screen.queryByText(/widget/)).not.toBeInTheDocument()
     expect(screen.queryByText('Personal tile')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Loading home')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Customize/ })).toBeDisabled()
+  })
+
+  it('replaces the placeholder cards with the widgets once the layout has loaded', () => {
+    // Arrange
+    mockLayout.isLoading = true
+    const { rerender } = render(<HomePage />)
+
+    // Act
+    mockLayout.isLoading = false
+    rerender(<HomePage />)
+
+    // Assert
+    expect(screen.queryByLabelText('Loading home')).not.toBeInTheDocument()
+    expect(screen.getByText('Personal widget (Personal)')).toBeInTheDocument()
   })
 
   it('falls back to the default but offers no Customize when the saved layout fails to load', () => {

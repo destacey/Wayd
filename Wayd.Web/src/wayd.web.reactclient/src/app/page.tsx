@@ -8,6 +8,7 @@ import { Suspense, useReducer, useState } from 'react'
 import AttentionStrip from './_components/home/attention-strip'
 import CustomizeHomeDrawer from './_components/home/customize-home-drawer'
 import HomeGreeting from './_components/home/home-greeting'
+import HomePageSkeleton from './_components/home/home-page-skeleton'
 import { HomeWidgets } from './_components/home/home-widgets'
 import styles from './_components/home/home.module.css'
 import { useHomeLayout } from './_components/home/use-home-layout'
@@ -219,7 +220,9 @@ const HomePage = () => {
         tiles={isLayoutLoading ? [] : tiles}
         onRevealHiddenWidgets={() => setRevealed(true)}
       />
-      {isLayoutLoading ? null : hasWidgets ? (
+      {isLayoutLoading ? (
+        <HomePageSkeleton />
+      ) : hasWidgets ? (
         <>
           {/* With nothing showing in one column, the other takes the width. */}
           <div

@@ -66596,7 +66596,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator, someone who manages its host, or a poker administrator), `host` (the area the session belongs to, its `kind` and `id`, or null for a standalone session), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `subject` (the record it estimates, its `kind`, `id`, `displayKey`, and the `title` and `description` it had when the round was added, or null), `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator, someone who manages its host, or a poker administrator), `host` (the area the session belongs to, its `kind` and `id`, or null for a standalone session), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `description`, `subject` (the record it estimates, its `kind`, `id` and `displayKey`, or null; for such a round `label` and `description` are the record's title and description as they read when the round was added), `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -66651,7 +66651,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a round to a poker session.
         /// </summary>
         /// <remarks>
-        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.
+        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 4000 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -66739,7 +66739,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the label for a round.
         /// </summary>
         /// <remarks>
-        /// Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
+        /// Replaces the round's `label`; an omitted or null label clears it. A round about a record (one with a `subject`) takes its label and description from the record, so this is refused for it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -66750,7 +66750,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the description for a round.
         /// </summary>
         /// <remarks>
-        /// Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
+        /// Replaces the round's `description` (at most 4000 characters); an omitted, null or blank description clears it. The label is unchanged. A round about a record (one with a `subject`) takes its label and description from the record, so this is refused for it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67083,7 +67083,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator, someone who manages its host, or a poker administrator), `host` (the area the session belongs to, its `kind` and `id`, or null for a standalone session), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `subject` (the record it estimates, its `kind`, `id`, `displayKey`, and the `title` and `description` it had when the round was added, or null), `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator, someone who manages its host, or a poker administrator), `host` (the area the session belongs to, its `kind` and `id`, or null for a standalone session), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `description`, `subject` (the record it estimates, its `kind`, `id` and `displayKey`, or null; for such a round `label` and `description` are the record's title and description as they read when the round was added), `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -67535,7 +67535,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add a round to a poker session.
         /// </summary>
         /// <remarks>
-        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 2048 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.
+        /// A round is one item being estimated; `label` (optional, at most 512 characters) names it, such as a story's title or key, and `description` (optional, at most 4000 characters) carries detail for the team, such as acceptance criteria. The round opens in Voting, after the session's other rounds. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Takes the session's UUID. Returns the new round.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -68290,7 +68290,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the label for a round.
         /// </summary>
         /// <remarks>
-        /// Replaces the round's `label`; an omitted or null label clears it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
+        /// Replaces the round's `label`; an omitted or null label clears it. A round about a record (one with a `subject`) takes its label and description from the record, so this is refused for it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -68388,7 +68388,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the description for a round.
         /// </summary>
         /// <remarks>
-        /// Replaces the round's `description` (at most 2048 characters); an omitted, null or blank description clears it. The label is unchanged. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
+        /// Replaces the round's `description` (at most 4000 characters); an omitted, null or blank description clears it. The label is unchanged. A round about a record (one with a `subject`) takes its label and description from the record, so this is refused for it. The session must be Active. Only the session's facilitators, and holders of the poker Administer permission, can do this. Both ids are UUIDs.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -95314,7 +95314,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Start a planning poker session on a desk to estimate its requests.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the desk who also holds the poker View permission, and a desk with an estimation scale. The session is hosted by the desk: Private, absent from the main poker list (list a desk's with PokerSessions_GetSessions, `hostKind` IntakeDesk and `hostId` the desk), facilitated by every agent and Desk Admin on the desk, and voting on the scale version the desk pins. Each of `requestIds`, open requests on the desk, gets a round showing its key, title and description to everyone in the session, whatever the desk's visibility. `invitedEmployeeIds` invites voters who are not on the desk; they need the poker View permission. Nothing is written to a request until a facilitator publishes its round with PokerSessions_PublishRound. Returns the new session's `id` and `key`. Needs the planning-poker feature flag.
+        /// Needs an agent on the desk who also holds the poker View permission, and a desk with an estimation scale. The session is hosted by the desk: Private, absent from the main poker list (list a desk's with PokerSessions_GetSessions, `hostKind` IntakeDesk and `hostId` the desk), facilitated by every agent and Desk Admin on the desk, and voting on the scale version the desk pins. Each of `requestIds`, open requests on the desk, gets a round labelled with its title and described by its description, as they read now, which everyone in the session sees whatever the desk's visibility. `invitedEmployeeIds` invites voters who are not on the desk; they need the poker View permission. Nothing is written to a request until a facilitator publishes its round with PokerSessions_PublishRound. Returns the new session's `id` and `key`. Needs the planning-poker feature flag.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -95325,7 +95325,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add rounds about more of a desk's requests to a poker session it hosts.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the desk, who facilitates its sessions. `requestIds` are open requests on the desk; each gets a round after the session's others, showing its key, title and description to everyone in the session. Refused as a whole when any is not an open request on the desk or already has a round in the session, when the session is not hosted by this desk, or when it is completed. Both ids are UUIDs. Needs the planning-poker feature flag.
+        /// Needs an agent on the desk, who facilitates its sessions. `requestIds` are open requests on the desk; each gets a round after the session's others, labelled with its title and described by its description, which everyone in the session sees. Refused as a whole when any is not an open request on the desk or already has a round in the session, when the session is not hosted by this desk, or when it is completed. Both ids are UUIDs. Needs the planning-poker feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -96796,7 +96796,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Start a planning poker session on a desk to estimate its requests.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the desk who also holds the poker View permission, and a desk with an estimation scale. The session is hosted by the desk: Private, absent from the main poker list (list a desk's with PokerSessions_GetSessions, `hostKind` IntakeDesk and `hostId` the desk), facilitated by every agent and Desk Admin on the desk, and voting on the scale version the desk pins. Each of `requestIds`, open requests on the desk, gets a round showing its key, title and description to everyone in the session, whatever the desk's visibility. `invitedEmployeeIds` invites voters who are not on the desk; they need the poker View permission. Nothing is written to a request until a facilitator publishes its round with PokerSessions_PublishRound. Returns the new session's `id` and `key`. Needs the planning-poker feature flag.
+        /// Needs an agent on the desk who also holds the poker View permission, and a desk with an estimation scale. The session is hosted by the desk: Private, absent from the main poker list (list a desk's with PokerSessions_GetSessions, `hostKind` IntakeDesk and `hostId` the desk), facilitated by every agent and Desk Admin on the desk, and voting on the scale version the desk pins. Each of `requestIds`, open requests on the desk, gets a round labelled with its title and described by its description, as they read now, which everyone in the session sees whatever the desk's visibility. `invitedEmployeeIds` invites voters who are not on the desk; they need the poker View permission. Nothing is written to a request until a facilitator publishes its round with PokerSessions_PublishRound. Returns the new session's `id` and `key`. Needs the planning-poker feature flag.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -96915,7 +96915,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Add rounds about more of a desk's requests to a poker session it hosts.
         /// </summary>
         /// <remarks>
-        /// Needs an agent on the desk, who facilitates its sessions. `requestIds` are open requests on the desk; each gets a round after the session's others, showing its key, title and description to everyone in the session. Refused as a whole when any is not an open request on the desk or already has a round in the session, when the session is not hosted by this desk, or when it is completed. Both ids are UUIDs. Needs the planning-poker feature flag.
+        /// Needs an agent on the desk, who facilitates its sessions. `requestIds` are open requests on the desk; each gets a round after the session's others, labelled with its title and described by its description, which everyone in the session sees. Refused as a whole when any is not an open request on the desk or already has a round in the session, when the session is not hosted by this desk, or when it is completed. Both ids are UUIDs. Needs the planning-poker feature flag.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -118022,7 +118022,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? Label { get; set; } = default!;
 
         /// <summary>
-        /// Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters.
+        /// Optional detail about what is being estimated, such as acceptance criteria or notes for the team; at most 4000 characters.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(4000)]
@@ -149093,7 +149093,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     {
 
         /// <summary>
-        /// Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 2048 characters. Null or blank clears it.
+        /// Detail about what is being estimated, such as acceptance criteria or notes for the team; at most 4000 characters. Null or blank clears it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
         [System.ComponentModel.DataAnnotations.StringLength(4000)]

@@ -190,6 +190,26 @@ public class GetPokerSessionQueryHandlerTests : IDisposable
         result.Should().BeNull();
     }
 
+    [Fact]
+    public async Task Handle_ShouldLetAManagerOfItsHostRunAHostedSession()
+    {
+        // Arrange
+        var deskId = Guid.NewGuid();
+        var session = new PokerSessionFaker().WithEstimationScale(_scale).WithDeskHost(deskId).WithFacilitators(Guid.NewGuid()).Generate();
+        _dbContext.AddPokerSession(session.WithEmployeesLinked());
+        _access.Reader = new PokerSessionReader(Guid.NewGuid(), false, [], false, [deskId]);
+
+        // Act
+        var result = await _handler.Handle(
+            new GetPokerSessionQuery(new IdOrKey(session.Id.ToString())),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.Host!.Id.Should().Be(deskId);
+        result.CanManage.Should().BeTrue();
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();

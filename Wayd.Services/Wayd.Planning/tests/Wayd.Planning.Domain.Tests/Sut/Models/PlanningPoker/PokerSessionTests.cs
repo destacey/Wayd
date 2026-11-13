@@ -1,4 +1,5 @@
 ﻿using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Common.Domain.Events;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models.PlanningPoker;
@@ -1085,7 +1086,7 @@ public class PokerSessionTests
     public void AccessibleTo_ShouldAgreeWithCanAccess()
     {
         // Arrange
-        PokerSession[] sessions = [CreateActiveSession(), CreatePrivateSession(), new PokerSessionFaker().WithVisibility(Visibility.Private).Generate()];
+        PokerSession[] sessions = [CreateActiveSession(), CreatePrivateSession(), new PokerSessionFaker().WithVisibility(Visibility.Private).Generate(), CreateHostedSession()];
         PokerSessionActor[] actors =
         [
             PokerSessionActors.Facilitator,
@@ -1093,12 +1094,14 @@ public class PokerSessionTests
             PokerSessionActors.Employee(InvitedEmployeeId),
             PokerSessionActors.Employee(Guid.NewGuid(), InvitedTeamId),
             PokerSessionActors.Voter("someone"),
+            PokerSessionActors.HostManager,
         ];
 
         foreach (var actor in actors)
         {
             // Act
-            var filter = PokerSession.AccessibleTo(actor.EmployeeId, actor.IsAdministrator, [.. actor.TeamIds]).Compile();
+            Guid[] managedHostIds = actor.ManagesHost ? [DeskHost.Id] : [];
+            var filter = PokerSession.AccessibleTo(actor.EmployeeId, actor.IsAdministrator, [.. actor.TeamIds], managedHostIds).Compile();
 
             // Assert
             foreach (var session in sessions)
@@ -1110,7 +1113,7 @@ public class PokerSessionTests
     public void AccessibleTo_ReaderWithoutEmployee_ShouldSeeOnlyPublicSessions()
     {
         // Arrange
-        var filter = PokerSession.AccessibleTo(null, false, []).Compile();
+        var filter = PokerSession.AccessibleTo(null, false, [], []).Compile();
 
         // Act & Assert
         filter(CreateActiveSession()).Should().BeTrue();
@@ -1441,6 +1444,190 @@ public class PokerSessionTests
         result.Error.Should().Be(PokerSession.NotFoundError);
         round.Votes.Should().BeEmpty();
         session.Members.Should().BeEmpty();
+    }
+
+    #endregion
+
+    #region Hosted sessions
+
+    private static readonly PokerSessionHost DeskHost = new(PokerSessionHostKind.IntakeDesk, Guid.Parse("7a1f0c00-0000-4000-a000-0000000d0001"));
+
+    private static PokerSession CreateHostedSession() =>
+        PokerSession.CreateHosted("Desk Refinement", Scale.CurrentVersion, DeskHost, PokerSessionActors.FacilitatorEmployeeId, Now).Value;
+
+    private static PokerRoundSubject ARequest(string key = "42", string title = "Export invoices") =>
+        new(PokerRoundSubjectKind.IntakeRequest, Guid.NewGuid(), key, title, "Finance needs a monthly export.");
+
+    [Fact]
+    public void CreateHosted_ShouldBePrivateAndHeldByItsHost()
+    {
+        // Act
+        var result = PokerSession.CreateHosted("Desk Refinement", Scale.CurrentVersion, DeskHost, PokerSessionActors.FacilitatorEmployeeId, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Host.Should().Be(DeskHost);
+        result.Value.Visibility.Should().Be(Visibility.Private);
+        result.Value.Status.Should().Be(PokerSessionStatus.Active);
+        result.Value.Facilitators.Should().ContainSingle().Which.EmployeeId.Should().Be(PokerSessionActors.FacilitatorEmployeeId);
+    }
+
+    [Fact]
+    public void CreateHosted_OnAnEarlierVersionOfAnInactiveScale_ShouldVoteOnThatVersion()
+    {
+        // Arrange
+        var scale = new EstimationScaleFaker().WithValues("S", "M", "L").Generate();
+        var pinned = scale.CurrentVersion;
+        scale.PublishVersion([new("S", true), new("M", true), new("L", true), new("XL", true)], EventActor.System, Now);
+        scale.Deactivate(EventActor.System, Now);
+
+        // Act
+        var result = PokerSession.CreateHosted("Desk Refinement", pinned, DeskHost, PokerSessionActors.FacilitatorEmployeeId, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.EstimationScaleVersionId.Should().Be(pinned.Id);
+        result.Value.EstimationScaleVersionId.Should().NotBe(scale.CurrentVersion.Id);
+    }
+
+    [Fact]
+    public void CanManage_HostManager_ShouldRunAHostedSessionOnly()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+        var standalone = CreateActiveSession();
+
+        // Act & Assert
+        hosted.CanManage(PokerSessionActors.HostManager).Should().BeTrue();
+        hosted.CanAccess(PokerSessionActors.HostManager).Should().BeTrue();
+        standalone.CanManage(PokerSessionActors.HostManager).Should().BeFalse();
+    }
+
+    [Fact]
+    public void CanAccess_HostedSession_ShouldRefuseSomeoneNotOnIt()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+
+        // Act & Assert
+        hosted.CanAccess(PokerSessionActors.Voter("someone")).Should().BeFalse();
+    }
+
+    [Fact]
+    public void SetVisibility_HostedSessionToPublic_ShouldFail()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+
+        // Act
+        var result = hosted.SetVisibility(Visibility.Public, PokerSessionActors.HostManager);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PokerSession.HostedSessionPublicError);
+        hosted.Visibility.Should().Be(Visibility.Private);
+    }
+
+    [Fact]
+    public void AddSubjectRounds_ShouldAddARoundAboutEachRecordInOrder()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+        hosted.AddRound("Warm-up", null, PokerSessionActors.Facilitator);
+        var first = ARequest("41", "First");
+        var second = ARequest("42", "Second");
+
+        // Act
+        var result = hosted.AddSubjectRounds([first, second], PokerSessionActors.HostManager);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Select(r => r.Subject).Should().Equal(first, second);
+        result.Value.Select(r => r.Order).Should().Equal(1, 2);
+        result.Value.Should().AllSatisfy(r =>
+        {
+            r.Label.Should().BeNull();
+            r.Status.Should().Be(PokerRoundStatus.Voting);
+        });
+        hosted.Rounds.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public void AddSubjectRounds_RecordAlreadyInTheSession_ShouldFailAndAddNothing()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+        var request = ARequest();
+        hosted.AddSubjectRounds([request], PokerSessionActors.HostManager);
+
+        // Act
+        var result = hosted.AddSubjectRounds([ARequest("43"), request], PokerSessionActors.HostManager);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PokerSession.SubjectAlreadyInSessionError);
+        hosted.Rounds.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void AddSubjectRounds_SameRecordTwice_ShouldFail()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+        var request = ARequest();
+
+        // Act
+        var result = hosted.AddSubjectRounds([request, request], PokerSessionActors.HostManager);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PokerSession.SubjectAlreadyInSessionError);
+        hosted.Rounds.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddSubjectRounds_BySomeoneWhoDoesNotRunTheSession_ShouldFail()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+
+        // Act
+        var result = hosted.AddSubjectRounds([ARequest()], PokerSessionActors.Voter("someone"));
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PokerSession.NotFoundError);
+        hosted.Rounds.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddSubjectRounds_CompletedSession_ShouldFail()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+        hosted.Complete(PokerSessionActors.HostManager, Now);
+
+        // Act
+        var result = hosted.AddSubjectRounds([ARequest()], PokerSessionActors.HostManager);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        hosted.Rounds.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Complete_ShouldKeepAnUnvotedRoundAboutARecord()
+    {
+        // Arrange
+        var hosted = CreateHostedSession();
+        hosted.AddSubjectRounds([ARequest()], PokerSessionActors.HostManager);
+
+        // Act
+        var result = hosted.Complete(PokerSessionActors.HostManager, Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        hosted.Rounds.Should().ContainSingle().Which.Subject.Should().NotBeNull();
     }
 
     #endregion

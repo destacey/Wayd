@@ -1,5 +1,6 @@
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { PokerRoundDto, PokerVoteDto } from '@/src/services/wayd-api'
+import { roundTitle } from './round-title'
 
 /**
  * Flattening a poker session to CSV: one row per round, in the order the rounds were added.
@@ -37,7 +38,7 @@ const formatVotes = (round: PokerRoundDto): string => {
  * a session deletes these; an active session can still have one.
  */
 const isEmptyRound = (round: PokerRoundDto): boolean =>
-  !round.label?.trim() && !round.description && round.voteCount === 0
+  !roundTitle(round) && !round.description && round.voteCount === 0
 
 export const buildExportRows = (rounds: PokerRoundDto[]): unknown[][] =>
   rounds
@@ -45,7 +46,7 @@ export const buildExportRows = (rounds: PokerRoundDto[]): unknown[][] =>
     .sort((a, b) => a.order - b.order)
     .map((round, index) => [
       index + 1,
-      round.label ?? '',
+      roundTitle(round) ?? '',
       round.description ?? '',
       round.status,
       round.consensusEstimate ?? '',

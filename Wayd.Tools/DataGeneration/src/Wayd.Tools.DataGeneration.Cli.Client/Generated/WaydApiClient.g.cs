@@ -66574,11 +66574,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of poker sessions.
         /// </summary>
         /// <remarks>
-        /// Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
+        /// Lists the standalone sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). A session hosted by another area of Wayd, such as an intake desk, is never among them; pass `hostKind` (IntakeDesk) and `hostId` together to list one host's sessions instead. Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `host` (its `kind` and `id`, or null for a standalone session), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PokerSessionListDto>> GetListAsync(PokerSessionStatus? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PokerSessionListDto>> GetListAsync(PokerSessionStatus? status = null, PokerSessionHostKind? hostKind = null, System.Guid? hostId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -66596,7 +66596,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator, someone who manages its host, or a poker administrator), `host` (the area the session belongs to, its `kind` and `id`, or null for a standalone session), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `subject` (the record it estimates, its `kind`, `id`, `displayKey`, and the `title` and `description` it had when the round was added, or null), `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -66866,11 +66866,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a list of poker sessions.
         /// </summary>
         /// <remarks>
-        /// Lists the sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
+        /// Lists the standalone sessions the caller can see: every Public session, and the Private sessions they facilitate or are invited to, directly or through a team (all of them for a poker administrator). A session hosted by another area of Wayd, such as an intake desk, is never among them; pass `hostKind` (IntakeDesk) and `hostId` together to list one host's sessions instead. Each entry has its `id`, `key`, `name`, `status` (Active or Completed), `visibility` (Public or Private), `host` (its `kind` and `id`, or null for a standalone session), `facilitators`, `participants` (everyone who has joined, voting or not), `roundCount` and `canManage` (whether the caller runs it). Pass `status` (Active or Completed) to list only those. Requires the planning-poker feature flag; returns 404 when it is off.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PokerSessionListDto>> GetListAsync(PokerSessionStatus? status = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<PokerSessionListDto>> GetListAsync(PokerSessionStatus? status = null, PokerSessionHostKind? hostKind = null, System.Guid? hostId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -66889,6 +66889,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (status != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("status")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(status, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (hostKind != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("hostKind")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(hostKind, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (hostId != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("hostId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(hostId, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 
@@ -67053,7 +67061,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get poker session details using the Id or key.
         /// </summary>
         /// <remarks>
-        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator or a poker administrator), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
+        /// Takes the session's UUID or key; returns 404 for a Private session the caller cannot see. Returns the session with its `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members` (each `employee`, `isVoting`, and `joinedOn`), `canManage` (whether the caller runs it: a facilitator, someone who manages its host, or a poker administrator), `host` (the area the session belongs to, its `kind` and `id`, or null for a standalone session), its `estimationScale` and the `estimationScaleVersion` it votes on (its `number` and ordered `values`, each with `isEstimate`, false for a card such as `?`), `focusedRoundId` (the round a facilitator has pointed the session page at, or null), and its `rounds` in order, each with its `label`, `subject` (the record it estimates, its `kind`, `id`, `displayKey`, and the `title` and `description` it had when the round was added, or null), `status` (Voting, Revealed or Accepted), `consensusEstimate`, `voteCount` and `votes` (participant and value). While a round is Voting, every vote's `value` is an empty string except the caller's own, so it shows who has voted but not what; values appear once the round is Revealed.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -134919,6 +134927,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string? Label { get; set; } = default!;
 
         /// <summary>
+        /// The record the round estimates, as it read when the round was added, or null for a round about whatever
+        /// <br/>its label describes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("subject")]
+        public PokerRoundSubjectDto? Subject { get; set; } = default!;
+
+        /// <summary>
         /// Optional detail about what is being estimated, such as acceptance criteria or notes for the team.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("description")]
@@ -134940,6 +134955,59 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("votes")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<PokerVoteDto> Votes { get; set; } = new System.Collections.ObjectModel.Collection<PokerVoteDto>();
+
+    }
+
+    /// <summary>
+    /// The record a poker round estimates, as it read when the round was added.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PokerRoundSubjectDto
+    {
+
+        /// <summary>
+        /// The kind of record the round estimates.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PokerRoundSubjectKind>))]
+        public PokerRoundSubjectKind Kind { get; set; } = default!;
+
+        /// <summary>
+        /// The record's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+        /// <summary>
+        /// The key people know the record by.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("displayKey")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string DisplayKey { get; set; } = default!;
+
+        /// <summary>
+        /// The record's title when the round was added.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Title { get; set; } = default!;
+
+        /// <summary>
+        /// The record's description when the round was added, or null when it had none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string? Description { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum PokerRoundSubjectKind
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"IntakeRequest")]
+        IntakeRequest = 0,
 
     }
 
@@ -134972,6 +135040,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public Visibility Visibility { get; set; } = default!;
 
         /// <summary>
+        /// The record the session belongs to, such as an intake desk, or null for a standalone session.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        public PokerSessionHostDto? Host { get; set; } = default!;
+
+        /// <summary>
         /// The employees who run the session: its rounds, reveals, resets, consensus, details, access and completion.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("facilitators")]
@@ -135000,8 +135074,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Collections.Generic.ICollection<PokerSessionMemberDto> Members { get; set; } = new System.Collections.ObjectModel.Collection<PokerSessionMemberDto>();
 
         /// <summary>
-        /// Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
-        /// <br/>read-only token.
+        /// Whether the caller runs the session, as a facilitator, a manager of its host or a poker administrator.
+        /// <br/>Always false for a read-only token.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canManage")]
         public bool CanManage { get; set; } = default!;
@@ -135034,6 +135108,40 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The record a poker session belongs to, such as an intake desk, which lists the session and whose managers
+    /// <br/>facilitate it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PokerSessionHostDto
+    {
+
+        /// <summary>
+        /// The kind of record that hosts the session.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<PokerSessionHostKind>))]
+        public PokerSessionHostKind Kind { get; set; } = default!;
+
+        /// <summary>
+        /// The hosting record's id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid Id { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum PokerSessionHostKind
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"IntakeDesk")]
+        IntakeDesk = 0,
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class PokerSessionListDto
     {
@@ -135062,6 +135170,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public Visibility Visibility { get; set; } = default!;
 
         /// <summary>
+        /// The record the session belongs to, such as an intake desk, or null for a standalone session.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("host")]
+        public PokerSessionHostDto? Host { get; set; } = default!;
+
+        /// <summary>
         /// The employees who run the session.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("facilitators")]
@@ -135079,8 +135193,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public int RoundCount { get; set; } = default!;
 
         /// <summary>
-        /// Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
-        /// <br/>read-only token.
+        /// Whether the caller runs the session, as a facilitator, a manager of its host or a poker administrator.
+        /// <br/>Always false for a read-only token.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("canManage")]
         public bool CanManage { get; set; } = default!;

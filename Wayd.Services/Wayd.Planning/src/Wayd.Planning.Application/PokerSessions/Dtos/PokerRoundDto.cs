@@ -7,6 +7,12 @@ public sealed record PokerRoundDto : IMapFrom<PokerRound>
 {
     public Guid Id { get; set; }
     public string? Label { get; set; }
+
+    /// <summary>
+    /// The record the round estimates, as it read when the round was added, or null for a round about whatever
+    /// its label describes.
+    /// </summary>
+    public PokerRoundSubjectDto? Subject { get; set; }
     /// <summary>
     /// Optional detail about what is being estimated, such as acceptance criteria or notes for the team.
     /// </summary>

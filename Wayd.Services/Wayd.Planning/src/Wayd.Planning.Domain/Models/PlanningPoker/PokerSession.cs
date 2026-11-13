@@ -16,6 +16,11 @@ namespace Wayd.Planning.Domain.Models.PlanningPoker;
 /// Anyone with the poker View permission can join a public session; a private one admits only its facilitators,
 /// its invited employees and the members of its invited teams. Joining makes someone a member, voting or not; a
 /// member who is not voting still takes part, such as a product manager answering the team's questions.
+/// <para>
+/// A session may be hosted by a record in another area, such as an intake desk. A hosted session is always
+/// private, is listed only in its host's area, and is facilitated by whoever manages the host as well as by its own
+/// facilitators.
+/// </para>
 /// </remarks>
 public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
 {
@@ -30,6 +35,16 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     /// </summary>
     public const string NotAFacilitatorError = "Only the session's facilitators can do this.";
 
+    /// <summary>
+    /// The failure for making a hosted session public, which would list it beside every standalone session.
+    /// </summary>
+    public const string HostedSessionPublicError = "A session hosted by another area is always private.";
+
+    /// <summary>
+    /// The failure for adding a round about a record the session already has a round about.
+    /// </summary>
+    public const string SubjectAlreadyInSessionError = "A record can be estimated only once in a session.";
+
     private const string InactiveScaleError = "The estimation scale is inactive and cannot be chosen for a session.";
 
     private readonly List<PokerRound> _rounds = [];
@@ -40,12 +55,14 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
 
     private PokerSession() { }
 
-    private PokerSession(string name, EstimationScaleVersion estimationScaleVersion, Visibility visibility, Guid facilitatorEmployeeId)
+    private PokerSession(string name, EstimationScaleVersion estimationScaleVersion, Visibility visibility, Guid facilitatorEmployeeId,
+        PokerSessionHost? host = null)
     {
         Name = name;
         EstimationScaleId = estimationScaleVersion.EstimationScaleId;
         EstimationScaleVersionId = estimationScaleVersion.Id;
         Visibility = visibility;
+        Host = host;
         _facilitators.Add(new PokerSessionFacilitator(Id, facilitatorEmployeeId));
     }
 
@@ -83,6 +100,12 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     /// facilitators, invited employees and the members of invited teams.
     /// </summary>
     public Visibility Visibility { get; private set; }
+
+    /// <summary>
+    /// The record the session belongs to, such as an intake desk, or null for a standalone session listed in the
+    /// main poker grid. Set when the session is created and never changed.
+    /// </summary>
+    public PokerSessionHost? Host { get; private set; }
 
     /// <summary>
     /// The current status of the poker session.
@@ -140,13 +163,13 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     public bool IsFacilitator(Guid employeeId) => _facilitators.Any(f => f.EmployeeId == employeeId);
 
     /// <summary>
-    /// Whether the actor runs the session: a facilitator, or a poker administrator. Requires
-    /// <see cref="Facilitators"/> to be loaded.
+    /// Whether the actor runs the session: a facilitator, someone who manages its host, or a poker administrator.
+    /// Requires <see cref="Facilitators"/> to be loaded.
     /// </summary>
     public bool CanManage(PokerSessionActor actor)
     {
         Guard.Against.Null(actor, nameof(actor));
-        return actor.IsAdministrator || IsFacilitator(actor.EmployeeId);
+        return actor.IsAdministrator || (actor.ManagesHost && Host is not null) || IsFacilitator(actor.EmployeeId);
     }
 
     /// <summary>
@@ -170,9 +193,12 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
     /// <param name="employeeId">The reader's employee, or null when the account has none.</param>
     /// <param name="isAdministrator">Whether the reader holds the poker Administer permission.</param>
     /// <param name="teamIds">The teams the reader belongs to, among those any session invites.</param>
-    public static Expression<Func<PokerSession, bool>> AccessibleTo(Guid? employeeId, bool isAdministrator, IReadOnlyCollection<Guid> teamIds)
+    /// <param name="managedHostIds">The hosts the reader manages, of every kind.</param>
+    public static Expression<Func<PokerSession, bool>> AccessibleTo(Guid? employeeId, bool isAdministrator, IReadOnlyCollection<Guid> teamIds,
+        IReadOnlyCollection<Guid> managedHostIds)
     {
         Guard.Against.Null(teamIds, nameof(teamIds));
+        Guard.Against.Null(managedHostIds, nameof(managedHostIds));
 
         if (isAdministrator)
             return s => true;
@@ -184,18 +210,23 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         return s => s.Visibility == Visibility.Public
             || s.Facilitators.Any(f => f.EmployeeId == id)
             || s.InvitedEmployees.Any(e => e.EmployeeId == id)
-            || s.InvitedTeams.Any(t => teamIds.Contains(t.TeamId));
+            || s.InvitedTeams.Any(t => teamIds.Contains(t.TeamId))
+            || (s.Host != null && managedHostIds.Contains(s.Host.Id));
     }
 
     /// <summary>
     /// Change who can see and join the session. Allowed on a completed session, whose results can still be
-    /// shared or made private. A connection that loses access is not removed here; the caller must evict it.
+    /// shared or made private. A hosted session stays private. A connection that loses access is not removed here;
+    /// the caller must evict it.
     /// </summary>
     public Result SetVisibility(Visibility visibility, PokerSessionActor actor)
     {
         var canManage = EnsureCanManage(actor);
         if (canManage.IsFailure)
             return canManage;
+
+        if (Host is not null && visibility != Visibility.Private)
+            return Result.Failure(HostedSessionPublicError);
 
         Visibility = visibility;
         return Result.Success();
@@ -358,6 +389,39 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         {
             return Result.Failure<PokerRound>(ex.ToString());
         }
+    }
+
+    /// <summary>
+    /// Add a round about each record, in the order given, such as the requests a desk chose to estimate. Refused
+    /// as a whole when any record already has a round in the session, or appears twice.
+    /// </summary>
+    public Result<IReadOnlyList<PokerRound>> AddSubjectRounds(IEnumerable<PokerRoundSubject> subjects, PokerSessionActor actor)
+    {
+        Guard.Against.Null(subjects, nameof(subjects));
+        var toAdd = subjects.ToList();
+
+        var canManage = EnsureCanManage(actor);
+        if (canManage.IsFailure)
+            return Result.Failure<IReadOnlyList<PokerRound>>(canManage.Error);
+
+        if (Status != PokerSessionStatus.Active)
+            return Result.Failure<IReadOnlyList<PokerRound>>("Rounds can only be added to an active session.");
+
+        var keys = toAdd.Select(s => (s.Kind, s.Id)).ToList();
+        if (keys.Distinct().Count() != keys.Count
+            || _rounds.Any(r => r.Subject is { } existing && keys.Contains((existing.Kind, existing.Id))))
+            return Result.Failure<IReadOnlyList<PokerRound>>(SubjectAlreadyInSessionError);
+
+        var nextOrder = _rounds.Count > 0 ? _rounds.Max(r => r.Order) + 1 : 0;
+        List<PokerRound> added = [];
+        foreach (var subject in toAdd)
+        {
+            var round = new PokerRound(Id, label: null, description: null, nextOrder++, subject);
+            _rounds.Add(round);
+            added.Add(round);
+        }
+
+        return Result.Success<IReadOnlyList<PokerRound>>(added);
     }
 
     /// <summary>
@@ -591,6 +655,35 @@ public sealed class PokerSession : BaseAuditableEntity, IHasIdAndKey
         Guard.Against.Null(estimationScaleVersion, nameof(estimationScaleVersion));
         if (estimationScaleVersion.Id != EstimationScaleVersionId)
             throw new ArgumentException($"Estimation scale version {estimationScaleVersion.Id} is not the session's version ({EstimationScaleVersionId}).", nameof(estimationScaleVersion));
+    }
+
+    /// <summary>
+    /// Create a private session hosted by a record in another area, on the scale version the host estimates with.
+    /// The version need not be its scale's current one, and its scale may have been deactivated since, because the
+    /// session must vote on the values its host's estimates are given on. The creator is the first facilitator.
+    /// </summary>
+    /// <param name="estimationScaleVersion">The version the host estimates with.</param>
+    /// <param name="facilitatorEmployeeId">The creator, who must manage the host; the caller checks.</param>
+    public static Result<PokerSession> CreateHosted(string name, EstimationScaleVersion estimationScaleVersion, PokerSessionHost host,
+        Guid facilitatorEmployeeId, Instant timestamp)
+    {
+        Guard.Against.Null(estimationScaleVersion, nameof(estimationScaleVersion));
+        Guard.Against.Null(host, nameof(host));
+        Guard.Against.Default(facilitatorEmployeeId, nameof(facilitatorEmployeeId));
+
+        try
+        {
+            var session = new PokerSession(name, estimationScaleVersion, Visibility.Private, facilitatorEmployeeId, host)
+            {
+                Status = PokerSessionStatus.Active,
+                ActivatedOn = timestamp
+            };
+            return Result.Success(session);
+        }
+        catch (ArgumentException ex)
+        {
+            return Result.Failure<PokerSession>(ex.Message);
+        }
     }
 
     /// <summary>

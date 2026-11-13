@@ -25,6 +25,13 @@ public static class PokerSessionActors
     public static PokerSessionActor Voter(string userId) =>
         new(EmployeeIdFor(userId), userId, false, new HashSet<Guid>());
 
+    /// <summary>
+    /// Someone who manages the host of the session they act on, such as an agent on its intake desk, and is not
+    /// otherwise on it.
+    /// </summary>
+    public static readonly PokerSessionActor HostManager =
+        new(Guid.Parse("7a1f0c00-0000-4000-a000-00000000d001"), "host-manager-user", false, new HashSet<Guid>(), ManagesHost: true);
+
     /// <summary>Someone who is the given employee and belongs to <paramref name="teamIds"/>.</summary>
     public static PokerSessionActor Employee(Guid employeeId, params Guid[] teamIds) =>
         new(employeeId, $"user-{employeeId}", false, teamIds.ToHashSet());

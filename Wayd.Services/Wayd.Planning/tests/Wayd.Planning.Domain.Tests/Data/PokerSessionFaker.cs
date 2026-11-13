@@ -1,4 +1,5 @@
 using Wayd.Common.Domain.Enums;
+using Wayd.Common.Domain.Enums.Planning;
 using Wayd.Planning.Domain.Enums;
 using Wayd.Planning.Domain.Models.PlanningPoker;
 using Wayd.Tests.Shared.Data;
@@ -81,6 +82,14 @@ public static class PokerSessionFakerExtensions
     public static PokerSessionFaker WithInvitedTeams(this PokerSessionFaker faker, params Guid[] teamIds)
     {
         faker.RuleFor("_invitedTeams", (f, s) => teamIds.Select(id => new PokerSessionInvitedTeam(s.Id, id)).ToList());
+        return faker;
+    }
+
+    /// <summary>A session held by the given intake desk, private as every hosted session is.</summary>
+    public static PokerSessionFaker WithDeskHost(this PokerSessionFaker faker, Guid deskId)
+    {
+        faker.RuleFor(x => x.Host, new PokerSessionHost(PokerSessionHostKind.IntakeDesk, deskId));
+        faker.RuleFor(x => x.Visibility, Visibility.Private);
         return faker;
     }
 }

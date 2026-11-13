@@ -35767,12 +35767,18 @@ export class PokerSessionsClient {
     /**
      * Get a list of poker sessions.
      * @param status (optional) 
+     * @param hostKind (optional) 
+     * @param hostId (optional) 
      * @return OK
      */
-    getList(status?: PokerSessionStatus | null | undefined, cancelToken?: CancelToken): Promise<PokerSessionListDto[]> {
+    getList(status?: PokerSessionStatus | null | undefined, hostKind?: PokerSessionHostKind | null | undefined, hostId?: string | null | undefined, cancelToken?: CancelToken): Promise<PokerSessionListDto[]> {
         let url_ = this.baseUrl + "/api/planning/poker-sessions?";
         if (status !== undefined && status !== null)
             url_ += "status=" + encodeURIComponent("" + status) + "&";
+        if (hostKind !== undefined && hostKind !== null)
+            url_ += "hostKind=" + encodeURIComponent("" + hostKind) + "&";
+        if (hostId !== undefined && hostId !== null)
+            url_ += "hostId=" + encodeURIComponent("" + hostId) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -70136,6 +70142,9 @@ Free text, never parsed: nothing sorts or compares it, so any convention works. 
 export interface PokerRoundDto {
     id: string;
     label?: string | undefined;
+    /** The record the round estimates, as it read when the round was added, or null for a round about whatever
+its label describes. */
+    subject?: PokerRoundSubjectDto | undefined;
     /** Optional detail about what is being estimated, such as acceptance criteria or notes for the team. */
     description?: string | undefined;
     status: string;
@@ -70143,6 +70152,24 @@ export interface PokerRoundDto {
     order: number;
     voteCount: number;
     votes: PokerVoteDto[];
+}
+
+/** The record a poker round estimates, as it read when the round was added. */
+export interface PokerRoundSubjectDto {
+    /** The kind of record the round estimates. */
+    kind: PokerRoundSubjectKind;
+    /** The record's id. */
+    id: string;
+    /** The key people know the record by. */
+    displayKey: string;
+    /** The record's title when the round was added. */
+    title: string;
+    /** The record's description when the round was added, or null when it had none. */
+    description?: string | undefined;
+}
+
+export enum PokerRoundSubjectKind {
+    IntakeRequest = "IntakeRequest",
 }
 
 export interface PokerSessionDetailsDto {
@@ -70153,6 +70180,8 @@ export interface PokerSessionDetailsDto {
     /** Public: anyone with the poker View permission can see and join the session. Private: only its
 facilitators, invited employees and the members of invited teams. */
     visibility: Visibility;
+    /** The record the session belongs to, such as an intake desk, or null for a standalone session. */
+    host?: PokerSessionHostDto | undefined;
     /** The employees who run the session: its rounds, reveals, resets, consensus, details, access and completion. */
     facilitators: EmployeeNavigationDto[];
     /** The employees invited to the session, who can join it while it is private. */
@@ -70161,8 +70190,8 @@ facilitators, invited employees and the members of invited teams. */
     invitedTeams: PlanningTeamNavigationDto[];
     /** Everyone who has joined the session, in the order they joined, including those who have left. */
     members: PokerSessionMemberDto[];
-    /** Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
-read-only token. */
+    /** Whether the caller runs the session, as a facilitator, a manager of its host or a poker administrator.
+Always false for a read-only token. */
     canManage: boolean;
     estimationScale?: EstimationScaleNavigationDto | undefined;
     /** The scale version the session votes on, which stays put when the scale publishes a newer one. */
@@ -70175,6 +70204,18 @@ Null when no round is pointed at, where followers see the round in play. */
     rounds: PokerRoundDto[];
 }
 
+/** The record a poker session belongs to, such as an intake desk, which lists the session and whose managers facilitate it. */
+export interface PokerSessionHostDto {
+    /** The kind of record that hosts the session. */
+    kind: PokerSessionHostKind;
+    /** The hosting record's id. */
+    id: string;
+}
+
+export enum PokerSessionHostKind {
+    IntakeDesk = "IntakeDesk",
+}
+
 export interface PokerSessionListDto {
     id: string;
     key: number;
@@ -70182,13 +70223,15 @@ export interface PokerSessionListDto {
     status: string;
     /** Public: anyone with the poker View permission can see and join the session. Private: only the people on it. */
     visibility: Visibility;
+    /** The record the session belongs to, such as an intake desk, or null for a standalone session. */
+    host?: PokerSessionHostDto | undefined;
     /** The employees who run the session. */
     facilitators: EmployeeNavigationDto[];
     /** Everyone who has joined the session, voting or not, in the order they joined. */
     participants: EmployeeNavigationDto[];
     roundCount: number;
-    /** Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
-read-only token. */
+    /** Whether the caller runs the session, as a facilitator, a manager of its host or a poker administrator.
+Always false for a read-only token. */
     canManage: boolean;
 }
 

@@ -19,6 +19,11 @@ public sealed record PokerSessionListDto : IMapFrom<PokerSession>
     public Visibility Visibility { get; set; }
 
     /// <summary>
+    /// The record the session belongs to, such as an intake desk, or null for a standalone session.
+    /// </summary>
+    public PokerSessionHostDto? Host { get; set; }
+
+    /// <summary>
     /// The employees who run the session.
     /// </summary>
     public List<EmployeeNavigationDto> Facilitators { get; set; } = [];
@@ -31,8 +36,8 @@ public sealed record PokerSessionListDto : IMapFrom<PokerSession>
     public int RoundCount { get; set; }
 
     /// <summary>
-    /// Whether the caller runs the session, as a facilitator or a poker administrator. Always false for a
-    /// read-only token.
+    /// Whether the caller runs the session, as a facilitator, a manager of its host or a poker administrator.
+    /// Always false for a read-only token.
     /// </summary>
     public bool CanManage { get; set; }
 

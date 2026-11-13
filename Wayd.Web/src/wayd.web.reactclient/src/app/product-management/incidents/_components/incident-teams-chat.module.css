@@ -10,6 +10,12 @@
   flex-shrink: 0;
 }
 
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .name {
   flex: 1;
   min-width: 0;

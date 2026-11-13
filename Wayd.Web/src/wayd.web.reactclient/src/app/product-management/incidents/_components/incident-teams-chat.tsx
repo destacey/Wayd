@@ -132,7 +132,12 @@ const IncidentTeamsChat = ({
         </Button>
       ) : null}
       <Modal
-        title="Teams chat"
+        title={
+          <span className={styles.title}>
+            <TeamsMark />
+            <span>Teams chat</span>
+          </span>
+        }
         open={open}
         onCancel={close}
         footer={null}

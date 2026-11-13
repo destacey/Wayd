@@ -132,6 +132,31 @@ describe('IncidentTeamsChat', () => {
     ).not.toBeInTheDocument()
   })
 
+  it('puts the Teams logo to the left of the modal title', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    renderChat(
+      <IncidentTeamsChat incident={incident(null)} canUpdate employees={[]} />,
+    )
+
+    // Act
+    await user.click(
+      screen.getByRole('button', { name: 'Add Teams chat for this incident' }),
+    )
+
+    // Assert
+    const title = screen.getByRole('dialog', { name: 'Teams chat' }).querySelector(
+      '.ant-modal-title',
+    )
+    const mark = title?.querySelector('img')
+    const label = within(title as HTMLElement).getByText('Teams chat')
+    expect(mark).toHaveAttribute('src', '/icons/teams-logo.svg')
+    expect(title?.firstElementChild).toHaveStyle({ display: 'inline-flex' })
+    expect(
+      mark?.compareDocumentPosition(label) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
   it('uses the Teams logo on the add button', () => {
     // Arrange
     renderChat(

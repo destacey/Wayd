@@ -1,5 +1,6 @@
 import { HomeContextResponse } from '@/src/services/wayd-api'
 import { ComponentType, FC } from 'react'
+import { WidgetSetting, WidgetSettingValues } from './widget-settings'
 
 /** The home page column a widget sits in. */
 export type WidgetColumn = 'main' | 'side'
@@ -45,6 +46,11 @@ export interface AttentionTileReport {
 export interface HomeWidgetProps {
   /** The registry's title, so the card and the Customize drawer never disagree. */
   title: string
+  /**
+   * The value in effect for each setting the widget declares. Left out when a
+   * widget is rendered away from the page, where each reads as its default.
+   */
+  settings?: WidgetSettingValues
 }
 
 /**
@@ -65,6 +71,12 @@ export interface HomeWidget {
   Component: ComponentType<HomeWidgetProps>
   /** Tiles the widget adds to the attention strip, in the order they show. */
   tiles?: AttentionTileDefinition[]
+  /**
+   * What the user can change about what the widget shows, in the order the
+   * settings form lists them. The card and the Customize drawer draw the form
+   * from this, so a widget never builds its own.
+   */
+  settings?: WidgetSetting[]
   /**
    * How much the widget's area involves the caller, on the `Involvement` scale
    * in `home-involvement.ts`; it orders the default layout. Left out for shared

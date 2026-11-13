@@ -13,6 +13,7 @@ import {
   WidgetColumn,
   WidgetPlacement,
 } from './widget-registry'
+import { settingsToStore, WidgetSettingValues } from './widget-settings'
 
 /** The page's columns, in reading order: main first, as a phone stacks them. */
 export const WIDGET_COLUMNS: WidgetColumn[] = ['main', 'side']
@@ -22,12 +23,16 @@ export interface SavedWidget {
   widgetId: string
   column: WidgetColumn
   visible: boolean
+  /** The setting values the user changed, by key; left out when none. */
+  settings?: WidgetSettingValues
 }
 
 /** A widget in an arranged column. */
 export interface LayoutSlot {
   id: string
   visible: boolean
+  /** The setting values the user changed, by key; left out when none. */
+  settings?: WidgetSettingValues
 }
 
 /**
@@ -59,6 +64,9 @@ export const fromSavedWidgets = (
     widgetId: REPLACED_WIDGETS[w.widgetId] ?? w.widgetId,
     column: toColumn(w.column),
     visible: w.visible,
+    ...(Object.keys(w.settings ?? {}).length > 0
+      ? { settings: w.settings }
+      : {}),
   }))
 
 /** A layout to save, as the API takes it. */
@@ -69,11 +77,12 @@ export const toSavedWidgets = (
     widgetId: w.widgetId,
     column: fromColumn(w.column),
     visible: w.visible,
+    settings: w.settings ?? {},
   }))
 
 /**
  * Merges the saved layout with the registry for this account. Saved widgets
- * keep their column, order and visibility; a widget the account can use but
+ * keep their column, order, visibility and settings; a widget the account can use but
  * the layout does not mention (new, or newly available) joins the column
  * `place` gives it, ahead of the first widget `place` orders after it. Saved
  * ids the account cannot use, or the registry no longer has, are left out.
@@ -92,7 +101,11 @@ export const resolveLayout = (
 
   for (const entry of saved) {
     if (!placement.has(entry.widgetId) || placed.has(entry.widgetId)) continue
-    layout[entry.column].push({ id: entry.widgetId, visible: entry.visible })
+    layout[entry.column].push({
+      id: entry.widgetId,
+      visible: entry.visible,
+      settings: entry.settings,
+    })
     placed.add(entry.widgetId)
   }
 
@@ -136,20 +149,28 @@ export const arrangeFromLayout = (
  * The layout to save: every widget the user arranged, main column first, plus
  * the saved widgets they cannot use right now, so those return where they were
  * when access does. Each kept widget follows the widget it followed before.
- * Ids the registry no longer has are dropped.
+ * Ids the registry no longer has are dropped, as are setting values a widget
+ * no longer declares or that match its default.
  */
 export const layoutToSave = (
   layout: HomeLayout,
   saved: SavedWidget[],
   widgets: HomeWidget[],
 ): SavedWidget[] => {
-  const known = new Set(widgets.map((w) => w.id))
+  const known = new Map(widgets.map((w) => [w.id, w]))
   const arranged = WIDGET_COLUMNS.flatMap((column) =>
-    layout[column].map((slot) => ({
-      widgetId: slot.id,
-      column,
-      visible: slot.visible,
-    })),
+    layout[column].map((slot): SavedWidget => {
+      const settings = settingsToStore(
+        known.get(slot.id)?.settings,
+        slot.settings,
+      )
+      return {
+        widgetId: slot.id,
+        column,
+        visible: slot.visible,
+        ...(Object.keys(settings).length > 0 ? { settings } : {}),
+      }
+    }),
   )
   const arrangedIds = new Set(arranged.map((w) => w.widgetId))
 
@@ -215,3 +236,33 @@ export const setWidgetVisible = (
   main: layout.main.map((s) => (s.id === id ? { ...s, visible } : s)),
   side: layout.side.map((s) => (s.id === id ? { ...s, visible } : s)),
 })
+
+/** Sets what the user changed about a widget's settings, leaving it where it is. */
+export const setWidgetSettings = (
+  layout: HomeLayout,
+  id: string,
+  settings: WidgetSettingValues,
+): HomeLayout => {
+  const set = (slot: LayoutSlot) =>
+    slot.id === id ? { ...slot, settings } : slot
+  return { main: layout.main.map(set), side: layout.side.map(set) }
+}
+
+/**
+ * What changing one widget's settings from its card saves: the layout,
+ * holding the change, cut down to the widgets the saved layout held plus the
+ * one changed. A user who has arranged nothing then saves that widget alone,
+ * and the rest keep following the default as their involvement changes.
+ */
+export const settingsChangeToSave = (
+  layout: HomeLayout,
+  saved: SavedWidget[],
+  widgets: HomeWidget[],
+  changedId: string,
+): SavedWidget[] => {
+  const savedIds = new Set(saved.map((w) => w.widgetId))
+  return layoutToSave(layout, saved, widgets).filter(
+    (w) =>
+      savedIds.has(w.widgetId) || (w.widgetId === changedId && !!w.settings),
+  )
+}

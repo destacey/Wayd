@@ -7,6 +7,8 @@ import {
   moveWidget,
   resolveLayout,
   SavedWidget,
+  settingsChangeToSave,
+  setWidgetSettings,
   setWidgetVisible,
   toSavedWidgets,
 } from './home-layout'
@@ -17,6 +19,7 @@ import {
   WidgetAccess,
   WidgetColumn,
 } from './widget-registry'
+import { rowsSetting } from './widget-settings'
 
 const Nothing = () => null
 
@@ -49,7 +52,13 @@ const saved = (
   widgetId: string,
   column: WidgetColumn,
   visible = true,
-): SavedWidget => ({ widgetId, column, visible })
+  settings?: Record<string, string>,
+): SavedWidget => ({
+  widgetId,
+  column,
+  visible,
+  ...(settings ? { settings } : {}),
+})
 
 const ids = (layout: HomeLayout) => ({
   main: layout.main.map((s) => s.id),
@@ -397,8 +406,18 @@ describe('saved widget mapping', () => {
   it('maps the API column codes both ways', () => {
     // Arrange
     const response = [
-      { widgetId: 'a', column: HomeLayoutColumn.Main, visible: true },
-      { widgetId: 'x', column: HomeLayoutColumn.Side, visible: false },
+      {
+        widgetId: 'a',
+        column: HomeLayoutColumn.Main,
+        visible: true,
+        settings: {},
+      },
+      {
+        widgetId: 'x',
+        column: HomeLayoutColumn.Side,
+        visible: false,
+        settings: {},
+      },
     ]
 
     // Act
@@ -416,6 +435,7 @@ describe('saved widget mapping', () => {
         widgetId: 'my-team-sprints',
         column: HomeLayoutColumn.Main,
         visible: false,
+        settings: {},
       },
     ]
 
@@ -424,5 +444,166 @@ describe('saved widget mapping', () => {
 
     // Assert
     expect(entries).toEqual([saved('my-teams', 'main', false)])
+  })
+
+  it('carries a widget’s settings both ways', () => {
+    // Arrange
+    const response = [
+      {
+        widgetId: 'a',
+        column: HomeLayoutColumn.Main,
+        visible: true,
+        settings: { rows: '10' },
+      },
+    ]
+
+    // Act
+    const entries = fromSavedWidgets(response)
+
+    // Assert
+    expect(entries).toEqual([saved('a', 'main', true, { rows: '10' })])
+    expect(toSavedWidgets(entries)).toEqual(response)
+  })
+})
+
+describe('widget settings in a layout', () => {
+  // a and x take a row count; b declares no settings.
+  const tunable = [
+    widget('a', 'main', 10, { settings: [rowsSetting(5)] }),
+    widget('b', 'main', 20),
+    widget('x', 'side', 10, { settings: [rowsSetting(5)] }),
+  ]
+
+  it('keeps a saved widget’s settings when resolving', () => {
+    // Act
+    const layout = resolveLayout(tunable, access(), [
+      saved('a', 'main', true, { rows: '10' }),
+    ])
+
+    // Assert
+    expect(layout.main[0]).toEqual({
+      id: 'a',
+      visible: true,
+      settings: { rows: '10' },
+    })
+  })
+
+  it('sets only the named widget’s settings', () => {
+    // Arrange
+    const layout = resolveLayout(tunable, access(), [])
+
+    // Act
+    const result = setWidgetSettings(layout, 'x', { rows: '3' })
+
+    // Assert
+    expect(result.side).toEqual([
+      { id: 'x', visible: true, settings: { rows: '3' } },
+    ])
+    expect(result.main).toEqual(layout.main)
+  })
+
+  it('saves only values that differ from the default and that the widget declares', () => {
+    // Arrange
+    const layout: HomeLayout = {
+      main: [
+        { id: 'a', visible: true, settings: { rows: '5', retired: 'x' } },
+        { id: 'b', visible: true, settings: { rows: '10' } },
+      ],
+      side: [{ id: 'x', visible: true, settings: { rows: '10' } }],
+    }
+
+    // Act
+    const result = layoutToSave(layout, [], tunable)
+
+    // Assert
+    expect(result).toEqual([
+      saved('a', 'main'),
+      saved('b', 'main'),
+      saved('x', 'side', true, { rows: '10' }),
+    ])
+  })
+
+  it('keeps the settings of a saved widget the account cannot use', () => {
+    // Arrange
+    const basis = [saved('a', 'main'), saved('x', 'side', true, { rows: '10' })]
+    const layout: HomeLayout = {
+      main: [{ id: 'a', visible: true }],
+      side: [],
+    }
+
+    // Act
+    const result = layoutToSave(layout, basis, tunable)
+
+    // Assert
+    expect(result).toEqual(basis)
+  })
+
+  it('saves the changed widget alone for a user who has arranged nothing', () => {
+    // Arrange
+    const layout = setWidgetSettings(
+      resolveLayout(tunable, access(), []),
+      'x',
+      { rows: '10' },
+    )
+
+    // Act
+    const result = settingsChangeToSave(layout, [], tunable, 'x')
+
+    // Assert
+    expect(result).toEqual([saved('x', 'side', true, { rows: '10' })])
+  })
+
+  it('saves nothing when the only change is put back to its default', () => {
+    // Arrange
+    const layout = setWidgetSettings(
+      resolveLayout(tunable, access(), []),
+      'x',
+      {},
+    )
+
+    // Act
+    const result = settingsChangeToSave(layout, [], tunable, 'x')
+
+    // Assert
+    expect(result).toEqual([])
+  })
+
+  it('adds a changed widget to a saved layout without adding the rest', () => {
+    // Arrange
+    const basis = [saved('x', 'side', true, { rows: '10' })]
+    const layout = setWidgetSettings(
+      resolveLayout(tunable, access(), basis),
+      'a',
+      { rows: '3' },
+    )
+
+    // Act
+    const result = settingsChangeToSave(layout, basis, tunable, 'a')
+
+    // Assert
+    expect(result).toEqual([
+      saved('a', 'main', true, { rows: '3' }),
+      saved('x', 'side', true, { rows: '10' }),
+    ])
+  })
+
+  it('keeps every widget of an arranged layout when one’s settings change', () => {
+    // Arrange
+    const basis = [saved('b', 'main'), saved('a', 'main'), saved('x', 'side')]
+    const layout = setWidgetSettings(
+      resolveLayout(tunable, access(), basis),
+      'a',
+      { rows: '3' },
+    )
+
+    // Act
+    const result = settingsChangeToSave(layout, basis, tunable, 'a')
+
+    // Assert
+    expect(result).toEqual([
+      saved('b', 'main'),
+      saved('a', 'main', true, { rows: '3' }),
+      saved('x', 'side'),
+    ])
   })
 })

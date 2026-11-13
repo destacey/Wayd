@@ -239,6 +239,28 @@ describe('MyProjectTasksWidget', () => {
     expect(screen.queryByText(/due later/)).not.toBeInTheDocument()
   })
 
+  it('lists as many tasks as its rows setting says', () => {
+    // Arrange
+    const tasks = Array.from({ length: 5 }, (_, i) =>
+      task(i + 1, `Task ${i + 1}`, '2026-11-20'),
+    )
+    mockTasks.mockReturnValue(loaded(tasks))
+
+    // Act
+    render(
+      <MyProjectTasksWidget
+        title="My project tasks"
+        settings={{ rows: '3' }}
+      />,
+    )
+
+    // Assert
+    expect(screen.getAllByRole('listitem')).toHaveLength(3)
+    expect(
+      screen.getByText('And 2 more due by the end of next week.'),
+    ).toBeInTheDocument()
+  })
+
   it('says the tasks failed to load rather than that there are none', () => {
     // Arrange
     mockTasks.mockReturnValue({

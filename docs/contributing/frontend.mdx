@@ -193,6 +193,21 @@ Every entity's list and detail page follows one structure — identity slot, sec
 
 See **[Record Pages](./record-pages.mdx)** before building a page for a new entity.
 
+## Home Widgets
+
+The home page is laid out from a registry: `HomeWidgets` in `src/app/_components/home/home-widgets.ts`, each entry a `HomeWidget` (`widget-registry.ts`). An entry names the component, where it sits by default, what an account needs before it applies (`requires`), and the attention tiles it contributes. A user's saved layout refers to widgets by `id`, so an id never changes once shipped.
+
+### Widget settings
+
+A widget declares what its user can change as `settings` on its registry entry (`widget-settings.ts`). The card's gear and the Customize drawer both draw their form from that list, so a widget never builds its own.
+
+- **Kinds**: `choice` (one value from a fixed list of options) and `toggle` (on or off). A new kind is added to `WidgetSetting` and drawn in `WidgetSettingsForm`.
+- **Reading a value**: the page passes each widget its values as the `settings` prop, already resolved, so every declared key is present. A widget rendered without the prop must read as its defaults; `rowsToShow(settings, DEFAULT)` does that for a row count.
+- **Rows to show**: a list widget adds `rowsSetting(ITS_LIMIT)`, with its existing limit as the default. One that asks the server for a single page asks for `MAX_ROWS` and slices, so changing the setting needs no request.
+- **Storage**: values are strings, saved with the layout in the user's preferences. Only a value that differs from its default is stored, so changing a default reaches everyone who never chose otherwise.
+- **Never rename or reuse** a setting key or an option's value: the stored value would stop matching and read as the default. A stored key the widget no longer declares, or a value it no longer offers, is ignored, so removing one is safe.
+- **The server checks size only** (`UpdateHomeLayoutRequestValidator`): how many settings a widget holds, key and value lengths, and the total across the layout. Whether a key or value means anything is the client's to decide.
+
 ## Filter Bars
 
 A filter bar is the row of small toggle buttons above a list — statuses, roles, personas. Two rules

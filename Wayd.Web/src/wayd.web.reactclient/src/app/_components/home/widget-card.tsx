@@ -1,10 +1,15 @@
 'use client'
 
 import ViewAllLink from '@/src/components/common/view-all-link'
-import { Card, Skeleton, Typography } from 'antd'
+import { SettingOutlined } from '@ant-design/icons'
+import { Button, Card, Popover, Skeleton, Typography } from 'antd'
 import Link from 'next/link'
-import { FC, ReactNode } from 'react'
+import { FC, ReactNode, useContext, useState } from 'react'
 import styles from './home.module.css'
+import WidgetSettingsForm, {
+  WidgetSettingsAccess,
+  WidgetSettingsContext,
+} from './widget-settings-form'
 
 const { Text } = Typography
 
@@ -12,8 +17,6 @@ export interface WidgetCardProps {
   title: string
   /** Where "View all" goes: the full list the widget shows the top of. */
   viewAllHref?: string
-  /** How many the full list holds, shown as "View all 23" when the widget shows fewer. */
-  viewAllCount?: number
   /** Draws a skeleton in place of the body while the widget's data loads. */
   loading?: boolean
   /**
@@ -24,32 +27,71 @@ export interface WidgetCardProps {
   children?: ReactNode
 }
 
-/** The frame every home widget sits in: a titled card, with a link to the full list. */
+/** The gear that opens a widget's settings from its card. */
+const WidgetSettingsButton: FC<WidgetSettingsAccess> = (access) => {
+  const [open, setOpen] = useState(false)
+  const label = `${access.widget.title} settings`
+  return (
+    <Popover
+      trigger="click"
+      placement="bottomRight"
+      open={open}
+      onOpenChange={setOpen}
+      // Beside the gear rather than at the end of the body, so Tab moves from
+      // the gear into the form and on to the card.
+      getPopupContainer={(trigger) => trigger.parentElement ?? document.body}
+      title={label}
+      content={<WidgetSettingsForm {...access} />}
+    >
+      <Button
+        type="text"
+        size="small"
+        icon={<SettingOutlined />}
+        aria-label={label}
+        className={`${styles.widgetSettingsButton} ${open ? styles.widgetSettingsButtonOpen : ''}`}
+      />
+    </Popover>
+  )
+}
+
+/**
+ * The frame every home widget sits in: a titled card, with a link to the full
+ * list and, for a widget that declares settings, the gear that changes them.
+ */
 const WidgetCard: FC<WidgetCardProps> = ({
   title,
   viewAllHref,
-  viewAllCount,
   loading = false,
   flush = false,
   children,
-}) => (
-  <Card
-    size="small"
-    title={title}
-    extra={
-      viewAllHref ? (
-        <ViewAllLink href={viewAllHref} count={viewAllCount} />
-      ) : undefined
-    }
-    className={flush && !loading ? styles.flushCard : undefined}
-  >
-    {loading ? (
-      <Skeleton active title={false} paragraph={{ rows: 3 }} />
-    ) : (
-      children
-    )}
-  </Card>
-)
+}) => {
+  const settings = useContext(WidgetSettingsContext)
+  const hasSettings = (settings?.widget.settings?.length ?? 0) > 0
+  return (
+    <Card
+      size="small"
+      title={title}
+      extra={
+        viewAllHref || hasSettings ? (
+          <span className={styles.widgetCardExtra}>
+            {/* Before the link, so "View all" ends at the same edge on every card. */}
+            {settings && hasSettings ? (
+              <WidgetSettingsButton {...settings} />
+            ) : null}
+            {viewAllHref ? <ViewAllLink href={viewAllHref} /> : null}
+          </span>
+        ) : undefined
+      }
+      className={`${styles.widgetCard} ${flush && !loading ? styles.flushCard : ''}`}
+    >
+      {loading ? (
+        <Skeleton active title={false} paragraph={{ rows: 3 }} />
+      ) : (
+        children
+      )}
+    </Card>
+  )
+}
 
 export interface WidgetEmptyProps {
   /** One line saying how the widget fills, never just "No data". */

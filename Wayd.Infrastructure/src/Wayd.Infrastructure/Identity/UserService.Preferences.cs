@@ -103,7 +103,13 @@ internal partial class UserService
         return new UserHomeLayoutDto
         {
             Widgets = user.Preferences?.HomeLayout?.Widgets?
-                .Select(w => new UserHomeLayoutWidgetDto { WidgetId = w.WidgetId, Column = w.Column, Visible = w.Visible })
+                .Select(w => new UserHomeLayoutWidgetDto
+                {
+                    WidgetId = w.WidgetId,
+                    Column = w.Column,
+                    Visible = w.Visible,
+                    Settings = w.Settings is null ? [] : new Dictionary<string, string>(w.Settings),
+                })
                 .ToList() ?? [],
         };
     }
@@ -123,7 +129,13 @@ internal partial class UserService
             ? null
             : new UserHomeLayout
             {
-                Widgets = [.. layout.Widgets.Select(w => new UserHomeLayoutWidget { WidgetId = w.WidgetId, Column = w.Column, Visible = w.Visible })],
+                Widgets = [.. layout.Widgets.Select(w => new UserHomeLayoutWidget
+                {
+                    WidgetId = w.WidgetId,
+                    Column = w.Column,
+                    Visible = w.Visible,
+                    Settings = w.Settings.Count == 0 ? null : new Dictionary<string, string>(w.Settings),
+                })],
             });
 
         var result = await _userManager.UpdateAsync(user);

@@ -16,6 +16,7 @@ import { Typography } from 'antd'
 import Link from 'next/link'
 import { FC } from 'react'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
+import { rowsToShow } from '../widget-settings'
 import { HomeWidgetProps } from '../widget-registry'
 import styles from '../home.module.css'
 
@@ -63,7 +64,8 @@ const Target: FC<{
  * two weeks, past target first, in the order the server gives; the rest are
  * counted, not listed.
  */
-const MyDeliverablesWidget: FC<HomeWidgetProps> = ({ title }) => {
+const MyDeliverablesWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
+  const rows = rowsToShow(settings, MY_DELIVERABLES_LIMIT)
   const {
     data: deliverables,
     isLoading,
@@ -87,11 +89,11 @@ const MyDeliverablesWidget: FC<HomeWidgetProps> = ({ title }) => {
         />
       )
     }
-    const more = soon.length - MY_DELIVERABLES_LIMIT
+    const more = soon.length - rows
     return (
       <>
         <WaydList size="small">
-          {soon.slice(0, MY_DELIVERABLES_LIMIT).map((deliverable) => (
+          {soon.slice(0, rows).map((deliverable) => (
             <WaydList.Item key={deliverable.id} className={styles.listItem}>
               <div className={styles.listItemBody}>
                 <EntityLink

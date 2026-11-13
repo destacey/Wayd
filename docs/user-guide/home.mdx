@@ -49,7 +49,7 @@ A count shows only when its widget does: without permission to view projects the
 
 ## Widgets
 
-This is each widget's usual place. Until you [customize](#customizing) the page, Wayd reorders them around your work, as [How the default is chosen](#how-the-default-is-chosen) describes.
+This is each widget's usual place. Until you [customize](#customizing) the page, Wayd reorders them around your work, as [How the default is chosen](#how-the-default-is-chosen) describes. Where a widget says how many it lists, that is its starting number: its [settings](#widget-settings) change it.
 
 ### Main column
 
@@ -85,8 +85,8 @@ This is each widget's usual place. Until you [customize](#customizing) the page,
 - **Project health checks due** — the active projects you own or manage whose [health check](./ppm/projects.mdx#project-health-checks) needs reporting: those with none current first (including one whose check expired while the page was open), then those whose current check expires within seven days, soonest first, with how many days are left. It lists up to five and says how many more there are. When every check lasts longer, it says so. Shown only to project owners and managers; an owner or manager whose projects are all still approved sees a line saying so.
 - **Deliverables I own** — the open [deliverables](./ppm/projects.mdx#project-deliverables) you are the owner of on any project, whether or not you hold a role on it, that are past their target date or due within the next 14 days: past target first, then by target date. It lists up to five, and says how many more are due in that time and how many you own that are due later or have no target date. Each shows its status, target date and project, and opens the project's deliverables.
 - **My requests** — the intake requests you asked for or submitted for someone else that are open, or that closed in the last 30 days: open ones first, each with its status, its desk, what it became and, once an outcome reports it, how far its [delivery](./demand-management/index.mdx#delivery) has got (not shown for a request that was declined, withdrawn or marked a duplicate). A project shows how many of the deliverables mapped to it are accepted, or **Met** once all are; a work item shows its status. **View all** opens My Requests, which lists all of them.
-- **My roadmaps** — the active [roadmaps](./planning/roadmaps.mdx) you are an owner of, earliest start first. Each shows its dates and visibility and opens the roadmap; one whose end date has passed is highlighted, since it needs extending or archiving. It lists up to five; **View all** opens the Roadmaps list, with how many you own when there are more. Archived roadmaps, and roadmaps you can see but do not own, are not listed. Needs permission to view roadmaps, and shown only to roadmap owners.
-- **Following** — the records you [follow](./following.mdx), most recently changed first. **View all** opens your Following list.
+- **My roadmaps** — the active [roadmaps](./planning/roadmaps.mdx) you are an owner of, earliest start first. Each shows its dates and visibility and opens the roadmap; one whose end date has passed is highlighted, since it needs extending or archiving. It lists up to five and says how many more you own; **View all** opens the Roadmaps list. Archived roadmaps, and roadmaps you can see but do not own, are not listed. Needs permission to view roadmaps, and shown only to roadmap owners.
+- **Following** — the records you [follow](./following.mdx), most recently changed first. It lists up to eight and says how many more you follow; **View all** opens your Following list.
 
 ## How the default is chosen
 
@@ -108,7 +108,8 @@ The gear (**Customize home**), at the top right beside the greeting, opens a pan
 - **Reorder** a widget by dragging its handle up or down.
 - **Move** a widget to the other column by dragging it there.
 - **Switch a widget off** with its switch, and back on the same way. A widget you switch off keeps its place in the list, so it returns where it was.
-- **Reset to default** to put every widget back where it starts and switch them all on.
+- **Change what a widget shows** by opening its row with the arrow beside its menu. See [Widget settings](#widget-settings).
+- **Reset to default** to put every widget back where it starts, switch them all on and clear every widget's settings.
 
 Each widget also has a menu (**⋯**) with **Move up**, **Move down** and **Move to side column** (or **main column**), which does the same without dragging — from the keyboard, or on a phone. With the keyboard you can also drag: focus a handle, press Space to pick the widget up, the arrow keys to move it, and Space again to drop it.
 
@@ -116,4 +117,14 @@ The page behind the panel changes as you go. Your layout is saved when you close
 
 The **Needs attention** row is not in the panel: it always stays at the top. Its counts follow the widgets they come from — switch off My project tasks and its overdue and due-this-week counts leave the row — but not their order: the row always shows the most urgent counts above zero, up to four.
 
-What the panel offers follows what you can see. A widget you gain access to after customizing (say a feature flag is turned on) appears at its usual position. One you lose access to disappears from the page and the panel, but your layout remembers it, so it comes back where you left it if your access returns.
+What the panel offers follows what you can see. A widget you gain access to after customizing (say a feature flag is turned on) appears at its usual position. One you lose access to disappears from the page and the panel, but your layout remembers it and its settings, so it comes back as you left it if your access returns.
+
+### Widget settings
+
+Some widgets let you change what they show. Such a widget has a gear at the top right of its card, which appears when you point at the card or move the keyboard focus into it and is always shown on a touch screen. The same settings are in the Customize panel: open the widget's row with the arrow beside its menu.
+
+- **Rows to show** — how many the widget lists: 3, 5, 8, 10 or 15. What's changed, My work items, My project tasks, Project health checks due, Deliverables I own, My requests, My roadmaps and Following have it. Desk queue has **Requests per list**, which sets both its Assigned to me and Participating lists. A widget still says how many more there are, and **View all** still opens the full list.
+
+A change made from a card applies and saves at once. A change made in the panel shows on the page behind it and saves with the rest of the layout when you close the panel. A widget whose settings differ from where they start is marked **Customized** in the panel, and its settings have a **Reset to default** of their own, which puts that widget back without touching the others.
+
+Settings are saved to your account with your layout. Changing a setting from a card does not fix the page's order: if you have not arranged the page, the other widgets go on following [what you are involved in](#how-the-default-is-chosen).

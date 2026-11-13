@@ -2,6 +2,7 @@
 
 import { WaydList } from '@/src/components/common'
 import EntityLink from '@/src/components/common/entity-link'
+import ExternalIconLink from '@/src/components/common/external-icon-link'
 import WorkStatusTag from '@/src/components/common/work/work-status-tag'
 import { StatusCategoryId } from '@/src/components/types'
 import { StatusCategory, WorkItemListDto } from '@/src/services/wayd-api'
@@ -9,6 +10,7 @@ import { useGetMyWorkItemsQuery } from '@/src/store/features/user-management/me-
 import { Typography } from 'antd'
 import { FC } from 'react'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
+import { rowsToShow } from '../widget-settings'
 import { HomeWidgetProps } from '../widget-registry'
 import styles from '../home.module.css'
 
@@ -56,11 +58,19 @@ const plural = (n: number, one: string, many: string) =>
 const WorkItemRow: FC<{ workItem: WorkItemListDto }> = ({ workItem }) => (
   <WaydList.Item className={styles.listItem}>
     <div className={styles.listItemBody}>
-      <EntityLink
-        href={`/work/workspaces/${workItem.workspace.key}/work-items/${workItem.key}`}
-      >
-        {workItem.key} · {workItem.title}
-      </EntityLink>
+      <span>
+        <ExternalIconLink
+          content={
+            <EntityLink
+              href={`/work/workspaces/${workItem.workspace.key}/work-items/${workItem.key}`}
+            >
+              {workItem.key} · {workItem.title}
+            </EntityLink>
+          }
+          url={workItem.externalViewWorkItemUrl}
+          tooltip="Open in external system"
+        />
+      </span>
       <span className={styles.listItemMeta}>
         <WorkStatusTag
           status={workItem.status}
@@ -81,7 +91,8 @@ const WorkItemRow: FC<{ workItem: WorkItemListDto }> = ({ workItem }) => (
  * The backlog-level work items assigned to the caller that are in progress or
  * proposed, Active first, with how many they finished in the last week.
  */
-const MyWorkItemsWidget: FC<HomeWidgetProps> = ({ title }) => {
+const MyWorkItemsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
+  const rows = rowsToShow(settings, MY_WORK_ITEMS_LIMIT)
   const open = useGetMyWorkItemsQuery({ statusCategories: OPEN_CATEGORIES })
   // The done count is extra: without it the open work still shows. Like the
   // other widgets' counts, it shows only above zero.
@@ -110,11 +121,11 @@ const MyWorkItemsWidget: FC<HomeWidgetProps> = ({ title }) => {
         </>
       )
     }
-    const more = workItems.length - MY_WORK_ITEMS_LIMIT
+    const more = workItems.length - rows
     return (
       <>
         <WaydList size="small">
-          {workItems.slice(0, MY_WORK_ITEMS_LIMIT).map((workItem) => (
+          {workItems.slice(0, rows).map((workItem) => (
             <WorkItemRow key={workItem.id} workItem={workItem} />
           ))}
         </WaydList>

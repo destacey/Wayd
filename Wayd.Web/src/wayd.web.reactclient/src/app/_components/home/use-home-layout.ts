@@ -7,7 +7,7 @@ import {
   useGetHomeLayoutQuery,
   useUpdateHomeLayoutMutation,
 } from '@/src/store/features/user-management/profile-api'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   arrangeFromLayout,
   fromSavedWidgets,
@@ -15,6 +15,8 @@ import {
   layoutToSave,
   resolveLayout,
   SavedWidget,
+  settingsChangeToSave,
+  setWidgetSettings,
   toSavedWidgets,
 } from './home-layout'
 import { involvementPlacement } from './home-involvement'
@@ -25,6 +27,7 @@ import {
   isWidgetAvailable,
   WidgetAccess,
 } from './widget-registry'
+import { resolveSettings, WidgetSettingValues } from './widget-settings'
 
 /** What the Customize drawer is editing, while it is open. */
 interface LayoutDraft {
@@ -55,6 +58,11 @@ export const useHomeLayout = () => {
   const isLoading = isSavedLoading || isContextLoading
   const [updateHomeLayout] = useUpdateHomeLayoutMutation()
   const [draft, setDraft] = useState<LayoutDraft | null>(null)
+  // The layout last sent, while any save is in flight. Each save replaces the
+  // whole layout, so the next one must build on this rather than on a cache an
+  // earlier save's refetch may have put back to what the server held then.
+  const [sending, setSending] = useState<SavedWidget[] | null>(null)
+  const savesInFlight = useRef(0)
 
   const access: WidgetAccess = {
     hasPermissionClaim,
@@ -62,7 +70,7 @@ export const useHomeLayout = () => {
     hasLinkedEmployee,
     context,
   }
-  const saved = fromSavedWidgets(data?.widgets ?? [])
+  const saved = sending ?? fromSavedWidgets(data?.widgets ?? [])
   // The default, and where a widget the saved layout lacks joins it, follow
   // what the caller is involved in; a failed context falls back to the registry's.
   const place = involvementPlacement(HomeWidgets, context)
@@ -96,6 +104,41 @@ export const useHomeLayout = () => {
       reset: true,
     })
 
+  const save = async (widgets: SavedWidget[], failure: string) => {
+    savesInFlight.current += 1
+    setSending(widgets)
+    try {
+      await updateHomeLayout({ widgets: toSavedWidgets(widgets) }).unwrap()
+    } catch {
+      messageApi.error(failure)
+    } finally {
+      savesInFlight.current -= 1
+      if (savesInFlight.current === 0) setSending(null)
+    }
+  }
+
+  // From a widget's card the change saves at once; in the drawer it joins the
+  // draft and saves with it.
+  const changeSettings = (id: string, settings: WidgetSettingValues) => {
+    const next = setWidgetSettings(layout, id, settings)
+    if (draft) return change(next)
+    return save(
+      settingsChangeToSave(next, saved, HomeWidgets, id),
+      'Your change to this widget could not be saved. Try again.',
+    )
+  }
+
+  const slots = [...layout.main, ...layout.side]
+  const storedSettings = Object.fromEntries(
+    slots.map((slot) => [slot.id, slot.settings ?? {}]),
+  )
+  const widgetSettings = Object.fromEntries(
+    HomeWidgets.map((w) => [
+      w.id,
+      resolveSettings(w.settings, storedSettings[w.id]),
+    ]),
+  )
+
   const close = async () => {
     if (!draft) return
     setDraft(null)
@@ -103,13 +146,10 @@ export const useHomeLayout = () => {
     const widgets = draft.reset
       ? []
       : layoutToSave(draft.layout, draft.basis, HomeWidgets)
-    try {
-      await updateHomeLayout({ widgets: toSavedWidgets(widgets) }).unwrap()
-    } catch {
-      messageApi.error(
-        'Your home page layout could not be saved. Open Customize to try again.',
-      )
-    }
+    await save(
+      widgets,
+      'Your home page layout could not be saved. Open Customize to try again.',
+    )
   }
 
   return {
@@ -118,6 +158,11 @@ export const useHomeLayout = () => {
     hasLinkedEmployee,
     /** True until the saved layout and the involvement it is ordered by have loaded, so the page never reshuffles in front of the user. */
     isLayoutLoading: isLoading,
+    /** Each widget's setting values in effect, by widget id. */
+    widgetSettings,
+    /** What the user changed about each shown widget's settings, by widget id. */
+    storedSettings,
+    changeSettings,
     customize: {
       canCustomize,
       isOpen: draft !== null,

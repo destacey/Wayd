@@ -5,6 +5,7 @@ import WhatsChangedWidget, {
   WHATS_CHANGED_COUNT,
 } from './whats-changed-widget'
 import { tileValueStyle } from '../attention-tile-test-utils'
+import { MAX_ROWS } from '../widget-settings'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -63,6 +64,32 @@ describe('WhatsChangedWidget', () => {
     )
   })
 
+  it.each([
+    [undefined, WHATS_CHANGED_COUNT],
+    [{ rows: '3' }, 3],
+    [{ rows: '15' }, 15],
+  ])(
+    'lists as many as its rows setting says, from one request whatever it is',
+    (settings, expected) => {
+      // Arrange
+      const items = Array.from({ length: MAX_ROWS }, (_, i) => ({
+        record: { name: `Record ${i + 1}` },
+      }))
+      mockNotifications.mockReturnValue({
+        data: { pages: [{ items }] },
+        isLoading: false,
+        isError: false,
+      })
+
+      // Act
+      render(<WhatsChangedWidget title="What's changed" settings={settings} />)
+
+      // Assert
+      expect(screen.getAllByRole('listitem')).toHaveLength(expected)
+      expect(mockNotifications).toHaveBeenCalledWith({ pageSize: MAX_ROWS })
+    },
+  )
+
   it('lists the latest notifications from the first page', () => {
     // Arrange
     mockNotifications.mockReturnValue({
@@ -79,9 +106,6 @@ describe('WhatsChangedWidget', () => {
     // Assert
     expect(screen.getByText('Apollo')).toBeInTheDocument()
     expect(screen.queryByText(/Nothing has changed/)).not.toBeInTheDocument()
-    expect(mockNotifications).toHaveBeenCalledWith({
-      pageSize: WHATS_CHANGED_COUNT,
-    })
   })
 })
 

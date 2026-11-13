@@ -2,6 +2,7 @@ import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import FollowingWidget, { FOLLOWING_COUNT } from './following-widget'
 import { FollowSort, SortDirection } from '@/src/services/wayd-api'
+import { MAX_ROWS } from '../widget-settings'
 
 vi.mock(
   import('@/src/store/features/common/follows-api'),
@@ -66,15 +67,35 @@ describe('FollowingWidget', () => {
       '/ppm/projects/P1',
     )
     expect(screen.getAllByRole('listitem')).toHaveLength(FOLLOWING_COUNT)
-    expect(screen.getByRole('link', { name: 'View all 23' })).toHaveAttribute(
+    expect(screen.getByText('And 15 more.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View all' })).toHaveAttribute(
       'href',
       '/account/following',
     )
     expect(mockFollows).toHaveBeenCalledWith({
       sort: FollowSort.LastChanged,
       direction: SortDirection.Descending,
-      pageSize: FOLLOWING_COUNT,
+      pageSize: MAX_ROWS,
     })
+  })
+
+  it('lists as many as its rows setting says, from the same request', () => {
+    // Arrange
+    const items = Array.from({ length: MAX_ROWS }, (_, i) => followed(i + 1))
+    mockFollows.mockReturnValue({
+      data: { pages: [{ items, totalCount: 23 }] },
+      isLoading: false,
+      isError: false,
+    })
+
+    // Act
+    render(<FollowingWidget title="Following" settings={{ rows: '3' }} />)
+
+    // Assert
+    expect(screen.getAllByRole('listitem')).toHaveLength(3)
+    expect(mockFollows).toHaveBeenCalledWith(
+      expect.objectContaining({ pageSize: MAX_ROWS }),
+    )
   })
 
   it('says the list failed to load rather than that nothing is followed', () => {

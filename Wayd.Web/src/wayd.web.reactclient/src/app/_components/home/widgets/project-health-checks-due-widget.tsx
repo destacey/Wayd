@@ -16,6 +16,7 @@ import { FC } from 'react'
 import AttentionTile from '../attention-tile'
 import { useHomeContext } from '../use-home-context'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
+import { rowsToShow } from '../widget-settings'
 import { HomeWidgetProps, widgetAnchorId } from '../widget-registry'
 import styles from '../home.module.css'
 
@@ -102,7 +103,11 @@ const useLedProjects = () => {
 }
 
 /** Active projects the caller owns or manages whose health check is missing, expired or expiring soon. */
-const ProjectHealthChecksDueWidget: FC<HomeWidgetProps> = ({ title }) => {
+const ProjectHealthChecksDueWidget: FC<HomeWidgetProps> = ({
+  title,
+  settings,
+}) => {
+  const rows = rowsToShow(settings, HEALTH_CHECKS_DUE_LIMIT)
   const { data: projects, isLoading, isError } = useLedProjects()
 
   const body = () => {
@@ -121,37 +126,33 @@ const ProjectHealthChecksDueWidget: FC<HomeWidgetProps> = ({ title }) => {
         />
       )
     }
-    const more = due.length - HEALTH_CHECKS_DUE_LIMIT
+    const more = due.length - rows
     return (
       <>
         <WaydList size="small">
-          {due
-            .slice(0, HEALTH_CHECKS_DUE_LIMIT)
-            .map(({ project, expiresInDays }) => (
-              <WaydList.Item key={project.id} className={styles.listItem}>
-                <div className={styles.listItemBody}>
-                  <EntityLink href={`/ppm/projects/${project.key}`}>
-                    {project.key} · {project.name}
-                  </EntityLink>
-                  <span className={styles.listItemMeta}>
-                    {expiresInDays === undefined ? (
-                      <Text type="danger">
-                        {project.healthCheck
-                          ? 'Health check expired'
-                          : 'No current health check'}
-                      </Text>
-                    ) : (
-                      <>
-                        <HealthCheckTag healthCheck={project.healthCheck} />
-                        <Text type="warning">
-                          {expiresLabel(expiresInDays)}
-                        </Text>
-                      </>
-                    )}
-                  </span>
-                </div>
-              </WaydList.Item>
-            ))}
+          {due.slice(0, rows).map(({ project, expiresInDays }) => (
+            <WaydList.Item key={project.id} className={styles.listItem}>
+              <div className={styles.listItemBody}>
+                <EntityLink href={`/ppm/projects/${project.key}`}>
+                  {project.key} · {project.name}
+                </EntityLink>
+                <span className={styles.listItemMeta}>
+                  {expiresInDays === undefined ? (
+                    <Text type="danger">
+                      {project.healthCheck
+                        ? 'Health check expired'
+                        : 'No current health check'}
+                    </Text>
+                  ) : (
+                    <>
+                      <HealthCheckTag healthCheck={project.healthCheck} />
+                      <Text type="warning">{expiresLabel(expiresInDays)}</Text>
+                    </>
+                  )}
+                </span>
+              </div>
+            </WaydList.Item>
+          ))}
         </WaydList>
         {more > 0 ? (
           <Text type="secondary" className={styles.widgetEmpty}>

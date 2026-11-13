@@ -8854,65 +8854,6 @@ export class ProfileClient {
         }
         return Promise.resolve<void>(null as any);
     }
-
-    /**
-     * Get audit logs of currently logged in user.
-     * @return OK
-     */
-    getLogs( cancelToken?: CancelToken): Promise<AuditDto[]> {
-        let url_ = this.baseUrl + "/api/user-management/profiles/logs";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_: AxiosRequestConfig = {
-            method: "GET",
-            url: url_,
-            headers: {
-                "Accept": "application/json"
-            },
-            cancelToken
-        };
-
-        return this.instance.request(options_).catch((_error: any) => {
-            if (isAxiosError(_error) && _error.response) {
-                return _error.response;
-            } else {
-                throw _error;
-            }
-        }).then((_response: AxiosResponse) => {
-            return this.processGetLogs(_response);
-        });
-    }
-
-    protected processGetLogs(response: AxiosResponse): Promise<AuditDto[]> {
-        const status = response.status;
-        let _headers: any = {};
-        if (response.headers && typeof response.headers === "object") {
-            for (const k in response.headers) {
-                if (response.headers.hasOwnProperty(k)) {
-                    _headers[k] = response.headers[k];
-                }
-            }
-        }
-        if (status === 200) {
-            const _responseText = response.data;
-            let result200: any = null;
-            let resultData200  = _responseText;
-            result200 = resultData200;
-            return Promise.resolve<AuditDto[]>(result200);
-
-        } else if (status === 400) {
-            const _responseText = response.data;
-            let result400: any = null;
-            let resultData400  = _responseText;
-            result400 = resultData400;
-            return throwException("Bad Request", status, _responseText, _headers, result400);
-
-        } else if (status !== 200 && status !== 204) {
-            const _responseText = response.data;
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-        }
-        return Promise.resolve<AuditDto[]>(null as any);
-    }
 }
 
 export class RolesClient {
@@ -64351,18 +64292,6 @@ export enum AttentionStatus {
     OnTrack = "OnTrack",
     Watch = "Watch",
     NeedsAttention = "NeedsAttention",
-}
-
-export interface AuditDto {
-    id: string;
-    userId: string;
-    type?: string | undefined;
-    tableName?: string | undefined;
-    dateTime: Date;
-    oldValues?: string | undefined;
-    newValues?: string | undefined;
-    affectedColumns?: string | undefined;
-    primaryKey?: string | undefined;
 }
 
 /** Which authentication options are enabled on this deployment: whether local sign-in is available, and the OIDC providers a client can sign in through. Available without authentication. */

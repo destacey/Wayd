@@ -5,7 +5,6 @@ global using Wayd.AppIntegration.Application.Connections.Dtos;
 global using Wayd.AppIntegration.Application.Connections.Queries;
 global using Wayd.AppIntegration.Application.Connectors.Dtos;
 global using Wayd.AppIntegration.Application.Connectors.Queries;
-global using Wayd.Common.Application.Auditing;
 global using Wayd.Common.Application.Imports.Dtos;
 global using Wayd.Common.Application.Identity.Roles;
 global using Wayd.Common.Application.Identity.Users;

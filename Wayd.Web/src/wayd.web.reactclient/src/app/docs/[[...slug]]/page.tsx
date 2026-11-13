@@ -1,10 +1,5 @@
 import { notFound } from 'next/navigation'
-import { serialize } from 'next-mdx-remote/serialize'
-import remarkGfm from 'remark-gfm'
-import remarkDirective from 'remark-directive'
-import remarkDocsAdmonitions from '@/src/lib/remark-docs-admonitions'
-import remarkDocsLinks from '@/src/lib/remark-docs-links'
-import { getDocBySlug, getAllDocSlugs } from '@/src/services/docs'
+import { getDocBySlug } from '@/src/services/docs'
 import DocsPageContent from '../docs-page-content'
 
 interface DocsPageProps {
@@ -46,31 +41,7 @@ export default async function DocsPage({ params }: DocsPageProps) {
     ? (slug.length === 0 ? ['index'] : [...slug, 'index'])
     : slug
 
-  const mdxSource = await serialize(doc.content, {
-    mdxOptions: {
-      remarkPlugins: [
-        remarkGfm,
-        remarkDirective,
-        remarkDocsAdmonitions,
-        [remarkDocsLinks, { slug: fileSlug, basePath: '/docs' }],
-      ],
-    },
-  })
-
-  return (
-    <DocsPageContent
-      title={doc.frontmatter.title}
-      description={doc.frontmatter.description}
-      mdxSource={mdxSource}
-    />
-  )
-}
-
-export async function generateStaticParams() {
-  const slugs = getAllDocSlugs()
-  return slugs.map((slug) => ({
-    slug: slug.length === 0 ? undefined : slug,
-  }))
+  return <DocsPageContent content={doc.content} fileSlug={fileSlug} />
 }
 
 export async function generateMetadata({ params }: DocsPageProps) {

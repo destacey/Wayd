@@ -5,6 +5,7 @@ using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.DemandManagement;
 using Wayd.Common.Domain.Scoring.Enums;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.Common.Domain.Tests.Data;
 using Wayd.DemandManagement.Domain.Models;
 using Wayd.DemandManagement.Domain.Tests.Data;
@@ -1000,7 +1001,7 @@ public sealed class IntakeDeskTests
         var revision = sut.Revision;
 
         // Act
-        var result = sut.ChangeEstimationScale(scale, null, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeEstimationScale(scale, null, [], ScaleChangeEstimateHandling.Keep, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1026,7 +1027,7 @@ public sealed class IntakeDeskTests
         var sut = new IntakeDeskFaker().WithEstimationScaleVersion(from.CurrentVersion).Generate();
 
         // Act
-        var result = sut.ChangeEstimationScale(to, from, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeEstimationScale(to, from, [], ScaleChangeEstimateHandling.Keep, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1050,7 +1051,7 @@ public sealed class IntakeDeskTests
         var newer = scale.PublishNext();
 
         // Act
-        var result = sut.ChangeEstimationScale(scale, scale, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeEstimationScale(scale, scale, [], ScaleChangeEstimateHandling.Keep, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1068,7 +1069,7 @@ public sealed class IntakeDeskTests
         var sut = new IntakeDeskFaker().WithEstimationScaleVersion(from.CurrentVersion).Generate();
 
         // Act
-        var result = sut.ChangeEstimationScale(null, from, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeEstimationScale(null, from, [], ScaleChangeEstimateHandling.Keep, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1085,15 +1086,18 @@ public sealed class IntakeDeskTests
         // Arrange
         var scale = DemandEstimationScaleFactory.Create();
         var sut = new IntakeDeskFaker().WithEstimationScaleVersion(scale.CurrentVersion).Generate();
+        var request = new IntakeRequestFaker().WithDeskId(sut.Id).WithEstimate(scale, "M").Generate();
         var revision = sut.Revision;
 
         // Act
-        var result = sut.ChangeEstimationScale(scale, scale, hasEstimatedOpenRequests: true, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeEstimationScale(scale, scale, [request], ScaleChangeEstimateHandling.Clear, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         sut.Revision.Should().Be(revision);
         sut.DomainEvents.Should().BeEmpty();
+        request.Estimate.Should().NotBeNull();
+        request.DomainEvents.Should().BeEmpty();
     }
 
     [Fact]
@@ -1104,7 +1108,7 @@ public sealed class IntakeDeskTests
         var sut = new IntakeDeskFaker().WithEstimationScaleVersion(scale.CurrentVersion).Generate();
 
         // Act
-        var result = sut.ChangeEstimationScale(scale, scale, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeEstimationScale(scale, scale, [], ScaleChangeEstimateHandling.Keep, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1120,7 +1124,7 @@ public sealed class IntakeDeskTests
         var sut = new IntakeDeskFaker().Generate();
 
         // Act
-        var result = sut.ChangeEstimationScale(scale, null, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeEstimationScale(scale, null, [], ScaleChangeEstimateHandling.Keep, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1130,7 +1134,58 @@ public sealed class IntakeDeskTests
     }
 
     [Fact]
-    public void ChangeEstimationScale_WhileOpenRequestsHaveEstimates_FailsAndChangesNothing()
+    public void ChangeEstimationScale_KeepingOpenEstimates_LeavesEachOnItsVersionAndRecordsTheDecision()
+    {
+        // Arrange
+        var from = DemandEstimationScaleFactory.Create();
+        var to = DemandEstimationScaleFactory.Create();
+        var sut = new IntakeDeskFaker().WithEstimationScaleVersion(from.CurrentVersion).Generate();
+        var request = new IntakeRequestFaker().WithDeskId(sut.Id).WithEstimate(from, "M").Generate();
+
+        // Act
+        var result = sut.ChangeEstimationScale(to, from, [request], ScaleChangeEstimateHandling.Keep, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.EstimationScaleVersionId.Should().Be(to.CurrentVersion.Id);
+        request.Estimate!.ScaleVersionId.Should().Be(from.CurrentVersion.Id);
+        request.DomainEvents.Should().BeEmpty();
+        sut.DomainEvents.OfType<IntakeDeskEstimationScaleChangedEvent>().Should().ContainSingle()
+            .Which.OpenEstimates.Should().Be(ScaleChangeEstimateHandling.Keep);
+    }
+
+    [Fact]
+    public void ChangeEstimationScale_ClearingOpenEstimates_ClearsEveryOneWhateverItsVersion()
+    {
+        // Arrange
+        var scale = DemandEstimationScaleFactory.Create();
+        var older = DemandEstimationScaleFactory.Create();
+        var sut = new IntakeDeskFaker().WithEstimationScaleVersion(scale.CurrentVersion).Generate();
+        var onPinned = new IntakeRequestFaker().WithDeskId(sut.Id).WithEstimate(scale, "M").Generate();
+        var onOlder = new IntakeRequestFaker().WithDeskId(sut.Id).WithEstimate(older, "S").Generate();
+        var newer = scale.PublishNext();
+
+        // Act
+        var result = sut.ChangeEstimationScale(scale, scale, [onPinned, onOlder], ScaleChangeEstimateHandling.Clear,
+            EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        sut.EstimationScaleVersionId.Should().Be(newer.Id);
+        sut.DomainEvents.OfType<IntakeDeskEstimationScaleChangedEvent>().Should().ContainSingle()
+            .Which.OpenEstimates.Should().Be(ScaleChangeEstimateHandling.Clear);
+        foreach (var request in new[] { onPinned, onOlder })
+        {
+            request.Estimate.Should().BeNull();
+            var cleared = request.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Should().ContainSingle().Subject;
+            cleared.From.Should().NotBeNull();
+            cleared.To.Should().BeNull();
+            cleared.Source.Should().Be(IntakeRequestEstimateSource.ScaleChange);
+        }
+    }
+
+    [Fact]
+    public void ChangeEstimationScale_WithNoEstimatedOpenRequests_RecordsNoDecision()
     {
         // Arrange
         var from = DemandEstimationScaleFactory.Create();
@@ -1138,13 +1193,44 @@ public sealed class IntakeDeskTests
         var sut = new IntakeDeskFaker().WithEstimationScaleVersion(from.CurrentVersion).Generate();
 
         // Act
-        var result = sut.ChangeEstimationScale(to, from, hasEstimatedOpenRequests: true, EventActor.System, _dateTimeProvider.Now);
+        var result = sut.ChangeEstimationScale(to, from, [], ScaleChangeEstimateHandling.Clear, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(IntakeDesk.EstimatedOpenRequestsError);
-        sut.EstimationScaleVersionId.Should().Be(from.CurrentVersion.Id);
-        sut.DomainEvents.Should().BeEmpty();
+        result.IsSuccess.Should().BeTrue();
+        sut.DomainEvents.OfType<IntakeDeskEstimationScaleChangedEvent>().Should().ContainSingle()
+            .Which.OpenEstimates.Should().BeNull();
+    }
+
+    [Fact]
+    public void ChangeEstimationScale_WithAClosedRequest_Throws()
+    {
+        // Arrange
+        var from = DemandEstimationScaleFactory.Create();
+        var to = DemandEstimationScaleFactory.Create();
+        var sut = new IntakeDeskFaker().WithEstimationScaleVersion(from.CurrentVersion).Generate();
+        var done = new IntakeRequestFaker().WithDeskId(sut.Id).WithEstimate(from, "M")
+            .InStatus(StatusCategory.Done, IntakeRequestStatusAlias.Fulfilled).Generate();
+
+        // Act
+        var act = () => sut.ChangeEstimationScale(to, from, [done], ScaleChangeEstimateHandling.Clear, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void ChangeEstimationScale_WithAnotherDesksRequest_Throws()
+    {
+        // Arrange
+        var from = DemandEstimationScaleFactory.Create();
+        var sut = new IntakeDeskFaker().WithEstimationScaleVersion(from.CurrentVersion).Generate();
+        var elsewhere = new IntakeRequestFaker().WithEstimate(from, "M").Generate();
+
+        // Act
+        var act = () => sut.ChangeEstimationScale(null, from, [elsewhere], ScaleChangeEstimateHandling.Clear, EventActor.System, _dateTimeProvider.Now);
+
+        // Assert
+        act.Should().Throw<ArgumentException>();
     }
 
     [Fact]
@@ -1156,7 +1242,7 @@ public sealed class IntakeDeskTests
         var sut = new IntakeDeskFaker().WithEstimationScaleVersion(pinned.CurrentVersion).Generate();
 
         // Act
-        var act = () => sut.ChangeEstimationScale(null, other, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+        var act = () => sut.ChangeEstimationScale(null, other, [], ScaleChangeEstimateHandling.Keep, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         act.Should().Throw<ArgumentException>();
@@ -1170,7 +1256,7 @@ public sealed class IntakeDeskTests
         var sut = new IntakeDeskFaker().Generate();
 
         // Act
-        var act = () => sut.ChangeEstimationScale(null, scale, hasEstimatedOpenRequests: false, EventActor.System, _dateTimeProvider.Now);
+        var act = () => sut.ChangeEstimationScale(null, scale, [], ScaleChangeEstimateHandling.Keep, EventActor.System, _dateTimeProvider.Now);
 
         // Assert
         act.Should().Throw<ArgumentException>();

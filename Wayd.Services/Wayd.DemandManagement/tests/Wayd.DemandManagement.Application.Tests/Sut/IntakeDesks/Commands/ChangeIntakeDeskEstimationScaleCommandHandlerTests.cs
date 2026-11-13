@@ -18,6 +18,17 @@ public sealed class ChangeIntakeDeskEstimationScaleCommandHandlerTests
         new(_scenario.DbContext, _scenario.Principal.Object, _scenario.User.Object, _scenario.Clock);
 
     [Fact]
+    public void Validator_WithAnUnknownOpenEstimatesChoice_Fails()
+    {
+        // Act
+        var result = new ChangeIntakeDeskEstimationScaleCommandValidator().Validate(
+            new ChangeIntakeDeskEstimationScaleCommand(Guid.NewGuid(), null, (ScaleChangeEstimateHandling)99));
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Handle_ByADeskAdmin_PinsTheScalesCurrentVersion()
     {
         // Arrange
@@ -60,13 +71,13 @@ public sealed class ChangeIntakeDeskEstimationScaleCommandHandlerTests
     }
 
     [Fact]
-    public async Task Handle_WhileAnOpenRequestHasAnEstimate_FailsAndSavesNothing()
+    public async Task Handle_WhileAnOpenRequestHasAnEstimate_KeepsItByDefault()
     {
         // Arrange
         var deskAdmin = _scenario.Employee();
         var from = _scenario.EstimationScale();
         var desk = _scenario.EstimatesOn(_scenario.DeskAdministeredBy(deskAdmin.Id), from);
-        _scenario.Estimated(_scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Active), desk, "M");
+        var open = _scenario.Estimated(_scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Active), desk, "M");
         var to = _scenario.EstimationScale("Other");
         _scenario.SignedInAs(deskAdmin);
 
@@ -74,10 +85,40 @@ public sealed class ChangeIntakeDeskEstimationScaleCommandHandlerTests
         var result = await CreateHandler().Handle(new ChangeIntakeDeskEstimationScaleCommand(desk.Id, to.Id), TestContext.Current.CancellationToken);
 
         // Assert
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().Be(IntakeDesk.EstimatedOpenRequestsError);
-        desk.EstimationScaleVersionId.Should().Be(from.CurrentVersion.Id);
-        _scenario.DbContext.SaveChangesCallCount.Should().Be(0);
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        desk.EstimationScaleVersionId.Should().Be(to.CurrentVersion.Id);
+        open.Estimate!.ScaleVersionId.Should().Be(from.CurrentVersion.Id);
+        desk.DomainEvents.OfType<IntakeDeskEstimationScaleChangedEvent>().Should().ContainSingle()
+            .Which.OpenEstimates.Should().Be(ScaleChangeEstimateHandling.Keep);
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ClearingOpenEstimates_ClearsOpenRequestsAndKeepsClosedOnes()
+    {
+        // Arrange
+        var deskAdmin = _scenario.Employee();
+        var from = _scenario.EstimationScale();
+        var desk = _scenario.EstimatesOn(_scenario.DeskAdministeredBy(deskAdmin.Id), from);
+        var open = _scenario.Estimated(_scenario.RequestIn(desk, _scenario.Employee(), StatusCategory.Active), desk, "M");
+        var done = new IntakeRequestFaker().WithDeskId(desk.Id).InStatus(StatusCategory.Done)
+            .WithEstimate(from, "L").Generate();
+        _scenario.DbContext.AddRequests(done);
+        var to = _scenario.EstimationScale("Other");
+        _scenario.SignedInAs(deskAdmin);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new ChangeIntakeDeskEstimationScaleCommand(desk.Id, to.Id, ScaleChangeEstimateHandling.Clear), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        open.Estimate.Should().BeNull();
+        open.DomainEvents.OfType<IntakeRequestEstimateChangedEvent>().Should().ContainSingle()
+            .Which.Source.Should().Be(IntakeRequestEstimateSource.ScaleChange);
+        done.Estimate!.ScaleVersionId.Should().Be(from.CurrentVersion.Id);
+        done.DomainEvents.Should().BeEmpty();
+        _scenario.DbContext.SaveChangesCallCount.Should().Be(1);
     }
 
     [Fact]

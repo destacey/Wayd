@@ -457,7 +457,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
             var scale = new DemandEstimationScale(new EstimationScaleSnapshot(Guid.NewGuid(), 3, UniqueName("Sizes"), true, [version]), Now);
             arrange.DemandEstimationScales.Add(scale);
             var desk = await arrange.IntakeDesks.SingleAsync(d => d.Id == scenario.Private.Id, ct);
-            desk.ChangeEstimationScale(scale, null, hasEstimatedOpenRequests: false, EventActor.System, Now).IsSuccess.Should().BeTrue();
+            desk.ChangeEstimationScale(scale, null, [], ScaleChangeEstimateHandling.Keep, EventActor.System, Now).IsSuccess.Should().BeTrue();
             var request = await arrange.IntakeRequests.SingleAsync(r => r.Id == scenario.OnPrivate.Id, ct);
             request.ChangeAssignee(scenario.Agent.Id, EventActor.System, Now).IsSuccess.Should().BeTrue();
             request.ChangeEstimate("S", desk, scale, IntakeRequestEstimateSource.Manual, IntakeRequestEditor.System, Now)

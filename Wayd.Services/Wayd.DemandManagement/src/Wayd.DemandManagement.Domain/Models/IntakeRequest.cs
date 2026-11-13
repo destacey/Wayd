@@ -1097,6 +1097,21 @@ public sealed class IntakeRequest : StatusTrackedEntity, IHasIdAndKey
         return Result.Success();
     }
 
+    /// <summary>
+    /// Clears the estimate of an open request because its desk changed estimation scale and chose to clear them.
+    /// </summary>
+    /// <remarks>
+    /// Only <see cref="IntakeDesk.ChangeEstimationScale"/> calls it, so the desk's decision and the clears it causes
+    /// are one change.
+    /// </remarks>
+    internal void ClearEstimateForScaleChange(EventActor actor, Instant timestamp)
+    {
+        if (!IsOpen || Estimate is null)
+            return;
+
+        SetEstimate(null, IntakeRequestEstimateSource.ScaleChange, actor, timestamp);
+    }
+
     private void SetEstimate(IntakeRequestEstimate? to, IntakeRequestEstimateSource source, EventActor actor, Instant timestamp)
     {
         var from = Estimate?.ToDetails();

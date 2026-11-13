@@ -95068,11 +95068,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the estimation scale a desk's requests are estimated on.
         /// </summary>
         /// <remarks>
-        /// Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while an open request on the desk has an estimate on the version the desk pins now; estimates on an earlier version, and on closed requests, keep their version and do not block it. A desk changed meanwhile answers 409.
+        /// Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version, and changes nothing when it is already there. A null `estimationScaleId` stops estimating the desk's requests. `openEstimates` decides once for every open request with an estimate, on whatever version: `Keep` (the default) leaves each on the version it was given on until it is re-estimated, and new estimates use the new version; `Clear` clears every one, each recorded as a change of its estimate. Preview them first with the open estimates endpoint. Done and Removed requests keep their estimates either way. A desk changed meanwhile answers 409.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ChangeEstimationScaleAsync(System.Guid id, ChangeIntakeDeskEstimationScaleRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the estimates on a desk's open requests, counted by value and by scale version.
+        /// </summary>
+        /// <remarks>
+        /// What changing the desk's estimation scale would keep or clear: each estimate value with the scale version it was given on and how many open requests carry it, ordered by scale, version and size. Done and Removed requests are left out, since a change never touches their estimates. Empty when no open request has an estimate. Needs a Desk Admin on the desk or the Demand Management Admin. Nothing changes.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeDeskOpenEstimateCountDto>> GetOpenEstimatesAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -96248,7 +96259,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Set the estimation scale a desk's requests are estimated on.
         /// </summary>
         /// <remarks>
-        /// Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while an open request on the desk has an estimate on the version the desk pins now; estimates on an earlier version, and on closed requests, keep their version and do not block it. A desk changed meanwhile answers 409.
+        /// Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version, and changes nothing when it is already there. A null `estimationScaleId` stops estimating the desk's requests. `openEstimates` decides once for every open request with an estimate, on whatever version: `Keep` (the default) leaves each on the version it was given on until it is re-estimated, and new estimates use the new version; `Clear` clears every one, each recorded as a change of its estimate. Preview them first with the open estimates endpoint. Done and Removed requests keep their estimates either way. A desk changed meanwhile answers 409.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -96345,6 +96356,108 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<HttpValidationProblemDetails>("Unprocessable Entity", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Get the estimates on a desk's open requests, counted by value and by scale version.
+        /// </summary>
+        /// <remarks>
+        /// What changing the desk's estimation scale would keep or clear: each estimate value with the scale version it was given on and how many open requests carry it, ordered by scale, version and size. Done and Removed requests are left out, since a change never touches their estimates. Empty when no open request has an estimate. Needs a Desk Admin on the desk or the Demand Management Admin. Nothing changes.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<IntakeDeskOpenEstimateCountDto>> GetOpenEstimatesAsync(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            if (id == null)
+                throw new System.ArgumentNullException("id");
+
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/demand-management/intake-desks/{id}/open-estimates"
+                    urlBuilder_.Append("api/demand-management/intake-desks/");
+                    urlBuilder_.Append(System.Uri.EscapeDataString(ConvertToString(id, System.Globalization.CultureInfo.InvariantCulture)));
+                    urlBuilder_.Append("/open-estimates");
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<System.Collections.Generic.ICollection<IntakeDeskOpenEstimateCountDto>>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
+                        }
+                        else
+                        if (status_ == 400)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 404)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Not Found", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         {
@@ -118630,6 +118743,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("estimationScaleId")]
         public System.Guid? EstimationScaleId { get; set; } = default!;
 
+        /// <summary>
+        /// What happens to the estimates on the desk's open requests, on whatever version each was given: `Keep` (the
+        /// <br/>default) leaves each on its version until it is re-estimated, `Clear` clears every one. Done and Removed
+        /// <br/>requests keep theirs either way.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("openEstimates")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ScaleChangeEstimateHandling>))]
+        public ScaleChangeEstimateHandling OpenEstimates { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -128770,6 +128893,42 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IntakeDeskRole>))]
         public IntakeDeskRole Role { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// How many of a desk's open requests carry one estimate value on one scale version: what a change of the desk's
+    /// <br/>estimation scale keeps or clears.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IntakeDeskOpenEstimateCountDto
+    {
+
+        /// <summary>
+        /// The estimate value, such as `M` or `8`.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Value { get; set; } = default!;
+
+        /// <summary>
+        /// Where the value sits among its version's values, from 0. Compares only with other values on the same version.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("position")]
+        public int Position { get; set; } = default!;
+
+        /// <summary>
+        /// The scale and version the estimates were given on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scale")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public EstimationScaleVersionNavigationDto Scale { get; set; } = new EstimationScaleVersionNavigationDto();
+
+        /// <summary>
+        /// How many open requests on the desk carry this estimate.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("requestCount")]
+        public int RequestCount { get; set; } = default!;
 
     }
 
@@ -139954,6 +140113,18 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("mentionsGrantAccess")]
         public bool MentionsGrantAccess { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public enum ScaleChangeEstimateHandling
+    {
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Keep")]
+        Keep = 0,
+
+        [System.Runtime.Serialization.EnumMember(Value = @"Clear")]
+        Clear = 1,
 
     }
 

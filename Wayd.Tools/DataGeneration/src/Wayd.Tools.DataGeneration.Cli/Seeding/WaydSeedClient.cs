@@ -440,7 +440,7 @@ public sealed class WaydSeedClient : IDisposable
                 try
                 {
                     await _intakeDesksClient.ChangeEstimationScaleAsync(plan.DeskId,
-                        new ChangeIntakeDeskEstimationScaleRequest { EstimationScaleId = scaleId }, cancellationToken);
+                        new ChangeIntakeDeskEstimationScaleRequest { EstimationScaleId = scaleId, OpenEstimates = ScaleChangeEstimateHandling.Keep }, cancellationToken);
                 }
                 catch (WaydApiException e) when (e.StatusCode is 400 or 409)
                 {

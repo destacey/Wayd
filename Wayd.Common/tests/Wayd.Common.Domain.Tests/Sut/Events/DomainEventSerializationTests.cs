@@ -2663,7 +2663,7 @@ public sealed class DomainEventSerializationTests
         // Arrange - a desk moving from no scale to a pinned version.
         var original = new IntakeDeskEstimationScaleChangedEvent(
             Guid.NewGuid(), 3, null, null, null, null, Guid.NewGuid(), "Fibonacci", Guid.NewGuid(), 4,
-            EventActor.System, Instant.FromUtc(2026, 1, 2, 12, 0, 0));
+            ScaleChangeEstimateHandling.Clear, EventActor.System, Instant.FromUtc(2026, 1, 2, 12, 0, 0));
 
         // Act
         var roundTripped = RoundTrip(original);
@@ -2675,5 +2675,39 @@ public sealed class DomainEventSerializationTests
         roundTripped.ToScaleName.Should().Be("Fibonacci");
         roundTripped.ToScaleVersionId.Should().Be(original.ToScaleVersionId);
         roundTripped.ToScaleVersionNumber.Should().Be(4);
+        roundTripped.OpenEstimates.Should().Be(ScaleChangeEstimateHandling.Clear);
+    }
+
+    [Fact]
+    public void IntakeDeskEstimationScaleChangedEvent_PayloadWrittenBeforeOpenEstimates_StillDeserializes()
+    {
+        // Arrange — the 1.0 shape: no decision for open estimates
+        var payload = """
+            {
+              "Id": "019f2a10-0000-7000-8000-000000000011",
+              "Key": 3,
+              "FromScaleId": null,
+              "FromScaleName": null,
+              "FromScaleVersionId": null,
+              "FromScaleVersionNumber": null,
+              "ToScaleId": "019f2a10-0000-7000-8000-000000000012",
+              "ToScaleName": "Fibonacci",
+              "ToScaleVersionId": "019f2a10-0000-7000-8000-000000000013",
+              "ToScaleVersionNumber": 1,
+              "Timestamp": "2026-03-01T12:00:00Z",
+              "EventId": "019f2a10-0000-7000-8000-000000000014",
+              "Actor": { "Kind": 1, "UserId": null, "EmployeeId": null },
+              "EventVersion": "1.0"
+            }
+            """;
+
+        // Act
+        var restored = JsonSerializer.Deserialize<IntakeDeskEstimationScaleChangedEvent>(payload, Options);
+
+        // Assert
+        restored.Should().NotBeNull();
+        restored!.ToScaleName.Should().Be("Fibonacci");
+        restored.OpenEstimates.Should().BeNull();
+        restored.EventVersion.Should().Be("1.0");
     }
 }

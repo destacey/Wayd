@@ -181,14 +181,30 @@ public class IntakeDesksController(IDispatcher dispatcher) : ControllerBase
     [Authorize]
     [McpTool("IntakeDesks_ChangeEstimationScale", "Change intake desk estimation scale")]
     [EndpointSummary("Set the estimation scale a desk's requests are estimated on.")]
-    [EndpointDescription("Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version. A null `estimationScaleId` stops estimating the desk's requests. Refused while an open request on the desk has an estimate on the version the desk pins now; estimates on an earlier version, and on closed requests, keep their version and do not block it. A desk changed meanwhile answers 409.")]
+    [EndpointDescription("Needs a Desk Admin on the desk or the Demand Management Admin. The scale must be active, and the desk is pinned to its current version; choosing the scale the desk already uses moves it to that version, and changes nothing when it is already there. A null `estimationScaleId` stops estimating the desk's requests. `openEstimates` decides once for every open request with an estimate, on whatever version: `Keep` (the default) leaves each on the version it was given on until it is re-estimated, and new estimates use the new version; `Clear` clears every one, each recorded as a change of its estimate. Preview them first with the open estimates endpoint. Done and Removed requests keep their estimates either way. A desk changed meanwhile answers 409.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<ActionResult> ChangeEstimationScale(Guid id, [FromBody] ChangeIntakeDeskEstimationScaleRequest request, CancellationToken cancellationToken) =>
-        NoContentOrError(await _dispatcher.Send(new ChangeIntakeDeskEstimationScaleCommand(id, request.EstimationScaleId), cancellationToken));
+        NoContentOrError(await _dispatcher.Send(new ChangeIntakeDeskEstimationScaleCommand(id, request.EstimationScaleId, request.OpenEstimates), cancellationToken));
+
+    [HttpGet("{id}/open-estimates")]
+    [Authorize]
+    [McpTool("IntakeDesks_GetOpenEstimates", "Get intake desk open estimates")]
+    [EndpointSummary("Get the estimates on a desk's open requests, counted by value and by scale version.")]
+    [EndpointDescription("What changing the desk's estimation scale would keep or clear: each estimate value with the scale version it was given on and how many open requests carry it, ordered by scale, version and size. Done and Removed requests are left out, since a change never touches their estimates. Empty when no open request has an estimate. Needs a Desk Admin on the desk or the Demand Management Admin. Nothing changes.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IEnumerable<IntakeDeskOpenEstimateCountDto>>> GetOpenEstimates(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _dispatcher.Send(new GetIntakeDeskOpenEstimatesQuery(id), cancellationToken);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : ErrorFor(result.Error);
+    }
 
     [HttpGet("estimation-scale-choices")]
     [Authorize]

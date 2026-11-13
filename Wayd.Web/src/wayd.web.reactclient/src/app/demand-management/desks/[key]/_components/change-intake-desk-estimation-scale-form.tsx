@@ -89,7 +89,8 @@ const ChangeIntakeDeskEstimationScaleForm: FC<
   // Choosing the pinned scale again moves the desk only when the scale has a newer version.
   const moves =
     chosenId !== current?.id ||
-    (current !== undefined && !current.isCurrentVersion)
+    // Loose, since a desk with no scale arrives from the API with null rather than nothing.
+    (current != null && !current.isCurrentVersion)
   const estimated = openEstimates ?? []
   const estimatedRequestCount = estimated.reduce(
     (total, c) => total + c.requestCount,

@@ -76,13 +76,16 @@ const renderForm = async (estimationScale?: {
           {
             id: 'd-1',
             name: 'IT',
-            estimationScale: estimationScale && {
-              key: 9,
-              versionId: 'v-9',
-              versionNumber: 1,
-              isCurrentVersion: true,
-              ...estimationScale,
-            },
+            // Null, as the API sends a desk with no scale, rather than leaving the property out.
+            estimationScale: estimationScale
+              ? {
+                  key: 9,
+                  versionId: 'v-9',
+                  versionNumber: 1,
+                  isCurrentVersion: true,
+                  ...estimationScale,
+                }
+              : null,
           } as any
         }
         onFormComplete={vi.fn()}

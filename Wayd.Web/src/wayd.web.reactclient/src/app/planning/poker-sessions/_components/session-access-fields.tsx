@@ -17,8 +17,8 @@ export interface SessionAccessValues {
   invitedTeamIds: string[]
 }
 
-const visibilityOptions = [
-  { label: 'Public', value: Visibility.Public },
+const visibilityOptions = (alwaysPrivate: boolean) => [
+  { label: 'Public', value: Visibility.Public, disabled: alwaysPrivate },
   { label: 'Private', value: Visibility.Private },
 ]
 
@@ -33,6 +33,11 @@ export interface SessionAccessFieldsProps {
    * the facilitators and so lose the ability to run the session.
    */
   selfEmployeeId?: string
+  /**
+   * The session belongs to another area of Wayd, such as an intake desk,
+   * which keeps it private.
+   */
+  alwaysPrivate?: boolean
 }
 
 /**
@@ -42,6 +47,7 @@ export interface SessionAccessFieldsProps {
 const SessionAccessFields: FC<SessionAccessFieldsProps> = ({
   requiredFacilitatorId,
   selfEmployeeId,
+  alwaysPrivate = false,
 }) => {
   const form = useFormInstance()
   const visibility = useWatch('visibility', form)
@@ -89,13 +95,15 @@ const SessionAccessFields: FC<SessionAccessFieldsProps> = ({
         label="Visibility"
         rules={[{ required: true }]}
         extra={
-          visibility === Visibility.Private
-            ? 'Only facilitators and the people and teams invited can see and join.'
-            : 'Anyone who can view Planning Poker can see and join.'
+          alwaysPrivate
+            ? 'This session belongs to another area of Wayd, so it is always private. Those who manage that area can also see and run it.'
+            : visibility === Visibility.Private
+              ? 'Only facilitators and the people and teams invited can see and join.'
+              : 'Anyone who can view Planning Poker can see and join.'
         }
       >
         <Radio.Group
-          options={visibilityOptions}
+          options={visibilityOptions(alwaysPrivate)}
           optionType="button"
           buttonStyle="solid"
         />

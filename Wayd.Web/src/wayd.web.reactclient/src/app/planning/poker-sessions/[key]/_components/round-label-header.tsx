@@ -9,7 +9,7 @@ import styles from './poker-session.module.css'
 import RoundDescription from './round-description'
 import { useRoundFieldAutosave } from './use-round-field-autosave'
 
-const { Text } = Typography
+const { Paragraph, Text } = Typography
 
 export interface RoundLabelHeaderProps {
   round: PokerRoundDto
@@ -56,6 +56,28 @@ const RoundLabelHeader: FC<RoundLabelHeaderProps> = ({
       canManage={canManage}
     />
   )
+
+  // A round about a record reads as the record did when it was added; only the
+  // facilitators' own notes stay editable.
+  if (round.subject) {
+    return (
+      <div className={styles.roundLabelContainer}>
+        <Text type="secondary" className={styles.roundLabelTitle}>
+          {round.subject.displayKey}
+        </Text>
+        <div className={styles.roundLabelHeader}>{round.subject.title}</div>
+        {round.subject.description && (
+          <Paragraph
+            className={styles.roundDescriptionText}
+            ellipsis={{ rows: 4, expandable: 'collapsible' }}
+          >
+            {round.subject.description}
+          </Paragraph>
+        )}
+        {description}
+      </div>
+    )
+  }
 
   if (!canManage) {
     return (

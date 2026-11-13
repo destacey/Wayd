@@ -347,6 +347,7 @@ const EditPokerSessionForm = ({
         )}
         <div style={{ marginTop: 16 }}>
           <SessionAccessFields
+            alwaysPrivate={!!session?.host}
             selfEmployeeId={
               session?.facilitators.some((f) => f.id === user?.employeeId)
                 ? (user?.employeeId ?? undefined)

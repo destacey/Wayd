@@ -20,14 +20,36 @@ vi.mock('@/src/components/common/organizations', () => ({
 const renderFields = (
   values: Partial<SessionAccessValues>,
   selfEmployeeId?: string,
+  alwaysPrivate?: boolean,
 ) =>
   render(
     <Form initialValues={values}>
-      <SessionAccessFields selfEmployeeId={selfEmployeeId} />
+      <SessionAccessFields
+        selfEmployeeId={selfEmployeeId}
+        alwaysPrivate={alwaysPrivate}
+      />
     </Form>,
   )
 
 describe('SessionAccessFields', () => {
+  it('offers only Private for a session that belongs to another area', () => {
+    renderFields(
+      { visibility: Visibility.Private, facilitatorIds: ['me'] },
+      undefined,
+      true,
+    )
+
+    expect(screen.getByRole('radio', { name: 'Public' })).toBeDisabled()
+    expect(screen.getByRole('radio', { name: 'Private' })).toBeEnabled()
+    expect(screen.getByText(/always private/)).toBeInTheDocument()
+  })
+
+  it('offers Public for a standalone session', () => {
+    renderFields({ visibility: Visibility.Private, facilitatorIds: ['me'] })
+
+    expect(screen.getByRole('radio', { name: 'Public' })).toBeEnabled()
+  })
+
   it('warns a facilitator who takes themselves off the list', () => {
     renderFields(
       { visibility: Visibility.Public, facilitatorIds: ['someone-else'] },

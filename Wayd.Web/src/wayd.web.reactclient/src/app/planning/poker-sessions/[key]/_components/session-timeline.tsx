@@ -7,6 +7,7 @@ import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { Button, Flex, Input, Popconfirm, Tag, Typography } from 'antd'
 import { FC, useState } from 'react'
 import styles from './poker-session.module.css'
+import { roundTitle } from './round-title'
 
 const { Text } = Typography
 
@@ -86,10 +87,10 @@ const SessionTimeline: FC<SessionTimelineProps> = ({
                 <span className={styles.pulsingDot} />
                 <Flex vertical style={{ minWidth: 0, flex: 1 }}>
                   <Text
-                    ellipsis={{ tooltip: round.label }}
+                    ellipsis={{ tooltip: roundTitle(round) }}
                     style={{ fontSize: 13 }}
                   >
-                    {round.label || 'Untitled round'}
+                    {roundTitle(round) ?? 'Untitled round'}
                   </Text>
                   <Text type="secondary" style={{ fontSize: 11 }}>
                     In Progress
@@ -166,10 +167,10 @@ const SessionTimeline: FC<SessionTimelineProps> = ({
               onClick={() => onSelectRound(round.id)}
             >
               <Text
-                ellipsis={{ tooltip: round.label }}
+                ellipsis={{ tooltip: roundTitle(round) }}
                 style={{ fontSize: 13, minWidth: 0, flex: 1 }}
               >
-                {round.label || 'Untitled round'}
+                {roundTitle(round) ?? 'Untitled round'}
               </Text>
               <Flex align="center" gap={4}>
                 {round.consensusEstimate && (

@@ -96,13 +96,16 @@ public sealed class UpdateIncidentDetailsRequestValidator : CustomValidator<Upda
     }
 }
 
-/// <summary>Stores a pasted Teams link as the incident's one chat. Wayd does not join the chat.</summary>
+/// <summary>
+/// Stores a pasted Teams link as the incident's one chat, or removes it when the link is empty.
+/// Wayd does not join the chat.
+/// </summary>
 public sealed class LinkIncidentTeamsChatRequest
 {
     public Guid Id { get; set; }
 
-    /// <summary>The https link that opens the Teams chat.</summary>
-    public string Link { get; set; } = default!;
+    /// <summary>The https link that opens the Teams chat. Empty removes the stored chat.</summary>
+    public string? Link { get; set; }
 
     /// <summary>The name shown beside the link. Empty when the link stands alone.</summary>
     public string? DisplayName { get; set; }
@@ -116,18 +119,21 @@ public sealed class LinkIncidentTeamsChatRequestValidator : CustomValidator<Link
     {
         RuleFor(r => r.Id).NotEmpty();
         RuleFor(r => r.Link)
-            .NotEmpty()
             .MaximumLength(2048)
-            .Must(BeHttpsAbsoluteUrl)
+            .Must(BeHttpsAbsoluteUrlOrEmpty)
             .WithMessage("A Teams chat link must be an https URL.");
         RuleFor(r => r.DisplayName).MaximumLength(256);
     }
 
-    private static bool BeHttpsAbsoluteUrl(string? link)
+    private static bool BeHttpsAbsoluteUrlOrEmpty(string? link)
     {
         var trimmed = link?.Trim();
-        return trimmed is not null
-            && Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return true;
+        }
+
+        return Uri.TryCreate(trimmed, UriKind.Absolute, out var uri)
             && uri.Scheme == Uri.UriSchemeHttps;
     }
 }

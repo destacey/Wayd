@@ -32,7 +32,10 @@ public sealed class LinkIncidentTeamsChatCommandValidatorTests
     [InlineData("https://teams.microsoft.com/l/chat/1")]
     [InlineData("HTTPS://teams.microsoft.com/l/chat/1")]
     [InlineData("  https://teams.microsoft.com/l/chat/1  ")]
-    public void Validate_ShouldAcceptAnHttpsLink(string link)
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void Validate_ShouldAcceptAnHttpsLinkOrAnEmptyLink(string? link)
     {
         // Arrange
         var command = new LinkIncidentTeamsChatCommand(Guid.CreateVersion7(), link, "Bridge");

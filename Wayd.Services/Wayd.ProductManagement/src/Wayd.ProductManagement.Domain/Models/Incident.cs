@@ -433,25 +433,34 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     }
 
     /// <summary>
-    /// Stores one pasted Teams link on the incident, replacing whatever chat was stored before.
-    /// Wayd does not join the chat and does not look it up. The stored chat is not one Wayd created.
+    /// Stores one pasted Teams link on the incident, or removes the stored chat when the link is empty.
+    /// Wayd does not join the chat and does not look it up. A pasted link is not a chat Wayd created.
     /// </summary>
-    public Result LinkTeamsChat(string link, string? displayName, EventActor actor, Instant timestamp)
+    public Result LinkTeamsChat(string? link, string? displayName, EventActor actor, Instant timestamp)
     {
-        if (!TryNormalizeHttpsLink(link, out var normalizedLink))
+        string? normalizedLink;
+        string? normalizedName;
+        if (string.IsNullOrWhiteSpace(link))
+        {
+            normalizedLink = null;
+            normalizedName = null;
+        }
+        else if (!TryNormalizeHttpsLink(link, out var httpsLink))
         {
             return Result.Failure("A Teams chat link must be an https URL.");
         }
-
-        if (normalizedLink.Length > 2048)
+        else if (httpsLink.Length > 2048)
         {
             return Result.Failure("A Teams chat link cannot be longer than 2048 characters.");
         }
-
-        var normalizedName = Normalize(displayName);
-        if (normalizedName is not null && normalizedName.Length > 256)
+        else
         {
-            return Result.Failure("A Teams chat name cannot be longer than 256 characters.");
+            normalizedLink = httpsLink;
+            normalizedName = Normalize(displayName);
+            if (normalizedName is not null && normalizedName.Length > 256)
+            {
+                return Result.Failure("A Teams chat name cannot be longer than 256 characters.");
+            }
         }
 
         if (TeamsChatId is null

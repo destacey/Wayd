@@ -1,0 +1,43 @@
+.row {
+  min-width: 0;
+}
+
+.mark {
+  display: block;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Edit and remove stay off the row until it is hovered or focused, and stay
+   visible where a device has no hover. */
+.actions {
+  display: inline-flex;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--ant-motion-duration-fast);
+}
+
+.row:hover .actions,
+.row:focus-within .actions {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .actions {
+    opacity: 1;
+  }
+}
+
+.action {
+  padding: 0 4px;
+  height: 20px;
+  font-size: 12px;
+}

@@ -116,7 +116,7 @@ public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbCo
     [HttpPut("{id:guid}/teams-chat")]
     [MustHavePermission(ApplicationAction.Update, ApplicationResource.Incidents)]
     [EndpointSummary("Link a Teams chat on an incident.")]
-    [EndpointDescription("Stores one pasted Teams link. Wayd does not join the chat, look it up, or send it for approval. Linking again replaces the stored chat.")]
+    [EndpointDescription("Stores one pasted Teams link, or removes the stored chat when the link is empty. Wayd does not join the chat, look it up, or send it for approval. Linking again replaces the stored chat.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult> LinkTeamsChat(

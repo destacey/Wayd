@@ -71,6 +71,60 @@ public sealed class LinkIncidentTeamsChatCommandHandlerTests : IncidentSeverityS
         DbContext.SaveChangesCallCount.Should().Be(savesAfterFirstLink);
     }
 
+    [Fact]
+    public async Task Handle_ShouldClearTheStoredChat_WhenTheLinkIsEmpty()
+    {
+        // Arrange
+        var incident = await OpenIncident();
+        var handler = new LinkIncidentTeamsChatCommandHandler(
+            DbContext,
+            CurrentUser.Object,
+            CurrentPrincipal.Object,
+            DateTimeProvider.Object,
+            Logger<LinkIncidentTeamsChatCommandHandler>());
+        await handler.Handle(
+            new LinkIncidentTeamsChatCommand(incident.Id, "https://teams.microsoft.com/l/chat/19%3Aabc/0", "Bridge"),
+            TestContext.Current.CancellationToken);
+        var savesAfterLink = DbContext.SaveChangesCallCount;
+
+        // Act
+        var result = await handler.Handle(
+            new LinkIncidentTeamsChatCommand(incident.Id, "", "Bridge"),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.TeamsChatLink.Should().BeNull();
+        incident.TeamsChatDisplayName.Should().BeNull();
+        incident.TeamsChatId.Should().BeNull();
+        incident.TeamsChatCreatedByWayd.Should().BeFalse();
+        DbContext.SaveChangesCallCount.Should().Be(savesAfterLink + 1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldNotSave_WhenTheChatIsAlreadyClear()
+    {
+        // Arrange
+        var incident = await OpenIncident();
+        var savesBefore = DbContext.SaveChangesCallCount;
+        var handler = new LinkIncidentTeamsChatCommandHandler(
+            DbContext,
+            CurrentUser.Object,
+            CurrentPrincipal.Object,
+            DateTimeProvider.Object,
+            Logger<LinkIncidentTeamsChatCommandHandler>());
+
+        // Act
+        var result = await handler.Handle(
+            new LinkIncidentTeamsChatCommand(incident.Id, null, null),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.TeamsChatLink.Should().BeNull();
+        DbContext.SaveChangesCallCount.Should().Be(savesBefore);
+    }
+
     private async Task<Incident> OpenIncident()
     {
         var set = SeedSystemSeveritySet();

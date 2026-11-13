@@ -3,7 +3,7 @@ using NodaTime;
 
 namespace Wayd.Common.Domain.Events.ProductManagement.Incidents;
 
-/// <summary>The one Teams chat stored on an incident was linked or replaced.</summary>
+/// <summary>The one Teams chat stored on an incident was linked, replaced, or removed.</summary>
 /// <remarks>
 /// A pasted link does not mean Wayd created the chat or joined it. <c>CreatedByWayd</c> stays false
 /// for that path. The title is the chat's own name, not a person. Null on either end means nothing was stored.

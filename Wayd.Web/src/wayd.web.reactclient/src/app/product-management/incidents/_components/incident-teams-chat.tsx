@@ -5,9 +5,12 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useLinkIncidentTeamsChatMutation } from '@/src/store/features/product-management/incidents-api'
 import { IncidentDto } from '@/src/services/wayd-api'
 import { toApiError, toFormErrors } from '@/src/utils'
+import { CloseOutlined, EditOutlined } from '@ant-design/icons'
 import { Alert, Button, Divider, Flex, Form, Input, Modal, Tabs, Typography } from 'antd'
+import type { FormInstance } from 'antd'
 import type { BaseOptionType } from 'antd/es/select'
 import { useState } from 'react'
+import styles from './incident-teams-chat.module.css'
 
 const { Text, Link } = Typography
 
@@ -19,7 +22,8 @@ export interface IncidentTeamsChatProps {
 
 /**
  * The incident's one Teams chat. Hidden unless a Teams connector is configured.
- * Linking stores a pasted link. Creating a chat is shown and does not call Graph.
+ * Linking stores a pasted link, and an empty link removes it. Creating a chat is
+ * shown and does not call Graph.
  */
 const IncidentTeamsChat = ({
   incident,
@@ -27,8 +31,11 @@ const IncidentTeamsChat = ({
   employees,
 }: IncidentTeamsChatProps) => {
   const [open, setOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [removing, setRemoving] = useState(false)
   const [extraPeople, setExtraPeople] = useState<string[]>([])
   const [form] = Form.useForm<{ link: string; displayName?: string }>()
+  const [editForm] = Form.useForm<{ link: string; displayName?: string }>()
   const messageApi = useMessage()
   const [linkChat, { isLoading }] = useLinkIncidentTeamsChatMutation()
 
@@ -49,39 +56,79 @@ const IncidentTeamsChat = ({
     form.resetFields()
   }
 
-  const storeLink = async (values: { link: string; displayName?: string }) => {
+  const storeLink = async (
+    values: { link: string; displayName?: string },
+    target: FormInstance<{ link: string; displayName?: string }>,
+    done: () => void,
+    success: string,
+  ) => {
     try {
       await linkChat({
         id: incident.id,
         link: values.link,
         displayName: values.displayName,
       }).unwrap()
-      messageApi.success('Teams chat linked.')
-      close()
+      messageApi.success(success)
+      done()
     } catch (error) {
       const apiError = toApiError(error)
       if (apiError.errors) {
-        form.setFields(toFormErrors(apiError.errors))
+        target.setFields(toFormErrors(apiError.errors))
       }
       messageApi.error(apiError.detail ?? 'Could not link the Teams chat.')
+    }
+  }
+
+  const removeChat = async () => {
+    try {
+      await linkChat({ id: incident.id, link: '' }).unwrap()
+      messageApi.success('Teams chat removed.')
+      setRemoving(false)
+    } catch (error) {
+      messageApi.error(
+        toApiError(error).detail ?? 'Could not remove the Teams chat.',
+      )
     }
   }
 
   return (
     <Flex vertical gap={8}>
       {incident.teamsChatLink ? (
-        <Flex align="center" gap={8}>
+        <Flex align="center" gap={8} className={styles.row}>
           <TeamsMark />
-          <Link href={incident.teamsChatLink} target="_blank" rel="noopener noreferrer">
+          <Link
+            className={styles.name}
+            href={incident.teamsChatLink}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {chatName}
           </Link>
+          {canUpdate ? (
+            <Flex gap={4} className={styles.actions}>
+              <Button
+                type="text"
+                size="small"
+                className={styles.action}
+                aria-label="Edit Teams chat"
+                icon={<EditOutlined />}
+                onClick={() => setEditing(true)}
+              />
+              <Button
+                type="text"
+                size="small"
+                className={styles.action}
+                aria-label="Remove Teams chat"
+                icon={<CloseOutlined />}
+                onClick={() => setRemoving(true)}
+              />
+            </Flex>
+          ) : null}
         </Flex>
       ) : null}
-      {canUpdate ? (
+      {canUpdate && !incident.teamsChatLink ? (
         <Button icon={<TeamsMark />} onClick={() => setOpen(true)}>
-          {incident.teamsChatLink
-            ? 'Change Teams chat'
-            : 'Add Teams chat for this incident'}
+          Add Teams chat for this incident
         </Button>
       ) : null}
       <Modal
@@ -132,7 +179,9 @@ const IncidentTeamsChat = ({
                   form={form}
                   layout="vertical"
                   requiredMark={false}
-                  onFinish={storeLink}
+                  onFinish={(values) =>
+                    storeLink(values, form, close, 'Teams chat linked.')
+                  }
                 >
                   <Form.Item
                     name="link"
@@ -163,6 +212,60 @@ const IncidentTeamsChat = ({
           ]}
         />
       </Modal>
+      <Modal
+        title="Edit Teams chat"
+        open={editing}
+        onCancel={() => setEditing(false)}
+        footer={null}
+        destroyOnHidden
+      >
+        <Form
+          form={editForm}
+          layout="vertical"
+          requiredMark={false}
+          initialValues={{
+            link: incident.teamsChatLink ?? '',
+            displayName: incident.teamsChatDisplayName ?? undefined,
+          }}
+          onFinish={(values) =>
+            storeLink(values, editForm, () => setEditing(false), 'Teams chat updated.')
+          }
+        >
+          <Form.Item
+            name="link"
+            label="Teams link"
+            rules={[
+              { required: true, message: 'Paste the Teams link.' },
+              {
+                validator: (_, value: string | undefined) =>
+                  !value || value.trim().toLowerCase().startsWith('https://')
+                    ? Promise.resolve()
+                    : Promise.reject(
+                        new Error('The link must start with https://'),
+                      ),
+              },
+            ]}
+          >
+            <Input placeholder="https://teams.microsoft.com/..." />
+          </Form.Item>
+          <Form.Item name="displayName" label="Name">
+            <Input placeholder="Optional name shown beside the link" />
+          </Form.Item>
+          <Button type="primary" htmlType="submit" loading={isLoading}>
+            Save
+          </Button>
+        </Form>
+      </Modal>
+      <Modal
+        title="Remove Teams chat"
+        open={removing}
+        onCancel={() => setRemoving(false)}
+        okText="Remove"
+        okButtonProps={{ danger: true, loading: isLoading }}
+        onOk={() => void removeChat()}
+      >
+        This removes the stored link. The chat in Teams is left as it is.
+      </Modal>
       <Divider size="small" style={{ margin: 0 }} />
     </Flex>
   )
@@ -186,13 +289,13 @@ function preselectedPeople(incident: IncidentDto) {
 
 function TeamsMark() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-      <rect width="16" height="16" rx="3" fill="currentColor" />
-      <path
-        fill="var(--ant-color-bg-container)"
-        d="M3.2 5.1h4.2v1.3H6.1V11H4.6V6.4H3.2V5.1Zm5 0h2.4c1 0 1.7.6 1.7 1.6 0 .7-.4 1.2-1 1.4.8.2 1.3.8 1.3 1.6 0 1.1-.8 1.8-2 1.8H8.2V5.1Zm1.5 2.2h.8c.4 0 .7-.2.7-.6s-.3-.6-.7-.6h-.8v1.2Zm0 1.1v1.4h1c.5 0 .8-.3.8-.7s-.3-.7-.8-.7h-1Z"
-      />
-    </svg>
+    <img
+      className={styles.mark}
+      src="/icons/teams-logo.svg"
+      alt=""
+      width={16}
+      height={16}
+    />
   )
 }
 

@@ -68943,11 +68943,11 @@ export interface LinkDto {
     url: string;
 }
 
-/** Stores a pasted Teams link as the incident's one chat. Wayd does not join the chat. */
+/** Stores a pasted Teams link as the incident's one chat, or removes it when the link is empty. Wayd does not join the chat. */
 export interface LinkIncidentTeamsChatRequest {
     id: string;
-    /** The https link that opens the Teams chat. */
-    link: string;
+    /** The https link that opens the Teams chat. Empty removes the stored chat. */
+    link?: string | undefined;
     /** The name shown beside the link. Empty when the link stands alone. */
     displayName?: string | undefined;
 }

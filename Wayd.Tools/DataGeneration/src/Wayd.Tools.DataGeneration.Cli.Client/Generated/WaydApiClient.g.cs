@@ -27460,7 +27460,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Link a Teams chat on an incident.
         /// </summary>
         /// <remarks>
-        /// Stores one pasted Teams link. Wayd does not join the chat, look it up, or send it for approval. Linking again replaces the stored chat.
+        /// Stores one pasted Teams link, or removes the stored chat when the link is empty. Wayd does not join the chat, look it up, or send it for approval. Linking again replaces the stored chat.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -28045,7 +28045,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Link a Teams chat on an incident.
         /// </summary>
         /// <remarks>
-        /// Stores one pasted Teams link. Wayd does not join the chat, look it up, or send it for approval. Linking again replaces the stored chat.
+        /// Stores one pasted Teams link, or removes the stored chat when the link is empty. Wayd does not join the chat, look it up, or send it for approval. Linking again replaces the stored chat.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -131237,7 +131237,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// Stores a pasted Teams link as the incident's one chat. Wayd does not join the chat.
+    /// Stores a pasted Teams link as the incident's one chat, or removes it when the link is empty.
+    /// <br/>Wayd does not join the chat.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class LinkIncidentTeamsChatRequest
@@ -131248,12 +131249,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public System.Guid Id { get; set; } = default!;
 
         /// <summary>
-        /// The https link that opens the Teams chat.
+        /// The https link that opens the Teams chat. Empty removes the stored chat.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("link")]
-        [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.StringLength(2048, MinimumLength = 1)]
-        public string Link { get; set; } = default!;
+        [System.ComponentModel.DataAnnotations.StringLength(2048)]
+        public string? Link { get; set; } = default!;
 
         /// <summary>
         /// The name shown beside the link. Empty when the link stands alone.

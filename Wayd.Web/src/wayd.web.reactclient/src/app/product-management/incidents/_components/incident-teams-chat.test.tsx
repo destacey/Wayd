@@ -1,9 +1,21 @@
+import { readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type { ReactElement } from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MessageProvider } from '@/src/components/contexts/messaging'
 import { IncidentDto } from '@/src/services/wayd-api'
 import IncidentTeamsChat from './incident-teams-chat'
+import styles from './incident-teams-chat.module.css'
+
+const teamsLogo = readFileSync(
+  resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    '../../../../../public/icons/teams-logo.svg',
+  ),
+  'utf8',
+)
 
 const linkChat = vi.hoisted(() =>
   vi.fn(() => ({ unwrap: () => Promise.resolve() })),
@@ -93,6 +105,118 @@ describe('IncidentTeamsChat', () => {
     )
     expect(chat).toHaveAttribute('target', '_blank')
     expect(chat).toHaveAttribute('rel', 'noopener noreferrer')
+    expect(chat.parentElement?.querySelector('img')).toHaveAttribute(
+      'src',
+      '/icons/teams-logo.svg',
+    )
+    expect(
+      screen.queryByRole('button', { name: 'Edit Teams chat' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Remove Teams chat' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('uses the Teams logo on the add button', () => {
+    // Arrange
+    renderChat(
+      <IncidentTeamsChat incident={incident(null)} canUpdate employees={[]} />,
+    )
+
+    // Act
+    const mark = screen
+      .getByRole('button', { name: 'Add Teams chat for this incident' })
+      .querySelector('img')
+
+    // Assert
+    expect(mark).toHaveAttribute('src', '/icons/teams-logo.svg')
+    expect(teamsLogo).toContain('fill="#7b83eb"')
+    expect(teamsLogo).toContain('M335 349.05')
+  })
+
+  it('keeps edit and remove hidden until the row is hovered', () => {
+    // Arrange
+    renderChat(
+      <IncidentTeamsChat
+        incident={incident(
+          'https://teams.microsoft.com/l/chat/1',
+          'Bridge',
+        )}
+        canUpdate
+        employees={[]}
+      />,
+    )
+
+    // Act
+    const actions = screen.getByRole('button', {
+      name: 'Edit Teams chat',
+    }).parentElement
+
+    // Assert
+    expect(actions).toContainElement(
+      screen.getByRole('button', { name: 'Remove Teams chat' }),
+    )
+    expect(actions).toHaveClass(styles.actions)
+    expect(actions).toHaveStyle({ opacity: '0' })
+  })
+
+  it('saves an edited Teams link through the chat endpoint', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    renderChat(
+      <IncidentTeamsChat
+        incident={incident(
+          'https://teams.microsoft.com/l/chat/1',
+          'Bridge',
+        )}
+        canUpdate
+        employees={[]}
+      />,
+    )
+
+    // Act
+    await user.click(screen.getByRole('button', { name: 'Edit Teams chat' }))
+    const link = screen.getByRole('textbox', { name: 'Teams link' })
+    await user.clear(link)
+    await user.type(link, 'https://teams.microsoft.com/l/chat/2')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    // Assert
+    expect(linkChat).toHaveBeenCalledWith({
+      id: '01a1d091-2de1-75d3-97d9-34eae573d1fc',
+      link: 'https://teams.microsoft.com/l/chat/2',
+      displayName: 'Bridge',
+    })
+    expect(
+      screen.queryByText(
+        'Creating a Teams chat from Wayd is not available yet.',
+      ),
+    ).not.toBeInTheDocument()
+  })
+
+  it('removes the stored chat through the chat endpoint', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    renderChat(
+      <IncidentTeamsChat
+        incident={incident(
+          'https://teams.microsoft.com/l/chat/1',
+          'Bridge',
+        )}
+        canUpdate
+        employees={[]}
+      />,
+    )
+
+    // Act
+    await user.click(screen.getByRole('button', { name: 'Remove Teams chat' }))
+    await user.click(screen.getByRole('button', { name: 'Remove' }))
+
+    // Assert
+    expect(linkChat).toHaveBeenCalledWith({
+      id: '01a1d091-2de1-75d3-97d9-34eae573d1fc',
+      link: '',
+    })
   })
 
   it('accepts a Teams link whose scheme is uppercase', async () => {

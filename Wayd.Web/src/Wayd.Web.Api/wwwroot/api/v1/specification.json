@@ -11505,7 +11505,7 @@
           "Incidents"
         ],
         "summary": "Link a Teams chat on an incident.",
-        "description": "Stores one pasted Teams link. Wayd does not join the chat, look it up, or send it for approval. Linking again replaces the stored chat.",
+        "description": "Stores one pasted Teams link, or removes the stored chat when the link is empty. Wayd does not join the chat, look it up, or send it for approval. Linking again replaces the stored chat.",
         "operationId": "Incidents_LinkTeamsChat",
         "parameters": [
           {
@@ -70108,8 +70108,7 @@
       },
       "LinkIncidentTeamsChatRequest": {
         "required": [
-          "id",
-          "link"
+          "id"
         ],
         "type": "object",
         "properties": {
@@ -70120,9 +70119,9 @@
           },
           "link": {
             "maxLength": 2048,
-            "minLength": 1,
             "type": "string",
-            "description": "The https link that opens the Teams chat."
+            "description": "The https link that opens the Teams chat. Empty removes the stored chat.",
+            "nullable": true
           },
           "displayName": {
             "maxLength": 256,
@@ -70132,7 +70131,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "Stores a pasted Teams link as the incident's one chat. Wayd does not join the chat."
+        "description": "Stores a pasted Teams link as the incident's one chat, or removes it when the link is empty.\nWayd does not join the chat."
       },
       "LinkProductExternallyRequest": {
         "required": [

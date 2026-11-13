@@ -34,7 +34,9 @@ public sealed class LinkIncidentTeamsChatRequestValidatorTests
     [Theory]
     [InlineData("https://teams.microsoft.com/l/chat/1")]
     [InlineData("HTTPS://teams.microsoft.com/l/chat/1")]
-    public void Validate_ShouldAcceptAnHttpsLink(string link)
+    [InlineData("")]
+    [InlineData(null)]
+    public void Validate_ShouldAcceptAnHttpsLinkOrAnEmptyLink(string? link)
     {
         // Arrange
         var request = new LinkIncidentTeamsChatRequest

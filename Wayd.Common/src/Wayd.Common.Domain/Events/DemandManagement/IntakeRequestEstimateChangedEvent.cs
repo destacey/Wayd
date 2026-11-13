@@ -14,6 +14,9 @@ namespace Wayd.Common.Domain.Events.DemandManagement;
 /// Not a requester notification: the estimate is a sizing aid for the desk, and telling the requester each time
 /// it changes would present it as a commitment.
 /// </para>
+/// <para>
+/// Version 1.1 can carry <see cref="IntakeRequestEstimateSource.ScaleChange"/> as its <see cref="Source"/>.
+/// </para>
 /// </remarks>
 public sealed record IntakeRequestEstimateChangedEvent : DomainEvent<IntakeRequestEstimateChangedEvent>, IDomainEventDescriptor, IIntakeRequestEvent
 {
@@ -30,7 +33,7 @@ public sealed record IntakeRequestEstimateChangedEvent : DomainEvent<IntakeReque
         IntakeRequestEstimateSource source,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;

@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using NodaTime;
+using Wayd.Common.Domain.Enums.DemandManagement;
 
 namespace Wayd.Common.Domain.Events.DemandManagement;
 
@@ -12,6 +13,10 @@ namespace Wayd.Common.Domain.Events.DemandManagement;
 /// pins a version, so each end names the scale and the version; a null <see cref="ToScaleVersionId"/> stops
 /// new estimates on the desk. Both scales are named as well as identified, so the entry stays readable after
 /// either is renamed.
+/// <para>
+/// Version 1.1 added <see cref="OpenEstimates"/>. A 1.0 change carries none, which reads correctly: a desk could
+/// change its scale then only while none of its open requests had an estimate on the version it pinned.
+/// </para>
 /// </remarks>
 public sealed record IntakeDeskEstimationScaleChangedEvent : DomainEvent<IntakeDeskEstimationScaleChangedEvent>, IDomainEventDescriptor, IDemandManagementEvent
 {
@@ -29,9 +34,10 @@ public sealed record IntakeDeskEstimationScaleChangedEvent : DomainEvent<IntakeD
         string? toScaleName,
         Guid? toScaleVersionId,
         int? toScaleVersionNumber,
+        ScaleChangeEstimateHandling? openEstimates,
         EventActor actor,
         Instant timestamp)
-        : base(actor, "1.0")
+        : base(actor, "1.1")
     {
         Id = id;
         Key = key;
@@ -43,6 +49,7 @@ public sealed record IntakeDeskEstimationScaleChangedEvent : DomainEvent<IntakeD
         ToScaleName = toScaleName;
         ToScaleVersionId = toScaleVersionId;
         ToScaleVersionNumber = toScaleVersionNumber;
+        OpenEstimates = openEstimates;
 
         Timestamp = timestamp;
     }
@@ -73,6 +80,12 @@ public sealed record IntakeDeskEstimationScaleChangedEvent : DomainEvent<IntakeD
 
     /// <summary>The number of <see cref="ToScaleVersionId"/> within its scale.</summary>
     public int? ToScaleVersionNumber { get; }
+
+    /// <summary>
+    /// What the desk decided for the estimates on its open requests, or null when none of them had an estimate, so
+    /// there was nothing to decide.
+    /// </summary>
+    public ScaleChangeEstimateHandling? OpenEstimates { get; }
 
     [JsonIgnore]
     public string AggregateType => "IntakeDesk";

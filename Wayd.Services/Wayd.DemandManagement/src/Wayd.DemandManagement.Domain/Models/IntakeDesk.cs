@@ -254,20 +254,27 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     /// Choosing the scale the desk already uses moves it to that scale's current version.
     /// </summary>
     /// <remarks>
-    /// Refused while any open request on the desk has an estimate on the version the desk pins now, which the caller
-    /// counts: nothing yet moves those estimates to another version. An open request can also hold an estimate on an
-    /// older version, kept from before the desk last changed scale while the request was closed; that one does not
-    /// block, since it already sits off the desk's version.
+    /// The desk decides once what happens to the estimates on its open requests, whatever version each was given
+    /// on: <see cref="ScaleChangeEstimateHandling.Keep"/> leaves each on its own version until it is re-estimated, and
+    /// <see cref="ScaleChangeEstimateHandling.Clear"/> clears every one. Done and Removed requests are history and keep
+    /// theirs either way, so the caller passes only the open ones. Nothing is cleared when the desk stays where it is.
     /// </remarks>
     /// <param name="scale">The scale to estimate on, with its versions loaded, or null to stop estimating.</param>
     /// <param name="current">
     /// The scale the desk's pinned version belongs to, with its versions loaded, or null when it has none. The change
     /// names it as the one it replaces.
     /// </param>
-    /// <param name="hasEstimatedOpenRequests">Whether any open request on the desk has an estimate on the version it pins.</param>
-    public Result ChangeEstimationScale(DemandEstimationScale? scale, DemandEstimationScale? current, bool hasEstimatedOpenRequests,
+    /// <param name="estimatedOpenRequests">Every open request on the desk that has an estimate, on any version.</param>
+    /// <param name="openEstimates">What happens to those requests' estimates.</param>
+    public Result ChangeEstimationScale(DemandEstimationScale? scale, DemandEstimationScale? current,
+        IReadOnlyCollection<IntakeRequest> estimatedOpenRequests, ScaleChangeEstimateHandling openEstimates,
         EventActor actor, Instant timestamp)
     {
+        Guard.Against.Null(estimatedOpenRequests);
+        Guard.Against.EnumOutOfRange(openEstimates, nameof(openEstimates));
+        if (estimatedOpenRequests.Any(r => r.DeskId != Id || !r.IsOpen || r.Estimate is null))
+            throw new ArgumentException("Each request must be an open request on this desk with an estimate.", nameof(estimatedOpenRequests));
+
         var currentVersion = current?.Versions.FirstOrDefault(v => v.Id == EstimationScaleVersionId);
         if ((current is null) != (EstimationScaleVersionId is null) || currentVersion?.Id != EstimationScaleVersionId)
             throw new ArgumentException("The current scale must be the one the desk's pinned version belongs to.", nameof(current));
@@ -279,15 +286,17 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
         if (scale is not null && !scale.IsActive)
             return Result.Failure(InactiveEstimationScaleError);
 
-        if (hasEstimatedOpenRequests)
-            return Result.Failure(EstimatedOpenRequestsError);
-
         EstimationScaleVersionId = toVersion?.Id;
 
+        ScaleChangeEstimateHandling? decided = estimatedOpenRequests.Count > 0 ? openEstimates : null;
         RaiseWhenKeyed(() => new IntakeDeskEstimationScaleChangedEvent(Id, Key,
             current?.Id, current?.Name, currentVersion?.Id, currentVersion?.Number,
             scale?.Id, scale?.Name, toVersion?.Id, toVersion?.Number,
-            actor, timestamp));
+            decided, actor, timestamp));
+
+        if (decided is ScaleChangeEstimateHandling.Clear)
+            foreach (var request in estimatedOpenRequests)
+                request.ClearEstimateForScaleChange(actor, timestamp);
 
         return Result.Success();
     }
@@ -296,12 +305,6 @@ public sealed class IntakeDesk : BaseAuditableEntity, IHasIdAndKey
     /// The failure for choosing an estimation scale that has been deactivated.
     /// </summary>
     public const string InactiveEstimationScaleError = "Only an active estimation scale can be chosen for a desk.";
-
-    /// <summary>
-    /// The failure for changing the scale of a desk whose open requests have estimates.
-    /// </summary>
-    public const string EstimatedOpenRequestsError =
-        "Open requests on this desk have estimates on the scale it uses now. Clear their estimates before changing the scale.";
 
     /// <summary>
     /// How many changes the desk has recorded. A change made from a page loaded before another is refused by

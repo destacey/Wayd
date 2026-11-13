@@ -171,18 +171,19 @@ public sealed class IntakeScenario
     public IntakeDesk EstimatesOn(IntakeDesk desk, DemandEstimationScale? scale)
     {
         var current = DbContext.DemandEstimationScales.SingleOrDefault(s => s.Versions.Any(v => v.Id == desk.EstimationScaleVersionId));
-        desk.ChangeEstimationScale(scale, current, hasEstimatedOpenRequests: false, EventActor.System, Instant.MinValue);
+        desk.ChangeEstimationScale(scale, current, [], ScaleChangeEstimateHandling.Keep, EventActor.System, Instant.MinValue);
         desk.ClearDomainEvents();
         return desk;
     }
 
     /// <summary>Estimates an open request on its desk's pinned version, as already saved, raising nothing.</summary>
-    public void Estimated(IntakeRequest request, IntakeDesk desk, string value)
+    public IntakeRequest Estimated(IntakeRequest request, IntakeDesk desk, string value)
     {
         var scale = DbContext.DemandEstimationScales.Single(s => s.Versions.Any(v => v.Id == desk.EstimationScaleVersionId));
         request.ChangeEstimate(value, desk, scale, IntakeRequestEstimateSource.Manual, IntakeRequestEditor.System, Instant.MinValue)
             .IsSuccess.Should().BeTrue();
         request.ClearDomainEvents();
+        return request;
     }
 
     /// <summary>The criterion ratings for <see cref="ScoringModel"/>, as an agent enters them.</summary>

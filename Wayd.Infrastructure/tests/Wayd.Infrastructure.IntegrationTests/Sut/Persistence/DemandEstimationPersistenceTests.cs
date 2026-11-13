@@ -11,6 +11,7 @@ using Wayd.Common.Domain.Events.Planning.EstimationScales;
 using Wayd.Common.Domain.Models.Planning.EstimationScales;
 using Wayd.Common.Models;
 using Wayd.DemandManagement.Application.DemandEstimationScales.Queries;
+using Wayd.DemandManagement.Application.IntakeDesks.Commands;
 using Wayd.DemandManagement.Application.IntakeDesks.Queries;
 using Wayd.DemandManagement.Application.IntakeRequests;
 using Wayd.DemandManagement.Application.IntakeRequests.Queries;
@@ -186,6 +187,60 @@ public sealed class DemandEstimationPersistenceTests(SqlServerDbContextFixture f
         choices.Should().ContainSingle(c => c.Id == scale.Id).Which.EstimateValues.Should().Equal("S", "M", "L", "XL");
     }
 
+    [Fact]
+    public async Task OpenEstimates_CountsEachValueOnTheOpenRequestsAlone()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (desk, scale, requester) = await SeedEstimatingDesk(ct);
+        await using (var seeding = _fixture.CreateContext())
+        {
+            await SeedRequest(seeding, desk, requester, ct, estimate: "L", scale: scale);
+            await SeedRequest(seeding, desk, requester, ct, estimate: "L", scale: scale);
+            await SeedRequest(seeding, desk, requester, ct, estimate: "S", scale: scale);
+            await SeedRequest(seeding, desk, requester, ct);
+        }
+        await using var context = _fixture.CreateContext();
+
+        // Act
+        var result = await new GetIntakeDeskOpenEstimatesQueryHandler(context, Administrator(requester.Id))
+            .Handle(new GetIntakeDeskOpenEstimatesQuery(desk.Id), ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Select(c => (c.Value, c.RequestCount)).Should().Equal(("S", 1), ("L", 2));
+        result.Value.Should().OnlyContain(c => c.Scale.VersionId == scale.CurrentVersion.Id && c.Scale.IsCurrentVersion);
+    }
+
+    [Fact]
+    public async Task ChangeEstimationScale_ClearingOpenEstimates_SavesTheClearedRequests()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        var (desk, scale, requester) = await SeedEstimatingDesk(ct);
+        IntakeRequest request;
+        DemandEstimationScale to;
+        await using (var seeding = _fixture.CreateContext())
+        {
+            request = await SeedRequest(seeding, desk, requester, ct, estimate: "M", scale: scale);
+            to = await SeedScale(seeding, ct);
+        }
+        await using var context = _fixture.CreateContext();
+        var user = new Mock<ICurrentUser>();
+        user.Setup(u => u.GetUserId()).Returns("intake-probe");
+
+        // Act
+        var result = await new ChangeIntakeDeskEstimationScaleCommandHandler(context, Administrator(requester.Id), user.Object,
+                Clock())
+            .Handle(new ChangeIntakeDeskEstimationScaleCommand(desk.Id, to.Id, ScaleChangeEstimateHandling.Clear), ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        await using var reader = _fixture.CreateContext();
+        (await reader.IntakeDesks.AsNoTracking().SingleAsync(d => d.Id == desk.Id, ct)).EstimationScaleVersionId.Should().Be(to.CurrentVersion.Id);
+        (await reader.IntakeRequests.AsNoTracking().SingleAsync(r => r.Id == request.Id, ct)).Estimate.Should().BeNull();
+    }
+
     private async Task<(IntakeDesk Desk, DemandEstimationScale Scale, Employee Requester)> SeedEstimatingDesk(CancellationToken ct)
     {
         await using var context = _fixture.CreateContext();
@@ -194,7 +249,7 @@ public sealed class DemandEstimationPersistenceTests(SqlServerDbContextFixture f
         var scale = await SeedScale(context, ct);
         var desk = IntakeDesk.Create(UniqueName("Desk"), "Anything", IntakeDeskVisibility.Open, true, true, true,
             [new IntakeDeskMemberDetails(agent.Id, IntakeDeskRole.Agent)], EventActor.System, Now);
-        desk.ChangeEstimationScale(scale, null, hasEstimatedOpenRequests: false, EventActor.System, Now).IsSuccess.Should().BeTrue();
+        desk.ChangeEstimationScale(scale, null, [], ScaleChangeEstimateHandling.Keep, EventActor.System, Now).IsSuccess.Should().BeTrue();
         context.IntakeDesks.Add(desk);
         await context.SaveChangesAsync(ct);
 
@@ -259,6 +314,24 @@ public sealed class DemandEstimationPersistenceTests(SqlServerDbContextFixture f
         principal.Setup(p => p.IsReadOnly).Returns(false);
         principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
         principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(false);
+        principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
+        return principal.Object;
+    }
+
+    private static IDateTimeProvider Clock()
+    {
+        var clock = new Mock<IDateTimeProvider>();
+        clock.Setup(c => c.Now).Returns(Now);
+        return clock.Object;
+    }
+
+    /// <summary>The Demand Management Admin, who is a Desk Admin on every desk.</summary>
+    private static ICurrentPrincipal Administrator(Guid employeeId)
+    {
+        var principal = new Mock<ICurrentPrincipal>();
+        principal.Setup(p => p.IsReadOnly).Returns(false);
+        principal.Setup(p => p.HoldsPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+        principal.Setup(p => p.HasPermission(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
         principal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(employeeId);
         return principal.Object;
     }

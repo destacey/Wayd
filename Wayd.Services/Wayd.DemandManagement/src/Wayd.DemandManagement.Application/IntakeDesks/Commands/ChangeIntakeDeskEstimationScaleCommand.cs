@@ -1,3 +1,4 @@
+using Wayd.Common.Domain.Enums.DemandManagement;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.DemandManagement.Application.IntakeRequests;
@@ -5,15 +6,19 @@ using Wayd.DemandManagement.Application.IntakeRequests;
 namespace Wayd.DemandManagement.Application.IntakeDesks.Commands;
 
 /// <summary>
-/// Pins a desk to the current version of an estimation scale, or stops estimating its requests.
+/// Pins a desk to the current version of an estimation scale, or stops estimating its requests, and decides what
+/// happens to the estimates on its open requests.
 /// </summary>
 /// <remarks>
 /// A Desk Admin on the desk or the Demand Management Admin, with no claim beside it, as for the scoring model.
-/// Refused while an open request on the desk has an estimate on the version the desk pins.
 /// </remarks>
 /// <param name="Id">The desk.</param>
 /// <param name="EstimationScaleId">An active estimation scale, or null to stop estimating.</param>
-public sealed record ChangeIntakeDeskEstimationScaleCommand(Guid Id, Guid? EstimationScaleId) : ICommand;
+/// <param name="OpenEstimates">Whether open requests keep their estimates or have them cleared.</param>
+public sealed record ChangeIntakeDeskEstimationScaleCommand(
+    Guid Id,
+    Guid? EstimationScaleId,
+    ScaleChangeEstimateHandling OpenEstimates = ScaleChangeEstimateHandling.Keep) : ICommand;
 
 public sealed class ChangeIntakeDeskEstimationScaleCommandValidator : CustomValidator<ChangeIntakeDeskEstimationScaleCommand>
 {
@@ -21,11 +26,12 @@ public sealed class ChangeIntakeDeskEstimationScaleCommandValidator : CustomVali
     {
         RuleFor(c => c.Id).NotEmpty();
         RuleFor(c => c.EstimationScaleId).NotEqual(Guid.Empty);
+        RuleFor(c => c.OpenEstimates).IsInEnum();
     }
 }
 
 /// <summary>
-/// Checks the caller is a Desk Admin, counts the desk's estimated open requests, and lets the desk decide.
+/// Checks the caller is a Desk Admin, loads the desk's estimated open requests, and lets the desk decide.
 /// </summary>
 public sealed class ChangeIntakeDeskEstimationScaleCommandHandler(
     IDemandManagementDbContext dbContext,
@@ -65,12 +71,12 @@ public sealed class ChangeIntakeDeskEstimationScaleCommandHandler(
                 .FirstAsync(s => s.Versions.Any(v => v.Id == versionId), cancellationToken)
             : null;
 
-        var hasEstimatedOpenRequests = desk.EstimationScaleVersionId is { } pinnedId
-            && await _dbContext.IntakeRequests.AnyAsync(r => r.DeskId == desk.Id && r.Estimate != null
-                && r.Estimate.ScaleVersionId == pinnedId
-                && (r.StatusCategory == StatusCategory.Proposed || r.StatusCategory == StatusCategory.Active), cancellationToken);
+        var estimatedOpenRequests = await _dbContext.IntakeRequests
+            .Where(r => r.DeskId == desk.Id && r.Estimate != null
+                && (r.StatusCategory == StatusCategory.Proposed || r.StatusCategory == StatusCategory.Active))
+            .ToListAsync(cancellationToken);
 
-        var result = desk.ChangeEstimationScale(scale, current, hasEstimatedOpenRequests,
+        var result = desk.ChangeEstimationScale(scale, current, estimatedOpenRequests, request.OpenEstimates,
             EventActor.User(_currentUser.GetUserId(), reader.EmployeeId), _dateTimeProvider.Now);
         if (result.IsFailure)
             return result;

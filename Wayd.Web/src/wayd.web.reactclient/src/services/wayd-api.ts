@@ -52573,6 +52573,75 @@ export class IntakeDesksClient {
     }
 
     /**
+     * Get the estimates on a desk's open requests, counted by value and by scale version.
+     * @return OK
+     */
+    getOpenEstimates(id: string, cancelToken?: CancelToken): Promise<IntakeDeskOpenEstimateCountDto[]> {
+        let url_ = this.baseUrl + "/api/demand-management/intake-desks/{id}/open-estimates";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetOpenEstimates(_response);
+        });
+    }
+
+    protected processGetOpenEstimates(response: AxiosResponse): Promise<IntakeDeskOpenEstimateCountDto[]> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IntakeDeskOpenEstimateCountDto[]>(result200);
+
+        } else if (status === 400) {
+            const _responseText = response.data;
+            let result400: any = null;
+            let resultData400  = _responseText;
+            result400 = resultData400;
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 404) {
+            const _responseText = response.data;
+            let result404: any = null;
+            let resultData404  = _responseText;
+            result404 = resultData404;
+            return throwException("Not Found", status, _responseText, _headers, result404);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IntakeDeskOpenEstimateCountDto[]>(null as any);
+    }
+
+    /**
      * Get the active estimation scales a desk can estimate its requests on.
      * @return OK
      */
@@ -64605,6 +64674,10 @@ export interface ChangeIntakeDeskEstimationScaleRequest {
     /** An active estimation scale, from the estimation scale choices, or null to stop estimating the desk's requests.
 The desk is pinned to the scale's current version. */
     estimationScaleId?: string | undefined;
+    /** What happens to the estimates on the desk's open requests, on whatever version each was given: `Keep` (the
+default) leaves each on its version until it is re-estimated, `Clear` clears every one. Done and Removed
+requests keep theirs either way. */
+    openEstimates: ScaleChangeEstimateHandling;
 }
 
 /** The scoring model a desk's requests should be scored with. */
@@ -68023,6 +68096,18 @@ export interface IntakeDeskMemberRequest {
     employeeId: string;
     /** What they may do on the desk: Admin runs it, Agent acts on its requests. */
     role: IntakeDeskRole;
+}
+
+/** How many of a desk's open requests carry one estimate value on one scale version: what a change of the desk's estimation scale keeps or clears. */
+export interface IntakeDeskOpenEstimateCountDto {
+    /** The estimate value, such as `M` or `8`. */
+    value: string;
+    /** Where the value sits among its version's values, from 0. Compares only with other values on the same version. */
+    position: number;
+    /** The scale and version the estimates were given on. */
+    scale: EstimationScaleVersionNavigationDto;
+    /** How many open requests on the desk carry this estimate. */
+    requestCount: number;
 }
 
 export enum IntakeDeskRole {
@@ -71836,6 +71921,11 @@ only be true where the kind of record holds internal notes. */
     /** Whether mentioning someone can give them access to the record. When false, only the people who already have
 the record can be mentioned. Can only be true where the kind of record allows it. */
     mentionsGrantAccess: boolean;
+}
+
+export enum ScaleChangeEstimateHandling {
+    Keep = "Keep",
+    Clear = "Clear",
 }
 
 export interface ScaleInput {

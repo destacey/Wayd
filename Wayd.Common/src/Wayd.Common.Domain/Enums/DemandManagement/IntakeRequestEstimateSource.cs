@@ -24,4 +24,10 @@ public enum IntakeRequestEstimateSource
     /// </summary>
     [Display(Name = "Imported", Description = "Brought over by an import.", Order = 3)]
     Imported = 3,
+
+    /// <summary>
+    /// The request's desk changed its estimation scale or version and chose to clear the estimates on its open requests.
+    /// </summary>
+    [Display(Name = "Scale Change", Description = "Cleared when the desk changed its estimation scale.", Order = 4)]
+    ScaleChange = 4,
 }

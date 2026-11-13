@@ -1,13 +1,28 @@
+import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { ReactElement } from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MessageProvider } from '@/src/components/contexts/messaging'
 import { IncidentDto } from '@/src/services/wayd-api'
 import IncidentTeamsChat from './incident-teams-chat'
 import styles from './incident-teams-chat.module.css'
+
+const copyLinkSentence =
+  'Open the group chat. The three dots are at the top right. Copy link is in that menu, under Mute.'
+
+// This hash is the Teams three-dots menu screenshot, so a different image at the path fails.
+const teamsMenuShotHash =
+  '4bccab6795c86fc80e4dee6b7ebcc390ae2aa7722bcda400f9e20c21ed1772d3'
+
+const teamsMenuShot = readFileSync(
+  resolve(
+    dirname(fileURLToPath(import.meta.url)),
+    '../../../../../public/images/teams-copy-link-menu.png',
+  ),
+)
 
 const teamsLogo = readFileSync(
   resolve(
@@ -218,6 +233,45 @@ describe('IncidentTeamsChat', () => {
       id: '01a1d091-2de1-75d3-97d9-34eae573d1fc',
       link: '',
     })
+  })
+
+  it('shows how to copy a Teams link above the link field', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    renderChat(
+      <IncidentTeamsChat
+        incident={incident(null)}
+        canUpdate
+        employees={[]}
+      />,
+    )
+
+    // Act
+    await user.click(
+      screen.getByRole('button', { name: 'Add Teams chat for this incident' }),
+    )
+    expect(screen.getByRole('tabpanel', { name: 'Create' })).not.toHaveTextContent(
+      copyLinkSentence,
+    )
+    await user.click(screen.getByRole('tab', { name: 'Link existing' }))
+
+    // Assert
+    const panel = screen.getByRole('tabpanel', { name: 'Link existing' })
+    const shot = within(panel).getByRole('img', {
+      name: 'Teams menu with Copy link under Mute',
+    })
+    const steps = within(panel).getByText(copyLinkSentence)
+    const field = within(panel).getByRole('textbox', { name: 'Teams link' })
+    expect(shot).toHaveAttribute('src', '/images/teams-copy-link-menu.png')
+    expect(shot.compareDocumentPosition(steps) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    )
+    expect(steps.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    )
+    expect(createHash('sha256').update(teamsMenuShot).digest('hex')).toBe(
+      teamsMenuShotHash,
+    )
   })
 
   it('accepts a Teams link whose scheme is uppercase', async () => {

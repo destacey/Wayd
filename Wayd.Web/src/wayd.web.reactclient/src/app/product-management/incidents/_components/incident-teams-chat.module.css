@@ -44,3 +44,15 @@
   height: 20px;
   font-size: 12px;
 }
+
+.menuShot {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 12px;
+}
+
+.copySteps {
+  display: block;
+  margin-bottom: 12px;
+}

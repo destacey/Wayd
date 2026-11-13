@@ -183,6 +183,17 @@ const IncidentTeamsChat = ({
                     storeLink(values, form, close, 'Teams chat linked.')
                   }
                 >
+                  <img
+                    src="/images/teams-copy-link-menu.png"
+                    alt="Teams menu with Copy link under Mute"
+                    width={406}
+                    height={325}
+                    className={styles.menuShot}
+                  />
+                  <Text className={styles.copySteps}>
+                    Open the group chat. The three dots are at the top right. Copy link
+                    is in that menu, under Mute.
+                  </Text>
                   <Form.Item
                     name="link"
                     label="Teams link"

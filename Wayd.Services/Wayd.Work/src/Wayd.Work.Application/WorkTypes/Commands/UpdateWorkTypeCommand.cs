@@ -50,7 +50,7 @@ public sealed class UpdateWorkTypeCommandHandler : ICommandHandler<UpdateWorkTyp
                 await _workDbContext.Entry(workType).ReloadAsync(cancellationToken);
                 workType.ClearDomainEvents();
 
-                _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", AppRequestName, request, updateResult.Error);
+                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
                 return Result.Failure<int>(updateResult.Error);
             }
 
@@ -62,9 +62,9 @@ public sealed class UpdateWorkTypeCommandHandler : ICommandHandler<UpdateWorkTyp
         {
             var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
 
-            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName} {request}");
+            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName}");
         }
     }
 }

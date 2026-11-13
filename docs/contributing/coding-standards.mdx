@@ -103,6 +103,21 @@ Never use `DateTime.UtcNow`. Always inject `IDateTimeProvider` for the current t
 
 Return `Result<T>` or `Result` from command handlers; `CqrsPatternTests` fails one that returns anything else. Query handlers return their response type: usually a nullable DTO, and a `Result<TDto>` when the query can fail for a reason other than finding nothing. Never throw exceptions for business logic failures.
 
+### Logging
+
+Never put a request, command, query, domain event or entity into a log event or a `Result` failure
+string whole: not as `{@Request}`, not interpolated (a record's `ToString` prints every property), and
+not pushed onto `LogContext`. They carry credentials, personal data and free text. Log the request's
+name and the ids or values that locate the failure:
+
+```csharp
+_logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
+return Result.Failure($"Wayd Request: Exception for Request {AppRequestName}");
+```
+
+A failure string reaches the API's caller as well as the log. What the cross-cutting paths log is
+covered in [Request logging](./configuration.mdx#request-logging).
+
 ### Primary constructors
 
 With a primary constructor, assign each parameter to a `private readonly _field` and use the field in

@@ -695,6 +695,13 @@ The API serves no Hangfire dashboard. Jobs are monitored, run, requeued and sche
 
 `MiddlewareSettings:EnableHttpsLogging` (`Configurations/middleware.json`, default `true`) turns on the request-logging middleware, which logs each request at a level set by its status code: 401 and 403 as warnings, 404 and 422 as information, any other status above 400 or an exception as an error, and the rest as information. Serilog itself is configured in `Configurations/logger.json` (console sink by default); `docker compose` adds the Seq sink through `Serilog__*` environment variables.
 
+No log event carries a request's payload. Handlers log the request's name, never the request itself (see [Logging](./coding-standards.mdx#logging)), and the two paths that log on behalf of every message follow the same rule:
+
+- **Slow messages.** A message that takes longer than 700 ms to handle logs a `Long running request` warning with its type name (`AppRequestName`) and elapsed time (`ApplicationElapsed`) only. A message that is slow by design implements `ILongRunningRequest` to skip it.
+- **Exception details.** The `Serilog.Exceptions` enricher adds an `ExceptionDetail` property to every event that carries an exception. It is registered in code (`ExceptionDetails.WithWaydExceptionDetails`, in `Wayd.Infrastructure/src/Wayd.Infrastructure/Logging/`), never in `logger.json` or a `Serilog__Enrich__*` variable: the enricher sets the property only when it is absent, so a second registration would log what this one leaves out, and `ExceptionDetailsTests` fails if one appears. A failed save logs the entity type and state of each entry (`DbUpdateExceptionDestructurer`); any other exception property declared as a message envelope, change-tracker entry or database context is left out (`PayloadPropertyFilter`).
+
+An exception's own message is logged as written. The database's message for a unique-key violation names the duplicate value, so that value reaches the log.
+
 ## Real-time (SignalR)
 
 The planning poker and story map hubs (`/hubs/planning-poker`, `/hubs/story-maps`) run on the API's own SignalR by default. Setting `Azure:SignalR:ConnectionString` (`Azure__SignalR__ConnectionString`) moves them to Azure SignalR Service, as Terraform does in Azure. The service token it issues leaves out the `permission` claims, which would exceed its 4 KB cap; hub authorization reads permissions from the database instead.

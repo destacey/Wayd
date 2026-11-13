@@ -78,7 +78,7 @@ public sealed class UpdateWorkTypeLevelCommandHandler : ICommandHandler<UpdateWo
 
             if (updateResult.IsFailure)
             {
-                _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", AppRequestName, request, updateResult.Error);
+                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", AppRequestName, updateResult.Error);
                 return Result.Failure(updateResult.Error);
             }
 
@@ -88,9 +88,9 @@ public sealed class UpdateWorkTypeLevelCommandHandler : ICommandHandler<UpdateWo
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, request);
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
 
-            return Result.Failure($"Wayd Request: Exception for Request {AppRequestName} {request}");
+            return Result.Failure($"Wayd Request: Exception for Request {AppRequestName}");
         }
     }
 }

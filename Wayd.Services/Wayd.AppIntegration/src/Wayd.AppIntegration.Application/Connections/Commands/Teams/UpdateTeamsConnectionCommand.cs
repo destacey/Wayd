@@ -1,6 +1,5 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Wayd.AppIntegration.Application.Logging;
 using Wayd.AppIntegration.Domain.Models.Teams;
 
 namespace Wayd.AppIntegration.Application.Connections.Commands.Teams;
@@ -64,9 +63,8 @@ public sealed class UpdateTeamsConnectionCommandHandler(
                 await appIntegrationDbContext.Entry(connection).ReloadAsync(cancellationToken);
                 connection.ClearDomainEvents();
                 logger.LogError(
-                    "Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}",
+                    "Wayd Request: Failure for Request {Name}.  Error message: {Error}",
                     AppRequestName,
-                    request.Redact(),
                     updateResult.Error);
                 return Result.Failure<Guid>(updateResult.Error);
             }
@@ -77,9 +75,8 @@ public sealed class UpdateTeamsConnectionCommandHandler(
         }
         catch (Exception ex)
         {
-            var redactedRequest = request.Redact();
-            logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, redactedRequest);
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName} {redactedRequest}");
+            logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
+            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName}");
         }
     }
 }

@@ -46,14 +46,14 @@ public sealed class GetChildWorkItemsQueryHandler(IWorkDbContext workDbContext, 
         }
         else
         {
-            _logger.LogError("{AppRequestName}: No workspace id or key provided. {@Request}", AppRequestName, request);
+            _logger.LogError("{AppRequestName}: No workspace id or key provided.", AppRequestName);
             return Result.Failure<IReadOnlyCollection<WorkItemListDto>>("No valid workspace id or key provided.");
         }
 
         var workItemId = await query.Select(e => e.Id).FirstOrDefaultAsync(cancellationToken);
         if (workItemId.IsDefault())
         {
-            _logger.LogError("{AppRequestName}: Work item not found. {@Request}", AppRequestName, request);
+            _logger.LogError("{AppRequestName}: Work item not found.", AppRequestName);
             return Result.Failure<IReadOnlyCollection<WorkItemListDto>>("Work item not found.");
         }
 

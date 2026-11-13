@@ -51,7 +51,7 @@ public sealed class DeleteProjectPortfolioCommandHandler(IProjectPortfolioManage
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command for request {@Request}.", AppRequestName, request);
+            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
             return Result.Failure($"Error handling {AppRequestName} command.");
         }
     }

@@ -59,7 +59,7 @@ public sealed class DeleteTeamOperatingModelCommandHandler(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception for request {RequestName}: {@Request}", RequestName, request);
+            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
             return Result.Failure($"Exception for request {RequestName}: {ex.Message}");
         }
     }

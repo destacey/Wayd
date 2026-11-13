@@ -80,7 +80,7 @@ public sealed class EvaluateScoringModelQueryHandler(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception handling {QueryName} query for request {@Request}.", AppRequestName, request);
+            _logger.LogError(ex, "Exception handling {QueryName} query.", AppRequestName);
             return Result.Failure<ScoringModelEvaluationDto>($"Error handling {AppRequestName} query.");
         }
     }

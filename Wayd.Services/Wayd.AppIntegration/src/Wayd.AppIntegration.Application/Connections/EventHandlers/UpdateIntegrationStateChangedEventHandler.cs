@@ -1,5 +1,4 @@
-﻿using Serilog.Context;
-using Wayd.Common.Domain.Enums;
+﻿using Wayd.Common.Domain.Enums;
 using Wayd.Common.Domain.Events;
 
 namespace Wayd.AppIntegration.Application.Connections.EventHandlers;
@@ -22,10 +21,7 @@ public sealed class UpdateIntegrationStateChangedEventHandler(IAppIntegrationDbC
                 workProcess?.UpdateIntegrationState(@event.IntegrationState.IsActive);
             }
 
-            using (LogContext.PushProperty("EventPayload", @event))
-            {
-                _logger.LogInformation("Event processed for {EventHandler}", nameof(UpdateIntegrationStateChangedEventHandler));
-            }
+            _logger.LogInformation("Event processed for {EventHandler}", nameof(UpdateIntegrationStateChangedEventHandler));
 
             await _appIntegrationDbContext.SaveChangesAsync(cancellationToken);
         }

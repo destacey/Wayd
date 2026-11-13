@@ -86,7 +86,7 @@ public sealed class UpdateRoadmapItemCommandHandler(IPlanningDbContext planningD
 
             if (result.IsFailure)
             {
-                _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", request.GetType().Name, request, result.Error);
+                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", request.GetType().Name, result.Error);
                 return Result.Failure<Guid>(result.Error);
             }
 
@@ -98,9 +98,9 @@ public sealed class UpdateRoadmapItemCommandHandler(IPlanningDbContext planningD
         {
             var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
 
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {requestName} {request}");
+            return Result.Failure<Guid>($"Wayd Request: Exception for Request {requestName}");
         }
     }
 }

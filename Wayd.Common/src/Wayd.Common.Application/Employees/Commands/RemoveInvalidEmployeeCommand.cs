@@ -55,7 +55,7 @@ public sealed class RemoveInvalidEmployeeCommandHandler : ICommandHandler<Remove
                 employee.ClearDomainEvents();
 
                 var requestName = request.GetType().Name;
-                _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", requestName, request, updateResult.Error);
+                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", requestName, updateResult.Error);
                 return Result.Failure<int>(updateResult.Error);
             }
 
@@ -80,9 +80,9 @@ public sealed class RemoveInvalidEmployeeCommandHandler : ICommandHandler<Remove
         {
             var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
 
-            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName} {request}");
+            return Result.Failure<int>($"Wayd Request: Exception for Request {requestName}");
         }
     }
 }

@@ -1,5 +1,4 @@
 ﻿using FluentValidation;
-using Wayd.AppIntegration.Application.Logging;
 using Wayd.AppIntegration.Domain.Models.Workday;
 using Wayd.Common.Application.Interfaces.ExternalPeople;
 using Wayd.Common.Domain.Enums.AppIntegrations;
@@ -107,9 +106,8 @@ public sealed class CreateWorkdayConnectionCommandHandler(
         }
         catch (Exception ex)
         {
-            var redactedRequest = request.Redact();
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, redactedRequest);
-            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName} {redactedRequest}");
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
+            return Result.Failure<Guid>($"Wayd Request: Exception for Request {AppRequestName}");
         }
     }
 

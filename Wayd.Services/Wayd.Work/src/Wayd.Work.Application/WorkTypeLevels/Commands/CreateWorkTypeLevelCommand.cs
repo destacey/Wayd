@@ -67,9 +67,9 @@ public sealed class CreateWorkTypeLevelCommandHandler : ICommandHandler<CreateWo
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", AppRequestName, request);
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", AppRequestName);
 
-            return Result.Failure<int>($"Wayd Request: Exception for Request {AppRequestName} {request}");
+            return Result.Failure<int>($"Wayd Request: Exception for Request {AppRequestName}");
         }
     }
 }

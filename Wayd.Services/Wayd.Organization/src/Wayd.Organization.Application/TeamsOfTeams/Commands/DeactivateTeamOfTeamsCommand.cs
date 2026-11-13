@@ -36,7 +36,7 @@ public sealed class DeactivateTeamOfTeamsCommandHandler(IOrganizationDbContext o
 
             if (team is null)
             {
-                _logger.LogInformation("{RequestName}: Team of Teams not found. {@Request}", RequestName, request);
+                _logger.LogInformation("{RequestName}: Team of Teams not found.", RequestName);
                 return Result.Failure("Team of Teams not found.");
             }
 
@@ -60,9 +60,9 @@ public sealed class DeactivateTeamOfTeamsCommandHandler(IOrganizationDbContext o
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception for request {RequestName}: {@Request}", RequestName, request);
+            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
 
-            return Result.Failure<int>($"Exception for request {RequestName} {request}");
+            return Result.Failure<int>($"Exception for request {RequestName}");
         }
     }
 }

@@ -55,9 +55,9 @@ public sealed class UpdateTeamMembershipCommandHandler(IOrganizationDbContext or
         {
             var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
 
-            return Result.Failure($"Wayd Request: Exception for Request {requestName} {request}");
+            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
         }
     }
 }

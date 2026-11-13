@@ -77,9 +77,9 @@ public sealed class CreateTeamOfTeamsCommandHandler : ICommandHandler<CreateTeam
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception for request {RequestName}: {@Request}", RequestName, request);
+            _logger.LogError(ex, "Exception for request {RequestName}", RequestName);
 
-            return Result.Failure<ObjectIdAndKey>($"Exception for request {RequestName} {request}");
+            return Result.Failure<ObjectIdAndKey>($"Exception for request {RequestName}");
         }
     }
 }

@@ -42,7 +42,7 @@ public sealed class GetWorkspaceQueryHandler(IWorkDbContext workDbContext, ILogg
         }
         else
         {
-            _logger.LogError("{AppRequestName}: No workspace id or key provided. {@Request}", AppRequestName, request);
+            _logger.LogError("{AppRequestName}: No workspace id or key provided.", AppRequestName);
             return Result.Failure<WorkspaceDto?>("No valid workspace id or key provided.");
         }
 

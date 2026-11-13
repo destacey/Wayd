@@ -190,7 +190,7 @@ public sealed class ReassignWorkflowCommandHandler(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception handling {CommandName} command for request {@Request}.", AppRequestName, request);
+            _logger.LogError(ex, "Exception handling {CommandName} command.", AppRequestName);
             return Result.Failure<int>($"Error handling {AppRequestName} command.");
         }
     }

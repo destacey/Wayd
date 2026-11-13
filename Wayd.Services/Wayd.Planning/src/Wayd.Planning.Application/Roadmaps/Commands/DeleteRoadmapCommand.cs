@@ -40,7 +40,7 @@ public sealed class DeleteRoadmapCommandHandler(IPlanningDbContext planningDbCon
             var deleteResult = roadmap.Delete(caller, EventActor.User(_currentUser.GetUserId(), caller.EmployeeId), _dateTimeProvider.Now);
             if (deleteResult.IsFailure)
             {
-                _logger.LogError("Wayd Request: Failure for Request {Name} {@Request}.  Error message: {Error}", request.GetType().Name, request, deleteResult.Error);
+                _logger.LogError("Wayd Request: Failure for Request {Name}.  Error message: {Error}", request.GetType().Name, deleteResult.Error);
                 return Result.Failure(deleteResult.Error);
             }
 
@@ -53,9 +53,9 @@ public sealed class DeleteRoadmapCommandHandler(IPlanningDbContext planningDbCon
         {
             var requestName = request.GetType().Name;
 
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
 
-            return Result.Failure($"Wayd Request: Exception for Request {requestName} {request}");
+            return Result.Failure($"Wayd Request: Exception for Request {requestName}");
         }
     }
 }

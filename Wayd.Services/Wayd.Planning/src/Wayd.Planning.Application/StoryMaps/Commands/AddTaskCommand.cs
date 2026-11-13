@@ -57,8 +57,8 @@ public sealed class AddTaskCommandHandler(IPlanningDbContext planningDbContext, 
         catch (Exception ex) when (ex is not ForbiddenException)
         {
             var requestName = request.GetType().Name;
-            _logger.LogError(ex, "Wayd Request: Exception for Request {Name} {@Request}", requestName, request);
-            return Result.Failure<StoryMapTaskDto>($"Wayd Request: Exception for Request {requestName} {request}");
+            _logger.LogError(ex, "Wayd Request: Exception for Request {Name}", requestName);
+            return Result.Failure<StoryMapTaskDto>($"Wayd Request: Exception for Request {requestName}");
         }
     }
 }

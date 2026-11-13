@@ -74,6 +74,50 @@ describe('deliverablesDueSoon', () => {
   })
 })
 
+describe('MyDeliverablesWidget with a longer window', () => {
+  it('lists deliverables due within it, and says so when none is', () => {
+    // Arrange
+    mockDeliverables.mockReturnValue(
+      loaded([
+        deliverable(1, 'Day thirty', '2026-12-11'),
+        deliverable(2, 'Day thirty-one', '2026-12-12'),
+      ]),
+    )
+
+    // Act
+    render(
+      <MyDeliverablesWidget
+        title="Deliverables I own"
+        settings={{ 'due-window': '30' }}
+      />,
+    )
+
+    // Assert
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+    expect(screen.getByText('Day thirty')).toBeInTheDocument()
+  })
+
+  it('names the window when nothing falls within it', () => {
+    // Arrange
+    mockDeliverables.mockReturnValue(
+      loaded([deliverable(1, 'Far off', '2027-03-01')]),
+    )
+
+    // Act
+    render(
+      <MyDeliverablesWidget
+        title="Deliverables I own"
+        settings={{ 'due-window': '60' }}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByText(/None is due in the next 60 days\./),
+    ).toBeInTheDocument()
+  })
+})
+
 describe('MyDeliverablesWidget', () => {
   it('lists each deliverable with its status, target and project, marking one past target', () => {
     // Arrange

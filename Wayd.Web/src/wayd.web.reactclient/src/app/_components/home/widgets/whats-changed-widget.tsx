@@ -8,7 +8,7 @@ import {
 import { FC } from 'react'
 import AttentionTile from '../attention-tile'
 import WidgetCard, { WidgetEmpty } from '../widget-card'
-import { MAX_ROWS, rowsToShow } from '../widget-settings'
+import { isOn, MAX_ROWS, rowsToShow, WidgetSetting } from '../widget-settings'
 import { HomeWidgetProps } from '../widget-registry'
 
 /** How many of the latest changes the widget shows; the rest are a click away. */
@@ -16,11 +16,27 @@ export const WHATS_CHANGED_COUNT = 5
 
 const NOTIFICATIONS_HREF = '/account/notifications'
 
-/** The latest changes to the records the caller follows or works on. */
+/** The setting that keeps the widget to changes the caller has not read. */
+export const UNREAD_ONLY_SETTING = 'unread-only'
+
+/** What the user can change about the widget, beyond its rows and empty display. */
+export const whatsChangedSettings: WidgetSetting[] = [
+  {
+    kind: 'toggle',
+    key: UNREAD_ONLY_SETTING,
+    label: 'Unread only',
+    default: false,
+  },
+]
+
+/** The latest changes to the records the caller follows or works on, or only the unread ones. */
 const WhatsChangedWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
   const rows = rowsToShow(settings, WHATS_CHANGED_COUNT)
+  const unreadOnly = isOn(settings, UNREAD_ONLY_SETTING, false)
   const { data, isLoading, isError } = useGetMyNotificationsInfiniteQuery({
     pageSize: MAX_ROWS,
+    // Left out rather than false, so the default asks the question it always has.
+    ...(unreadOnly ? { unreadOnly: true } : {}),
   })
   const notifications = (data?.pages[0]?.items ?? []).slice(0, rows)
 
@@ -31,10 +47,16 @@ const WhatsChangedWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
       loading={isLoading}
       failed={isError}
       empty={notifications.length === 0}
-      emptySummary="Nothing has changed"
+      emptySummary={unreadOnly ? 'Nothing unread' : 'Nothing has changed'}
     >
       {!isError && notifications.length === 0 ? (
-        <WidgetEmpty message="Nothing has changed yet. Follow a project, program or PI objective, or take a role on one, and its changes appear here." />
+        <WidgetEmpty
+          message={
+            unreadOnly
+              ? 'You have read every change. New changes to the records you follow or work on appear here until you read them.'
+              : 'Nothing has changed yet. Follow a project, program or PI objective, or take a role on one, and its changes appear here.'
+          }
+        />
       ) : (
         <NotificationList
           notifications={notifications}

@@ -49,6 +49,21 @@ describe('currentPlanningIntervals', () => {
     // Assert
     expect(current.map((p) => p.key)).toEqual([2, 3])
   })
+
+  it('keeps future ones starting within a longer window when given one', () => {
+    // Arrange
+    const today = '2026-11-08'
+    const all = [
+      pi(4, IterationState.Future, '2026-12-08', '2027-02-01'),
+      pi(5, IterationState.Future, '2026-12-09', '2027-03-01'),
+    ]
+
+    // Act
+    const current = currentPlanningIntervals(all, today, 30)
+
+    // Assert
+    expect(current.map((p) => p.key)).toEqual([4])
+  })
 })
 
 describe('countdownText', () => {
@@ -104,6 +119,30 @@ describe('PlanningIntervalsWidget', () => {
     expect(
       screen.getByRole('link', { name: 'All planning intervals' }),
     ).toHaveAttribute('href', '/planning/planning-intervals')
+  })
+
+  it('names the window it is set to when no planning interval is current', () => {
+    // Arrange
+    mockPlanningIntervals.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+    })
+
+    // Act
+    render(
+      <PlanningIntervalsWidget
+        title="Planning intervals"
+        settings={{ 'upcoming-window': '30' }}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByText(
+        'No planning interval is active or starts in the next 30 days.',
+      ),
+    ).toBeInTheDocument()
   })
 
   it('links each current planning interval to its overview and plan review', () => {

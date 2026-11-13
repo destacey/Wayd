@@ -18,7 +18,12 @@ import { FC } from 'react'
 import AttentionTile from '../attention-tile'
 import { useHomeContext } from '../use-home-context'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
-import { rowsToShow } from '../widget-settings'
+import {
+  isOn,
+  rowsToShow,
+  WidgetSetting,
+  WidgetSettingValues,
+} from '../widget-settings'
 import { HomeWidgetProps, widgetAnchorId } from '../widget-registry'
 import styles from '../home.module.css'
 
@@ -53,19 +58,83 @@ export const taskDue = (
 }
 
 /**
- * The tasks the widget lists — overdue, or due by the end of next week — and
- * how many open tasks fall later or have no due date. The home page is a
+ * How far ahead the widget lists tasks, in the project plan's own groupings:
+ * overdue only, also those due by the end of this week, or also the upcoming
+ * ones due by the end of next week. Overdue tasks are always listed.
+ */
+export type TaskDueWindow = 'overdue' | 'this-week' | 'upcoming'
+
+/** The setting for how far ahead the widget lists tasks. */
+export const DUE_WINDOW_SETTING = 'due-window'
+
+/** The setting that decides whether milestones are listed beside tasks. */
+export const INCLUDE_MILESTONES_SETTING = 'include-milestones'
+
+const DUE_WINDOWS: TaskDueWindow[] = ['overdue', 'this-week', 'upcoming']
+
+/** What the user can change about the widget, beyond its rows and empty display. */
+export const myProjectTasksSettings: WidgetSetting[] = [
+  {
+    kind: 'choice',
+    key: DUE_WINDOW_SETTING,
+    label: 'List tasks up to',
+    options: [
+      { value: 'overdue', label: 'Overdue' },
+      { value: 'this-week', label: 'Due this week' },
+      { value: 'upcoming', label: 'Upcoming' },
+    ],
+    default: 'upcoming',
+  },
+  {
+    kind: 'toggle',
+    key: INCLUDE_MILESTONES_SETTING,
+    label: 'Include milestones',
+    default: true,
+  },
+]
+
+/** The due window in effect: the setting's value, or Upcoming for a widget rendered without settings. */
+export const taskDueWindowOf = (
+  settings: WidgetSettingValues | undefined,
+): TaskDueWindow =>
+  DUE_WINDOWS.find((w) => w === settings?.[DUE_WINDOW_SETTING]) ?? 'upcoming'
+
+/** Whether a task is a milestone rather than a task, as the plan names its type. */
+export const isMilestone = (task: MyProjectTaskDto): boolean =>
+  task.type.name === 'Milestone'
+
+/**
+ * The tasks the widget lists — overdue, or due within the window — and how
+ * many open tasks fall later or have no due date. The home page is a
  * briefing, so work that is not due soon is counted, not listed.
  */
 export const tasksDueSoon = (
   tasks: MyProjectTaskDto[],
   today: CalendarDate,
+  dueWindow: TaskDueWindow = 'upcoming',
 ): { soon: MyProjectTaskDto[]; laterCount: number } => {
-  const endOfNextWeek = addCalendarDays(endOfWeek(today), 7)
-  const soon = tasks.filter(
-    (t) => !!t.dueDate && compareCalendarDates(t.dueDate, endOfNextWeek) <= 0,
-  )
+  const isListed = (dueDate: CalendarDate) => {
+    switch (dueWindow) {
+      case 'overdue':
+        return compareCalendarDates(dueDate, today) < 0
+      case 'this-week':
+        return compareCalendarDates(dueDate, endOfWeek(today)) <= 0
+      default:
+        return (
+          compareCalendarDates(dueDate, addCalendarDays(endOfWeek(today), 7)) <=
+          0
+        )
+    }
+  }
+  const soon = tasks.filter((t) => !!t.dueDate && isListed(t.dueDate))
   return { soon, laterCount: tasks.length - soon.length }
+}
+
+/** What the listed tasks are, for the line counting those past the rows shown. */
+const listedWording: Record<TaskDueWindow, string> = {
+  overdue: 'overdue',
+  'this-week': 'due by the end of this week',
+  upcoming: 'due by the end of next week',
 }
 
 const plural = (n: number, one: string, many: string) =>
@@ -118,27 +187,45 @@ const Due: FC<{ task: MyProjectTaskDto; today: CalendarDate }> = ({
 }
 
 /**
- * The open project tasks and milestones assigned to the caller on approved and
- * active projects that are overdue or due by the end of next week, the most
- * urgent first; the rest are counted, not listed.
+ * The open project tasks and, unless the user leaves them out, milestones
+ * assigned to the caller on approved and active projects that are overdue or
+ * due within the chosen window, the most urgent first; the rest are counted,
+ * not listed.
  */
 const MyProjectTasksWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
   const rows = rowsToShow(settings, MY_PROJECT_TASKS_LIMIT)
-  const { data: tasks, isLoading, isError } = useMyTasks()
+  const dueWindow = taskDueWindowOf(settings)
+  const includeMilestones = isOn(settings, INCLUDE_MILESTONES_SETTING, true)
+  const { data: allTasks, isLoading, isError } = useMyTasks()
+  const tasks = includeMilestones
+    ? allTasks
+    : allTasks?.filter((t) => !isMilestone(t))
+  // Said apart from having none, since the Overdue and Due this week counts still include the milestones.
+  const onlyMilestones =
+    !!allTasks && allTasks.length > 0 && !!tasks && tasks.length === 0
   const today = todayCalendarDate()
 
   const body = () => {
     if (isError) return <WidgetError message="Could not load your tasks." />
+    if (onlyMilestones) {
+      return (
+        <WidgetEmpty message="Every open item assigned to you is a milestone, and this widget is set to leave milestones out." />
+      )
+    }
     if (!tasks || tasks.length === 0) {
       return (
         <WidgetEmpty message="You have no open project tasks on approved or active projects. They appear here when a project manager assigns you one." />
       )
     }
-    const { soon, laterCount } = tasksDueSoon(tasks, today)
+    const { soon, laterCount } = tasksDueSoon(tasks, today, dueWindow)
     if (soon.length === 0) {
+      const nothing =
+        dueWindow === 'overdue'
+          ? 'Nothing is overdue.'
+          : `Nothing is ${listedWording[dueWindow]}.`
       return (
         <WidgetEmpty
-          message={`Nothing is due by the end of next week. You have ${plural(laterCount, 'open task', 'open tasks')} due later.`}
+          message={`${nothing} You have ${plural(laterCount, 'open task', 'open tasks')} due later.`}
         />
       )
     }
@@ -166,7 +253,7 @@ const MyProjectTasksWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
         </WaydList>
         {more > 0 ? (
           <Text type="secondary" className={styles.widgetEmpty}>
-            And {more} more due by the end of next week.
+            And {more} more {listedWording[dueWindow]}.
           </Text>
         ) : null}
         {laterCount > 0 ? (
@@ -185,7 +272,9 @@ const MyProjectTasksWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
       failed={isError}
       // Not when only later tasks remain: they are counted, and hiding them would hide work.
       empty={!tasks || tasks.length === 0}
-      emptySummary="No open tasks"
+      emptySummary={
+        onlyMilestones ? 'No open tasks (milestones hidden)' : 'No open tasks'
+      }
     >
       {body()}
     </WidgetCard>

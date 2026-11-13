@@ -10,7 +10,13 @@ import { useGetMyWorkItemsQuery } from '@/src/store/features/user-management/me-
 import { Typography } from 'antd'
 import { FC } from 'react'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
-import { rowsToShow } from '../widget-settings'
+import {
+  daysOf,
+  daysSetting,
+  isOn,
+  rowsToShow,
+  WidgetSetting,
+} from '../widget-settings'
 import { HomeWidgetProps } from '../widget-registry'
 import styles from '../home.module.css'
 
@@ -19,21 +25,45 @@ const { Text } = Typography
 /** The most work items the widget lists; the rest are counted below them. */
 export const MY_WORK_ITEMS_LIMIT = 8
 
-/** How many days, today included, the done count looks back over. */
+/** The setting that decides whether proposed work items are listed beside those in progress. */
+export const INCLUDE_PROPOSED_SETTING = 'include-proposed'
+
+/** The setting for how many days, today included, the done count looks back over. */
+export const DONE_WINDOW_SETTING = 'done-window'
+
+/** How many days the done count looks back over until the user picks another window. */
 export const RECENTLY_DONE_DAYS = 7
 
-const OPEN_CATEGORIES = [StatusCategory.Active, StatusCategory.Proposed]
+/** What the user can change about the widget, beyond its rows and empty display. */
+export const myWorkItemsSettings: WidgetSetting[] = [
+  {
+    kind: 'toggle',
+    key: INCLUDE_PROPOSED_SETTING,
+    label: 'Include proposed items',
+    default: true,
+  },
+  daysSetting(
+    DONE_WINDOW_SETTING,
+    'Count work finished in the last',
+    [7, 14, 30],
+    RECENTLY_DONE_DAYS,
+  ),
+]
+
 const DONE_CATEGORIES = [StatusCategory.Done]
 
 /**
- * The start of the first of the last {@link RECENTLY_DONE_DAYS} days, today
- * included, as an ISO instant. Fixed to the day, so every render in it asks
- * the same question and shares one cached answer.
+ * The start of the first of the last `days` days, today included, as an ISO
+ * instant. Fixed to the day, so every render in it asks the same question and
+ * shares one cached answer.
  */
-export const recentlyDoneSince = (now: Date = new Date()): string => {
+export const recentlyDoneSince = (
+  days: number = RECENTLY_DONE_DAYS,
+  now: Date = new Date(),
+): string => {
   const since = new Date(now)
   since.setHours(0, 0, 0, 0)
-  since.setDate(since.getDate() - (RECENTLY_DONE_DAYS - 1))
+  since.setDate(since.getDate() - (days - 1))
   return since.toISOString()
 }
 
@@ -88,24 +118,34 @@ const WorkItemRow: FC<{ workItem: WorkItemListDto }> = ({ workItem }) => (
 )
 
 /**
- * The backlog-level work items assigned to the caller that are in progress or
- * proposed, Active first, with how many they finished in the last week.
+ * The backlog-level work items assigned to the caller that are in progress or,
+ * unless the user leaves them out, proposed, Active first, with how many they
+ * finished within the chosen window.
  */
 const MyWorkItemsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
   const rows = rowsToShow(settings, MY_WORK_ITEMS_LIMIT)
-  const open = useGetMyWorkItemsQuery({ statusCategories: OPEN_CATEGORIES })
+  const includeProposed = isOn(settings, INCLUDE_PROPOSED_SETTING, true)
+  const doneDays = daysOf(settings, DONE_WINDOW_SETTING, RECENTLY_DONE_DAYS)
+  const open = useGetMyWorkItemsQuery({
+    statusCategories: includeProposed
+      ? [StatusCategory.Active, StatusCategory.Proposed]
+      : [StatusCategory.Active],
+  })
   // The done count is extra: without it the open work still shows. Like the
   // other widgets' counts, it shows only above zero.
   const { data: done } = useGetMyWorkItemsQuery({
     statusCategories: DONE_CATEGORIES,
-    doneFrom: recentlyDoneSince(),
+    doneFrom: recentlyDoneSince(doneDays),
   })
+  const openWording = includeProposed
+    ? 'in progress or proposed'
+    : 'in progress'
 
   const doneLine =
     done && done.length > 0 ? (
       <Text type="secondary" className={styles.widgetEmpty}>
         {plural(done.length, 'work item', 'work items')} done in the last{' '}
-        {RECENTLY_DONE_DAYS} days.
+        {doneDays} days.
       </Text>
     ) : null
 
@@ -116,7 +156,9 @@ const MyWorkItemsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
     if (workItems.length === 0) {
       return (
         <>
-          <WidgetEmpty message="Nothing is assigned to you in progress or proposed. Work items assigned to you in a synced workspace appear here." />
+          <WidgetEmpty
+            message={`Nothing is assigned to you ${openWording}. Work items assigned to you in a synced workspace appear here.`}
+          />
           {doneLine}
         </>
       )
@@ -146,7 +188,7 @@ const MyWorkItemsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
       failed={open.isError}
       // The done count is extra, so with no open work the widget is empty.
       empty={groupMyWorkItems(open.data ?? []).length === 0}
-      emptySummary="Nothing in progress or proposed"
+      emptySummary={`Nothing ${openWording}`}
     >
       {body()}
     </WidgetCard>

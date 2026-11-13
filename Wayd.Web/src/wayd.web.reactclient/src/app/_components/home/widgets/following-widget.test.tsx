@@ -48,6 +48,34 @@ describe('FollowingWidget', () => {
     ).toBeInTheDocument()
   })
 
+  it('asks for only the kinds of record it is set to, saying when there are none', () => {
+    // Arrange
+    mockFollows.mockReturnValue({
+      data: { pages: [{ items: [] }] },
+      isLoading: false,
+      isError: false,
+    })
+
+    // Act
+    render(
+      <FollowingWidget
+        title="Following"
+        settings={{ 'record-types': 'ppm.project,demand.intake-request' }}
+      />,
+    )
+
+    // Assert
+    expect(mockFollows).toHaveBeenCalledWith({
+      sort: FollowSort.LastChanged,
+      direction: SortDirection.Descending,
+      pageSize: MAX_ROWS,
+      ownerTypes: ['ppm.project', 'demand.intake-request'],
+    })
+    expect(
+      screen.getByText(/You follow nothing of the kinds this widget/),
+    ).toBeInTheDocument()
+  })
+
   it('lists the most recently changed records, linking to each, up to the limit', () => {
     // Arrange
     const items = Array.from({ length: FOLLOWING_COUNT + 2 }, (_, i) =>

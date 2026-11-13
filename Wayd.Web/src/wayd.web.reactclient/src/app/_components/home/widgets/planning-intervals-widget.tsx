@@ -20,17 +20,32 @@ import Link from 'next/link'
 import { FC } from 'react'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
 import { HomeWidgetProps } from '../widget-registry'
+import { daysOf, daysSetting, WidgetSetting } from '../widget-settings'
 import styles from '../home.module.css'
 
 const { Text } = Typography
 
-/** How far ahead a future planning interval is listed, in days. */
+/** The setting for how far ahead a future planning interval is listed. */
+export const UPCOMING_WINDOW_SETTING = 'upcoming-window'
+
+/** How far ahead a future planning interval is listed, in days, until the user picks another window. */
 export const UPCOMING_WINDOW_DAYS = 14
 
-/** Active planning intervals, and future ones starting within the window, soonest first. */
+/** What the user can change about the widget, beyond its empty display. */
+export const planningIntervalsSettings: WidgetSetting[] = [
+  daysSetting(
+    UPCOMING_WINDOW_SETTING,
+    'List intervals starting within',
+    [14, 30],
+    UPCOMING_WINDOW_DAYS,
+  ),
+]
+
+/** Active planning intervals, and future ones starting within `upcomingDays`, soonest first. */
 export const currentPlanningIntervals = (
   planningIntervals: PlanningIntervalListDto[],
   today: CalendarDate,
+  upcomingDays: number = UPCOMING_WINDOW_DAYS,
 ): PlanningIntervalListDto[] =>
   planningIntervals
     .filter((pi) => {
@@ -38,7 +53,7 @@ export const currentPlanningIntervals = (
       return (
         state === IterationState.Active ||
         (state === IterationState.Future &&
-          calendarDaysBetween(today, pi.start) <= UPCOMING_WINDOW_DAYS)
+          calendarDaysBetween(today, pi.start) <= upcomingDays)
       )
     })
     .sort((a, b) => compareCalendarDates(a.start, b.start))
@@ -92,10 +107,19 @@ const PlanningIntervalRow: FC<{
 }
 
 /** The planning intervals running now or starting soon, with a way into each. */
-const PlanningIntervalsWidget: FC<HomeWidgetProps> = ({ title }) => {
+const PlanningIntervalsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
+  const upcomingDays = daysOf(
+    settings,
+    UPCOMING_WINDOW_SETTING,
+    UPCOMING_WINDOW_DAYS,
+  )
   const { data, isLoading, isError } = useGetPlanningIntervalsQuery()
   const today = todayCalendarDate()
-  const planningIntervals = currentPlanningIntervals(data ?? [], today)
+  const planningIntervals = currentPlanningIntervals(
+    data ?? [],
+    today,
+    upcomingDays,
+  )
 
   const body = () => {
     if (isError) {
@@ -104,7 +128,7 @@ const PlanningIntervalsWidget: FC<HomeWidgetProps> = ({ title }) => {
     if (planningIntervals.length === 0) {
       return (
         <WidgetEmpty
-          message={`No planning interval is active or starts in the next ${UPCOMING_WINDOW_DAYS} days.`}
+          message={`No planning interval is active or starts in the next ${upcomingDays} days.`}
           link={{
             href: '/planning/planning-intervals',
             label: 'All planning intervals',

@@ -91,6 +91,30 @@ describe('WhatsChangedWidget', () => {
     },
   )
 
+  it('asks for unread changes only, and says when every one is read, when set to', () => {
+    // Arrange
+    mockNotifications.mockReturnValue({
+      data: { pages: [{ items: [] }] },
+      isLoading: false,
+      isError: false,
+    })
+
+    // Act
+    render(
+      <WhatsChangedWidget
+        title="What's changed"
+        settings={{ 'unread-only': 'true' }}
+      />,
+    )
+
+    // Assert
+    expect(mockNotifications).toHaveBeenCalledWith({
+      pageSize: MAX_ROWS,
+      unreadOnly: true,
+    })
+    expect(screen.getByText(/You have read every change/)).toBeInTheDocument()
+  })
+
   it('lists the latest notifications from the first page', () => {
     // Arrange
     mockNotifications.mockReturnValue({

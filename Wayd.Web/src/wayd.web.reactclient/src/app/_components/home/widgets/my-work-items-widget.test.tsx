@@ -144,6 +144,34 @@ describe('MyWorkItemsWidget', () => {
     ).toHaveAttribute('href', '/work/workspaces/CORE/work-items/CORE-1')
   })
 
+  it('links a synced work item to its external system', () => {
+    // Arrange
+    respond(
+      loaded([
+        workItem('CORE-1', StatusCategoryId.Active, {
+          externalViewWorkItemUrl:
+            'https://dev.azure.com/org/proj/_workitems/edit/1',
+        }),
+        workItem('CORE-2', StatusCategoryId.Active),
+      ]),
+    )
+
+    // Act
+    render(<MyWorkItemsWidget title="My work items" />)
+
+    // Assert
+    const items = screen.getAllByRole('listitem')
+    const external = within(items[0]).getByTitle('Open in external system')
+    expect(external).toHaveAttribute(
+      'href',
+      'https://dev.azure.com/org/proj/_workitems/edit/1',
+    )
+    expect(external).toHaveAttribute('target', '_blank')
+    expect(
+      within(items[1]).queryByTitle('Open in external system'),
+    ).not.toBeInTheDocument()
+  })
+
   it('shows the team of a work item outside a sprint', () => {
     // Arrange
     respond(

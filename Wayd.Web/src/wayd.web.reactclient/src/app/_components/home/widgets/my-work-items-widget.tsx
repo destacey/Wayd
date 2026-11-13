@@ -2,6 +2,7 @@
 
 import { WaydList } from '@/src/components/common'
 import EntityLink from '@/src/components/common/entity-link'
+import ExternalIconLink from '@/src/components/common/external-icon-link'
 import WorkStatusTag from '@/src/components/common/work/work-status-tag'
 import { StatusCategoryId } from '@/src/components/types'
 import { StatusCategory, WorkItemListDto } from '@/src/services/wayd-api'
@@ -56,11 +57,19 @@ const plural = (n: number, one: string, many: string) =>
 const WorkItemRow: FC<{ workItem: WorkItemListDto }> = ({ workItem }) => (
   <WaydList.Item className={styles.listItem}>
     <div className={styles.listItemBody}>
-      <EntityLink
-        href={`/work/workspaces/${workItem.workspace.key}/work-items/${workItem.key}`}
-      >
-        {workItem.key} · {workItem.title}
-      </EntityLink>
+      <span>
+        <ExternalIconLink
+          content={
+            <EntityLink
+              href={`/work/workspaces/${workItem.workspace.key}/work-items/${workItem.key}`}
+            >
+              {workItem.key} · {workItem.title}
+            </EntityLink>
+          }
+          url={workItem.externalViewWorkItemUrl}
+          tooltip="Open in external system"
+        />
+      </span>
       <span className={styles.listItemMeta}>
         <WorkStatusTag
           status={workItem.status}

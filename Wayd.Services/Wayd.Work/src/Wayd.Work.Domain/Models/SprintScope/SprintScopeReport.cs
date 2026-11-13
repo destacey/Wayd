@@ -50,7 +50,8 @@ public sealed class SprintScopeReport
 
     /// <param name="periods">
     /// The history of every item that may have been in the sprint, in any order. Periods outside the window
-    /// are ignored, so an item's whole history may be passed.
+    /// are ignored, so an item's whole history may be passed; its periods in the sprint before the window are
+    /// read for when a committed item was added.
     /// </param>
     /// <param name="now">When the report is read; a sprint that has not ended is measured up to here.</param>
     public static SprintScopeReport Build(SprintScopeWindow window, SizingMethod sizingMethod, IEnumerable<SprintScopePeriod> periods, Instant now)
@@ -102,7 +103,7 @@ public sealed class SprintScopeReport
         var entryPeriod = inSprint[0];
         var committed = entryPeriod.Covers(window.Start);
         var entry = committed ? SprintScopeEntry.Committed : SprintScopeEntry.Added;
-        Instant? addedAt = committed ? null : entryPeriod.ValidFrom;
+        var addedAt = committed ? EnteredSprint(periods, entryPeriod, InSprint) : entryPeriod.ValidFrom;
 
         var last = inSprint[^1];
         var stillIn = last.Covers(asOf);
@@ -153,6 +154,24 @@ public sealed class SprintScopeReport
         }
 
         return finishedSince;
+    }
+
+    /// <summary>
+    /// When a committed item came into the sprint: the start of the unbroken run of in-sprint periods holding
+    /// <paramref name="entryPeriod"/>. A status or estimate change while in the sprint starts a new period
+    /// without moving the item, so the entry period's own start is not when it was added.
+    /// </summary>
+    private static Instant EnteredSprint(List<SprintScopePeriod> periods, SprintScopePeriod entryPeriod, Func<SprintScopePeriod, bool> inSprint)
+    {
+        var index = periods.IndexOf(entryPeriod);
+        while (index > 0
+            && inSprint(periods[index - 1])
+            && periods[index - 1].ValidTo == periods[index].ValidFrom)
+        {
+            index--;
+        }
+
+        return periods[index].ValidFrom;
     }
 
     /// <param name="InSprint">

@@ -81900,7 +81900,8 @@
         "required": [
           "workItem",
           "entry",
-          "outcome"
+          "outcome",
+          "addedAt"
         ],
         "type": "object",
         "properties": {
@@ -81930,9 +81931,8 @@
           },
           "addedAt": {
             "type": "string",
-            "description": "When an added item was added to the sprint; null for a committed one.",
-            "format": "date-time",
-            "nullable": true
+            "description": "When the item was added to the sprint: during the sprint for an added item, or before its commitment\npoint for a committed one.",
+            "format": "date-time"
           },
           "removedAt": {
             "type": "string",

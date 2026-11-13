@@ -53,7 +53,7 @@ Poker session (UUID or key)          Active → Completed, pinned to one scale v
 | **Revealed** | Votes are shown; voting is closed | set consensus, reset |
 | **Accepted** | `consensusEstimate` recorded | reset (clears votes and the estimate) |
 
-A round has an optional `label` (at most 512 characters) naming what is estimated, such as a story's title or key, and an optional `description` (at most 2048 characters) with detail for the team, such as acceptance criteria. Rounds are ordered by when they were added.
+A round has an optional `label` (at most 512 characters) naming what is estimated, such as a story's title or key, and an optional `description` (at most 4000 characters) with detail for the team, such as acceptance criteria. A round with a `subject` is about a record, such as an intake request: its `label` and `description` are that record's title and description as they read when the round was added, and `PokerSessions_UpdateRoundLabel` and `PokerSessions_UpdateRoundDescription` are refused for it. Rounds are ordered by when they were added.
 
 ### Votes are personal
 
@@ -73,8 +73,7 @@ A round has an optional `label` (at most 512 characters) naming what is estimate
 | Goal | Tool | Notes |
 | --- | --- | --- |
 | List sessions | `PokerSessions_GetSessions` | Optional `status`: `Active` or `Completed`. Only the standalone sessions the user can see; a session that belongs to another area of Wayd (its `host`, such as an intake desk) is listed only with `hostKind` and `hostId` together. Each entry has `roundCount`, `visibility`, `host`, `facilitators`, `participants` (everyone who joined) and `canManage`. |
-| Read a session and its rounds | `PokerSessions_GetSession` | `idOrKey`. Includes the scale, the `estimationScaleVersion` it votes on with its values, each round's status, votes and `consensusEstimate`, and `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members`, `canManage`, `host` (the area the session belongs to, or null) and `focusedRoundId` (the round a facilitator has the session page showing, or null). A round with a `subject` is about that record: read its `displayKey`, `title` and `description` as what the team is estimating. |
-| Rounds that estimated a record | `PokerSessions_GetRoundsForSubject` | `subjectKind` (`IntakeRequest`) and `subjectId`. Each round's `session`, `status`, `consensusEstimate` and `publication`, only for sessions the user can see. |
+| Read a session and its rounds | `PokerSessions_GetSession` | `idOrKey`. Includes the scale, the `estimationScaleVersion` it votes on with its values, each round's status, votes and `consensusEstimate`, and `visibility`, `facilitators`, `invitedEmployees`, `invitedTeams`, `members`, `canManage`, `host` (the area the session belongs to, or null) and `focusedRoundId` (the round a facilitator has the session page showing, or null). A round with a `subject` is about that record: its `subject.displayKey` is the record's key, and the round's `label` and `description` are what the team is estimating. |
 | Who an invited team reaches | `PokerSessions_GetInvitedTeamMembers` | Session `id` and `teamId` of a team in `invitedTeams`. Its active direct members; members of its team of teams are admitted too but not listed. |
 | List scales | `EstimationScales_GetScales` | Active only, unless `includeInactive: true`. Each has its `currentVersion`. |
 | Read a scale | `EstimationScales_GetScale` | `idOrKey`; works for inactive scales too. Adds `versions`, every published version newest first. |

@@ -18,6 +18,7 @@ import { FC } from 'react'
 import AttentionTile from '../attention-tile'
 import { useHomeContext } from '../use-home-context'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
+import { rowsToShow } from '../widget-settings'
 import { HomeWidgetProps, widgetAnchorId } from '../widget-registry'
 import styles from '../home.module.css'
 
@@ -121,7 +122,8 @@ const Due: FC<{ task: MyProjectTaskDto; today: CalendarDate }> = ({
  * active projects that are overdue or due by the end of next week, the most
  * urgent first; the rest are counted, not listed.
  */
-const MyProjectTasksWidget: FC<HomeWidgetProps> = ({ title }) => {
+const MyProjectTasksWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
+  const rows = rowsToShow(settings, MY_PROJECT_TASKS_LIMIT)
   const { data: tasks, isLoading, isError } = useMyTasks()
   const today = todayCalendarDate()
 
@@ -140,11 +142,11 @@ const MyProjectTasksWidget: FC<HomeWidgetProps> = ({ title }) => {
         />
       )
     }
-    const more = soon.length - MY_PROJECT_TASKS_LIMIT
+    const more = soon.length - rows
     return (
       <>
         <WaydList size="small">
-          {soon.slice(0, MY_PROJECT_TASKS_LIMIT).map((task) => (
+          {soon.slice(0, rows).map((task) => (
             <WaydList.Item key={task.id} className={styles.listItem}>
               <div className={styles.listItemBody}>
                 <EntityLink

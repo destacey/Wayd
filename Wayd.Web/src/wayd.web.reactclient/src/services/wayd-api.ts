@@ -66920,6 +66920,9 @@ export interface HomeLayoutWidgetRequest {
     column: HomeLayoutColumn;
     /** Whether the widget shows; false when the user turned it off. */
     visible: boolean;
+    /** What the user changed about what the widget shows, by setting key; leave out or send empty for a
+widget at its defaults. Keys and values are the client's; the server checks only their size. */
+    settings?: { [key: string]: string; } | undefined;
 }
 
 /** Where one widget sits on the home page, and whether it shows. */
@@ -66930,6 +66933,9 @@ export interface HomeLayoutWidgetResponse {
     column: HomeLayoutColumn;
     /** Whether the widget shows; false when the user turned it off. */
     visible: boolean;
+    /** What the user changed about what the widget shows, by setting key; empty when they changed nothing.
+Keys and values are the client's, like the widget id. */
+    settings: { [key: string]: string; };
 }
 
 /** The active teams and teams of teams the caller is a direct member of, each counted once. */

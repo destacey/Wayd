@@ -41,6 +41,8 @@ const mockLayout = {
   isLoading: false,
   loadFails: false,
   saveFails: false,
+  /** When set, a save stays in flight until this settles. */
+  saveHeld: null as Promise<null> | null,
 }
 const mockUpdateHomeLayout = vi.fn()
 const mockMessage = { error: vi.fn() }
@@ -61,7 +63,7 @@ vi.mock('@/src/store/features/user-management/profile-api', () => ({
         unwrap: () =>
           mockLayout.saveFails
             ? Promise.reject(new Error('save failed'))
-            : Promise.resolve(null),
+            : (mockLayout.saveHeld ?? Promise.resolve(null)),
       }
     },
   ],
@@ -100,14 +102,35 @@ vi.mock(import('antd'), async (importOriginal) => {
 // registry decides without each widget's requests. Each stand-in shows the
 // title the page hands it.
 vi.mock('./_components/home/home-widgets', async () => {
-  const { lazy } = await vi.importActual<typeof import('react')>('react')
+  const { lazy, useContext } =
+    await vi.importActual<typeof import('react')>('react')
+  const { WidgetSettingsContext } = await vi.importActual<
+    typeof import('./_components/home/widget-settings-form')
+  >('./_components/home/widget-settings-form')
   const stand = (label: string) => {
-    const Stand = ({ title }: { title?: string }) => (
-      <div>
-        {label}
-        {title ? ` (${title})` : ''}
-      </div>
-    )
+    const Stand = ({
+      title,
+      settings,
+    }: {
+      title?: string
+      settings?: Record<string, string>
+    }) => {
+      // Stands in for the gear a real widget's card offers.
+      const access = useContext(WidgetSettingsContext)
+      return (
+        <div>
+          <span data-rows={settings?.rows}>
+            {label}
+            {title ? ` (${title})` : ''}
+          </span>
+          {access?.widget.settings ? (
+            <button onClick={() => access.onChange({ rows: '10' })}>
+              Set {title} rows
+            </button>
+          ) : null}
+        </div>
+      )
+    }
     Stand.displayName = label
     return Stand
   }
@@ -124,6 +147,18 @@ vi.mock('./_components/home/home-widgets', async () => {
           permissions: ['Permissions.Projects.View'],
         },
         Component: stand('Personal widget'),
+        settings: [
+          {
+            kind: 'choice',
+            key: 'rows',
+            label: 'Rows to show',
+            options: [
+              { value: '5', label: '5' },
+              { value: '10', label: '10' },
+            ],
+            default: '5',
+          },
+        ],
         tiles: [{ id: 'personal-tile', Tile: stand('Personal tile') }],
       },
       {
@@ -177,6 +212,7 @@ describe('HomePage', () => {
     mockLayout.widgets = []
     mockLayout.isLoading = false
     mockLayout.saveFails = false
+    mockLayout.saveHeld = null
     mockLayout.loadFails = false
     mockHome.context = undefined
     mockHome.isLoading = false
@@ -315,7 +351,8 @@ describe('HomePage customizing', () => {
     widgetId: string,
     column: HomeLayoutColumn,
     visible = true,
-  ): HomeLayoutWidgetResponse => ({ widgetId, column, visible })
+    settings: Record<string, string> = {},
+  ): HomeLayoutWidgetResponse => ({ widgetId, column, visible, settings })
 
   /** The page's widgets, top to bottom, main column first. */
   const pageWidgets = () =>
@@ -341,6 +378,7 @@ describe('HomePage customizing', () => {
     mockLayout.widgets = []
     mockLayout.isLoading = false
     mockLayout.saveFails = false
+    mockLayout.saveHeld = null
     mockLayout.loadFails = false
     mockHome.context = undefined
     mockHome.isLoading = false
@@ -487,6 +525,126 @@ describe('HomePage customizing', () => {
       ],
     })
     expect(mockMessage.error).not.toHaveBeenCalled()
+  })
+
+  it('hands a widget its settings: the default, or what the user saved', () => {
+    // Arrange
+    const { unmount } = render(<HomePage />)
+    const rows = () =>
+      screen.getByText(/Personal widget/).getAttribute('data-rows')
+    expect(rows()).toBe('5')
+    unmount()
+    mockLayout.widgets = [
+      saved('personal', HomeLayoutColumn.Main, true, { rows: '10' }),
+    ]
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(rows()).toBe('10')
+  })
+
+  it('saves a setting changed on a card at once, as that widget alone', async () => {
+    // Arrange
+    render(<HomePage />)
+
+    // Act
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Set Personal rows' }))
+    })
+
+    // Assert
+    expect(mockUpdateHomeLayout).toHaveBeenCalledWith({
+      widgets: [saved('personal', HomeLayoutColumn.Main, true, { rows: '10' })],
+    })
+  })
+
+  it('keeps showing a card change while its save is in flight', async () => {
+    // Arrange — the stand-in cache is never patched, so only the layout being sent can show the change
+    let finishSave: (value: null) => void = () => {}
+    mockLayout.saveHeld = new Promise<null>((resolve) => {
+      finishSave = resolve
+    })
+    render(<HomePage />)
+    const rows = () =>
+      screen.getByText(/Personal widget/).getAttribute('data-rows')
+
+    // Act
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Set Personal rows' }))
+    })
+
+    // Assert
+    expect(rows()).toBe('10')
+
+    // Act
+    await act(async () => {
+      finishSave(null)
+    })
+
+    // Assert — back to what the cache holds once nothing is in flight
+    expect(rows()).toBe('5')
+  })
+
+  it('says a card change could not be saved, without pointing at Customize', async () => {
+    // Arrange
+    mockLayout.saveFails = true
+    render(<HomePage />)
+
+    // Act
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Set Personal rows' }))
+    })
+
+    // Assert
+    expect(mockMessage.error).toHaveBeenCalledTimes(1)
+    expect(mockMessage.error).toHaveBeenCalledWith(
+      expect.stringMatching(/change to this widget could not be saved/),
+    )
+    expect(mockMessage.error).not.toHaveBeenCalledWith(
+      expect.stringMatching(/Customize/),
+    )
+  })
+
+  it('saves a setting changed in the drawer when it closes', async () => {
+    // Arrange
+    render(<HomePage />)
+    openCustomize()
+    fireEvent.click(screen.getByRole('button', { name: 'Personal settings' }))
+
+    // Act
+    fireEvent.click(screen.getByRole('radio', { name: '10' }))
+
+    // Assert — the page follows at once; nothing is saved yet
+    expect(screen.getByText(/Personal widget/).getAttribute('data-rows')).toBe(
+      '10',
+    )
+    expect(mockUpdateHomeLayout).not.toHaveBeenCalled()
+
+    // Act
+    await closeCustomize()
+
+    // Assert
+    expect(mockUpdateHomeLayout).toHaveBeenCalledWith({
+      widgets: [
+        saved('personal', HomeLayoutColumn.Main, true, { rows: '10' }),
+        saved('flagged', HomeLayoutColumn.Side),
+      ],
+    })
+  })
+
+  it('offers no settings on a card while the layout cannot be saved', () => {
+    // Arrange
+    mockLayout.loadFails = true
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(
+      screen.queryByRole('button', { name: 'Set Personal rows' }),
+    ).not.toBeInTheDocument()
   })
 
   it('saves nothing when the drawer closes unchanged', async () => {

@@ -3343,9 +3343,105 @@ public class UserServiceTests
         var layout = await sut.GetHomeLayout("user-1", TestContext.Current.CancellationToken);
 
         // Assert
-        layout.Widgets.Should().Equal(
-            new UserHomeLayoutWidgetDto { WidgetId = "my-risks", Column = HomeLayoutColumn.Side, Visible = true },
-            new UserHomeLayoutWidgetDto { WidgetId = "following", Column = HomeLayoutColumn.Main, Visible = false });
+        layout.Widgets.Should().BeEquivalentTo(
+            [
+                new UserHomeLayoutWidgetDto { WidgetId = "my-risks", Column = HomeLayoutColumn.Side, Visible = true },
+                new UserHomeLayoutWidgetDto { WidgetId = "following", Column = HomeLayoutColumn.Main, Visible = false },
+            ],
+            o => o.WithStrictOrdering());
+    }
+
+    [Fact]
+    public async Task GetHomeLayout_ShouldReturnEachWidgetsSettings()
+    {
+        // Arrange
+        UserWithPreferences(new UserPreferences
+        {
+            HomeLayout = new UserHomeLayout
+            {
+                Widgets =
+                [
+                    new UserHomeLayoutWidget
+                    {
+                        WidgetId = "my-risks",
+                        Column = HomeLayoutColumn.Side,
+                        Visible = true,
+                        Settings = new() { ["rows"] = "10" },
+                    },
+                    new UserHomeLayoutWidget { WidgetId = "following", Column = HomeLayoutColumn.Main, Visible = true },
+                ],
+            },
+        });
+        var sut = CreateSut();
+
+        // Act
+        var layout = await sut.GetHomeLayout("user-1", TestContext.Current.CancellationToken);
+
+        // Assert
+        layout.Widgets[0].Settings.Should().Equal(new Dictionary<string, string> { ["rows"] = "10" });
+        layout.Widgets[1].Settings.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task UpdateHomeLayout_ShouldSaveEachWidgetsSettings_AndNoneAsNull()
+    {
+        // Arrange
+        var user = UserWithPreferences(new UserPreferences());
+        var layout = new UserHomeLayoutDto
+        {
+            Widgets =
+            [
+                new UserHomeLayoutWidgetDto
+                {
+                    WidgetId = "following",
+                    Column = HomeLayoutColumn.Main,
+                    Visible = true,
+                    Settings = new() { ["rows"] = "10" },
+                },
+                new UserHomeLayoutWidgetDto { WidgetId = "my-projects", Column = HomeLayoutColumn.Side, Visible = true },
+            ],
+        };
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateHomeLayout("user-1", layout, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        var saved = user.Preferences.HomeLayout!.Widgets;
+        saved[0].Settings.Should().Equal(new Dictionary<string, string> { ["rows"] = "10" });
+        saved[1].Settings.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateThemeConfig_ShouldKeepWidgetSettings()
+    {
+        // Arrange
+        var user = UserWithPreferences(new UserPreferences
+        {
+            HomeLayout = new UserHomeLayout
+            {
+                Widgets =
+                [
+                    new UserHomeLayoutWidget
+                    {
+                        WidgetId = "my-risks",
+                        Column = HomeLayoutColumn.Side,
+                        Visible = true,
+                        Settings = new() { ["rows"] = "10" },
+                    },
+                ],
+            },
+        });
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateThemeConfig("user-1", null, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        user.Preferences.HomeLayout!.Widgets[0].Settings
+            .Should().Equal(new Dictionary<string, string> { ["rows"] = "10" });
     }
 
     [Fact]

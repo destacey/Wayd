@@ -22,6 +22,7 @@ import { Flex, Tag, Typography } from 'antd'
 import Link from 'next/link'
 import { FC } from 'react'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
+import { rowsToShow } from '../widget-settings'
 import { HomeWidgetProps } from '../widget-registry'
 import styles from '../home.module.css'
 
@@ -144,7 +145,8 @@ const RequestRow: FC<{
  * The requests the caller asked for or submitted that are open or closed in
  * the last 30 days, each with its status and what it became.
  */
-const MyRequestsWidget: FC<HomeWidgetProps> = ({ title }) => {
+const MyRequestsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
+  const rows = rowsToShow(settings, MY_REQUESTS_LIMIT)
   const args = { mine: true, closedSince: recentlyClosedSince() }
   const requests = useGetIntakeRequestsQuery(args)
   // Outcomes are extra: without them the requests still show their status.
@@ -168,7 +170,7 @@ const MyRequestsWidget: FC<HomeWidgetProps> = ({ title }) => {
     return (
       <WaydList size="small">
         {sortMyRequests(requests.data)
-          .slice(0, MY_REQUESTS_LIMIT)
+          .slice(0, rows)
           .map((request) => (
             <RequestRow
               key={request.id}

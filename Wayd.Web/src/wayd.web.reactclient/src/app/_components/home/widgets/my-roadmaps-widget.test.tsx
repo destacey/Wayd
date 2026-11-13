@@ -135,7 +135,8 @@ describe('MyRoadmapsWidget', () => {
     expect(screen.queryByRole('link', { name: 'Roadmap 1' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'Roadmap 2' })).toBeNull()
     expect(screen.getByRole('link', { name: 'Roadmap 7' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'View all 7' })).toHaveAttribute(
+    expect(screen.getByText('And 2 more.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'View all' })).toHaveAttribute(
       'href',
       '/planning/roadmaps',
     )

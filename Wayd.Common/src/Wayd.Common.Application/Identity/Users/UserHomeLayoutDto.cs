@@ -18,4 +18,7 @@ public sealed record UserHomeLayoutWidgetDto
 
     /// <summary>Whether the widget shows; false when the user turned it off.</summary>
     public required bool Visible { get; init; }
+
+    /// <summary>What the user changed about what the widget shows, by setting key; empty when nothing.</summary>
+    public Dictionary<string, string> Settings { get; init; } = [];
 }

@@ -125530,6 +125530,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("visible")]
         public bool Visible { get; set; } = default!;
 
+        /// <summary>
+        /// What the user changed about what the widget shows, by setting key; leave out or send empty for a
+        /// <br/>widget at its defaults. Keys and values are the client's; the server checks only their size.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("settings")]
+        public System.Collections.Generic.IDictionary<string, string>? Settings { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -125559,6 +125566,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("visible")]
         public bool Visible { get; set; } = default!;
+
+        /// <summary>
+        /// What the user changed about what the widget shows, by setting key; empty when they changed nothing.
+        /// <br/>Keys and values are the client's, like the widget id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("settings")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IDictionary<string, string> Settings { get; set; } = new System.Collections.Generic.Dictionary<string, string>();
 
     }
 

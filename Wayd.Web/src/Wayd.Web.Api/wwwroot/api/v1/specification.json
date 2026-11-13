@@ -64601,6 +64601,14 @@
           "visible": {
             "type": "boolean",
             "description": "Whether the widget shows; false when the user turned it off."
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "What the user changed about what the widget shows, by setting key; leave out or send empty for a\nwidget at its defaults. Keys and values are the client's; the server checks only their size.",
+            "nullable": true
           }
         },
         "additionalProperties": false,
@@ -64610,7 +64618,8 @@
         "required": [
           "widgetId",
           "column",
-          "visible"
+          "visible",
+          "settings"
         ],
         "type": "object",
         "properties": {
@@ -64629,6 +64638,13 @@
           "visible": {
             "type": "boolean",
             "description": "Whether the widget shows; false when the user turned it off."
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "What the user changed about what the widget shows, by setting key; empty when they changed nothing.\nKeys and values are the client's, like the widget id."
           }
         },
         "additionalProperties": false,

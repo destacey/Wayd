@@ -2,27 +2,40 @@ import { HomeContextResponse } from '@/src/services/wayd-api'
 import { lazy } from 'react'
 import { Involvement } from './home-involvement'
 import { HomeWidget } from './widget-registry'
+import { rowsSetting } from './widget-settings'
 import DeskQueueWidget, {
+  DESK_QUEUE_LIMIT,
   RequestsAssignedToMeTile,
   UnassignedRequestsTile,
 } from './widgets/desk-queue-widget'
-import FollowingWidget from './widgets/following-widget'
+import FollowingWidget, { FOLLOWING_COUNT } from './widgets/following-widget'
 import ProjectHealthChecksDueWidget, {
+  HEALTH_CHECKS_DUE_LIMIT,
   ProjectHealthChecksDueTile,
 } from './widgets/project-health-checks-due-widget'
-import MyDeliverablesWidget from './widgets/my-deliverables-widget'
+import MyDeliverablesWidget, {
+  MY_DELIVERABLES_LIMIT,
+} from './widgets/my-deliverables-widget'
 import MyProjectTasksWidget, {
   DueThisWeekTile,
+  MY_PROJECT_TASKS_LIMIT,
   OverdueTasksTile,
 } from './widgets/my-project-tasks-widget'
 import MyProjectsWidget from './widgets/my-projects-widget'
-import MyRequestsWidget from './widgets/my-requests-widget'
-import MyWorkItemsWidget from './widgets/my-work-items-widget'
+import MyRequestsWidget, {
+  MY_REQUESTS_LIMIT,
+} from './widgets/my-requests-widget'
+import MyWorkItemsWidget, {
+  MY_WORK_ITEMS_LIMIT,
+} from './widgets/my-work-items-widget'
 import MyRisksWidget, { RiskFollowUpsTile } from './widgets/my-risks-widget'
-import MyRoadmapsWidget from './widgets/my-roadmaps-widget'
+import MyRoadmapsWidget, {
+  MY_ROADMAPS_LIMIT,
+} from './widgets/my-roadmaps-widget'
 import PlanningIntervalsWidget from './widgets/planning-intervals-widget'
 import WhatsChangedWidget, {
   UnreadNotificationsTile,
+  WHATS_CHANGED_COUNT,
 } from './widgets/whats-changed-widget'
 
 import {
@@ -82,6 +95,7 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 10,
     requires: { featureFlag: 'following', linkedEmployee: true },
     Component: WhatsChangedWidget,
+    settings: [rowsSetting(WHATS_CHANGED_COUNT)],
     tiles: [
       {
         id: 'unread-notifications',
@@ -103,6 +117,7 @@ export const HomeWidgets: HomeWidget[] = [
       linkedEmployee: true,
     },
     Component: MyWorkItemsWidget,
+    settings: [rowsSetting(MY_WORK_ITEMS_LIMIT)],
     // A team member's assigned work items are their day-to-day work; a member
     // of a team of teams alone holds a role above the work. The home context
     // counts no work items, so for anyone else it ranks as shared.
@@ -137,6 +152,7 @@ export const HomeWidgets: HomeWidget[] = [
       involved: ({ projects }) => projects.assigneeCount > 0,
     },
     Component: MyProjectTasksWidget,
+    settings: [rowsSetting(MY_PROJECT_TASKS_LIMIT)],
     // Assigned tasks are day-to-day work, and everyone it is shown to has some.
     involvement: () => Involvement.Leads,
     tiles: [
@@ -167,6 +183,7 @@ export const HomeWidgets: HomeWidget[] = [
         projects.ownerCount + projects.managerCount > 0,
     },
     Component: ProjectHealthChecksDueWidget,
+    settings: [rowsSetting(HEALTH_CHECKS_DUE_LIMIT)],
     // Everyone it is shown to leads a project.
     involvement: () => Involvement.Leads,
     tiles: [
@@ -189,6 +206,7 @@ export const HomeWidgets: HomeWidget[] = [
       linkedEmployee: true,
     },
     Component: MyDeliverablesWidget,
+    settings: [rowsSetting(MY_DELIVERABLES_LIMIT)],
     // An owner need hold no role on the project, so this is a guess from the roles held.
     involvement: projectInvolvement,
   },
@@ -224,6 +242,7 @@ export const HomeWidgets: HomeWidget[] = [
       involved: ({ ownedRoadmapCount }) => ownedRoadmapCount > 0,
     },
     Component: MyRoadmapsWidget,
+    settings: [rowsSetting(MY_ROADMAPS_LIMIT)],
     // Owning a roadmap is involvement, not day-to-day work, so it stays in the side column.
     involvement: () => Involvement.Involved,
   },
@@ -298,6 +317,8 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 40,
     requires: { featureFlag: 'demand-management', linkedEmployee: true },
     Component: DeskQueueWidget,
+    // Its two request lists share the one count.
+    settings: [rowsSetting(DESK_QUEUE_LIMIT, 'Requests per list')],
     // Working a desk is day-to-day work.
     involvement: ({ intake }) =>
       intake.deskCount > 0 ? Involvement.Leads : Involvement.None,
@@ -323,6 +344,7 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 25,
     requires: { featureFlag: 'demand-management', linkedEmployee: true },
     Component: MyRequestsWidget,
+    settings: [rowsSetting(MY_REQUESTS_LIMIT)],
     involvement: ({ intake }) =>
       intake.openRequestsRaisedCount > 0
         ? Involvement.Involved
@@ -336,5 +358,6 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 30,
     requires: { featureFlag: 'following', linkedEmployee: true },
     Component: FollowingWidget,
+    settings: [rowsSetting(FOLLOWING_COUNT)],
   },
 ]

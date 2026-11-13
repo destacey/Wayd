@@ -8,6 +8,7 @@ import {
 import { FC } from 'react'
 import AttentionTile from '../attention-tile'
 import WidgetCard, { WidgetEmpty } from '../widget-card'
+import { MAX_ROWS, rowsToShow } from '../widget-settings'
 import { HomeWidgetProps } from '../widget-registry'
 
 /** How many of the latest changes the widget shows; the rest are a click away. */
@@ -16,11 +17,12 @@ export const WHATS_CHANGED_COUNT = 5
 const NOTIFICATIONS_HREF = '/account/notifications'
 
 /** The latest changes to the records the caller follows or works on. */
-const WhatsChangedWidget: FC<HomeWidgetProps> = ({ title }) => {
+const WhatsChangedWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
+  const rows = rowsToShow(settings, WHATS_CHANGED_COUNT)
   const { data, isLoading, isError } = useGetMyNotificationsInfiniteQuery({
-    pageSize: WHATS_CHANGED_COUNT,
+    pageSize: MAX_ROWS,
   })
-  const notifications = data?.pages[0]?.items ?? []
+  const notifications = (data?.pages[0]?.items ?? []).slice(0, rows)
 
   return (
     <WidgetCard

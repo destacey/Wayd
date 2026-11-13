@@ -45,7 +45,7 @@ wayd.web.reactclient/
 
 `NEXT_PUBLIC_API_BASE_URL` is the API's address. Aspire sets it; for `npm run dev` on its own, put it in a gitignored `.env.local` (`NEXT_PUBLIC_API_BASE_URL='http://localhost:5150'`). It is inlined at build time, so a change needs `.next` cleared — `npm run dev` does that. The Docker image is built with the placeholder `APP_NEXT_PUBLIC_API_BASE_URL`, which `entrypoint.sh` replaces with the container's `NEXT_PUBLIC_API_BASE_URL` at start and refuses to start without.
 
-`next.config.mjs` turns on the React Compiler (`reactCompiler: true`) — see the client's [AGENTS.md](https://github.com/destacey/Wayd/blob/main/Wayd.Web/src/wayd.web.reactclient/AGENTS.md#react-compiler-and-tanstack-table) before adding `useMemo` or `useCallback`. It also holds the permanent redirects for moved routes and the frame-blocking headers on `/oauth/consent`.
+`next.config.mjs` turns on the React Compiler (`reactCompiler: true`) — see the client's [AGENTS.md](https://github.com/destacey/Wayd/blob/main/Wayd.Web/src/wayd.web.reactclient/AGENTS.md#react-compiler-and-tanstack-table) before adding `useMemo` or `useCallback`. It also holds the permanent redirects for moved routes, the temporary `/.well-known/change-password` redirect password managers follow to the account page, and the frame-blocking headers on `/oauth/consent`.
 
 ## API Calls
 

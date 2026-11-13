@@ -184,10 +184,10 @@ const IncidentTeamsChat = ({
                   }
                 >
                   <img
-                    src="/images/teams-copy-link-menu.png"
+                    src="/images/teams-copy-link-annotated.png"
                     alt="Teams menu with Copy link under Mute"
-                    width={406}
-                    height={325}
+                    width={340}
+                    height={374}
                     className={styles.menuShot}
                   />
                   <Text className={styles.copySteps}>

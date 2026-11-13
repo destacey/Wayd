@@ -13,14 +13,14 @@ import styles from './incident-teams-chat.module.css'
 const copyLinkSentence =
   'Open the group chat. The three dots are at the top right. Copy link is in that menu, under Mute.'
 
-// This hash is the Teams three-dots menu screenshot, so a different image at the path fails.
+// This hash is the annotated Teams menu screenshot, so a different image at the path fails.
 const teamsMenuShotHash =
-  '4bccab6795c86fc80e4dee6b7ebcc390ae2aa7722bcda400f9e20c21ed1772d3'
+  '901681c9d3540e91fec721503ae1d14ab0fec07be067dac9abd72c350b4b7ab5'
 
 const teamsMenuShot = readFileSync(
   resolve(
     dirname(fileURLToPath(import.meta.url)),
-    '../../../../../public/images/teams-copy-link-menu.png',
+    '../../../../../public/images/teams-copy-link-annotated.png',
   ),
 )
 
@@ -262,7 +262,7 @@ describe('IncidentTeamsChat', () => {
     })
     const steps = within(panel).getByText(copyLinkSentence)
     const field = within(panel).getByRole('textbox', { name: 'Teams link' })
-    expect(shot).toHaveAttribute('src', '/images/teams-copy-link-menu.png')
+    expect(shot).toHaveAttribute('src', '/images/teams-copy-link-annotated.png')
     expect(shot.compareDocumentPosition(steps) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     )

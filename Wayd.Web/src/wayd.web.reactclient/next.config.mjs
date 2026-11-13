@@ -54,6 +54,15 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // Where password managers send a user to change a saved password
+      // (W3C "A Well-Known URL for Changing Passwords"). The spec asks for a
+      // temporary redirect, so the destination can move without browsers
+      // caching the old one.
+      {
+        source: '/.well-known/change-password',
+        destination: '/account/profile',
+        permanent: false,
+      },
       // Sprint URLs from before the pages moved under /work, still in bookmarks and shared links.
       {
         source: '/planning/sprints',

@@ -24,7 +24,7 @@ You see only the widgets that apply to you. A widget needs some or all of:
 
 If your account is not linked to an employee, a banner at the top says so. Your work items, projects, risks, tasks, teams, notifications and the records you follow appear once an administrator links your account in **Settings → Access → Users**.
 
-Every widget is a card with its title at the top left and, where there is a full list behind it, **View all** at the top right. A widget that applies to you but has nothing to show says, in one line, how it fills — it does not disappear.
+Every widget is a card with its title at the top left and, where there is a full list behind it, **View all** at the top right. A widget that applies to you but has nothing to show says, in one line, how it fills. Its [When there is nothing to show](#widget-settings) setting can shorten that to its title alone, or hide it until it has something.
 
 ## Needs attention
 
@@ -121,9 +121,15 @@ What the panel offers follows what you can see. A widget you gain access to afte
 
 ### Widget settings
 
-Some widgets let you change what they show. Such a widget has a gear at the top right of its card, which appears when you point at the card or move the keyboard focus into it and is always shown on a touch screen. The same settings are in the Customize panel: open the widget's row with the arrow beside its menu.
+Every widget lets you change something about what it shows. Each has a gear at the top right of its card, which appears when you point at the card or move the keyboard focus into it and is always shown on a touch screen. The same settings are in the Customize panel: open the widget's row with the arrow beside its menu.
 
 - **Rows to show** — how many the widget lists: 3, 5, 8, 10 or 15. What's changed, My work items, My project tasks, Project health checks due, Deliverables I own, My requests, My roadmaps and Following have it. Desk queue has **Requests per list**, which sets both its Assigned to me and Participating lists. A widget still says how many more there are, and **View all** still opens the full list.
+- **When there is nothing to show** — what a widget does when it has nothing to list. Every widget has it.
+  - **Explain** (the default) — the line saying how the widget fills.
+  - **One line** — the title with a short "nothing" beside it, such as *No open risks*.
+  - **Hide** — the widget shows while it loads, then leaves the page. A line at the foot of the page names every widget hidden this way ("2 widgets have nothing to show: My risks and My requests."), and its **Show** brings them back until you leave the page. When every widget is hidden, that line is the page. A widget whose data could not be loaded is never hidden: it always says so. Hiding a widget does not remove its counts from the row across the top, and selecting one of those counts brings the hidden widgets back.
+
+  A widget has nothing to show when you have none of what it lists. My project tasks and Deliverables I own have something while you have any open, even if none is due soon. My work items has nothing with none in progress or proposed, even if it says how many you finished. Desk queue has nothing when you are on no desk, or when no open request is assigned to you and you take part in none.
 
 A change made from a card applies and saves at once. A change made in the panel shows on the page behind it and saves with the rest of the layout when you close the panel. A widget whose settings differ from where they start is marked **Customized** in the panel, and its settings have a **Reset to default** of their own, which puts that widget back without touching the others.
 

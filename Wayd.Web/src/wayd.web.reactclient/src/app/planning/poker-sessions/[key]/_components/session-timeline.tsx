@@ -146,7 +146,7 @@ const SessionTimeline: FC<SessionTimelineProps> = ({
           <Flex gap={8} style={{ padding: '8px 16px' }}>
             <Input
               size="small"
-              placeholder="Type a work item ID or title…"
+              placeholder="Add a round: what are you estimating?"
               value={newRoundLabel}
               onChange={(e) => setNewRoundLabel(e.target.value)}
               onPressEnter={handleAddRound}

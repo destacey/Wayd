@@ -3,30 +3,18 @@
 import { NOT_RECORDED_CHANNEL_LABEL } from '../../../_components/channel'
 import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
-import useAuth from '@/src/components/contexts/auth'
-import { useFeatureFlag } from '@/src/hooks'
 import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
-import { Tag, Tooltip, Typography } from 'antd'
+import { Typography } from 'antd'
 import NextLink from 'next/link'
 import { FC } from 'react'
 import DeliverySignalTag, {
   shownDeliveryState,
 } from '../../../_components/delivery-signal-tag'
-import { POKER_VIEW_PERMISSION } from '../../../_components/desk-poker'
 import { deskHref } from '../../../_components/desk-status'
 import EmployeeName from '../../../_components/employee-name'
 import { EstimateValue } from '../../../_components/estimate-value'
-import IntakeRequestPokerRounds from './intake-request-poker-rounds'
 
 const { Text, Link } = Typography
-
-/** What a card says about a request a poker round could not size. */
-export const estimateCardMeaning = (card: string): string =>
-  card === '?'
-    ? 'A poker round could not size this: it needs clarifying.'
-    : card === '\u221e'
-      ? 'A poker round could not size this: it needs splitting.'
-      : 'A poker round settled on this card instead of an estimate.'
 
 export interface IntakeRequestFactsProps {
   request: IntakeRequestDetailsDto
@@ -38,11 +26,6 @@ export interface IntakeRequestFactsProps {
  */
 const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
   const { summary, substance } = request
-  const { hasPermissionClaim } = useAuth()
-  const { isEnabled: pokerEnabled } = useFeatureFlag('planning-poker')
-  // Rounds are Planning Poker's, read with its own permission; an estimate is substance.
-  const showPokerRounds =
-    !!substance && pokerEnabled && hasPermissionClaim(POKER_VIEW_PERMISSION)
   const deliveryState = shownDeliveryState(
     summary.status.category,
     request.deliveryState,
@@ -65,7 +48,8 @@ const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
           </LabeledContent>
         )}
         {/* Shown once there is an estimate, or to the team that can give one; a desk that does not
-            estimate would otherwise read "Not estimated" on every request. */}
+            estimate would otherwise read "Not estimated" on every request. An estimate is only ever a
+            size: a card a poker round settled on leaves it empty. */}
         {substance &&
           (substance.estimate ||
             substance.estimateCard ||
@@ -73,21 +57,11 @@ const IntakeRequestFacts: FC<IntakeRequestFactsProps> = ({ request }) => {
             <LabeledContent label="Estimate">
               {substance.estimate ? (
                 <EstimateValue estimate={substance.estimate} />
-              ) : substance.estimateCard ? (
-                <Tooltip title={estimateCardMeaning(substance.estimateCard)}>
-                  <span>
-                    <Tag color="warning">{substance.estimateCard}</Tag>
-                    <Text type="secondary">Not estimated</Text>
-                  </span>
-                </Tooltip>
               ) : (
                 <Text type="secondary">Not estimated</Text>
               )}
             </LabeledContent>
           )}
-        {showPokerRounds && (
-          <IntakeRequestPokerRounds requestId={summary.id} labeled />
-        )}
       </RecordFactsGroup>
       <RecordFactsGroup label="People">
         <LabeledContent label="Requester">

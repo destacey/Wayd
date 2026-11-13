@@ -45,7 +45,6 @@ const round = (
         kind: PokerRoundSubjectKind.IntakeRequest,
         id: requestId,
         displayKey: requestId,
-        title: `Request ${requestId}`,
       }
     : undefined,
   status: 'Accepted',

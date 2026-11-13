@@ -160,7 +160,6 @@ const DeskPokerSessionForm: FC<DeskPokerSessionFormProps> = ({
             options={options}
             optionFilterProp="label"
             placeholder="Choose open requests"
-            maxTagCount="responsive"
           />
         </Item>
       </Form>

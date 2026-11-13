@@ -11,19 +11,6 @@ vi.mock('../../../_components/employee-name', () => ({
   default: ({ employee }: { employee: { name: string } }) => employee.name,
 }))
 
-let mockPokerEnabled = false
-vi.mock('@/src/hooks', () => ({
-  useFeatureFlag: () => ({ isEnabled: mockPokerEnabled, isLoading: false }),
-}))
-
-vi.mock('@/src/components/contexts/auth', () => ({
-  default: () => ({ hasPermissionClaim: () => true }),
-}))
-
-vi.mock('./intake-request-poker-rounds', () => ({
-  default: () => <div data-testid="poker-rounds" />,
-}))
-
 const substance = (overrides: Record<string, unknown> = {}) => ({
   description: 'Export invoices monthly',
   submittedBy: { id: 'e-1', key: 1, name: 'Riley Requester' },
@@ -49,11 +36,7 @@ const request = (
   }) as unknown as IntakeRequestDetailsDto
 
 describe('IntakeRequestFacts', () => {
-  beforeEach(() => {
-    mockPokerEnabled = false
-  })
-
-  it('shows the card a poker round settled on in place of an estimate', () => {
+  it('shows no estimate for a request a poker round settled on a card for', () => {
     // Arrange
     const withCard = {
       ...request(StatusCategory.Active),
@@ -65,41 +48,8 @@ describe('IntakeRequestFacts', () => {
 
     // Assert
     expect(screen.getByText('Estimate')).toBeInTheDocument()
-    expect(screen.getByText('?')).toBeInTheDocument()
     expect(screen.getByText('Not estimated')).toBeInTheDocument()
-  })
-
-  it('lists the poker rounds for a reader of the substance who can open Planning Poker', () => {
-    // Arrange
-    mockPokerEnabled = true
-    const readable = {
-      ...request(StatusCategory.Active),
-      substance: substance(),
-    } as unknown as IntakeRequestDetailsDto
-
-    // Act
-    render(<IntakeRequestFacts request={readable} />)
-
-    // Assert
-    expect(screen.getByTestId('poker-rounds')).toBeInTheDocument()
-  })
-
-  it.each([
-    ['Planning Poker is off', false, true],
-    ['the substance is withheld', true, false],
-  ])('leaves the poker rounds out when %s', (_why, pokerEnabled, hasSubstance) => {
-    // Arrange
-    mockPokerEnabled = pokerEnabled
-    const shown = {
-      ...request(StatusCategory.Active),
-      substance: hasSubstance ? substance() : undefined,
-    } as unknown as IntakeRequestDetailsDto
-
-    // Act
-    render(<IntakeRequestFacts request={shown} />)
-
-    // Assert
-    expect(screen.queryByTestId('poker-rounds')).not.toBeInTheDocument()
+    expect(screen.queryByText('?')).not.toBeInTheDocument()
   })
 
   it('shows the request’s delivery state', () => {

@@ -22,7 +22,6 @@ const subject = {
   kind: PokerRoundSubjectKind.IntakeRequest,
   id: 'r-42',
   displayKey: '42',
-  title: 'Export invoices',
 }
 
 const round = (overrides: Partial<PokerRoundDto> = {}): PokerRoundDto => ({

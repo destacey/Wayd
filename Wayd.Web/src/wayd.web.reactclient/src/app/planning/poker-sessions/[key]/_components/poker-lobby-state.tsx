@@ -64,7 +64,7 @@ const PokerLobbyState: FC<PokerLobbyStateProps> = ({
       {canManage ? (
         <Flex gap={8} style={{ maxWidth: 360, width: '100%' }}>
           <Input
-            placeholder="Work item ID or label (optional)"
+            placeholder="What are you estimating? (optional)"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             onPressEnter={handleAdd}

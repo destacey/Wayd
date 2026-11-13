@@ -8,13 +8,11 @@ import {
   EmployeeNavigationDto,
   ObjectIdAndKey,
   PokerRoundDto,
-  PokerRoundSubjectKind,
   PokerSessionDetailsDto,
   PokerSessionHostKind,
   PokerSessionListDto,
   PokerSessionMemberDto,
   PokerSessionStatus,
-  PokerSubjectRoundDto,
   SetConsensusRequest,
   SubmitVoteRequest,
   UpdatePokerRoundDescriptionRequest,
@@ -64,34 +62,6 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
         }
       },
       providesTags: () => [{ type: QueryTags.PokerSession, id: 'LIST' }],
-    }),
-
-    /** The rounds that estimated a record, in the sessions the caller can see. */
-    getPokerRoundsForSubject: builder.query<
-      PokerSubjectRoundDto[],
-      { subjectKind: PokerRoundSubjectKind; subjectId: string }
-    >({
-      queryFn: async ({ subjectKind, subjectId }) => {
-        try {
-          const data = await getPokerSessionsClient().getRoundsForSubject(
-            subjectKind,
-            subjectId,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      // Each session's own tags, since its mutations name the session; the list tag covers a round
-      // added in a session not listed yet, and a session deleted.
-      providesTags: (result) => [
-        { type: QueryTags.PokerSession, id: 'LIST' },
-        ...(result ?? []).flatMap((round) => [
-          { type: QueryTags.PokerSession, id: round.session.key },
-          { type: QueryTags.PokerSessionRound, id: round.session.key },
-        ]),
-      ],
     }),
 
     getPokerSession: builder.query<PokerSessionDetailsDto, string>({
@@ -628,7 +598,6 @@ export const {
   useGetPokerSessionsQuery,
   useGetPokerSessionQuery,
   useGetHostedPokerSessionsQuery,
-  useGetPokerRoundsForSubjectQuery,
   usePublishPokerRoundsMutation,
   useCreatePokerSessionMutation,
   useUpdatePokerSessionMutation,

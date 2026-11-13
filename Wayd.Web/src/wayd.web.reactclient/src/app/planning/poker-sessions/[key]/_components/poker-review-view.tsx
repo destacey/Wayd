@@ -21,6 +21,8 @@ export interface PokerReviewViewProps {
   canPublish: boolean
   /** Whether the consensus is a card such as `?` rather than an estimate value. */
   consensusIsCard: boolean
+  /** Whether the record the round estimates links to its own page. */
+  linkSubject?: boolean
   participants: { id: string; name: string }[]
 }
 
@@ -31,6 +33,7 @@ const PokerReviewView: FC<PokerReviewViewProps> = ({
   canManage,
   canPublish,
   consensusIsCard,
+  linkSubject,
   participants,
 }) => {
   const messageApi = useMessage()
@@ -89,6 +92,7 @@ const PokerReviewView: FC<PokerReviewViewProps> = ({
           sessionId={sessionId}
           sessionKey={sessionKey}
           canManage={canManage}
+          linkSubject={linkSubject}
         />
         {round.consensusEstimate && (
           <Text

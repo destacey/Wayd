@@ -3,10 +3,14 @@
 import { PokerRoundDto } from '@/src/services/wayd-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useUpdatePokerRoundLabelMutation } from '@/src/store/features/planning/poker-sessions-api'
-import { Input, Typography } from 'antd'
+import EntityLink from '@/src/components/common/entity-link'
+import RecordKey from '@/src/components/common/record-key'
+import { Flex, Input, Typography } from 'antd'
+import Link from 'next/link'
 import { FC, useId } from 'react'
 import styles from './poker-session.module.css'
 import RoundDescription from './round-description'
+import { subjectHref } from './round-title'
 import { useRoundFieldAutosave } from './use-round-field-autosave'
 
 const { Paragraph, Text } = Typography
@@ -16,6 +20,12 @@ export interface RoundLabelHeaderProps {
   sessionId: string
   sessionKey: number
   canManage: boolean
+  /**
+   * Whether the record a round estimates links to its own page. For those who
+   * work the area hosting the session; anyone else reads it as text, since the
+   * record may not be theirs to open.
+   */
+  linkSubject?: boolean
 }
 
 const RoundLabelHeader: FC<RoundLabelHeaderProps> = ({
@@ -23,6 +33,7 @@ const RoundLabelHeader: FC<RoundLabelHeaderProps> = ({
   sessionId,
   sessionKey,
   canManage,
+  linkSubject,
 }) => {
   const messageApi = useMessage()
   const [updateLabel] = useUpdatePokerRoundLabelMutation()
@@ -57,24 +68,44 @@ const RoundLabelHeader: FC<RoundLabelHeaderProps> = ({
     />
   )
 
-  // A round about a record reads as the record did when it was added; only the
-  // facilitators' own notes stay editable.
+  // A round about a record takes its label and description from the record, as
+  // they read when it was added, so neither is edited here.
   if (round.subject) {
+    // Opens beside the session, so following it does not take a facilitator out of the round.
+    const href = linkSubject ? subjectHref(round.subject) : undefined
     return (
       <div className={styles.roundLabelContainer}>
-        <Text type="secondary" className={styles.roundLabelTitle}>
-          {round.subject.displayKey}
-        </Text>
-        <div className={styles.roundLabelHeader}>{round.subject.title}</div>
-        {round.subject.description && (
+        {/* The key as its own chip before the title, as a record's header lays them out. */}
+        <Flex align="center" gap={10} className={styles.roundLabelHeader}>
+          {href ? (
+            <Link
+              href={href}
+              target="_blank"
+              aria-label={`Open ${round.subject.displayKey}`}
+            >
+              <RecordKey value={round.subject.displayKey} />
+            </Link>
+          ) : (
+            <RecordKey value={round.subject.displayKey} />
+          )}
+          <span style={{ minWidth: 0 }}>
+            {href ? (
+              <EntityLink href={href} target="_blank">
+                {round.label}
+              </EntityLink>
+            ) : (
+              round.label
+            )}
+          </span>
+        </Flex>
+        {round.description && (
           <Paragraph
             className={styles.roundDescriptionText}
             ellipsis={{ rows: 4, expandable: 'collapsible' }}
           >
-            {round.subject.description}
+            {round.description}
           </Paragraph>
         )}
-        {description}
       </div>
     )
   }
@@ -103,7 +134,7 @@ const RoundLabelHeader: FC<RoundLabelHeaderProps> = ({
         value={field.value}
         onChange={(e) => field.onChange(e.target.value)}
         onBlur={field.onBlur}
-        placeholder="Type a work item ID or title..."
+        placeholder="What are you estimating?"
         maxLength={512}
         size="large"
         aria-labelledby={labelTitleId}

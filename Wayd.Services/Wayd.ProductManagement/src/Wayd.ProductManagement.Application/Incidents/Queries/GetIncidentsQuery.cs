@@ -24,17 +24,10 @@ public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context
         GetIncidentsQuery request,
         CancellationToken cancellationToken)
     {
-        var query = _context.Incidents.AsNoTracking();
-        if (request.Statuses is { Count: > 0 })
-        {
-            var aliases = request.Statuses.Select(status => (int)status).ToArray();
-            query = query.Where(incident => aliases.Contains(incident.StatusAliasValue));
-        }
-
-        if (request.SeverityLevelIds is { Count: > 0 })
-        {
-            query = query.Where(incident => request.SeverityLevelIds.Contains(incident.SeverityLevelId));
-        }
+        var query = IncidentQuery.Matching(
+            _context.Incidents.AsNoTracking(),
+            request.Statuses,
+            request.SeverityLevelIds);
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -102,11 +95,7 @@ public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context
             })
             .ToList();
 
-        return new PagedResponse<IncidentSummaryDto>(
-            items,
-            totalCount,
-            request.Paging.Page,
-            request.Paging.PageSize);
+        return new PagedResponse<IncidentSummaryDto>(items, totalCount, request.Paging.Page, request.Paging.PageSize);
     }
 }
 
@@ -120,11 +109,15 @@ public sealed record GetIncidentQuery : IQuery<IncidentDto?>
     public Expression<Func<Incident, bool>> IdOrKeyFilter { get; }
 }
 
-public sealed class GetIncidentQueryHandler(IProductManagementDbContext context, IDispatcher dispatcher)
+public sealed class GetIncidentQueryHandler(
+    IProductManagementDbContext context,
+    IDispatcher dispatcher,
+    IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetIncidentQuery, IncidentDto?>
 {
     private readonly IProductManagementDbContext _context = context;
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<IncidentDto?> Handle(GetIncidentQuery query, CancellationToken cancellationToken)
     {
@@ -174,6 +167,17 @@ public sealed class GetIncidentQueryHandler(IProductManagementDbContext context,
             && connection.IsActive
             && connection.IsValidConfiguration);
 
+        var durations = IncidentDurations.Measure(
+            new IncidentDurations.Row(
+                incident.Key,
+                incident.Title,
+                incident.NoticedAt,
+                incident.StartedAt,
+                incident.RecoveredAt,
+                incident.StatusAlias,
+                incident.StatusCategory),
+            _dateTimeProvider.Now);
+
         return IncidentProjections.Details(
             incident,
             people[incident.SubmittedByEmployeeId],
@@ -182,6 +186,7 @@ public sealed class GetIncidentQueryHandler(IProductManagementDbContext context,
             level,
             products,
             releases,
+            durations,
             teamsConnectorConfigured);
     }
 }

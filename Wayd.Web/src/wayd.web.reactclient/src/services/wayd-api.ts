@@ -13991,6 +13991,64 @@ export class IncidentsClient {
     }
 
     /**
+     * Figures for the filtered incidents.
+     * @param status (optional) 
+     * @param severityLevelId (optional) 
+     * @return OK
+     */
+    getIncidentFigures(status?: ProductStatusAlias[] | null | undefined, severityLevelId?: string[] | null | undefined, cancelToken?: CancelToken): Promise<IncidentFiguresDto> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/figures?";
+        if (status !== undefined && status !== null)
+            status && status.forEach(item => { url_ += "status=" + encodeURIComponent("" + item) + "&"; });
+        if (severityLevelId !== undefined && severityLevelId !== null)
+            severityLevelId && severityLevelId.forEach(item => { url_ += "severityLevelId=" + encodeURIComponent("" + item) + "&"; });
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIncidentFigures(_response);
+        });
+    }
+
+    protected processGetIncidentFigures(response: AxiosResponse): Promise<IncidentFiguresDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IncidentFiguresDto>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IncidentFiguresDto>(null as any);
+    }
+
+    /**
      * Get one incident by id or key.
      * @return OK
      */
@@ -68311,6 +68369,31 @@ export interface IncidentDto {
     /** True when a Teams connector is present, its configuration is valid, and it is active.
 The add control is hidden when this is false. This is not stored on the incident. */
     teamsConnectorConfigured: boolean;
+    /** How long the noticed, response, and recovery stretches took. A stretch that has not started is null. */
+    durations: IncidentDurationsDto;
+}
+
+/** Durations read from noticed, response started, and recovered. Null is a stretch that has not started. */
+export interface IncidentDurationsDto {
+    /** Milliseconds from noticed until response started. Null until response has started. */
+    noticedToResponseStartedMilliseconds?: number | undefined;
+    /** Milliseconds from response started until recovered. Null until both are recorded, and null when
+the incident is canceled. */
+    responseToRecoveredMilliseconds?: number | undefined;
+    /** Milliseconds from noticed until recovered, or until now while the incident is still active.
+Null when that stretch has no end. */
+    activeMilliseconds?: number | undefined;
+}
+
+/** The active count, the longest active incident, and the mean time to recover for every incident matching the state and severity filters. */
+export interface IncidentFiguresDto {
+    /** Incidents that are not Closed or Canceled, and whose status category is not Done or Removed. */
+    activeCount: number;
+    /** The active incident open longest, from noticed until now. Null when none are active. */
+    longestActive?: LongestActiveIncidentDto | undefined;
+    /** Mean milliseconds from noticed to recovered for closed incidents. Open and canceled incidents
+are excluded. Null when no closed incident has a recovery time. */
+    meanTimeToRecoverMilliseconds?: number | undefined;
 }
 
 export interface IncidentSeverityLevelDto {
@@ -69378,6 +69461,16 @@ export interface LoginCommand {
 /** Identifies which of the caller's sessions a request concerns. Optional, but a request that omits it does less: logout revokes nothing, and the sessions list cannot mark "this device". Use `logout-all` to end every session. */
 export interface LogoutRequest {
     refreshToken?: string | undefined;
+}
+
+/** The active incident that has been open the longest. */
+export interface LongestActiveIncidentDto {
+    /** Incident key. The record is addressed by this key. */
+    key: number;
+    /** Incident title. */
+    title: string;
+    /** Milliseconds from noticed until now. */
+    activeMilliseconds: number;
 }
 
 /** Replaces every work item linked to an incident. */

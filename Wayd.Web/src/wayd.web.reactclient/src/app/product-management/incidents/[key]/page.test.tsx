@@ -33,6 +33,7 @@ const incident = {
     alias: 0,
   },
   statusAlias: ProductStatusAlias.Open,
+  durations: {},
 }
 
 vi.mock(import('antd'), async (importOriginal) => {

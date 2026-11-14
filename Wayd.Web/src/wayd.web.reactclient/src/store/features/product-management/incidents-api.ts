@@ -5,8 +5,9 @@ import type {
   CreateIncidentRequest,
   IncidentDto,
   ManageIncidentWorkItemsRequest,
-  ObjectIdAndKey,
+  IncidentFiguresDto,
   PagedResponseOfIncidentSummaryDto,
+  ObjectIdAndKey,
   CreateIncidentTeamsChatRequest,
   LinkIncidentTeamsChatRequest,
   UpdateIncidentDetailsRequest,
@@ -57,6 +58,26 @@ export const incidentsApi = apiSlice.injectEndpoints({
               { type: QueryTags.Incident, id: 'LIST' },
             ]
           : [{ type: QueryTags.Incident, id: 'LIST' }],
+    }),
+    getIncidentFigures: builder.query<
+      IncidentFiguresDto,
+      Pick<GetIncidentsRequest, 'statuses' | 'severityLevelIds'> | undefined
+    >({
+      queryFn: async (args) => {
+        try {
+          const data = await getIncidentsClient().getIncidentFigures(
+            args?.statuses,
+            args?.severityLevelIds,
+          )
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      // Same tag as the list, so creating or changing an incident refreshes the
+      // figures. The args omit the page, so paging the grid does not.
+      providesTags: [{ type: QueryTags.Incident, id: 'LIST' }],
     }),
     getIncident: builder.query<IncidentDto, string>({
       queryFn: async (idOrKey) => {
@@ -299,6 +320,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
 
 export const {
   useGetIncidentsQuery,
+  useGetIncidentFiguresQuery,
   useGetIncidentQuery,
   useCreateIncidentMutation,
   useCreateIncidentTeamsChatMutation,

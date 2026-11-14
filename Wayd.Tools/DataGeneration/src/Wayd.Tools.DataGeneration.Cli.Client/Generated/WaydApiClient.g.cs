@@ -27331,6 +27331,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// List incidents, highest key first.
         /// </summary>
+        /// <remarks>
+        /// One page of the incidents matching the state and severity filters.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<PagedResponseOfIncidentSummaryDto> GetIncidentsAsync(int? page = null, int? pageSize = null, System.Collections.Generic.IEnumerable<ProductStatusAlias>? status = null, System.Collections.Generic.IEnumerable<System.Guid>? severityLevelId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -27345,6 +27348,17 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task<ObjectIdAndKey> CreateAsync(CreateIncidentRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Figures for the filtered incidents.
+        /// </summary>
+        /// <remarks>
+        /// The active count, the longest active incident, and the mean time to recover describe every incident matching the state and severity filters, including rows on other pages.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        System.Threading.Tasks.Task<IncidentFiguresDto> GetIncidentFiguresAsync(System.Collections.Generic.IEnumerable<ProductStatusAlias>? status = null, System.Collections.Generic.IEnumerable<System.Guid>? severityLevelId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -27508,6 +27522,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// List incidents, highest key first.
         /// </summary>
+        /// <remarks>
+        /// One page of the incidents matching the state and severity filters.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task<PagedResponseOfIncidentSummaryDto> GetIncidentsAsync(int? page = null, int? pageSize = null, System.Collections.Generic.IEnumerable<ProductStatusAlias>? status = null, System.Collections.Generic.IEnumerable<System.Guid>? severityLevelId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -27679,6 +27696,93 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        {
+                            var responseData_ = response_.Content == null ? null : await ReadAsStringAsync(response_.Content, cancellationToken).ConfigureAwait(false);
+                            throw new WaydApiException("The HTTP status code of the response was not expected (" + status_ + ").", status_, responseData_, headers_, null);
+                        }
+                    }
+                    finally
+                    {
+                        if (disposeResponse_)
+                            response_.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                if (disposeClient_)
+                    client_.Dispose();
+            }
+        }
+
+        /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
+        /// <summary>
+        /// Figures for the filtered incidents.
+        /// </summary>
+        /// <remarks>
+        /// The active count, the longest active incident, and the mean time to recover describe every incident matching the state and severity filters, including rows on other pages.
+        /// </remarks>
+        /// <returns>OK</returns>
+        /// <exception cref="WaydApiException">A server side error occurred.</exception>
+        public virtual async System.Threading.Tasks.Task<IncidentFiguresDto> GetIncidentFiguresAsync(System.Collections.Generic.IEnumerable<ProductStatusAlias>? status = null, System.Collections.Generic.IEnumerable<System.Guid>? severityLevelId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        {
+            var client_ = _httpClient;
+            var disposeClient_ = false;
+            try
+            {
+                using (var request_ = new System.Net.Http.HttpRequestMessage())
+                {
+                    request_.Method = new System.Net.Http.HttpMethod("GET");
+                    request_.Headers.Accept.Add(System.Net.Http.Headers.MediaTypeWithQualityHeaderValue.Parse("application/json"));
+
+                    var urlBuilder_ = new System.Text.StringBuilder();
+                    if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
+                    // Operation Path: "api/product-management/incidents/figures"
+                    urlBuilder_.Append("api/product-management/incidents/figures");
+                    urlBuilder_.Append('?');
+                    if (status != null)
+                    {
+                            foreach (var item_ in status) { urlBuilder_.Append(System.Uri.EscapeDataString("status")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
+                    }
+                    if (severityLevelId != null)
+                    {
+                            foreach (var item_ in severityLevelId) { urlBuilder_.Append(System.Uri.EscapeDataString("severityLevelId")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
+                    }
+                    urlBuilder_.Length--;
+
+                    PrepareRequest(client_, request_, urlBuilder_);
+
+                    var url_ = urlBuilder_.ToString();
+                    request_.RequestUri = new System.Uri(url_, System.UriKind.RelativeOrAbsolute);
+
+                    PrepareRequest(client_, request_, url_);
+
+                    var response_ = await client_.SendAsync(request_, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
+                    var disposeResponse_ = true;
+                    try
+                    {
+                        var headers_ = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.IEnumerable<string>>();
+                        foreach (var item_ in response_.Headers)
+                            headers_[item_.Key] = item_.Value;
+                        if (response_.Content != null && response_.Content.Headers != null)
+                        {
+                            foreach (var item_ in response_.Content.Headers)
+                                headers_[item_.Key] = item_.Value;
+                        }
+
+                        ProcessResponse(client_, response_);
+
+                        var status_ = (int)response_.StatusCode;
+                        if (status_ == 200)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<IncidentFiguresDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            return objectResponse_.Object;
                         }
                         else
                         {
@@ -128981,6 +129085,71 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("teamsConnectorConfigured")]
         public bool TeamsConnectorConfigured { get; set; } = default!;
 
+        /// <summary>
+        /// How long the noticed, response, and recovery stretches took. A stretch that has not started is null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("durations")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public IncidentDurationsDto Durations { get; set; } = new IncidentDurationsDto();
+
+    }
+
+    /// <summary>
+    /// Durations read from noticed, response started, and recovered. Null is a stretch that has not started.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IncidentDurationsDto
+    {
+
+        /// <summary>
+        /// Milliseconds from noticed until response started. Null until response has started.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("noticedToResponseStartedMilliseconds")]
+        public long? NoticedToResponseStartedMilliseconds { get; set; } = default!;
+
+        /// <summary>
+        /// Milliseconds from response started until recovered. Null until both are recorded, and null when
+        /// <br/>the incident is canceled.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("responseToRecoveredMilliseconds")]
+        public long? ResponseToRecoveredMilliseconds { get; set; } = default!;
+
+        /// <summary>
+        /// Milliseconds from noticed until recovered, or until now while the incident is still active.
+        /// <br/>Null when that stretch has no end.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeMilliseconds")]
+        public long? ActiveMilliseconds { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The active count, the longest active incident, and the mean time to recover for every incident
+    /// <br/>matching the state and severity filters.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IncidentFiguresDto
+    {
+
+        /// <summary>
+        /// Incidents that are not Closed or Canceled, and whose status category is not Done or Removed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeCount")]
+        public int ActiveCount { get; set; } = default!;
+
+        /// <summary>
+        /// The active incident open longest, from noticed until now. Null when none are active.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("longestActive")]
+        public LongestActiveIncidentDto? LongestActive { get; set; } = default!;
+
+        /// <summary>
+        /// Mean milliseconds from noticed to recovered for closed incidents. Open and canceled incidents
+        /// <br/>are excluded. Null when no closed incident has a recovery time.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("meanTimeToRecoverMilliseconds")]
+        public long? MeanTimeToRecoverMilliseconds { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -132035,6 +132204,34 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
         [System.Text.Json.Serialization.JsonPropertyName("refreshToken")]
         public string? RefreshToken { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The active incident that has been open the longest.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class LongestActiveIncidentDto
+    {
+
+        /// <summary>
+        /// Incident key. The record is addressed by this key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        /// <summary>
+        /// Incident title.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Title { get; set; } = default!;
+
+        /// <summary>
+        /// Milliseconds from noticed until now.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeMilliseconds")]
+        public long ActiveMilliseconds { get; set; } = default!;
 
     }
 

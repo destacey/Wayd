@@ -36,8 +36,10 @@ import {
   HomeLayout,
   LayoutSlot,
   moveWidget,
+  setTileMuted,
   setWidgetSettings,
   setWidgetVisible,
+  tileChoices,
   WIDGET_COLUMNS,
 } from './home-layout'
 import styles from './home.module.css'
@@ -268,13 +270,86 @@ const ColumnList: FC<ColumnListProps> = ({
   )
 }
 
+interface AttentionTileListProps {
+  layout: HomeLayout
+  widgets: HomeWidget[]
+  mutedTiles: string[]
+  onChange: (mutedTiles: string[]) => void
+}
+
+/**
+ * The tiles the user's widgets offer the attention strip, in the order they
+ * take slots, each with a switch. A tile whose widget is switched off cannot
+ * show, so its switch is disabled, but it keeps whether it was muted.
+ */
+const AttentionTileList: FC<AttentionTileListProps> = ({
+  layout,
+  widgets,
+  mutedTiles,
+  onChange,
+}) => {
+  const choices = tileChoices(layout, widgets)
+  if (choices.length === 0) return null
+  const muted = new Set(mutedTiles)
+  const headingId = 'customize-home-attention'
+
+  return (
+    <section className={styles.customizeColumn} aria-labelledby={headingId}>
+      <div className={styles.customizeColumnHeading}>
+        <Text strong id={headingId}>
+          Choose counts to show
+        </Text>
+        <Text type="secondary" className={styles.customizeRowDescription}>
+          The strip shows the four most urgent counts above zero. Switch off a
+          tile you never act on and its slot goes to the next.
+        </Text>
+      </div>
+      <ul className={styles.customizeList}>
+        {choices.map(({ tile, widgetTitle, widgetVisible }) => (
+          <li key={tile.id} className={styles.customizeItem}>
+            <div className={styles.customizeRow}>
+              <div className={styles.customizeRowText}>
+                <Text type={widgetVisible ? undefined : 'secondary'}>
+                  {tile.title}
+                </Text>
+                <Text
+                  type="secondary"
+                  id={`customize-home-tile-${tile.id}`}
+                  className={styles.customizeRowDescription}
+                >
+                  {widgetVisible
+                    ? `From ${widgetTitle}.`
+                    : `Unavailable while ${widgetTitle} is switched off.`}
+                </Text>
+              </div>
+              <Switch
+                size="small"
+                checked={!muted.has(tile.id)}
+                disabled={!widgetVisible}
+                onChange={(on) =>
+                  onChange(setTileMuted(mutedTiles, tile.id, !on))
+                }
+                aria-label={`Show the ${tile.title} tile`}
+                aria-describedby={`customize-home-tile-${tile.id}`}
+              />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 export interface CustomizeHomeDrawerProps {
   open: boolean
   /** The layout being edited: the available widgets only, so nothing the user cannot use is offered. */
   layout: HomeLayout
   /** The widget registry, to name each widget in the layout. */
   widgets: HomeWidget[]
+  /** The attention tiles muted, by id. */
+  mutedTiles: string[]
   onChange: (layout: HomeLayout) => void
+  onMutedTilesChange: (mutedTiles: string[]) => void
   onReset: () => void
   /** Closing saves, so Done and the close button both end here. */
   onClose: () => void
@@ -290,7 +365,9 @@ const CustomizeHomeDrawer: FC<CustomizeHomeDrawerProps> = ({
   open,
   layout,
   widgets,
+  mutedTiles,
   onChange,
+  onMutedTilesChange,
   onReset,
   onClose,
 }) => {
@@ -406,8 +483,9 @@ const CustomizeHomeDrawer: FC<CustomizeHomeDrawerProps> = ({
         Drag widgets to reorder them or move them between columns, switch off
         the ones you do not need, and open a widget to change what it shows. The
         attention strip stays at the top and shows the tiles of the widgets you
-        keep. Your layout saves when you close this panel. Reset to default also
-        clears each widget&apos;s settings.
+        keep, less any you switch off under Choose counts to show. Your layout
+        saves when you close this panel. Reset to default also clears each
+        widget&apos;s settings and turns every tile back on.
       </Text>
       <DndContext
         sensors={sensors}
@@ -443,6 +521,12 @@ const CustomizeHomeDrawer: FC<CustomizeHomeDrawerProps> = ({
           ) : null}
         </DragOverlay>
       </DndContext>
+      <AttentionTileList
+        layout={layout}
+        widgets={widgets}
+        mutedTiles={mutedTiles}
+        onChange={onMutedTilesChange}
+      />
     </Drawer>
   )
 }

@@ -111,10 +111,12 @@ const Harness = ({
       open
       layout={layout}
       widgets={widgets}
+      mutedTiles={[]}
       onChange={(next) => {
         onChange(next)
         setLayout(next)
       }}
+      onMutedTilesChange={vi.fn()}
       onReset={onReset}
       onClose={onClose}
     />
@@ -387,5 +389,145 @@ describe('CustomizeHomeDrawer', () => {
     const handle = screen.getByRole('button', { name: 'Drag Alpha' })
     expect(handle).toHaveAttribute('tabindex', '0')
     expect(handle).toHaveAttribute('aria-roledescription', 'sortable')
+  })
+})
+
+describe('CustomizeHomeDrawer counts section', () => {
+  const tile = (id: string, title: string, priority: number) => ({
+    id,
+    title,
+    priority,
+    Tile: Nothing,
+  })
+
+  const tiledWidgets = [
+    widget('tasks', 'Tasks', {
+      tiles: [
+        tile('overdue', 'Overdue', 100),
+        tile('due-soon', 'Due soon', 60),
+      ],
+    }),
+    widget('news', 'News', { tiles: [tile('unread', 'Unread', 40)] }),
+    widget('risks', 'Risks', { tiles: [tile('follow-ups', 'Follow-ups', 80)] }),
+    widget('plain', 'Plain'),
+  ]
+
+  const tiledLayout: HomeLayout = {
+    main: [
+      { id: 'news', visible: true },
+      { id: 'tasks', visible: true },
+    ],
+    side: [
+      { id: 'risks', visible: false },
+      { id: 'plain', visible: true },
+    ],
+  }
+
+  const TileHarness = ({
+    onMutedTilesChange,
+    mutedTiles: initial = [],
+  }: {
+    onMutedTilesChange: Mock
+    mutedTiles?: string[]
+  }) => {
+    const [mutedTiles, setMutedTiles] = useState(initial)
+    return (
+      <CustomizeHomeDrawer
+        open
+        layout={tiledLayout}
+        widgets={tiledWidgets}
+        mutedTiles={mutedTiles}
+        onChange={vi.fn()}
+        onMutedTilesChange={(next) => {
+          onMutedTilesChange(next)
+          setMutedTiles(next)
+        }}
+        onReset={vi.fn()}
+        onClose={vi.fn()}
+      />
+    )
+  }
+
+  const section = () =>
+    within(screen.getByRole('region', { name: 'Choose counts to show' }))
+
+  it('lists the tiles of the layout’s widgets in the order they take slots', () => {
+    // Act
+    render(<TileHarness onMutedTilesChange={vi.fn()} />)
+
+    // Assert
+    expect(
+      section()
+        .getAllByRole('switch')
+        .map((s) => s.getAttribute('aria-label')),
+    ).toEqual([
+      'Show the Overdue tile',
+      'Show the Follow-ups tile',
+      'Show the Due soon tile',
+      'Show the Unread tile',
+    ])
+  })
+
+  it('mutes a tile when its switch is turned off, and unmutes it when turned on', () => {
+    // Arrange
+    const onMutedTilesChange = vi.fn()
+    render(<TileHarness onMutedTilesChange={onMutedTilesChange} />)
+    const unread = section().getByRole('switch', {
+      name: 'Show the Unread tile',
+    })
+
+    // Act
+    fireEvent.click(unread)
+
+    // Assert
+    expect(onMutedTilesChange).toHaveBeenLastCalledWith(['unread'])
+    expect(unread).not.toBeChecked()
+
+    // Act
+    fireEvent.click(unread)
+
+    // Assert
+    expect(onMutedTilesChange).toHaveBeenLastCalledWith([])
+    expect(unread).toBeChecked()
+  })
+
+  it('shows a switched-off widget’s tile as unavailable, keeping whether it is muted', () => {
+    // Act
+    render(
+      <TileHarness onMutedTilesChange={vi.fn()} mutedTiles={['follow-ups']} />,
+    )
+
+    // Assert
+    const followUps = section().getByRole('switch', {
+      name: 'Show the Follow-ups tile',
+    })
+    expect(followUps).toBeDisabled()
+    expect(followUps).not.toBeChecked()
+    expect(
+      section().getByText('Unavailable while Risks is switched off.'),
+    ).toBeInTheDocument()
+  })
+
+  it('is left out when no widget in the layout offers a tile', () => {
+    // Act
+    render(<Harness onChange={vi.fn()} />)
+
+    // Assert
+    expect(
+      screen.queryByRole('region', { name: 'Choose counts to show' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('describes each switch by its note', () => {
+    // Act
+    render(<TileHarness onMutedTilesChange={vi.fn()} />)
+
+    // Assert
+    expect(
+      section().getByRole('switch', { name: 'Show the Follow-ups tile' }),
+    ).toHaveAccessibleDescription('Unavailable while Risks is switched off.')
+    expect(
+      section().getByRole('switch', { name: 'Show the Unread tile' }),
+    ).toHaveAccessibleDescription('From News.')
   })
 })

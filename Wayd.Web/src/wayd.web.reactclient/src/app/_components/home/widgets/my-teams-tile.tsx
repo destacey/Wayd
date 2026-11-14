@@ -9,7 +9,7 @@ import { FC } from 'react'
 import AttentionTile from '../attention-tile'
 import { useWidgetSettingsOf } from '../home-settings-context'
 import { useHomeContext } from '../use-home-context'
-import { widgetAnchorId } from '../widget-registry'
+import { HomeTileProps, widgetAnchorId } from '../widget-registry'
 import {
   pickedValues,
   WidgetChoiceSetting,
@@ -152,7 +152,7 @@ export const showsBurnUp = (settings: WidgetSettingValues | undefined) =>
 // reads from the page.
 
 /** Open dependencies at risk or unhealthy across the caller's teams. */
-export const DependenciesAtRiskTile: FC = () => {
+export const DependenciesAtRiskTile: FC<HomeTileProps> = ({ title }) => {
   const { data, isLoading, isError, isOnNoTeam } = useMyTeamsSummary()
   const teams = showsSomeTeams(data) ? 'the teams shown' : 'your teams'
   // No count without View Work Items reads as zero, so the tile gives up its slot.
@@ -163,7 +163,7 @@ export const DependenciesAtRiskTile: FC = () => {
       : (data?.dependenciesAtRiskCount ?? 0)
   return (
     <AttentionTile
-      title="Dependencies at risk"
+      title={title}
       context={`on ${teams}`}
       value={value}
       tooltip={`Open dependencies of ${teams} that are at risk (neither end planned) or unhealthy (planned to finish after they are needed). A dependency between two of them counts once.`}
@@ -175,7 +175,7 @@ export const DependenciesAtRiskTile: FC = () => {
 }
 
 /** Open cross-team dependencies that are unhealthy across the caller's teams of teams. */
-export const CrossTeamDependenciesTile: FC = () => {
+export const CrossTeamDependenciesTile: FC<HomeTileProps> = ({ title }) => {
   const { data, isLoading, isError, isOnNoTeam } = useMyTeamsSummary()
   const teamsOfTeams = showsSomeTeamsOfTeams(data)
     ? 'the teams of teams shown'
@@ -187,7 +187,7 @@ export const CrossTeamDependenciesTile: FC = () => {
       : (data?.unhealthyCrossTeamDependencyCount ?? 0)
   return (
     <AttentionTile
-      title="Unhealthy dependencies"
+      title={title}
       context={`across ${teamsOfTeams}`}
       value={value}
       tooltip={`Open dependencies between teams in ${teamsOfTeams} that are unhealthy: planned to finish after they are needed, or whose successor started first. A dependency shared by two of them counts once.`}
@@ -199,7 +199,7 @@ export const CrossTeamDependenciesTile: FC = () => {
 }
 
 /** Sprints of the teams in the caller's teams of teams that were started and left open past their end. */
-export const SprintsToCompleteTile: FC = () => {
+export const SprintsToCompleteTile: FC<HomeTileProps> = ({ title }) => {
   const { data, isLoading, isError, isOnNoTeam } = useMyTeamsSummary()
   const teamsOfTeams = showsSomeTeamsOfTeams(data)
     ? 'the teams of teams shown'
@@ -211,7 +211,7 @@ export const SprintsToCompleteTile: FC = () => {
       : (data?.sprintsEndedNotCompletedCount ?? 0)
   return (
     <AttentionTile
-      title="Sprints to complete"
+      title={title}
       context={`in ${teamsOfTeams}`}
       value={value}
       tooltip={`Sprints a team in ${teamsOfTeams} started that are past their end and not yet completed. Open the team's sprint to complete it.`}

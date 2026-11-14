@@ -86,6 +86,7 @@ export const profileApi = apiSlice.injectEndpoints({
                   ...w,
                   settings: w.settings ?? {},
                 }))
+                draft.mutedTiles = request.mutedTiles ?? []
               },
             ),
           )

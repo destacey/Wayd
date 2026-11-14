@@ -388,7 +388,9 @@ describe('UnassignedRequestsTile', () => {
     )
 
     // Act
-    const { container } = render(<UnassignedRequestsTile />)
+    const { container } = render(
+      <UnassignedRequestsTile title="Unassigned requests" />,
+    )
 
     // Assert
     expect(
@@ -406,7 +408,7 @@ describe('UnassignedRequestsTile', () => {
         desk(1, 'A', [['me', IntakeDeskRole.Agent]], { unassignedCount: 1 }),
       ]),
     )
-    render(<UnassignedRequestsTile />)
+    render(<UnassignedRequestsTile title="Unassigned requests" />)
 
     // Act
     fireEvent.click(
@@ -429,7 +431,7 @@ describe('RequestsAssignedToMeTile', () => {
     requestsReturn([request(1, 'One'), request(2, 'Two')])
 
     // Act
-    render(<RequestsAssignedToMeTile />)
+    render(<RequestsAssignedToMeTile title="Requests assigned" />)
 
     // Assert
     expect(
@@ -440,7 +442,7 @@ describe('RequestsAssignedToMeTile', () => {
   it('opens Requests filtered to the caller as assignee', () => {
     // Arrange
     requestsReturn([request(1, 'One')])
-    render(<RequestsAssignedToMeTile />)
+    render(<RequestsAssignedToMeTile title="Requests assigned" />)
 
     // Act
     fireEvent.click(
@@ -591,7 +593,12 @@ describe('desk queue scope', () => {
     })
 
     // Act
-    render(<RequestsAssignedToMeTile settings={{ desks: 'desk-1' }} />)
+    render(
+      <RequestsAssignedToMeTile
+        title="Requests assigned"
+        settings={{ desks: 'desk-1' }}
+      />,
+    )
 
     // Assert
     expect(
@@ -601,7 +608,12 @@ describe('desk queue scope', () => {
 
   it('counts unassigned requests only on the desks chosen, and links to them', () => {
     // Arrange
-    render(<UnassignedRequestsTile settings={{ desks: 'desk-2' }} />)
+    render(
+      <UnassignedRequestsTile
+        title="Unassigned requests"
+        settings={{ desks: 'desk-2' }}
+      />,
+    )
 
     // Act
     fireEvent.click(
@@ -618,7 +630,12 @@ describe('desk queue scope', () => {
 
   it('counts every desk’s unassigned requests for a stale choice', () => {
     // Act
-    render(<UnassignedRequestsTile settings={{ desks: 'desk-gone' }} />)
+    render(
+      <UnassignedRequestsTile
+        title="Unassigned requests"
+        settings={{ desks: 'desk-gone' }}
+      />,
+    )
 
     // Assert
     expect(
@@ -632,6 +649,7 @@ describe('desk queue scope', () => {
     // Act
     render(
       <UnassignedRequestsTile
+        title="Unassigned requests"
         settings={{ sections: 'assigned,participating' }}
       />,
     )
@@ -646,7 +664,12 @@ describe('desk queue scope', () => {
 
   it('counts requests assigned on the desks chosen, and links to them', () => {
     // Arrange
-    render(<RequestsAssignedToMeTile settings={{ desks: 'desk-1' }} />)
+    render(
+      <RequestsAssignedToMeTile
+        title="Requests assigned"
+        settings={{ desks: 'desk-1' }}
+      />,
+    )
 
     // Act
     fireEvent.click(
@@ -661,7 +684,12 @@ describe('desk queue scope', () => {
 
   it('counts no assigned requests while the queue leaves out that list', () => {
     // Act
-    render(<RequestsAssignedToMeTile settings={{ sections: 'desks' }} />)
+    render(
+      <RequestsAssignedToMeTile
+        title="Requests assigned"
+        settings={{ sections: 'desks' }}
+      />,
+    )
 
     // Assert
     expect(

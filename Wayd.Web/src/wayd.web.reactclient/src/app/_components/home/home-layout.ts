@@ -8,7 +8,9 @@ import {
   defaultPlacement,
   HomeWidget,
   isWidgetAvailable,
+  OfferedAttentionTile,
   PlaceWidget,
+  tilesByPriority,
   WidgetAccess,
   WidgetColumn,
   WidgetPlacement,
@@ -246,6 +248,59 @@ export const setWidgetSettings = (
   const set = (slot: LayoutSlot) =>
     slot.id === id ? { ...slot, settings } : slot
   return { main: layout.main.map(set), side: layout.side.map(set) }
+}
+
+/**
+ * The muted tiles to save: each once, less any id the registry no longer has.
+ * A tile of a widget the user cannot use right now stays muted, so it returns
+ * muted when access does.
+ */
+export const mutedTilesToSave = (
+  muted: string[],
+  widgets: HomeWidget[],
+): string[] => {
+  const known = new Set(
+    widgets.flatMap((w) => (w.tiles ?? []).map((t) => t.id)),
+  )
+  return [...new Set(muted)].filter((id) => known.has(id))
+}
+
+/** Mutes a tile, or lets it take a slot again. */
+export const setTileMuted = (
+  muted: string[],
+  id: string,
+  isMuted: boolean,
+): string[] => {
+  const rest = muted.filter((m) => m !== id)
+  return isMuted ? [...rest, id] : rest
+}
+
+/** A tile the Customize drawer offers to mute, with the widget it belongs to. */
+export interface TileChoice {
+  tile: OfferedAttentionTile
+  widgetTitle: string
+  /** False when the user switched the widget off, so its tile cannot show either way. */
+  widgetVisible: boolean
+}
+
+/**
+ * The tiles of the widgets in a layout, in the order they take slots: highest
+ * priority first, ties in page order. The layout holds only widgets the user
+ * can use, so neither does this.
+ */
+export const tileChoices = (
+  layout: HomeLayout,
+  widgets: HomeWidget[],
+): TileChoice[] => {
+  const byId = new Map(widgets.map((w) => [w.id, w]))
+  const slots = WIDGET_COLUMNS.flatMap((column) => layout[column])
+  const visible = new Map(slots.map((s) => [s.id, s.visible]))
+  const inLayout = slots.flatMap((s) => byId.get(s.id) ?? [])
+  return tilesByPriority(inLayout).map((tile) => ({
+    tile,
+    widgetTitle: byId.get(tile.widgetId)!.title,
+    widgetVisible: visible.get(tile.widgetId) ?? false,
+  }))
 }
 
 /**

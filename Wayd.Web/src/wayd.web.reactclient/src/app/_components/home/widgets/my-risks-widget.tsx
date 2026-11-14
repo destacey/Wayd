@@ -17,7 +17,11 @@ import { FC } from 'react'
 import AttentionTile from '../attention-tile'
 import { useHomeContext } from '../use-home-context'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
-import { HomeWidgetProps, widgetAnchorId } from '../widget-registry'
+import {
+  HomeTileProps,
+  HomeWidgetProps,
+  widgetAnchorId,
+} from '../widget-registry'
 import styles from '../home.module.css'
 
 const { Text } = Typography
@@ -115,14 +119,14 @@ const MyRisksWidget: FC<HomeWidgetProps> = ({ title }) => {
 }
 
 /** Risks assigned to the caller whose follow-up is due today or past. */
-export const RiskFollowUpsTile: FC = () => {
+export const RiskFollowUpsTile: FC<HomeTileProps> = ({ title }) => {
   const { data: risks, isLoading, isError } = useMyRisks()
   const value = isError
     ? undefined
     : countFollowUpsDue(risks ?? [], todayCalendarDate())
   return (
     <AttentionTile
-      title="Risk follow-ups"
+      title={title}
       value={value}
       tooltip="Open risks assigned to you whose follow-up date is today or past."
       href={`#${widgetAnchorId('my-risks')}`}

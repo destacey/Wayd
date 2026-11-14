@@ -267,7 +267,9 @@ const HomePage = () => {
           open={customize.isOpen}
           layout={customize.layout}
           widgets={HomeWidgets}
+          mutedTiles={customize.mutedTiles}
           onChange={customize.change}
+          onMutedTilesChange={customize.changeMutedTiles}
           onReset={customize.reset}
           onClose={customize.close}
         />

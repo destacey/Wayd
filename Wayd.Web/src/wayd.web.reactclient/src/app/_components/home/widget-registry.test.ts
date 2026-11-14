@@ -29,7 +29,12 @@ const access = (overrides: Partial<WidgetAccess> = {}): WidgetAccess => ({
   ...overrides,
 })
 
-const tile = (id: string, priority = 0) => ({ id, priority, Tile: Nothing })
+const tile = (id: string, priority = 0) => ({
+  id,
+  title: id,
+  priority,
+  Tile: Nothing,
+})
 
 describe('isWidgetAvailable', () => {
   it('shows a widget with no requirements to anyone', () => {
@@ -236,6 +241,20 @@ describe('attentionTiles', () => {
 
     // Assert
     expect(tiles.map((t) => t.id)).toEqual(['kept'])
+  })
+
+  it('leaves out a muted tile, keeping the order of the rest', () => {
+    // Arrange
+    const columns = {
+      main: [widget({ id: 'a', tiles: [tile('high', 90), tile('low', 10)] })],
+      side: [widget({ id: 'b', tiles: [tile('mid', 50)] })],
+    }
+
+    // Act
+    const tiles = attentionTiles(columns, new Set(['high', 'not-offered']))
+
+    // Assert
+    expect(tiles.map((t) => t.id)).toEqual(['mid', 'low'])
   })
 })
 

@@ -5,11 +5,14 @@ import {
   HomeLayout,
   layoutToSave,
   moveWidget,
+  mutedTilesToSave,
   resolveLayout,
   SavedWidget,
   settingsChangeToSave,
+  setTileMuted,
   setWidgetSettings,
   setWidgetVisible,
+  tileChoices,
   toSavedWidgets,
 } from './home-layout'
 import {
@@ -39,7 +42,12 @@ const widget = (
   ...overrides,
 })
 
-const tile = (id: string) => ({ id, priority: 0, Tile: Nothing })
+const tile = (id: string, priority = 0) => ({
+  id,
+  title: id,
+  priority,
+  Tile: Nothing,
+})
 
 const access = (overrides: Partial<WidgetAccess> = {}): WidgetAccess => ({
   hasPermissionClaim: () => true,
@@ -605,5 +613,79 @@ describe('widget settings in a layout', () => {
       saved('a', 'main', true, { rows: '3' }),
       saved('x', 'side'),
     ])
+  })
+})
+
+describe('muted tiles', () => {
+  const widgets = [
+    widget('tasks', 'main', 10, {
+      tiles: [tile('overdue', 100), tile('due-soon', 60)],
+    }),
+    widget('news', 'main', 20, { tiles: [tile('unread', 40)] }),
+    widget('risks', 'side', 10, { tiles: [tile('follow-ups', 60)] }),
+  ]
+
+  it('mutes a tile once, and unmutes it', () => {
+    // Arrange
+    const muted = ['unread']
+
+    // Act
+    const added = setTileMuted(muted, 'overdue', true)
+    const again = setTileMuted(added, 'overdue', true)
+    const removed = setTileMuted(again, 'unread', false)
+
+    // Assert
+    expect(added).toEqual(['unread', 'overdue'])
+    expect(again).toEqual(['unread', 'overdue'])
+    expect(removed).toEqual(['overdue'])
+  })
+
+  it('saves each muted id once, dropping ids the registry no longer has', () => {
+    // Act
+    const toSave = mutedTilesToSave(
+      ['unread', 'retired-tile', 'unread', 'follow-ups'],
+      widgets,
+    )
+
+    // Assert
+    expect(toSave).toEqual(['unread', 'follow-ups'])
+  })
+
+  it('offers the layout’s tiles by priority, ties in page order, with whether each widget shows', () => {
+    // Arrange
+    const layout: HomeLayout = {
+      main: [
+        { id: 'news', visible: true },
+        { id: 'tasks', visible: true },
+      ],
+      side: [{ id: 'risks', visible: false }],
+    }
+
+    // Act
+    const choices = tileChoices(layout, widgets)
+
+    // Assert
+    expect(
+      choices.map((c) => [c.tile.id, c.widgetTitle, c.widgetVisible]),
+    ).toEqual([
+      ['overdue', 'tasks', true],
+      ['due-soon', 'tasks', true],
+      ['follow-ups', 'risks', false],
+      ['unread', 'news', true],
+    ])
+  })
+
+  it('offers no tile of a widget missing from the layout', () => {
+    // Arrange
+    const layout: HomeLayout = {
+      main: [{ id: 'news', visible: true }],
+      side: [],
+    }
+
+    // Act
+    const choices = tileChoices(layout, widgets)
+
+    // Assert
+    expect(choices.map((c) => c.tile.id)).toEqual(['unread'])
   })
 })

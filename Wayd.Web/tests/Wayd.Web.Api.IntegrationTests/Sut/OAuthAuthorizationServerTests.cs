@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.WebUtilities;
@@ -26,6 +28,7 @@ using Wayd.Infrastructure.Identity;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.Web.Api.IntegrationTests.Infrastructure;
 using Wayd.Web.Api.Mcp;
+using SystemClock = NodaTime.SystemClock;
 
 namespace Wayd.Web.Api.IntegrationTests.Sut;
 
@@ -281,23 +284,23 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
     }
 
     [Fact]
-    public async Task CallTool_WithAnAccessToken_IsRefused_OnceTheUserIsDeactivated()
+    public async Task CallTool_WithAnAccessToken_IsRefusedByTheEndpoint_OnceTheUserIsDeactivated()
     {
-        // Arrange — the /mcp scheme checks only the session, so the delegated token's own check is what refuses
+        // Arrange — deactivated directly, so the session stays live and only the user check on /mcp can refuse
         await SetFlag(true);
         var (user, accessToken) = await ConnectedUser(RegisterClient(), CreatePortfolios);
         await using var mcp = await ConnectToMcp(accessToken);
         await SetUserActive(user.UserId, false);
 
         // Act
-        var result = await mcp.CallToolAsync(
+        var call = () => mcp.CallToolAsync(
             "Portfolios_Create",
             new Dictionary<string, object?> { ["requestBody"] = new { name = $"OAuth {Guid.NewGuid():N}"[..20], description = "Created through a tool call." } },
-            cancellationToken: TestContext.Current.CancellationToken);
+            cancellationToken: TestContext.Current.CancellationToken).AsTask();
 
         // Assert
-        Assert.True(result.IsError);
-        Assert.StartsWith("API Error: Status 401", TextOf(result));
+        var refused = await Assert.ThrowsAsync<HttpRequestException>(call);
+        Assert.Equal(HttpStatusCode.Unauthorized, refused.StatusCode);
     }
 
     [Theory]
@@ -966,6 +969,65 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
         Assert.Equal(HttpStatusCode.NoContent, revoked.StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         Assert.Contains("error=\"invalid_token\"", response.Headers.WwwAuthenticate.ToString());
+    }
+
+    [Fact]
+    public async Task Deactivation_EndsAConnectedClientsSession_SoItsTokensStopWorking()
+    {
+        // Arrange
+        await SetFlag(true);
+        var client = RegisterClient();
+        var (user, code) = await Approve(client);
+        var tokens = await (await RedeemRequest(client, code)).Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+        var sessionId = Guid.ParseExact(new JsonWebToken(tokens.GetProperty("access_token").GetString()!).GetClaim(OAuthAccessTokens.SessionIdClaim).Value, "N");
+        var admin = await _factory.CreateAuthenticatedClient(ApplicationPermission.NameFor(ApplicationAction.Update, ApplicationResource.Users));
+        var mcp = _factory.CreateClient();
+        mcp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.GetProperty("access_token").GetString());
+        var before = await mcp.PostAsJsonAsync(McpServerSetup.Path, new { }, TestContext.Current.CancellationToken);
+
+        // Act
+        var deactivated = await admin.Client.PutAsync($"/api/user-management/users/{user.UserId}/deactivate", null, TestContext.Current.CancellationToken);
+        await SetUserActive(user.UserId, true);
+        var call = await mcp.PostAsJsonAsync(McpServerSetup.Path, new { }, TestContext.Current.CancellationToken);
+        var refresh = await RefreshRequest(client, tokens.GetProperty("refresh_token").GetString()!);
+
+        // Assert — reactivated, the user is no longer what refuses: only the ended session can
+        Assert.NotEqual(HttpStatusCode.Unauthorized, before.StatusCode);
+        Assert.True(deactivated.IsSuccessStatusCode, await deactivated.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.Equal(HttpStatusCode.Unauthorized, call.StatusCode);
+        await AssertRefused(refresh, "invalid_grant");
+        using var scope = _factory.Services.CreateScope();
+        var session = await scope.ServiceProvider.GetRequiredService<WaydDbContext>().UserRefreshTokens
+            .AsNoTracking()
+            .SingleAsync(t => t.Id == sessionId, TestContext.Current.CancellationToken);
+        Assert.Equal(UserRefreshTokenRevokeReasons.Deactivated, session.RevokedReason);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task DelegatedToken_AuthenticatesOnlyAnActiveUser(bool active)
+    {
+        // Arrange — the scheme a tool call's inner request uses, run directly: /mcp refuses an inactive user first
+        await SetFlag(true);
+        var client = RegisterClient();
+        var (user, _) = await ConnectedUser(client);
+        if (!active)
+            await SetUserActive(user.UserId, false);
+        var token = DelegatedAccessTokens.Issue(
+            _factory.Services.GetRequiredService<IConfiguration>(), Issuer, user.UserId, client.ClientId, TokenScope.Write, SystemClock.Instance.GetCurrentInstant());
+        using var scope = _factory.Services.CreateScope();
+        var context = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
+        context.Request.Scheme = _factory.Server.BaseAddress.Scheme;
+        context.Request.Host = new HostString(_factory.Server.BaseAddress.Authority);
+        context.Features.Set(new InProcessDelegation(token));
+        scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext = context;
+
+        // Act
+        var result = await context.AuthenticateAsync(AuthConstants.DelegatedAccessTokenScheme);
+
+        // Assert
+        Assert.Equal(active, result.Succeeded);
     }
 
     [Fact]

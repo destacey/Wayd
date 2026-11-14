@@ -100,9 +100,9 @@ public static class OAuthAccessTokens
     }
 
     /// <summary>
-    /// Refuses a token whose session has been revoked or has expired, so revoking a connector in the sessions list, or a
-    /// replayed authorization code revoking it, ends its access at once rather than when the token expires. One lookup
-    /// by primary key per request.
+    /// Refuses a token whose session has been revoked or has expired, or whose user has been deactivated, so revoking a
+    /// connector in the sessions list, a replayed authorization code revoking it, or deactivating the user ends its
+    /// access at once rather than when the token expires. One lookup by primary key per request.
     /// </summary>
     private static async Task RequireLiveSession(TokenValidatedContext context)
     {
@@ -116,9 +116,11 @@ public static class OAuthAccessTokens
 
         var services = context.HttpContext.RequestServices;
         var now = services.GetRequiredService<IDateTimeProvider>().Now;
-        var live = await services.GetRequiredService<WaydDbContext>().UserRefreshTokens
+        var db = services.GetRequiredService<WaydDbContext>();
+        var live = await db.UserRefreshTokens
             .AsNoTracking()
-            .AnyAsync(t => t.Id == sessionId && t.UserId == token.Subject && t.RevokedAt == null && t.ExpiresAt > now, context.HttpContext.RequestAborted);
+            .AnyAsync(t => t.Id == sessionId && t.UserId == token.Subject && t.RevokedAt == null && t.ExpiresAt > now
+                && db.Users.Any(u => u.Id == t.UserId && u.IsActive), context.HttpContext.RequestAborted);
         if (!live)
         {
             context.Fail("The token's session has ended.");

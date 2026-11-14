@@ -463,6 +463,10 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                 <IncidentStatusStepper
                   incidentId={incident.id}
                   currentStatusId={incident.status.id}
+                  noticedAt={incident.noticedAt}
+                  startedAt={incident.startedAt}
+                  recoveredAt={incident.recoveredAt}
+                  viewerZone={viewerZone}
                 />
                 <IncidentDurations durations={incident.durations} />
                 <Form form={form} layout="vertical">
@@ -538,6 +542,10 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
               <IncidentStatusStepper
                 incidentId={incident.id}
                 currentStatusId={incident.status.id}
+                noticedAt={incident.noticedAt}
+                startedAt={incident.startedAt}
+                recoveredAt={incident.recoveredAt}
+                viewerZone={viewerZone}
               />
               <IncidentDurations durations={incident.durations} />
               {incident.symptoms ? (

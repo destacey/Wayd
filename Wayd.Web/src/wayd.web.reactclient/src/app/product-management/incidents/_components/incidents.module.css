@@ -8,6 +8,47 @@
   margin: 0 0 16px;
 }
 
+.stepper {
+  min-width: 0;
+  width: 100%;
+}
+
+.dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.dotInProgress {
+  composes: dot;
+  background-color: var(--ant-color-primary);
+}
+
+.dotNotStarted {
+  composes: dot;
+  border: 1px solid var(--ant-color-border);
+}
+
+.iconCompleted {
+  color: var(--ant-color-success);
+  font-size: 14px;
+}
+
+.iconCanceled {
+  color: var(--ant-color-error);
+  font-size: 14px;
+}
+
+.titleSmall {
+  font-size: 11px;
+}
+
+.dates {
+  font-size: 10px;
+  color: var(--ant-color-text-secondary);
+}
+
 .fieldHeading {
   margin: 0 0 4px;
   font-size: 13px;

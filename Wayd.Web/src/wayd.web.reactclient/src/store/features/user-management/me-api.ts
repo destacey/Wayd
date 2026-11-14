@@ -15,6 +15,15 @@ export interface MyWorkItemsArgs {
   doneFrom?: string
 }
 
+/**
+ * Which of the caller's teams and teams of teams `api/me/teams/summary`
+ * summarises; either left out or empty means all of them.
+ */
+export interface MyTeamsSummaryArgs {
+  teamIds?: string[]
+  teamOfTeamsIds?: string[]
+}
+
 /** The caller's own records, from `api/me`. */
 export const meApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -29,10 +38,16 @@ export const meApi = apiSlice.injectEndpoints({
         }
       },
     }),
-    getMyTeamsSummary: builder.query<MyTeamsSummaryResponse, void>({
-      queryFn: async () => {
+    getMyTeamsSummary: builder.query<
+      MyTeamsSummaryResponse,
+      MyTeamsSummaryArgs | void
+    >({
+      queryFn: async (args) => {
         try {
-          const data = await getMeClient().getTeamsSummary()
+          const data = await getMeClient().getTeamsSummary(
+            args?.teamIds?.length ? args.teamIds : undefined,
+            args?.teamOfTeamsIds?.length ? args.teamOfTeamsIds : undefined,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)

@@ -30,8 +30,16 @@ vi.mock('@/src/store/features/user-management/me-api', () => ({
 
 // The sprint card loads its own sprint, metrics and burn-up; these tests read only which teams get one.
 vi.mock('@/src/components/common/planning/active-team-sprint', () => ({
-  default: ({ teamId }: { teamId: string }) => (
-    <div data-testid="active-sprint">{teamId}</div>
+  default: ({
+    teamId,
+    showBurnUp = true,
+  }: {
+    teamId: string
+    showBurnUp?: boolean
+  }) => (
+    <div data-testid="active-sprint" data-burn-up={String(showBurnUp)}>
+      {teamId}
+    </div>
   ),
 }))
 
@@ -95,6 +103,36 @@ describe('MyTeamsWidget', () => {
 
     // Assert
     expect(screen.getByTestId('active-sprint')).toHaveTextContent('a')
+  })
+
+  it('draws the sprint card with its burn-up unless set to figures only', () => {
+    // Arrange
+    mockSummary.mockReturnValue(
+      loaded({
+        teams: [
+          team('a', {
+            methodology: Methodology.Scrum,
+            sprint: { activeSprint: { id: 's', key: 3, name: 'Sprint 3' } },
+          }),
+        ],
+      }),
+    )
+    const { rerender } = render(<MyTeamsWidget title="My teams" />)
+    expect(screen.getByTestId('active-sprint')).toHaveAttribute(
+      'data-burn-up',
+      'true',
+    )
+
+    // Act
+    rerender(
+      <MyTeamsWidget title="My teams" settings={{ sprintCard: 'figures' }} />,
+    )
+
+    // Assert
+    expect(screen.getByTestId('active-sprint')).toHaveAttribute(
+      'data-burn-up',
+      'false',
+    )
   })
 
   it('says a Scrum team between sprints has none running', () => {

@@ -5,6 +5,7 @@ import { HomeWidget } from './widget-registry'
 import { emptySetting, rowsSetting } from './widget-settings'
 import DeskQueueWidget, {
   DESK_QUEUE_LIMIT,
+  deskQueueSettings,
   RequestsAssignedToMeTile,
   UnassignedRequestsTile,
 } from './widgets/desk-queue-widget'
@@ -54,7 +55,10 @@ import WhatsChangedWidget, {
 import {
   CrossTeamDependenciesTile,
   DependenciesAtRiskTile,
+  sprintCardSetting,
   SprintsToCompleteTile,
+  teamsOfTeamsPickSetting,
+  teamsPickSetting,
 } from './widgets/my-teams-tile'
 
 // Loaded after the page: each sprint draws a burn-up chart, and the charting
@@ -305,7 +309,7 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 20,
     requires: { linkedEmployee: true },
     Component: MyTeamsWidget,
-    settings: [emptySetting],
+    settings: [teamsPickSetting, sprintCardSetting, emptySetting],
     // A team member's team is their day-to-day work.
     involvement: ({ teams }) =>
       teams.teamCount > 0 ? Involvement.Leads : Involvement.None,
@@ -330,7 +334,7 @@ export const HomeWidgets: HomeWidget[] = [
       involved: ({ teams }) => teams.teamOfTeamsCount > 0,
     },
     Component: MyTeamsOfTeamsWidget,
-    settings: [emptySetting],
+    settings: [teamsOfTeamsPickSetting, emptySetting],
     // A team of teams its member answers for is their day-to-day work, and everyone it is shown to has one.
     involvement: () => Involvement.Leads,
     tiles: [
@@ -357,6 +361,7 @@ export const HomeWidgets: HomeWidget[] = [
     Component: DeskQueueWidget,
     // Its two request lists share the one count.
     settings: [
+      ...deskQueueSettings,
       rowsSetting(DESK_QUEUE_LIMIT, 'Requests per list'),
       emptySetting,
     ],

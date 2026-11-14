@@ -783,6 +783,8 @@ internal partial class UserService
 
         var actor = CurrentActor();
         var now = _dateTimeProvider.Now;
+        if (user.MustChangePassword)
+            user.TemporaryPasswordSetAt = now;
 
         user.RecordCreation(actor, now);
         if (firstSignInTenantId is not null)
@@ -958,11 +960,22 @@ internal partial class UserService
             return Result.Failure("Password change is only available for local accounts.");
         }
 
+        // A wrong current password counts toward lockout as a failed sign-in does, or a stolen session could guess
+        // at it freely; a locked-out user may not try. An administrator protected from lockout is throttled instead.
+        var now = _dateTimeProvider.Now.ToDateTimeOffset();
+        var throttled = await LastAdministrator.IsProtected(_userManager, user, now);
+        if (throttled ? !await LastAdministrator.TryTakeAttempt(_userManager, user, now) : await _userManager.IsLockedOutAsync(user))
+        {
+            return Result.Failure(TooManyWrongPasswords);
+        }
+
         user.RecordPasswordChange(CurrentActor(), _dateTimeProvider.Now);
 
-        // Cleared before the change so its own save writes the flag with the new hash.
+        // Cleared before the change so its own save writes them with the new hash.
         var mustChangePassword = user.MustChangePassword;
+        var temporaryPasswordSetAt = user.TemporaryPasswordSetAt;
         user.MustChangePassword = false;
+        user.TemporaryPasswordSetAt = null;
 
         IdentityResult result = IdentityResult.Success;
         await _userIdentityStore.ExecuteInTransaction(async ct =>
@@ -974,14 +987,45 @@ internal partial class UserService
         if (!result.Succeeded)
         {
             user.MustChangePassword = mustChangePassword;
+            user.TemporaryPasswordSetAt = temporaryPasswordSetAt;
             user.ClearDomainEvents();
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
             _logger.LogWarning("Password change failed for user {UserId}: {Errors}", userId, errors);
+            if (result.Errors.Any(e => e.Code == nameof(IdentityErrorDescriber.PasswordMismatch)))
+                await CountFailedPassword(user, throttled, now);
             return Result.Failure(errors);
         }
 
+        if (throttled)
+            await LastAdministrator.RecordSuccess(_userManager, user);
+
         _logger.LogInformation("Password changed successfully for user {UserId}.", userId);
         return Result.Success();
+    }
+
+    /// <summary>The refusal of a change-password attempt made while the user is locked out or throttled.</summary>
+    private const string TooManyWrongPasswords = "Too many wrong passwords. Try again later.";
+
+    /// <summary>
+    /// Counts a wrong current password toward <paramref name="user"/>'s lockout, recording the lockout when it starts
+    /// one. An administrator protected from lockout (<paramref name="throttled"/>) is throttled instead, as at sign-in.
+    /// </summary>
+    private async Task CountFailedPassword(ApplicationUser user, bool throttled, DateTimeOffset now)
+    {
+        if (throttled)
+        {
+            await LastAdministrator.RecordFailure(_userManager, user, now);
+            return;
+        }
+
+        await _userManager.AccessFailedAsync(user);
+        if (await _userManager.IsLockedOutAsync(user))
+        {
+            user.RecordLockout(CurrentActor(), _dateTimeProvider.Now);
+            var recorded = await _userManager.UpdateAsync(user);
+            if (!recorded.Succeeded)
+                user.ClearDomainEvents();
+        }
     }
 
     public async Task<Result> ResetPasswordAsync(ResetPasswordCommand command, CancellationToken cancellationToken)

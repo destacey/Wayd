@@ -139,7 +139,8 @@ Configure in `Wayd.Web/src/Wayd.Web.Api/Configurations/security.json` or User Se
             "Audience": "https://api.wayd.dev",
             "TokenExpirationInMinutes": 60,
             "RefreshTokenExpirationInDays": 7,
-            "SessionLifetimeInDays": 30
+            "SessionLifetimeInDays": 30,
+            "TemporaryPasswordLifetimeInDays": 7
         }
     }
 }
@@ -148,6 +149,16 @@ Configure in `Wayd.Web/src/Wayd.Web.Api/Configurations/security.json` or User Se
 Only `Secret` needs to be set per deploy — the rest have sensible defaults and in particular `Issuer` / `Audience` are JWT claim identifiers, not environment-specific config. Don't override them per environment.
 
 The checked-in `security.json` holds a placeholder secret beginning `DEV-ONLY-SECRET`. A host outside Development refuses to start while the secret is empty or still that placeholder.
+
+**Every sign-in refusal reads the same** (`TokenService.SignInRefused`): an unknown user, a wrong password, a locked, inactive or non-local account. The message names the lockout as well, so a locked-out owner knows to wait, but nobody learns whether an account exists, its state, or whether a guess made during a lockout was right; a reply that differed for the right password would turn the lockout into an uncounted guessing oracle. An unknown or non-local user still has a password hash verified, so the refusal takes as long as a wrong password.
+
+**A temporary password can only be replaced.** An administrator's password, set at creation, a reset or a conversion to a local account, sets `MustChangePassword` and records `TemporaryPasswordSetAt`. Signing in with it issues an access token carrying `pwd_change`, and so does each of the user's personal access tokens, which a reset leaves in place; `PasswordChangeRequirement`, on every policy `PermissionPolicyProvider` builds and on `/mcp`, holds them to the actions marked `[AllowedDuringPasswordChange]`: changing the password and signing out. Every other request is refused with 403. A connected application's session ends at the reset. The flag restricts only a local account: one moved to an identity provider has no password to change, and completing the move clears it. Past `TemporaryPasswordLifetimeInDays` (7) sign-in and refresh refuse it with their own message, given only once the password is known to be right, and an administrator sets another. A temporary password set before the time was recorded has no age and does not expire.
+
+**A wrong current password on change-password counts toward lockout**, as a failed sign-in does, and a locked-out or throttled user may not try, so a stolen session cannot guess at the password freely.
+
+**An administrator no other could unlock is never locked out** (`LastAdministrator`): one with no other active administrator who is not locked out at that moment. Nobody could unlock them, and anyone who knew the user names could otherwise lock every administrator out in turn. Their wrong passwords are throttled instead, at sign-in and on change-password: from the lockout threshold, `LockoutEnd` holds the time before which no attempt is checked, one second after the fifth failure, doubling up to thirty. An attempt in the hold is refused without checking the password, and past the threshold an attempt is taken by saving the next hold before the check, which the concurrency stamp lets only one request do, so guesses sent in parallel are not checked in parallel. A hold longer than thirty seconds is a lockout from before they were protected and does not stop them; a success clears the count and the hold. Every refusal, the hold included, verifies a password hash, so it takes no less time than a wrong password.
+
+**A personal access token is created or changed only from a sign-in to the web app** (`WebAppSession.IsCurrent`, the check the OAuth consent API uses): a token, or a hosted MCP tool call acting through one, gets 403, so a leaked token cannot mint a replacement or extend itself past its revocation.
 
 ### Data Protection (at-rest secret encryption)
 
@@ -715,7 +726,7 @@ Changes take effect without a restart, from each caller's next window. A limit w
 
 **An IPv6 caller is counted by its /64**, the block one subscriber is usually given, so changing the low bits of an address does not buy a fresh window. An IPv4 caller is counted by its address.
 
-**The sign-in limit slows password spraying; account lockout stops guessing.** Five wrong passwords lock an account for 15 minutes whatever address they came from, and the sign-in limit caps how many accounts one address can try. An office whose people all sign in from one address shares one window, so raise `AuthSignIn` if a busy morning sees 429s.
+**The sign-in limit slows password spraying; account lockout stops guessing.** Five wrong passwords lock an account for 15 minutes whatever address they came from (the last active administrator is slowed instead; see [Local authentication](#local-authentication)), and the sign-in limit caps how many accounts one address can try. An office whose people all sign in from one address shares one window, so raise `AuthSignIn` if a busy morning sees 429s.
 
 **Limits are held in memory, so every replica counts separately.** With Azure's default of up to three replicas, a caller whose requests are spread across all of them can reach up to three times a limit. That is acceptable for stopping floods; a limit that must hold exactly, such as a quota, would need a store shared by every replica.
 

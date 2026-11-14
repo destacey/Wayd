@@ -16,4 +16,11 @@ public sealed class LocalJwtSettings
     /// applications'.
     /// </summary>
     public int SessionLifetimeInDays { get; set; } = 30;
+
+    /// <summary>
+    /// How long a temporary password an administrator set (at creation, a reset, or a conversion to a local account)
+    /// stays usable before it is changed. Past it, sign-in and refresh refuse the user until an administrator sets
+    /// another.
+    /// </summary>
+    public int TemporaryPasswordLifetimeInDays { get; set; } = 7;
 }

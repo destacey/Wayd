@@ -6417,7 +6417,7 @@
           "PersonalAccessTokens"
         ],
         "summary": "Create a new personal access token.",
-        "description": "Returns the plaintext token - this is the ONLY time it will be visible!",
+        "description": "Returns the plaintext token - this is the ONLY time it will be visible! Answers 403 unless the caller is signed in to the web app: a token cannot mint another.",
         "operationId": "PersonalAccessTokens_Create",
         "requestBody": {
           "content": {
@@ -6444,6 +6444,16 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {
@@ -6532,6 +6542,7 @@
           "PersonalAccessTokens"
         ],
         "summary": "Update a personal access token's name and/or expiration date.",
+        "description": "Answers 403 unless the caller is signed in to the web app: a token cannot extend itself or another.",
         "operationId": "PersonalAccessTokens_Update",
         "parameters": [
           {
@@ -6563,6 +6574,16 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
             "content": {
               "application/json": {
                 "schema": {

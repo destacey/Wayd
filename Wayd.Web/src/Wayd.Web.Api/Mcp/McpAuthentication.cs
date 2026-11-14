@@ -29,9 +29,13 @@ public static class McpAuthentication
     /// <summary>The path the endpoint's protected resource metadata is served at, which RFC 9728 derives from the endpoint's own.</summary>
     public const string ResourceMetadataPath = "/.well-known/oauth-protected-resource" + McpServerSetup.Path;
 
-    /// <summary>The policy the endpoint requires: an authenticated caller, through <see cref="Scheme"/>.</summary>
+    /// <summary>
+    /// The policy the endpoint requires: an authenticated caller, through <see cref="Scheme"/>, who is not waiting to
+    /// change a temporary password.
+    /// </summary>
     public static AuthorizationPolicy Policy { get; } = new AuthorizationPolicyBuilder(Scheme)
         .RequireAuthenticatedUser()
+        .AddRequirements(PasswordChangeRequirement.Instance)
         .Build();
 
     /// <summary>Registers <see cref="Scheme"/> and the MCP scheme that serves the metadata and the challenge.</summary>

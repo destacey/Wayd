@@ -5,10 +5,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using NodaTime;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Identity.OidcProviders;
 using Wayd.Common.Application.Identity.Tokens;
 using Wayd.Infrastructure.Auth.Oidc;
+using Wayd.Infrastructure.Auth.Permissions;
 
 namespace Wayd.Infrastructure.Auth.Local;
 
@@ -37,51 +39,121 @@ internal class TokenService(
     private readonly IOidcProviderRegistry _oidcProviderRegistry = oidcProviderRegistry;
     private readonly ILogger<TokenService> _logger = logger;
 
+    /// <summary>
+    /// Every sign-in refusal's message, whatever the reason: an unknown user, a wrong password, a locked, inactive or
+    /// non-local account. One message, naming the lockout too, so the owner learns to wait while nobody learns
+    /// whether the account exists, its state, or whether a guess made during a lockout was right.
+    /// </summary>
+    internal const string SignInRefused = "Invalid credentials, or the account is temporarily locked after too many attempts. Try again later.";
+
+    /// <summary>The refusal for a temporary password past its lifetime, given only once the password is known to be right.</summary>
+    internal const string TemporaryPasswordExpired = "Your temporary password has expired. Ask an administrator to set a new one.";
+
     public async Task<TokenResponse> GetTokenAsync(LoginCommand command, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByNameAsync(command.UserName);
-        if (user is null)
+        if (user is null || user.LoginProvider != LoginProviders.Wayd)
         {
-            _logger.LogWarning("Login failed: user {UserName} not found.", command.UserName);
-            throw new UnauthorizedException("Invalid credentials.");
+            // A hash is verified anyway, so an unknown or non-local user takes as long to refuse as a wrong password.
+            BurnAPasswordCheck(command.Password);
+            _logger.LogWarning("Login failed: user {UserName} not found or not a Wayd account.", command.UserName);
+            throw new UnauthorizedException(SignInRefused);
         }
 
-        if (user.LoginProvider != LoginProviders.Wayd)
+        var now = _dateTimeProvider.Now.ToDateTimeOffset();
+        if (await LastAdministrator.IsProtected(_userManager, user, now))
         {
-            _logger.LogWarning("Login failed: user {UserName} is not a Wayd account (provider: {LoginProvider}).", command.UserName, user.LoginProvider);
-            throw new UnauthorizedException("Invalid credentials.");
+            await CheckProtectedAdministratorPassword(user, command);
         }
-
-        var wasLockedOut = await _userManager.IsLockedOutAsync(user);
-        var signInResult = await _signInManager.CheckPasswordSignInAsync(user, command.Password, lockoutOnFailure: true);
-        if (signInResult.IsLockedOut)
+        else
         {
-            if (!wasLockedOut)
+            var wasLockedOut = await _userManager.IsLockedOutAsync(user);
+            var signInResult = await _signInManager.CheckPasswordSignInAsync(user, command.Password, lockoutOnFailure: true);
+            if (signInResult.IsLockedOut && !wasLockedOut)
             {
                 await RecordLockout(user);
             }
 
-            _logger.LogWarning("Login failed: user {UserName} is locked out.", command.UserName);
-            throw new UnauthorizedException("Account is locked due to multiple failed login attempts. Please try again later.");
+            if (!signInResult.Succeeded)
+            {
+                // A locked-out account is refused before its hash is checked, so one is checked here, or locked
+                // accounts would answer faster than any other.
+                if (wasLockedOut)
+                    BurnAPasswordCheck(command.Password);
+
+                _logger.LogWarning("Login failed for user {UserName}: {Reason}.", command.UserName, signInResult.IsLockedOut ? "locked out" : "invalid password");
+                throw new UnauthorizedException(SignInRefused);
+            }
         }
 
-        if (!signInResult.Succeeded)
-        {
-            _logger.LogWarning("Login failed: invalid password for user {UserName}.", command.UserName);
-            throw new UnauthorizedException("Invalid credentials.");
-        }
-
-        // Check inactive status only after credentials are validated
         if (!user.IsActive)
         {
             _logger.LogWarning("Login failed: user {UserName} is inactive.", command.UserName);
-            throw new UnauthorizedException("Your account has been deactivated. Please contact an administrator.");
+            throw new UnauthorizedException(SignInRefused);
+        }
+
+        if (HasExpiredTemporaryPassword(user))
+        {
+            _logger.LogWarning("Login refused: user {UserName}'s temporary password has expired.", command.UserName);
+            throw new UnauthorizedException(TemporaryPasswordExpired);
         }
 
         await EnsureActiveIdentityAsync(user, LoginProviders.Wayd, command.UserName, cancellationToken);
 
         return await GenerateTokensAndUpdateUser(user, cancellationToken);
     }
+
+    /// <summary>
+    /// Checks the password of an administrator <see cref="LastAdministrator"/> protects from lockout. An attempt due
+    /// later, or taken by another request, is refused without checking the password, so guesses cannot be sent faster
+    /// than the throttle, nor in parallel.
+    /// </summary>
+    private async Task CheckProtectedAdministratorPassword(ApplicationUser user, LoginCommand command)
+    {
+        var now = _dateTimeProvider.Now.ToDateTimeOffset();
+        if (!await LastAdministrator.TryTakeAttempt(_userManager, user, now))
+        {
+            BurnAPasswordCheck(command.Password);
+            _logger.LogWarning("Login refused for user {UserName}, an administrator protected from lockout: the next attempt is not due yet.", command.UserName);
+            throw new UnauthorizedException(SignInRefused);
+        }
+
+        if (!await _userManager.CheckPasswordAsync(user, command.Password))
+        {
+            await LastAdministrator.RecordFailure(_userManager, user, now);
+            _logger.LogWarning("Login failed: invalid password for user {UserName}, an administrator protected from lockout.", command.UserName);
+            throw new UnauthorizedException(SignInRefused);
+        }
+
+        await LastAdministrator.RecordSuccess(_userManager, user);
+    }
+
+    /// <summary>
+    /// Whether <paramref name="user"/> still has to replace a temporary password set more than
+    /// <see cref="LocalJwtSettings.TemporaryPasswordLifetimeInDays"/> ago. One set before the time was recorded has no
+    /// recorded age and does not expire.
+    /// </summary>
+    private bool HasExpiredTemporaryPassword(ApplicationUser user) =>
+        PasswordChangeRequirement.AppliesTo(user)
+        && user.TemporaryPasswordSetAt is { } setAt
+        && setAt.Plus(Duration.FromDays(GetSettings().TemporaryPasswordLifetimeInDays)) <= _dateTimeProvider.Now;
+
+    /// <summary>
+    /// Verifies <paramref name="password"/> against a hash of a random password no account holds, made once with the
+    /// configured hasher so the check costs what a real one does.
+    /// </summary>
+    private void BurnAPasswordCheck(string password)
+    {
+        var hasher = _userManager.PasswordHasher;
+        _unknownUserHash ??= hasher.HashPassword(_unknownUser, Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)));
+        hasher.VerifyHashedPassword(_unknownUser, _unknownUserHash, password);
+    }
+
+    /// <summary>The account <see cref="BurnAPasswordCheck"/> hashes for, which exists nowhere.</summary>
+    private static readonly ApplicationUser _unknownUser = new();
+
+    /// <summary>The hash <see cref="BurnAPasswordCheck"/> verifies against.</summary>
+    private static string? _unknownUserHash;
 
     /// <summary>
     /// Records the lockout this attempt triggered. The sign-in manager has already saved it, so this save carries
@@ -121,6 +193,11 @@ internal class TokenService(
         if (!user.IsActive)
         {
             throw new UnauthorizedException("User account is inactive.");
+        }
+
+        if (HasExpiredTemporaryPassword(user))
+        {
+            throw new UnauthorizedException(TemporaryPasswordExpired);
         }
 
         var rotation = await _refreshTokenStore.Rotate(user.Id, command.RefreshToken, CredentialVersion.Of(user.SecurityStamp), _sessionContext.Current, cancellationToken);
@@ -338,6 +415,12 @@ internal class TokenService(
             new("loginProvider", user.LoginProvider),
             new(CredentialVersion.ClaimType, CredentialVersion.Of(user.SecurityStamp)),
         };
+
+        // Restricts the token to replacing the password (PasswordChangeRequirement) until the user does.
+        if (PasswordChangeRequirement.AppliesTo(user))
+        {
+            claims.Add(new Claim(PasswordChangeRequirement.ClaimType, "true"));
+        }
 
         if (user.EmployeeId.HasValue)
         {

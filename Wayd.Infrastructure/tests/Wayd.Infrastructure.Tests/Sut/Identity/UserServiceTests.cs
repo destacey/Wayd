@@ -44,6 +44,7 @@ public class UserServiceTests
         var userStore = new Mock<IUserStore<ApplicationUser>>();
         _mockUserManager = new Mock<UserManager<ApplicationUser>>(
             userStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
+        _mockUserManager.Object.Options = new IdentityOptions();
 
         _mockSignInManager = new Mock<SignInManager<ApplicationUser>>(
             _mockUserManager.Object,
@@ -1097,6 +1098,185 @@ public class UserServiceTests
         result.IsSuccess.Should().BeTrue();
         _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(0);
         _refreshTokenStore.RevokeReasons(user.Id).Should().AllBe(UserRefreshTokenRevokeReasons.PasswordChanged);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_CountsAWrongCurrentPassword_TowardLockout()
+    {
+        // Arrange
+        var user = CreateUser(loginProvider: LoginProviders.Wayd);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.ChangePasswordAsync(user, "WrongPass1!", "NewPass456!"))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityErrorDescriber().PasswordMismatch()));
+        _mockUserManager.Setup(x => x.AccessFailedAsync(user)).ReturnsAsync(IdentityResult.Success);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ChangePasswordAsync("user-1", new ChangePasswordCommand("WrongPass1!", "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _mockUserManager.Verify(x => x.AccessFailedAsync(user), Times.Once);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_DoesNotCountAPasswordThatIsMerelyTooWeak()
+    {
+        // Arrange — the current password was right; only the new one was refused
+        var user = CreateUser(loginProvider: LoginProviders.Wayd);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.ChangePasswordAsync(user, "OldPass123!", "weak"))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityErrorDescriber().PasswordTooShort(8)));
+        var sut = CreateSut();
+
+        // Act
+        await sut.ChangePasswordAsync("user-1", new ChangePasswordCommand("OldPass123!", "weak"), TestContext.Current.CancellationToken);
+
+        // Assert
+        _mockUserManager.Verify(x => x.AccessFailedAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_RefusesALockedOutUser_WithoutCheckingThePassword()
+    {
+        // Arrange
+        var user = CreateUser(loginProvider: LoginProviders.Wayd);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(true);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ChangePasswordAsync("user-1", new ChangePasswordCommand("OldPass123!", "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _mockUserManager.Verify(x => x.ChangePasswordAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_CountsTheLastAdministratorsWrongPassword_WithoutLockingThemOut()
+    {
+        // Arrange
+        var user = CreateUser(loginProvider: LoginProviders.Wayd);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.IsInRoleAsync(user, ApplicationRoles.Admin)).ReturnsAsync(true);
+        _mockUserManager.Setup(x => x.GetUsersInRoleAsync(ApplicationRoles.Admin)).ReturnsAsync([user]);
+        _mockUserManager.Setup(x => x.ChangePasswordAsync(user, "WrongPass1!", "NewPass456!"))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityErrorDescriber().PasswordMismatch()));
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+        var sut = CreateSut();
+
+        // Act
+        await sut.ChangePasswordAsync("user-1", new ChangePasswordCommand("WrongPass1!", "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        user.AccessFailedCount.Should().Be(1);
+        _mockUserManager.Verify(x => x.AccessFailedAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_RecordsTheLockout_WhenAWrongPasswordStartsOne()
+    {
+        // Arrange
+        var user = CreateUser(loginProvider: LoginProviders.Wayd);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.ChangePasswordAsync(user, "WrongPass1!", "NewPass456!"))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityErrorDescriber().PasswordMismatch()));
+        _mockUserManager.Setup(x => x.AccessFailedAsync(user)).ReturnsAsync(IdentityResult.Success)
+            .Callback(() => user.LockoutEnd = DateTimeOffset.UtcNow.AddMinutes(15));
+        _mockUserManager.SetupSequence(x => x.IsLockedOutAsync(user)).ReturnsAsync(false).ReturnsAsync(true);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+        var sut = CreateSut();
+
+        // Act
+        await sut.ChangePasswordAsync("user-1", new ChangePasswordCommand("WrongPass1!", "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserLockedOutEvent>();
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_RefusesTheLastAdministrator_WhileTheirNextAttemptIsHeldOff()
+    {
+        // Arrange — a stolen session of the only administrator is throttled as their sign-in is
+        var user = CreateUser(loginProvider: LoginProviders.Wayd);
+        user.AccessFailedCount = 6;
+        user.LockoutEnd = _dateTimeProvider.Now.ToDateTimeOffset().AddSeconds(2);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.IsInRoleAsync(user, ApplicationRoles.Admin)).ReturnsAsync(true);
+        _mockUserManager.Setup(x => x.GetUsersInRoleAsync(ApplicationRoles.Admin)).ReturnsAsync([user]);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ChangePasswordAsync("user-1", new ChangePasswordCommand("Guess1!", "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _mockUserManager.Verify(x => x.ChangePasswordAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_RecordsWhenTheTemporaryPasswordWasSet()
+    {
+        // Arrange
+        ApplicationUser? created = null;
+        _mockUserManager.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), "Password123!"))
+            .Callback<ApplicationUser, string>((u, _) => created = u)
+            .ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>())).ReturnsAsync(IdentityResult.Success);
+        var sut = CreateSut();
+
+        // Act
+        await sut.CreateAsync(new CreateUserCommand
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            Email = "john@example.com",
+            LoginProvider = LoginProviders.Wayd,
+            Password = "Password123!",
+            MustChangePassword = true,
+            RoleNames = ["Contributor"],
+        }, TestContext.Current.CancellationToken);
+
+        // Assert
+        created!.MustChangePassword.Should().BeTrue();
+        created.TemporaryPasswordSetAt.Should().Be(_dateTimeProvider.Now);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_ClearsTheTemporaryPasswordsAge()
+    {
+        // Arrange
+        var user = CreateUser(loginProvider: LoginProviders.Wayd);
+        user.MustChangePassword = true;
+        user.TemporaryPasswordSetAt = _dateTimeProvider.Now;
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.ChangePasswordAsync(user, "OldPass123!", "NewPass456!")).ReturnsAsync(IdentityResult.Success);
+        var sut = CreateSut();
+
+        // Act
+        await sut.ChangePasswordAsync("user-1", new ChangePasswordCommand("OldPass123!", "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        user.TemporaryPasswordSetAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_RecordsWhenTheTemporaryPasswordWasSet()
+    {
+        // Arrange
+        var user = CreateUser(loginProvider: LoginProviders.Wayd);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("reset-token");
+        _mockUserManager.Setup(x => x.ResetPasswordAsync(user, "reset-token", "NewPass456!")).ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(false);
+        var sut = CreateSut();
+
+        // Act
+        await sut.ResetPasswordAsync(new ResetPasswordCommand("user-1", "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        user.TemporaryPasswordSetAt.Should().Be(_dateTimeProvider.Now);
     }
 
     [Fact]

@@ -207,6 +207,37 @@ public sealed class ApplicationUserTests
     }
 
     [Fact]
+    public void CompleteProviderMigration_ShouldDropATemporaryPassword_ThatOnlyTheLocalAccountHad()
+    {
+        // Arrange — converted to local with a temporary password, then moved to an identity provider before changing it
+        var user = CreateUser();
+        user.MustChangePassword = true;
+        user.TemporaryPasswordSetAt = Now;
+        user.PendingMigrationProviderId = "Acme-Okta";
+
+        // Act
+        user.CompleteProviderMigration("Acme-Okta", EventActor.System, Now);
+
+        // Assert
+        user.MustChangePassword.Should().BeFalse();
+        user.TemporaryPasswordSetAt.Should().BeNull();
+    }
+
+    [Fact]
+    public void ConvertToLocalAccount_ShouldRecordWhenTheTemporaryPasswordWasSet()
+    {
+        // Arrange
+        var user = CreateUser();
+
+        // Act
+        user.ConvertToLocalAccount(Actor, Now);
+
+        // Assert
+        user.MustChangePassword.Should().BeTrue();
+        user.TemporaryPasswordSetAt.Should().Be(Now);
+    }
+
+    [Fact]
     public void ResetPassword_ShouldEndTheLockout_WhenAskedTo()
     {
         // Arrange

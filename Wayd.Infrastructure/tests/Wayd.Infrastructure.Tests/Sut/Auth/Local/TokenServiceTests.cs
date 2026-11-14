@@ -13,8 +13,10 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Interfaces;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Infrastructure.Auth;
 using Wayd.Infrastructure.Auth.Local;
+using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Infrastructure.Auth.Oidc;
 using Wayd.Infrastructure.Identity;
 using Wayd.Tests.Shared;
@@ -84,6 +86,8 @@ public class TokenServiceTests
             .ReturnsAsync((IReadOnlyList<OidcProvider>)Array.Empty<OidcProvider>());
 
         _refreshTokenStore = new FakeRefreshTokenStore();
+        _mockUserManager.Object.PasswordHasher = new PasswordHasher<ApplicationUser>();
+        _mockUserManager.Object.Options = new IdentityOptions();
 
         _sut = new TokenService(
             _mockUserManager.Object,
@@ -189,7 +193,7 @@ public class TokenServiceTests
 
         // Assert
         await act.Should().ThrowAsync<UnauthorizedException>()
-            .WithMessage("Invalid credentials.");
+            .WithMessage(TokenService.SignInRefused);
     }
 
     [Fact]
@@ -207,7 +211,7 @@ public class TokenServiceTests
 
         // Assert
         await act.Should().ThrowAsync<UnauthorizedException>()
-            .WithMessage("*deactivated*");
+            .WithMessage(TokenService.SignInRefused);
     }
 
     [Fact]
@@ -224,7 +228,7 @@ public class TokenServiceTests
 
         // Assert
         await act.Should().ThrowAsync<UnauthorizedException>()
-            .WithMessage("Invalid credentials.");
+            .WithMessage(TokenService.SignInRefused);
     }
 
     [Fact]
@@ -242,7 +246,7 @@ public class TokenServiceTests
 
         // Assert
         await act.Should().ThrowAsync<UnauthorizedException>()
-            .WithMessage("Invalid credentials.");
+            .WithMessage(TokenService.SignInRefused);
     }
 
     [Fact]
@@ -374,7 +378,324 @@ public class TokenServiceTests
 
     #endregion
 
+    #region Temporary passwords, lockout and the last administrator
+
+    /// <summary>Arranges a successful password check for <paramref name="user"/>, by sign-in manager and user manager alike.</summary>
+    private void PasswordIsRight(ApplicationUser user)
+    {
+        _mockUserManager.Setup(x => x.FindByNameAsync("testuser")).ReturnsAsync(user);
+        _mockSignInManager.Setup(x => x.CheckPasswordSignInAsync(user, "Password123!", true)).ReturnsAsync(SignInResult.Success);
+        _mockUserManager.Setup(x => x.CheckPasswordAsync(user, "Password123!")).ReturnsAsync(true);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+    }
+
+    /// <summary>Makes <paramref name="user"/> the only active administrator.</summary>
+    private void IsTheLastAdministrator(ApplicationUser user)
+    {
+        _mockUserManager.Setup(x => x.IsInRoleAsync(user, ApplicationRoles.Admin)).ReturnsAsync(true);
+        _mockUserManager.Setup(x => x.GetUsersInRoleAsync(ApplicationRoles.Admin)).ReturnsAsync([user]);
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_RestrictsTheToken_WhenTheUserMustChangeTheirPassword()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        user.MustChangePassword = true;
+        user.TemporaryPasswordSetAt = _dateTimeProvider.Now;
+        SeedActiveWaydIdentity(user.Id);
+        PasswordIsRight(user);
+
+        // Act
+        var result = await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.MustChangePassword.Should().BeTrue();
+        new JwtSecurityTokenHandler().ReadJwtToken(result.Token).Claims
+            .Should().Contain(c => c.Type == PasswordChangeRequirement.ClaimType && c.Value == "true");
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_DoesNotRestrictTheToken_OfAUserWithAPasswordOfTheirOwn()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        SeedActiveWaydIdentity(user.Id);
+        PasswordIsRight(user);
+
+        // Act
+        var result = await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        new JwtSecurityTokenHandler().ReadJwtToken(result.Token).Claims.Should().NotContain(c => c.Type == PasswordChangeRequirement.ClaimType);
+    }
+
+    [Theory]
+    [InlineData(6, false)]
+    [InlineData(7, true)]
+    public async Task GetTokenAsync_RefusesATemporaryPassword_OnceItIsAWeekOld(int daysOld, bool refused)
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        user.MustChangePassword = true;
+        user.TemporaryPasswordSetAt = _dateTimeProvider.Now.Minus(Duration.FromDays(daysOld));
+        SeedActiveWaydIdentity(user.Id);
+        PasswordIsRight(user);
+
+        // Act
+        var act = () => _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        if (refused)
+            await act.Should().ThrowAsync<UnauthorizedException>().WithMessage(TokenService.TemporaryPasswordExpired);
+        else
+            await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_AcceptsATemporaryPasswordWithNoRecordedAge()
+    {
+        // Arrange — set before the time was recorded
+        var user = CreateLocalUser();
+        user.MustChangePassword = true;
+        SeedActiveWaydIdentity(user.Id);
+        PasswordIsRight(user);
+
+        // Act
+        var act = () => _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_RefusesAUserWhoseTemporaryPasswordHasExpired()
+    {
+        // Arrange — signed in on day six, refreshing on day eight
+        var user = CreateLocalUser();
+        user.MustChangePassword = true;
+        user.TemporaryPasswordSetAt = _dateTimeProvider.Now.Minus(Duration.FromDays(6));
+        SeedActiveWaydIdentity(user.Id);
+        PasswordIsRight(user);
+        var signedIn = await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _dateTimeProvider.Advance(Duration.FromDays(2));
+
+        // Act
+        var act = () => _sut.RefreshTokenAsync(new RefreshTokenCommand(signedIn.Token, signedIn.RefreshToken!), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>().WithMessage(TokenService.TemporaryPasswordExpired);
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_RefusesTheRightPasswordDuringALockout_InTheWordsOfAWrongGuess()
+    {
+        // Arrange — the sign-in manager refuses a locked-out account whatever the password; a reply that differed for
+        // the right one would make the lockout an uncounted guessing oracle
+        var user = CreateLocalUser();
+        SeedActiveWaydIdentity(user.Id);
+        _mockUserManager.Setup(x => x.FindByNameAsync("testuser")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(true);
+        _mockSignInManager.Setup(x => x.CheckPasswordSignInAsync(user, It.IsAny<string>(), true)).ReturnsAsync(SignInResult.LockedOut);
+
+        // Act
+        var right = () => _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+        var wrong = () => _sut.GetTokenAsync(new LoginCommand("testuser", "WrongPassword1!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await right.Should().ThrowAsync<UnauthorizedException>().WithMessage(TokenService.SignInRefused);
+        await wrong.Should().ThrowAsync<UnauthorizedException>().WithMessage(TokenService.SignInRefused);
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_NeverLocksOutTheLastAdministrator_ButThrottlesTheirFailures()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        SeedActiveWaydIdentity(user.Id);
+        IsTheLastAdministrator(user);
+        _mockUserManager.Setup(x => x.FindByNameAsync("testuser")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.CheckPasswordAsync(user, It.IsAny<string>())).ReturnsAsync(false);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+        var attempt = () => _sut.GetTokenAsync(new LoginCommand("testuser", "WrongPassword1!"), TestContext.Current.CancellationToken);
+        for (var failure = 0; failure < 5; failure++)
+            await attempt.Should().ThrowAsync<UnauthorizedException>().WithMessage(TokenService.SignInRefused);
+
+        // Act — straight after the fifth failure, before the one-second hold has passed
+        var tooSoon = await attempt.Should().ThrowAsync<UnauthorizedException>();
+
+        // Assert
+        tooSoon.WithMessage(TokenService.SignInRefused);
+        user.AccessFailedCount.Should().Be(5);
+        user.LockoutEnd.Should().Be(_dateTimeProvider.Now.ToDateTimeOffset().AddSeconds(1), "a hold of seconds, not a lockout");
+        _mockUserManager.Verify(x => x.CheckPasswordAsync(user, It.IsAny<string>()), Times.Exactly(5), "an attempt before the hold ends is not checked");
+        _mockSignInManager.Verify(x => x.CheckPasswordSignInAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_ChecksTheLastAdministratorsPasswordAgain_OnceTheHoldEnds()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        user.AccessFailedCount = 5;
+        user.LockoutEnd = _dateTimeProvider.Now.ToDateTimeOffset().AddSeconds(1);
+        SeedActiveWaydIdentity(user.Id);
+        IsTheLastAdministrator(user);
+        PasswordIsRight(user);
+        _dateTimeProvider.Advance(Duration.FromSeconds(2));
+
+        // Act
+        var result = await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Token.Should().NotBeNullOrWhiteSpace();
+        user.AccessFailedCount.Should().Be(0);
+        user.LockoutEnd.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_RefusesTheLastAdministratorsAttempt_WhenAnotherRequestTookIt()
+    {
+        // Arrange — past the threshold an attempt is taken by a save, which loses to a parallel guess
+        var user = CreateLocalUser();
+        user.AccessFailedCount = 6;
+        SeedActiveWaydIdentity(user.Id);
+        IsTheLastAdministrator(user);
+        _mockUserManager.Setup(x => x.FindByNameAsync("testuser")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Failed(new IdentityErrorDescriber().ConcurrencyFailure()));
+
+        // Act
+        var act = () => _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>().WithMessage(TokenService.SignInRefused);
+        _mockUserManager.Verify(x => x.CheckPasswordAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Theory]
+    [InlineData(false, false, true)]
+    [InlineData(true, true, true)]
+    [InlineData(true, false, false)]
+    public async Task GetTokenAsync_ProtectsAnAdministrator_OnlyWhenNoOtherCouldUnlockThem(bool otherIsActive, bool otherIsLockedOut, bool isProtected)
+    {
+        // Arrange — another administrator who is inactive or locked out cannot unlock anyone
+        var user = CreateLocalUser();
+        SeedActiveWaydIdentity(user.Id);
+        var other = CreateLocalUser(id: "admin-2", userName: "other-admin", isActive: otherIsActive);
+        if (otherIsLockedOut)
+            other.LockoutEnd = _dateTimeProvider.Now.ToDateTimeOffset().AddMinutes(10);
+        _mockUserManager.Setup(x => x.IsInRoleAsync(user, ApplicationRoles.Admin)).ReturnsAsync(true);
+        _mockUserManager.Setup(x => x.GetUsersInRoleAsync(ApplicationRoles.Admin)).ReturnsAsync([user, other]);
+        PasswordIsRight(user);
+
+        // Act
+        await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+
+        // Assert — a protected administrator is checked directly, anyone else through the sign-in manager's lockout
+        _mockSignInManager.Verify(x => x.CheckPasswordSignInAsync(user, "Password123!", true), isProtected ? Times.Never() : Times.Once());
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_SignsInTheLastAdministrator_ThroughALockoutLeftFromBefore()
+    {
+        // Arrange — locked out while another administrator still existed
+        var user = CreateLocalUser();
+        user.AccessFailedCount = 2;
+        user.LockoutEnd = DateTimeOffset.UtcNow.AddMinutes(10);
+        SeedActiveWaydIdentity(user.Id);
+        IsTheLastAdministrator(user);
+        PasswordIsRight(user);
+
+        // Act
+        var result = await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.Token.Should().NotBeNullOrWhiteSpace();
+        user.AccessFailedCount.Should().Be(0);
+        user.LockoutEnd.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(4, 0)]
+    [InlineData(5, 1)]
+    [InlineData(6, 2)]
+    [InlineData(9, 16)]
+    [InlineData(10, 30)]
+    [InlineData(50, 30)]
+    public void LastAdministratorDelay_DoublesPastTheThreshold_UpToThirtySeconds(int failures, int seconds)
+    {
+        // Arrange — nothing beyond the arguments
+
+        // Act
+        var delay = LastAdministrator.Delay(failures, lockoutThreshold: 5);
+
+        // Assert
+        delay.Should().Be(TimeSpan.FromSeconds(seconds));
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_KeepsTheTokenRestricted_UntilThePasswordIsChanged()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        user.MustChangePassword = true;
+        user.TemporaryPasswordSetAt = _dateTimeProvider.Now;
+        SeedActiveWaydIdentity(user.Id);
+        PasswordIsRight(user);
+        var signedIn = await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+
+        // Act
+        var refreshed = await _sut.RefreshTokenAsync(new RefreshTokenCommand(signedIn.Token, signedIn.RefreshToken!), TestContext.Current.CancellationToken);
+
+        // Assert
+        new JwtSecurityTokenHandler().ReadJwtToken(refreshed.Token).Claims
+            .Should().Contain(c => c.Type == PasswordChangeRequirement.ClaimType && c.Value == "true");
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_ChecksAPasswordHash_ForALockedOutAccount()
+    {
+        // Arrange — the sign-in manager refuses a locked-out account before hashing, which would make it the fastest refusal
+        var hasher = new Mock<IPasswordHasher<ApplicationUser>>();
+        hasher.Setup(h => h.HashPassword(It.IsAny<ApplicationUser>(), It.IsAny<string>())).Returns("unknown-user-hash");
+        _mockUserManager.Object.PasswordHasher = hasher.Object;
+        var user = CreateLocalUser();
+        _mockUserManager.Setup(x => x.FindByNameAsync("testuser")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(true);
+        _mockSignInManager.Setup(x => x.CheckPasswordSignInAsync(user, It.IsAny<string>(), true)).ReturnsAsync(SignInResult.LockedOut);
+
+        // Act
+        var act = () => _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>().WithMessage(TokenService.SignInRefused);
+        hasher.Verify(h => h.VerifyHashedPassword(It.IsAny<ApplicationUser>(), It.IsAny<string>(), "Password123!"), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetTokenAsync_ChecksAPasswordHash_ForAnUnknownUser()
+    {
+        // Arrange — so an unknown user takes as long to refuse as a wrong password
+        var hasher = new Mock<IPasswordHasher<ApplicationUser>>();
+        hasher.Setup(h => h.HashPassword(It.IsAny<ApplicationUser>(), It.IsAny<string>())).Returns("unknown-user-hash");
+        _mockUserManager.Object.PasswordHasher = hasher.Object;
+        _mockUserManager.Setup(x => x.FindByNameAsync("nobody")).ReturnsAsync((ApplicationUser?)null);
+
+        // Act
+        var act = () => _sut.GetTokenAsync(new LoginCommand("nobody", "Password123!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>().WithMessage(TokenService.SignInRefused);
+        hasher.Verify(h => h.VerifyHashedPassword(It.IsAny<ApplicationUser>(), It.IsAny<string>(), "Password123!"), Times.Once);
+    }
+
+    #endregion
+
     #region RefreshTokenAsync
+
 
     [Fact]
     public async Task RefreshTokenAsync_ShouldReturnNewTokens_WhenRefreshTokenIsValid()

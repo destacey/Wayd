@@ -59,5 +59,6 @@ internal static class ConfigureServices
             .AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>()
             .AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>()
             .AddScoped<IAuthorizationHandler, AnyPermissionAuthorizationHandler>()
-            .AddSingleton<IAuthorizationHandler, TokenScopeAuthorizationHandler>();
+            .AddSingleton<IAuthorizationHandler, TokenScopeAuthorizationHandler>()
+            .AddSingleton<IAuthorizationHandler, PasswordChangeAuthorizationHandler>();
 }

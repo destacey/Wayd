@@ -1,6 +1,6 @@
 'use client'
 
-import { LabeledContent } from '@/src/components/common/content'
+import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import { Flex } from 'antd'
 import { formatIncidentDuration } from './incident-format'
 
@@ -29,30 +29,35 @@ const STRETCHES = [
 ] as const
 
 /**
- * The stretches the record can already answer. A stretch that has not started
- * is omitted. Zero is a real duration and stays visible.
+ * The stretches the record can already answer, as the same metric tiles the
+ * incidents grid uses. A stretch that has not started is omitted. Zero is a
+ * real duration and stays visible.
  */
 const IncidentDurations = ({ durations }: { durations: IncidentDurationValues }) => {
-  const rows = STRETCHES.flatMap((stretch) => {
+  const tiles = STRETCHES.flatMap((stretch) => {
     const milliseconds = durations[stretch.field]
     if (milliseconds == null) {
       return []
     }
 
     return [
-      <LabeledContent key={stretch.field} label={stretch.label} tooltip={stretch.tooltip}>
-        {formatIncidentDuration(milliseconds)}
-      </LabeledContent>,
+      <MetricCard
+        key={stretch.field}
+        title={stretch.label}
+        value={formatIncidentDuration(milliseconds)}
+        tooltip={stretch.tooltip}
+        cardStyle={METRIC_CARD_FLEX}
+      />,
     ]
   })
 
-  if (rows.length === 0) {
+  if (tiles.length === 0) {
     return null
   }
 
   return (
-    <Flex gap="large" wrap>
-      {rows}
+    <Flex gap="small" wrap>
+      {tiles}
     </Flex>
   )
 }

@@ -13860,7 +13860,7 @@ export class IncidentsClient {
      * @param severityLevelId (optional) 
      * @return OK
      */
-    getIncidents(page?: number | undefined, pageSize?: number | undefined, status?: ProductStatusAlias[] | null | undefined, severityLevelId?: string[] | null | undefined, cancelToken?: CancelToken): Promise<IncidentListDto> {
+    getIncidents(page?: number | undefined, pageSize?: number | undefined, status?: ProductStatusAlias[] | null | undefined, severityLevelId?: string[] | null | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfIncidentSummaryDto> {
         let url_ = this.baseUrl + "/api/product-management/incidents?";
         if (page === null)
             throw new globalThis.Error("The parameter 'page' cannot be null.");
@@ -13896,7 +13896,7 @@ export class IncidentsClient {
         });
     }
 
-    protected processGetIncidents(response: AxiosResponse): Promise<IncidentListDto> {
+    protected processGetIncidents(response: AxiosResponse): Promise<PagedResponseOfIncidentSummaryDto> {
         const status = response.status;
         let _headers: any = {};
         if (response.headers && typeof response.headers === "object") {
@@ -13911,7 +13911,7 @@ export class IncidentsClient {
             let result200: any = null;
             let resultData200  = _responseText;
             result200 = resultData200;
-            return Promise.resolve<IncidentListDto>(result200);
+            return Promise.resolve<PagedResponseOfIncidentSummaryDto>(result200);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -13924,7 +13924,7 @@ export class IncidentsClient {
             const _responseText = response.data;
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
-        return Promise.resolve<IncidentListDto>(null as any);
+        return Promise.resolve<PagedResponseOfIncidentSummaryDto>(null as any);
     }
 
     /**
@@ -13988,6 +13988,64 @@ export class IncidentsClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
         }
         return Promise.resolve<ObjectIdAndKey>(null as any);
+    }
+
+    /**
+     * Figures for the filtered incidents.
+     * @param status (optional) 
+     * @param severityLevelId (optional) 
+     * @return OK
+     */
+    getIncidentFigures(status?: ProductStatusAlias[] | null | undefined, severityLevelId?: string[] | null | undefined, cancelToken?: CancelToken): Promise<IncidentFiguresDto> {
+        let url_ = this.baseUrl + "/api/product-management/incidents/figures?";
+        if (status !== undefined && status !== null)
+            status && status.forEach(item => { url_ += "status=" + encodeURIComponent("" + item) + "&"; });
+        if (severityLevelId !== undefined && severityLevelId !== null)
+            severityLevelId && severityLevelId.forEach(item => { url_ += "severityLevelId=" + encodeURIComponent("" + item) + "&"; });
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: AxiosRequestConfig = {
+            method: "GET",
+            url: url_,
+            headers: {
+                "Accept": "application/json"
+            },
+            cancelToken
+        };
+
+        return this.instance.request(options_).catch((_error: any) => {
+            if (isAxiosError(_error) && _error.response) {
+                return _error.response;
+            } else {
+                throw _error;
+            }
+        }).then((_response: AxiosResponse) => {
+            return this.processGetIncidentFigures(_response);
+        });
+    }
+
+    protected processGetIncidentFigures(response: AxiosResponse): Promise<IncidentFiguresDto> {
+        const status = response.status;
+        let _headers: any = {};
+        if (response.headers && typeof response.headers === "object") {
+            for (const k in response.headers) {
+                if (response.headers.hasOwnProperty(k)) {
+                    _headers[k] = response.headers[k];
+                }
+            }
+        }
+        if (status === 200) {
+            const _responseText = response.data;
+            let result200: any = null;
+            let resultData200  = _responseText;
+            result200 = resultData200;
+            return Promise.resolve<IncidentFiguresDto>(result200);
+
+        } else if (status !== 200 && status !== 204) {
+            const _responseText = response.data;
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+        }
+        return Promise.resolve<IncidentFiguresDto>(null as any);
     }
 
     /**
@@ -68327,22 +68385,8 @@ Null when that stretch has no end. */
     activeMilliseconds?: number | undefined;
 }
 
-/** One page of incidents, plus the figures for every incident matching the same filters. */
-export interface IncidentListDto {
-    /** The incidents on this page. */
-    items: IncidentSummaryDto[];
-    /** The page number, starting at 1. */
-    pageNumber: number;
-    /** How many incidents this page holds. */
-    pageSize: number;
-    /** How many incidents match the filters, across every page. */
-    totalCount: number;
-    /** How many pages the filtered set fills. */
-    totalPages: number;
-    /** True when a page before this one exists. */
-    hasPreviousPage: boolean;
-    /** True when a page after this one exists. */
-    hasNextPage: boolean;
+/** The active count, the longest active incident, and the mean time to recover for every incident matching the state and severity filters. */
+export interface IncidentFiguresDto {
     /** Incidents that are not Closed or Canceled, and whose status category is not Done or Removed. */
     activeCount: number;
     /** The active incident open longest, from noticed until now. Null when none are active. */
@@ -70214,6 +70258,17 @@ export interface PagedResponseOfImportProcessDto {
 /** One page of results, with the paging position and the total across all pages. */
 export interface PagedResponseOfImportProcessRowDto {
     items: ImportProcessRowDto[];
+    pageNumber: number;
+    pageSize: number;
+    totalCount: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+}
+
+/** One page of results, with the paging position and the total across all pages. */
+export interface PagedResponseOfIncidentSummaryDto {
+    items: IncidentSummaryDto[];
     pageNumber: number;
     pageSize: number;
     totalCount: number;

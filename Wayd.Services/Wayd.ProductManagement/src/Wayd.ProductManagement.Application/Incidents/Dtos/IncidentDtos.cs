@@ -164,51 +164,11 @@ public sealed record LongestActiveIncidentDto
 }
 
 /// <summary>
-/// One page of incidents, plus the figures for every incident matching the same filters.
+/// The active count, the longest active incident, and the mean time to recover for every incident
+/// matching the state and severity filters.
 /// </summary>
-public sealed record IncidentListDto
+public sealed record IncidentFiguresDto
 {
-    /// <summary>A page of incidents and the figures for the filtered set those rows were drawn from.</summary>
-    public IncidentListDto(
-        List<IncidentSummaryDto> items,
-        int totalCount,
-        int pageNumber,
-        int pageSize,
-        int activeCount,
-        LongestActiveIncidentDto? longestActive,
-        long? meanTimeToRecoverMilliseconds)
-    {
-        Items = items;
-        TotalCount = totalCount;
-        PageNumber = pageNumber;
-        PageSize = pageSize;
-        TotalPages = pageSize > 0 ? (int)Math.Ceiling(totalCount / (double)pageSize) : 0;
-        ActiveCount = activeCount;
-        LongestActive = longestActive;
-        MeanTimeToRecoverMilliseconds = meanTimeToRecoverMilliseconds;
-    }
-
-    /// <summary>The incidents on this page.</summary>
-    public List<IncidentSummaryDto> Items { get; init; }
-
-    /// <summary>The page number, starting at 1.</summary>
-    public int PageNumber { get; init; }
-
-    /// <summary>How many incidents this page holds.</summary>
-    public int PageSize { get; init; }
-
-    /// <summary>How many incidents match the filters, across every page.</summary>
-    public int TotalCount { get; init; }
-
-    /// <summary>How many pages the filtered set fills.</summary>
-    public int TotalPages { get; init; }
-
-    /// <summary>True when a page before this one exists.</summary>
-    public bool HasPreviousPage => PageNumber > 1;
-
-    /// <summary>True when a page after this one exists.</summary>
-    public bool HasNextPage => PageNumber < TotalPages;
-
     /// <summary>
     /// Incidents that are not Closed or Canceled, and whose status category is not Done or Removed.
     /// </summary>

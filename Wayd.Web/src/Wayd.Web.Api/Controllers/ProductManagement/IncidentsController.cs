@@ -31,11 +31,10 @@ public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbCo
     [HttpGet]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
     [EndpointSummary("List incidents, highest key first.")]
-    [EndpointDescription(
-        "The page is one slice. The active count, the longest active incident, and the mean time to recover describe every incident matching the state and severity filters, including rows on other pages.")]
+    [EndpointDescription("One page of the incidents matching the state and severity filters.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
-    public async Task<ActionResult<IncidentListDto>> GetIncidents(
+    public async Task<ActionResult<PagedResponse<IncidentSummaryDto>>> GetIncidents(
         [FromQuery] int page = PageRequest.FirstPage,
         [FromQuery] int pageSize = PageSizes.Default,
         [FromQuery] ProductStatusAlias[]? status = null,
@@ -47,6 +46,24 @@ public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbCo
             cancellationToken);
 
         return Ok(incidents);
+    }
+
+    [HttpGet("figures")]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
+    [EndpointSummary("Figures for the filtered incidents.")]
+    [EndpointDescription(
+        "The active count, the longest active incident, and the mean time to recover describe every incident matching the state and severity filters, including rows on other pages.")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IncidentFiguresDto>> GetIncidentFigures(
+        [FromQuery] ProductStatusAlias[]? status = null,
+        [FromQuery] Guid[]? severityLevelId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var figures = await _dispatcher.Send(
+            new GetIncidentFiguresQuery(status, severityLevelId),
+            cancellationToken);
+
+        return Ok(figures);
     }
 
     [HttpGet("{idOrKey}")]

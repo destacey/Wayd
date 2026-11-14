@@ -11219,7 +11219,7 @@
           "Incidents"
         ],
         "summary": "List incidents, highest key first.",
-        "description": "The page is one slice. The active count, the longest active incident, and the mean time to recover describe every incident matching the state and severity filters, including rows on other pages.",
+        "description": "One page of the incidents matching the state and severity filters.",
         "operationId": "Incidents_GetIncidents",
         "parameters": [
           {
@@ -11274,7 +11274,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IncidentListDto"
+                  "$ref": "#/components/schemas/PagedResponseOfIncidentSummaryDto"
                 }
               }
             }
@@ -11332,6 +11332,60 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
+    "/api/product-management/incidents/figures": {
+      "get": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Figures for the filtered incidents.",
+        "description": "The active count, the longest active incident, and the mean time to recover describe every incident matching the state and severity filters, including rows on other pages.",
+        "operationId": "Incidents_GetIncidentFigures",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ProductStatusAlias"
+              },
+              "nullable": true
+            },
+            "x-position": 1
+          },
+          {
+            "name": "severityLevelId",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "nullable": true
+            },
+            "x-position": 2
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IncidentFiguresDto"
                 }
               }
             }
@@ -67830,54 +67884,12 @@
         "additionalProperties": false,
         "description": "Durations read from noticed, response started, and recovered. Null is a stretch that has not started."
       },
-      "IncidentListDto": {
+      "IncidentFiguresDto": {
         "required": [
-          "items",
-          "pageNumber",
-          "pageSize",
-          "totalCount",
-          "activeCount",
-          "totalPages",
-          "hasPreviousPage",
-          "hasNextPage"
+          "activeCount"
         ],
         "type": "object",
         "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/IncidentSummaryDto"
-            },
-            "description": "The incidents on this page."
-          },
-          "pageNumber": {
-            "type": "integer",
-            "description": "The page number, starting at 1.",
-            "format": "int32"
-          },
-          "pageSize": {
-            "type": "integer",
-            "description": "How many incidents this page holds.",
-            "format": "int32"
-          },
-          "totalCount": {
-            "type": "integer",
-            "description": "How many incidents match the filters, across every page.",
-            "format": "int32"
-          },
-          "totalPages": {
-            "type": "integer",
-            "description": "How many pages the filtered set fills.",
-            "format": "int32"
-          },
-          "hasPreviousPage": {
-            "type": "boolean",
-            "description": "True when a page before this one exists."
-          },
-          "hasNextPage": {
-            "type": "boolean",
-            "description": "True when a page after this one exists."
-          },
           "activeCount": {
             "type": "integer",
             "description": "Incidents that are not Closed or Canceled, and whose status category is not Done or Removed.",
@@ -67900,7 +67912,7 @@
           }
         },
         "additionalProperties": false,
-        "description": "One page of incidents, plus the figures for every incident matching the same filters."
+        "description": "The active count, the longest active incident, and the mean time to recover for every incident\nmatching the state and severity filters."
       },
       "IncidentSeverityLevelDto": {
         "required": [
@@ -73147,6 +73159,50 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ImportProcessRowDto"
+            }
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasPreviousPage": {
+            "type": "boolean"
+          },
+          "hasNextPage": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One page of results, with the paging position and the total across all pages."
+      },
+      "PagedResponseOfIncidentSummaryDto": {
+        "required": [
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages",
+          "hasPreviousPage",
+          "hasNextPage"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IncidentSummaryDto"
             }
           },
           "pageNumber": {

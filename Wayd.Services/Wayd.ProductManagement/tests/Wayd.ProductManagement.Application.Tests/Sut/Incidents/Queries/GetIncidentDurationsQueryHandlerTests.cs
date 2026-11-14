@@ -116,17 +116,20 @@ public sealed class GetIncidentDurationsQueryHandlerTests : ProductCommandTestBa
         var page = await ListHandler().Handle(
             new GetIncidentsQuery(new PageRequest(1, 1)),
             TestContext.Current.CancellationToken);
-        var closedOnly = await ListHandler().Handle(
-            new GetIncidentsQuery(new PageRequest(1, 20), [ProductStatusAlias.Closed]),
+        var figures = await FiguresHandler().Handle(
+            new GetIncidentFiguresQuery(),
+            TestContext.Current.CancellationToken);
+        var closedOnly = await FiguresHandler().Handle(
+            new GetIncidentFiguresQuery([ProductStatusAlias.Closed]),
             TestContext.Current.CancellationToken);
 
         // Assert
         page.Items.Should().ContainSingle();
         page.TotalCount.Should().Be(4);
-        page.ActiveCount.Should().Be(2);
-        page.LongestActive!.Title.Should().Be("Oldest");
-        page.LongestActive.ActiveMilliseconds.Should().Be(4 * 60 * 60 * 1000);
-        page.MeanTimeToRecoverMilliseconds.Should().Be(4 * 60 * 60 * 1000);
+        figures.ActiveCount.Should().Be(2);
+        figures.LongestActive!.Title.Should().Be("Oldest");
+        figures.LongestActive.ActiveMilliseconds.Should().Be(4 * 60 * 60 * 1000);
+        figures.MeanTimeToRecoverMilliseconds.Should().Be(4 * 60 * 60 * 1000);
         closedOnly.ActiveCount.Should().Be(0);
         closedOnly.LongestActive.Should().BeNull();
         closedOnly.MeanTimeToRecoverMilliseconds.Should().Be(4 * 60 * 60 * 1000);
@@ -135,7 +138,9 @@ public sealed class GetIncidentDurationsQueryHandlerTests : ProductCommandTestBa
     private GetIncidentQueryHandler IncidentHandler() =>
         new(DbContext, _dispatcher.Object, DateTimeProvider.Object);
 
-    private GetIncidentsQueryHandler ListHandler() =>
+    private GetIncidentsQueryHandler ListHandler() => new(DbContext);
+
+    private GetIncidentFiguresQueryHandler FiguresHandler() =>
         new(DbContext, DateTimeProvider.Object);
 
     private Incident Open(string title, Instant noticed, Instant? started = null, Instant? recovered = null)

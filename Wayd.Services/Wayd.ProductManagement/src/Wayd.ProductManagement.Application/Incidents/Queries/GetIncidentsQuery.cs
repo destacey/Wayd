@@ -11,41 +11,30 @@ namespace Wayd.ProductManagement.Application.Incidents.Queries;
 public sealed record GetIncidentsQuery(
     PageRequest Paging,
     IReadOnlyCollection<ProductStatusAlias>? Statuses = null,
-    IReadOnlyCollection<Guid>? SeverityLevelIds = null) : IQuery<IncidentListDto>, IPagedQuery;
+    IReadOnlyCollection<Guid>? SeverityLevelIds = null) : IQuery<PagedResponse<IncidentSummaryDto>>, IPagedQuery;
 
 public sealed class GetIncidentsQueryValidator : PagedQueryValidator<GetIncidentsQuery>;
 
-public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context, IDateTimeProvider dateTimeProvider)
-    : IQueryHandler<GetIncidentsQuery, IncidentListDto>
+public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context)
+    : IQueryHandler<GetIncidentsQuery, PagedResponse<IncidentSummaryDto>>
 {
     private readonly IProductManagementDbContext _context = context;
-    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
-    public async Task<IncidentListDto> Handle(
+    public async Task<PagedResponse<IncidentSummaryDto>> Handle(
         GetIncidentsQuery request,
         CancellationToken cancellationToken)
     {
-        var query = _context.Incidents.AsNoTracking();
-        if (request.Statuses is { Count: > 0 })
-        {
-            var aliases = request.Statuses.Select(status => (int)status).ToArray();
-            query = query.Where(incident => aliases.Contains(incident.StatusAliasValue));
-        }
-
-        if (request.SeverityLevelIds is { Count: > 0 })
-        {
-            query = query.Where(incident => request.SeverityLevelIds.Contains(incident.SeverityLevelId));
-        }
+        var query = IncidentQuery.Matching(
+            _context.Incidents.AsNoTracking(),
+            request.Statuses,
+            request.SeverityLevelIds);
 
         var totalCount = await query.CountAsync(cancellationToken);
-        var now = _dateTimeProvider.Now;
 
         if (totalCount == 0)
         {
-            return List([], 0, request, IncidentDurations.Summarize([], now));
+            return new PagedResponse<IncidentSummaryDto>([], 0, request.Paging.Page, request.Paging.PageSize);
         }
-
-        var figures = IncidentDurations.Summarize(await MeasuredRows(query, cancellationToken), now);
 
         var page = await (
             from incident in query
@@ -106,58 +95,8 @@ public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context
             })
             .ToList();
 
-        return List(items, totalCount, request, figures);
+        return new PagedResponse<IncidentSummaryDto>(items, totalCount, request.Paging.Page, request.Paging.PageSize);
     }
-
-    private static async Task<List<IncidentDurations.Row>> MeasuredRows(
-        IQueryable<Incident> query,
-        CancellationToken cancellationToken)
-    {
-        var rows = await query
-            .Select(incident => new
-            {
-                incident.Key,
-                incident.Title,
-                incident.NoticedAt,
-                incident.StartedAt,
-                incident.RecoveredAt,
-                incident.StatusAliasValue,
-                incident.StatusCategory,
-            })
-            .ToListAsync(cancellationToken);
-
-        return rows
-            .Select(row => new IncidentDurations.Row(
-                row.Key,
-                row.Title,
-                row.NoticedAt,
-                row.StartedAt,
-                row.RecoveredAt,
-                (ProductStatusAlias)row.StatusAliasValue,
-                row.StatusCategory))
-            .ToList();
-    }
-
-    private static IncidentListDto List(
-        List<IncidentSummaryDto> items,
-        int totalCount,
-        GetIncidentsQuery request,
-        IncidentDurations.Figures figures) =>
-        new(
-            items,
-            totalCount,
-            request.Paging.Page,
-            request.Paging.PageSize,
-            figures.ActiveCount,
-            figures.LongestActive is { } longest
-                ? new LongestActiveIncidentDto
-                {
-                    Key = longest.Key,
-                    Title = longest.Title,
-                    ActiveMilliseconds = IncidentDurations.Milliseconds(longest.Active) ?? 0,
-                }
-                : null,
-            IncidentDurations.Milliseconds(figures.MeanTimeToRecover));
 }
 
 public sealed record GetIncidentQuery : IQuery<IncidentDto?>

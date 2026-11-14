@@ -44,43 +44,49 @@ const noticedLabel = formatInstantInZone(noticedAt, viewerZone)
 const startedLabel = formatInstantInZone(startedAt, viewerZone)
 const recoveredLabel = formatInstantInZone(recoveredAt, viewerZone)
 
-vi.mock(import('@/src/store/features/product-management/incidents-api'), () => ({
-  useGetIncidentStatusWorkflowQuery: () => ({
-    data: {
-      statuses: [
-        { id: 'open', name: 'Open', order: 1, isRetired: false, aliasName: ProductStatusAlias.Open },
-        {
-          id: 'responding',
-          name: 'Responding',
-          order: 2,
-          isRetired: false,
-          aliasName: ProductStatusAlias.Responding,
-        },
-        {
-          id: 'resolved',
-          name: 'Resolved',
-          order: 3,
-          isRetired: false,
-          aliasName: ProductStatusAlias.Resolved,
-        },
-        {
-          id: 'closed',
-          name: 'Closed',
-          order: 4,
-          isRetired: false,
-          aliasName: ProductStatusAlias.Closed,
-        },
-        {
-          id: 'canceled',
-          name: 'Canceled',
-          order: 5,
-          isRetired: false,
-          aliasName: ProductStatusAlias.Canceled,
-        },
-      ],
-    },
-  }),
-}))
+vi.mock(import('@/src/store/features/product-management/incidents-api'), async (importOriginal) => {
+  const actual = await importOriginal()
+  // The stepper only reads the workflow statuses. The query result also carries
+  // cache state this test never renders, so the stub is cast to the hook's type.
+  return {
+    ...actual,
+    useGetIncidentStatusWorkflowQuery: (() => ({
+      data: {
+        statuses: [
+          { id: 'open', name: 'Open', order: 1, isRetired: false, aliasName: ProductStatusAlias.Open },
+          {
+            id: 'responding',
+            name: 'Responding',
+            order: 2,
+            isRetired: false,
+            aliasName: ProductStatusAlias.Responding,
+          },
+          {
+            id: 'resolved',
+            name: 'Resolved',
+            order: 3,
+            isRetired: false,
+            aliasName: ProductStatusAlias.Resolved,
+          },
+          {
+            id: 'closed',
+            name: 'Closed',
+            order: 4,
+            isRetired: false,
+            aliasName: ProductStatusAlias.Closed,
+          },
+          {
+            id: 'canceled',
+            name: 'Canceled',
+            order: 5,
+            isRetired: false,
+            aliasName: ProductStatusAlias.Canceled,
+          },
+        ],
+      },
+    })) as unknown as typeof actual.useGetIncidentStatusWorkflowQuery,
+  }
+})
 
 function renderStepper(
   currentStatusId: string,

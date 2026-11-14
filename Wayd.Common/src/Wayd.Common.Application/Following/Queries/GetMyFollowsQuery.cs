@@ -6,27 +6,27 @@ using Wayd.Common.Domain.Following;
 namespace Wayd.Common.Application.Following.Queries;
 
 /// <summary>
-/// One page of the records the caller follows and can still read, across owner types or for one, optionally
-/// narrowed to a "needs a look" view and a search.
+/// One page of the records the caller follows and can still read, across owner types or for some of them,
+/// optionally narrowed to a "needs a look" view and a search.
 /// </summary>
 /// <remarks>
 /// Readability is applied before anything is counted or paged: a total that included unreadable follows would
 /// say how many records the caller cannot see. The owner types are combined in one query, so a page of
-/// "everything" is filtered, sorted and paged by the database. Fails for an owner type that cannot be followed.
+/// "everything" is filtered, sorted and paged by the database. Fails when any owner type named cannot be followed.
 /// <para>
 /// Not <see cref="IRequireLinkedEmployee"/>: a caller with no employee follows nothing, so the answer is an
 /// empty page.
 /// </para>
 /// </remarks>
 /// <param name="Paging">The page to read.</param>
-/// <param name="OwnerType">Keeps only follows of this owner type; null for every type.</param>
+/// <param name="OwnerTypes">Keeps only follows of these owner types; null or empty for every type.</param>
 /// <param name="View">Keeps only follows in this view; null for all.</param>
 /// <param name="Search">Matched against the record's name, or its key exactly; blank for no search.</param>
 /// <param name="Sort">What the page is ordered by.</param>
 /// <param name="Direction">Which way it is ordered.</param>
 public sealed record GetMyFollowsQuery(
     PageRequest Paging,
-    string? OwnerType = null,
+    IReadOnlyList<string>? OwnerTypes = null,
     FollowView? View = null,
     string? Search = null,
     FollowSort Sort = FollowSort.LastChanged,
@@ -39,9 +39,15 @@ public sealed class GetMyFollowsQueryValidator : PagedQueryValidator<GetMyFollow
     /// <summary>The longest search a caller may send.</summary>
     public const int MaxSearchLength = 128;
 
+    /// <summary>The most owner types a caller may name; far more than can be followed, so only abuse meets it.</summary>
+    public const int MaxOwnerTypes = 20;
+
     public GetMyFollowsQueryValidator()
     {
-        RuleFor(q => q.OwnerType).MaximumLength(FollowOwnerDescriptor.KeyMaxLength);
+        RuleFor(q => q.OwnerTypes)
+            .Must(t => t is null || t.Count <= MaxOwnerTypes)
+            .WithMessage($"At most {MaxOwnerTypes} owner types may be named.");
+        RuleForEach(q => q.OwnerTypes).NotEmpty().MaximumLength(FollowOwnerDescriptor.KeyMaxLength);
         RuleFor(q => q.View).IsInEnum();
         RuleFor(q => q.Sort).IsInEnum();
         RuleFor(q => q.Direction).IsInEnum();
@@ -66,7 +72,7 @@ public sealed class GetMyFollowsQueryHandler(
 
     public async Task<Result<PagedResponse<FollowedRecordDto>>> Handle(GetMyFollowsQuery request, CancellationToken cancellationToken)
     {
-        var owners = FollowReadRules.Select(_readRules, request.OwnerType);
+        var owners = FollowReadRules.Select(_readRules, request.OwnerTypes);
         if (owners.IsFailure)
         {
             return Result.Failure<PagedResponse<FollowedRecordDto>>(owners.Error);

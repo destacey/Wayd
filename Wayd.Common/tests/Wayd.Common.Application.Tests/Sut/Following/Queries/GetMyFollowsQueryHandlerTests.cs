@@ -19,26 +19,29 @@ public sealed class GetMyFollowsQueryHandlerTests
 {
     private const string GadgetType = "test.my-follows.gadget";
     private const string WidgetType = "test.my-follows.widget";
+    private const string DoohickeyType = "test.my-follows.doohickey";
 
     private static readonly FollowOwnerDescriptor Gadget = new(GadgetType, "Test My-Follows Gadget");
     private static readonly FollowOwnerDescriptor Widget = new(WidgetType, "Test My-Follows Widget");
+    private static readonly FollowOwnerDescriptor Doohickey = new(DoohickeyType, "Test My-Follows Doohickey");
     private static readonly Instant Start = Instant.FromUtc(2026, 10, 1, 9, 0);
     private static readonly Instant Now = Instant.FromUtc(2026, 10, 24, 9, 0);
 
     private readonly FakeWaydDbContext _dbContext = new();
     private readonly FakeRecordReadRule _gadgets = new(GadgetType);
     private readonly FakeRecordReadRule _widgets = new(WidgetType);
+    private readonly FakeRecordReadRule _doohickeys = new(DoohickeyType);
     private readonly Mock<ICurrentPrincipal> _currentPrincipal = new();
     private readonly Guid _employeeId = Guid.NewGuid();
 
     public GetMyFollowsQueryHandlerTests()
     {
-        FollowOwners.Register(Gadget, Widget);
+        FollowOwners.Register(Gadget, Widget, Doohickey);
         _currentPrincipal.Setup(p => p.GetEmployeeId(It.IsAny<CancellationToken>())).ReturnsAsync(_employeeId);
     }
 
     private GetMyFollowsQueryHandler CreateHandler() =>
-        new(_dbContext, _dbContext, [_widgets, _gadgets], _currentPrincipal.Object, new TestingDateTimeProvider(new FakeClock(Now)));
+        new(_dbContext, _dbContext, [_widgets, _gadgets, _doohickeys], _currentPrincipal.Object, new TestingDateTimeProvider(new FakeClock(Now)));
 
     private void SeedFollow(string ownerType, Guid ownerId, int daysAfterStart, Guid? employeeId = null) =>
         _dbContext.Follows.Add(Follow.Create(ownerType, ownerId, employeeId ?? _employeeId, Start.Plus(Duration.FromDays(daysAfterStart))).Value);
@@ -150,9 +153,9 @@ public sealed class GetMyFollowsQueryHandlerTests
         _gadgets.HiddenEventTypes.Add("SecretChangedEvent");
 
         // Act
-        var all = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), GadgetType), TestContext.Current.CancellationToken);
+        var all = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), [GadgetType]), TestContext.Current.CancellationToken);
         var changedRecently = await CreateHandler().Handle(
-            new GetMyFollowsQuery(new PageRequest(), GadgetType, FollowView.ChangedRecently), TestContext.Current.CancellationToken);
+            new GetMyFollowsQuery(new PageRequest(), [GadgetType], FollowView.ChangedRecently), TestContext.Current.CancellationToken);
 
         // Assert
         all.Value.Items.Should().ContainSingle().Which.LastChangedOn.Should().Be(Now.Minus(Duration.FromDays(20)));
@@ -325,7 +328,7 @@ public sealed class GetMyFollowsQueryHandlerTests
         SeedFollow(WidgetType, _widgets.Add("W-1", "Lever").Id, 2);
 
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), WidgetType.ToUpperInvariant()), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), [WidgetType.ToUpperInvariant()]), TestContext.Current.CancellationToken);
 
         // Assert
         result.Value.Items.Select(i => i.OwnerType).Should().Equal(WidgetType);
@@ -439,7 +442,69 @@ public sealed class GetMyFollowsQueryHandlerTests
     public async Task Handle_ShouldFail_ForAnOwnerTypeThatCannotBeFollowed()
     {
         // Act
-        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), "test.my-follows.unknown"), TestContext.Current.CancellationToken);
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), ["test.my-follows.unknown"]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("is not a kind of record that can be followed");
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnEveryRequestedOwnerType_AndNoOther()
+    {
+        // Arrange
+        SeedFollow(GadgetType, _gadgets.Add("G-1", "Sprocket").Id, 1);
+        SeedFollow(WidgetType, _widgets.Add("W-1", "Lever").Id, 2);
+        SeedFollow(DoohickeyType, _doohickeys.Add("D-1", "Gizmo").Id, 3);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new GetMyFollowsQuery(new PageRequest(), [GadgetType, DoohickeyType, GadgetType]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Items.Select(i => i.OwnerType).Should().BeEquivalentTo([GadgetType, DoohickeyType]);
+        result.Value.TotalCount.Should().Be(2);
+        _widgets.DescribeCallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReturnEveryOwnerType_WhenNoneIsNamed()
+    {
+        // Arrange
+        SeedFollow(GadgetType, _gadgets.Add("G-1", "Sprocket").Id, 1);
+        SeedFollow(WidgetType, _widgets.Add("W-1", "Lever").Id, 2);
+
+        // Act
+        var result = await CreateHandler().Handle(new GetMyFollowsQuery(new PageRequest(), []), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Items.Select(i => i.OwnerType).Should().BeEquivalentTo([GadgetType, WidgetType]);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldReadAnOwnerTypeNamedTwiceInDifferentCasesOnce()
+    {
+        // Arrange
+        SeedFollow(GadgetType, _gadgets.Add("G-1", "Sprocket").Id, 1);
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new GetMyFollowsQuery(new PageRequest(), [GadgetType, GadgetType.ToUpperInvariant()]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Items.Should().ContainSingle();
+        result.Value.TotalCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Handle_ShouldFail_WhenAnyRequestedOwnerTypeCannotBeFollowed()
+    {
+        // Act
+        var result = await CreateHandler().Handle(
+            new GetMyFollowsQuery(new PageRequest(), [GadgetType, "test.my-follows.unknown"]), TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();

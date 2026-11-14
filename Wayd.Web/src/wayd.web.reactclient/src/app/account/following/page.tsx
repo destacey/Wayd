@@ -112,7 +112,7 @@ const FollowingContent = () => {
   const activeFilter: FollowingFilter = lowCount ? {} : filter
   const list = useGetMyFollowsInfiniteQuery(
     {
-      ownerType: activeFilter.ownerType,
+      ownerTypes: activeFilter.ownerType ? [activeFilter.ownerType] : undefined,
       view: activeFilter.view,
       search: debouncedSearch || undefined,
       sort,

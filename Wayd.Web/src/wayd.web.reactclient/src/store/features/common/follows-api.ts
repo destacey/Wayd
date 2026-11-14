@@ -33,7 +33,8 @@ export interface FollowTarget {
 
 /** What narrows the Following list; paging is handled by the infinite query. */
 export interface GetMyFollowsRequest {
-  ownerType?: string
+  /** The kinds of record to list; left out, or empty, for every kind. */
+  ownerTypes?: string[]
   view?: FollowView
   search?: string
   sort: FollowSort
@@ -91,7 +92,7 @@ export const followsApi = apiSlice.injectEndpoints({
       queryFn: async ({ queryArg, pageParam }) => {
         try {
           const data = await getMyFollowsClient().getFollows(
-            queryArg.ownerType,
+            queryArg.ownerTypes,
             queryArg.view,
             queryArg.search,
             queryArg.sort,

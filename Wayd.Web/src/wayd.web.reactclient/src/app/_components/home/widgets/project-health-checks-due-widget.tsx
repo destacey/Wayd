@@ -16,7 +16,12 @@ import { FC } from 'react'
 import AttentionTile from '../attention-tile'
 import { useHomeContext } from '../use-home-context'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
-import { rowsToShow } from '../widget-settings'
+import {
+  daysOf,
+  daysSetting,
+  rowsToShow,
+  WidgetSetting,
+} from '../widget-settings'
 import { HomeWidgetProps, widgetAnchorId } from '../widget-registry'
 import styles from '../home.module.css'
 
@@ -28,8 +33,21 @@ const LED_ACTIVE_PROJECTS = {
   role: [ProjectMemberRole.Owner, ProjectMemberRole.Manager],
 }
 
-/** How soon a current health check's expiry puts its project on the list. */
+/** The setting for how soon a current health check's expiry puts its project on the list. */
+export const EXPIRING_WINDOW_SETTING = 'expiring-window'
+
+/** How soon a current health check's expiry puts its project on the list until the user picks another window. */
 export const EXPIRING_SOON_DAYS = 7
+
+/** What the user can change about the widget, beyond its rows and empty display. */
+export const healthChecksDueSettings: WidgetSetting[] = [
+  daysSetting(
+    EXPIRING_WINDOW_SETTING,
+    'List checks expiring within',
+    [7, 14],
+    EXPIRING_SOON_DAYS,
+  ),
+]
 
 /** The most projects the widget lists; the rest are counted below them. */
 export const HEALTH_CHECKS_DUE_LIMIT = 5
@@ -53,12 +71,13 @@ export const lacksCurrentHealthCheck = (
 
 /**
  * The projects whose health check is due: those with none current first, by
- * name, then those expiring within {@link EXPIRING_SOON_DAYS} days, soonest
- * first. A check that is current and not expiring soon leaves its project off.
+ * name, then those expiring within `expiringDays` days, soonest first. A
+ * check that is current and not expiring soon leaves its project off.
  */
 export const healthChecksDue = (
   projects: ProjectListDto[],
   now: Date = new Date(),
+  expiringDays: number = EXPIRING_SOON_DAYS,
 ): HealthCheckDue[] => {
   const today = toCalendarDate(now)
   const missing = projects
@@ -74,7 +93,7 @@ export const healthChecksDue = (
         project.healthCheck!.expiration,
       ),
     }))
-    .filter((d) => d.expiresInDays <= EXPIRING_SOON_DAYS)
+    .filter((d) => d.expiresInDays <= expiringDays)
     .sort(
       (a, b) =>
         a.expiresInDays - b.expiresInDays ||
@@ -108,7 +127,13 @@ const ProjectHealthChecksDueWidget: FC<HomeWidgetProps> = ({
   settings,
 }) => {
   const rows = rowsToShow(settings, HEALTH_CHECKS_DUE_LIMIT)
+  const expiringDays = daysOf(
+    settings,
+    EXPIRING_WINDOW_SETTING,
+    EXPIRING_SOON_DAYS,
+  )
   const { data: projects, isLoading, isError } = useLedProjects()
+  const now = new Date()
 
   const body = () => {
     if (isError)
@@ -118,11 +143,11 @@ const ProjectHealthChecksDueWidget: FC<HomeWidgetProps> = ({
         <WidgetEmpty message="None of the projects you own or manage is active yet. Their health checks appear here once one is, when a check is missing or about to expire." />
       )
     }
-    const due = healthChecksDue(projects)
+    const due = healthChecksDue(projects, now, expiringDays)
     if (due.length === 0) {
       return (
         <WidgetEmpty
-          message={`Every active project you own or manage has a current health check that lasts more than ${EXPIRING_SOON_DAYS} days.`}
+          message={`Every active project you own or manage has a current health check that lasts more than ${expiringDays} days.`}
         />
       )
     }
@@ -168,7 +193,7 @@ const ProjectHealthChecksDueWidget: FC<HomeWidgetProps> = ({
       title={title}
       loading={isLoading}
       failed={isError}
-      empty={healthChecksDue(projects ?? []).length === 0}
+      empty={healthChecksDue(projects ?? [], now, expiringDays).length === 0}
       emptySummary="None due"
     >
       {body()}

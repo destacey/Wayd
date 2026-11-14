@@ -121,6 +121,30 @@ describe('tasksDueSoon', () => {
     expect(soon.map((t) => t.name)).toEqual(['Late', 'Saturday next week'])
     expect(laterCount).toBe(2)
   })
+
+  it.each([
+    ['overdue', ['Late']],
+    ['this-week', ['Late', 'Saturday']],
+    ['upcoming', ['Late', 'Saturday', 'Saturday next week']],
+  ] as const)(
+    'with the %s window, lists overdue tasks and those up to it',
+    (dueWindow, listed) => {
+      // Arrange
+      const tasks = [
+        task(1, 'Late', '2026-11-10'),
+        task(2, 'Saturday', '2026-11-14'),
+        task(3, 'Saturday next week', '2026-11-21'),
+        task(4, 'Sunday after', '2026-11-22'),
+      ]
+
+      // Act
+      const { soon, laterCount } = tasksDueSoon(tasks, TODAY, dueWindow)
+
+      // Assert
+      expect(soon.map((t) => t.name)).toEqual(listed)
+      expect(laterCount).toBe(tasks.length - listed.length)
+    },
+  )
 })
 
 describe('countTasksDue', () => {
@@ -220,6 +244,110 @@ describe('MyProjectTasksWidget', () => {
         'Nothing is due by the end of next week. You have 1 open task due later.',
       ),
     ).toBeInTheDocument()
+  })
+
+  it('lists only overdue tasks, saying so, when set to Overdue', () => {
+    // Arrange
+    mockTasks.mockReturnValue(
+      loaded([
+        task(3, 'Design', '2026-11-09'),
+        task(4, 'Review', '2026-11-10'),
+        task(7, 'Build', '2026-11-13'),
+      ]),
+    )
+
+    // Act
+    render(
+      <MyProjectTasksWidget
+        title="My project tasks"
+        settings={{ 'due-window': 'overdue', rows: '1' }}
+      />,
+    )
+
+    // Assert
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+    expect(screen.getByText('And 1 more overdue.')).toBeInTheDocument()
+    expect(
+      screen.getByText('You have 1 more open task due later.'),
+    ).toBeInTheDocument()
+  })
+
+  it('says nothing is due this week when set to Due this week and only later work remains', () => {
+    // Arrange
+    mockTasks.mockReturnValue(loaded([task(1, 'Rollout', '2026-11-20')]))
+
+    // Act
+    render(
+      <MyProjectTasksWidget
+        title="My project tasks"
+        settings={{ 'due-window': 'this-week' }}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByText(
+        'Nothing is due by the end of this week. You have 1 open task due later.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('leaves milestones out of the list and its counts when set to', () => {
+    // Arrange
+    mockTasks.mockReturnValue(
+      loaded([
+        task(3, 'Design', '2026-11-12'),
+        {
+          ...task(4, 'Go live', '2026-11-12'),
+          type: { id: 2, name: 'Milestone' },
+        },
+        {
+          ...task(5, 'Launch', '2026-12-12'),
+          type: { id: 2, name: 'Milestone' },
+        },
+      ]),
+    )
+
+    // Act
+    render(
+      <MyProjectTasksWidget
+        title="My project tasks"
+        settings={{ 'include-milestones': 'false' }}
+      />,
+    )
+
+    // Assert
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+    expect(screen.getByText('APOLLO-3 · Design')).toBeInTheDocument()
+    expect(screen.queryByText(/due later/)).not.toBeInTheDocument()
+  })
+
+  it('says milestones are left out, rather than that there are no tasks, when only milestones are open', () => {
+    // Arrange
+    mockTasks.mockReturnValue(
+      loaded([
+        {
+          ...task(4, 'Go live', '2026-11-12'),
+          type: { id: 2, name: 'Milestone' },
+        },
+      ]),
+    )
+
+    // Act
+    render(
+      <MyProjectTasksWidget
+        title="My project tasks"
+        settings={{ 'include-milestones': 'false' }}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByText(/this widget is set to leave milestones out/),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(/You have no open project tasks/),
+    ).not.toBeInTheDocument()
   })
 
   it('lists the first tasks and counts the rest', () => {

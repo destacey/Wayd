@@ -305,7 +305,7 @@ public sealed class IntakeRequestFollowingIntegrationTests(SqlServerDbContextFix
         await using var context = _fixture.CreateContext();
         var principal = Principal(followerId, IntakeRequestAuthorization.ViewPermission);
         var result = await new GetMyFollowsQueryHandler(context, context, ReadRules(context, principal, demandManagementEnabled), principal, Clock())
-            .Handle(new GetMyFollowsQuery(new PageRequest(1, 50), OwnerType), ct);
+            .Handle(new GetMyFollowsQuery(new PageRequest(1, 50), [OwnerType]), ct);
 
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
         return [.. result.Value.Items.Select(i => i.Id)];

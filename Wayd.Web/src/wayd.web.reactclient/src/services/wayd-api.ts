@@ -1793,10 +1793,10 @@ export class MyFollowsClient {
      * @param direction (optional) 
      * @return OK
      */
-    getFollows(ownerType?: string | null | undefined, view?: FollowView | null | undefined, search?: string | null | undefined, sort?: FollowSort | undefined, page?: number | undefined, pageSize?: number | undefined, direction?: SortDirection | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfFollowedRecordDto> {
+    getFollows(ownerType?: string[] | null | undefined, view?: FollowView | null | undefined, search?: string | null | undefined, sort?: FollowSort | undefined, page?: number | undefined, pageSize?: number | undefined, direction?: SortDirection | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfFollowedRecordDto> {
         let url_ = this.baseUrl + "/api/me/follows?";
         if (ownerType !== undefined && ownerType !== null)
-            url_ += "ownerType=" + encodeURIComponent("" + ownerType) + "&";
+            ownerType && ownerType.forEach(item => { url_ += "ownerType=" + encodeURIComponent("" + item) + "&"; });
         if (view !== undefined && view !== null)
             url_ += "view=" + encodeURIComponent("" + view) + "&";
         if (search !== undefined && search !== null)

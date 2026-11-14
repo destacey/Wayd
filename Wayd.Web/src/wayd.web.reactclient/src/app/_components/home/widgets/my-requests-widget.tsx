@@ -22,27 +22,57 @@ import { Flex, Tag, Typography } from 'antd'
 import Link from 'next/link'
 import { FC } from 'react'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
-import { rowsToShow } from '../widget-settings'
+import {
+  daysOf,
+  daysSetting,
+  isOn,
+  rowsToShow,
+  WidgetSetting,
+} from '../widget-settings'
 import { HomeWidgetProps } from '../widget-registry'
 import styles from '../home.module.css'
 
 const { Text } = Typography
 
-/** How long a closed request stays on the widget after it closed. */
+/** The setting for how long a closed request stays on the widget after it closed. */
+export const CLOSED_WINDOW_SETTING = 'closed-window'
+
+/** The setting that leaves closed requests off the widget altogether. */
+export const OPEN_ONLY_SETTING = 'open-only'
+
+/** How long a closed request stays on the widget until the user picks another window. */
 export const RECENTLY_CLOSED_DAYS = 30
 
 /** The most requests the widget lists before linking to My Requests. */
 export const MY_REQUESTS_LIMIT = 8
 
+/** What the user can change about the widget, beyond its rows and empty display. */
+export const myRequestsSettings: WidgetSetting[] = [
+  daysSetting(
+    CLOSED_WINDOW_SETTING,
+    'Keep closed requests for',
+    [7, 30, 90],
+    RECENTLY_CLOSED_DAYS,
+  ),
+  {
+    kind: 'toggle',
+    key: OPEN_ONLY_SETTING,
+    label: 'Open only',
+    default: false,
+  },
+]
+
 /**
- * The start of the day {@link RECENTLY_CLOSED_DAYS} days ago, as an ISO
- * instant. Fixed to the day, so every render in it asks the same question and
- * shares one cached answer.
+ * The start of the day `days` days ago, as an ISO instant. Fixed to the day,
+ * so every render in it asks the same question and shares one cached answer.
  */
-export const recentlyClosedSince = (now: Date = new Date()): string => {
+export const recentlyClosedSince = (
+  days: number = RECENTLY_CLOSED_DAYS,
+  now: Date = new Date(),
+): string => {
   const since = new Date(now)
   since.setHours(0, 0, 0, 0)
-  since.setDate(since.getDate() - RECENTLY_CLOSED_DAYS)
+  since.setDate(since.getDate() - days)
   return since.toISOString()
 }
 
@@ -142,12 +172,21 @@ const RequestRow: FC<{
 }
 
 /**
- * The requests the caller asked for or submitted that are open or closed in
- * the last 30 days, each with its status and what it became.
+ * The requests the caller asked for or submitted that are open or, unless the
+ * user keeps to open ones, closed within the chosen window, each with its
+ * status and what it became.
  */
 const MyRequestsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
   const rows = rowsToShow(settings, MY_REQUESTS_LIMIT)
-  const args = { mine: true, closedSince: recentlyClosedSince() }
+  const openOnly = isOn(settings, OPEN_ONLY_SETTING, false)
+  const closedDays = daysOf(
+    settings,
+    CLOSED_WINDOW_SETTING,
+    RECENTLY_CLOSED_DAYS,
+  )
+  const args = openOnly
+    ? { mine: true, openOnly: true }
+    : { mine: true, closedSince: recentlyClosedSince(closedDays) }
   const requests = useGetIntakeRequestsQuery(args)
   // Outcomes are extra: without them the requests still show their status.
   const { data: outcomes } = useGetIntakeRequestOutcomesQuery(args)
@@ -159,7 +198,7 @@ const MyRequestsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
     if (!requests.data || requests.data.length === 0) {
       return (
         <WidgetEmpty
-          message="You have no open or recently closed requests. The requests you raise appear here with what they became."
+          message={`You have no ${openOnly ? 'open' : 'open or recently closed'} requests. The requests you raise appear here with what they became.`}
           link={{
             href: '/demand-management/submit',
             label: 'Submit a request',
@@ -189,7 +228,7 @@ const MyRequestsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
       loading={requests.isLoading}
       failed={requests.isError}
       empty={!requests.data || requests.data.length === 0}
-      emptySummary="No recent requests"
+      emptySummary={openOnly ? 'No open requests' : 'No recent requests'}
     >
       {body()}
     </WidgetCard>

@@ -2,7 +2,9 @@ import {
   emptyDisplayOf,
   emptySetting,
   hasCustomSettings,
+  pickedIdsOf,
   pickedValues,
+  pickValue,
   resolveSettings,
   rowsSetting,
   rowsToShow,
@@ -196,5 +198,38 @@ describe('emptyDisplayOf', () => {
 
     // Assert
     expect(resolved).toEqual({ empty: 'explain' })
+  })
+})
+
+describe('pick settings', () => {
+  const pick: WidgetSetting = {
+    kind: 'pick',
+    key: 'teams',
+    label: 'Teams',
+    noun: 'teams',
+    Options: ({ children }) => children({ options: [], isLoading: false }),
+  }
+  const options = [{ value: 'a' }, { value: 'b' }, { value: 'c' }]
+
+  it('stores nothing by default, and keeps a narrowed pick as it is', () => {
+    // Act / Assert
+    expect(settingsToStore([pick], {})).toEqual({})
+    expect(settingsToStore([pick], { teams: 'b,a' })).toEqual({ teams: 'b,a' })
+  })
+
+  it('narrows to the stored ids still listed, or to none for every entry', () => {
+    // Act / Assert
+    expect(pickedIdsOf({}, 'teams', options)).toEqual([])
+    expect(pickedIdsOf({ teams: 'a,gone' }, 'teams', options)).toEqual(['a'])
+    expect(pickedIdsOf({ teams: 'gone' }, 'teams', options)).toEqual([])
+  })
+
+  it('stores the ids in list order, or nothing when every entry is picked', () => {
+    // Arrange
+    const labelled = options.map((o) => ({ ...o, label: o.value }))
+
+    // Act / Assert
+    expect(pickValue(labelled, ['c', 'a'])).toBe('a,c')
+    expect(pickValue(labelled, ['a', 'b', 'c'])).toBe('')
   })
 })

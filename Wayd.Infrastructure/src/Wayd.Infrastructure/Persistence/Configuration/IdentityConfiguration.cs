@@ -136,6 +136,11 @@ public class UserRefreshTokenConfig : IEntityTypeConfiguration<UserRefreshToken>
         builder.Property(t => t.PreviousTokenHash).HasMaxLength(256);
         builder.Property(t => t.PreviousTokenExpiresAt);
 
+        // A 128-bit fingerprint, base64url: 22 characters.
+        builder.Property(t => t.CredentialVersion).HasMaxLength(32);
+        builder.Property(t => t.Version).IsRowVersion();
+        builder.Property(t => t.RotatedFromIpAddress).HasMaxLength(45);
+
         builder.Property(t => t.DeviceLabel).HasMaxLength(200);
 
         // 45 covers IPv6 including an IPv4-mapped form.

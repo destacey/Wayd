@@ -15,18 +15,20 @@ internal sealed class RefreshTokenStore(
     ILogger<RefreshTokenStore> logger) : IRefreshTokenStore
 {
     /// <summary>
-    /// How long a superseded token stays recognisable as a reuse signal. Raising this widens
-    /// the window in which a client's own retry is read as an attack and revokes its session;
-    /// it grants no additional access either way.
+    /// How long after a rotation the superseded token is still taken for the caller's own retry rather than replay:
+    /// two tabs refreshing at once, or a token read just before a background refresh replaced it. Within it, and from
+    /// the address that rotated, the old token is refused without ending the session; from anywhere else, or after
+    /// it, presenting the old token revokes the session. Sign-out and the sessions list resolve it within the window
+    /// from any address.
     /// </summary>
-    private static readonly Duration ReuseDetectionWindow = Duration.FromMinutes(5);
+    private static readonly Duration RetryGrace = Duration.FromSeconds(10);
 
     private readonly WaydDbContext _db = db;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IConfiguration _config = config;
     private readonly ILogger<RefreshTokenStore> _logger = logger;
 
-    public async Task<string> Issue(string userId, SessionContext context, CancellationToken cancellationToken)
+    public async Task<string> Issue(string userId, string credentialVersion, SessionContext context, CancellationToken cancellationToken)
     {
         var now = _dateTimeProvider.Now;
         var token = GenerateToken();
@@ -36,7 +38,8 @@ internal sealed class RefreshTokenStore(
             Id = Guid.NewGuid(),
             UserId = userId,
             TokenHash = RefreshTokenHasher.Hash(token),
-            ExpiresAt = now.Plus(Duration.FromDays(RefreshTokenExpirationInDays)),
+            ExpiresAt = FirstExpiry(now),
+            CredentialVersion = credentialVersion,
             DeviceLabel = DeviceLabelParser.Parse(context.UserAgent),
             IpAddress = Truncate(context.IpAddress, IpAddressMaxLength),
             CreatedAt = now,
@@ -50,8 +53,10 @@ internal sealed class RefreshTokenStore(
 
     public async Task<IReadOnlyList<UserRefreshToken>> ListActive(string userId, CancellationToken cancellationToken)
     {
+        var now = _dateTimeProvider.Now;
+        var openedAfter = now.Minus(Duration.FromDays(Settings.SessionLifetimeInDays));
         return await _db.UserRefreshTokens
-            .Where(t => t.UserId == userId && t.RevokedAt == null && t.ExpiresAt > _dateTimeProvider.Now)
+            .Where(t => t.UserId == userId && t.RevokedAt == null && t.ExpiresAt > now && t.CreatedAt > openedAfter)
             .OrderByDescending(t => t.LastUsedAt)
             .AsNoTracking()
             .ToListAsync(cancellationToken);
@@ -72,14 +77,11 @@ internal sealed class RefreshTokenStore(
             return current.Id;
         }
 
-        // Also accept the token this session just rotated away from, on the same terms as
-        // Rotate's reuse check. A background refresh can land between the client reading its
-        // stored token and using it, and the two lookups must agree on what identifies a
-        // session — otherwise a caller holding a seconds-old token looks like a stranger.
-        return sessions.FirstOrDefault(t =>
-            t.PreviousTokenExpiresAt is { } previousExpiry
-            && previousExpiry > now
-            && RefreshTokenHasher.Verify(presentedToken, t.PreviousTokenHash))?.Id;
+        // Also accept the token this session rotated away from within RetryGrace, the window in which Rotate takes it
+        // for the caller's own retry. A background refresh can land between the client reading its stored token and
+        // using it, and the two lookups must agree on what identifies a session — otherwise a caller holding a
+        // seconds-old token looks like a stranger.
+        return sessions.FirstOrDefault(t => IsWithinRetryGrace(t, now) && RefreshTokenHasher.Verify(presentedToken, t.PreviousTokenHash))?.Id;
     }
 
     public async Task<bool> Revoke(string userId, Guid sessionId, string reason, CancellationToken cancellationToken)
@@ -94,13 +96,12 @@ internal sealed class RefreshTokenStore(
             return false;
         }
 
-        Revoke(session, _dateTimeProvider.Now, reason);
-        await _db.SaveChangesAsync(cancellationToken);
+        await RevokeAndSave(session, reason, cancellationToken);
 
         return true;
     }
 
-    public async Task<RefreshRotationResult> Rotate(string userId, string presentedToken, CancellationToken cancellationToken)
+    public async Task<RefreshRotationResult> Rotate(string userId, string presentedToken, string credentialVersion, SessionContext context, CancellationToken cancellationToken)
     {
         // Scoped to one user, so this is a handful of rows — one per device. There is no
         // equality lookup to index against: every hash carries its own salt, so the only way
@@ -110,7 +111,7 @@ internal sealed class RefreshTokenStore(
             .Where(t => t.UserId == userId && t.RevokedAt == null && t.ClientId == null)
             .ToListAsync(cancellationToken);
 
-        return await RotateAmong(sessions, presentedToken, userId, _ => GenerateToken(), cancellationToken);
+        return await RotateAmong(sessions, presentedToken, userId, credentialVersion, context, _ => GenerateToken(), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -120,6 +121,7 @@ internal sealed class RefreshTokenStore(
         string clientId,
         string clientName,
         TokenScope scope,
+        string credentialVersion,
         SessionContext context,
         CancellationToken cancellationToken)
     {
@@ -133,7 +135,8 @@ internal sealed class RefreshTokenStore(
             ClientId = clientId,
             Scope = scope,
             TokenHash = RefreshTokenHasher.Hash(token),
-            ExpiresAt = now.Plus(Duration.FromDays(RefreshTokenExpirationInDays)),
+            ExpiresAt = FirstExpiry(now),
+            CredentialVersion = credentialVersion,
             DeviceLabel = Truncate(clientName, DeviceLabelMaxLength),
             IpAddress = Truncate(context.IpAddress, IpAddressMaxLength),
             CreatedAt = now,
@@ -149,7 +152,8 @@ internal sealed class RefreshTokenStore(
     public async Task<ClientRotationResult> RotateForClient(
         string clientId,
         string presentedToken,
-        Func<string, CancellationToken, Task<bool>> mayRefresh,
+        Func<string, CancellationToken, Task<string?>> credentialVersionOf,
+        SessionContext context,
         CancellationToken cancellationToken)
     {
         if (!TryReadSessionId(presentedToken, out var sessionId))
@@ -166,13 +170,16 @@ internal sealed class RefreshTokenStore(
             return ClientRotationResult.NotFound();
         }
 
-        var holdsCurrentToken = session.ExpiresAt > _dateTimeProvider.Now && RefreshTokenHasher.Verify(presentedToken, session.TokenHash);
-        if (holdsCurrentToken && !await mayRefresh(session.UserId, cancellationToken))
+        // A refused user leaves the session untouched, so only the current token's holder asks; a replay is answered
+        // whoever the user is.
+        string? credentialVersion = null;
+        var holdsCurrentToken = IsLive(session, _dateTimeProvider.Now) && RefreshTokenHasher.Verify(presentedToken, session.TokenHash);
+        if (holdsCurrentToken && (credentialVersion = await credentialVersionOf(session.UserId, cancellationToken)) is null)
         {
             return ClientRotationResult.NotFound();
         }
 
-        var result = await RotateAmong([session], presentedToken, session.UserId, s => GenerateClientToken(s.Id), cancellationToken);
+        var result = await RotateAmong([session], presentedToken, session.UserId, credentialVersion, context, s => GenerateClientToken(s.Id), cancellationToken);
         return result.Outcome is RefreshRotationOutcome.Rotated
             ? new ClientRotationResult(result.Outcome, result.Token, session.UserId, session.Id, session.Scope ?? TokenScopes.Default)
             : new ClientRotationResult(result.Outcome, null, null, null, null);
@@ -186,6 +193,8 @@ internal sealed class RefreshTokenStore(
         IReadOnlyList<UserRefreshToken> sessions,
         string presentedToken,
         string userId,
+        string? credentialVersion,
+        SessionContext context,
         Func<UserRefreshToken, string> generateToken,
         CancellationToken cancellationToken)
     {
@@ -194,28 +203,52 @@ internal sealed class RefreshTokenStore(
         var session = sessions.FirstOrDefault(t => RefreshTokenHasher.Verify(presentedToken, t.TokenHash));
         if (session is not null)
         {
-            if (session.ExpiresAt <= now)
+            if (!IsLive(session, now))
             {
                 return RefreshRotationResult.NotFound();
             }
 
+            // Opened by a sign-in that checked a password the user has since replaced, after that change ended the
+            // user's sessions: nothing else stops it, so it ends here.
+            if (session.CredentialVersion is { } openedUnder && openedUnder != credentialVersion)
+            {
+                _logger.LogWarning("Refresh refused for user {UserId}: the session was opened under credentials that have since changed. Revoking it.", userId);
+                await RevokeAndSave(session, UserRefreshTokenRevokeReasons.CredentialChanged, cancellationToken);
+                return RefreshRotationResult.NotFound();
+            }
+
             var replacement = generateToken(session);
+            var end = EndOf(session);
 
             session.PreviousTokenHash = session.TokenHash;
-            session.PreviousTokenExpiresAt = now.Plus(ReuseDetectionWindow);
+            session.PreviousTokenExpiresAt = end;
             session.TokenHash = RefreshTokenHasher.Hash(replacement);
-            session.ExpiresAt = now.Plus(Duration.FromDays(RefreshTokenExpirationInDays));
+            session.ExpiresAt = Min(now.Plus(Duration.FromDays(RefreshTokenExpirationInDays)), end);
             session.LastUsedAt = now;
+            session.RotatedFromIpAddress = Truncate(context.IpAddress, IpAddressMaxLength);
 
-            await _db.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _db.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Another request rotated or revoked the session since it was read. Its token is the one that counts;
+                // this caller's is now the superseded one, which is its own retry within RetryGrace.
+                _db.Entry(session).State = EntityState.Detached;
+                return RefreshRotationResult.NotFound();
+            }
 
             return RefreshRotationResult.Rotated(replacement);
         }
 
-        // No live token matched. If the value matches one this session already rotated away,
-        // two parties hold tokens from the same chain and there is no way to tell which is the
+        // No live token matched. If the value matches the one a session rotated away from, two
+        // parties hold tokens from the same chain and there is no way to tell which is the
         // attacker — so that session dies. Only that one: the user's other devices are
-        // unaffected, which is the whole reason sessions are rows rather than columns.
+        // unaffected, which is the whole reason sessions are rows rather than columns. The
+        // previous token is recognised for the session's whole life, so a holder left behind by
+        // one rotation is caught however long it waits. A token two or more rotations old
+        // matches nothing and is refused as unknown: it gains nothing, but is not flagged.
         var reused = sessions.FirstOrDefault(t =>
             t.PreviousTokenExpiresAt is { } previousExpiry
             && previousExpiry > now
@@ -226,35 +259,82 @@ internal sealed class RefreshTokenStore(
             return RefreshRotationResult.NotFound();
         }
 
+        // Only from where the rotation came: otherwise whoever holds a stolen token could rotate just before the
+        // client's scheduled refresh and have the client's own presentation of the old token pass as a retry.
+        if (IsWithinRetryGrace(reused, now) && Truncate(context.IpAddress, IpAddressMaxLength) == reused.RotatedFromIpAddress)
+        {
+            return RefreshRotationResult.NotFound();
+        }
+
         _logger.LogWarning(
             "Refresh token reuse detected for user {UserId}: a superseded token was presented. Revoking that session.",
             userId);
 
-        Revoke(reused, now, UserRefreshTokenRevokeReasons.ReuseDetected);
-        await _db.SaveChangesAsync(cancellationToken);
+        await RevokeAndSave(reused, UserRefreshTokenRevokeReasons.ReuseDetected, cancellationToken);
 
         return RefreshRotationResult.ReuseDetected();
     }
 
     public async Task RevokeAll(string userId, string reason, CancellationToken cancellationToken)
     {
-        var sessions = await _db.UserRefreshTokens
-            .Where(t => t.UserId == userId && t.RevokedAt == null)
-            .ToListAsync(cancellationToken);
-
-        if (sessions.Count == 0)
+        // A rotation committed between the read and the save fails the save on the row version. The revocation is
+        // what must hold, so the rows are read again and revoked as they are now.
+        for (var attempt = 1; ; attempt++)
         {
-            return;
-        }
+            var sessions = await _db.UserRefreshTokens
+                .Where(t => t.UserId == userId && t.RevokedAt == null)
+                .ToListAsync(cancellationToken);
 
-        var now = _dateTimeProvider.Now;
-        foreach (var session in sessions)
-        {
-            Revoke(session, now, reason);
-        }
+            if (sessions.Count == 0)
+            {
+                return;
+            }
 
-        await _db.SaveChangesAsync(cancellationToken);
+            var now = _dateTimeProvider.Now;
+            foreach (var session in sessions)
+            {
+                Revoke(session, now, reason);
+            }
+
+            try
+            {
+                await _db.SaveChangesAsync(cancellationToken);
+                return;
+            }
+            catch (DbUpdateConcurrencyException ex) when (attempt < MaxRevokeAttempts)
+            {
+                foreach (var entry in ex.Entries)
+                    await entry.ReloadAsync(cancellationToken);
+            }
+        }
     }
+
+    /// <summary>
+    /// Revokes <paramref name="session"/> and saves it. A rotation committed since it was read fails the save on the
+    /// row version; the revocation is what must hold, so the row is read again and revoked as it is now, unless
+    /// something else revoked it meanwhile.
+    /// </summary>
+    private async Task RevokeAndSave(UserRefreshToken session, string reason, CancellationToken cancellationToken)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            Revoke(session, _dateTimeProvider.Now, reason);
+            try
+            {
+                await _db.SaveChangesAsync(cancellationToken);
+                return;
+            }
+            catch (DbUpdateConcurrencyException) when (attempt < MaxRevokeAttempts)
+            {
+                await _db.Entry(session).ReloadAsync(cancellationToken);
+                if (session.RevokedAt is not null)
+                    return;
+            }
+        }
+    }
+
+    /// <summary>How many times a revocation is tried against rows a concurrent rotation keeps changing before it fails.</summary>
+    private const int MaxRevokeAttempts = 3;
 
     private static void Revoke(UserRefreshToken session, Instant now, string reason)
     {
@@ -267,9 +347,28 @@ internal sealed class RefreshTokenStore(
         session.PreviousTokenExpiresAt = null;
     }
 
-    private int RefreshTokenExpirationInDays =>
-        _config.GetSection(LocalJwtSettings.SectionName).Get<LocalJwtSettings>()?.RefreshTokenExpirationInDays
-        ?? new LocalJwtSettings().RefreshTokenExpirationInDays;
+    /// <summary>Whether <paramref name="session"/>'s token may still be refreshed: neither expired nor past the session's end.</summary>
+    private bool IsLive(UserRefreshToken session, Instant now) => session.ExpiresAt > now && EndOf(session) > now;
+
+    /// <summary>Whether <paramref name="session"/> rotated so recently that its superseded token is taken for a retry.</summary>
+    private static bool IsWithinRetryGrace(UserRefreshToken session, Instant now) =>
+        session.PreviousTokenHash is not null && now - session.LastUsedAt <= RetryGrace;
+
+    /// <summary>When <paramref name="session"/> ends however often it refreshes: <see cref="LocalJwtSettings.SessionLifetimeInDays"/> after it opened.</summary>
+    private Instant EndOf(UserRefreshToken session) => session.CreatedAt.Plus(Duration.FromDays(Settings.SessionLifetimeInDays));
+
+    /// <summary>The first token's expiry for a session opened at <paramref name="now"/>.</summary>
+    private Instant FirstExpiry(Instant now) =>
+        Min(now.Plus(Duration.FromDays(RefreshTokenExpirationInDays)), now.Plus(Duration.FromDays(Settings.SessionLifetimeInDays)));
+
+    /// <summary>The earlier of two instants.</summary>
+    private static Instant Min(Instant a, Instant b) => a < b ? a : b;
+
+    /// <summary>The configured session settings, or their defaults.</summary>
+    private LocalJwtSettings Settings =>
+        _config.GetSection(LocalJwtSettings.SectionName).Get<LocalJwtSettings>() ?? new LocalJwtSettings();
+
+    private int RefreshTokenExpirationInDays => Settings.RefreshTokenExpirationInDays;
 
     private static string GenerateToken()
     {

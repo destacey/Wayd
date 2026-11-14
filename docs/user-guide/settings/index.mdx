@@ -59,7 +59,7 @@ User accounts control access to Wayd. Each user has:
 - **Activate Account** — Enable a user account
 - **Deactivate Account** — Disable a user account. It signs them out of every device straight away and disconnects their connected applications; their personal access tokens stop working while the account is inactive. People sync deactivating a user does the same.
 - **Unlock Account** — Unlock an account locked due to failed login attempts
-- **Reset Password** — Admin-initiated password reset (local accounts only, forces change on next login). It disconnects their connected applications at once and signs them out of every device within an hour, once the access a device already holds expires; it does not revoke their personal access tokens. To stop a compromised account straight away, deactivate it.
+- **Reset Password** — Admin-initiated password reset (local accounts only, forces change on next login). It signs them out of every device and disconnects their connected applications straight away; it does not revoke their personal access tokens.
 - **Change Identity Provider** — Stage a move to a different OIDC provider, or from a local account to an OIDC provider (see below). **Cancel Pending Provider Migration** withdraws a staged move
 - **Convert to Local Account** — Immediately switch an OIDC user to password-based login (see below)
 - **Manage Roles** — Choose the roles the user holds

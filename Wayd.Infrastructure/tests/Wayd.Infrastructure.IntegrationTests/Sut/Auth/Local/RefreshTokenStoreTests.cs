@@ -20,6 +20,9 @@ namespace Wayd.Infrastructure.IntegrationTests.Sut.Auth.Local;
 [Collection(nameof(SqlServerTestCollection))]
 public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 {
+    /// <summary>The credential version every session in these tests is opened and refreshed under, unless a test says otherwise.</summary>
+    private const string CredentialVersionUnderTest = "credential-version-1";
+
     private static readonly Instant Now = Instant.FromUtc(2026, 3, 1, 12, 0, 0);
 
     private static readonly SessionContext TestSession = new(
@@ -28,19 +31,26 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
     private readonly SqlServerDbContextFixture _fixture = fixture;
 
-    private static IConfiguration Configuration => new ConfigurationBuilder()
+    private static IConfiguration Configuration => ConfigurationWith(sessionLifetimeInDays: 30);
+
+    /// <summary>The store's configuration, with sessions living <paramref name="sessionLifetimeInDays"/>.</summary>
+    private static IConfiguration ConfigurationWith(int sessionLifetimeInDays) => new ConfigurationBuilder()
         .AddInMemoryCollection(new Dictionary<string, string?>
         {
             { "SecuritySettings:LocalJwt:RefreshTokenExpirationInDays", "7" },
+            { "SecuritySettings:LocalJwt:SessionLifetimeInDays", sessionLifetimeInDays.ToString(System.Globalization.CultureInfo.InvariantCulture) },
         })
         .Build();
 
-    private static RefreshTokenStore CreateStore(WaydDbContext context, Instant now)
+    /// <summary>A request from somewhere other than <see cref="TestSession"/>.</summary>
+    private static readonly SessionContext ElsewhereSession = new("curl/8.0", "198.51.100.7");
+
+    private static RefreshTokenStore CreateStore(WaydDbContext context, Instant now, IConfiguration? configuration = null)
     {
         var clock = new Mock<IDateTimeProvider>();
         clock.SetupGet(c => c.Now).Returns(now);
 
-        return new RefreshTokenStore(context, clock.Object, Configuration, NullLogger<RefreshTokenStore>.Instance);
+        return new RefreshTokenStore(context, clock.Object, configuration ?? Configuration, NullLogger<RefreshTokenStore>.Instance);
     }
 
     private async Task<string> SeedUser(CancellationToken cancellationToken, string suffix = "1")
@@ -75,7 +85,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         // Act
         await using var context = _fixture.CreateContext();
-        var token = await CreateStore(context, Now).Issue(userId, TestSession, ct);
+        var token = await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
 
         // Assert
         var stored = await context.UserRefreshTokens.SingleAsync(t => t.UserId == userId, ct);
@@ -99,8 +109,8 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         var store = CreateStore(context, Now);
 
         // Act
-        var first = await store.Issue(userId, TestSession, ct);
-        var second = await store.Issue(userId, TestSession, ct);
+        var first = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        var second = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
 
         // Assert
         second.Should().NotBe(first);
@@ -118,10 +128,10 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        var original = await store.Issue(userId, TestSession, ct);
+        var original = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
-        var result = await store.Rotate(userId, original, ct);
+        var result = await store.Rotate(userId, original, CredentialVersionUnderTest, TestSession, ct);
 
         // Assert
         result.Outcome.Should().Be(RefreshRotationOutcome.Rotated);
@@ -142,14 +152,14 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        var laptop = await store.Issue(userId, TestSession, ct);
-        var desktop = await store.Issue(userId, TestSession, ct);
+        var laptop = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        var desktop = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
-        await store.Rotate(userId, laptop, ct);
+        await store.Rotate(userId, laptop, CredentialVersionUnderTest, TestSession, ct);
 
         // Assert - the desktop's token is untouched and still works
-        var desktopResult = await store.Rotate(userId, desktop, ct);
+        var desktopResult = await store.Rotate(userId, desktop, CredentialVersionUnderTest, TestSession, ct);
         desktopResult.Outcome.Should().Be(RefreshRotationOutcome.Rotated);
     }
 
@@ -163,10 +173,10 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        await store.Issue(userId, TestSession, ct);
+        await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
-        var result = await store.Rotate(userId, "a-token-this-user-never-held", ct);
+        var result = await store.Rotate(userId, "a-token-this-user-never-held", CredentialVersionUnderTest, TestSession, ct);
 
         // Assert
         result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
@@ -183,10 +193,10 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         var userId = await SeedUser(ct);
 
         await using var context = _fixture.CreateContext();
-        var token = await CreateStore(context, Now).Issue(userId, TestSession, ct);
+        var token = await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
 
         // Act - eight days later, past the seven-day lifetime
-        var result = await CreateStore(context, Now.Plus(Duration.FromDays(8))).Rotate(userId, token, ct);
+        var result = await CreateStore(context, Now.Plus(Duration.FromDays(8))).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct);
 
         // Assert
         result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
@@ -202,12 +212,12 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        var laptop = await store.Issue(userId, TestSession, ct);
-        await store.Issue(userId, TestSession, ct);
-        await store.Rotate(userId, laptop, ct);
+        var laptop = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        await store.Rotate(userId, laptop, CredentialVersionUnderTest, TestSession, ct);
 
-        // Act - replay the token that rotation just superseded
-        var result = await store.Rotate(userId, laptop, ct);
+        // Act - replay the token that rotation superseded, after the retry grace
+        var result = await CreateStore(context, Now.Plus(Duration.FromMinutes(1))).Rotate(userId, laptop, CredentialVersionUnderTest, TestSession, ct);
 
         // Assert
         result.Outcome.Should().Be(RefreshRotationOutcome.ReuseDetected);
@@ -219,26 +229,244 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
     }
 
     [Fact]
-    public async Task Rotate_ShouldNotReportReuse_AfterTheDetectionWindowHasPassed()
+    public async Task Rotate_ShouldRevokeTheSession_WhenTheSupersededTokenIsReplayedLongAfter()
     {
-        // Past the window a superseded token is indistinguishable from any other stale value.
-
-        // Arrange
+        // Arrange — the second holder of a token is caught however long it waits
         var ct = TestContext.Current.CancellationToken;
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
 
         await using var context = _fixture.CreateContext();
-        var token = await CreateStore(context, Now).Issue(userId, TestSession, ct);
-        await CreateStore(context, Now).Rotate(userId, token, ct);
+        var token = await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        await CreateStore(context, Now).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct);
 
-        // Act - ten minutes later, past the five-minute window
-        var result = await CreateStore(context, Now.Plus(Duration.FromMinutes(10))).Rotate(userId, token, ct);
+        // Act — well past the replacement token's own seven-day expiry
+        var result = await CreateStore(context, Now.Plus(Duration.FromDays(20))).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct);
+
+        // Assert
+        result.Outcome.Should().Be(RefreshRotationOutcome.ReuseDetected);
+        (await context.UserRefreshTokens.AsNoTracking().SingleAsync(t => t.UserId == userId, ct)).RevokedReason
+            .Should().Be(UserRefreshTokenRevokeReasons.ReuseDetected);
+    }
+
+    [Fact]
+    public async Task Rotate_ShouldRefuseWithoutRevoking_WhenTheSupersededTokenIsRetriedWithinTheGrace()
+    {
+        // Arrange — two tabs refreshing with the same token at once
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+
+        await using var context = _fixture.CreateContext();
+        var token = await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        var rotated = await CreateStore(context, Now).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct);
+
+        // Act
+        var retry = await CreateStore(context, Now.Plus(Duration.FromSeconds(5))).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct);
+
+        // Assert
+        retry.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+        (await CreateStore(context, Now.Plus(Duration.FromSeconds(6))).Rotate(userId, rotated.Token!, CredentialVersionUnderTest, TestSession, ct)).Outcome
+            .Should().Be(RefreshRotationOutcome.Rotated, "the winning tab's token still works");
+    }
+
+    [Fact]
+    public async Task Rotate_ShouldRevokeTheSession_WhenTheSupersededTokenComesFromElsewhereWithinTheGrace()
+    {
+        // Arrange — a thief rotating just before the client's own refresh must not have the client's presentation read as a retry
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+
+        await using var context = _fixture.CreateContext();
+        var token = await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        await CreateStore(context, Now).Rotate(userId, token, CredentialVersionUnderTest, ElsewhereSession, ct);
+
+        // Act
+        var result = await CreateStore(context, Now.Plus(Duration.FromSeconds(5))).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct);
+
+        // Assert
+        result.Outcome.Should().Be(RefreshRotationOutcome.ReuseDetected);
+    }
+
+    [Fact]
+    public async Task Rotate_ShouldRefuse_ASessionPastAShortenedLifetime()
+    {
+        // Arrange — opened under a 30-day lifetime that has since been lowered to 10 days
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+
+        await using var context = _fixture.CreateContext();
+        var token = await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        token = (await CreateStore(context, Now.Plus(Duration.FromDays(6))).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct)).Token!;
+
+        // Act
+        var result = await CreateStore(context, Now.Plus(Duration.FromDays(11)), ConfigurationWith(sessionLifetimeInDays: 10))
+            .Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct);
+        var listed = await CreateStore(context, Now.Plus(Duration.FromDays(11)), ConfigurationWith(sessionLifetimeInDays: 10)).ListActive(userId, ct);
+
+        // Assert — the token's own expiry, day 13, has not passed: only the session's end refuses it
+        result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+        listed.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Rotate_ShouldRefuseTheLosingRotation_WhenTwoRotateTheSameTokenAtOnce()
+    {
+        // Arrange — the second request read the session before the first committed its rotation
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+
+        await using var first = _fixture.CreateContext();
+        await using var second = _fixture.CreateContext();
+        var token = await CreateStore(first, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        await second.UserRefreshTokens.Where(t => t.UserId == userId).ToListAsync(ct);
+        var winner = await CreateStore(first, Now).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct);
+
+        // Act
+        var loser = await CreateStore(second, Now).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct);
+
+        // Assert
+        loser.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+        await using var check = _fixture.CreateContext();
+        (await check.UserRefreshTokens.AsNoTracking().SingleAsync(t => t.UserId == userId, ct)).RevokedAt.Should().BeNull();
+        (await CreateStore(check, Now.Plus(Duration.FromMinutes(1))).Rotate(userId, winner.Token!, CredentialVersionUnderTest, TestSession, ct)).Outcome
+            .Should().Be(RefreshRotationOutcome.Rotated, "the winner's token is the one that counts");
+    }
+
+    [Fact]
+    public async Task RevokeAll_ShouldRevokeASessionThatWasRotatedAfterItWasRead()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+
+        await using var first = _fixture.CreateContext();
+        await using var second = _fixture.CreateContext();
+        var token = await CreateStore(first, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        await second.UserRefreshTokens.Where(t => t.UserId == userId).ToListAsync(ct);
+        await CreateStore(first, Now).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct);
+
+        // Act
+        await CreateStore(second, Now).RevokeAll(userId, UserRefreshTokenRevokeReasons.PasswordChanged, ct);
+
+        // Assert
+        await using var check = _fixture.CreateContext();
+        (await check.UserRefreshTokens.AsNoTracking().SingleAsync(t => t.UserId == userId, ct)).RevokedReason
+            .Should().Be(UserRefreshTokenRevokeReasons.PasswordChanged);
+    }
+
+    [Fact]
+    public async Task Revoke_ShouldRevokeASessionThatWasRotatedAfterItWasRead()
+    {
+        // Arrange — signing out on one tab while another refreshes
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+
+        await using var first = _fixture.CreateContext();
+        await using var second = _fixture.CreateContext();
+        var token = await CreateStore(first, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        var sessionId = (await second.UserRefreshTokens.Where(t => t.UserId == userId).ToListAsync(ct)).Single().Id;
+        await CreateStore(first, Now).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct);
+
+        // Act
+        var revoked = await CreateStore(second, Now).Revoke(userId, sessionId, UserRefreshTokenRevokeReasons.SignedOut, ct);
+
+        // Assert
+        revoked.Should().BeTrue();
+        await using var check = _fixture.CreateContext();
+        (await check.UserRefreshTokens.AsNoTracking().SingleAsync(t => t.Id == sessionId, ct)).RevokedReason
+            .Should().Be(UserRefreshTokenRevokeReasons.SignedOut);
+    }
+
+    [Fact]
+    public async Task Rotate_ShouldRefuseWithoutRevoking_ATokenTwoRotationsOld()
+    {
+        // Arrange — only the immediately superseded token is recognised; an older one gains nothing
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+
+        await using var context = _fixture.CreateContext();
+        var first = await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        var second = await CreateStore(context, Now).Rotate(userId, first, CredentialVersionUnderTest, TestSession, ct);
+        await CreateStore(context, Now.Plus(Duration.FromHours(1))).Rotate(userId, second.Token!, CredentialVersionUnderTest, TestSession, ct);
+
+        // Act
+        var result = await CreateStore(context, Now.Plus(Duration.FromHours(2))).Rotate(userId, first, CredentialVersionUnderTest, TestSession, ct);
 
         // Assert
         result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
-        (await context.UserRefreshTokens.CountAsync(t => t.UserId == userId && t.RevokedAt == null, ct))
-            .Should().Be(1, "a stale token outside the window must not revoke a live session");
+        (await context.UserRefreshTokens.CountAsync(t => t.UserId == userId && t.RevokedAt == null, ct)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Rotate_ShouldNotExtendASessionPastItsLifetime()
+    {
+        // Arrange — refreshed every six days, which would otherwise slide it forever
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+
+        await using var context = _fixture.CreateContext();
+        var token = await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        foreach (var day in new[] { 6, 12, 18, 24 })
+            token = (await CreateStore(context, Now.Plus(Duration.FromDays(day))).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct)).Token!;
+
+        // Act
+        var lastDay = await CreateStore(context, Now.Plus(Duration.FromDays(29))).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct);
+        var pastTheEnd = await CreateStore(context, Now.Plus(Duration.FromDays(30)).Plus(Duration.FromMinutes(1))).Rotate(userId, lastDay.Token!, CredentialVersionUnderTest, TestSession, ct);
+
+        // Assert
+        lastDay.Outcome.Should().Be(RefreshRotationOutcome.Rotated);
+        (await context.UserRefreshTokens.AsNoTracking().SingleAsync(t => t.UserId == userId, ct)).ExpiresAt
+            .Should().Be(Now.Plus(Duration.FromDays(30)), "a refresh extends the token only up to the session's end");
+        pastTheEnd.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+    }
+
+    [Fact]
+    public async Task Rotate_ShouldRevokeTheSession_WhenItWasOpenedUnderCredentialsThatHaveChanged()
+    {
+        // Arrange — a sign-in that checked a password the user has since replaced
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+
+        await using var context = _fixture.CreateContext();
+        var token = await CreateStore(context, Now).Issue(userId, "credential-version-before", TestSession, ct);
+
+        // Act
+        var result = await CreateStore(context, Now).Rotate(userId, token, "credential-version-after", TestSession, ct);
+
+        // Assert
+        result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+        (await context.UserRefreshTokens.AsNoTracking().SingleAsync(t => t.UserId == userId, ct)).RevokedReason
+            .Should().Be(UserRefreshTokenRevokeReasons.CredentialChanged);
+    }
+
+    [Fact]
+    public async Task Rotate_ShouldRotateASessionThatRecordsNoCredentialVersion()
+    {
+        // Arrange — opened before sessions recorded one
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var userId = await SeedUser(ct);
+
+        await using var context = _fixture.CreateContext();
+        var token = await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        await context.UserRefreshTokens.Where(t => t.UserId == userId)
+            .ExecuteUpdateAsync(t => t.SetProperty(x => x.CredentialVersion, (string?)null), ct);
+        context.ChangeTracker.Clear();
+
+        // Act
+        var result = await CreateStore(context, Now).Rotate(userId, token, "any-credential-version", TestSession, ct);
+
+        // Assert
+        result.Outcome.Should().Be(RefreshRotationOutcome.Rotated);
     }
 
     [Fact]
@@ -252,9 +480,9 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        await store.Issue(userId, TestSession, ct);
-        await store.Issue(userId, TestSession, ct);
-        var otherToken = await store.Issue(otherUserId, TestSession, ct);
+        await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        var otherToken = await store.Issue(otherUserId, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
         await store.RevokeAll(userId, UserRefreshTokenRevokeReasons.SignedOut, ct);
@@ -262,7 +490,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         // Assert
         (await context.UserRefreshTokens.CountAsync(t => t.UserId == userId && t.RevokedAt == null, ct))
             .Should().Be(0);
-        (await store.Rotate(otherUserId, otherToken, ct)).Outcome
+        (await store.Rotate(otherUserId, otherToken, CredentialVersionUnderTest, TestSession, ct)).Outcome
             .Should().Be(RefreshRotationOutcome.Rotated, "another user's sessions are untouched");
     }
 
@@ -279,15 +507,15 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        var original = await store.Issue(userId, TestSession, ct);
-        var rotated = await store.Rotate(userId, original, ct);
+        var original = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        var rotated = await store.Rotate(userId, original, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
         await store.RevokeAll(userId, UserRefreshTokenRevokeReasons.SignedOut, ct);
 
         // Assert
-        (await store.Rotate(userId, original, ct)).Outcome.Should().Be(RefreshRotationOutcome.NotFound);
-        (await store.Rotate(userId, rotated.Token!, ct)).Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+        (await store.Rotate(userId, original, CredentialVersionUnderTest, TestSession, ct)).Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+        (await store.Rotate(userId, rotated.Token!, CredentialVersionUnderTest, TestSession, ct)).Outcome.Should().Be(RefreshRotationOutcome.NotFound);
     }
 
     [Fact]
@@ -318,7 +546,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         // Act
         await using var context = _fixture.CreateContext();
-        await CreateStore(context, Now).Issue(userId, TestSession, ct);
+        await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
 
         // Assert
         var stored = await context.UserRefreshTokens.SingleAsync(t => t.UserId == userId, ct);
@@ -338,13 +566,13 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         // Act
         await using var context = _fixture.CreateContext();
-        var token = await CreateStore(context, Now).Issue(userId, SessionContext.None, ct);
+        var token = await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, SessionContext.None, ct);
 
         // Assert
         var stored = await context.UserRefreshTokens.SingleAsync(t => t.UserId == userId, ct);
         stored.DeviceLabel.Should().BeNull();
         stored.IpAddress.Should().BeNull();
-        (await CreateStore(context, Now).Rotate(userId, token, ct)).Outcome
+        (await CreateStore(context, Now).Rotate(userId, token, CredentialVersionUnderTest, TestSession, ct)).Outcome
             .Should().Be(RefreshRotationOutcome.Rotated);
     }
 
@@ -357,11 +585,11 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         var userId = await SeedUser(ct);
 
         await using var context = _fixture.CreateContext();
-        var older = await CreateStore(context, Now).Issue(userId, TestSession, ct);
-        await CreateStore(context, Now.Plus(Duration.FromMinutes(5))).Issue(userId, TestSession, ct);
+        var older = await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        await CreateStore(context, Now.Plus(Duration.FromMinutes(5))).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
 
         // Touch the older session so it becomes the most recently used.
-        await CreateStore(context, Now.Plus(Duration.FromMinutes(10))).Rotate(userId, older, ct);
+        await CreateStore(context, Now.Plus(Duration.FromMinutes(10))).Rotate(userId, older, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
         var sessions = await CreateStore(context, Now.Plus(Duration.FromMinutes(11))).ListActive(userId, ct);
@@ -381,8 +609,8 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        var live = await store.Issue(userId, TestSession, ct);
-        await store.Issue(userId, TestSession, ct);
+        var live = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
 
         var revokedId = await store.FindSessionId(userId, live, ct);
         await store.Revoke(userId, revokedId!.Value, UserRefreshTokenRevokeReasons.SignedOut, ct);
@@ -408,8 +636,8 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        var laptop = await store.Issue(userId, TestSession, ct);
-        var desktop = await store.Issue(userId, TestSession, ct);
+        var laptop = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        var desktop = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
         var laptopId = await store.FindSessionId(userId, laptop, ct);
@@ -432,7 +660,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        var othersToken = await store.Issue(otherUserId, TestSession, ct);
+        var othersToken = await store.Issue(otherUserId, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
         var found = await store.FindSessionId(userId, othersToken, ct);
@@ -451,8 +679,8 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        var laptop = await store.Issue(userId, TestSession, ct);
-        var desktop = await store.Issue(userId, TestSession, ct);
+        var laptop = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        var desktop = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
         var laptopId = await store.FindSessionId(userId, laptop, ct);
 
         // Act
@@ -460,8 +688,8 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         // Assert
         revoked.Should().BeTrue();
-        (await store.Rotate(userId, laptop, ct)).Outcome.Should().Be(RefreshRotationOutcome.NotFound);
-        (await store.Rotate(userId, desktop, ct)).Outcome.Should().Be(RefreshRotationOutcome.Rotated);
+        (await store.Rotate(userId, laptop, CredentialVersionUnderTest, TestSession, ct)).Outcome.Should().Be(RefreshRotationOutcome.NotFound);
+        (await store.Rotate(userId, desktop, CredentialVersionUnderTest, TestSession, ct)).Outcome.Should().Be(RefreshRotationOutcome.Rotated);
     }
 
     [Fact]
@@ -477,7 +705,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        var othersToken = await store.Issue(otherUserId, TestSession, ct);
+        var othersToken = await store.Issue(otherUserId, CredentialVersionUnderTest, TestSession, ct);
         var othersSessionId = await store.FindSessionId(otherUserId, othersToken, ct);
 
         // Act
@@ -485,7 +713,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         // Assert
         revoked.Should().BeFalse();
-        (await store.Rotate(otherUserId, othersToken, ct)).Outcome
+        (await store.Rotate(otherUserId, othersToken, CredentialVersionUnderTest, TestSession, ct)).Outcome
             .Should().Be(RefreshRotationOutcome.Rotated, "the other user's session is untouched");
     }
 
@@ -499,7 +727,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        var token = await store.Issue(userId, TestSession, ct);
+        var token = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
         var sessionId = await store.FindSessionId(userId, token, ct);
         await store.Revoke(userId, sessionId!.Value, UserRefreshTokenRevokeReasons.SignedOut, ct);
 
@@ -525,10 +753,10 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        var original = await store.Issue(userId, TestSession, ct);
+        var original = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
         var sessionId = await store.FindSessionId(userId, original, ct);
 
-        await store.Rotate(userId, original, ct);
+        await store.Rotate(userId, original, CredentialVersionUnderTest, TestSession, ct);
 
         // Act - the client still holds the pre-rotation value
         var found = await store.FindSessionId(userId, original, ct);
@@ -540,7 +768,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
     [Fact]
     public async Task FindSessionId_ShouldNotMatchASupersededTokenAfterTheWindow()
     {
-        // The grace above is bounded by the same window Rotate uses for reuse detection.
+        // The grace above is bounded by the same retry grace Rotate uses.
 
         // Arrange
         var ct = TestContext.Current.CancellationToken;
@@ -548,11 +776,11 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         var userId = await SeedUser(ct);
 
         await using var context = _fixture.CreateContext();
-        var original = await CreateStore(context, Now).Issue(userId, TestSession, ct);
-        await CreateStore(context, Now).Rotate(userId, original, ct);
+        var original = await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        await CreateStore(context, Now).Rotate(userId, original, CredentialVersionUnderTest, TestSession, ct);
 
-        // Act - ten minutes later, past the five-minute window
-        var found = await CreateStore(context, Now.Plus(Duration.FromMinutes(10)))
+        // Act - just past the ten-second retry grace
+        var found = await CreateStore(context, Now.Plus(Duration.FromSeconds(11)))
             .FindSessionId(userId, original, ct);
 
         // Assert
@@ -571,9 +799,9 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         var store = CreateStore(context, Now);
-        var original = await store.Issue(userId, TestSession, ct);
+        var original = await store.Issue(userId, CredentialVersionUnderTest, TestSession, ct);
         var sessionId = await store.FindSessionId(userId, original, ct);
-        await store.Rotate(userId, original, ct);
+        await store.Rotate(userId, original, CredentialVersionUnderTest, TestSession, ct);
         await store.Revoke(userId, sessionId!.Value, UserRefreshTokenRevokeReasons.SignedOut, ct);
 
         // Act
@@ -585,7 +813,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
     private const string ClientId = "https://client.acme.example/oauth/client-metadata.json";
 
-    private static Task<bool> AnyUser(string userId, CancellationToken cancellationToken) => Task.FromResult(true);
+    private static Task<string?> AnyUser(string userId, CancellationToken cancellationToken) => Task.FromResult<string?>(CredentialVersionUnderTest);
 
     [Fact]
     public async Task RotateForClient_ShouldLeaveTheSessionUntouched_WhenItsUserMayNotRefresh()
@@ -595,12 +823,12 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, CredentialVersionUnderTest, TestSession, ct);
         string? askedAbout = null;
 
         // Act
         var refused = await CreateStore(context, Now.Plus(Duration.FromHours(1))).RotateForClient(
-            ClientId, session.Token, (id, _) => { askedAbout = id; return Task.FromResult(false); }, ct);
+            ClientId, session.Token, (id, _) => { askedAbout = id; return Task.FromResult<string?>(null); }, TestSession, ct);
 
         // Assert
         refused.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
@@ -608,7 +836,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         var stored = await context.UserRefreshTokens.AsNoTracking().SingleAsync(t => t.Id == session.SessionId, ct);
         stored.LastUsedAt.Should().Be(Now);
         stored.RevokedAt.Should().BeNull();
-        (await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct)).Outcome.Should().Be(RefreshRotationOutcome.Rotated);
+        (await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, TestSession, ct)).Outcome.Should().Be(RefreshRotationOutcome.Rotated);
     }
 
     [Theory]
@@ -621,11 +849,11 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", scope, TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", scope, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
         await using var later = _fixture.CreateContext();
-        var rotated = await CreateStore(later, Now.Plus(Duration.FromHours(1))).RotateForClient(ClientId, session.Token, AnyUser, ct);
+        var rotated = await CreateStore(later, Now.Plus(Duration.FromHours(1))).RotateForClient(ClientId, session.Token, AnyUser, TestSession, ct);
 
         // Assert
         rotated.Outcome.Should().Be(RefreshRotationOutcome.Rotated);
@@ -641,10 +869,10 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
-        var result = await CreateStore(context, Now).RotateForClient(ClientId.ToUpperInvariant(), session.Token, AnyUser, ct);
+        var result = await CreateStore(context, Now).RotateForClient(ClientId.ToUpperInvariant(), session.Token, AnyUser, TestSession, ct);
 
         // Assert
         result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
@@ -659,10 +887,10 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
         var sessionId = Guid.NewGuid();
-        var session = await CreateStore(context, Now).IssueForClient(sessionId, userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(sessionId, userId, ClientId, "Acme Agent", TokenScope.Write, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
-        var result = await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct);
+        var result = await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, TestSession, ct);
 
         // Assert
         session.SessionId.Should().Be(sessionId);
@@ -679,7 +907,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
 
         // Act
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, CredentialVersionUnderTest, TestSession, ct);
 
         // Assert
         var stored = await context.UserRefreshTokens.SingleAsync(t => t.UserId == userId, ct);
@@ -699,14 +927,14 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var first = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
+        var first = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
-        await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
+        await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, CredentialVersionUnderTest, TestSession, ct);
 
         // Assert
         (await context.UserRefreshTokens.CountAsync(t => t.UserId == userId && t.RevokedAt == null, ct)).Should().Be(2);
-        (await CreateStore(context, Now).RotateForClient(ClientId, first.Token, AnyUser, ct)).Outcome.Should().Be(RefreshRotationOutcome.Rotated);
+        (await CreateStore(context, Now).RotateForClient(ClientId, first.Token, AnyUser, TestSession, ct)).Outcome.Should().Be(RefreshRotationOutcome.Rotated);
     }
 
     [Fact]
@@ -717,10 +945,10 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
-        var result = await CreateStore(context, Now.Plus(Duration.FromHours(1))).RotateForClient(ClientId, session.Token, AnyUser, ct);
+        var result = await CreateStore(context, Now.Plus(Duration.FromHours(1))).RotateForClient(ClientId, session.Token, AnyUser, TestSession, ct);
 
         // Assert
         result.Outcome.Should().Be(RefreshRotationOutcome.Rotated);
@@ -739,14 +967,14 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
-        var result = await CreateStore(context, Now).RotateForClient("https://other.acme.example/client.json", session.Token, AnyUser, ct);
+        var result = await CreateStore(context, Now).RotateForClient("https://other.acme.example/client.json", session.Token, AnyUser, TestSession, ct);
 
         // Assert
         result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
-        (await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct)).Outcome
+        (await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, TestSession, ct)).Outcome
             .Should().Be(RefreshRotationOutcome.Rotated, "the rightful client's token must still work");
     }
 
@@ -761,7 +989,7 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await using var context = _fixture.CreateContext();
 
         // Act
-        var result = await CreateStore(context, Now).RotateForClient(ClientId, token, AnyUser, ct);
+        var result = await CreateStore(context, Now).RotateForClient(ClientId, token, AnyUser, TestSession, ct);
 
         // Assert
         result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
@@ -776,10 +1004,10 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
-        var result = await CreateStore(context, Now).RotateForClient(ClientId, $"{session.SessionId:N}.guessed", AnyUser, ct);
+        var result = await CreateStore(context, Now).RotateForClient(ClientId, $"{session.SessionId:N}.guessed", AnyUser, TestSession, ct);
 
         // Assert
         result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
@@ -793,17 +1021,17 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
-        var rotated = await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, CredentialVersionUnderTest, TestSession, ct);
+        var rotated = await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, TestSession, ct);
 
-        // Act
-        var result = await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct);
+        // Act — after the retry grace
+        var result = await CreateStore(context, Now.Plus(Duration.FromMinutes(1))).RotateForClient(ClientId, session.Token, AnyUser, TestSession, ct);
 
         // Assert
         result.Outcome.Should().Be(RefreshRotationOutcome.ReuseDetected);
         var stored = await context.UserRefreshTokens.SingleAsync(t => t.Id == session.SessionId, ct);
         stored.RevokedReason.Should().Be(UserRefreshTokenRevokeReasons.ReuseDetected);
-        (await CreateStore(context, Now).RotateForClient(ClientId, rotated.Token!, AnyUser, ct)).Outcome
+        (await CreateStore(context, Now).RotateForClient(ClientId, rotated.Token!, AnyUser, TestSession, ct)).Outcome
             .Should().Be(RefreshRotationOutcome.NotFound, "the replacement dies with the session");
     }
 
@@ -815,14 +1043,14 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
-        var result = await CreateStore(context, Now).Rotate(userId, session.Token, ct);
+        var result = await CreateStore(context, Now).Rotate(userId, session.Token, CredentialVersionUnderTest, TestSession, ct);
 
         // Assert
         result.Outcome.Should().Be(RefreshRotationOutcome.NotFound);
-        (await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, ct)).Outcome.Should().Be(RefreshRotationOutcome.Rotated);
+        (await CreateStore(context, Now).RotateForClient(ClientId, session.Token, AnyUser, TestSession, ct)).Outcome.Should().Be(RefreshRotationOutcome.Rotated);
     }
 
     [Fact]
@@ -833,8 +1061,8 @@ public sealed class RefreshTokenStoreTests(SqlServerDbContextFixture fixture)
         await _fixture.ResetIdentityData(ct);
         var userId = await SeedUser(ct);
         await using var context = _fixture.CreateContext();
-        await CreateStore(context, Now).Issue(userId, TestSession, ct);
-        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, TestSession, ct);
+        await CreateStore(context, Now).Issue(userId, CredentialVersionUnderTest, TestSession, ct);
+        var session = await CreateStore(context, Now).IssueForClient(Guid.NewGuid(), userId, ClientId, "Acme Agent", TokenScope.Write, CredentialVersionUnderTest, TestSession, ct);
 
         // Act
         var sessions = await CreateStore(context, Now).ListActive(userId, ct);

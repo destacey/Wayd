@@ -123,7 +123,7 @@ internal class TokenService(
             throw new UnauthorizedException("User account is inactive.");
         }
 
-        var rotation = await _refreshTokenStore.Rotate(user.Id, command.RefreshToken, cancellationToken);
+        var rotation = await _refreshTokenStore.Rotate(user.Id, command.RefreshToken, CredentialVersion.Of(user.SecurityStamp), _sessionContext.Current, cancellationToken);
         if (rotation.Outcome is not RefreshRotationOutcome.Rotated)
         {
             // Reuse is reported identically to an ordinary miss. Saying "this token was
@@ -288,8 +288,10 @@ internal class TokenService(
         var permissions = await _userService.GetPermissionsAsync(user.Id, cancellationToken);
 
         // A fresh sign-in opens its own session rather than replacing whatever else the user
-        // has open, so signing in on a second device leaves the first one working.
-        var refreshToken = await _refreshTokenStore.Issue(user.Id, _sessionContext.Current, cancellationToken);
+        // has open, so signing in on a second device leaves the first one working. The
+        // credential version comes from the copy of the user the sign-in checked, so a password
+        // changed while it ran leaves the session it opens unusable.
+        var refreshToken = await _refreshTokenStore.Issue(user.Id, CredentialVersion.Of(user.SecurityStamp), _sessionContext.Current, cancellationToken);
 
         return BuildResponse(user, permissions, settings, refreshToken);
     }
@@ -334,6 +336,7 @@ internal class TokenService(
             // forced-password-change flow. Without it, authMethod is null for
             // every session and those branches silently disable themselves.
             new("loginProvider", user.LoginProvider),
+            new(CredentialVersion.ClaimType, CredentialVersion.Of(user.SecurityStamp)),
         };
 
         if (user.EmployeeId.HasValue)

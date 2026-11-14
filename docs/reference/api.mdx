@@ -126,7 +126,7 @@ Returns `204`, or `404` when the id is not one of the caller's live sessions.
 All four endpoints require authentication and act only on the calling user — no user id is read from the request.
 
 :::note
-Revoking a session stops it refreshing, but that device's existing JWT stays valid until it expires (`TokenExpirationInMinutes`, 60 by default). Revocation is not instant.
+Revoking a session stops it refreshing, but that device's existing JWT stays valid until it expires (`TokenExpirationInMinutes`, 60 by default). Revocation is not instant. A password change or reset, and deactivating the user, do stop every existing JWT at once.
 
 Personal access tokens are **not** sessions and are unaffected by sign-out. Revoke them separately.
 :::

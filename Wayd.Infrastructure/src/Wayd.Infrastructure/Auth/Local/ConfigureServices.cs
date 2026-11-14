@@ -118,19 +118,30 @@ internal static class ConfigureServices
     }
 
     /// <summary>
-    /// Refuses a token whose user has been deactivated since it was issued. The token is self-contained and lives for
-    /// <see cref="LocalJwtSettings.TokenExpirationInMinutes"/>; without this, endpoints gated by sign-in or by a
-    /// relationship rather than a permission would go on serving a deactivated user until it expired. One lookup by
-    /// primary key per request.
+    /// Refuses a token whose user has been deactivated, or whose credentials have changed, since it was issued. The
+    /// token is self-contained and lives for <see cref="LocalJwtSettings.TokenExpirationInMinutes"/>; without this,
+    /// a deactivated user, or whoever held the token before a password change, would go on being served until it
+    /// expired. One lookup by primary key per request.
     /// </summary>
     private static async Task RequireActiveUser(TokenValidatedContext context)
     {
         var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
-        var active = userId is not null && await context.HttpContext.RequestServices.GetRequiredService<WaydDbContext>().Users
+        var issuedUnder = context.Principal?.FindFirstValue(CredentialVersion.ClaimType);
+        if (userId is null || issuedUnder is null)
+        {
+            context.Fail("The token names no user or credential version.");
+            return;
+        }
+
+        var user = await context.HttpContext.RequestServices.GetRequiredService<WaydDbContext>().Users
             .AsNoTracking()
-            .AnyAsync(u => u.Id == userId && u.IsActive, context.HttpContext.RequestAborted);
-        if (!active)
+            .Where(u => u.Id == userId)
+            .Select(u => new { u.IsActive, u.SecurityStamp })
+            .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
+        if (user is not { IsActive: true })
             context.Fail("The token's user is not active.");
+        else if (CredentialVersion.Of(user.SecurityStamp) != issuedUnder)
+            context.Fail("The token was issued before the user's credentials changed.");
     }
 
     internal static SymmetricSecurityKey CreateSigningKey(string secret)

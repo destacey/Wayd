@@ -321,7 +321,7 @@ internal sealed class AuthorizationServer(
         try
         {
             // The store's save commits the authorization's changes with the new session.
-            session = await _refreshTokenStore.IssueForClient(sessionId, user!.Id, clientId, authorization.ClientName, scope, _sessionContext.Current, cancellationToken);
+            session = await _refreshTokenStore.IssueForClient(sessionId, user!.Id, clientId, authorization.ClientName, scope, CredentialVersion.Of(user.SecurityStamp), _sessionContext.Current, cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -375,7 +375,8 @@ internal sealed class AuthorizationServer(
         var rotation = await _refreshTokenStore.RotateForClient(
             clientId,
             refreshToken,
-            async (userId, ct) => await FindUsableUser(userId, ct) is not null,
+            async (userId, ct) => await FindUsableUser(userId, ct) is { } user ? CredentialVersion.Of(user.SecurityStamp) : null,
+            _sessionContext.Current,
             cancellationToken);
         if (rotation.Outcome is not RefreshRotationOutcome.Rotated)
             return Refused("invalid_grant", "The refresh token is invalid or expired, or its user can no longer sign in.");

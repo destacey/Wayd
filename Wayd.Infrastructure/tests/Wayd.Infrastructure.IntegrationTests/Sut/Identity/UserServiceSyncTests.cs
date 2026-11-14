@@ -106,7 +106,7 @@ public sealed class UserServiceSyncTests(SqlServerDbContextFixture fixture)
         var clock = new Mock<IDateTimeProvider>();
         clock.SetupGet(d => d.Now).Returns(Now);
         var store = new RefreshTokenStore(context, clock.Object, new ConfigurationBuilder().Build(), NullLogger<RefreshTokenStore>.Instance);
-        var token = await store.Issue(userId, SessionContext.None, cancellationToken);
+        var token = await store.Issue(userId, "credential-version-1", SessionContext.None, cancellationToken);
         return (await store.FindSessionId(userId, token, cancellationToken))!.Value;
     }
 

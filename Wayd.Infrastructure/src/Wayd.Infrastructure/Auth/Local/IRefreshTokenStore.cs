@@ -11,13 +11,21 @@ internal interface IRefreshTokenStore : IScopedService
     /// Starts a new session and returns its plaintext token. The token is returned here and
     /// nowhere else — only its hash is stored.
     /// </summary>
-    Task<string> Issue(string userId, SessionContext context, CancellationToken cancellationToken);
+    /// <param name="userId">The user who signed in.</param>
+    /// <param name="credentialVersion">
+    /// The user's <c>CredentialVersion</c> as the sign-in found it, read from the same copy of the user whose password
+    /// it checked, so a password changed while the sign-in ran leaves the session unusable.
+    /// </param>
+    /// <param name="context">The request that signed in.</param>
+    /// <param name="cancellationToken">Cancels the save.</param>
+    Task<string> Issue(string userId, string credentialVersion, SessionContext context, CancellationToken cancellationToken);
 
     /// <summary>
     /// Verifies a presented token for the user and, on success, rotates it — returning the
-    /// replacement. The outcome distinguishes an ordinary miss from detected reuse.
+    /// replacement. The outcome distinguishes an ordinary miss from detected reuse. A session past its lifetime, or
+    /// opened under a credential version other than <paramref name="credentialVersion"/>, is not rotated.
     /// </summary>
-    Task<RefreshRotationResult> Rotate(string userId, string presentedToken, CancellationToken cancellationToken);
+    Task<RefreshRotationResult> Rotate(string userId, string presentedToken, string credentialVersion, SessionContext context, CancellationToken cancellationToken);
 
     /// <summary>
     /// Starts a session for an OAuth client acting for the user, and returns it with its plaintext token. Each
@@ -28,20 +36,23 @@ internal interface IRefreshTokenStore : IScopedService
     /// <param name="clientId">The client's <c>client_id</c>; only that client may refresh the session.</param>
     /// <param name="clientName">The client's cleaned display name, shown in the user's sessions list.</param>
     /// <param name="scope">The scope the user granted the client, which every access token from the session carries.</param>
+    /// <param name="credentialVersion">The user's <c>CredentialVersion</c> when the code was redeemed.</param>
     /// <param name="context">The request that redeemed the authorization code.</param>
     /// <param name="cancellationToken">Cancels the save.</param>
     /// <remarks>Its save commits whatever else the context is tracking, together with the session.</remarks>
-    Task<ClientSession> IssueForClient(Guid sessionId, string userId, string clientId, string clientName, TokenScope scope, SessionContext context, CancellationToken cancellationToken);
+    Task<ClientSession> IssueForClient(Guid sessionId, string userId, string clientId, string clientName, TokenScope scope, string credentialVersion, SessionContext context, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Verifies a refresh token presented by <paramref name="clientId"/> and, when <paramref name="mayRefresh"/>
-    /// allows the session's user, rotates it. Reuse of a superseded token revokes the session, as <see cref="Rotate"/>
-    /// does. A refused user leaves the session untouched, so the token works again once they may sign in.
+    /// Verifies a refresh token presented by <paramref name="clientId"/> and rotates it, on the same terms as
+    /// <see cref="Rotate"/>. <paramref name="credentialVersionOf"/> answers the session's user's credential version,
+    /// or null when that user may not refresh; a refused user leaves the session untouched, so the token works again
+    /// once they may sign in.
     /// </summary>
     Task<ClientRotationResult> RotateForClient(
         string clientId,
         string presentedToken,
-        Func<string, CancellationToken, Task<bool>> mayRefresh,
+        Func<string, CancellationToken, Task<string?>> credentialVersionOf,
+        SessionContext context,
         CancellationToken cancellationToken);
 
     /// <summary>Live sessions for the user, newest first.</summary>

@@ -144,7 +144,7 @@ public sealed class UserServiceSessionTests(SqlServerDbContextFixture fixture)
 
         await using var context = _fixture.CreateContext();
         await new RefreshTokenStore(context, Clock(), new ConfigurationBuilder().Build(), NullLogger<RefreshTokenStore>.Instance)
-            .Issue(UserId, SessionContext.None, cancellationToken);
+            .Issue(UserId, "credential-version-1", SessionContext.None, cancellationToken);
 
         return provider;
     }
@@ -198,12 +198,12 @@ public sealed class UserServiceSessionTests(SqlServerDbContextFixture fixture)
         public Task RevokeAll(string userId, string reason, CancellationToken cancellationToken) =>
             throw new InvalidOperationException("Revocation failed.");
 
-        public Task<string> Issue(string userId, SessionContext context, CancellationToken cancellationToken) => inner.Issue(userId, context, cancellationToken);
-        public Task<RefreshRotationResult> Rotate(string userId, string presentedToken, CancellationToken cancellationToken) => inner.Rotate(userId, presentedToken, cancellationToken);
-        public Task<ClientSession> IssueForClient(Guid sessionId, string userId, string clientId, string clientName, TokenScope scope, SessionContext context, CancellationToken cancellationToken) =>
-            inner.IssueForClient(sessionId, userId, clientId, clientName, scope, context, cancellationToken);
-        public Task<ClientRotationResult> RotateForClient(string clientId, string presentedToken, Func<string, CancellationToken, Task<bool>> mayRefresh, CancellationToken cancellationToken) =>
-            inner.RotateForClient(clientId, presentedToken, mayRefresh, cancellationToken);
+        public Task<string> Issue(string userId, string credentialVersion, SessionContext context, CancellationToken cancellationToken) => inner.Issue(userId, credentialVersion, context, cancellationToken);
+        public Task<RefreshRotationResult> Rotate(string userId, string presentedToken, string credentialVersion, SessionContext context, CancellationToken cancellationToken) => inner.Rotate(userId, presentedToken, credentialVersion, context, cancellationToken);
+        public Task<ClientSession> IssueForClient(Guid sessionId, string userId, string clientId, string clientName, TokenScope scope, string credentialVersion, SessionContext context, CancellationToken cancellationToken) =>
+            inner.IssueForClient(sessionId, userId, clientId, clientName, scope, credentialVersion, context, cancellationToken);
+        public Task<ClientRotationResult> RotateForClient(string clientId, string presentedToken, Func<string, CancellationToken, Task<string?>> credentialVersionOf, SessionContext context, CancellationToken cancellationToken) =>
+            inner.RotateForClient(clientId, presentedToken, credentialVersionOf, context, cancellationToken);
         public Task<IReadOnlyList<UserRefreshToken>> ListActive(string userId, CancellationToken cancellationToken) => inner.ListActive(userId, cancellationToken);
         public Task<Guid?> FindSessionId(string userId, string presentedToken, CancellationToken cancellationToken) => inner.FindSessionId(userId, presentedToken, cancellationToken);
         public Task<bool> Revoke(string userId, Guid sessionId, string reason, CancellationToken cancellationToken) => inner.Revoke(userId, sessionId, reason, cancellationToken);

@@ -122,6 +122,108 @@ public sealed record IncidentDto
     /// The add control is hidden when this is false. This is not stored on the incident.
     /// </summary>
     public bool TeamsConnectorConfigured { get; init; }
+
+    /// <summary>
+    /// How long the noticed, response, and recovery stretches took. A stretch that has not started is null.
+    /// </summary>
+    public IncidentDurationsDto Durations { get; init; } = new();
+}
+
+/// <summary>
+/// Durations read from noticed, response started, and recovered. Null is a stretch that has not started.
+/// </summary>
+public sealed record IncidentDurationsDto
+{
+    /// <summary>Milliseconds from noticed until response started. Null until response has started.</summary>
+    public long? NoticedToResponseStartedMilliseconds { get; init; }
+
+    /// <summary>
+    /// Milliseconds from response started until recovered. Null until both are recorded, and null when
+    /// the incident is canceled.
+    /// </summary>
+    public long? ResponseToRecoveredMilliseconds { get; init; }
+
+    /// <summary>
+    /// Milliseconds from noticed until recovered, or until now while the incident is still active.
+    /// Null when that stretch has no end.
+    /// </summary>
+    public long? ActiveMilliseconds { get; init; }
+}
+
+/// <summary>The active incident that has been open the longest.</summary>
+public sealed record LongestActiveIncidentDto
+{
+    /// <summary>Incident key. The record is addressed by this key.</summary>
+    public int Key { get; init; }
+
+    /// <summary>Incident title.</summary>
+    public string Title { get; init; } = string.Empty;
+
+    /// <summary>Milliseconds from noticed until now.</summary>
+    public long ActiveMilliseconds { get; init; }
+}
+
+/// <summary>
+/// One page of incidents, plus the figures for every incident matching the same filters.
+/// </summary>
+public sealed record IncidentListDto
+{
+    /// <summary>A page of incidents and the figures for the filtered set those rows were drawn from.</summary>
+    public IncidentListDto(
+        List<IncidentSummaryDto> items,
+        int totalCount,
+        int pageNumber,
+        int pageSize,
+        int activeCount,
+        LongestActiveIncidentDto? longestActive,
+        long? meanTimeToRecoverMilliseconds)
+    {
+        Items = items;
+        TotalCount = totalCount;
+        PageNumber = pageNumber;
+        PageSize = pageSize;
+        TotalPages = pageSize > 0 ? (int)Math.Ceiling(totalCount / (double)pageSize) : 0;
+        ActiveCount = activeCount;
+        LongestActive = longestActive;
+        MeanTimeToRecoverMilliseconds = meanTimeToRecoverMilliseconds;
+    }
+
+    /// <summary>The incidents on this page.</summary>
+    public List<IncidentSummaryDto> Items { get; init; }
+
+    /// <summary>The page number, starting at 1.</summary>
+    public int PageNumber { get; init; }
+
+    /// <summary>How many incidents this page holds.</summary>
+    public int PageSize { get; init; }
+
+    /// <summary>How many incidents match the filters, across every page.</summary>
+    public int TotalCount { get; init; }
+
+    /// <summary>How many pages the filtered set fills.</summary>
+    public int TotalPages { get; init; }
+
+    /// <summary>True when a page before this one exists.</summary>
+    public bool HasPreviousPage => PageNumber > 1;
+
+    /// <summary>True when a page after this one exists.</summary>
+    public bool HasNextPage => PageNumber < TotalPages;
+
+    /// <summary>
+    /// Incidents that are not Closed or Canceled, and whose status category is not Done or Removed.
+    /// </summary>
+    public int ActiveCount { get; init; }
+
+    /// <summary>
+    /// The active incident open longest, from noticed until now. Null when none are active.
+    /// </summary>
+    public LongestActiveIncidentDto? LongestActive { get; init; }
+
+    /// <summary>
+    /// Mean milliseconds from noticed to recovered for closed incidents. Open and canceled incidents
+    /// are excluded. Null when no closed incident has a recovery time.
+    /// </summary>
+    public long? MeanTimeToRecoverMilliseconds { get; init; }
 }
 
 /// <summary>One commander-authored entry on an incident timeline.</summary>
@@ -214,6 +316,7 @@ internal static class IncidentProjections
         IncidentSeverityLevel level,
         IReadOnlyList<Product> products,
         IReadOnlyList<Release> releases,
+        IncidentDurations.Stretches durations,
         bool teamsConnectorConfigured = false) =>
         new()
         {
@@ -239,5 +342,11 @@ internal static class IncidentProjections
             TeamsChatLink = incident.TeamsChat?.Link,
             TeamsChatCreatedByWayd = incident.TeamsChat?.CreatedByWayd ?? false,
             TeamsConnectorConfigured = teamsConnectorConfigured,
+            Durations = new IncidentDurationsDto
+            {
+                NoticedToResponseStartedMilliseconds = IncidentDurations.Milliseconds(durations.NoticedToResponseStarted),
+                ResponseToRecoveredMilliseconds = IncidentDurations.Milliseconds(durations.ResponseToRecovered),
+                ActiveMilliseconds = IncidentDurations.Milliseconds(durations.Active),
+            },
         };
 }

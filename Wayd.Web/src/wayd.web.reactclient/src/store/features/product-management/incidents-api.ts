@@ -5,8 +5,8 @@ import type {
   CreateIncidentRequest,
   IncidentDto,
   ManageIncidentWorkItemsRequest,
+  IncidentListDto,
   ObjectIdAndKey,
-  PagedResponseOfIncidentSummaryDto,
   CreateIncidentTeamsChatRequest,
   LinkIncidentTeamsChatRequest,
   UpdateIncidentDetailsRequest,
@@ -30,7 +30,7 @@ export interface GetIncidentsRequest {
 export const incidentsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getIncidents: builder.query<
-      PagedResponseOfIncidentSummaryDto,
+      IncidentListDto,
       GetIncidentsRequest | undefined
     >({
       queryFn: async (args) => {

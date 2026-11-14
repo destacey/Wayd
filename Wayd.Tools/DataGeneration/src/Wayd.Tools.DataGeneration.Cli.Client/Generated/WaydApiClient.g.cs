@@ -27331,9 +27331,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// List incidents, highest key first.
         /// </summary>
+        /// <remarks>
+        /// The page is one slice. The active count, the longest active incident, and the mean time to recover describe every incident matching the state and severity filters, including rows on other pages.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PagedResponseOfIncidentSummaryDto> GetIncidentsAsync(int? page = null, int? pageSize = null, System.Collections.Generic.IEnumerable<ProductStatusAlias>? status = null, System.Collections.Generic.IEnumerable<System.Guid>? severityLevelId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<IncidentListDto> GetIncidentsAsync(int? page = null, int? pageSize = null, System.Collections.Generic.IEnumerable<ProductStatusAlias>? status = null, System.Collections.Generic.IEnumerable<System.Guid>? severityLevelId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -27508,9 +27511,12 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// List incidents, highest key first.
         /// </summary>
+        /// <remarks>
+        /// The page is one slice. The active count, the longest active incident, and the mean time to recover describe every incident matching the state and severity filters, including rows on other pages.
+        /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<PagedResponseOfIncidentSummaryDto> GetIncidentsAsync(int? page = null, int? pageSize = null, System.Collections.Generic.IEnumerable<ProductStatusAlias>? status = null, System.Collections.Generic.IEnumerable<System.Guid>? severityLevelId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<IncidentListDto> GetIncidentsAsync(int? page = null, int? pageSize = null, System.Collections.Generic.IEnumerable<ProductStatusAlias>? status = null, System.Collections.Generic.IEnumerable<System.Guid>? severityLevelId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -27569,7 +27575,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                         var status_ = (int)response_.StatusCode;
                         if (status_ == 200)
                         {
-                            var objectResponse_ = await ReadObjectResponseAsync<PagedResponseOfIncidentSummaryDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            var objectResponse_ = await ReadObjectResponseAsync<IncidentListDto>(response_, headers_, cancellationToken).ConfigureAwait(false);
                             if (objectResponse_.Object == null)
                             {
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
@@ -128981,6 +128987,113 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("teamsConnectorConfigured")]
         public bool TeamsConnectorConfigured { get; set; } = default!;
 
+        /// <summary>
+        /// How long the noticed, response, and recovery stretches took. A stretch that has not started is null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("durations")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public IncidentDurationsDto Durations { get; set; } = new IncidentDurationsDto();
+
+    }
+
+    /// <summary>
+    /// Durations read from noticed, response started, and recovered. Null is a stretch that has not started.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IncidentDurationsDto
+    {
+
+        /// <summary>
+        /// Milliseconds from noticed until response started. Null until response has started.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("noticedToResponseStartedMilliseconds")]
+        public long? NoticedToResponseStartedMilliseconds { get; set; } = default!;
+
+        /// <summary>
+        /// Milliseconds from response started until recovered. Null until both are recorded, and null when
+        /// <br/>the incident is canceled.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("responseToRecoveredMilliseconds")]
+        public long? ResponseToRecoveredMilliseconds { get; set; } = default!;
+
+        /// <summary>
+        /// Milliseconds from noticed until recovered, or until now while the incident is still active.
+        /// <br/>Null when that stretch has no end.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeMilliseconds")]
+        public long? ActiveMilliseconds { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One page of incidents, plus the figures for every incident matching the same filters.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class IncidentListDto
+    {
+
+        /// <summary>
+        /// The incidents on this page.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("items")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<IncidentSummaryDto> Items { get; set; } = new System.Collections.ObjectModel.Collection<IncidentSummaryDto>();
+
+        /// <summary>
+        /// The page number, starting at 1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
+        public int PageNumber { get; set; } = default!;
+
+        /// <summary>
+        /// How many incidents this page holds.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
+        public int PageSize { get; set; } = default!;
+
+        /// <summary>
+        /// How many incidents match the filters, across every page.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("totalCount")]
+        public int TotalCount { get; set; } = default!;
+
+        /// <summary>
+        /// How many pages the filtered set fills.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("totalPages")]
+        public int TotalPages { get; set; } = default!;
+
+        /// <summary>
+        /// True when a page before this one exists.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hasPreviousPage")]
+        public bool HasPreviousPage { get; set; } = default!;
+
+        /// <summary>
+        /// True when a page after this one exists.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hasNextPage")]
+        public bool HasNextPage { get; set; } = default!;
+
+        /// <summary>
+        /// Incidents that are not Closed or Canceled, and whose status category is not Done or Removed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeCount")]
+        public int ActiveCount { get; set; } = default!;
+
+        /// <summary>
+        /// The active incident open longest, from noticed until now. Null when none are active.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("longestActive")]
+        public LongestActiveIncidentDto? LongestActive { get; set; } = default!;
+
+        /// <summary>
+        /// Mean milliseconds from noticed to recovered for closed incidents. Open and canceled incidents
+        /// <br/>are excluded. Null when no closed incident has a recovery time.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("meanTimeToRecoverMilliseconds")]
+        public long? MeanTimeToRecoverMilliseconds { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -132039,6 +132152,34 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
+    /// The active incident that has been open the longest.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class LongestActiveIncidentDto
+    {
+
+        /// <summary>
+        /// Incident key. The record is addressed by this key.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key")]
+        public int Key { get; set; } = default!;
+
+        /// <summary>
+        /// Incident title.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Title { get; set; } = default!;
+
+        /// <summary>
+        /// Milliseconds from noticed until now.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("activeMilliseconds")]
+        public long ActiveMilliseconds { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Replaces every work item linked to an incident.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
@@ -134297,37 +134438,6 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("items")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<ImportProcessRowDto> Items { get; set; } = new System.Collections.ObjectModel.Collection<ImportProcessRowDto>();
-
-        [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
-        public int PageNumber { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("pageSize")]
-        public int PageSize { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("totalCount")]
-        public int TotalCount { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("totalPages")]
-        public int TotalPages { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("hasPreviousPage")]
-        public bool HasPreviousPage { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("hasNextPage")]
-        public bool HasNextPage { get; set; } = default!;
-
-    }
-
-    /// <summary>
-    /// One page of results, with the paging position and the total across all pages.
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
-    public partial class PagedResponseOfIncidentSummaryDto
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("items")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public System.Collections.Generic.ICollection<IncidentSummaryDto> Items { get; set; } = new System.Collections.ObjectModel.Collection<IncidentSummaryDto>();
 
         [System.Text.Json.Serialization.JsonPropertyName("pageNumber")]
         public int PageNumber { get; set; } = default!;

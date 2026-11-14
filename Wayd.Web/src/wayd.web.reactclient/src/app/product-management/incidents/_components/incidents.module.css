@@ -4,6 +4,10 @@
   gap: 16px;
 }
 
+.figures {
+  margin: 0 0 16px;
+}
+
 .fieldHeading {
   margin: 0 0 4px;
   font-size: 13px;

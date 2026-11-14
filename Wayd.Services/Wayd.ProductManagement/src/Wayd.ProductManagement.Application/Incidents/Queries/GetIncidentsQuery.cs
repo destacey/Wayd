@@ -11,16 +11,17 @@ namespace Wayd.ProductManagement.Application.Incidents.Queries;
 public sealed record GetIncidentsQuery(
     PageRequest Paging,
     IReadOnlyCollection<ProductStatusAlias>? Statuses = null,
-    IReadOnlyCollection<Guid>? SeverityLevelIds = null) : IQuery<PagedResponse<IncidentSummaryDto>>, IPagedQuery;
+    IReadOnlyCollection<Guid>? SeverityLevelIds = null) : IQuery<IncidentListDto>, IPagedQuery;
 
 public sealed class GetIncidentsQueryValidator : PagedQueryValidator<GetIncidentsQuery>;
 
-public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context)
-    : IQueryHandler<GetIncidentsQuery, PagedResponse<IncidentSummaryDto>>
+public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context, IDateTimeProvider dateTimeProvider)
+    : IQueryHandler<GetIncidentsQuery, IncidentListDto>
 {
     private readonly IProductManagementDbContext _context = context;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
-    public async Task<PagedResponse<IncidentSummaryDto>> Handle(
+    public async Task<IncidentListDto> Handle(
         GetIncidentsQuery request,
         CancellationToken cancellationToken)
     {
@@ -37,11 +38,14 @@ public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context
         }
 
         var totalCount = await query.CountAsync(cancellationToken);
+        var now = _dateTimeProvider.Now;
 
         if (totalCount == 0)
         {
-            return new PagedResponse<IncidentSummaryDto>([], 0, request.Paging.Page, request.Paging.PageSize);
+            return List([], 0, request, IncidentDurations.Summarize([], now));
         }
+
+        var figures = IncidentDurations.Summarize(await MeasuredRows(query, cancellationToken), now);
 
         var page = await (
             from incident in query
@@ -102,12 +106,58 @@ public sealed class GetIncidentsQueryHandler(IProductManagementDbContext context
             })
             .ToList();
 
-        return new PagedResponse<IncidentSummaryDto>(
+        return List(items, totalCount, request, figures);
+    }
+
+    private static async Task<List<IncidentDurations.Row>> MeasuredRows(
+        IQueryable<Incident> query,
+        CancellationToken cancellationToken)
+    {
+        var rows = await query
+            .Select(incident => new
+            {
+                incident.Key,
+                incident.Title,
+                incident.NoticedAt,
+                incident.StartedAt,
+                incident.RecoveredAt,
+                incident.StatusAliasValue,
+                incident.StatusCategory,
+            })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .Select(row => new IncidentDurations.Row(
+                row.Key,
+                row.Title,
+                row.NoticedAt,
+                row.StartedAt,
+                row.RecoveredAt,
+                (ProductStatusAlias)row.StatusAliasValue,
+                row.StatusCategory))
+            .ToList();
+    }
+
+    private static IncidentListDto List(
+        List<IncidentSummaryDto> items,
+        int totalCount,
+        GetIncidentsQuery request,
+        IncidentDurations.Figures figures) =>
+        new(
             items,
             totalCount,
             request.Paging.Page,
-            request.Paging.PageSize);
-    }
+            request.Paging.PageSize,
+            figures.ActiveCount,
+            figures.LongestActive is { } longest
+                ? new LongestActiveIncidentDto
+                {
+                    Key = longest.Key,
+                    Title = longest.Title,
+                    ActiveMilliseconds = IncidentDurations.Milliseconds(longest.Active) ?? 0,
+                }
+                : null,
+            IncidentDurations.Milliseconds(figures.MeanTimeToRecover));
 }
 
 public sealed record GetIncidentQuery : IQuery<IncidentDto?>
@@ -120,11 +170,15 @@ public sealed record GetIncidentQuery : IQuery<IncidentDto?>
     public Expression<Func<Incident, bool>> IdOrKeyFilter { get; }
 }
 
-public sealed class GetIncidentQueryHandler(IProductManagementDbContext context, IDispatcher dispatcher)
+public sealed class GetIncidentQueryHandler(
+    IProductManagementDbContext context,
+    IDispatcher dispatcher,
+    IDateTimeProvider dateTimeProvider)
     : IQueryHandler<GetIncidentQuery, IncidentDto?>
 {
     private readonly IProductManagementDbContext _context = context;
     private readonly IDispatcher _dispatcher = dispatcher;
+    private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
 
     public async Task<IncidentDto?> Handle(GetIncidentQuery query, CancellationToken cancellationToken)
     {
@@ -174,6 +228,17 @@ public sealed class GetIncidentQueryHandler(IProductManagementDbContext context,
             && connection.IsActive
             && connection.IsValidConfiguration);
 
+        var durations = IncidentDurations.Measure(
+            new IncidentDurations.Row(
+                incident.Key,
+                incident.Title,
+                incident.NoticedAt,
+                incident.StartedAt,
+                incident.RecoveredAt,
+                incident.StatusAlias,
+                incident.StatusCategory),
+            _dateTimeProvider.Now);
+
         return IncidentProjections.Details(
             incident,
             people[incident.SubmittedByEmployeeId],
@@ -182,6 +247,7 @@ public sealed class GetIncidentQueryHandler(IProductManagementDbContext context,
             level,
             products,
             releases,
+            durations,
             teamsConnectorConfigured);
     }
 }

@@ -13,6 +13,7 @@ import { Button } from 'antd'
 import { FC, useEffect, useState } from 'react'
 import { CreateIncidentForm } from './_components/create-incident-form'
 import IncidentFilterBar from './_components/incident-filter-bar'
+import IncidentGridFigures from './_components/incident-grid-figures'
 import IncidentsGrid from './_components/incidents-grid'
 
 const STATE_OPTIONS = [
@@ -80,6 +81,12 @@ const IncidentsPage: FC = () => {
           setSeverityLevelIds(next)
           paging.resetPage()
         }}
+      />
+      <IncidentGridFigures
+        activeCount={data?.activeCount ?? 0}
+        longestActive={data?.longestActive}
+        meanTimeToRecoverMilliseconds={data?.meanTimeToRecoverMilliseconds}
+        loading={isLoading}
       />
       <IncidentsGrid
         incidents={data?.items ?? []}

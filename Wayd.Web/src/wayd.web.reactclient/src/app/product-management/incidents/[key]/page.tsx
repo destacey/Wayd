@@ -44,6 +44,7 @@ import IncidentDiscussion from '@/src/app/product-management/incidents/_componen
 import IncidentStatusStepper from '@/src/app/product-management/incidents/_components/incident-status-stepper'
 import IncidentWorkItemsSection from '@/src/app/product-management/incidents/_components/incident-work-items-section'
 import { IncidentSeverityRank } from '@/src/app/product-management/incidents/_components/incident-severity-rank'
+import IncidentDurations from '@/src/app/product-management/incidents/_components/incident-durations'
 import IncidentFacts from '@/src/app/product-management/incidents/_components/incident-facts'
 import CancelIncidentForm from '@/src/app/product-management/incidents/_components/cancel-incident-form'
 import { incidentTransitionDate } from '@/src/app/product-management/incidents/_components/incident-transition-date'
@@ -463,6 +464,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                   incidentId={incident.id}
                   currentStatusId={incident.status.id}
                 />
+                <IncidentDurations durations={incident.durations} />
                 <Form form={form} layout="vertical">
                   <Form.Item
                     name="title"
@@ -537,6 +539,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
                 incidentId={incident.id}
                 currentStatusId={incident.status.id}
               />
+              <IncidentDurations durations={incident.durations} />
               {incident.symptoms ? (
                 <div>
                   <h2 className={styles.fieldHeading}>Symptoms</h2>

@@ -24,6 +24,18 @@ public sealed record MyTeamsSummaryResponse
     public IReadOnlyList<MyTeamOfTeamsSummaryResponse> TeamsOfTeams { get; init; } = [];
 
     /// <summary>
+    /// Every active team the caller is a member of directly, by name, whether or not `teams` was narrowed to some
+    /// of them: what a choice of teams is made from.
+    /// </summary>
+    public IReadOnlyList<TeamNavigationDto> AllTeams { get; init; } = [];
+
+    /// <summary>
+    /// Every active team of teams the caller is a member of directly, by name, whether or not `teamsOfTeams` was
+    /// narrowed to some of them.
+    /// </summary>
+    public IReadOnlyList<TeamNavigationDto> AllTeamsOfTeams { get; init; } = [];
+
+    /// <summary>
     /// The open cross-team dependencies that are unhealthy across the caller's teams of teams, each counted once
     /// even when two of them share it. Null without the View Work Items permission.
     /// </summary>

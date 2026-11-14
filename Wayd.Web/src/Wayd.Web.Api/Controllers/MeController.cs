@@ -191,10 +191,14 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
     [EndpointDescription(
         "`teams` has one entry per active team you are a member of, by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health, its `openRiskCount`, and `partOf`, the team of teams it belongs to today. A team with no operating model today has neither `sprint` nor `flow`. "
         + "`teamsOfTeams` has one rollup per active team of teams you are a member of directly (being on one of its teams does not count), by name: the planning interval running today with its objectives at risk, and one row per team or team of teams in it today, needing attention first. A Scrum row's `sprint` is a sprint started and left open past its end, or its running sprint's share done against the share its burn-down expects; a Kanban row's `flow` is its items in progress and when the oldest started; a nested team of teams counts the teams beneath it by status and takes the worst. Each row's `status` (OnTrack, Watch, NeedsAttention) is worked out here. Its `dependencies` are the open cross-team dependencies of every team beneath it, and its `risks` its own open risks and those of the teams beneath it. "
+        + "`teamIds` narrows `teams`, and `teamOfTeamsIds` narrows `teamsOfTeams`, to those you are still a member of; each count then covers only what its list holds. An id you are not a member of is ignored, and when none of the ids is yours the list is not narrowed. `allTeams` and `allTeamsOfTeams` list every one you are a member of, whatever was asked for. "
         + "Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount` and `risks`, View Planning Intervals for `planningInterval` and View Planning Interval Objectives for its at-risk count. Returns 404 when your account is not linked to an employee.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<MyTeamsSummaryResponse>> GetTeamsSummary(CancellationToken cancellationToken)
+    public async Task<ActionResult<MyTeamsSummaryResponse>> GetTeamsSummary(
+        [FromQuery] Guid[]? teamIds,
+        [FromQuery] Guid[]? teamOfTeamsIds,
+        CancellationToken cancellationToken)
     {
         if (await _currentPrincipal.GetEmployeeId(cancellationToken) is not { } employeeId)
             return NotLinked();
@@ -206,12 +210,16 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
             PlanningIntervals: await CanView(ApplicationResource.PlanningIntervals, cancellationToken),
             Objectives: await CanView(ApplicationResource.PlanningIntervalObjectives, cancellationToken));
 
-        var teams = await _dispatcher.Send(new GetEmployeeActiveTeamsQuery(employeeId), cancellationToken);
-        var teamsOfTeams = await _dispatcher.Send(new GetEmployeeActiveTeamsQuery(employeeId, TeamType.TeamOfTeams), cancellationToken);
+        var memberTeams = await _dispatcher.Send(new GetEmployeeActiveTeamsQuery(employeeId), cancellationToken);
+        var memberTeamsOfTeams = await _dispatcher.Send(new GetEmployeeActiveTeamsQuery(employeeId, TeamType.TeamOfTeams), cancellationToken);
+        var teams = InScope(memberTeams, teamIds);
+        var teamsOfTeams = InScope(memberTeamsOfTeams, teamOfTeamsIds);
         if (teams.Count == 0 && teamsOfTeams.Count == 0)
         {
             return Ok(new MyTeamsSummaryResponse
             {
+                AllTeams = memberTeams,
+                AllTeamsOfTeams = memberTeamsOfTeams,
                 DependenciesAtRiskCount = access.WorkItems ? 0 : null,
                 UnhealthyCrossTeamDependencyCount = access.WorkItems ? 0 : null,
                 SprintsEndedNotCompletedCount = access.Iterations ? 0 : null,
@@ -229,12 +237,12 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
         }
 
         // Every team read for a signal: the caller's own, and those beneath their teams of teams.
-        var teamIds = teams.Select(t => t.Id).ToList();
+        var scopedTeamIds = teams.Select(t => t.Id).ToList();
         var rollupTeamIds = structures
             .SelectMany(s => s.Teams.Where(t => t.Type == TeamType.Team).Select(t => t.Id))
             .Distinct()
             .ToList();
-        var signalTeamIds = teamIds.Union(rollupTeamIds).ToList();
+        var signalTeamIds = scopedTeamIds.Union(rollupTeamIds).ToList();
 
         var schedules = await _dispatcher.Send(new GetTeamsScheduleHistoryQuery(signalTeamIds), cancellationToken);
         var models = signalTeamIds.ToDictionary(id => id, id => (schedules.GetValueOrDefault(id) ?? []).InEffectAt(now));
@@ -242,7 +250,7 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
         List<Guid> Following(IEnumerable<Guid> ids, Methodology methodology) =>
             [.. ids.Where(id => models[id]?.Methodology == methodology)];
 
-        var scrumTeamIds = Following(teamIds, Methodology.Scrum);
+        var scrumTeamIds = Following(scopedTeamIds, Methodology.Scrum);
         var activeSprints = access.Iterations && scrumTeamIds.Count > 0
             ? await _dispatcher.Send(new GetTeamsActiveSprintQuery(scrumTeamIds), cancellationToken)
             : (IReadOnlyDictionary<Guid, NavigationDto>)new Dictionary<Guid, NavigationDto>();
@@ -257,17 +265,17 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
             ? await LoadFlows(kanbanTeamIds, schedules, models, now, cancellationToken)
             : new Dictionary<Guid, MyTeamFlowSummaryResponse>();
 
-        var dependencies = access.WorkItems && teamIds.Count > 0
-            ? await _dispatcher.Send(new GetTeamsDependencyHealthQuery(teamIds), cancellationToken)
+        var dependencies = access.WorkItems && scopedTeamIds.Count > 0
+            ? await _dispatcher.Send(new GetTeamsDependencyHealthQuery(scopedTeamIds), cancellationToken)
             : null;
 
-        var riskTeamIds = teamIds.Union(structures.SelectMany(s => s.Teams.Select(t => t.Id))).ToList();
+        var riskTeamIds = scopedTeamIds.Union(structures.SelectMany(s => s.Teams.Select(t => t.Id))).ToList();
         var riskCounts = access.Risks
             ? await _dispatcher.Send(new GetTeamsOpenRiskCountQuery(riskTeamIds), cancellationToken)
             : null;
 
-        var parents = teamIds.Count > 0
-            ? await _dispatcher.Send(new GetTeamsParentQuery(teamIds, today), cancellationToken)
+        var parents = scopedTeamIds.Count > 0
+            ? await _dispatcher.Send(new GetTeamsParentQuery(scopedTeamIds, today), cancellationToken)
             : new Dictionary<Guid, TeamNavigationDto>();
 
         var signals = new TeamSignals(models, sprintSignals, flows, now);
@@ -285,7 +293,7 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
                 ? await _dispatcher.Send(new GetCurrentPlanningIntervalForTeamsQuery(structure.RootId, [.. structure.Teams.Select(t => t.Id)], today, access.Objectives), cancellationToken)
                 : null;
 
-            rollups.Add(BuildRollup(teamOfTeams, structure, [.. teamIds, .. teamsOfTeams.Select(t => t.Id)], signals, openDependencies, riskCounts, planningInterval, access));
+            rollups.Add(BuildRollup(teamOfTeams, structure, [.. memberTeams.Select(t => t.Id), .. memberTeamsOfTeams.Select(t => t.Id)], signals, openDependencies, riskCounts, planningInterval, access));
         }
 
         return Ok(new MyTeamsSummaryResponse
@@ -308,6 +316,8 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
                 };
             })],
             TeamsOfTeams = rollups,
+            AllTeams = memberTeams,
+            AllTeamsOfTeams = memberTeamsOfTeams,
             DependenciesAtRiskCount = access.WorkItems ? dependencies?.AtRiskOrUnhealthyCount ?? 0 : null,
             UnhealthyCrossTeamDependencyCount = access.WorkItems
                 ? crossTeamDependencies.Values.Count(d => d.Health.Id == (int)DependencyPlanningHealth.Unhealthy)
@@ -316,6 +326,20 @@ public class MeController(IDispatcher dispatcher, IUserService userService, ICur
                 ? sprintSignals.Values.Where(s => s.EndedNotCompleted).Select(s => s.Sprint.Id).Distinct().Count()
                 : null,
         });
+    }
+
+    /// <summary>
+    /// The teams the caller asked to see, among those they are a member of. Asking for none, or only for teams the
+    /// caller has since left, shows them all, so a stale choice never empties the summary.
+    /// </summary>
+    private static IReadOnlyList<TeamNavigationDto> InScope(IReadOnlyList<TeamNavigationDto> memberOf, Guid[]? ids)
+    {
+        if (ids is not { Length: > 0 })
+            return memberOf;
+
+        var wanted = ids.ToHashSet();
+        var scoped = memberOf.Where(t => wanted.Contains(t.Id)).ToList();
+        return scoped.Count > 0 ? scoped : memberOf;
     }
 
     /// <summary>The summary sections the caller may see, each needing the permission its own page needs.</summary>

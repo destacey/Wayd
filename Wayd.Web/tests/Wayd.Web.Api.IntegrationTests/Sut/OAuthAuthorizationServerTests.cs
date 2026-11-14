@@ -515,7 +515,9 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
         Assert.Equal("client.acme.example", request.GetProperty("clientHost").GetString());
         Assert.Equal("Acme Agent", request.GetProperty("clientName").GetString());
         Assert.Equal(LoopbackRedirectUri, request.GetProperty("redirectUri").GetString());
+        Assert.Equal("http", request.GetProperty("redirectScheme").GetString());
         Assert.Equal("127.0.0.1", request.GetProperty("redirectHost").GetString());
+        Assert.Equal(new Uri(LoopbackRedirectUri).AbsolutePath, request.GetProperty("redirectPath").GetString());
         Assert.False(request.GetProperty("redirectHostDiffers").GetBoolean(), "a loopback redirect stays on the user's machine");
         Assert.True(request.GetProperty("redirectIsLoopback").GetBoolean());
     }
@@ -1038,7 +1040,9 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
             $"/api/oauth/authorization-requests/{handle}", TestContext.Current.CancellationToken);
 
         // Assert
+        Assert.Equal("cursor", request.GetProperty("redirectScheme").GetString());
         Assert.Equal(JsonValueKind.Null, request.GetProperty("redirectHost").ValueKind);
+        Assert.Equal("/oauth/callback", request.GetProperty("redirectPath").GetString());
         Assert.False(request.GetProperty("redirectHostDiffers").GetBoolean());
         Assert.False(request.GetProperty("redirectIsLoopback").GetBoolean());
     }

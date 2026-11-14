@@ -21,8 +21,17 @@ public sealed record OAuthAuthorizationRequestResponse
     /// <summary>Where the browser goes once the user approves or denies.</summary>
     public required string RedirectUri { get; init; }
 
+    /// <summary>
+    /// The redirect URI's scheme: `https`, `http` for a loopback redirect, or the scheme of the installed app it opens.
+    /// Show it for an app redirect, since the scheme is all that names the app.
+    /// </summary>
+    public required string RedirectScheme { get; init; }
+
     /// <summary>The redirect URI's host, or null when it opens an installed app by its own URL scheme.</summary>
     public string? RedirectHost { get; init; }
+
+    /// <summary>The redirect URI's path, without its query.</summary>
+    public required string RedirectPath { get; init; }
 
     /// <summary>Whether the redirect URI's host is not the client's host; the consent page warns when it is not.</summary>
     public required bool RedirectHostDiffers { get; init; }
@@ -46,7 +55,9 @@ public sealed record OAuthAuthorizationRequestResponse
         ClientHost = pending.ClientHost,
         ClientName = pending.ClientName,
         RedirectUri = pending.RedirectUri,
+        RedirectScheme = pending.RedirectScheme,
         RedirectHost = pending.RedirectHost,
+        RedirectPath = pending.RedirectPath,
         RedirectHostDiffers = pending.RedirectHostDiffers,
         RedirectIsLoopback = pending.RedirectIsLoopback,
         Scope = pending.Scope,

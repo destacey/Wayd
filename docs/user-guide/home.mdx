@@ -39,13 +39,13 @@ When more counts are above zero than fit, the most urgent four show, in this ord
 | Due this week (assigned to you) | Open tasks and milestones assigned to you on those projects due by the end of this week (Saturday) | The My project tasks widget below |
 | Health checks due (on projects you lead) | Active projects you own or manage with no current health check: none was reported, or the last one expired | The Project health checks due widget below |
 | Risk follow-ups | Open risks assigned to you whose follow-up date is today or past | The My risks widget below |
-| Dependencies at risk (on your teams) | Open [dependencies](./work-management/work-items.mdx#work-item-dependencies) of your teams that are at risk (neither end planned) or unhealthy (planned to finish after they are needed); a dependency between two of your teams counts once | The My teams widget below |
-| Sprints to complete (in your teams of teams) | Sprints that a team in one of your teams of teams started and that are past their end without being completed | The My teams of teams widget below |
-| Unhealthy dependencies (across your teams of teams) | Open cross-team dependencies of your teams of teams that are unhealthy; a dependency two of them share counts once | The My teams of teams widget below |
-| Unassigned requests (on your desks) | Open [intake requests](./demand-management/index.mdx) on the desks you are a Desk Admin or Agent on that no one is assigned to | Requests, filtered to your desks and Unassigned |
-| Requests assigned (to you) | Open intake requests assigned to you | Requests, filtered to Assigned to me |
+| Dependencies at risk (on your teams) | Open [dependencies](./work-management/work-items.mdx#work-item-dependencies) of the teams My teams shows that are at risk (neither end planned) or unhealthy (planned to finish after they are needed); a dependency between two of them counts once | The My teams widget below |
+| Sprints to complete (in your teams of teams) | Sprints that a team in one of the teams of teams My teams of teams shows started and that are past their end without being completed | The My teams of teams widget below |
+| Unhealthy dependencies (across your teams of teams) | Open cross-team dependencies of the teams of teams My teams of teams shows that are unhealthy; a dependency two of them share counts once | The My teams of teams widget below |
+| Unassigned requests (on your desks) | Open [intake requests](./demand-management/index.mdx) on the desks Desk queue shows (of those you are a Desk Admin or Agent on) that no one is assigned to | Requests, filtered to those desks and Unassigned |
+| Requests assigned (to you) | Open intake requests assigned to you on the desks Desk queue shows | Requests, filtered to Assigned to me and, when Desk queue shows only some of your desks, to those |
 
-A count shows only when its widget does: without permission to view projects there are no task or health check counts, with no project task assigned there are no task counts, unless you own or manage a project there is no health check count, without the Following flag there is no unread count, without permission to view risks there are no risk follow-ups, without permission to view work items there are no dependencies at risk or unhealthy dependencies, without permission to view iterations there are no sprints to complete, unless you are a member of a team of teams there are no sprints to complete or unhealthy dependencies, and without the Demand Management flag there are no request counts. A count that fails to load keeps its place and shows a dash rather than a zero.
+These counts follow the [teams, teams of teams and desks](#teams-and-desks) their widgets show, and Desk queue's sections: with its desks left out there are no unassigned requests, and with **Assigned to me** left out no requests assigned. A count shows only when its widget does: without permission to view projects there are no task or health check counts, with no project task assigned there are no task counts, unless you own or manage a project there is no health check count, without the Following flag there is no unread count, without permission to view risks there are no risk follow-ups, without permission to view work items there are no dependencies at risk or unhealthy dependencies, without permission to view iterations there are no sprints to complete, unless you are a member of a team of teams there are no sprints to complete or unhealthy dependencies, and without the Demand Management flag there are no request counts. A count that fails to load keeps its place and shows a dash rather than a zero.
 
 ## Widgets
 
@@ -148,7 +148,21 @@ Some widgets also let you choose how far ahead or back they look and which recor
 | My requests | **Open only** | on or off | off |
 | Following | **Record types** | any of Project, Program, PI Objective, Request and Incident | all of them |
 
-A setting that picks several, such as **Statuses counted**, always keeps at least one. These settings change only the widget: the counts across the top keep their own meaning, so **Due this week** still counts the tasks due by Saturday and **Overdue tasks** includes milestones, whatever My project tasks lists. **View all** opens the full list, unfiltered. Desk queue has nothing when you are on no desk, or when no open request is assigned to you and you take part in none.
+#### Teams and desks
+
+If you are on several teams or desks but follow only some day to day, My teams, My teams of teams and Desk queue let you choose which show:
+
+| Widget | Setting | Choices | Starts at |
+| --- | --- | --- | --- |
+| My teams | **Teams** | any of the teams you are a member of | all of them |
+| My teams | **Sprint card** | **With burn-up**, or **Figures only**, leaving out the burn-up chart | With burn-up |
+| My teams of teams | **Teams of teams** | any of the teams of teams you are a member of directly | all of them |
+| Desk queue | **Desks** | any of the desks you are a Desk Admin or Agent on | all of them |
+| Desk queue | **Sections** | any of **My desks**, **Assigned to me** and **Participating** | all of them |
+
+While every team or desk is checked, one you join later shows too. Once you uncheck one, only those you checked show: the settings say how many are not shown, and a team or desk you join later is not shown until you check it. Checking them all again goes back to showing every one, including later ones. A team or desk you leave drops out of the list. If that leaves every remaining one checked, the settings say that any you join later will still not be shown and offer **Show any you join later too**; if you have left all of those you chose, the widget shows every one again. A choice holds up to about 55 teams or desks; with more than that checked, check them all instead. Unlike the other settings, these also narrow the widget's [counts](#needs-attention), and **View all** on Desk queue opens Requests filtered to the desks it shows.
+
+A setting that picks several, such as **Statuses counted**, always keeps at least one. These settings change only the widget: the counts across the top keep their own meaning, so **Due this week** still counts the tasks due by Saturday and **Overdue tasks** includes milestones, whatever My project tasks lists. **View all** opens the full list, unfiltered. Desk queue has nothing when you are on no desk, or when every request list it shows is empty; showing only **My desks**, it has something while you are on a desk.
 
 A change made from a card applies and saves at once. A change made in the panel shows on the page behind it and saves with the rest of the layout when you close the panel. A widget whose settings differ from where they start is marked **Customized** in the panel, and its settings have a **Reset to default** of their own, which puts that widget back without touching the others.
 

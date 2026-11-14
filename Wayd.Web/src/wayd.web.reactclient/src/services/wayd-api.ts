@@ -69790,8 +69790,13 @@ export interface OAuthAuthorizationRequestResponse {
     clientName: string;
     /** Where the browser goes once the user approves or denies. */
     redirectUri: string;
+    /** The redirect URI's scheme: `https`, `http` for a loopback redirect, or the scheme of the installed app it opens.
+Show it for an app redirect, since the scheme is all that names the app. */
+    redirectScheme: string;
     /** The redirect URI's host, or null when it opens an installed app by its own URL scheme. */
     redirectHost?: string | undefined;
+    /** The redirect URI's path, without its query. */
+    redirectPath: string;
     /** Whether the redirect URI's host is not the client's host; the consent page warns when it is not. */
     redirectHostDiffers: boolean;
     /** Whether the redirect URI is on this computer's loopback interface, as a desktop app's is. */

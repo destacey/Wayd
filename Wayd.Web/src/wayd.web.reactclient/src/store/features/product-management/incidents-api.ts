@@ -7,6 +7,7 @@ import type {
   ManageIncidentWorkItemsRequest,
   ObjectIdAndKey,
   PagedResponseOfIncidentSummaryDto,
+  CreateIncidentTeamsChatRequest,
   LinkIncidentTeamsChatRequest,
   UpdateIncidentDetailsRequest,
   WorkItemsSummaryDto,
@@ -85,6 +86,23 @@ export const incidentsApi = apiSlice.injectEndpoints({
         }
       },
       invalidatesTags: [{ type: QueryTags.Incident, id: 'LIST' }],
+    }),
+    createIncidentTeamsChat: builder.mutation<
+      void,
+      CreateIncidentTeamsChatRequest
+    >({
+      queryFn: async (request) => {
+        try {
+          await getIncidentsClient().createTeamsChat(request.id, request)
+          return { data: undefined }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
+      },
+      invalidatesTags: (_result, _error, request) => [
+        { type: QueryTags.Incident, id: request.id },
+      ],
     }),
     linkIncidentTeamsChat: builder.mutation<void, LinkIncidentTeamsChatRequest>(
       {
@@ -283,6 +301,7 @@ export const {
   useGetIncidentsQuery,
   useGetIncidentQuery,
   useCreateIncidentMutation,
+  useCreateIncidentTeamsChatMutation,
   useLinkIncidentTeamsChatMutation,
   useUpdateIncidentDetailsMutation,
   useGetIncidentWorkItemsQuery,

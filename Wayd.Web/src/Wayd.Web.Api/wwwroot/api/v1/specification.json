@@ -11515,6 +11515,58 @@
             "ApiKey": [ ]
           }
         ]
+      },
+      "post": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Create the incident's Teams chat.",
+        "description": "Creates one Teams group chat through the single active Teams connector whose configuration is valid, and stores that chat on the incident. The name is the incident key and the incident name. Reported by, submitted by, and the commander are added when they can be found in the tenant. Extra people are included only in this chat and are not stored. Wayd does not post a message and does not send the chat for approval. A connector that cannot create the chat leaves the incident unchanged.",
+        "operationId": "Incidents_CreateTeamsChat",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIncidentTeamsChatRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
       }
     },
     "/api/product-management/incidents/{idOrKey}/work-items": {
@@ -59434,6 +59486,32 @@
           }
         },
         "additionalProperties": false
+      },
+      "CreateIncidentTeamsChatRequest": {
+        "required": [
+          "id",
+          "extraEmployeeIds"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "format": "uuid"
+          },
+          "extraEmployeeIds": {
+            "type": "array",
+            "items": {
+              "minLength": 1,
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Employees included in this chat only. They are not stored on the incident.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Creates the incident's one Teams chat through the active Teams connector.\nExtra people are included only in that chat and are not stored."
       },
       "CreateIntakeChannelRequest": {
         "required": [

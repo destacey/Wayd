@@ -959,6 +959,119 @@ public sealed class IncidentTests
         incident.DomainEvents.Should().BeEmpty();
     }
 
+    [Fact]
+    public void RecordCreatedTeamsChat_ShouldStoreTheChatWaydCreated()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        incident.ClearDomainEvents();
+
+        // Act
+        var result = incident.RecordCreatedTeamsChat(
+            " 19:abc@thread.v2 ",
+            " INC-12 Checkout ",
+            " https://teams.microsoft.com/l/chat/19%3Aabc/0 ",
+            EventActor.System,
+            Timestamp);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.TeamsChat!.ExternalId.Should().Be("19:abc@thread.v2");
+        incident.TeamsChat.Title.Should().Be("INC-12 Checkout");
+        incident.TeamsChat.Link.Should().Be("https://teams.microsoft.com/l/chat/19%3Aabc/0");
+        incident.TeamsChat.CreatedByWayd.Should().BeTrue();
+        incident.TeamsChat.Connector.Should().Be(Connector.Teams);
+        var created = incident.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<IncidentTeamsChatCreatedEvent>().Subject;
+        created.FromTeamsChatId.Should().BeNull();
+        created.FromTeamsChatLink.Should().BeNull();
+        created.ToTeamsChatId.Should().Be("19:abc@thread.v2");
+        created.ToTeamsChatTitle.Should().Be("INC-12 Checkout");
+        created.ToTeamsChatLink.Should().Be(incident.TeamsChat.Link);
+        created.ToTeamsChatCreatedByWayd.Should().BeTrue();
+        created.EventVersion.Should().Be("1.0");
+    }
+
+    [Fact]
+    public void RecordCreatedTeamsChat_ShouldNotReplaceAChatThatIsAlreadyStored()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        incident.RecordCreatedTeamsChat(
+            "19:first",
+            "INC-1 First",
+            "https://teams.microsoft.com/l/chat/first/0",
+            EventActor.System,
+            Timestamp);
+        incident.ClearDomainEvents();
+
+        // Act
+        var result = incident.RecordCreatedTeamsChat(
+            "19:second",
+            "INC-1 Second",
+            "https://teams.microsoft.com/l/chat/second/0",
+            EventActor.System,
+            Timestamp);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This incident already has a Teams chat.");
+        incident.TeamsChat!.ExternalId.Should().Be("19:first");
+        incident.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void LinkTeamsChat_ShouldReplaceAChatWaydCreated()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        incident.RecordCreatedTeamsChat(
+            "19:first",
+            "INC-1 First",
+            "https://teams.microsoft.com/l/chat/first/0",
+            EventActor.System,
+            Timestamp);
+        incident.ClearDomainEvents();
+
+        // Act
+        var result = incident.LinkTeamsChat(
+            "https://teams.microsoft.com/l/chat/pasted/0",
+            "Bridge",
+            EventActor.System,
+            Timestamp);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.TeamsChat!.ExternalId.Should().BeNull();
+        incident.TeamsChat.CreatedByWayd.Should().BeFalse();
+        incident.TeamsChat.Link.Should().Be("https://teams.microsoft.com/l/chat/pasted/0");
+        var linked = incident.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<IncidentTeamsChatLinkedEvent>().Subject;
+        linked.FromTeamsChatCreatedByWayd.Should().BeTrue();
+        linked.ToTeamsChatCreatedByWayd.Should().BeFalse();
+    }
+
+    [Fact]
+    public void RecordCreatedTeamsChat_ShouldRejectALinkThatIsNotHttps()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        incident.ClearDomainEvents();
+
+        // Act
+        var result = incident.RecordCreatedTeamsChat(
+            "19:abc",
+            "INC-1 Outage",
+            "http://teams.microsoft.com/l/chat/1",
+            EventActor.System,
+            Timestamp);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        incident.TeamsChat.Should().BeNull();
+        incident.DomainEvents.Should().BeEmpty();
+    }
+
     private static Incident OpenIncident(Instant noticedAt, Instant? startedAt, IReadOnlyCollection<Guid>? releaseIds = null) =>
         Incident.Create(
             "Checkout unavailable",

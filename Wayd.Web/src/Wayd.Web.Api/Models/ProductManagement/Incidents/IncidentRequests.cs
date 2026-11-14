@@ -137,3 +137,26 @@ public sealed class LinkIncidentTeamsChatRequestValidator : CustomValidator<Link
             && uri.Scheme == Uri.UriSchemeHttps;
     }
 }
+
+/// <summary>
+/// Creates the incident's one Teams chat through the active Teams connector.
+/// Extra people are included only in that chat and are not stored.
+/// </summary>
+public sealed class CreateIncidentTeamsChatRequest
+{
+    public Guid Id { get; set; }
+
+    /// <summary>Employees included in this chat only. They are not stored on the incident.</summary>
+    public IReadOnlyList<Guid>? ExtraEmployeeIds { get; set; }
+
+    public CreateIncidentTeamsChatCommand ToCommand() => new(Id, ExtraEmployeeIds);
+}
+
+public sealed class CreateIncidentTeamsChatRequestValidator : CustomValidator<CreateIncidentTeamsChatRequest>
+{
+    public CreateIncidentTeamsChatRequestValidator()
+    {
+        RuleFor(r => r.Id).NotEmpty();
+        RuleForEach(r => r.ExtraEmployeeIds).NotEmpty();
+    }
+}

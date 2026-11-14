@@ -67,6 +67,110 @@ public sealed class TeamsCommunicationGraphClientTests
         body.Should().NotContain("18:30:00");
     }
 
+    [Fact]
+    public async Task CreateGroupChat_PostsOwnersAndUsesTheGraphLink()
+    {
+        // Arrange
+        var adapter = new RecordingGraphAdapter
+        {
+            ChatWebUrl = "https://teams.microsoft.com/l/chat/chat-1/0",
+        };
+        var sut = CreateClient(adapter);
+
+        // Act
+        var result = await sut.CreateGroupChatAsync(
+            new TeamsGraphCredentials("tenant", "client", "secret"),
+            " INC-42 Checkout unavailable ",
+            ["user-a", "user-b", "user-a"],
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Id.Should().Be("chat-1");
+        result.Value.Link.Should().Be("https://teams.microsoft.com/l/chat/chat-1/0");
+        var body = adapter.ChatBodies.Should().ContainSingle().Subject;
+        body.Should().Contain("INC-42 Checkout unavailable");
+        body.Should().Contain("user-a");
+        body.Should().Contain("user-b");
+        body.Should().Contain("owner");
+    }
+
+    [Fact]
+    public async Task CreateGroupChat_UsesATeamsDeepLink_WhenGraphReturnsNoHttpsLink()
+    {
+        // Arrange
+        var adapter = new RecordingGraphAdapter { ChatId = "19:abc@thread.v2" };
+        var sut = CreateClient(adapter);
+
+        // Act
+        var result = await sut.CreateGroupChatAsync(
+            new TeamsGraphCredentials("tenant", "client", "secret"),
+            "INC-1 Outage",
+            ["user-a"],
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Link.Should().Be(
+            "https://teams.microsoft.com/l/chat/19%3Aabc%40thread.v2/0");
+    }
+
+    [Fact]
+    public async Task CreateGroupChat_ReportsTheGraphRejection()
+    {
+        // Arrange
+        var adapter = new RecordingGraphAdapter { ThrowOnChatPost = true };
+        var sut = CreateClient(adapter);
+
+        // Act
+        var result = await sut.CreateGroupChatAsync(
+            new TeamsGraphCredentials("tenant", "client", "secret"),
+            "INC-1 Outage",
+            ["user-a"],
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("could not create the Teams chat");
+    }
+
+    [Fact]
+    public async Task CreateGroupChat_DoesNotCallGraph_WhenNobodyCanBeAdded()
+    {
+        // Arrange
+        var adapter = new RecordingGraphAdapter();
+        var sut = CreateClient(adapter);
+
+        // Act
+        var result = await sut.CreateGroupChatAsync(
+            new TeamsGraphCredentials("tenant", "client", "secret"),
+            "INC-1 Outage",
+            [],
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        adapter.ChatBodies.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task FindUserIdByEmail_ReturnsNull_WhenTheTenantHasNoMatch()
+    {
+        // Arrange
+        var adapter = new RecordingGraphAdapter { ReturnNoUser = true };
+        var sut = CreateClient(adapter);
+
+        // Act
+        var result = await sut.FindUserIdByEmailAsync(
+            new TeamsGraphCredentials("tenant", "client", "secret"),
+            Recipient,
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        result.Value.Should().BeNull();
+    }
+
     private static TeamsCommunicationGraphClient CreateClient(RecordingGraphAdapter adapter) =>
         new(
             NullLogger<TeamsCommunicationGraphClient>.Instance,
@@ -77,9 +181,19 @@ public sealed class TeamsCommunicationGraphClientTests
     {
         public bool RejectMailFilter { get; init; }
 
+        public bool ReturnNoUser { get; init; }
+
+        public bool ThrowOnChatPost { get; init; }
+
+        public string ChatId { get; init; } = "chat-1";
+
+        public string? ChatWebUrl { get; init; }
+
         public List<string> Filters { get; } = [];
 
         public List<string> CalendarBodies { get; } = [];
+
+        public List<string> ChatBodies { get; } = [];
 
         public ISerializationWriterFactory SerializationWriterFactory { get; } =
             new JsonSerializationWriterFactory();
@@ -98,7 +212,13 @@ public sealed class TeamsCommunicationGraphClientTests
             where ModelType : IParsable
         {
             if (requestInfo.UrlTemplate?.Contains("/chats", StringComparison.Ordinal) == true)
-                return Task.FromResult((ModelType?)(object)new Chat { Id = "chat-1" });
+            {
+                ChatBodies.Add(ReadContent(requestInfo));
+                if (ThrowOnChatPost)
+                    throw new InvalidOperationException("Graph rejected the chat.");
+
+                return Task.FromResult((ModelType?)(object)new Chat { Id = ChatId, WebUrl = ChatWebUrl });
+            }
 
             if (requestInfo.UrlTemplate?.Contains("calendar/events", StringComparison.Ordinal) == true)
             {
@@ -123,6 +243,9 @@ public sealed class TeamsCommunicationGraphClientTests
                     },
                 };
             }
+
+            if (ReturnNoUser)
+                return Task.FromResult((ModelType?)(object)new UserCollectionResponse { Value = [] });
 
             var user = new User
             {

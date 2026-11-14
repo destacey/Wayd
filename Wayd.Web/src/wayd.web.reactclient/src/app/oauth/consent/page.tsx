@@ -35,7 +35,7 @@ type PageState =
   | { kind: 'forbidden' }
   | { kind: 'unreachable' }
   | { kind: 'failed' }
-  | { kind: 'decided'; decision: Decision }
+  | { kind: 'decided'; decision: Decision; returning: boolean }
 
 /** Which page state a failed API call leads to. No status means no response arrived at all. */
 const stateForError = (error: unknown): PageState => {
@@ -48,6 +48,13 @@ const stateForError = (error: unknown): PageState => {
 
 const GoToWayd = () => <Button href="/">Go to Wayd</Button>
 
+/**
+ * Whether the redirect opens an installed app by its own URL scheme, rather
+ * than a web page or a listener on this computer.
+ */
+const opensAnApp = (request: OAuthAuthorizationRequestResponse) =>
+  !request.redirectHost && !request.redirectIsLoopback
+
 /** Where the browser goes after the decision, phrased for the person deciding. */
 const Destination = ({
   request,
@@ -57,12 +64,29 @@ const Destination = ({
   if (request.redirectIsLoopback) {
     return (
       <Paragraph>
-        Afterwards you will return to an app on this computer.
+        Afterwards you will return to an app on this computer, at{' '}
+        <Text code className={styles.identity}>
+          {request.redirectPath}
+        </Text>
+        .
       </Paragraph>
     )
   }
-  if (!request.redirectHost) {
-    return <Paragraph>Afterwards your browser opens an app.</Paragraph>
+  if (opensAnApp(request)) {
+    return (
+      <Paragraph>
+        If you approve, your browser opens the app registered for{' '}
+        <Text code className={styles.identity}>
+          {request.redirectScheme}:
+        </Text>{' '}
+        links, at{' '}
+        <Text code className={styles.identity}>
+          {request.redirectUri}
+        </Text>
+        . Any app on this computer can register that, so approve only if you
+        started this connection from the app you expect.
+      </Paragraph>
+    )
   }
   return (
     <>
@@ -70,6 +94,10 @@ const Destination = ({
         Afterwards you will be sent to{' '}
         <Text strong className={styles.identity}>
           {request.redirectHost}
+        </Text>
+        , at{' '}
+        <Text code className={styles.identity}>
+          {request.redirectPath}
         </Text>
         .
       </Paragraph>
@@ -166,6 +194,9 @@ const ConsentRequest = ({
       <Text className={styles.identity}>
         It calls itself “{request.clientName}”.
       </Text>
+      <Text type="secondary" className={styles.identity}>
+        Identified by <Text code>{request.clientId}</Text>
+      </Text>
 
       <Destination request={request} />
 
@@ -237,7 +268,7 @@ const ConsentContent = () => {
   }, [handle, framed, attempt])
 
   const decide = async (decision: Decision, scope: TokenScope) => {
-    if (!handle || decisionSent.current) return
+    if (!handle || decisionSent.current || state.kind !== 'ready') return
     decisionSent.current = true
     setDeciding(decision)
     setDecisionError(null)
@@ -248,8 +279,11 @@ const ConsentContent = () => {
         decision === 'approve'
           ? await client.approve(handle, { scope })
           : await client.deny(handle)
-      setState({ kind: 'decided', decision })
-      navigateWithFullReload(redirectUrl)
+      // A refusal is not worth opening an app for: whatever app holds the
+      // scheme would be launched by a request the user just turned down.
+      const returning = decision === 'approve' || !opensAnApp(state.request)
+      setState({ kind: 'decided', decision, returning })
+      if (returning) navigateWithFullReload(redirectUrl)
     } catch (error) {
       const next = stateForError(error)
       if (next.kind === 'unreachable' || next.kind === 'failed') {
@@ -366,7 +400,11 @@ const ConsentContent = () => {
               ? 'Connection approved'
               : 'Connection denied'
           }
-          subTitle="Returning you to the application. You can close this tab once it opens."
+          subTitle={
+            state.returning
+              ? 'Returning you to the application. You can close this tab once it opens.'
+              : 'The application was not opened, so it is still waiting. Cancel the sign-in there, then close this tab.'
+          }
           extra={<GoToWayd />}
         />
       )

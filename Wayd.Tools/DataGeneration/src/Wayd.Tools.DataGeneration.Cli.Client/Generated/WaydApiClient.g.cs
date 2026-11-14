@@ -2947,11 +2947,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a summary of each team and team of teams you are a member of, for how it works today.
         /// </summary>
         /// <remarks>
-        /// `teams` has one entry per active team you are a member of, by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health, its `openRiskCount`, and `partOf`, the team of teams it belongs to today. A team with no operating model today has neither `sprint` nor `flow`. `teamsOfTeams` has one rollup per active team of teams you are a member of directly (being on one of its teams does not count), by name: the planning interval running today with its objectives at risk, and one row per team or team of teams in it today, needing attention first. A Scrum row's `sprint` is a sprint started and left open past its end, or its running sprint's share done against the share its burn-down expects; a Kanban row's `flow` is its items in progress and when the oldest started; a nested team of teams counts the teams beneath it by status and takes the worst. Each row's `status` (OnTrack, Watch, NeedsAttention) is worked out here. Its `dependencies` are the open cross-team dependencies of every team beneath it, and its `risks` its own open risks and those of the teams beneath it. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount` and `risks`, View Planning Intervals for `planningInterval` and View Planning Interval Objectives for its at-risk count. Returns 404 when your account is not linked to an employee.
+        /// `teams` has one entry per active team you are a member of, by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health, its `openRiskCount`, and `partOf`, the team of teams it belongs to today. A team with no operating model today has neither `sprint` nor `flow`. `teamsOfTeams` has one rollup per active team of teams you are a member of directly (being on one of its teams does not count), by name: the planning interval running today with its objectives at risk, and one row per team or team of teams in it today, needing attention first. A Scrum row's `sprint` is a sprint started and left open past its end, or its running sprint's share done against the share its burn-down expects; a Kanban row's `flow` is its items in progress and when the oldest started; a nested team of teams counts the teams beneath it by status and takes the worst. Each row's `status` (OnTrack, Watch, NeedsAttention) is worked out here. Its `dependencies` are the open cross-team dependencies of every team beneath it, and its `risks` its own open risks and those of the teams beneath it. `teamIds` narrows `teams`, and `teamOfTeamsIds` narrows `teamsOfTeams`, to those you are still a member of; each count then covers only what its list holds. An id you are not a member of is ignored, and when none of the ids is yours the list is not narrowed. `allTeams` and `allTeamsOfTeams` list every one you are a member of, whatever was asked for. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount` and `risks`, View Planning Intervals for `planningInterval` and View Planning Interval Objectives for its at-risk count. Returns 404 when your account is not linked to an employee.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<MyTeamsSummaryResponse> GetTeamsSummaryAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<MyTeamsSummaryResponse> GetTeamsSummaryAsync(System.Collections.Generic.IEnumerable<System.Guid>? teamIds = null, System.Collections.Generic.IEnumerable<System.Guid>? teamOfTeamsIds = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
     }
 
@@ -3447,11 +3447,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a summary of each team and team of teams you are a member of, for how it works today.
         /// </summary>
         /// <remarks>
-        /// `teams` has one entry per active team you are a member of, by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health, its `openRiskCount`, and `partOf`, the team of teams it belongs to today. A team with no operating model today has neither `sprint` nor `flow`. `teamsOfTeams` has one rollup per active team of teams you are a member of directly (being on one of its teams does not count), by name: the planning interval running today with its objectives at risk, and one row per team or team of teams in it today, needing attention first. A Scrum row's `sprint` is a sprint started and left open past its end, or its running sprint's share done against the share its burn-down expects; a Kanban row's `flow` is its items in progress and when the oldest started; a nested team of teams counts the teams beneath it by status and takes the worst. Each row's `status` (OnTrack, Watch, NeedsAttention) is worked out here. Its `dependencies` are the open cross-team dependencies of every team beneath it, and its `risks` its own open risks and those of the teams beneath it. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount` and `risks`, View Planning Intervals for `planningInterval` and View Planning Interval Objectives for its at-risk count. Returns 404 when your account is not linked to an employee.
+        /// `teams` has one entry per active team you are a member of, by name, with the methodology in effect today in the team's own time zone. A Scrum team has `sprint` with its active sprint, null between sprints; a Kanban team has `flow`: its current reporting period when it has a cadence, items in progress, items finished over the last 14 days with their median cycle time, and the item in progress longest. Every team has its open `dependencies` by planning health, its `openRiskCount`, and `partOf`, the team of teams it belongs to today. A team with no operating model today has neither `sprint` nor `flow`. `teamsOfTeams` has one rollup per active team of teams you are a member of directly (being on one of its teams does not count), by name: the planning interval running today with its objectives at risk, and one row per team or team of teams in it today, needing attention first. A Scrum row's `sprint` is a sprint started and left open past its end, or its running sprint's share done against the share its burn-down expects; a Kanban row's `flow` is its items in progress and when the oldest started; a nested team of teams counts the teams beneath it by status and takes the worst. Each row's `status` (OnTrack, Watch, NeedsAttention) is worked out here. Its `dependencies` are the open cross-team dependencies of every team beneath it, and its `risks` its own open risks and those of the teams beneath it. `teamIds` narrows `teams`, and `teamOfTeamsIds` narrows `teamsOfTeams`, to those you are still a member of; each count then covers only what its list holds. An id you are not a member of is ignored, and when none of the ids is yours the list is not narrowed. `allTeams` and `allTeamsOfTeams` list every one you are a member of, whatever was asked for. Each section is null without the permission it needs: View Iterations for `sprint`, View Work Items for `flow` and `dependencies`, View Risks for `openRiskCount` and `risks`, View Planning Intervals for `planningInterval` and View Planning Interval Objectives for its at-risk count. Returns 404 when your account is not linked to an employee.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<MyTeamsSummaryResponse> GetTeamsSummaryAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<MyTeamsSummaryResponse> GetTeamsSummaryAsync(System.Collections.Generic.IEnumerable<System.Guid>? teamIds = null, System.Collections.Generic.IEnumerable<System.Guid>? teamOfTeamsIds = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             var client_ = _httpClient;
             var disposeClient_ = false;
@@ -3466,6 +3466,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (!string.IsNullOrEmpty(_baseUrl)) urlBuilder_.Append(_baseUrl);
                     // Operation Path: "api/me/teams/summary"
                     urlBuilder_.Append("api/me/teams/summary");
+                    urlBuilder_.Append('?');
+                    if (teamIds != null)
+                    {
+                            foreach (var item_ in teamIds) { urlBuilder_.Append(System.Uri.EscapeDataString("teamIds")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
+                    }
+                    if (teamOfTeamsIds != null)
+                    {
+                            foreach (var item_ in teamOfTeamsIds) { urlBuilder_.Append(System.Uri.EscapeDataString("teamOfTeamsIds")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(item_, System.Globalization.CultureInfo.InvariantCulture))).Append('&'); }
+                    }
+                    urlBuilder_.Length--;
 
                     PrepareRequest(client_, request_, urlBuilder_);
 
@@ -132895,6 +132905,22 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("teamsOfTeams")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<MyTeamOfTeamsSummaryResponse> TeamsOfTeams { get; set; } = new System.Collections.ObjectModel.Collection<MyTeamOfTeamsSummaryResponse>();
+
+        /// <summary>
+        /// Every active team the caller is a member of directly, by name, whether or not `teams` was narrowed to some
+        /// <br/>of them: what a choice of teams is made from.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("allTeams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamNavigationDto> AllTeams { get; set; } = new System.Collections.ObjectModel.Collection<TeamNavigationDto>();
+
+        /// <summary>
+        /// Every active team of teams the caller is a member of directly, by name, whether or not `teamsOfTeams` was
+        /// <br/>narrowed to some of them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("allTeamsOfTeams")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<TeamNavigationDto> AllTeamsOfTeams { get; set; } = new System.Collections.ObjectModel.Collection<TeamNavigationDto>();
 
         /// <summary>
         /// The open cross-team dependencies that are unhealthy across the caller's teams of teams, each counted once

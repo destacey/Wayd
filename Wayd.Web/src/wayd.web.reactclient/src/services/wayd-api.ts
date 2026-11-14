@@ -1711,10 +1711,16 @@ export class MeClient {
 
     /**
      * Get a summary of each team and team of teams you are a member of, for how it works today.
+     * @param teamIds (optional) 
+     * @param teamOfTeamsIds (optional) 
      * @return OK
      */
-    getTeamsSummary( cancelToken?: CancelToken): Promise<MyTeamsSummaryResponse> {
-        let url_ = this.baseUrl + "/api/me/teams/summary";
+    getTeamsSummary(teamIds?: string[] | null | undefined, teamOfTeamsIds?: string[] | null | undefined, cancelToken?: CancelToken): Promise<MyTeamsSummaryResponse> {
+        let url_ = this.baseUrl + "/api/me/teams/summary?";
+        if (teamIds !== undefined && teamIds !== null)
+            teamIds && teamIds.forEach(item => { url_ += "teamIds=" + encodeURIComponent("" + item) + "&"; });
+        if (teamOfTeamsIds !== undefined && teamOfTeamsIds !== null)
+            teamOfTeamsIds && teamOfTeamsIds.forEach(item => { url_ += "teamOfTeamsIds=" + encodeURIComponent("" + item) + "&"; });
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {
@@ -69633,6 +69639,12 @@ export interface MyTeamsSummaryResponse {
     /** One rollup per team of teams the caller is a member of directly, by name. Being on one of its teams does not
 make the caller a member of it. */
     teamsOfTeams: MyTeamOfTeamsSummaryResponse[];
+    /** Every active team the caller is a member of directly, by name, whether or not `teams` was narrowed to some
+of them: what a choice of teams is made from. */
+    allTeams: TeamNavigationDto[];
+    /** Every active team of teams the caller is a member of directly, by name, whether or not `teamsOfTeams` was
+narrowed to some of them. */
+    allTeamsOfTeams: TeamNavigationDto[];
     /** The open cross-team dependencies that are unhealthy across the caller's teams of teams, each counted once
 even when two of them share it. Null without the View Work Items permission. */
     unhealthyCrossTeamDependencyCount?: number | undefined;

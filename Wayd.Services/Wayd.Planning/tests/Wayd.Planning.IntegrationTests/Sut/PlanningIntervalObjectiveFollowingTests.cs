@@ -88,7 +88,7 @@ public sealed class PlanningIntervalObjectiveFollowingTests(SqlServerDbContextFi
         var handlerUnderTest = new GetMyFollowsQueryHandler(context, context, [readRule], principal.Object, clock);
 
         // Act
-        var result = await handlerUnderTest.Handle(new GetMyFollowsQuery(new PageRequest(), ownerType), ct);
+        var result = await handlerUnderTest.Handle(new GetMyFollowsQuery(new PageRequest(), [ownerType]), ct);
 
         // Assert
         result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);

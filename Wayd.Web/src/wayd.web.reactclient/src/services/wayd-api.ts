@@ -67466,10 +67466,13 @@ export enum HomeLayoutColumn {
     Side = "Side",
 }
 
-/** The signed-in user's saved home page arrangement. No widgets means they use the default. */
+/** The signed-in user's saved home page arrangement. No widgets means they use the default arrangement; no muted tiles means every attention tile can take a slot. */
 export interface HomeLayoutResponse {
     /** The placed widgets, in the order they show within their columns. */
     widgets: HomeLayoutWidgetResponse[];
+    /** The attention tiles the user switched off, by tile id; empty when none. A muted tile never takes a
+slot in the strip. Tile ids are the client's, like widget ids. */
+    mutedTiles: string[];
 }
 
 /** Where one widget sits on the home page, and whether it shows. */
@@ -75172,10 +75175,13 @@ export interface UpdateHolidayCalendarRequest {
     description?: string | undefined;
 }
 
-/** The signed-in user's home page arrangement, replacing the one saved. Send no widgets to clear it and use the default again. Widget ids are the client's; the server checks only the layout's shape. */
+/** The signed-in user's home page arrangement, replacing the one saved. Send no widgets and no muted tiles to clear it and use the default again. Widget and tile ids are the client's; the server checks only the layout's shape. */
 export interface UpdateHomeLayoutRequest {
     /** The placed widgets, in the order they show within their columns. */
     widgets: HomeLayoutWidgetRequest[];
+    /** The attention tiles the user switched off, by tile id; leave out or send empty when none. A muted tile
+never takes a slot in the strip. */
+    mutedTiles?: string[] | undefined;
 }
 
 export interface UpdateIncidentDetailsRequest {

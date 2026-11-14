@@ -16893,7 +16893,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the home page layout of the currently logged in user.
         /// </summary>
         /// <remarks>
-        /// The widgets the user placed, in order, with their column and whether they show. No widgets means the user has not customized the page and sees the default.
+        /// The widgets the user placed, in order, with their column and whether they show, and the attention tiles the user switched off. No widgets means the user has not arranged the page and sees the default arrangement.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -16904,7 +16904,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the home page layout of the currently logged in user.
         /// </summary>
         /// <remarks>
-        /// Replaces the saved layout and leaves the user's other preferences untouched. Send no widgets to return to the default.
+        /// Replaces the saved layout and leaves the user's other preferences untouched. Send no widgets to return to the default arrangement, and no muted tiles to show every attention tile.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -17651,7 +17651,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get the home page layout of the currently logged in user.
         /// </summary>
         /// <remarks>
-        /// The widgets the user placed, in order, with their column and whether they show. No widgets means the user has not customized the page and sees the default.
+        /// The widgets the user placed, in order, with their column and whether they show, and the attention tiles the user switched off. No widgets means the user has not arranged the page and sees the default arrangement.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -17738,7 +17738,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Update the home page layout of the currently logged in user.
         /// </summary>
         /// <remarks>
-        /// Replaces the saved layout and leaves the user's other preferences untouched. Send no widgets to return to the default.
+        /// Replaces the saved layout and leaves the user's other preferences untouched. Send no widgets to return to the default arrangement, and no muted tiles to show every attention tile.
         /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -126441,7 +126441,8 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// The signed-in user's saved home page arrangement. No widgets means they use the default.
+    /// The signed-in user's saved home page arrangement. No widgets means they use the default arrangement; no
+    /// <br/>muted tiles means every attention tile can take a slot.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class HomeLayoutResponse
@@ -126453,6 +126454,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("widgets")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<HomeLayoutWidgetResponse> Widgets { get; set; } = new System.Collections.ObjectModel.Collection<HomeLayoutWidgetResponse>();
+
+        /// <summary>
+        /// The attention tiles the user switched off, by tile id; empty when none. A muted tile never takes a
+        /// <br/>slot in the strip. Tile ids are the client's, like widget ids.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mutedTiles")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.ICollection<string> MutedTiles { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
     }
 
@@ -149013,8 +149022,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
     }
 
     /// <summary>
-    /// The signed-in user's home page arrangement, replacing the one saved. Send no widgets to clear it and use
-    /// <br/>the default again. Widget ids are the client's; the server checks only the layout's shape.
+    /// The signed-in user's home page arrangement, replacing the one saved. Send no widgets and no muted tiles
+    /// <br/>to clear it and use the default again. Widget and tile ids are the client's; the server checks only the
+    /// <br/>layout's shape.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateHomeLayoutRequest
@@ -149026,6 +149036,13 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         [System.Text.Json.Serialization.JsonPropertyName("widgets")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.ICollection<HomeLayoutWidgetRequest> Widgets { get; set; } = new System.Collections.ObjectModel.Collection<HomeLayoutWidgetRequest>();
+
+        /// <summary>
+        /// The attention tiles the user switched off, by tile id; leave out or send empty when none. A muted tile
+        /// <br/>never takes a slot in the strip.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mutedTiles")]
+        public System.Collections.Generic.ICollection<string>? MutedTiles { get; set; } = default!;
 
     }
 

@@ -35,6 +35,12 @@ public sealed class UserHomeLayout
 {
     /// <summary>The placed widgets, in the order they show within their columns.</summary>
     public List<UserHomeLayoutWidget> Widgets { get; set; } = [];
+
+    /// <summary>
+    /// The attention tiles the user switched off, by tile id; null when none. Tile ids belong to the client's
+    /// widget registry, like widget ids, and the server stores them unread.
+    /// </summary>
+    public List<string>? MutedTiles { get; set; }
 }
 
 /// <summary>Where one widget sits on a user's home page, and whether it shows.</summary>

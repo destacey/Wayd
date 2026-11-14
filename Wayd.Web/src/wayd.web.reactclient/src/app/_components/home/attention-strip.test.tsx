@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { FC } from 'react'
 import AttentionStrip from './attention-strip'
 import AttentionTile from './attention-tile'
-import { HomeTileProps } from './widget-registry'
+import { attentionTiles, HomeTileProps } from './widget-registry'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -29,6 +29,7 @@ const counting = (
 const tiles = (...defs: [string, number | undefined][]) =>
   defs.map(([id, value], i) => ({
     id,
+    title: id,
     widgetId: `widget-${id}`,
     priority: 100 - i,
     Tile: counting(id, value),
@@ -68,6 +69,70 @@ describe('AttentionStrip', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 
+  it('gives a muted tile’s slot to the next, and never renders it', () => {
+    // Arrange
+    const loads = vi.fn()
+    const Muted: FC<HomeTileProps> = ({ title }) => {
+      loads()
+      return counting(title, 9)({})
+    }
+    const columns = {
+      main: [
+        {
+          id: 'widget',
+          title: 'Widget',
+          description: 'A widget.',
+          defaultColumn: 'main' as const,
+          defaultOrder: 10,
+          requires: {},
+          Component: () => null,
+          tiles: [
+            { id: 'muted', title: 'Muted', priority: 100, Tile: Muted },
+            ...tiles(['A', 1], ['B', 2], ['C', 3], ['D', 4]),
+          ],
+        },
+      ],
+      side: [],
+    }
+
+    // Act
+    render(
+      <AttentionStrip tiles={attentionTiles(columns, new Set(['muted']))} />,
+    )
+
+    // Assert
+    const shown = screen
+      .getAllByRole('button')
+      .map((b) => b.getAttribute('aria-label'))
+    expect(shown).toEqual(['A: 1', 'B: 2', 'C: 3', 'D: 4'])
+    expect(loads).not.toHaveBeenCalled()
+  })
+
+  it('names each tile with the title its definition gives', () => {
+    // Arrange
+    const Titled: FC<HomeTileProps> = ({ title }) => counting(title, 1)({})
+
+    // Act
+    render(
+      <AttentionStrip
+        tiles={[
+          {
+            id: 'titled',
+            title: 'From the registry',
+            widgetId: 'w',
+            priority: 1,
+            Tile: Titled,
+          },
+        ]}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByRole('button', { name: 'From the registry: 1' }),
+    ).toBeInTheDocument()
+  })
+
   it('keeps a tile whose count failed', () => {
     // Arrange / Act
     render(<AttentionStrip tiles={tiles(['A', 0], ['B', undefined])} />)
@@ -87,6 +152,7 @@ describe('AttentionStrip as counts arrive', () => {
     loading: boolean,
   ) => ({
     id,
+    title: id,
     widgetId: `widget-${id}`,
     priority,
     Tile: counting(id, value, loading),
@@ -134,6 +200,43 @@ describe('AttentionStrip as counts arrive', () => {
     expect(screen.getByRole('button', { name: 'A: 2' })).toBeInTheDocument()
   })
 
+  it('forgets the count of a tile that leaves the strip, so it returns waiting for a fresh one', () => {
+    // Arrange
+    const others = [
+      tile('B', 90, 1, false),
+      tile('C', 80, 1, false),
+      tile('D', 70, 1, false),
+      tile('E', 60, 1, false),
+    ]
+    const { rerender } = render(
+      <AttentionStrip tiles={[tile('A', 100, 0, false), ...others]} />,
+    )
+    rerender(<AttentionStrip tiles={others} />)
+    const NotYetReported: FC = () => <span>A pending</span>
+
+    // Act
+    rerender(
+      <AttentionStrip
+        tiles={[
+          {
+            id: 'A',
+            title: 'A',
+            widgetId: 'widget-A',
+            priority: 100,
+            Tile: NotYetReported,
+          },
+          ...others,
+        ]}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByText('A pending')).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: 'E: 1' }),
+    ).not.toBeInTheDocument()
+  })
+
   it('hands each tile the settings of the widget it belongs to', () => {
     // Arrange
     const Reading: FC<HomeTileProps> = ({ settings }) => (
@@ -151,7 +254,13 @@ describe('AttentionStrip as counts arrive', () => {
     render(
       <AttentionStrip
         tiles={[
-          { id: 'reading', widgetId: 'mine', priority: 1, Tile: Reading },
+          {
+            id: 'reading',
+            title: 'Reading',
+            widgetId: 'mine',
+            priority: 1,
+            Tile: Reading,
+          },
         ]}
         settings={{ mine: { rows: '3' }, other: { rows: '9' } }}
       />,

@@ -324,7 +324,7 @@ describe('ProjectHealthChecksDueTile', () => {
     )
 
     // Act
-    render(<ProjectHealthChecksDueTile />)
+    render(<ProjectHealthChecksDueTile title="Health checks due" />)
 
     // Assert
     expect(
@@ -345,7 +345,9 @@ describe('ProjectHealthChecksDueTile', () => {
     )
 
     // Act
-    const { container } = render(<ProjectHealthChecksDueTile />)
+    const { container } = render(
+      <ProjectHealthChecksDueTile title="Health checks due" />,
+    )
 
     // Assert
     expect(
@@ -366,7 +368,7 @@ describe('ProjectHealthChecksDueTile', () => {
     })
 
     // Act
-    render(<ProjectHealthChecksDueTile />)
+    render(<ProjectHealthChecksDueTile title="Health checks due" />)
 
     // Assert
     expect(
@@ -381,7 +383,7 @@ describe('ProjectHealthChecksDueTile', () => {
     mockProjects.mockReturnValue(loaded([project('APOLLO', 'Apollo')], true))
 
     // Act
-    render(<ProjectHealthChecksDueTile />)
+    render(<ProjectHealthChecksDueTile title="Health checks due" />)
 
     // Assert
     expect(

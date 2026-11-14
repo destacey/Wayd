@@ -24,6 +24,8 @@ export interface WidgetRequirements {
 
 /** What the strip hands every tile it renders. */
 export interface HomeTileProps {
+  /** The registry's title, so the tile and the Customize drawer never disagree. */
+  title: string
   /**
    * The values in effect for the settings of the widget the tile belongs to,
    * so the tile counts only what its widget lists. Left out when a tile is
@@ -34,7 +36,13 @@ export interface HomeTileProps {
 
 /** A count in the attention strip, contributed by the widget whose data it comes from. */
 export interface AttentionTileDefinition {
+  /**
+   * Unique across the registry. Users' saved layouts store it to mute the
+   * tile, so an id is never renamed or reused once shipped.
+   */
   id: string
+  /** What the count is, as the tile and the Customize drawer name it. */
+  title: string
   /**
    * How urgent the count is when above zero; the strip shows the highest
    * first, ties in page order, so where a user placed a widget never decides
@@ -169,20 +177,34 @@ export const arrangeWidgets = (
 }
 
 /**
- * Every tile the shown widgets offer, highest priority first, ties in page
- * order (main column first). All of them load their counts; which ones take a
- * slot is `visibleAttentionTiles`'s decision once the counts are known.
+ * The tiles the given widgets offer, highest priority first, ties in the
+ * order the widgets are given.
  */
-export const attentionTiles = (
-  columns: Record<WidgetColumn, HomeWidget[]>,
+export const tilesByPriority = (
+  widgets: HomeWidget[],
 ): OfferedAttentionTile[] =>
-  [...columns.main, ...columns.side]
+  widgets
     .flatMap((w) => (w.tiles ?? []).map((t) => ({ ...t, widgetId: w.id })))
     .map((tile, pageOrder) => ({ tile, pageOrder }))
     .sort(
       (a, b) => b.tile.priority - a.tile.priority || a.pageOrder - b.pageOrder,
     )
     .map(({ tile }) => tile)
+
+/**
+ * Every tile the shown widgets offer, highest priority first, ties in page
+ * order (main column first), less the ones the user muted. All of them load
+ * their counts; which ones take a slot is `visibleAttentionTiles`'s decision
+ * once the counts are known. A muted tile is never rendered, so it makes no
+ * request.
+ */
+export const attentionTiles = (
+  columns: Record<WidgetColumn, HomeWidget[]>,
+  muted: ReadonlySet<string> = new Set(),
+): OfferedAttentionTile[] =>
+  tilesByPriority([...columns.main, ...columns.side]).filter(
+    (t) => !muted.has(t.id),
+  )
 
 /**
  * The ids of the tiles that take a slot: in the given order, leaving out each

@@ -111,6 +111,7 @@ internal partial class UserService
                     Settings = w.Settings is null ? [] : new Dictionary<string, string>(w.Settings),
                 })
                 .ToList() ?? [],
+            MutedTiles = user.Preferences?.HomeLayout?.MutedTiles is { } muted ? [.. muted] : [],
         };
     }
 
@@ -125,7 +126,7 @@ internal partial class UserService
             return Result.Failure("User not found.");
         }
 
-        user.Preferences = WithPreferences(user.Preferences, p => p.HomeLayout = layout.Widgets.Count == 0
+        user.Preferences = WithPreferences(user.Preferences, p => p.HomeLayout = layout.Widgets.Count == 0 && layout.MutedTiles.Count == 0
             ? null
             : new UserHomeLayout
             {
@@ -136,6 +137,7 @@ internal partial class UserService
                     Visible = w.Visible,
                     Settings = w.Settings.Count == 0 ? null : new Dictionary<string, string>(w.Settings),
                 })],
+                MutedTiles = layout.MutedTiles.Count == 0 ? null : [.. layout.MutedTiles.Distinct(StringComparer.Ordinal)],
             });
 
         var result = await _userManager.UpdateAsync(user);

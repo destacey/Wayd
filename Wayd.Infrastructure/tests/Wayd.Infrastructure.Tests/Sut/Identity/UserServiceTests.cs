@@ -3456,6 +3456,136 @@ public class UserServiceTests
 
         // Assert
         layout.Widgets.Should().BeEmpty();
+        layout.MutedTiles.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetHomeLayout_ShouldReturnTheMutedTiles()
+    {
+        // Arrange
+        var saved = SavedHomeLayout();
+        saved.MutedTiles = ["unread-notifications", "tasks-due-this-week"];
+        UserWithPreferences(new UserPreferences { HomeLayout = saved });
+        var sut = CreateSut();
+
+        // Act
+        var layout = await sut.GetHomeLayout("user-1", TestContext.Current.CancellationToken);
+
+        // Assert
+        layout.MutedTiles.Should().Equal("unread-notifications", "tasks-due-this-week");
+    }
+
+    [Fact]
+    public async Task UpdateHomeLayout_ShouldKeepMutedTiles_WhenNoWidgetsAreSent()
+    {
+        // Arrange
+        var user = UserWithPreferences(new UserPreferences());
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateHomeLayout(
+            "user-1",
+            new UserHomeLayoutDto { MutedTiles = ["unread-notifications", "unread-notifications"] },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        user.Preferences.HomeLayout!.Widgets.Should().BeEmpty();
+        user.Preferences.HomeLayout.MutedTiles.Should().Equal("unread-notifications");
+    }
+
+    [Fact]
+    public async Task UpdateHomeLayout_ShouldSaveNoMutedTilesAsNull()
+    {
+        // Arrange
+        var user = UserWithPreferences(new UserPreferences());
+        var layout = new UserHomeLayoutDto
+        {
+            Widgets = [new UserHomeLayoutWidgetDto { WidgetId = "following", Column = HomeLayoutColumn.Main, Visible = true }],
+        };
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateHomeLayout("user-1", layout, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        user.Preferences.HomeLayout!.MutedTiles.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateHomeLayout_ShouldClearSavedMutedTiles_WhenNoneAreSent()
+    {
+        // Arrange
+        var saved = SavedHomeLayout();
+        saved.MutedTiles = ["unread-notifications"];
+        var user = UserWithPreferences(new UserPreferences { HomeLayout = saved });
+        var layout = new UserHomeLayoutDto
+        {
+            Widgets = [new UserHomeLayoutWidgetDto { WidgetId = "following", Column = HomeLayoutColumn.Main, Visible = true }],
+        };
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateHomeLayout("user-1", layout, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        user.Preferences.HomeLayout!.MutedTiles.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetHomeLayout_ShouldReturnNoMutedTiles_WhenTheStoredLayoutHasNone()
+    {
+        // Arrange
+        var saved = SavedHomeLayout();
+        saved.MutedTiles = null;
+        UserWithPreferences(new UserPreferences { HomeLayout = saved });
+        var sut = CreateSut();
+
+        // Act
+        var layout = await sut.GetHomeLayout("user-1", TestContext.Current.CancellationToken);
+
+        // Assert
+        layout.Widgets.Should().NotBeEmpty();
+        layout.MutedTiles.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task UpdateThemeConfig_ShouldKeepMutedTiles()
+    {
+        // Arrange
+        var saved = SavedHomeLayout();
+        saved.MutedTiles = ["unread-notifications"];
+        var user = UserWithPreferences(new UserPreferences { HomeLayout = saved });
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdateThemeConfig("user-1", null, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        user.Preferences.HomeLayout!.MutedTiles.Should().Equal("unread-notifications");
+    }
+
+    [Fact]
+    public async Task UpdatePreferences_ShouldKeepMutedTiles()
+    {
+        // Arrange
+        var saved = SavedHomeLayout();
+        saved.MutedTiles = ["unread-notifications"];
+        var user = UserWithPreferences(new UserPreferences { HomeLayout = saved });
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdatePreferences(
+            "user-1",
+            new UserPreferencesDto { Tours = new() { ["projects"] = true } },
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        user.Preferences.HomeLayout!.MutedTiles.Should().Equal("unread-notifications");
     }
 
     #endregion

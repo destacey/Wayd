@@ -1,10 +1,19 @@
 namespace Wayd.Web.Api.Models.UserManagement.Profiles;
 
-/// <summary>The signed-in user's saved home page arrangement. No widgets means they use the default.</summary>
+/// <summary>
+/// The signed-in user's saved home page arrangement. No widgets means they use the default arrangement; no
+/// muted tiles means every attention tile can take a slot.
+/// </summary>
 public sealed record HomeLayoutResponse
 {
     /// <summary>The placed widgets, in the order they show within their columns.</summary>
     public required List<HomeLayoutWidgetResponse> Widgets { get; init; }
+
+    /// <summary>
+    /// The attention tiles the user switched off, by tile id; empty when none. A muted tile never takes a
+    /// slot in the strip. Tile ids are the client's, like widget ids.
+    /// </summary>
+    public required List<string> MutedTiles { get; init; }
 
     /// <summary>Builds the response from the stored layout.</summary>
     public static HomeLayoutResponse From(UserHomeLayoutDto layout) => new()
@@ -16,6 +25,7 @@ public sealed record HomeLayoutResponse
             Visible = w.Visible,
             Settings = w.Settings,
         })],
+        MutedTiles = [.. layout.MutedTiles],
     };
 }
 

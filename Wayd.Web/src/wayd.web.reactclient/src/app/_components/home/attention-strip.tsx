@@ -43,7 +43,7 @@ const Slot: FC<{
 }
 
 export interface AttentionStripProps {
-  /** The tiles on offer, in the order they take slots (see `attentionTiles`). */
+  /** The tiles on offer, muted ones left out, in the order they take slots (see `attentionTiles`). */
   tiles: OfferedAttentionTile[]
   /** Each widget's setting values in effect, by widget id, handed to its tiles. */
   settings?: Record<string, WidgetSettingValues>
@@ -76,6 +76,18 @@ const AttentionStrip: FC<AttentionStripProps> = ({
     })
   }
 
+  // A tile that leaves the strip (muted, or its widget switched off) drops its
+  // report, so on returning it waits for a fresh count instead of placing
+  // slots by the old one.
+  const offered = new Set(tiles.map((t) => t.id))
+  if (Object.keys(reports).some((id) => !offered.has(id))) {
+    setReports((previous) =>
+      Object.fromEntries(
+        Object.entries(previous).filter(([id]) => offered.has(id)),
+      ),
+    )
+  }
+
   if (tiles.length === 0) return null
 
   const visible = visibleAttentionTiles(tiles, reports)
@@ -86,7 +98,7 @@ const AttentionStrip: FC<AttentionStripProps> = ({
       aria-label="Needs attention"
       hidden={visible.size === 0}
     >
-      {tiles.map(({ id, widgetId, Tile }) => (
+      {tiles.map(({ id, title, widgetId, Tile }) => (
         <Slot
           key={id}
           id={id}
@@ -94,7 +106,7 @@ const AttentionStrip: FC<AttentionStripProps> = ({
           onReport={onReport}
           revealHiddenWidgets={onRevealHiddenWidgets}
         >
-          <Tile settings={settings?.[widgetId]} />
+          <Tile title={title} settings={settings?.[widgetId]} />
         </Slot>
       ))}
     </section>

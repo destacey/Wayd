@@ -9,7 +9,7 @@ import { FC } from 'react'
 import AttentionTile from '../attention-tile'
 import WidgetCard, { WidgetEmpty } from '../widget-card'
 import { isOn, MAX_ROWS, rowsToShow, WidgetSetting } from '../widget-settings'
-import { HomeWidgetProps } from '../widget-registry'
+import { HomeTileProps, HomeWidgetProps } from '../widget-registry'
 
 /** How many of the latest changes the widget shows; the rest are a click away. */
 export const WHATS_CHANGED_COUNT = 5
@@ -70,11 +70,11 @@ const WhatsChangedWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
 }
 
 /** Records with notifications the caller has not read — the bell's count. */
-export const UnreadNotificationsTile: FC = () => {
+export const UnreadNotificationsTile: FC<HomeTileProps> = ({ title }) => {
   const { data, isLoading, isError } = useGetUnreadNotificationCountQuery()
   return (
     <AttentionTile
-      title="Unread notifications"
+      title={title}
       value={isError ? undefined : (data?.count ?? 0)}
       capped={data?.isCapped}
       tooltip="Records you follow or work on with changes you have not read yet."

@@ -7019,7 +7019,7 @@
           "Profile"
         ],
         "summary": "Get the home page layout of the currently logged in user.",
-        "description": "The widgets the user placed, in order, with their column and whether they show. No widgets means the user has not customized the page and sees the default.",
+        "description": "The widgets the user placed, in order, with their column and whether they show, and the attention tiles the user switched off. No widgets means the user has not arranged the page and sees the default arrangement.",
         "operationId": "Profile_GetHomeLayout",
         "responses": {
           "200": {
@@ -7054,7 +7054,7 @@
           "Profile"
         ],
         "summary": "Update the home page layout of the currently logged in user.",
-        "description": "Replaces the saved layout and leaves the user's other preferences untouched. Send no widgets to return to the default.",
+        "description": "Replaces the saved layout and leaves the user's other preferences untouched. Send no widgets to return to the default arrangement, and no muted tiles to show every attention tile.",
         "operationId": "Profile_UpdateHomeLayout",
         "requestBody": {
           "content": {
@@ -65150,7 +65150,8 @@
       },
       "HomeLayoutResponse": {
         "required": [
-          "widgets"
+          "widgets",
+          "mutedTiles"
         ],
         "type": "object",
         "properties": {
@@ -65160,10 +65161,17 @@
               "$ref": "#/components/schemas/HomeLayoutWidgetResponse"
             },
             "description": "The placed widgets, in the order they show within their columns."
+          },
+          "mutedTiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The attention tiles the user switched off, by tile id; empty when none. A muted tile never takes a\nslot in the strip. Tile ids are the client's, like widget ids."
           }
         },
         "additionalProperties": false,
-        "description": "The signed-in user's saved home page arrangement. No widgets means they use the default."
+        "description": "The signed-in user's saved home page arrangement. No widgets means they use the default arrangement; no\nmuted tiles means every attention tile can take a slot."
       },
       "HomeLayoutWidgetRequest": {
         "required": [
@@ -88505,10 +88513,18 @@
               "$ref": "#/components/schemas/HomeLayoutWidgetRequest"
             },
             "description": "The placed widgets, in the order they show within their columns."
+          },
+          "mutedTiles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The attention tiles the user switched off, by tile id; leave out or send empty when none. A muted tile\nnever takes a slot in the strip.",
+            "nullable": true
           }
         },
         "additionalProperties": false,
-        "description": "The signed-in user's home page arrangement, replacing the one saved. Send no widgets to clear it and use\nthe default again. Widget ids are the client's; the server checks only the layout's shape."
+        "description": "The signed-in user's home page arrangement, replacing the one saved. Send no widgets and no muted tiles\nto clear it and use the default again. Widget and tile ids are the client's; the server checks only the\nlayout's shape."
       },
       "UpdateIncidentDetailsRequest": {
         "required": [

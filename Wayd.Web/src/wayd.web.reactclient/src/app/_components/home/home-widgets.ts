@@ -99,8 +99,8 @@ const teamCount = ({ teams }: HomeContextResponse) =>
   teams.teamCount + teams.teamOfTeamsCount
 
 /**
- * Every widget the home page can show. Ids are stored in users' saved layouts,
- * so an id is never renamed or reused once shipped.
+ * Every widget the home page can show. Widget and tile ids are stored in
+ * users' saved layouts, so an id is never renamed or reused once shipped.
  */
 export const HomeWidgets: HomeWidget[] = [
   {
@@ -120,6 +120,7 @@ export const HomeWidgets: HomeWidget[] = [
     tiles: [
       {
         id: 'unread-notifications',
+        title: 'Unread notifications',
         priority: TilePriority.UnreadNotifications,
         Tile: UnreadNotificationsTile,
       },
@@ -188,11 +189,13 @@ export const HomeWidgets: HomeWidget[] = [
     tiles: [
       {
         id: 'overdue-tasks',
+        title: 'Overdue tasks',
         priority: TilePriority.OverdueTasks,
         Tile: OverdueTasksTile,
       },
       {
         id: 'tasks-due-this-week',
+        title: 'Due this week',
         priority: TilePriority.TasksDueThisWeek,
         Tile: DueThisWeekTile,
       },
@@ -223,6 +226,7 @@ export const HomeWidgets: HomeWidget[] = [
     tiles: [
       {
         id: 'project-health-checks-due',
+        title: 'Health checks due',
         priority: TilePriority.ProjectHealthChecksDue,
         Tile: ProjectHealthChecksDueTile,
       },
@@ -262,6 +266,7 @@ export const HomeWidgets: HomeWidget[] = [
     tiles: [
       {
         id: 'risk-follow-ups',
+        title: 'Risk follow-ups',
         priority: TilePriority.RiskFollowUps,
         Tile: RiskFollowUpsTile,
       },
@@ -316,6 +321,7 @@ export const HomeWidgets: HomeWidget[] = [
     tiles: [
       {
         id: 'dependencies-at-risk',
+        title: 'Dependencies at risk',
         priority: TilePriority.DependenciesAtRisk,
         Tile: DependenciesAtRiskTile,
       },
@@ -340,11 +346,13 @@ export const HomeWidgets: HomeWidget[] = [
     tiles: [
       {
         id: 'sprints-to-complete',
+        title: 'Sprints to complete',
         priority: TilePriority.SprintsToComplete,
         Tile: SprintsToCompleteTile,
       },
       {
         id: 'cross-team-dependencies',
+        title: 'Unhealthy dependencies',
         priority: TilePriority.CrossTeamDependencies,
         Tile: CrossTeamDependenciesTile,
       },
@@ -371,11 +379,13 @@ export const HomeWidgets: HomeWidget[] = [
     tiles: [
       {
         id: 'unassigned-requests',
+        title: 'Unassigned requests',
         priority: TilePriority.UnassignedRequests,
         Tile: UnassignedRequestsTile,
       },
       {
         id: 'requests-assigned-to-me',
+        title: 'Requests assigned',
         priority: TilePriority.RequestsAssignedToMe,
         Tile: RequestsAssignedToMeTile,
       },

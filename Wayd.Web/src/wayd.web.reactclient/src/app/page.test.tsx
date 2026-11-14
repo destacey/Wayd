@@ -38,6 +38,7 @@ vi.mock('@/src/hooks/use-document-title', () => ({
 
 const mockLayout = {
   widgets: [] as HomeLayoutWidgetResponse[],
+  mutedTiles: [] as string[],
   isLoading: false,
   loadFails: false,
   saveFails: false,
@@ -52,7 +53,7 @@ vi.mock('@/src/store/features/user-management/profile-api', () => ({
     data:
       mockLayout.isLoading || mockLayout.loadFails
         ? undefined
-        : { widgets: mockLayout.widgets },
+        : { widgets: mockLayout.widgets, mutedTiles: mockLayout.mutedTiles },
     isLoading: mockLayout.isLoading,
     isError: mockLayout.loadFails,
   }),
@@ -174,7 +175,15 @@ vi.mock('./_components/home/home-widgets', async () => {
           },
           emptySetting,
         ],
-        tiles: [{ id: 'personal-tile', Tile: stand('Personal tile') }],
+        // Renders its label alone, so an exact-text query finds it or proves it absent.
+        tiles: [
+          {
+            id: 'personal-tile',
+            title: 'Personal count',
+            priority: 10,
+            Tile: () => <span>Personal tile</span>,
+          },
+        ],
       },
       {
         id: 'flagged',
@@ -227,6 +236,7 @@ describe('HomePage', () => {
     mockAuth.flags = new Set(['following'])
     mockAuth.flagsLoading = false
     mockLayout.widgets = []
+    mockLayout.mutedTiles = []
     mockLayout.isLoading = false
     mockLayout.saveFails = false
     mockLayout.saveHeld = null
@@ -393,6 +403,7 @@ describe('HomePage customizing', () => {
     mockAuth.flags = new Set(['following'])
     mockAuth.flagsLoading = false
     mockLayout.widgets = []
+    mockLayout.mutedTiles = []
     mockLayout.isLoading = false
     mockLayout.saveFails = false
     mockLayout.saveHeld = null
@@ -401,6 +412,103 @@ describe('HomePage customizing', () => {
     mockHome.isLoading = false
     mockUpdateHomeLayout.mockClear()
     mockMessage.error.mockClear()
+  })
+
+  // Later describes do not reset muted tiles.
+  afterEach(() => {
+    mockLayout.mutedTiles = []
+  })
+
+  it('leaves a muted tile out of the strip', () => {
+    // Arrange
+    mockLayout.mutedTiles = ['personal-tile']
+
+    // Act
+    render(<HomePage />)
+
+    // Assert
+    expect(screen.getByText(/Personal widget/)).toBeInTheDocument()
+    expect(screen.queryByText('Personal tile')).not.toBeInTheDocument()
+  })
+
+  it('mutes a tile from the drawer, saving the widgets as they were', async () => {
+    // Arrange
+    render(<HomePage />)
+    expect(screen.getByText('Personal tile')).toBeInTheDocument()
+    openCustomize()
+
+    // Act
+    fireEvent.click(
+      screen.getByRole('switch', { name: 'Show the Personal count tile' }),
+    )
+
+    // Assert — the strip follows at once; nothing is saved yet
+    expect(screen.queryByText('Personal tile')).not.toBeInTheDocument()
+    expect(mockUpdateHomeLayout).not.toHaveBeenCalled()
+
+    // Act
+    await closeCustomize()
+
+    // Assert — no widget was arranged, so none is saved and the default keeps following involvement
+    expect(mockUpdateHomeLayout).toHaveBeenCalledWith({
+      widgets: [],
+      mutedTiles: ['personal-tile'],
+    })
+  })
+
+  it('keeps the saved widgets when only a tile is muted', async () => {
+    // Arrange
+    mockLayout.widgets = [saved('personal', HomeLayoutColumn.Side)]
+    render(<HomePage />)
+    openCustomize()
+    fireEvent.click(
+      screen.getByRole('switch', { name: 'Show the Personal count tile' }),
+    )
+
+    // Act
+    await closeCustomize()
+
+    // Assert
+    expect(mockUpdateHomeLayout).toHaveBeenCalledWith({
+      widgets: [saved('personal', HomeLayoutColumn.Side)],
+      mutedTiles: ['personal-tile'],
+    })
+  })
+
+  it('puts a muted tile back when the drawer’s save fails', async () => {
+    // Arrange
+    mockLayout.saveFails = true
+    render(<HomePage />)
+    openCustomize()
+    fireEvent.click(
+      screen.getByRole('switch', { name: 'Show the Personal count tile' }),
+    )
+
+    // Act
+    await closeCustomize()
+
+    // Assert
+    expect(mockMessage.error).toHaveBeenCalledWith(
+      expect.stringMatching(/could not be saved/),
+    )
+    expect(screen.getByText('Personal tile')).toBeInTheDocument()
+  })
+
+  it('keeps muted tiles when a setting is changed on a card', async () => {
+    // Arrange
+    mockLayout.mutedTiles = ['personal-tile', 'retired-tile']
+    render(<HomePage />)
+
+    // Act
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Set Personal rows' }))
+    })
+
+    // Assert — a muted id the registry no longer has is dropped
+    expect(mockUpdateHomeLayout).toHaveBeenCalledWith({
+      widgets: [saved('personal', HomeLayoutColumn.Main, true, { rows: '10' })],
+      mutedTiles: ['personal-tile'],
+    })
   })
 
   it('arranges the page as the saved layout says', () => {
@@ -556,6 +664,7 @@ describe('HomePage customizing', () => {
         saved('personal', HomeLayoutColumn.Main, false),
         saved('flagged', HomeLayoutColumn.Side),
       ],
+      mutedTiles: [],
     })
     expect(mockMessage.error).not.toHaveBeenCalled()
   })
@@ -590,6 +699,7 @@ describe('HomePage customizing', () => {
     // Assert
     expect(mockUpdateHomeLayout).toHaveBeenCalledWith({
       widgets: [saved('personal', HomeLayoutColumn.Main, true, { rows: '10' })],
+      mutedTiles: [],
     })
   })
 
@@ -664,6 +774,7 @@ describe('HomePage customizing', () => {
         saved('personal', HomeLayoutColumn.Main, true, { rows: '10' }),
         saved('flagged', HomeLayoutColumn.Side),
       ],
+      mutedTiles: [],
     })
   })
 
@@ -692,26 +803,31 @@ describe('HomePage customizing', () => {
     expect(mockUpdateHomeLayout).not.toHaveBeenCalled()
   })
 
-  it('clears the saved layout on Reset to default', async () => {
+  it('clears the saved layout and muted tiles on Reset to default', async () => {
     // Arrange
     mockLayout.widgets = [saved('personal', HomeLayoutColumn.Side, false)]
+    mockLayout.mutedTiles = ['personal-tile']
     render(<HomePage />)
     openCustomize()
 
     // Act
     fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }))
 
-    // Assert — the default shows at once
+    // Assert — the default shows at once, with every tile
     expect(pageWidgets()).toEqual([
       'Personal widget (Personal)',
       'Flagged widget (Flagged)',
     ])
+    expect(screen.getByText('Personal tile')).toBeInTheDocument()
 
     // Act
     await closeCustomize()
 
     // Assert
-    expect(mockUpdateHomeLayout).toHaveBeenCalledWith({ widgets: [] })
+    expect(mockUpdateHomeLayout).toHaveBeenCalledWith({
+      widgets: [],
+      mutedTiles: [],
+    })
   })
 
   it('resets to the involvement order, not the registry defaults', () => {
@@ -759,6 +875,7 @@ describe('HomePage customizing', () => {
         saved('flagged', HomeLayoutColumn.Main, false),
         saved('personal', HomeLayoutColumn.Main, false),
       ],
+      mutedTiles: [],
     })
   })
 

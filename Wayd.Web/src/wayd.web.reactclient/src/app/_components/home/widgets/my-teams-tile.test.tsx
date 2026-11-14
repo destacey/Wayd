@@ -52,7 +52,7 @@ describe('DependenciesAtRiskTile', () => {
     mockSummary.mockReturnValue(loaded({ dependenciesAtRiskCount: 3 }))
 
     // Act
-    render(<DependenciesAtRiskTile />)
+    render(<DependenciesAtRiskTile title="Dependencies at risk" />)
 
     // Assert
     expect(
@@ -67,7 +67,7 @@ describe('DependenciesAtRiskTile', () => {
     mockSummary.mockReturnValue(loaded({ dependenciesAtRiskCount: undefined }))
 
     // Act
-    render(<DependenciesAtRiskTile />)
+    render(<DependenciesAtRiskTile title="Dependencies at risk" />)
 
     // Assert
     expect(
@@ -87,7 +87,7 @@ describe('DependenciesAtRiskTile', () => {
     })
 
     // Act
-    render(<DependenciesAtRiskTile />)
+    render(<DependenciesAtRiskTile title="Dependencies at risk" />)
 
     // Assert
     expect(
@@ -107,7 +107,7 @@ describe('DependenciesAtRiskTile', () => {
     })
 
     // Act
-    render(<DependenciesAtRiskTile />)
+    render(<DependenciesAtRiskTile title="Dependencies at risk" />)
 
     // Assert
     expect(
@@ -128,7 +128,7 @@ describe('team of teams tiles', () => {
     mockSummary.mockReturnValue(loaded({ sprintsEndedNotCompletedCount: 2 }))
 
     // Act
-    render(<SprintsToCompleteTile />)
+    render(<SprintsToCompleteTile title="Sprints to complete" />)
 
     // Assert
     expect(mockSummary).toHaveBeenCalledWith(undefined, { skip: false })
@@ -146,7 +146,7 @@ describe('team of teams tiles', () => {
     )
 
     // Act
-    render(<CrossTeamDependenciesTile />)
+    render(<CrossTeamDependenciesTile title="Unhealthy dependencies" />)
 
     // Assert
     expect(
@@ -163,7 +163,7 @@ describe('team of teams tiles', () => {
     )
 
     // Act
-    render(<CrossTeamDependenciesTile />)
+    render(<CrossTeamDependenciesTile title="Unhealthy dependencies" />)
 
     // Assert
     expect(
@@ -196,7 +196,7 @@ describe('team tile targets', () => {
     target.id = widgetAnchorId(widgetId)
     target.scrollIntoView = vi.fn()
     document.body.appendChild(target)
-    render(<Tile />)
+    render(<Tile title="Tile" />)
 
     // Act
     await userEvent.click(screen.getByRole('button'))
@@ -383,7 +383,7 @@ describe('team tiles when narrowed', () => {
     )
 
     // Act
-    render(<DependenciesAtRiskTile />)
+    render(<DependenciesAtRiskTile title="Dependencies at risk" />)
 
     // Assert
     expect(
@@ -407,8 +407,8 @@ describe('team tiles when narrowed', () => {
     // Act
     render(
       <>
-        <SprintsToCompleteTile />
-        <CrossTeamDependenciesTile />
+        <SprintsToCompleteTile title="Sprints to complete" />
+        <CrossTeamDependenciesTile title="Unhealthy dependencies" />
       </>,
     )
 

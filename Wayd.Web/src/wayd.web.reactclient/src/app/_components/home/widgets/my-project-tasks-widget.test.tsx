@@ -511,7 +511,7 @@ describe('OverdueTasksTile', () => {
     )
 
     // Act
-    const { container } = render(<OverdueTasksTile />)
+    const { container } = render(<OverdueTasksTile title="Overdue tasks" />)
 
     // Assert
     const tile = screen.getByRole('button', {
@@ -531,7 +531,7 @@ describe('OverdueTasksTile', () => {
     })
 
     // Act
-    render(<OverdueTasksTile />)
+    render(<OverdueTasksTile title="Overdue tasks" />)
 
     // Assert
     expect(mockTasks).toHaveBeenCalledWith(expect.anything(), { skip: true })
@@ -545,7 +545,7 @@ describe('OverdueTasksTile', () => {
     mockTasks.mockReturnValue(loaded([task(1, 'Late', '2026-11-01')], true))
 
     // Act
-    render(<OverdueTasksTile />)
+    render(<OverdueTasksTile title="Overdue tasks" />)
 
     // Assert
     expect(
@@ -569,7 +569,7 @@ describe('DueThisWeekTile', () => {
     )
 
     // Act
-    const { container } = render(<DueThisWeekTile />)
+    const { container } = render(<DueThisWeekTile title="Due this week" />)
 
     // Assert
     expect(

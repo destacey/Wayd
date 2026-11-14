@@ -24,7 +24,11 @@ import {
   WidgetSetting,
   WidgetSettingValues,
 } from '../widget-settings'
-import { HomeWidgetProps, widgetAnchorId } from '../widget-registry'
+import {
+  HomeTileProps,
+  HomeWidgetProps,
+  widgetAnchorId,
+} from '../widget-registry'
 import styles from '../home.module.css'
 
 const { Text } = Typography
@@ -293,11 +297,11 @@ const useTaskCounts = () => {
 }
 
 /** Open tasks assigned to the caller that are past their due date. */
-export const OverdueTasksTile: FC = () => {
+export const OverdueTasksTile: FC<HomeTileProps> = ({ title }) => {
   const { counts, isLoading } = useTaskCounts()
   return (
     <AttentionTile
-      title="Overdue tasks"
+      title={title}
       context="assigned to you"
       value={counts?.overdue}
       tooltip="Open tasks and milestones assigned to you on approved and active projects that are past their due date."
@@ -309,11 +313,11 @@ export const OverdueTasksTile: FC = () => {
 }
 
 /** Open tasks assigned to the caller that are due by the end of this week. */
-export const DueThisWeekTile: FC = () => {
+export const DueThisWeekTile: FC<HomeTileProps> = ({ title }) => {
   const { counts, isLoading } = useTaskCounts()
   return (
     <AttentionTile
-      title="Due this week"
+      title={title}
       context="assigned to you"
       value={counts?.dueThisWeek}
       tooltip="Open tasks and milestones assigned to you on approved and active projects that are due by the end of this week (Saturday)."

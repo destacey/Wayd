@@ -1,10 +1,16 @@
 namespace Wayd.Common.Application.Identity.Users;
 
-/// <summary>A user's saved home page arrangement; an empty list means they use the default.</summary>
+/// <summary>
+/// A user's saved home page arrangement. No widgets means they use the default arrangement; no muted tiles
+/// means every tile can take a slot in the attention strip.
+/// </summary>
 public sealed record UserHomeLayoutDto
 {
     /// <summary>The placed widgets, in the order they show within their columns.</summary>
     public List<UserHomeLayoutWidgetDto> Widgets { get; init; } = [];
+
+    /// <summary>The attention tiles the user switched off, by tile id; empty when none.</summary>
+    public List<string> MutedTiles { get; init; } = [];
 }
 
 /// <summary>Where one widget sits on a user's home page, and whether it shows.</summary>

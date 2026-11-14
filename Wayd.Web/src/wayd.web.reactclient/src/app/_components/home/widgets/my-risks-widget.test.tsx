@@ -285,7 +285,7 @@ describe('RiskFollowUpsTile', () => {
     )
 
     // Act
-    const { container } = render(<RiskFollowUpsTile />)
+    const { container } = render(<RiskFollowUpsTile title="Risk follow-ups" />)
 
     // Assert
     expect(
@@ -299,7 +299,7 @@ describe('RiskFollowUpsTile', () => {
     mockRisks.mockReturnValue(loaded([risk(3, 'Later', '2026-12-01')]))
 
     // Act
-    const { container } = render(<RiskFollowUpsTile />)
+    const { container } = render(<RiskFollowUpsTile title="Risk follow-ups" />)
 
     // Assert
     expect(

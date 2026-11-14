@@ -178,7 +178,9 @@ describe('UnreadNotificationsTile', () => {
     })
 
     // Act
-    const { container } = render(<UnreadNotificationsTile />)
+    const { container } = render(
+      <UnreadNotificationsTile title="Unread notifications" />,
+    )
 
     // Assert
     expect(
@@ -196,7 +198,9 @@ describe('UnreadNotificationsTile', () => {
     })
 
     // Act
-    const { container } = render(<UnreadNotificationsTile />)
+    const { container } = render(
+      <UnreadNotificationsTile title="Unread notifications" />,
+    )
 
     // Assert
     expect(
@@ -214,7 +218,7 @@ describe('UnreadNotificationsTile', () => {
     })
 
     // Act
-    render(<UnreadNotificationsTile />)
+    render(<UnreadNotificationsTile title="Unread notifications" />)
 
     // Assert
     expect(

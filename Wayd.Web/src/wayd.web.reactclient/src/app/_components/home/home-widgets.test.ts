@@ -143,6 +143,19 @@ describe('HomeWidgets', () => {
     expect(unique.size).toBe(ids.length)
   })
 
+  it('gives every tile a unique id and a title, since saved layouts mute tiles by id', () => {
+    // Arrange
+    const tiles = HomeWidgets.flatMap((w) => w.tiles ?? [])
+
+    // Act
+    const unique = new Set(tiles.map((t) => t.id))
+
+    // Assert
+    expect(tiles.length).toBeGreaterThan(0)
+    expect(unique.size).toBe(tiles.length)
+    for (const tile of tiles) expect(tile.title.trim()).not.toBe('')
+  })
+
   it('shows an unlinked account only the widgets that need no employee', () => {
     // Arrange
     const unlinked = { ...everything, hasLinkedEmployee: false }

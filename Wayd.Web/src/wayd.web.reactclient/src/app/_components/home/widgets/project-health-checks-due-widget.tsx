@@ -22,7 +22,11 @@ import {
   rowsToShow,
   WidgetSetting,
 } from '../widget-settings'
-import { HomeWidgetProps, widgetAnchorId } from '../widget-registry'
+import {
+  HomeTileProps,
+  HomeWidgetProps,
+  widgetAnchorId,
+} from '../widget-registry'
 import styles from '../home.module.css'
 
 const { Text } = Typography
@@ -202,7 +206,7 @@ const ProjectHealthChecksDueWidget: FC<HomeWidgetProps> = ({
 }
 
 /** Active projects the caller owns or manages with no current health check. */
-export const ProjectHealthChecksDueTile: FC = () => {
+export const ProjectHealthChecksDueTile: FC<HomeTileProps> = ({ title }) => {
   const { data, isLoading, isError, leadsNone } = useLedProjects()
   // A failed refetch keeps the last good data; showing it would pass off an old count as current.
   const value = isError
@@ -212,7 +216,7 @@ export const ProjectHealthChecksDueTile: FC = () => {
       : data?.filter((p) => lacksCurrentHealthCheck(p, new Date())).length
   return (
     <AttentionTile
-      title="Health checks due"
+      title={title}
       context="on projects you lead"
       value={value}
       tooltip="Active projects you own or manage with no current health check: none was reported, or the last one expired."

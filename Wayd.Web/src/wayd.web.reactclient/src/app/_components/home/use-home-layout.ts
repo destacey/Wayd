@@ -13,6 +13,7 @@ import {
   fromSavedWidgets,
   HomeLayout,
   layoutToSave,
+  mutedTilesToSave,
   resolveLayout,
   SavedWidget,
   settingsChangeToSave,
@@ -34,9 +35,24 @@ interface LayoutDraft {
   layout: HomeLayout
   /** The saved layout the draft started from, whose unavailable widgets a save keeps. */
   basis: SavedWidget[]
+  /** Whether the widgets were changed, so closing saves their arrangement. */
   changed: boolean
-  /** Reset to the default with nothing changed since, so closing clears the saved layout. */
+  /** Reset to the default with no widget changed since, so closing clears the saved arrangement. */
   reset: boolean
+  /** The tiles muted in the draft, by id. */
+  mutedTiles: string[]
+  /**
+   * Whether the muted tiles were changed. Kept apart from `changed`, so muting
+   * a tile alone saves the widgets as they were saved and never pins a
+   * default arrangement that would otherwise follow the user's involvement.
+   */
+  mutedChanged: boolean
+}
+
+/** A whole home layout as one save replaces it. */
+interface SavedHomeLayout {
+  widgets: SavedWidget[]
+  mutedTiles: string[]
 }
 
 /**
@@ -61,7 +77,7 @@ export const useHomeLayout = () => {
   // The layout last sent, while any save is in flight. Each save replaces the
   // whole layout, so the next one must build on this rather than on a cache an
   // earlier save's refetch may have put back to what the server held then.
-  const [sending, setSending] = useState<SavedWidget[] | null>(null)
+  const [sending, setSending] = useState<SavedHomeLayout | null>(null)
   const savesInFlight = useRef(0)
 
   const access: WidgetAccess = {
@@ -70,7 +86,9 @@ export const useHomeLayout = () => {
     hasLinkedEmployee,
     context,
   }
-  const saved = sending ?? fromSavedWidgets(data?.widgets ?? [])
+  const saved = sending?.widgets ?? fromSavedWidgets(data?.widgets ?? [])
+  const savedMuted = sending?.mutedTiles ?? data?.mutedTiles ?? []
+  const mutedTiles = draft?.mutedTiles ?? savedMuted
   // The default, and where a widget the saved layout lacks joins it, follow
   // what the caller is involved in; a failed context falls back to the registry's.
   const place = involvementPlacement(HomeWidgets, context)
@@ -91,10 +109,20 @@ export const useHomeLayout = () => {
   const canCustomize = !isLoading && !isError && !isFlagsLoading
 
   const open = () =>
-    setDraft({ layout, basis: saved, changed: false, reset: false })
+    setDraft({
+      layout,
+      basis: saved,
+      changed: false,
+      reset: false,
+      mutedTiles: savedMuted,
+      mutedChanged: false,
+    })
 
   const change = (next: HomeLayout) =>
     setDraft((d) => d && { ...d, layout: next, changed: true, reset: false })
+
+  const changeMutedTiles = (next: string[]) =>
+    setDraft((d) => d && { ...d, mutedTiles: next, mutedChanged: true })
 
   const reset = () =>
     setDraft({
@@ -102,13 +130,18 @@ export const useHomeLayout = () => {
       basis: [],
       changed: true,
       reset: true,
+      mutedTiles: [],
+      mutedChanged: true,
     })
 
-  const save = async (widgets: SavedWidget[], failure: string) => {
+  const save = async (next: SavedHomeLayout, failure: string) => {
     savesInFlight.current += 1
-    setSending(widgets)
+    setSending(next)
     try {
-      await updateHomeLayout({ widgets: toSavedWidgets(widgets) }).unwrap()
+      await updateHomeLayout({
+        widgets: toSavedWidgets(next.widgets),
+        mutedTiles: next.mutedTiles,
+      }).unwrap()
     } catch {
       messageApi.error(failure)
     } finally {
@@ -123,7 +156,10 @@ export const useHomeLayout = () => {
     const next = setWidgetSettings(layout, id, settings)
     if (draft) return change(next)
     return save(
-      settingsChangeToSave(next, saved, HomeWidgets, id),
+      {
+        widgets: settingsChangeToSave(next, saved, HomeWidgets, id),
+        mutedTiles: mutedTilesToSave(savedMuted, HomeWidgets),
+      },
       'Your change to this widget could not be saved. Try again.',
     )
   }
@@ -142,19 +178,21 @@ export const useHomeLayout = () => {
   const close = async () => {
     if (!draft) return
     setDraft(null)
-    if (!draft.changed) return
+    if (!draft.changed && !draft.mutedChanged) return
     const widgets = draft.reset
       ? []
-      : layoutToSave(draft.layout, draft.basis, HomeWidgets)
+      : draft.changed
+        ? layoutToSave(draft.layout, draft.basis, HomeWidgets)
+        : draft.basis
     await save(
-      widgets,
+      { widgets, mutedTiles: mutedTilesToSave(draft.mutedTiles, HomeWidgets) },
       'Your home page layout could not be saved. Open Customize to try again.',
     )
   }
 
   return {
     columns,
-    tiles: attentionTiles(columns),
+    tiles: attentionTiles(columns, new Set(mutedTiles)),
     hasLinkedEmployee,
     /** True until the saved layout and the involvement it is ordered by have loaded, so the page never reshuffles in front of the user. */
     isLayoutLoading: isLoading,
@@ -167,8 +205,11 @@ export const useHomeLayout = () => {
       canCustomize,
       isOpen: draft !== null,
       layout: offered,
+      /** The tiles muted, by id, in the draft while the drawer is open. */
+      mutedTiles,
       open,
       change,
+      changeMutedTiles,
       reset,
       close,
     },

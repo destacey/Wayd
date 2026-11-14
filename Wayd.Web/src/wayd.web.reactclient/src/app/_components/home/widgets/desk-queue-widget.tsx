@@ -405,13 +405,16 @@ const DeskQueueWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
  * Open requests on the caller's desks that no one is assigned to: only on the
  * desks the queue shows, and none while it leaves out its desks.
  */
-export const UnassignedRequestsTile: FC<HomeTileProps> = ({ settings }) => {
+export const UnassignedRequestsTile: FC<HomeTileProps> = ({
+  title,
+  settings,
+}) => {
   const { data, isLoading, isError } = useMyDesks()
   const { deskIds, sections } = scopeOf(settings, data)
   const desks = onDesks(data, deskIds, ({ desk }) => desk.id) ?? []
   return (
     <AttentionTile
-      title="Unassigned requests"
+      title={title}
       value={
         isError
           ? undefined
@@ -432,14 +435,17 @@ export const UnassignedRequestsTile: FC<HomeTileProps> = ({ settings }) => {
  * Open requests assigned to the caller: only on the desks the queue shows, and
  * none while it leaves out its Assigned to me list.
  */
-export const RequestsAssignedToMeTile: FC<HomeTileProps> = ({ settings }) => {
+export const RequestsAssignedToMeTile: FC<HomeTileProps> = ({
+  title,
+  settings,
+}) => {
   const desks = useMyDesks()
   const { data, isLoading, isError } = useAssignedToMe()
   const { deskIds, sections } = scopeOf(settings, desks.data)
   const requests = onDesks(data, deskIds, (r) => r.desk.id) ?? []
   return (
     <AttentionTile
-      title="Requests assigned"
+      title={title}
       value={
         isError
           ? undefined

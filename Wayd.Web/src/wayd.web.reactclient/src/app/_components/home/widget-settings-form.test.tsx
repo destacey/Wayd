@@ -85,6 +85,45 @@ describe('WidgetSettingsForm', () => {
     expect(onChange).toHaveBeenCalledWith({ 'unread-only': 'true' })
   })
 
+  it('reports a multi-select as the values picked, and never clears the last one', () => {
+    // Arrange
+    const onChange = vi.fn()
+    const picker: HomeWidget = {
+      ...widget,
+      settings: [
+        {
+          kind: 'multiSelect',
+          key: 'types',
+          label: 'Record types',
+          options: [
+            { value: 'a', label: 'A' },
+            { value: 'b', label: 'B' },
+          ],
+          default: ['a', 'b'],
+        },
+      ],
+    }
+    const { rerender } = render(
+      <WidgetSettingsForm widget={picker} stored={{}} onChange={onChange} />,
+    )
+
+    // Act
+    fireEvent.click(screen.getByRole('checkbox', { name: 'A' }))
+    rerender(
+      <WidgetSettingsForm
+        widget={picker}
+        stored={{ types: 'b' }}
+        onChange={onChange}
+      />,
+    )
+
+    // Assert
+    expect(onChange).toHaveBeenCalledWith({ types: 'b' })
+    expect(screen.getByRole('group', { name: 'Record types' })).toBeVisible()
+    expect(screen.getByRole('checkbox', { name: 'B' })).toBeDisabled()
+    expect(screen.getByRole('checkbox', { name: 'A' })).toBeEnabled()
+  })
+
   it('clears every stored value through its reset', () => {
     // Arrange
     const onChange = vi.fn()

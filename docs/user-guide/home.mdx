@@ -49,7 +49,7 @@ A count shows only when its widget does: without permission to view projects the
 
 ## Widgets
 
-This is each widget's usual place. Until you [customize](#customizing) the page, Wayd reorders them around your work, as [How the default is chosen](#how-the-default-is-chosen) describes. Where a widget says how many it lists, that is its starting number: its [settings](#widget-settings) change it.
+This is each widget's usual place. Until you [customize](#customizing) the page, Wayd reorders them around your work, as [How the default is chosen](#how-the-default-is-chosen) describes. Where a widget says how many it lists, how far ahead or back it looks, or which records it counts, that is where it starts: its [settings](#widget-settings) change it.
 
 ### Main column
 
@@ -129,7 +129,26 @@ Every widget lets you change something about what it shows. Each has a gear at t
   - **One line** — the title with a short "nothing" beside it, such as *No open risks*.
   - **Hide** — the widget shows while it loads, then leaves the page. A line at the foot of the page names every widget hidden this way ("2 widgets have nothing to show: My risks and My requests."), and its **Show** brings them back until you leave the page. When every widget is hidden, that line is the page. A widget whose data could not be loaded is never hidden: it always says so. Hiding a widget does not remove its counts from the row across the top, and selecting one of those counts brings the hidden widgets back.
 
-  A widget has nothing to show when you have none of what it lists. My project tasks and Deliverables I own have something while you have any open, even if none is due soon. My work items has nothing with none in progress or proposed, even if it says how many you finished. Desk queue has nothing when you are on no desk, or when no open request is assigned to you and you take part in none.
+  A widget has nothing to show when you have none of what it lists. My project tasks and Deliverables I own have something while you have any open, even if none is due soon. My work items has nothing with none in progress or proposed (or in progress, when it leaves proposed out), even if it says how many you finished.
+
+Some widgets also let you choose how far ahead or back they look and which records they take in. Each starts where the widget's description above says, and its wording follows what you pick ("due in the next 30 days"):
+
+| Widget | Setting | Choices | Starts at |
+| --- | --- | --- | --- |
+| What's changed | **Unread only** | on or off | off |
+| My projects | **Statuses counted** | any of Proposed, Approved, Active, Completed and Canceled | Approved and Active |
+| My work items | **Include proposed items** | on or off | on |
+| My work items | **Count work finished in the last** | 7, 14 or 30 days | 7 days |
+| My project tasks | **List tasks up to** | **Overdue**; **Due this week**, adding those due by Saturday; **Upcoming**, adding those due by the end of next week | Upcoming |
+| My project tasks | **Include milestones** | on or off | on |
+| Project health checks due | **List checks expiring within** | 7 or 14 days | 7 days |
+| Deliverables I own | **List deliverables due within** | 14, 30 or 60 days | 14 days |
+| Planning intervals | **List intervals starting within** | 14 or 30 days | 14 days |
+| My requests | **Keep closed requests for** | 7, 30 or 90 days | 30 days |
+| My requests | **Open only** | on or off | off |
+| Following | **Record types** | any of Project, Program, PI Objective, Request and Incident | all of them |
+
+A setting that picks several, such as **Statuses counted**, always keeps at least one. These settings change only the widget: the counts across the top keep their own meaning, so **Due this week** still counts the tasks due by Saturday and **Overdue tasks** includes milestones, whatever My project tasks lists. **View all** opens the full list, unfiltered. Desk queue has nothing when you are on no desk, or when no open request is assigned to you and you take part in none.
 
 A change made from a card applies and saves at once. A change made in the panel shows on the page behind it and saves with the rest of the layout when you close the panel. A widget whose settings differ from where they start is marked **Customized** in the panel, and its settings have a **Reset to default** of their own, which puts that widget back without touching the others.
 

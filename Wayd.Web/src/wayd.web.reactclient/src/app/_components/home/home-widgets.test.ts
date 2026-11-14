@@ -13,30 +13,39 @@ vi.mock('./widgets/desk-queue-widget', () => ({
 vi.mock('./widgets/following-widget', () => ({
   default: () => null,
   FOLLOWING_COUNT: 8,
+  followingSettings: [],
 }))
 vi.mock('./widgets/my-requests-widget', () => ({
   default: () => null,
   MY_REQUESTS_LIMIT: 8,
+  myRequestsSettings: [],
 }))
-vi.mock('./widgets/my-projects-widget', () => ({ default: () => null }))
+vi.mock('./widgets/my-projects-widget', () => ({
+  default: () => null,
+  myProjectsSettings: [],
+}))
 vi.mock('./widgets/my-project-tasks-widget', () => ({
   default: () => null,
   MY_PROJECT_TASKS_LIMIT: 5,
+  myProjectTasksSettings: [],
   OverdueTasksTile: () => null,
   DueThisWeekTile: () => null,
 }))
 vi.mock('./widgets/project-health-checks-due-widget', () => ({
   default: () => null,
   HEALTH_CHECKS_DUE_LIMIT: 5,
+  healthChecksDueSettings: [],
   ProjectHealthChecksDueTile: () => null,
 }))
 vi.mock('./widgets/my-deliverables-widget', () => ({
   default: () => null,
   MY_DELIVERABLES_LIMIT: 5,
+  myDeliverablesSettings: [],
 }))
 vi.mock('./widgets/my-work-items-widget', () => ({
   default: () => null,
   MY_WORK_ITEMS_LIMIT: 8,
+  myWorkItemsSettings: [],
 }))
 vi.mock('./widgets/my-risks-widget', () => ({
   default: () => null,
@@ -53,10 +62,14 @@ vi.mock('./widgets/my-teams-tile', () => ({
   DependenciesAtRiskTile: () => null,
   SprintsToCompleteTile: () => null,
 }))
-vi.mock('./widgets/planning-intervals-widget', () => ({ default: () => null }))
+vi.mock('./widgets/planning-intervals-widget', () => ({
+  default: () => null,
+  planningIntervalsSettings: [],
+}))
 vi.mock('./widgets/whats-changed-widget', () => ({
   default: () => null,
   WHATS_CHANGED_COUNT: 5,
+  whatsChangedSettings: [],
   UnreadNotificationsTile: () => null,
 }))
 

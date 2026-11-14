@@ -8,7 +8,7 @@ internal static class OwnerTypeDocs
 {
     /// <summary>The owner types an <c>ownerType</c> parameter accepts.</summary>
     public const string Values =
-        "`ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective` or `demand.intake-request`";
+        "`ownerType` is `ppm.project`, `ppm.program`, `planning.planning-interval-objective`, `demand.intake-request` or `product.incident`";
 
     /// <summary><see cref="Values"/>, and what <c>ownerId</c> is.</summary>
     public const string Parameters = $"{Values}; `ownerId` is the record's UUID, not its key.";

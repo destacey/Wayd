@@ -1,11 +1,13 @@
 'use client'
 
-import { Button, Segmented, Switch, Typography } from 'antd'
+import { Button, Checkbox, Segmented, Switch, Typography } from 'antd'
 import { createContext, FC, useId } from 'react'
 import styles from './home.module.css'
 import { HomeWidget } from './widget-registry'
 import {
   hasCustomSettings,
+  multiSelectValue,
+  pickedValues,
   resolveSettings,
   settingsToStore,
   WidgetSettingValues,
@@ -52,6 +54,33 @@ const WidgetSettingsForm: FC<WidgetSettingsFormProps> = ({
     <div className={styles.settingsForm}>
       {settings.map((setting) => {
         const labelId = `${formId}-${setting.key}`
+        if (setting.kind === 'multiSelect') {
+          const picked = pickedValues(values[setting.key])
+          return (
+            <div
+              key={setting.key}
+              className={styles.settingsField}
+              role="group"
+              aria-labelledby={labelId}
+            >
+              <Text type="secondary" id={labelId}>
+                {setting.label}
+              </Text>
+              <Checkbox.Group
+                className={styles.settingsChecks}
+                // The last one picked cannot be cleared: a pick of nothing would show nothing.
+                options={setting.options.map((o) => ({
+                  ...o,
+                  disabled: picked.length === 1 && picked[0] === o.value,
+                }))}
+                value={picked}
+                onChange={(next) =>
+                  set(setting.key, multiSelectValue(setting, next))
+                }
+              />
+            </div>
+          )
+        }
         return setting.kind === 'toggle' ? (
           <div key={setting.key} className={styles.settingsToggle}>
             <Text id={labelId}>{setting.label}</Text>

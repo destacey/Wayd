@@ -93,10 +93,21 @@ describe('recentlyDoneSince', () => {
     const now = new Date(2026, 10, 11, 15, 30)
 
     // Act
-    const since = new Date(recentlyDoneSince(now))
+    const since = new Date(recentlyDoneSince(7, now))
 
     // Assert
     expect(since).toEqual(new Date(2026, 10, 5, 0, 0, 0, 0))
+  })
+
+  it('looks back over a longer window when given one', () => {
+    // Arrange
+    const now = new Date(2026, 10, 30, 9, 0)
+
+    // Act
+    const since = new Date(recentlyDoneSince(30, now))
+
+    // Assert
+    expect(since).toEqual(new Date(2026, 10, 1, 0, 0, 0, 0))
   })
 })
 
@@ -116,6 +127,34 @@ describe('MyWorkItemsWidget', () => {
       statusCategories: [StatusCategory.Done],
       doneFrom: recentlyDoneSince(),
     })
+  })
+
+  it('leaves proposed work out, and counts over the chosen window, when set to', () => {
+    // Arrange
+    respond(loaded([]), loaded([workItem('CORE-8', StatusCategoryId.Done)]))
+
+    // Act
+    render(
+      <MyWorkItemsWidget
+        title="My work items"
+        settings={{ 'include-proposed': 'false', 'done-window': '30' }}
+      />,
+    )
+
+    // Assert
+    expect(mockWorkItems).toHaveBeenCalledWith({
+      statusCategories: [StatusCategory.Active],
+    })
+    expect(mockWorkItems).toHaveBeenCalledWith({
+      statusCategories: [StatusCategory.Done],
+      doneFrom: recentlyDoneSince(30),
+    })
+    expect(
+      screen.getByText(/Nothing is assigned to you in progress\./),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('1 work item done in the last 30 days.'),
+    ).toBeInTheDocument()
   })
 
   it('lists Active work items first, each linking to the work item', () => {

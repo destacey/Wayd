@@ -80,10 +80,21 @@ describe('recentlyClosedSince', () => {
     const now = new Date(2026, 10, 10, 15, 30)
 
     // Act
-    const since = new Date(recentlyClosedSince(now))
+    const since = new Date(recentlyClosedSince(30, now))
 
     // Assert
     expect(since).toEqual(new Date(2026, 9, 11, 0, 0, 0, 0))
+  })
+
+  it('starts at the beginning of the day the given days back', () => {
+    // Arrange
+    const now = new Date(2026, 10, 10, 15, 30)
+
+    // Act
+    const since = new Date(recentlyClosedSince(7, now))
+
+    // Assert
+    expect(since).toEqual(new Date(2026, 10, 3, 0, 0, 0, 0))
   })
 })
 
@@ -149,6 +160,45 @@ describe('MyRequestsWidget', () => {
     const args = { mine: true, closedSince: recentlyClosedSince() }
     expect(mockRequests).toHaveBeenCalledWith(args)
     expect(mockOutcomes).toHaveBeenCalledWith(args)
+  })
+
+  it('keeps closed requests for the window it is set to', () => {
+    // Arrange
+    mockRequests.mockReturnValue(loaded([]))
+    mockOutcomes.mockReturnValue(loaded([]))
+
+    // Act
+    render(
+      <MyRequestsWidget
+        title="My requests"
+        settings={{ 'closed-window': '90' }}
+      />,
+    )
+
+    // Assert
+    const args = { mine: true, closedSince: recentlyClosedSince(90) }
+    expect(mockRequests).toHaveBeenCalledWith(args)
+    expect(mockOutcomes).toHaveBeenCalledWith(args)
+  })
+
+  it('asks for open requests only, and says when there are none, when set to', () => {
+    // Arrange
+    mockRequests.mockReturnValue(loaded([]))
+    mockOutcomes.mockReturnValue(loaded([]))
+
+    // Act
+    render(
+      <MyRequestsWidget
+        title="My requests"
+        settings={{ 'open-only': 'true' }}
+      />,
+    )
+
+    // Assert
+    const args = { mine: true, openOnly: true }
+    expect(mockRequests).toHaveBeenCalledWith(args)
+    expect(mockOutcomes).toHaveBeenCalledWith(args)
+    expect(screen.getByText(/You have no open requests\./)).toBeInTheDocument()
   })
 
   it('says how it fills when the caller has no recent request', () => {

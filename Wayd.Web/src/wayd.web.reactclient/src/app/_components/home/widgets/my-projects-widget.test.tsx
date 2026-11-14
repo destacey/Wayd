@@ -113,6 +113,53 @@ describe('MyProjectsWidget', () => {
     )
   })
 
+  it('counts the statuses it is set to, asking even when the home context counts none', () => {
+    // Arrange
+    mockHome.context = homeContext()
+    mockSummary.mockReturnValue(loaded(summary({ totalCount: 3 })))
+
+    // Act
+    render(
+      <MyProjectsWidget
+        title="My projects"
+        settings={{ statuses: 'Proposed,Approved,Active' }}
+      />,
+    )
+
+    // Assert
+    expect(mockSummary).toHaveBeenCalledWith(
+      {
+        status: [
+          ProjectStatus.Proposed,
+          ProjectStatus.Approved,
+          ProjectStatus.Active,
+        ],
+      },
+      { skip: false },
+    )
+    expect(
+      screen.getByText('proposed, approved and active projects'),
+    ).toBeInTheDocument()
+  })
+
+  it('names the counted statuses when there are none of them', () => {
+    // Arrange
+    mockSummary.mockReturnValue(loaded(summary({ totalCount: 0 })))
+
+    // Act
+    render(
+      <MyProjectsWidget
+        title="My projects"
+        settings={{ statuses: 'Completed' }}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByText(/You have no completed projects/),
+    ).toBeInTheDocument()
+  })
+
   it('says "project" for a count of one', () => {
     // Arrange
     mockSummary.mockReturnValue(loaded(summary({ totalCount: 1 })))

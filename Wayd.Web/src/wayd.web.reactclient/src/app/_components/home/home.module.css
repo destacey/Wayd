@@ -126,6 +126,12 @@
   gap: 4px;
 }
 
+.settingsChecks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .settingsToggle {
   display: flex;
   align-items: center;

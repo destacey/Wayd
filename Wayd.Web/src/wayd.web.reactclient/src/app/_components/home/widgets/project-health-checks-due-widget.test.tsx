@@ -231,6 +231,28 @@ describe('ProjectHealthChecksDueWidget', () => {
     expect(screen.getByText(/has a current health check/)).toBeInTheDocument()
   })
 
+  it('lists checks expiring within a longer window when set to', () => {
+    // Arrange
+    mockProjects.mockReturnValue(
+      loaded([
+        project('SOON', 'Soon', inDays(12)),
+        project('LATER', 'Later', inDays(20)),
+      ]),
+    )
+
+    // Act
+    render(
+      <ProjectHealthChecksDueWidget
+        title="Project health checks due"
+        settings={{ 'expiring-window': '14' }}
+      />,
+    )
+
+    // Assert
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+    expect(screen.getByText('Expires in 12 days')).toBeInTheDocument()
+  })
+
   it.each([
     [
       'loading',

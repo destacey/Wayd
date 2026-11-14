@@ -8,34 +8,47 @@ import DeskQueueWidget, {
   RequestsAssignedToMeTile,
   UnassignedRequestsTile,
 } from './widgets/desk-queue-widget'
-import FollowingWidget, { FOLLOWING_COUNT } from './widgets/following-widget'
+import FollowingWidget, {
+  FOLLOWING_COUNT,
+  followingSettings,
+} from './widgets/following-widget'
 import ProjectHealthChecksDueWidget, {
   HEALTH_CHECKS_DUE_LIMIT,
+  healthChecksDueSettings,
   ProjectHealthChecksDueTile,
 } from './widgets/project-health-checks-due-widget'
 import MyDeliverablesWidget, {
   MY_DELIVERABLES_LIMIT,
+  myDeliverablesSettings,
 } from './widgets/my-deliverables-widget'
 import MyProjectTasksWidget, {
   DueThisWeekTile,
   MY_PROJECT_TASKS_LIMIT,
+  myProjectTasksSettings,
   OverdueTasksTile,
 } from './widgets/my-project-tasks-widget'
-import MyProjectsWidget from './widgets/my-projects-widget'
+import MyProjectsWidget, {
+  myProjectsSettings,
+} from './widgets/my-projects-widget'
 import MyRequestsWidget, {
   MY_REQUESTS_LIMIT,
+  myRequestsSettings,
 } from './widgets/my-requests-widget'
 import MyWorkItemsWidget, {
   MY_WORK_ITEMS_LIMIT,
+  myWorkItemsSettings,
 } from './widgets/my-work-items-widget'
 import MyRisksWidget, { RiskFollowUpsTile } from './widgets/my-risks-widget'
 import MyRoadmapsWidget, {
   MY_ROADMAPS_LIMIT,
 } from './widgets/my-roadmaps-widget'
-import PlanningIntervalsWidget from './widgets/planning-intervals-widget'
+import PlanningIntervalsWidget, {
+  planningIntervalsSettings,
+} from './widgets/planning-intervals-widget'
 import WhatsChangedWidget, {
   UnreadNotificationsTile,
   WHATS_CHANGED_COUNT,
+  whatsChangedSettings,
 } from './widgets/whats-changed-widget'
 
 import {
@@ -95,7 +108,11 @@ export const HomeWidgets: HomeWidget[] = [
     defaultOrder: 10,
     requires: { featureFlag: 'following', linkedEmployee: true },
     Component: WhatsChangedWidget,
-    settings: [rowsSetting(WHATS_CHANGED_COUNT), emptySetting],
+    settings: [
+      ...whatsChangedSettings,
+      rowsSetting(WHATS_CHANGED_COUNT),
+      emptySetting,
+    ],
     tiles: [
       {
         id: 'unread-notifications',
@@ -108,7 +125,7 @@ export const HomeWidgets: HomeWidget[] = [
     id: 'my-work-items',
     title: 'My work items',
     description:
-      'The work items assigned to you that are in progress or proposed, in progress first, with how many you finished in the last week.',
+      'The work items assigned to you that are in progress or proposed, in progress first, with how many you finished lately.',
     defaultColumn: 'main',
     // After My teams, so a team member sees their team before their own share of its work.
     defaultOrder: 22,
@@ -117,7 +134,11 @@ export const HomeWidgets: HomeWidget[] = [
       linkedEmployee: true,
     },
     Component: MyWorkItemsWidget,
-    settings: [rowsSetting(MY_WORK_ITEMS_LIMIT), emptySetting],
+    settings: [
+      ...myWorkItemsSettings,
+      rowsSetting(MY_WORK_ITEMS_LIMIT),
+      emptySetting,
+    ],
     // A team member's assigned work items are their day-to-day work; a member
     // of a team of teams alone holds a role above the work. The home context
     // counts no work items, so for anyone else it ranks as shared.
@@ -128,7 +149,7 @@ export const HomeWidgets: HomeWidget[] = [
     id: 'my-projects',
     title: 'My projects',
     description:
-      'How many approved and active projects you hold a role on, by role.',
+      'How many projects you hold a role on, by role: approved and active ones, or the statuses you choose.',
     defaultColumn: 'main',
     defaultOrder: 20,
     requires: {
@@ -136,7 +157,7 @@ export const HomeWidgets: HomeWidget[] = [
       linkedEmployee: true,
     },
     Component: MyProjectsWidget,
-    settings: [emptySetting],
+    settings: [...myProjectsSettings, emptySetting],
     involvement: projectInvolvement,
   },
   {
@@ -153,7 +174,11 @@ export const HomeWidgets: HomeWidget[] = [
       involved: ({ projects }) => projects.assigneeCount > 0,
     },
     Component: MyProjectTasksWidget,
-    settings: [rowsSetting(MY_PROJECT_TASKS_LIMIT), emptySetting],
+    settings: [
+      ...myProjectTasksSettings,
+      rowsSetting(MY_PROJECT_TASKS_LIMIT),
+      emptySetting,
+    ],
     // Assigned tasks are day-to-day work, and everyone it is shown to has some.
     involvement: () => Involvement.Leads,
     tiles: [
@@ -173,7 +198,7 @@ export const HomeWidgets: HomeWidget[] = [
     id: 'project-health-checks-due',
     title: 'Project health checks due',
     description:
-      'Active projects you own or manage whose health check is missing, expired or expiring within a week.',
+      'Active projects you own or manage whose health check is missing, expired or expiring soon.',
     defaultColumn: 'main',
     defaultOrder: 27,
     requires: {
@@ -184,7 +209,11 @@ export const HomeWidgets: HomeWidget[] = [
         projects.ownerCount + projects.managerCount > 0,
     },
     Component: ProjectHealthChecksDueWidget,
-    settings: [rowsSetting(HEALTH_CHECKS_DUE_LIMIT), emptySetting],
+    settings: [
+      ...healthChecksDueSettings,
+      rowsSetting(HEALTH_CHECKS_DUE_LIMIT),
+      emptySetting,
+    ],
     // Everyone it is shown to leads a project.
     involvement: () => Involvement.Leads,
     tiles: [
@@ -199,7 +228,7 @@ export const HomeWidgets: HomeWidget[] = [
     id: 'my-deliverables',
     title: 'Deliverables I own',
     description:
-      'The open project deliverables you are the owner of, past target first.',
+      'The open project deliverables you are the owner of that are due soon, past target first.',
     defaultColumn: 'side',
     defaultOrder: 27,
     requires: {
@@ -207,7 +236,11 @@ export const HomeWidgets: HomeWidget[] = [
       linkedEmployee: true,
     },
     Component: MyDeliverablesWidget,
-    settings: [rowsSetting(MY_DELIVERABLES_LIMIT), emptySetting],
+    settings: [
+      ...myDeliverablesSettings,
+      rowsSetting(MY_DELIVERABLES_LIMIT),
+      emptySetting,
+    ],
     // An owner need hold no role on the project, so this is a guess from the roles held.
     involvement: projectInvolvement,
   },
@@ -251,14 +284,14 @@ export const HomeWidgets: HomeWidget[] = [
   {
     id: 'planning-intervals',
     title: 'Planning intervals',
-    description: `Planning intervals running now or starting in the next two weeks.`,
+    description: 'Planning intervals running now or starting soon.',
     // Shared context rather than the caller's own work: it sits above the team
     // sprints that run inside it, leaving the main column for what needs action.
     defaultColumn: 'side',
     defaultOrder: 10,
     requires: { permissions: ['Permissions.PlanningIntervals.View'] },
     Component: PlanningIntervalsWidget,
-    settings: [emptySetting],
+    settings: [...planningIntervalsSettings, emptySetting],
     // Teams plan in planning intervals, so they are context for team members.
     involvement: (context) =>
       teamCount(context) > 0 ? Involvement.Involved : Involvement.None,
@@ -347,12 +380,16 @@ export const HomeWidgets: HomeWidget[] = [
     id: 'my-requests',
     title: 'My requests',
     description:
-      'The intake requests you raised that are open or closed in the last 30 days, with their status and the projects and work items they became.',
+      'The intake requests you raised that are open or closed lately, with their status and the projects and work items they became.',
     defaultColumn: 'side',
     defaultOrder: 25,
     requires: { featureFlag: 'demand-management', linkedEmployee: true },
     Component: MyRequestsWidget,
-    settings: [rowsSetting(MY_REQUESTS_LIMIT), emptySetting],
+    settings: [
+      ...myRequestsSettings,
+      rowsSetting(MY_REQUESTS_LIMIT),
+      emptySetting,
+    ],
     involvement: ({ intake }) =>
       intake.openRequestsRaisedCount > 0
         ? Involvement.Involved
@@ -361,11 +398,16 @@ export const HomeWidgets: HomeWidget[] = [
   {
     id: 'following',
     title: 'Following',
-    description: 'The records you follow, most recently changed first.',
+    description:
+      'The records you follow, of every kind or those you choose, most recently changed first.',
     defaultColumn: 'side',
     defaultOrder: 30,
     requires: { featureFlag: 'following', linkedEmployee: true },
     Component: FollowingWidget,
-    settings: [rowsSetting(FOLLOWING_COUNT), emptySetting],
+    settings: [
+      ...followingSettings,
+      rowsSetting(FOLLOWING_COUNT),
+      emptySetting,
+    ],
   },
 ]

@@ -63,9 +63,9 @@ public static class McpServerSetup
         // Resolved here so a malformed value stops the host at startup rather than on the first MCP request.
         if (!app.Services.GetRequiredService<PublicUrl>().IsConfigured && !app.Environment.IsDevelopment())
         {
-            app.Logger.LogWarning(
-                "{Setting} is not set, so the MCP endpoint's OAuth metadata takes the API's URL from each request. "
-                + "Behind a proxy that terminates TLS those URLs read http:// and MCP clients will reject them.",
+            app.Logger.LogError(
+                "{Setting} is not set, so the MCP endpoint and its OAuth authorization server answer 503 until it is. "
+                + "Set it to the URL clients reach the API at, such as https://api.wayd.example.com.",
                 PublicUrl.ConfigurationKey);
         }
 

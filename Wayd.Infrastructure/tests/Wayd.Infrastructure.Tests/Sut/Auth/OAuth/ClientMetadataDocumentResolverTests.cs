@@ -94,6 +94,9 @@ public sealed class ClientMetadataDocumentResolverTests
     [InlineData(@"https://client.acme.example/oauth\..\client-metadata.json")]
     [InlineData("https://client.acme.example/oauth/client metadata.json")]
     [InlineData("https://client.acme.example/oauth/client-metadata.json\n")]
+    [InlineData("https://client.acme.example/oauth/\u202Enosj.atadatem-tneilc")]
+    [InlineData("https://client.acme.example/oauth/client\u200B-metadata.json")]
+    [InlineData("https://clïent.acme.example/oauth/client-metadata.json")]
     public async Task Resolve_RefusesAClientIdThatIsNotAMetadataDocumentUrl_WithoutFetchingIt(string clientId)
     {
         // Arrange
@@ -289,8 +292,17 @@ public sealed class ClientMetadataDocumentResolverTests
     [InlineData("http://localhost:33418/callback", true)]
     [InlineData("com.acme.agent:/oauth/callback", true)]
     [InlineData("cursor://anysphere.cursor-mcp/oauth/callback", true)]
+    [InlineData("claude://claude.ai/oauth/callback", true)]
+    [InlineData("vscode://vscode.github-authentication/did-authenticate", true)]
+    [InlineData("acme://oauth/callback", false)]
+    [InlineData("com..acme:/oauth/callback", false)]
+    [InlineData("com.acme+agent:/oauth/callback", false)]
     [InlineData("http://client.acme.example/callback", false)]
     [InlineData("https://client.acme.example/callback#token", false)]
+    [InlineData("com.acme.agent:/callback Verified by Wayd", false)]
+    [InlineData("com.acme.agent:/callback\u202Egnp", false)]
+    [InlineData("cursor://anysphere\u200B.cursor-mcp/oauth/callback", false)]
+    [InlineData("com.acme.agent:/callback\tx", false)]
     [InlineData("javascript:alert(1)", false)]
     [InlineData("data:text/html,hi", false)]
     [InlineData("file:///etc/passwd", false)]

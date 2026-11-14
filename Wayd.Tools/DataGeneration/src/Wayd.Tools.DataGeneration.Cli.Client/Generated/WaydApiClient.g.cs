@@ -133680,10 +133680,25 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         public string RedirectUri { get; set; } = default!;
 
         /// <summary>
+        /// The redirect URI's scheme: `https`, `http` for a loopback redirect, or the scheme of the installed app it opens.
+        /// <br/>Show it for an app redirect, since the scheme is all that names the app.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("redirectScheme")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string RedirectScheme { get; set; } = default!;
+
+        /// <summary>
         /// The redirect URI's host, or null when it opens an installed app by its own URL scheme.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("redirectHost")]
         public string? RedirectHost { get; set; } = default!;
+
+        /// <summary>
+        /// The redirect URI's path, without its query.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("redirectPath")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string RedirectPath { get; set; } = default!;
 
         /// <summary>
         /// Whether the redirect URI's host is not the client's host; the consent page warns when it is not.

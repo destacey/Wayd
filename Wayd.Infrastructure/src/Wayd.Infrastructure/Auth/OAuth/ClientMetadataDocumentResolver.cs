@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -49,12 +50,16 @@ internal sealed class ClientMetadataDocumentResolver : IOAuthClientResolver
     private const string TooLarge = "The client's metadata document is larger than Wayd accepts.";
 
     /// <summary>
-    /// Schemes a redirect URI may never use: the browser would run, read or hand off the target rather than open an
-    /// app with it, or the scheme carries no app at all.
+    /// The private-use schemes of MCP clients in use that are not in RFC 8252 §7.1's reverse-domain form, which a
+    /// redirect URI may use although that form is otherwise required.
     /// </summary>
-    private static readonly HashSet<string> _forbiddenRedirectSchemes = new(
-        ["javascript", "data", "file", "vbscript", "blob", "about", "view-source", "intent", "ftp", "ws", "wss"],
-        StringComparer.OrdinalIgnoreCase);
+    internal static readonly FrozenSet<string> KnownAppRedirectSchemes = new[]
+    {
+        "claude",
+        "cursor",
+        "vscode",
+        "vscode-insiders",
+    }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
     private readonly HttpClient _httpClient;
     private readonly TimeSpan _fetchTimeout;
@@ -93,13 +98,18 @@ internal sealed class ClientMetadataDocumentResolver : IOAuthClientResolver
     /// Checks that <paramref name="clientId"/> is a URL the draft allows to identify a client: HTTPS, with a path,
     /// and no credentials, fragment, whitespace, or dot segments that would let one URL stand for another.
     /// </summary>
+    /// <remarks>
+    /// The consent page shows it as it was sent, so it must be printable ASCII, as RFC 3986 has every URI be:
+    /// <see cref="Uri"/> accepts bidi overrides and zero-width characters that would make it read as another URL.
+    /// </remarks>
     internal static Result<Uri> ParseClientId(string? clientId)
     {
         const string Invalid = "client_id must be the HTTPS URL of the client's metadata document.";
 
         // A backslash is read as a slash, so it could hide a dot segment from the check below.
         if (string.IsNullOrWhiteSpace(clientId)
-            || clientId.Any(c => char.IsWhiteSpace(c) || char.IsControl(c) || c == '\\')
+            || !IsPrintableAscii(clientId)
+            || clientId.Contains('\\')
             || !Uri.TryCreate(clientId, UriKind.Absolute, out var url)
             || url.Scheme != Uri.UriSchemeHttps
             || url.UserInfo.Length > 0
@@ -258,16 +268,19 @@ internal sealed class ClientMetadataDocumentResolver : IOAuthClientResolver
 
     /// <summary>
     /// Whether an authorization response may be sent to <paramref name="value"/>: an absolute URI with no fragment,
-    /// over HTTPS, over HTTP to the loopback interface (RFC 8252 §7.3), or to an app's own scheme (§7.1).
+    /// over HTTPS, over HTTP to the loopback interface (RFC 8252 §7.3), or to an app's private-use scheme (§7.1).
     /// </summary>
     /// <remarks>
-    /// An app's scheme is allowed without the reverse-domain form §7.1 recommends, because MCP clients in use
-    /// register schemes like <c>cursor:</c> and <c>claude:</c>; the schemes that could not be an app are refused
-    /// instead, as are Windows' <c>ms-</c> system handlers.
+    /// A private-use scheme must be a reverse domain name, such as <c>com.example.app</c>, or one of
+    /// <see cref="KnownAppRedirectSchemes"/>. Anything else is refused rather than judged, since a scheme the
+    /// operating system or browser handles itself (<c>javascript:</c>, <c>intent:</c>, <c>ms-settings:</c>) would act
+    /// on the code instead of handing it to an app. The whole URI must be printable ASCII, as RFC 3986 has every URI
+    /// be: the consent page shows an app's redirect URI in full, and <see cref="Uri"/> accepts spaces, bidi overrides
+    /// and zero-width characters that would let it carry text posing as Wayd's own.
     /// </remarks>
     internal static bool IsAllowedRedirectUri(string? value)
     {
-        if (value is null || !Uri.TryCreate(value, UriKind.Absolute, out var uri) || value.Contains('#'))
+        if (value is null || !IsPrintableAscii(value) || !Uri.TryCreate(value, UriKind.Absolute, out var uri) || value.Contains('#'))
             return false;
 
         if (uri.Scheme == Uri.UriSchemeHttps)
@@ -276,8 +289,18 @@ internal sealed class ClientMetadataDocumentResolver : IOAuthClientResolver
         if (uri.Scheme == Uri.UriSchemeHttp)
             return uri.IsLoopback;
 
-        return !_forbiddenRedirectSchemes.Contains(uri.Scheme)
-            && !uri.Scheme.StartsWith("ms-", StringComparison.OrdinalIgnoreCase);
+        return IsReverseDomainScheme(uri.Scheme) || KnownAppRedirectSchemes.Contains(uri.Scheme);
+    }
+
+    /// <summary>Whether <paramref name="value"/> holds only printable ASCII, with no space.</summary>
+    private static bool IsPrintableAscii(string value) => value.All(c => c is > ' ' and <= '~');
+
+    /// <summary>Whether <paramref name="scheme"/> is a reverse domain name: two or more dot-separated labels of letters, digits and hyphens.</summary>
+    private static bool IsReverseDomainScheme(string scheme)
+    {
+        var labels = scheme.Split('.');
+        return labels.Length >= 2
+            && labels.All(label => label.Length > 0 && label.All(c => char.IsAsciiLetterOrDigit(c) || c == '-'));
     }
 
     /// <summary>The response's <c>max-age</c>, or <see cref="DefaultCacheDuration"/>, held between the minimum and maximum.</summary>

@@ -71,7 +71,8 @@ public sealed class ApiEndpointTool(Tool protocolTool, string httpMethod, string
             switch (argument.Location)
             {
                 case ArgumentLocation.Path:
-                    if (!hasValue)
+                    // A blank segment would collapse the route onto a different endpoint: /items/{id}/x becomes /items//x.
+                    if (!hasValue || string.IsNullOrWhiteSpace(Scalar(value)))
                         return ApiToolResult.InvalidArguments($"Invalid arguments for tool '{ProtocolTool.Name}': {argument.Name} is required.", Skill);
                     path.Replace($"{{{argument.Name}}}", Uri.EscapeDataString(Scalar(value)));
                     break;

@@ -37,7 +37,7 @@ public class OAuthAuthorizationRequestsController(IAuthorizationServer authoriza
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<OAuthAuthorizationRequestResponse>> Get(string handle, CancellationToken cancellationToken)
     {
-        if (!await IsWebAppSession())
+        if (!IsWebAppSession())
             return WebAppSessionRequired();
 
         var pending = await _authorizationServer.FindPending(handle, cancellationToken);
@@ -60,7 +60,7 @@ public class OAuthAuthorizationRequestsController(IAuthorizationServer authoriza
         [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] ApproveOAuthAuthorizationRequest? request,
         CancellationToken cancellationToken)
     {
-        if (!await IsWebAppSession())
+        if (!IsWebAppSession())
             return WebAppSessionRequired();
 
         // Write is clamped to what the client asked for, so an omitted scope grants exactly its request.
@@ -79,7 +79,7 @@ public class OAuthAuthorizationRequestsController(IAuthorizationServer authoriza
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<OAuthAuthorizationDecisionResponse>> Deny(string handle, CancellationToken cancellationToken)
     {
-        if (!await IsWebAppSession())
+        if (!IsWebAppSession())
             return WebAppSessionRequired();
 
         var redirect = await _authorizationServer.Deny(handle, _currentUser.GetUserId(), cancellationToken);
@@ -87,11 +87,19 @@ public class OAuthAuthorizationRequestsController(IAuthorizationServer authoriza
     }
 
     /// <summary>
-    /// Whether the caller signed in to the web app, rather than authenticating with a personal access token, which the
-    /// controllers' default policy also accepts.
+    /// Whether the principal the request was authorized as came from a sign-in to the web app, rather than a personal
+    /// access token, which the controllers' default policy also accepts.
     /// </summary>
-    private async Task<bool> IsWebAppSession() =>
-        (await HttpContext.AuthenticateAsync(AuthConstants.LocalJwtScheme)).Succeeded;
+    /// <remarks>
+    /// Read from the ticket the authorization middleware recorded, never by authenticating again: a request carrying a
+    /// personal access token and another user's web app token would otherwise pass as the second user while being
+    /// bound to the first. The scheme must equal <c>LocalJwt</c> alone, so authorization metadata naming a second scheme
+    /// on this controller would refuse every caller rather than admit one.
+    /// </remarks>
+    private bool IsWebAppSession() =>
+        HttpContext.Features.Get<IAuthenticateResultFeature>()?.AuthenticateResult?.Ticket is { } ticket
+        && ticket.AuthenticationScheme == AuthConstants.LocalJwtScheme
+        && ReferenceEquals(ticket.Principal, HttpContext.User);
 
     /// <summary>The 403 for a caller that is not signed in to the web app.</summary>
     private ObjectResult WebAppSessionRequired() =>

@@ -347,6 +347,24 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
         Assert.Equal(SkillTools.FailureNote("wayd-ppm"), Assert.IsType<TextContentBlock>(result.Content[^1]).Text);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task CallTool_RefusesABlankPathArgument(string idOrKey)
+    {
+        // Arrange — a blank segment would send the call to a different route
+        await SetFlag(true);
+        var token = await CreateToken();
+        await using var mcp = await Connect(token);
+
+        // Act
+        var result = await mcp.CallToolAsync("Projects_GetProject", new Dictionary<string, object?> { ["idOrKey"] = idOrKey }, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.True(result.IsError);
+        Assert.Equal("Invalid arguments for tool 'Projects_GetProject': idOrKey is required.", ErrorOf(result));
+    }
+
     [Fact]
     public async Task CallTool_PointsARefusedPreflightToTheImportsSkill()
     {

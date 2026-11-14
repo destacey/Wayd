@@ -34,7 +34,7 @@ The MCP server exposes more than 500 tools across Wayd's core modules:
 
 ## Prerequisites
 
-- A Wayd instance with the **MCP Server** feature flag on. An administrator turns it on in **Settings → System → Feature Flags**; while it is off, `/mcp` answers 404.
+- A Wayd instance with the **MCP Server** feature flag on. An administrator turns it on in **Settings → System → Feature Flags**; while it is off, `/mcp` answers 404. A self-hosted instance also needs its [public URL](../contributing/configuration.mdx#public-url) configured; until it is, `/mcp` answers 503.
 - An assistant that connects to remote MCP servers over HTTP. One that can only start local servers connects [through `mcp-remote`](#clients-that-only-run-local-servers).
 - Your Wayd account to [sign in](#connecting-with-sign-in) with, or a [Personal Access Token](./your-profile.mdx#personal-access-tokens) created from your profile page.
 
@@ -88,9 +88,9 @@ claude.ai, Claude Desktop, ChatGPT and other hosted assistants: add a custom con
 When Wayd opens:
 
 1. Sign in, if you are not already. You come back to the request afterwards.
-2. Read the **connection request**. It names the site the application belongs to — that is what identifies it — and the name the application gives itself, which is only its own claim. It also says where you will be sent afterwards, and warns you if that is a different site from the application's.
+2. Read the **connection request**. It names the site the application belongs to and the full address it is identified by — that is what identifies it — and the name the application gives itself, which is only its own claim. It also says where you will be sent afterwards: the site and page, an app on this computer, or, for a desktop app that opens by its own kind of link (such as `cursor:`), that link. It warns you if a site is different from the application's.
 3. Choose the application's **access**. An application that asks for full access can be given it, or limited to **Read-only access**; one that asks only to read cannot be given more.
-4. Choose **Approve** to let the application use Wayd as you, or **Deny** to refuse. Either way you are sent back to the application.
+4. Choose **Approve** to let the application use Wayd as you, or **Deny** to refuse. Either way you are sent back to the application, except that denying a desktop app that opens by its own kind of link does not open it.
 
 With **Full access**, an approved application can do anything your account can, with all of your permissions. With **Read-only access** it can view, search and export what your account can see, and change nothing: Wayd offers it only the read-only tools, and refuses any change it attempts. Neither gives it a permission your account lacks. It appears as a [connected application](./your-profile.mdx#connected-applications) on the **Sessions** tab of your profile, where you can disconnect it at any time. A request you leave unanswered expires after ten minutes; start again from the application.
 

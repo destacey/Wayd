@@ -54,7 +54,9 @@ public abstract record TokenOutcome
 /// <param name="ClientHost">The host <see cref="ClientId"/> is served from: the one fact about who is asking.</param>
 /// <param name="ClientName">The client's name for itself, with control and bidi characters removed and its length capped.</param>
 /// <param name="RedirectUri">Where the browser goes once the user decides.</param>
+/// <param name="RedirectScheme">The redirect URI's scheme: <c>https</c>, <c>http</c> for a loopback redirect, or the app's own.</param>
 /// <param name="RedirectHost">The redirect URI's host, or null when it opens an app by its own scheme.</param>
+/// <param name="RedirectPath">The redirect URI's path, without its query.</param>
 /// <param name="RedirectHostDiffers">Whether the redirect URI's host is not <see cref="ClientHost"/>.</param>
 /// <param name="RedirectIsLoopback">Whether the redirect URI is on this computer's loopback interface, as a native app's is.</param>
 /// <param name="Scope">The scope the client asked for: the most the user can grant.</param>
@@ -64,7 +66,9 @@ public sealed record PendingAuthorization(
     string ClientHost,
     string ClientName,
     string RedirectUri,
+    string RedirectScheme,
     string? RedirectHost,
+    string RedirectPath,
     bool RedirectHostDiffers,
     bool RedirectIsLoopback,
     TokenScope Scope,

@@ -27,7 +27,7 @@ namespace Wayd.Web.Api.Mcp;
 /// as made through that client.
 /// </para>
 /// </remarks>
-public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStartupFilter
+public sealed class ApiPipeline(IHttpContextFactory httpContextFactory, ILogger<ApiPipeline> logger) : IStartupFilter
 {
     /// <summary>Headers carried from the caller's request, which between them hold every credential the API accepts.</summary>
     private static readonly string[] _forwardedHeaders = [HeaderNames.Authorization, AuthConstants.ApiKeyHeaderName];
@@ -38,6 +38,7 @@ public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStart
         McpTelemetry.ToolCallDuration, "s", "How long a hosted MCP tool call took to answer, by tool and credential.");
 
     private readonly IHttpContextFactory _httpContextFactory = httpContextFactory;
+    private readonly ILogger<ApiPipeline> _logger = logger;
     private RequestDelegate? _pipeline;
 
     /// <inheritdoc />
@@ -200,7 +201,7 @@ public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStart
         CancellationToken cancellationToken)
     {
         using var responseBody = new MemoryStream();
-        var response = new HttpResponseFeature();
+        var response = new CompletableResponseFeature();
 
         var features = new FeatureCollection();
         features.Set<IHttpRequestFeature>(request);
@@ -230,13 +231,60 @@ public sealed class ApiPipeline(IHttpContextFactory httpContextFactory) : IStart
         }
         finally
         {
-            _httpContextFactory.Dispose(context);
+            try
+            {
+                // Logged, never thrown, as Kestrel does: the response is already decided, and failing a tool call whose
+                // write succeeded would invite the agent to repeat it.
+                foreach (var failure in await response.Complete())
+                    _logger.LogError(failure, "A completion callback failed after a {Method} {Path} tool call.", request.Method, request.Path);
+            }
+            finally
+            {
+                _httpContextFactory.Dispose(context);
+            }
         }
 
         return new ApiResponse(
             response.StatusCode,
             response.Headers.ContentType.FirstOrDefault(),
             responseBody.ToArray());
+    }
+}
+
+/// <summary>
+/// A response feature that runs the callbacks registered to run once the response is complete, as a server does.
+/// </summary>
+/// <remarks>
+/// <see cref="HttpResponseFeature"/> discards them, and the request's service scope is disposed by one: without this,
+/// every service a tool call resolves, its database context included, would outlive the call.
+/// </remarks>
+internal sealed class CompletableResponseFeature : HttpResponseFeature
+{
+    private readonly Stack<(Func<object, Task> Callback, object State)> _onCompleted = new();
+
+    /// <inheritdoc />
+    public override void OnCompleted(Func<object, Task> callback, object state) => _onCompleted.Push((callback, state));
+
+    /// <summary>
+    /// Runs the completion callbacks, the last registered first, as Kestrel does, and answers the failures of those
+    /// that threw. Every one runs whatever the others do.
+    /// </summary>
+    public async Task<IReadOnlyList<Exception>> Complete()
+    {
+        var failures = new List<Exception>();
+        while (_onCompleted.TryPop(out var entry))
+        {
+            try
+            {
+                await entry.Callback(entry.State);
+            }
+            catch (Exception ex)
+            {
+                failures.Add(ex);
+            }
+        }
+
+        return failures;
     }
 }
 

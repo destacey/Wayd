@@ -38,13 +38,22 @@ const pendingRequest = (overrides: Record<string, unknown> = {}) => ({
   clientHost: 'tools.acme.example',
   clientName: 'Acme Assistant',
   redirectUri: 'https://tools.acme.example/callback',
+  redirectScheme: 'https',
   redirectHost: 'tools.acme.example',
+  redirectPath: '/callback',
   redirectHostDiffers: false,
   redirectIsLoopback: false,
   scope: 'Write',
   expiresAt: new Date('2026-10-20T15:10:00Z'),
   ...overrides,
 })
+
+const appRedirect = {
+  redirectUri: 'cursor://anysphere.cursor-mcp/oauth/callback',
+  redirectScheme: 'cursor',
+  redirectHost: null,
+  redirectPath: '/oauth/callback',
+}
 
 // The generated client throws the parsed problem details for a documented status.
 const problem = (status: number) => ({ status, title: 'Problem' })
@@ -131,6 +140,16 @@ describe('ConsentPage', () => {
       ).not.toBeInTheDocument()
     })
 
+    it('shows the full client id the application is identified by', async () => {
+      // Act
+      await renderReady()
+
+      // Assert
+      expect(
+        screen.getByText('https://tools.acme.example/client.json'),
+      ).toBeInTheDocument()
+    })
+
     it('renders the client name as text, never as markup', async () => {
       // Arrange
       const name = '<img src="x" onerror="alert(1)">'
@@ -213,6 +232,19 @@ describe('ConsentPage', () => {
       )
     })
 
+    it('shows the path a web redirect goes to', async () => {
+      // Act
+      await renderReady({
+        redirectUri: 'https://tools.acme.example/oauth/done?x=1',
+        redirectPath: '/oauth/done',
+      })
+
+      // Assert
+      expect(screen.getByText(/you will be sent to/)).toHaveTextContent(
+        'tools.acme.example, at /oauth/done.',
+      )
+    })
+
     it('describes a loopback redirect as an app on this computer, without a warning', async () => {
       // Act
       await renderReady({
@@ -230,15 +262,68 @@ describe('ConsentPage', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('describes an app-scheme redirect as opening an app', async () => {
+    it('names the scheme and full URI of an app-scheme redirect', async () => {
       // Act
-      await renderReady({
-        redirectUri: 'cursor://anysphere.cursor-mcp/oauth/callback',
-        redirectHost: null,
-      })
+      await renderReady(appRedirect)
 
       // Assert
-      expect(screen.getByText(/your browser opens an app/)).toBeInTheDocument()
+      const destination = screen.getByText(/your browser opens the app/)
+      expect(destination).toHaveTextContent('cursor: links')
+      expect(destination).toHaveTextContent(
+        'cursor://anysphere.cursor-mcp/oauth/callback',
+      )
+    })
+  })
+
+  describe('deciding on an app-scheme redirect', () => {
+    it('opens the app on Approve', async () => {
+      // Arrange
+      const redirectUrl = 'cursor://anysphere.cursor-mcp/oauth/callback?code=c1'
+      mockApprove.mockResolvedValue({ redirectUrl })
+      await renderReady(appRedirect)
+
+      // Act
+      await click('Approve')
+
+      // Assert
+      expect(mockNavigate).toHaveBeenCalledWith(redirectUrl)
+    })
+
+    it('records a Deny without opening the app', async () => {
+      // Arrange
+      mockDeny.mockResolvedValue({
+        redirectUrl:
+          'cursor://anysphere.cursor-mcp/oauth/callback?error=access_denied',
+      })
+      await renderReady(appRedirect)
+
+      // Act
+      await click('Deny')
+
+      // Assert
+      expect(mockDeny).toHaveBeenCalledWith(HANDLE)
+      expect(mockNavigate).not.toHaveBeenCalled()
+      expect(
+        screen.getByText(/The application was not opened/),
+      ).toBeInTheDocument()
+    })
+
+    it('still returns to a loopback redirect on Deny', async () => {
+      // Arrange
+      const redirectUrl = 'http://127.0.0.1:33418/callback?error=access_denied'
+      mockDeny.mockResolvedValue({ redirectUrl })
+      await renderReady({
+        redirectUri: 'http://127.0.0.1:33418/callback',
+        redirectScheme: 'http',
+        redirectHost: '127.0.0.1',
+        redirectIsLoopback: true,
+      })
+
+      // Act
+      await click('Deny')
+
+      // Assert
+      expect(mockNavigate).toHaveBeenCalledWith(redirectUrl)
     })
   })
 

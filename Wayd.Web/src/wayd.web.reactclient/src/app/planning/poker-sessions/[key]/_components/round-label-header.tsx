@@ -81,6 +81,7 @@ const RoundLabelHeader: FC<RoundLabelHeaderProps> = ({
             <Link
               href={href}
               target="_blank"
+              rel="noopener noreferrer"
               aria-label={`Open ${round.subject.displayKey}`}
             >
               <RecordKey value={round.subject.displayKey} />
@@ -90,7 +91,7 @@ const RoundLabelHeader: FC<RoundLabelHeaderProps> = ({
           )}
           <span style={{ minWidth: 0 }}>
             {href ? (
-              <EntityLink href={href} target="_blank">
+              <EntityLink href={href} target="_blank" rel="noopener noreferrer">
                 {round.label}
               </EntityLink>
             ) : (

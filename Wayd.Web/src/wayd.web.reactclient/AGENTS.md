@@ -35,6 +35,12 @@ The root [AGENTS.md](../../../AGENTS.md) covers the client's conventions (API ca
 - **A form's 422 goes through `toFormErrors`**, marking the fields it names, never only a toast of `detail`. Read the error with `toApiError(error)`: an endpoint that does not document 422 throws an `ApiException`, where `isApiError` finds no `errors`. A field named differently from its request property — a date range picker, a list row, values held in state — needs a `fieldFor` mapping. See [Form Validation Errors](../../../docs/contributing/frontend.mdx#form-validation-errors).
 - **A polymorphic request body puts `$type` first** — `{ $type: 'entra', ...values }`, never `{ ...values, $type }`. System.Text.Json reads the discriminator only from the first property and otherwise fails with "must specify a type discriminator" (a 500).
 
+### Content-Security-Policy
+
+- **Every page renders per request**, so the policy's nonce reaches Next's scripts. The root `layout.tsx` calls `connection()`; never opt a page back into static rendering (`dynamic = 'force-static'`, `revalidate`), or its scripts are blocked in production while `next dev` still runs them.
+- **Nothing may evaluate code in the browser** (`eval`, `new Function`, a library that does either): the dev server allows it and production does not. Render MDX on the server, as the docs viewer does.
+- **A browser call to a new origin needs a `connect-src` source** in `src/lib/content-security-policy.ts`. See [The web client](../../../docs/contributing/configuration.mdx#the-web-client).
+
 ### Tooling
 
 - **A server-side 404 on a route that exists, with no API call made, is a corrupted `.next/dev`** (truncated `routes.d.ts`), typically after adding a folder under a dynamic segment while `next dev` runs. Restart the dev server (optionally deleting `.next`) before looking at code; deleting the types alone is not enough.

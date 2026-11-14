@@ -106,6 +106,22 @@ export function escapeXml(value: string): string {
   )
 }
 
+// A hex colour, an rgb()/hsl() function of numbers, or a bare colour keyword:
+// nothing that can close the attribute it is written into.
+const SVG_COLOR =
+  /^(?:#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})|(?:rgb|hsl)a?\([\d\s.,%/+-]+\)|[a-z]+)$/i
+
+/**
+ * `value` when it is a colour the export can write into an attribute as is,
+ * otherwise `fallback`. Item and background colours come from the records
+ * drawn, so they are checked rather than trusted.
+ */
+export function svgColor(value: string | undefined, fallback: string): string {
+  return value !== undefined && SVG_COLOR.test(value.trim())
+    ? value.trim()
+    : fallback
+}
+
 /**
  * Truncate `label` with an ellipsis so it fits `maxWidth` px.
  * Thin wrapper over the measurer — SVG has no `text-overflow: ellipsis`, so
@@ -380,7 +396,7 @@ function renderChartBody(
     if (box.width <= 0) return
     parts.push(
       `<rect x="${box.left}" y="${box.top}" width="${box.width}" height="${box.height}" ` +
-        `rx="4" fill="${bg.color ?? theme.fillSecondary}" stroke="${theme.border}" stroke-width="1"/>`,
+        `rx="4" fill="${svgColor(bg.color, theme.fillSecondary)}" stroke="${theme.border}" stroke-width="1"/>`,
     )
     if (!bg.label) return
     const label = fitLabel(bg.label, box.width - 8, 12, measurer)
@@ -422,7 +438,7 @@ function renderItem(
 ): string {
   const box = itemBox(item, lane, row, scale, geometry)
   const { left, top, width, height } = box
-  const fill = item.color ?? theme.primary
+  const fill = svgColor(item.color, theme.primary)
 
   if (item.kind === 'milestone') {
     // A square rotated 45° about its own centre, matching .milestone.
@@ -431,7 +447,7 @@ function renderItem(
     const cy = top + half
     return (
       `<rect x="${cx - half}" y="${top}" width="${height}" height="${height}" ` +
-      `fill="${item.color ?? theme.primary}" transform="rotate(45 ${cx} ${cy})"/>`
+      `fill="${fill}" transform="rotate(45 ${cx} ${cy})"/>`
     )
   }
 

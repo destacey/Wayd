@@ -66,6 +66,7 @@ const LinkItem = ({
     <Link
       href={url}
       target="_blank"
+      rel="noopener noreferrer"
       prefetch={false}
       style={editModeEnabled ? truncateStyle : undefined}
       title={link.name}

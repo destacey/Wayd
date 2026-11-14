@@ -58,7 +58,7 @@ const client = await getWorkItemsClient()
 const workItems = await client.getList(workspaceId)
 ```
 
-**Never use `authenticatedFetch()` directly** unless the generated client doesn't have the method yet.
+**Never use `authenticatedFetch()` directly** unless the generated client doesn't have the method yet. It takes an API path (`/api/...`) and refuses a full URL, so the bearer token only goes to the API.
 
 ### Dates and instants
 
@@ -287,11 +287,15 @@ The client app has a web app manifest and a Serwist service worker build.
 
 **Tooling:** [Serwist](https://serwist.pages.dev) (`@serwist/turbopack`) — handles service worker compilation and precache manifest injection via a Next.js route handler.
 
-**Caching strategy:** `sw.ts` precaches the build and uses Serwist's `defaultCache` for runtime caching, with `skipWaiting`, `clientsClaim` and navigation preload on.
+**Caching strategy:** `sw.ts` precaches the build and uses Serwist's `defaultCache` for runtime caching, with `skipWaiting`, `clientsClaim` and navigation preload on. A rule ahead of the defaults sends every cross-origin request, and every request with an `Authorization` header, straight to the network: the API is another origin, and the defaults would otherwise cache one user's API responses for an hour.
 
 :::warning[The service worker is not registered]
 The route serves the worker, but nothing in the client registers it: `@serwist/turbopack` registers only through `SerwistProvider` (`@serwist/turbopack/react`), which no layout mounts. `ReleaseCleanup` (`src/components/release-cleanup.tsx`, in the root layout) also unregisters every service worker and clears Cache Storage once per browser per `RELEASE_MARKER_VALUE`. Until a provider is mounted, the manifest is served but nothing is cached offline.
 :::
+
+## Content-Security-Policy
+
+Every page carries a nonce-based policy set by `src/proxy.ts`, so only scripts Next.js renders with the request's nonce run. For the policy itself and what to know before changing it, see [Configuration → The web client](./configuration.mdx#the-web-client). In short: pages render per request, nothing evaluates code in the browser, and a new origin the browser calls needs a `connect-src` source.
 
 ## Theming
 
@@ -382,6 +386,8 @@ Rule of thumb: *is this link surrounded by other links? `EntityLink`. Surrounded
 
 In grids, keep the entity **key column** as a standard blue link (the row's anchor) and use quiet styling for name/title columns. Reserve the chain icon for "copy link" affordances and the external-link icon for navigation that leaves Wayd — icons are not link indicators.
 
+A link with `target="_blank"` also sets `rel="noopener noreferrer"`, and `window.open` passes `'noopener,noreferrer'`, so the opened page cannot reach back to Wayd's window or learn which page sent it.
+
 ## Rendering user markdown
 
 User-supplied markdown (project/portfolio descriptions, business cases, risk descriptions, health-check notes) renders through `MarkdownRenderer` (`src/components/common/markdown/`). It enables `rehypeRaw`, so raw HTML embedded in that text is parsed — which means it **must** be sanitized before it reaches the DOM.
@@ -422,7 +428,7 @@ Tiptap writes `&`, `<`, `>` and intraword `_` escaped in every text node and has
 
 Some markdown the renderer displays has no node in the editor — footnotes with a definition, HTML comments, raw images that are not `http(s)`, named entities, and every tag `sanitizeSchema` allows that is not in the detector's `KEPT_TAGS` (`<details>`, `<kbd>`, `<div>`…). `findUnsupportedMarkdown` detects it in the text as loaded, so the warning stays after an edit has removed what it warns about. Until the document is edited, the warning points at the source view, which keeps that content; after an edit, it advises undoing instead. A source edit becomes the text the warning reads. The harness checks the detector against every case that loses something. A tag added to `sanitizeSchema` is reported automatically until the editor learns to keep it.
 
-The docs viewer is a **separate** pipeline (`next-mdx-remote` / `MDXRemote`) rendering repo-authored content, and does not go through `MarkdownRenderer`.
+The docs viewer is a **separate** pipeline (`next-mdx-remote/rsc`) rendering repo-authored content, and does not go through `MarkdownRenderer`. It compiles and renders MDX on the server (`docs-page-content.tsx`), once per page per process: the client renderer runs compiled MDX through the `Function` constructor, which the Content-Security-Policy blocks. Components it renders must work as server components or be client components imported from their own module, as `MermaidDiagram` is.
 
 ### Writing docs for both renderers
 

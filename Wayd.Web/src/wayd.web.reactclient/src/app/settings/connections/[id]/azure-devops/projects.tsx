@@ -140,6 +140,7 @@ const AzdoProjects = ({
               <Link
                 href={`${azdoConnection.organizationUrl}/${encodeURIComponent(project.name)}`}
                 target="_blank"
+                rel="noopener noreferrer"
                 title="Open in Azure DevOps"
               >
                 <ExportOutlined />

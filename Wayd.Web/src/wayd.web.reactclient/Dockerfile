@@ -44,6 +44,11 @@ RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
 
+# Docs pages render per request (the Content-Security-Policy nonce needs it), so
+# the server reads the docs at run time, not only at build.
+COPY --chown=nextjs:nodejs docs/ /docs/
+ENV DOCS_PATH=/docs
+
 # Automatically leverage output traces to reduce image size
 # https://nextjs.org/docs/advanced-features/output-file-tracing
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

@@ -167,6 +167,11 @@ export function clearAuth(): void {
     storage.removeItem(AUTH_REFRESH_TOKEN_KEY)
     storage.removeItem(AUTH_TOKEN_EXPIRY_KEY)
     storage.removeItem(AUTH_MUST_CHANGE_PASSWORD_KEY)
+    // oidc-client-ts's redirect state, such as the PKCE verifier of a sign-in
+    // that was started and never completed.
+    for (const key of Object.keys(storage)) {
+      if (key.startsWith('oidc.')) storage.removeItem(key)
+    }
   }
   localStorage.removeItem(AUTH_REMEMBER_KEY)
 }
@@ -583,14 +588,21 @@ export const getOAuthAuthorizationRequestsClient = () =>
   new OAuthAuthorizationRequestsClient('', axiosClient)
 
 /**
- * Performs an authenticated fetch request.
+ * Performs an authenticated fetch request against the Wayd API.
  * Use this for custom API calls that need authentication but can't use the
  * generated clients (e.g., JSON Patch endpoints that NSwag doesn't generate).
+ *
+ * @param path An API path such as `/api/user-management/users/1`. A full or
+ * protocol-relative URL is refused, so the bearer token only goes to the API.
  */
 export async function authenticatedFetch(
-  url: string,
+  path: string,
   options: RequestInit = {},
 ): Promise<Response> {
+  if (!path.startsWith('/') || path.startsWith('//')) {
+    throw new Error(`authenticatedFetch takes an API path, not "${path}".`)
+  }
+
   const token = getAuthToken()
 
   const headers = new Headers(options.headers)
@@ -601,9 +613,7 @@ export async function authenticatedFetch(
     headers.set('Accept', 'application/json')
   }
 
-  const fullUrl = url.startsWith('http') ? url : `${apiUrl}${url}`
-
-  return fetch(fullUrl, {
+  return fetch(`${apiUrl}${path}`, {
     ...options,
     headers,
     credentials: options.credentials || 'include',

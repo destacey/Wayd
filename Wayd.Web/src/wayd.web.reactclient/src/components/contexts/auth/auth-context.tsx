@@ -15,9 +15,8 @@ import {
   isAuthActive,
   storeAuth,
 } from '@/src/services/clients'
-import { signoutRedirect } from './oidc-client-registry'
+import { providerSignoutPath } from './oidc-client-registry'
 import { navigateWithFullReload } from '@/src/utils/window-utils'
-import { useGetAuthProvidersQuery } from '@/src/store/features/common/auth-providers-api'
 
 export const AuthContext = createContext<AuthContextType | null>(null)
 
@@ -233,8 +232,6 @@ function deriveSessionFromStorage(): SessionSnapshot {
  * we hit during PR 3.2 testing.
  */
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const { data: providers } = useGetAuthProvidersQuery()
-
   const [session, setSession] = useState<SessionSnapshot>(
     deriveSessionFromStorage,
   )
@@ -300,18 +297,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     clearAuth()
-    const loginProvider = session.loginProvider
-    if (loginProvider && session.authMethod === 'oidc') {
-      // Find the matching provider config so signoutRedirect can call the
-      // correct end_session_endpoint. Falls back to /login if not found.
-      const providerInfo = providers?.oidc.find((p) => p.name === loginProvider)
-      if (providerInfo) {
-        await signoutRedirect(providerInfo)
-        return
-      }
+    if (session.loginProvider && session.authMethod === 'oidc') {
+      navigateWithFullReload(providerSignoutPath(session.loginProvider))
+      return
     }
     navigateWithFullReload('/login')
-  }, [session.loginProvider, session.authMethod, providers])
+  }, [session.loginProvider, session.authMethod])
 
   // --- Context value ---
 

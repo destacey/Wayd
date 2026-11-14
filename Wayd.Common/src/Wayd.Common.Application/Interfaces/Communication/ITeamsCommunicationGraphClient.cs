@@ -14,4 +14,23 @@ public interface ITeamsCommunicationGraphClient
         TeamsGraphCredentials credentials,
         string recipientEmail,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The user's Graph id when <paramref name="email"/> matches <c>mail</c> or <c>userPrincipalName</c>.
+    /// A success with no id means the tenant has no such user. A failure means Graph refused the lookup.
+    /// </summary>
+    Task<Result<string?>> FindUserIdByEmailAsync(
+        TeamsGraphCredentials credentials,
+        string email,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Creates a group chat named <paramref name="topic"/> whose members are all owners.
+    /// Does not post a message. Fails when Graph rejects the chat or returns no id.
+    /// </summary>
+    Task<Result<TeamsCreatedChat>> CreateGroupChatAsync(
+        TeamsGraphCredentials credentials,
+        string topic,
+        IReadOnlyList<string> memberUserIds,
+        CancellationToken cancellationToken);
 }

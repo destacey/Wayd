@@ -78,6 +78,83 @@ public sealed class TeamsCommunicationGraphClient : ITeamsCommunicationGraphClie
         }
     }
 
+    /// <inheritdoc />
+    public async Task<Result<string?>> FindUserIdByEmailAsync(
+        TeamsGraphCredentials credentials,
+        string email,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return Result.Success<string?>(null);
+
+        try
+        {
+            var user = await FindUserByEmailAsync(_clientFactory(credentials), email.Trim(), cancellationToken);
+            return Result.Success(user?.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Teams user lookup failed for tenant {TenantId}", credentials.TenantId);
+            return Result.Failure<string?>($"Microsoft Graph could not look up a Teams user: {ex.Message}");
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<Result<TeamsCreatedChat>> CreateGroupChatAsync(
+        TeamsGraphCredentials credentials,
+        string topic,
+        IReadOnlyList<string> memberUserIds,
+        CancellationToken cancellationToken)
+    {
+        var members = memberUserIds
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        if (members.Count == 0)
+            return Result.Failure<TeamsCreatedChat>("A Teams chat needs at least one member.");
+
+        var name = topic.Trim();
+        if (name.Length == 0)
+            return Result.Failure<TeamsCreatedChat>("A Teams chat needs a name.");
+
+        try
+        {
+            var created = await _clientFactory(credentials).Chats.PostAsync(
+                new Chat
+                {
+                    ChatType = ChatType.Group,
+                    Topic = name,
+                    Members = members.Select(Owner).ToList(),
+                },
+                cancellationToken: cancellationToken);
+
+            if (string.IsNullOrEmpty(created?.Id))
+                return Result.Failure<TeamsCreatedChat>("Microsoft Graph did not return a chat id.");
+
+            return Result.Success(new TeamsCreatedChat(created.Id, ChatLink(created.Id, created.WebUrl)));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Teams chat creation failed for tenant {TenantId}", credentials.TenantId);
+            return Result.Failure<TeamsCreatedChat>($"Microsoft Graph could not create the Teams chat: {ex.Message}");
+        }
+    }
+
+    /// <summary>An https link Graph returned, or the Teams deep link for <paramref name="chatId"/>.</summary>
+    internal static string ChatLink(string chatId, string? webUrl)
+    {
+        var candidate = webUrl?.Trim();
+        if (!string.IsNullOrEmpty(candidate)
+            && Uri.TryCreate(candidate, UriKind.Absolute, out var uri)
+            && uri.Scheme == Uri.UriSchemeHttps)
+        {
+            return candidate;
+        }
+
+        return $"https://teams.microsoft.com/l/chat/{Uri.EscapeDataString(chatId)}/0";
+    }
+
     private static GraphServiceClient BuildAppClient(TeamsGraphCredentials credentials)
     {
         var credential = new ClientSecretCredential(
@@ -161,18 +238,7 @@ public sealed class TeamsCommunicationGraphClient : ITeamsCommunicationGraphClie
         {
             ChatType = ChatType.Group,
             Topic = HelloWorldChatTopic,
-            Members =
-            [
-                new AadUserConversationMember
-                {
-                    OdataType = "#microsoft.graph.aadUserConversationMember",
-                    Roles = ["owner"],
-                    AdditionalData = new Dictionary<string, object>
-                    {
-                        ["user@odata.bind"] = $"https://graph.microsoft.com/v1.0/users('{userId}')",
-                    },
-                },
-            ],
+            Members = [Owner(userId)],
         };
 
         var createdChat = await client.Chats.PostAsync(chat, cancellationToken: cancellationToken)
@@ -181,6 +247,17 @@ public sealed class TeamsCommunicationGraphClient : ITeamsCommunicationGraphClie
         if (string.IsNullOrEmpty(createdChat.Id))
             throw new InvalidOperationException("Graph returned a chat without an id for the hello-world test.");
     }
+
+    private static ConversationMember Owner(string userId) =>
+        new AadUserConversationMember
+        {
+            OdataType = "#microsoft.graph.aadUserConversationMember",
+            Roles = ["owner"],
+            AdditionalData = new Dictionary<string, object>
+            {
+                ["user@odata.bind"] = $"https://graph.microsoft.com/v1.0/users('{userId}')",
+            },
+        };
 
     private async Task CreateHelloWorldCalendarEventAsync(
         GraphServiceClient client,

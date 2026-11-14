@@ -484,6 +484,55 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         return Result.Success();
     }
 
+    /// <summary>
+    /// Stores the one Teams chat Wayd created for this incident. Fails when a chat is already stored,
+    /// so a second create cannot replace the first. A pasted link is a different method and can replace it.
+    /// </summary>
+    public Result RecordCreatedTeamsChat(
+        string? externalId,
+        string? title,
+        string? link,
+        EventActor actor,
+        Instant timestamp)
+    {
+        if (TeamsChat is not null)
+            return Result.Failure("This incident already has a Teams chat.");
+
+        var id = externalId?.Trim();
+        if (string.IsNullOrEmpty(id))
+            return Result.Failure("A Teams chat id is required.");
+        if (id.Length > RecordIntegration.ExternalIdMaxLength)
+            return Result.Failure("A Teams chat id cannot be longer than 512 characters.");
+
+        var name = Normalize(title);
+        if (name is null)
+            return Result.Failure("A Teams chat name is required.");
+        if (name.Length > RecordIntegration.TitleMaxLength)
+            return Result.Failure("A Teams chat name cannot be longer than 256 characters.");
+
+        if (!TryNormalizeHttpsLink(link, out var httpsLink))
+            return Result.Failure("A Teams chat link must be an https URL.");
+        if (httpsLink.Length > RecordIntegration.LinkMaxLength)
+            return Result.Failure("A Teams chat link cannot be longer than 2048 characters.");
+
+        TeamsChat = RecordIntegration.Create(Connector.Teams, id, name, httpsLink, createdByWayd: true);
+        AddDomainEvent(new IncidentTeamsChatCreatedEvent(
+            Id,
+            Key,
+            fromTeamsChatId: null,
+            fromTeamsChatTitle: null,
+            fromTeamsChatLink: null,
+            fromTeamsChatCreatedByWayd: false,
+            TeamsChat.ExternalId,
+            TeamsChat.Title,
+            TeamsChat.Link,
+            TeamsChat.CreatedByWayd,
+            actor,
+            timestamp));
+
+        return Result.Success();
+    }
+
     private static bool SameIntegration(RecordIntegration? left, RecordIntegration? right) =>
         left?.Connector == right?.Connector
         && left?.ExternalId == right?.ExternalId

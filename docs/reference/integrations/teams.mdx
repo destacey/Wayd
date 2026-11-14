@@ -56,3 +56,7 @@ The Teams app is a separate registration, often in a different tenant from Wayd 
 4. Create an all-day calendar event for the current UTC date on that user's calendar (proves **Calendars.ReadWrite**).
 
 If step 2 finds no user, the test returns an error and does not create the chat or the calendar event. Creating a connection saves the credentials only and does not run this test. A Wayd account with no email address cannot be the recipient.
+
+## Incident chat
+
+An incident can create one group chat through the single Teams connection that is active and has a valid configuration. The chat name is the incident key and the incident name. Reported by, submitted by, and the commander are added when Graph can find them. Extra people are members of that chat only and are not stored on the incident. Wayd does not post a message in the chat and does not send it for approval. If no such connection can create the chat, or more than one can, the incident shows that failure and does not store a chat.

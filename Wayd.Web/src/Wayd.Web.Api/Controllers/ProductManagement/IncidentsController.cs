@@ -134,6 +134,27 @@ public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbCo
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPost("{id:guid}/teams-chat")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Incidents)]
+    [EndpointSummary("Create the incident's Teams chat.")]
+    [EndpointDescription("Creates one Teams group chat through the single active Teams connector whose configuration is valid, and stores that chat on the incident. The name is the incident key and the incident name. Reported by, submitted by, and the commander are added when they can be found in the tenant. Extra people are included only in this chat and are not stored. Wayd does not post a message and does not send the chat for approval. A connector that cannot create the chat leaves the incident unchanged.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> CreateTeamsChat(
+        Guid id,
+        [FromBody] CreateIncidentTeamsChatRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (id != request.Id)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
+        }
+
+        var result = await _dispatcher.Send(request.ToCommand(), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpGet("{idOrKey}/work-items")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
     [EndpointSummary("Get work items linked to an incident.")]

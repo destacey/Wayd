@@ -2,11 +2,14 @@
 
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { useLinkIncidentTeamsChatMutation } from '@/src/store/features/product-management/incidents-api'
+import {
+  useCreateIncidentTeamsChatMutation,
+  useLinkIncidentTeamsChatMutation,
+} from '@/src/store/features/product-management/incidents-api'
 import { IncidentDto } from '@/src/services/wayd-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { CloseOutlined, EditOutlined } from '@ant-design/icons'
-import { Alert, Button, Divider, Flex, Form, Input, Modal, Tabs, Typography } from 'antd'
+import { Button, Divider, Flex, Form, Input, Modal, Tabs, Typography } from 'antd'
 import type { FormInstance } from 'antd'
 import type { BaseOptionType } from 'antd/es/select'
 import { useState } from 'react'
@@ -24,8 +27,8 @@ export interface IncidentTeamsChatProps {
  * The incident's one Teams chat. The add control is hidden unless a Teams connector
  * is present, active, and has a valid stored configuration. The Graph test is not
  * stored, so a saved connection counts as valid without a recorded verification.
- * Linking stores a pasted link, and an empty link removes it. Creating a chat is
- * shown and does not call Graph.
+ * Linking stores a pasted link, and an empty link removes it. Creating a chat
+ * calls Graph and stores that one chat. People added on the create tab are not stored.
  */
 const IncidentTeamsChat = ({
   incident,
@@ -40,6 +43,8 @@ const IncidentTeamsChat = ({
   const [editForm] = Form.useForm<{ link: string; displayName?: string }>()
   const messageApi = useMessage()
   const [linkChat, { isLoading }] = useLinkIncidentTeamsChatMutation()
+  const [createChat, { isLoading: isCreating }] =
+    useCreateIncidentTeamsChatMutation()
 
   if (
     !incident.teamsConnectorConfigured ||
@@ -49,7 +54,7 @@ const IncidentTeamsChat = ({
   }
 
   const chatName = incident.teamsChatDisplayName || 'Teams chat'
-  const createName = `INC-${incident.key} ${incident.title}`
+  const createName = chatNameFor(incident.key, incident.title)
   const preselected = preselectedPeople(incident)
 
   const close = () => {
@@ -78,6 +83,21 @@ const IncidentTeamsChat = ({
         target.setFields(toFormErrors(apiError.errors))
       }
       messageApi.error(apiError.detail ?? 'Could not link the Teams chat.')
+    }
+  }
+
+  const createTheChat = async () => {
+    try {
+      await createChat({
+        id: incident.id,
+        extraEmployeeIds: extraPeople,
+      }).unwrap()
+      messageApi.success('Teams chat created.')
+      close()
+    } catch (error) {
+      messageApi.error(
+        toApiError(error).detail ?? 'Could not create the Teams chat.',
+      )
     }
   }
 
@@ -169,12 +189,16 @@ const IncidentTeamsChat = ({
                       setExtraPeople(Array.isArray(value) ? value : [value])
                     }
                   />
-                  <Alert
-                    type="info"
-                    showIcon
-                    title="Creating a Teams chat from Wayd is not available yet."
-                    description="The chat-approval write is not in place, so this does not create a chat or call Microsoft Graph. People added here are not stored."
-                  />
+                  <Text type="secondary">
+                    People added here are not stored.
+                  </Text>
+                  <Button
+                    type="primary"
+                    loading={isCreating}
+                    onClick={createTheChat}
+                  >
+                    Create chat
+                  </Button>
                 </Flex>
               ),
             },
@@ -287,6 +311,12 @@ const IncidentTeamsChat = ({
       <Divider size="small" style={{ margin: 0 }} />
     </Flex>
   )
+}
+
+/** The name Graph stores: the incident key, then the incident name, cut to the topic limit. */
+function chatNameFor(key: number, title: string) {
+  const name = `INC-${key} ${title}`.trim()
+  return name.length <= 250 ? name : name.slice(0, 250).trimEnd()
 }
 
 function preselectedPeople(incident: IncidentDto) {

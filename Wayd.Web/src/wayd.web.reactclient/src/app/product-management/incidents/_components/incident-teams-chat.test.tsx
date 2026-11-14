@@ -36,6 +36,10 @@ const linkChat = vi.hoisted(() =>
   vi.fn(() => ({ unwrap: () => Promise.resolve() })),
 )
 
+const createChat = vi.hoisted(() =>
+  vi.fn(() => ({ unwrap: () => Promise.resolve() })),
+)
+
 vi.mock(
   import('@/src/store/features/product-management/incidents-api'),
   async (importOriginal) => {
@@ -43,6 +47,10 @@ vi.mock(
     return {
       ...actual,
       // unwrap is the only part of the RTK trigger this component awaits.
+      useCreateIncidentTeamsChatMutation: () => [
+        createChat,
+        { isLoading: false },
+      ],
       useLinkIncidentTeamsChatMutation: () => [linkChat, { isLoading: false }],
     } as unknown as typeof actual
   },
@@ -86,6 +94,7 @@ describe('IncidentTeamsChat', () => {
 
   beforeEach(() => {
     linkChat.mockClear()
+    createChat.mockClear()
   })
 
   it('gives the extra-people picker the modal body width', async () => {
@@ -111,9 +120,37 @@ describe('IncidentTeamsChat', () => {
       display: 'block',
       width: '100%',
     })
+    expect(screen.getByText('People added here are not stored.')).toBeInTheDocument()
     expect(
-      screen.getByText('Creating a Teams chat from Wayd is not available yet.'),
-    ).toBeInTheDocument()
+      screen.queryByText('Creating a Teams chat from Wayd is not available yet.'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('creates the chat with the extra people and does not store them through the link', async () => {
+    // Arrange
+    const user = userEvent.setup()
+    renderChat(
+      <IncidentTeamsChat
+        incident={incident(null)}
+        canUpdate
+        employees={[{ value: 'e1', label: 'Casey Submitter' }]}
+      />,
+    )
+
+    // Act
+    await user.click(
+      screen.getByRole('button', { name: 'Add Teams chat for this incident' }),
+    )
+    await user.click(screen.getByRole('combobox'))
+    await user.click(screen.getByText('Casey Submitter'))
+    await user.click(screen.getByRole('button', { name: 'Create chat' }))
+
+    // Assert
+    expect(createChat).toHaveBeenCalledWith({
+      id: '01a1d091-2de1-75d3-97d9-34eae573d1fc',
+      extraEmployeeIds: ['e1'],
+    })
+    expect(linkChat).not.toHaveBeenCalled()
   })
 
   it('opens the stored chat without giving the new tab access back', () => {

@@ -2,10 +2,11 @@
 
 import { createContext, FC, ReactNode, useState } from 'react'
 import {
-  AttentionTileDefinition,
   AttentionTileReport,
+  OfferedAttentionTile,
   visibleAttentionTiles,
 } from './widget-registry'
+import { WidgetSettingValues } from './widget-settings'
 import styles from './home.module.css'
 
 /** What a tile in the strip reads: whether it has a slot, and where to report its count. */
@@ -43,7 +44,9 @@ const Slot: FC<{
 
 export interface AttentionStripProps {
   /** The tiles on offer, in the order they take slots (see `attentionTiles`). */
-  tiles: AttentionTileDefinition[]
+  tiles: OfferedAttentionTile[]
+  /** Each widget's setting values in effect, by widget id, handed to its tiles. */
+  settings?: Record<string, WidgetSettingValues>
   /** Shows the widgets hidden as empty, for a tile whose widget is one. */
   onRevealHiddenWidgets?: () => void
 }
@@ -54,6 +57,7 @@ export interface AttentionStripProps {
  */
 const AttentionStrip: FC<AttentionStripProps> = ({
   tiles,
+  settings,
   onRevealHiddenWidgets,
 }) => {
   const [reports, setReports] = useState<
@@ -82,7 +86,7 @@ const AttentionStrip: FC<AttentionStripProps> = ({
       aria-label="Needs attention"
       hidden={visible.size === 0}
     >
-      {tiles.map(({ id, Tile }) => (
+      {tiles.map(({ id, widgetId, Tile }) => (
         <Slot
           key={id}
           id={id}
@@ -90,7 +94,7 @@ const AttentionStrip: FC<AttentionStripProps> = ({
           onReport={onReport}
           revealHiddenWidgets={onRevealHiddenWidgets}
         >
-          <Tile />
+          <Tile settings={settings?.[widgetId]} />
         </Slot>
       ))}
     </section>

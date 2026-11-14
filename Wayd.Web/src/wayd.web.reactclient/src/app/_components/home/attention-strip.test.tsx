@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { FC } from 'react'
 import AttentionStrip from './attention-strip'
 import AttentionTile from './attention-tile'
+import { HomeTileProps } from './widget-registry'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -28,6 +29,7 @@ const counting = (
 const tiles = (...defs: [string, number | undefined][]) =>
   defs.map(([id, value], i) => ({
     id,
+    widgetId: `widget-${id}`,
     priority: 100 - i,
     Tile: counting(id, value),
   }))
@@ -85,6 +87,7 @@ describe('AttentionStrip as counts arrive', () => {
     loading: boolean,
   ) => ({
     id,
+    widgetId: `widget-${id}`,
     priority,
     Tile: counting(id, value, loading),
   })
@@ -129,5 +132,34 @@ describe('AttentionStrip as counts arrive', () => {
       screen.getByRole('region', { name: 'Needs attention' }),
     ).toBeVisible()
     expect(screen.getByRole('button', { name: 'A: 2' })).toBeInTheDocument()
+  })
+
+  it('hands each tile the settings of the widget it belongs to', () => {
+    // Arrange
+    const Reading: FC<HomeTileProps> = ({ settings }) => (
+      <AttentionTile
+        title="Reading"
+        value={Number(settings?.rows ?? 0)}
+        tooltip="Reading tooltip"
+        href="/somewhere"
+        alert="warning"
+        loading={false}
+      />
+    )
+
+    // Act
+    render(
+      <AttentionStrip
+        tiles={[
+          { id: 'reading', widgetId: 'mine', priority: 1, Tile: Reading },
+        ]}
+        settings={{ mine: { rows: '3' }, other: { rows: '9' } }}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByRole('button', { name: 'Reading: 3' }),
+    ).toBeInTheDocument()
   })
 })

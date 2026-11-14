@@ -343,7 +343,7 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
             host.CreateClient(),
             ownsHttpClient: true);
 
-        return await McpClient.CreateAsync(transport, cancellationToken: TestContext.Current.CancellationToken);
+        return await host.ConnectMcp(transport);
     }
 
     private async Task SetMcpFlag(bool enabled)

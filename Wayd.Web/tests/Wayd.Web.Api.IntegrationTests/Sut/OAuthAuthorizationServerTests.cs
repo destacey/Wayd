@@ -938,7 +938,7 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
             new HttpClientTransportOptions { Endpoint = new Uri(_factory.Server.BaseAddress, McpServerSetup.Path) },
             http,
             ownsHttpClient: true);
-        return await McpClient.CreateAsync(transport, cancellationToken: TestContext.Current.CancellationToken);
+        return await _factory.ConnectMcp(transport);
     }
 
     private async Task SetFlag(bool enabled)

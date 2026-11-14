@@ -145,7 +145,7 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
             ownsHttpClient: false);
 
         // Act
-        await using var mcp = await McpClient.CreateAsync(transport, cancellationToken: TestContext.Current.CancellationToken);
+        await using var mcp = await _factory.ConnectMcp(transport);
 
         // Assert
         Assert.Equal(McpServerInstructions.Text, mcp.ServerInstructions);
@@ -485,12 +485,11 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
         var permission = ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Projects);
         var (user, token) = await CreateUserWithToken(permission);
         await using var withToken = await Connect(token);
-        await using var withSession = await McpClient.CreateAsync(
+        await using var withSession = await _factory.ConnectMcp(
             new HttpClientTransport(
                 new HttpClientTransportOptions { Endpoint = new Uri(_factory.Server.BaseAddress, McpServerSetup.Path) },
                 user.Client,
-                ownsHttpClient: false),
-            cancellationToken: TestContext.Current.CancellationToken);
+                ownsHttpClient: false));
 
         var recorded = new System.Collections.Concurrent.ConcurrentBag<(string? Tool, string? Credential, int? Status)>();
         using var listener = new System.Diagnostics.Metrics.MeterListener();
@@ -864,7 +863,7 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
             _factory.CreateClient(),
             ownsHttpClient: true);
 
-        return await McpClient.CreateAsync(transport, cancellationToken: TestContext.Current.CancellationToken);
+        return await _factory.ConnectMcp(transport);
     }
 
     private async Task<string> CreateToken() => (await CreateUserWithToken()).Token;

@@ -16,8 +16,9 @@ namespace Wayd.Web.Api.Mcp;
 /// <see cref="McpToolset"/>, except <see cref="SkillTools.Name"/>, which every connection is offered.
 /// </summary>
 /// <remarks>
-/// Built on first use rather than at startup, because generating the document needs the whole application,
-/// and a host that only boots to be introspected (the Debug build's document step) must not pay for it.
+/// Built on first use rather than in the constructor, because generating the document needs the whole
+/// application; <see cref="McpToolCatalogWarmup"/> makes that first use as the host starts, except on a host
+/// that only boots to be introspected (the Debug build's document step), which must not pay for it.
 /// </remarks>
 public sealed partial class McpToolCatalog(
     IApiDescriptionGroupCollectionProvider apiDescriptions,

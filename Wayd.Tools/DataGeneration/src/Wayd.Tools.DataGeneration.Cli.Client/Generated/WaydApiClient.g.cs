@@ -16007,7 +16007,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a new personal access token.
         /// </summary>
         /// <remarks>
-        /// Returns the plaintext token - this is the ONLY time it will be visible!
+        /// Returns the plaintext token - this is the ONLY time it will be visible! Answers 403 unless the caller is signed in to the web app: a token cannot mint another.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -16025,6 +16025,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Update a personal access token's name and/or expiration date.
         /// </summary>
+        /// <remarks>
+        /// Answers 403 unless the caller is signed in to the web app: a token cannot extend itself or another.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdatePersonalAccessTokenRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -16190,7 +16193,7 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Create a new personal access token.
         /// </summary>
         /// <remarks>
-        /// Returns the plaintext token - this is the ONLY time it will be visible!
+        /// Returns the plaintext token - this is the ONLY time it will be visible! Answers 403 unless the caller is signed in to the web app: a token cannot mint another.
         /// </remarks>
         /// <returns>Created</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
@@ -16258,6 +16261,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Forbidden", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 422)
@@ -16391,6 +16404,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Update a personal access token's name and/or expiration date.
         /// </summary>
+        /// <remarks>
+        /// Answers 403 unless the caller is signed in to the web app: a token cannot extend itself or another.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(System.Guid id, UpdatePersonalAccessTokenRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -16455,6 +16471,16 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                                 throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
                             }
                             throw new WaydApiException<ProblemDetails>("Bad Request", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
+                        }
+                        else
+                        if (status_ == 403)
+                        {
+                            var objectResponse_ = await ReadObjectResponseAsync<ProblemDetails>(response_, headers_, cancellationToken).ConfigureAwait(false);
+                            if (objectResponse_.Object == null)
+                            {
+                                throw new WaydApiException("Response was null which was not expected.", status_, objectResponse_.Text, headers_, null);
+                            }
+                            throw new WaydApiException<ProblemDetails>("Forbidden", status_, objectResponse_.Text, headers_, objectResponse_.Object, null);
                         }
                         else
                         if (status_ == 404)

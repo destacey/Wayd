@@ -8,6 +8,7 @@ using Wayd.Common.Application.Identity.OidcProviders;
 using Wayd.Common.Application.Identity.Users;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Events.Identity;
+using Wayd.Infrastructure.Auth.Local;
 using Wayd.Infrastructure.Identity;
 using Wayd.Infrastructure.IntegrationTests.Infrastructure;
 using Wayd.Infrastructure.Persistence.Context;
@@ -73,7 +74,8 @@ public sealed class UserServiceRoleAssignmentTests(SqlServerDbContextFixture fix
             dateTimeProvider.Object,
             currentUser.Object,
             new UserIdentityStore(db, NullLogger<UserIdentityStore>.Instance),
-            new Mock<IOidcProviderRegistry>().Object);
+            new Mock<IOidcProviderRegistry>().Object,
+            new Mock<IRefreshTokenStore>().Object);
 
         // Act
         var result = await sut.AssignRolesAsync(new AssignUserRolesCommand(user.Id, [kept.Name!]), ct);

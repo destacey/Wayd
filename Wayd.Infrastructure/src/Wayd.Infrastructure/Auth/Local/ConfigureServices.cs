@@ -1,11 +1,14 @@
-﻿using System.Security.Cryptography;
+﻿using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using Wayd.Infrastructure.Persistence.Context;
 
 namespace Wayd.Infrastructure.Auth.Local;
 
@@ -96,6 +99,7 @@ internal static class ConfigureServices
 
                         return Task.CompletedTask;
                     },
+                    OnTokenValidated = RequireActiveUser,
                     OnAuthenticationFailed = context =>
                     {
                         // Safety net: if a cross-scheme token somehow reaches validation,
@@ -111,6 +115,22 @@ internal static class ConfigureServices
             });
 
         return services;
+    }
+
+    /// <summary>
+    /// Refuses a token whose user has been deactivated since it was issued. The token is self-contained and lives for
+    /// <see cref="LocalJwtSettings.TokenExpirationInMinutes"/>; without this, endpoints gated by sign-in or by a
+    /// relationship rather than a permission would go on serving a deactivated user until it expired. One lookup by
+    /// primary key per request.
+    /// </summary>
+    private static async Task RequireActiveUser(TokenValidatedContext context)
+    {
+        var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+        var active = userId is not null && await context.HttpContext.RequestServices.GetRequiredService<WaydDbContext>().Users
+            .AsNoTracking()
+            .AnyAsync(u => u.Id == userId && u.IsActive, context.HttpContext.RequestAborted);
+        if (!active)
+            context.Fail("The token's user is not active.");
     }
 
     internal static SymmetricSecurityKey CreateSigningKey(string secret)

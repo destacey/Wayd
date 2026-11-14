@@ -57,9 +57,9 @@ User accounts control access to Wayd. Each user has:
 
 **Account operations** (the user's **Actions** menu; each needs `Permissions.Users.Update`, except **Manage Roles**, which needs `Permissions.UserRoles.Update`):
 - **Activate Account** — Enable a user account
-- **Deactivate Account** — Disable a user account
+- **Deactivate Account** — Disable a user account. It signs them out of every device straight away and disconnects their connected applications; their personal access tokens stop working while the account is inactive. People sync deactivating a user does the same.
 - **Unlock Account** — Unlock an account locked due to failed login attempts
-- **Reset Password** — Admin-initiated password reset (local accounts only, forces change on next login)
+- **Reset Password** — Admin-initiated password reset (local accounts only, forces change on next login). It disconnects their connected applications at once and signs them out of every device within an hour, once the access a device already holds expires; it does not revoke their personal access tokens. To stop a compromised account straight away, deactivate it.
 - **Change Identity Provider** — Stage a move to a different OIDC provider, or from a local account to an OIDC provider (see below). **Cancel Pending Provider Migration** withdraws a staged move
 - **Convert to Local Account** — Immediately switch an OIDC user to password-based login (see below)
 - **Manage Roles** — Choose the roles the user holds
@@ -114,7 +114,7 @@ This action is available for any user (including local accounts) when at least o
 1. On the user detail page, open the **Actions** menu and pick **Change Identity Provider** (or **Replace Pending Provider Migration** if one is already staged).
 2. Select the target provider from the dropdown of enabled OIDC providers and confirm.
 3. The user's current login continues to work as normal.
-4. When the user next signs in via the target provider, Wayd matches them by email, atomically deactivates their old identity, inserts the new one, and updates their login provider. The user notices nothing.
+4. When the user next signs in via the target provider, Wayd matches them by email, atomically deactivates their old identity, inserts the new one, and updates their login provider. Sessions opened through the old sign-in end, including connected applications, which must be connected again; the sign-in that completes the move is unaffected.
 5. The **Identity History** grid on the user's page records the old binding as Inactive (reason: Provider Relinked).
 
 **Things to know:**
@@ -132,7 +132,7 @@ Converts an OIDC user to a local (password-based) account **immediately** — no
 
 1. On the user detail page, open the **Actions** menu and pick **Convert to Local Account**.
 2. Enter and confirm a temporary password, then confirm the action.
-3. The user's OIDC identity is immediately deactivated and replaced with a local Wayd identity. Their next login must use the temporary password and they will be prompted to set a new one.
+3. The user's OIDC identity is immediately deactivated and replaced with a local Wayd identity, and they are signed out of every device and their connected applications are disconnected. Their next login must use the temporary password and they will be prompted to set a new one.
 
 **Things to know:**
 

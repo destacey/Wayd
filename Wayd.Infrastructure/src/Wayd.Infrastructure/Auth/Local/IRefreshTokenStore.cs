@@ -59,7 +59,7 @@ internal interface IRefreshTokenStore : IScopedService
     /// </summary>
     Task<bool> Revoke(string userId, Guid sessionId, string reason, CancellationToken cancellationToken);
 
-    /// <summary>Revokes every live session for the user. Idempotent.</summary>
+    /// <summary>Revokes every live session for the user, web and OAuth client alike. Idempotent.</summary>
     Task RevokeAll(string userId, string reason, CancellationToken cancellationToken);
 }
 

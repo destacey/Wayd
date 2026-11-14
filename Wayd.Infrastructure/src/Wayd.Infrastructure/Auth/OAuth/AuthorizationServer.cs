@@ -369,8 +369,9 @@ internal sealed class AuthorizationServer(
         if (refreshToken.Length == 0)
             return Refused("invalid_request", "refresh_token is required.");
 
-        // The user is checked before the token rotates, so refusing a disabled user changes nothing: re-enabled, the
-        // client's token still works. Reuse is answered as an ordinary miss, as the web app's refresh does.
+        // The user is checked before the token rotates, so refusing a user made inactive without ending their sessions
+        // changes nothing: re-enabled, the client's token still works. Deactivating a user through UserService ends
+        // the session instead. Reuse is answered as an ordinary miss, as the web app's refresh does.
         var rotation = await _refreshTokenStore.RotateForClient(
             clientId,
             refreshToken,

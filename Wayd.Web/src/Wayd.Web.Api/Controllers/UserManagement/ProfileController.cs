@@ -41,14 +41,15 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
 
     [HttpPut("change-password")]
     [EndpointSummary("Change password for the currently logged in local user.")]
+    [EndpointDescription("Ends every session the user has, this one included, web and connected application alike: the user signs in again with the new password.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult> ChangePassword(ChangePasswordRequest request)
+    public async Task<ActionResult> ChangePassword(ChangePasswordRequest request, CancellationToken cancellationToken)
     {
         if (User.GetUserId() is not { } userId || string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        var result = await _userService.ChangePasswordAsync(userId, request.ToChangePasswordCommand());
+        var result = await _userService.ChangePasswordAsync(userId, request.ToChangePasswordCommand(), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));

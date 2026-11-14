@@ -6792,6 +6792,7 @@
           "Profile"
         ],
         "summary": "Change password for the currently logged in local user.",
+        "description": "Ends every session the user has, this one included, web and connected application alike: the user signs in again with the new password.",
         "operationId": "Profile_ChangePassword",
         "requestBody": {
           "content": {

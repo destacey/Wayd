@@ -88,4 +88,19 @@ public static class UserRefreshTokenRevokeReasons
 
     /// <summary>The authorization code that opened the session was presented again, so either holder may be a thief.</summary>
     public const string AuthorizationCodeReused = "AuthorizationCodeReused";
+
+    /// <summary>The user changed their password, which ends the sessions the old one may have opened.</summary>
+    public const string PasswordChanged = "PasswordChanged";
+
+    /// <summary>An administrator set a new password for the user.</summary>
+    public const string PasswordReset = "PasswordReset";
+
+    /// <summary>The user was deactivated, by an administrator or by people sync.</summary>
+    public const string Deactivated = "Deactivated";
+
+    /// <summary>
+    /// How the user signs in changed: converted to a local account, or rebound to another identity provider or tenant.
+    /// A session opened through the old sign-in must not outlive it.
+    /// </summary>
+    public const string SignInChanged = "SignInChanged";
 }

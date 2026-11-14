@@ -13,7 +13,9 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Interfaces;
+using Wayd.Infrastructure.Auth.Local;
 using Wayd.Infrastructure.Identity;
+using Wayd.Infrastructure.Tests.Sut.Auth.Local;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Data;
 using NotFoundException = Wayd.Common.Application.Exceptions.NotFoundException;
@@ -31,6 +33,7 @@ public class UserServiceTests
     private readonly Mock<ICurrentUser> _mockCurrentUser;
     private readonly Mock<IUserIdentityStore> _mockUserIdentityStore;
     private readonly Mock<IOidcProviderRegistry> _mockOidcProviderRegistry;
+    private readonly FakeRefreshTokenStore _refreshTokenStore = new();
 
     // UserService depends on WaydDbContext which is hard to mock. We test methods that
     // don't require it. UserIdentity writes go through IUserIdentityStore so they can be
@@ -92,7 +95,8 @@ public class UserServiceTests
             _dateTimeProvider,
             _mockCurrentUser.Object,
             _mockUserIdentityStore.Object,
-            _mockOidcProviderRegistry.Object);
+            _mockOidcProviderRegistry.Object,
+            _refreshTokenStore);
     }
 
 
@@ -1073,6 +1077,145 @@ public class UserServiceTests
 
     #endregion
 
+    #region Ending sessions
+
+    [Fact]
+    public async Task ChangePasswordAsync_EndsEveryOneOfTheUsersSessions()
+    {
+        // Arrange
+        var user = CreateUser(loginProvider: LoginProviders.Wayd);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.ChangePasswordAsync(user, "OldPass123!", "NewPass456!")).ReturnsAsync(IdentityResult.Success);
+        await _refreshTokenStore.Issue(user.Id, SessionContext.None, TestContext.Current.CancellationToken);
+        await _refreshTokenStore.Issue(user.Id, SessionContext.None, TestContext.Current.CancellationToken);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ChangePasswordAsync("user-1", new ChangePasswordCommand("OldPass123!", "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(0);
+        _refreshTokenStore.RevokeReasons(user.Id).Should().AllBe(UserRefreshTokenRevokeReasons.PasswordChanged);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_EndsNoSession_WhenTheChangeIsRefused()
+    {
+        // Arrange
+        var user = CreateUser(loginProvider: LoginProviders.Wayd);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.ChangePasswordAsync(user, "WrongPass1!", "NewPass456!"))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Incorrect password." }));
+        await _refreshTokenStore.Issue(user.Id, SessionContext.None, TestContext.Current.CancellationToken);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ChangePasswordAsync("user-1", new ChangePasswordCommand("WrongPass1!", "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_EndsEveryOneOfTheUsersSessions()
+    {
+        // Arrange
+        var user = CreateUser(loginProvider: LoginProviders.Wayd);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("reset-token");
+        _mockUserManager.Setup(x => x.ResetPasswordAsync(user, "reset-token", "NewPass456!")).ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(false);
+        await _refreshTokenStore.Issue(user.Id, SessionContext.None, TestContext.Current.CancellationToken);
+        await _refreshTokenStore.Issue(user.Id, SessionContext.None, TestContext.Current.CancellationToken);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ResetPasswordAsync(new ResetPasswordCommand("user-1", "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(0);
+        _refreshTokenStore.RevokeReasons(user.Id).Should().AllBe(UserRefreshTokenRevokeReasons.PasswordReset);
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_EndsNoSession_WhenTheResetIsRefused()
+    {
+        // Arrange
+        var user = CreateUser(loginProvider: LoginProviders.Wayd);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.GeneratePasswordResetTokenAsync(user)).ReturnsAsync("reset-token");
+        _mockUserManager.Setup(x => x.ResetPasswordAsync(user, "reset-token", "weak"))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Too short." }));
+        _mockUserManager.Setup(x => x.IsLockedOutAsync(user)).ReturnsAsync(false);
+        await _refreshTokenStore.Issue(user.Id, SessionContext.None, TestContext.Current.CancellationToken);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ResetPasswordAsync(new ResetPasswordCommand("user-1", "weak"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task DeactivateUserAsync_EndsEveryOneOfTheUsersSessions()
+    {
+        // Arrange
+        var user = CreateUser();
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+        await _refreshTokenStore.Issue(user.Id, SessionContext.None, TestContext.Current.CancellationToken);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.DeactivateUserAsync(new DeactivateUserCommand("user-1"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(0);
+        _refreshTokenStore.RevokeReasons(user.Id).Should().Equal(UserRefreshTokenRevokeReasons.Deactivated);
+    }
+
+    [Fact]
+    public async Task DeactivateUserAsync_EndsNoSession_WhenTheSaveIsRefused()
+    {
+        // Arrange
+        var user = CreateUser();
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { user }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Concurrency failure." }));
+        await _refreshTokenStore.Issue(user.Id, SessionContext.None, TestContext.Current.CancellationToken);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.DeactivateUserAsync(new DeactivateUserCommand("user-1"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetPermissionsAsync_GrantsNothing_ToADeactivatedUser()
+    {
+        // Arrange — a web access token outlives the deactivation, so this is what stops it acting
+        var user = CreateUser(isActive: false);
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.GetRolesAsync(user)).ReturnsAsync([ApplicationRoles.Admin]);
+        var sut = CreateSut();
+
+        // Act
+        var permissions = await sut.GetPermissionsAsync("user-1", TestContext.Current.CancellationToken);
+
+        // Assert
+        permissions.Should().BeEmpty();
+    }
+
+    #endregion
+
     #region DeactivateUserAsync
 
     [Fact]
@@ -1306,7 +1449,7 @@ public class UserServiceTests
         var sut = CreateSut();
 
         // Act
-        var result = await sut.ChangePasswordAsync("user-1", command);
+        var result = await sut.ChangePasswordAsync("user-1", command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1322,20 +1465,41 @@ public class UserServiceTests
         var user = CreateUser(loginProvider: LoginProviders.Wayd);
         user.MustChangePassword = true;
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        var clearedBeforeTheSave = false;
         _mockUserManager.Setup(x => x.ChangePasswordAsync(user, "OldPass123!", "NewPass456!"))
+            .Callback(() => clearedBeforeTheSave = !user.MustChangePassword)
             .ReturnsAsync(IdentityResult.Success);
-        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
         var command = new ChangePasswordCommand("OldPass123!", "NewPass456!");
         var sut = CreateSut();
 
         // Act
-        var result = await sut.ChangePasswordAsync("user-1", command);
+        var result = await sut.ChangePasswordAsync("user-1", command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
         user.MustChangePassword.Should().BeFalse();
-        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
+        clearedBeforeTheSave.Should().BeTrue("the change's own save writes the flag");
+        _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_KeepsMustChangePassword_WhenTheChangeIsRefused()
+    {
+        // Arrange
+        var user = CreateUser(loginProvider: LoginProviders.Wayd);
+        user.MustChangePassword = true;
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.ChangePasswordAsync(user, "WrongPass1!", "NewPass456!"))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Incorrect password." }));
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ChangePasswordAsync("user-1", new ChangePasswordCommand("WrongPass1!", "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        user.MustChangePassword.Should().BeTrue();
     }
 
     [Fact]
@@ -1349,7 +1513,7 @@ public class UserServiceTests
         var sut = CreateSut();
 
         // Act
-        var result = await sut.ChangePasswordAsync("user-1", command);
+        var result = await sut.ChangePasswordAsync("user-1", command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1369,7 +1533,7 @@ public class UserServiceTests
         var sut = CreateSut();
 
         // Act
-        var result = await sut.ChangePasswordAsync("user-1", command);
+        var result = await sut.ChangePasswordAsync("user-1", command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1387,7 +1551,7 @@ public class UserServiceTests
         var sut = CreateSut();
 
         // Act
-        var act = () => sut.ChangePasswordAsync("missing", command);
+        var act = () => sut.ChangePasswordAsync("missing", command, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<NotFoundException>();
@@ -1414,7 +1578,7 @@ public class UserServiceTests
         var sut = CreateSut();
 
         // Act
-        var result = await sut.ResetPasswordAsync(command);
+        var result = await sut.ResetPasswordAsync(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1442,7 +1606,7 @@ public class UserServiceTests
         var sut = CreateSut();
 
         // Act
-        var result = await sut.ResetPasswordAsync(command);
+        var result = await sut.ResetPasswordAsync(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1468,7 +1632,7 @@ public class UserServiceTests
         var sut = CreateSut();
 
         // Act
-        var result = await sut.ResetPasswordAsync(command);
+        var result = await sut.ResetPasswordAsync(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -1488,7 +1652,7 @@ public class UserServiceTests
         var sut = CreateSut();
 
         // Act
-        var result = await sut.ResetPasswordAsync(command);
+        var result = await sut.ResetPasswordAsync(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1509,7 +1673,7 @@ public class UserServiceTests
         var sut = CreateSut();
 
         // Act
-        var result = await sut.ResetPasswordAsync(command);
+        var result = await sut.ResetPasswordAsync(command, TestContext.Current.CancellationToken);
 
         // Assert
         result.IsFailure.Should().BeTrue();
@@ -1526,7 +1690,7 @@ public class UserServiceTests
         var sut = CreateSut();
 
         // Act
-        var act = () => sut.ResetPasswordAsync(command);
+        var act = () => sut.ResetPasswordAsync(command, TestContext.Current.CancellationToken);
 
         // Assert
         await act.Should().ThrowAsync<NotFoundException>();
@@ -1774,6 +1938,8 @@ public class UserServiceTests
         _mockUserManager.Setup(x => x.GetRolesAsync(user)).ReturnsAsync(["Basic"]);
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
+        await _refreshTokenStore.Issue(user.Id, SessionContext.None, TestContext.Current.CancellationToken);
+
         var sut = CreateSut();
 
         var (resolvedId, _) = await sut.GetOrCreateFromPrincipalAsync(
@@ -1781,6 +1947,8 @@ public class UserServiceTests
 
         resolvedId.Should().Be(user.Id);
         user.PendingMigrationTenantId.Should().BeNull();
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(0, "a session opened through the old sign-in must not outlive it");
+        _refreshTokenStore.RevokeReasons(user.Id).Should().Equal(UserRefreshTokenRevokeReasons.SignInChanged);
         // StagedAt moves together with the tenant flag — both clear on a completed rebind.
         user.PendingMigrationStagedAt.Should().BeNull();
         var completed = RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserTenantMigrationCompletedEvent>().Subject;
@@ -2439,6 +2607,8 @@ public class UserServiceTests
         _mockUserIdentityStore.Setup(s => s.FindActiveByNullTenant(LoginProviders.MicrosoftEntraId, objectId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(Array.Empty<UserIdentity>());
 
+        await _refreshTokenStore.Issue(user.Id, SessionContext.None, TestContext.Current.CancellationToken);
+
         var sut = CreateSut();
 
         // Act
@@ -2449,6 +2619,8 @@ public class UserServiceTests
         // new active identity carries this token's tenant/subject.
         resolvedId.Should().Be(user.Id);
         user.LoginProvider.Should().Be(LoginProviders.MicrosoftEntraId);
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(0, "a session opened through the old sign-in must not outlive it");
+        _refreshTokenStore.RevokeReasons(user.Id).Should().Equal(UserRefreshTokenRevokeReasons.SignInChanged);
         user.PendingMigrationProviderId.Should().BeNull();
         _mockUserIdentityStore.Verify(s => s.Add(
             It.Is<UserIdentity>(ui =>
@@ -3004,6 +3176,8 @@ public class UserServiceTests
             .ReturnsAsync(IdentityResult.Success);
         _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
 
+        await _refreshTokenStore.Issue(user.Id, SessionContext.None, TestContext.Current.CancellationToken);
+
         var sut = CreateSut();
 
         var result = await sut.ConvertToLocalAccount(
@@ -3012,6 +3186,8 @@ public class UserServiceTests
 
         result.IsSuccess.Should().BeTrue();
         user.LoginProvider.Should().Be(LoginProviders.Wayd);
+        _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(0, "a session opened through the old sign-in must not outlive it");
+        _refreshTokenStore.RevokeReasons(user.Id).Should().Equal(UserRefreshTokenRevokeReasons.SignInChanged);
         user.MustChangePassword.Should().BeTrue();
         user.PendingMigrationProviderId.Should().BeNull();
 

@@ -16841,6 +16841,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Change password for the currently logged in local user.
         /// </summary>
+        /// <remarks>
+        /// Ends every session the user has, this one included, web and connected application alike: the user signs in again with the new password.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task ChangePasswordAsync(ChangePasswordRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -17143,6 +17146,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Change password for the currently logged in local user.
         /// </summary>
+        /// <remarks>
+        /// Ends every session the user has, this one included, web and connected application alike: the user signs in again with the new password.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task ChangePasswordAsync(ChangePasswordRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))

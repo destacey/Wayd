@@ -3,6 +3,24 @@
 import { incidentStatusSteps } from '@/src/app/product-management/incidents/_components/incident-status-steps'
 import { useGetIncidentStatusWorkflowQuery } from '@/src/store/features/product-management/incidents-api'
 import { Steps } from 'antd'
+import type { CSSProperties } from 'react'
+
+/**
+ * Titles stay one line. Beside the facts rail the record column is narrower
+ * than the status names, and a title that shrinks breaks mid-word. The row
+ * scrolls instead of compressing them.
+ */
+const stepStyles: {
+  root: CSSProperties
+  item: CSSProperties
+  itemSection: CSSProperties
+  itemTitle: CSSProperties
+} = {
+  root: { minWidth: 0, maxWidth: '100%', overflowX: 'auto' },
+  item: { flex: '1 0 max-content', minWidth: 'max-content' },
+  itemSection: { minWidth: 'max-content' },
+  itemTitle: { flexShrink: 0, whiteSpace: 'nowrap', wordBreak: 'normal' },
+}
 
 export interface IncidentStatusStepperProps {
   incidentId: string
@@ -31,6 +49,7 @@ const IncidentStatusStepper = ({
       responsive={false}
       current={current === -1 ? undefined : current}
       items={steps}
+      styles={stepStyles}
     />
   )
 }

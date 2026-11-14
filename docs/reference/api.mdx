@@ -147,7 +147,7 @@ x-api-key: your-personal-access-token
 - Copy the token immediately — it cannot be retrieved after creation
 - **Revoke** tokens that are no longer needed
 
-A PAT has the permissions of the user who created it, narrowed by its scope. A `Read` token keeps only the permissions whose action is `View`, `Search` or `Export`, and is refused (`403`) any request other than `GET`, apart from the few reads sent as `POST` (such as the sessions list). `GET /api/user-management/profiles/permissions` answers with the permissions the token can use. See [Your Profile](../getting-started/your-profile.mdx#personal-access-tokens) for details on creating and managing tokens.
+A PAT has the permissions of the user who created it, narrowed by its scope. A `Read` token keeps only the permissions whose action is `View`, `Search` or `Export`, and is refused (`403`) any request other than `GET`, apart from the few reads sent as `POST` (such as the sessions list). `GET /api/user-management/profiles/permissions` answers with the permissions the token can use. Creating a token (`POST /api/user-management/personal-access-tokens`) or changing one (`PUT …/{id}`) is refused (`403`) to a PAT: tokens are created and extended only from a sign-in to Wayd. See [Your Profile](../getting-started/your-profile.mdx#personal-access-tokens) for details on creating and managing tokens.
 
 ## Rate limits
 

@@ -31,7 +31,9 @@ You are signed out afterwards; sign in again with your new password. Changing it
 
 A password manager that offers to change a saved Wayd password brings you to this page.
 
-If this is your first login and you are asked to change your password before continuing, the same form opens before anything else. Choose **Sign Out** to leave without changing it.
+If this is your first login, or an administrator has reset your password, you are asked to change it before continuing: the same form opens before anything else, and until you change it you can do nothing else in Wayd, and neither can your personal access tokens. Choose **Sign Out** to leave without changing it. A password an administrator set lasts seven days; after that, ask them to set a new one.
+
+Five wrong passwords, whether signing in or here, lock your account for 15 minutes. An administrator whom no other administrator could unlock is never locked out; their next attempt waits a few seconds instead.
 
 ## Preferences
 
@@ -99,7 +101,7 @@ See the [API Reference](../reference/api.mdx#personal-access-tokens-pats) for fu
 ### Managing Tokens
 
 - The **PATs** tab lists your tokens with their **Status** (Active, Revoked, or Expired), their **Access**, when they expire, and when they were last used
-- **Edit** an active token to change its name or expiration date
+- **Edit** an active token to change its name or expiration date. Creating and editing tokens works only while you are signed in to Wayd, not with a token
 - **Revoke** a token when it's no longer needed — this immediately invalidates it
 - **Delete** a token to remove it from the list permanently; expired and revoked tokens can be deleted to clean up
 

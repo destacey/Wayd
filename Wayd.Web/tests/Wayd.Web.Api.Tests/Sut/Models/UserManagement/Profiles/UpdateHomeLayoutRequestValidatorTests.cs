@@ -303,4 +303,92 @@ public sealed class UpdateHomeLayoutRequestValidatorTests
         layout.Widgets[0].Settings.Should().Equal(new Dictionary<string, string> { ["rows"] = "10" });
         layout.Widgets[1].Settings.Should().BeEmpty();
     }
+
+    [Fact]
+    public void MutedTilesWithoutWidgets_Passes()
+    {
+        // Arrange
+        var request = new UpdateHomeLayoutRequest { Widgets = [], MutedTiles = ["unread-notifications"] };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Theory]
+    [InlineData(UpdateHomeLayoutRequest.MaxMutedTiles, false)]
+    [InlineData(UpdateHomeLayoutRequest.MaxMutedTiles + 1, true)]
+    public void MutedTileCount_IsCapped(int count, bool fails)
+    {
+        // Arrange
+        var request = new UpdateHomeLayoutRequest
+        {
+            MutedTiles = [.. Enumerable.Range(0, count).Select(i => $"tile-{i}")],
+        };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        if (fails)
+            result.ShouldHaveValidationErrorFor(r => r.MutedTiles);
+        else
+            result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Theory]
+    [InlineData("", true)]
+    [InlineData(" ", true)]
+    [InlineData(null, true)]
+    [InlineData("a", false)]
+    public void MutedTileId_IsRequired(string? id, bool fails)
+    {
+        // Arrange
+        var request = new UpdateHomeLayoutRequest { MutedTiles = [id!] };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        if (fails)
+            result.ShouldHaveValidationErrorFor(r => r.MutedTiles);
+        else
+            result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Theory]
+    [InlineData(UpdateHomeLayoutRequest.MaxTileIdLength, false)]
+    [InlineData(UpdateHomeLayoutRequest.MaxTileIdLength + 1, true)]
+    public void MutedTileId_LengthIsCapped(int length, bool fails)
+    {
+        // Arrange
+        var request = new UpdateHomeLayoutRequest { MutedTiles = [new string('t', length)] };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        if (fails)
+            result.ShouldHaveValidationErrorFor(r => r.MutedTiles);
+        else
+            result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Fact]
+    public void ToUserHomeLayoutDto_CarriesMutedTiles_AndReadsNoneAsEmpty()
+    {
+        // Arrange
+        var muted = new UpdateHomeLayoutRequest { MutedTiles = ["unread-notifications"] };
+        var none = new UpdateHomeLayoutRequest { MutedTiles = null };
+
+        // Act
+        var mutedLayout = muted.ToUserHomeLayoutDto();
+        var noneLayout = none.ToUserHomeLayoutDto();
+
+        // Assert
+        mutedLayout.MutedTiles.Should().Equal("unread-notifications");
+        noneLayout.MutedTiles.Should().BeEmpty();
+    }
 }

@@ -128,7 +128,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
 
     [HttpGet("home-layout")]
     [EndpointSummary("Get the home page layout of the currently logged in user.")]
-    [EndpointDescription("The widgets the user placed, in order, with their column and whether they show. No widgets means the user has not customized the page and sees the default.")]
+    [EndpointDescription("The widgets the user placed, in order, with their column and whether they show, and the attention tiles the user switched off. No widgets means the user has not arranged the page and sees the default arrangement.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<HomeLayoutResponse>> GetHomeLayout(CancellationToken cancellationToken)
@@ -141,7 +141,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
 
     [HttpPut("home-layout")]
     [EndpointSummary("Update the home page layout of the currently logged in user.")]
-    [EndpointDescription("Replaces the saved layout and leaves the user's other preferences untouched. Send no widgets to return to the default.")]
+    [EndpointDescription("Replaces the saved layout and leaves the user's other preferences untouched. Send no widgets to return to the default arrangement, and no muted tiles to show every attention tile.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]

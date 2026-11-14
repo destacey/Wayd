@@ -1,8 +1,9 @@
 namespace Wayd.Web.Api.Models.UserManagement.Profiles;
 
 /// <summary>
-/// The signed-in user's home page arrangement, replacing the one saved. Send no widgets to clear it and use
-/// the default again. Widget ids are the client's; the server checks only the layout's shape.
+/// The signed-in user's home page arrangement, replacing the one saved. Send no widgets and no muted tiles
+/// to clear it and use the default again. Widget and tile ids are the client's; the server checks only the
+/// layout's shape.
 /// </summary>
 public sealed record UpdateHomeLayoutRequest
 {
@@ -30,8 +31,20 @@ public sealed record UpdateHomeLayoutRequest
     /// </summary>
     public const int MaxSettingsLength = 16384;
 
+    /// <summary>The most muted tiles a layout holds; far more than the widgets offer, so it bounds the stored document only.</summary>
+    public const int MaxMutedTiles = 50;
+
+    /// <summary>The longest tile id accepted.</summary>
+    public const int MaxTileIdLength = 64;
+
     /// <summary>The placed widgets, in the order they show within their columns.</summary>
     public List<HomeLayoutWidgetRequest> Widgets { get; set; } = [];
+
+    /// <summary>
+    /// The attention tiles the user switched off, by tile id; leave out or send empty when none. A muted tile
+    /// never takes a slot in the strip.
+    /// </summary>
+    public List<string>? MutedTiles { get; set; }
 
     /// <summary>The layout as the user service stores it.</summary>
     public UserHomeLayoutDto ToUserHomeLayoutDto() => new()
@@ -43,6 +56,7 @@ public sealed record UpdateHomeLayoutRequest
             Visible = w.Visible,
             Settings = w.Settings is null ? [] : new Dictionary<string, string>(w.Settings),
         })],
+        MutedTiles = MutedTiles is null ? [] : [.. MutedTiles],
     };
 }
 
@@ -65,7 +79,7 @@ public sealed record HomeLayoutWidgetRequest
     public Dictionary<string, string>? Settings { get; set; }
 }
 
-/// <summary>Checks a home layout's shape: how many widgets, each id's length, and each column.</summary>
+/// <summary>Checks a home layout's shape: how many widgets and muted tiles, each id's length, and each column.</summary>
 public sealed class UpdateHomeLayoutRequestValidator : CustomValidator<UpdateHomeLayoutRequest>
 {
     /// <summary>Declares the shape rules.</summary>
@@ -99,6 +113,12 @@ public sealed class UpdateHomeLayoutRequestValidator : CustomValidator<UpdateHom
                 .Must(s => s is null || s.Values.All(v => v is not null && v.Length <= UpdateHomeLayoutRequest.MaxSettingValueLength))
                     .WithMessage($"A setting value must be at most {UpdateHomeLayoutRequest.MaxSettingValueLength} characters.");
         });
+
+        RuleFor(r => r.MutedTiles)
+            .Must(t => t is null || t.Count <= UpdateHomeLayoutRequest.MaxMutedTiles)
+                .WithMessage($"A home layout mutes at most {UpdateHomeLayoutRequest.MaxMutedTiles} tiles.")
+            .Must(t => t is null || t.All(id => !string.IsNullOrWhiteSpace(id) && id.Length <= UpdateHomeLayoutRequest.MaxTileIdLength))
+                .WithMessage($"A muted tile id must not be blank, and is at most {UpdateHomeLayoutRequest.MaxTileIdLength} characters.");
     }
 
     /// <summary>The characters in every setting key and value of a layout; null entries, settings and values count as none.</summary>

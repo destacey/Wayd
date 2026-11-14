@@ -13,7 +13,8 @@ export interface LongestActiveIncident {
 }
 
 export interface IncidentGridFiguresProps {
-  activeCount: number
+  /** Absent when the figures were not loaded. Zero is a real count. */
+  activeCount?: number | null
   longestActive?: LongestActiveIncident | null
   meanTimeToRecoverMilliseconds?: number | null
   loading?: boolean
@@ -34,7 +35,7 @@ const IncidentGridFigures = ({
   <Flex className={styles.figures} gap="small" wrap>
     <MetricCard
       title="Active incidents"
-      value={activeCount}
+      value={activeCount == null ? ABSENT : activeCount}
       tooltip="Not closed, not canceled, and not in a done or removed status."
       loading={loading}
       cardStyle={METRIC_CARD_FLEX}

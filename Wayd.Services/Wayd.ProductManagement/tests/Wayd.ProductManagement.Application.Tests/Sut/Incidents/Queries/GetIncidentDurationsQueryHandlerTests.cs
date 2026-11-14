@@ -135,6 +135,50 @@ public sealed class GetIncidentDurationsQueryHandlerTests : ProductCommandTestBa
         closedOnly.MeanTimeToRecoverMilliseconds.Should().Be(4 * 60 * 60 * 1000);
     }
 
+    [Fact]
+    public async Task Handle_ShouldLeaveTheMeanAbsentWhenNoneAreClosed()
+    {
+        // Arrange
+        Open("Still open", Now.Minus(Duration.FromHours(1)));
+        var resolved = Open("Recovered, not closed", Now.Minus(Duration.FromHours(5)));
+        resolved.MarkRecovered(
+                Status("Resolved", StatusCategory.Done, ProductStatusAlias.Resolved),
+                EventActor.System,
+                Now,
+                Now.Minus(Duration.FromHours(1)))
+            .IsSuccess.Should().BeTrue();
+
+        // Act
+        var figures = await FiguresHandler().Handle(
+            new GetIncidentFiguresQuery(),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        figures.ActiveCount.Should().Be(1);
+        figures.LongestActive!.Title.Should().Be("Still open");
+        figures.MeanTimeToRecoverMilliseconds.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Handle_ShouldKeepTheLowerKeyWhenActiveDurationsTie()
+    {
+        // Arrange
+        var noticed = Now.Minus(Duration.FromHours(2));
+        var higherKey = Open("Higher key", noticed);
+        var lowerKey = Open("Lower key", noticed);
+        SetKey(higherKey, 9);
+        SetKey(lowerKey, 4);
+
+        // Act
+        var figures = await FiguresHandler().Handle(
+            new GetIncidentFiguresQuery(),
+            TestContext.Current.CancellationToken);
+
+        // Assert
+        figures.LongestActive!.Key.Should().Be(4);
+        figures.LongestActive.Title.Should().Be("Lower key");
+    }
+
     private GetIncidentQueryHandler IncidentHandler() =>
         new(DbContext, _dispatcher.Object, DateTimeProvider.Object);
 
@@ -163,4 +207,7 @@ public sealed class GetIncidentDurationsQueryHandlerTests : ProductCommandTestBa
         DbContext.AddIncident(incident);
         return incident;
     }
+
+    private static void SetKey(Incident incident, int key) =>
+        typeof(Incident).GetProperty(nameof(Incident.Key))!.SetValue(incident, key);
 }

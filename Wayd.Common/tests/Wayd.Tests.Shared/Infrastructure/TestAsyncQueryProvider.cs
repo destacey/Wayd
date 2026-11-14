@@ -27,12 +27,12 @@ public class TestAsyncQueryProvider<TEntity> : IAsyncQueryProvider
 
     public object Execute(Expression expression)
     {
-        return _inner.Execute(expression)!;
+        return _inner.Execute(SqlServerInstantDiff.Evaluate(expression))!;
     }
 
     public TResult Execute<TResult>(Expression expression)
     {
-        return _inner.Execute<TResult>(expression);
+        return _inner.Execute<TResult>(SqlServerInstantDiff.Evaluate(expression));
     }
 
     public TResult ExecuteAsync<TResult>(Expression expression, CancellationToken cancellationToken = default)

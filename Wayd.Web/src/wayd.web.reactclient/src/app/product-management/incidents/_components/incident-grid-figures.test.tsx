@@ -20,6 +20,31 @@ describe('IncidentGridFigures', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 
+  it('leaves the active count absent when the figures were not loaded', () => {
+    // Arrange
+    const figures = {
+      activeCount: null,
+      longestActive: null,
+      meanTimeToRecoverMilliseconds: null,
+    }
+
+    // Act
+    render(<IncidentGridFigures {...figures} />)
+
+    // Assert
+    expect(screen.queryByText('0')).not.toBeInTheDocument()
+    expect(screen.getAllByText('—')).toHaveLength(3)
+  })
+
+  it('does not show zero while the figures are loading', () => {
+    // Arrange / Act
+    render(<IncidentGridFigures activeCount={null} loading />)
+
+    // Assert
+    expect(screen.queryByText('0')).not.toBeInTheDocument()
+    expect(screen.queryByText('—')).not.toBeInTheDocument()
+  })
+
   it('names the longest active incident and shows a real mean', () => {
     // Arrange
     const figures = {

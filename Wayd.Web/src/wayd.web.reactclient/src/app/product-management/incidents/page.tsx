@@ -99,7 +99,7 @@ const IncidentsPage: FC = () => {
         }}
       />
       <IncidentGridFigures
-        activeCount={figures?.activeCount ?? 0}
+        activeCount={figures?.activeCount ?? null}
         longestActive={figures?.longestActive}
         meanTimeToRecoverMilliseconds={figures?.meanTimeToRecoverMilliseconds}
         loading={figuresLoading}

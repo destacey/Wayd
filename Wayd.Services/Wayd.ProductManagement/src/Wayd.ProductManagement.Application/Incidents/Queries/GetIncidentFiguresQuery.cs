@@ -1,5 +1,7 @@
+using Microsoft.EntityFrameworkCore.SqlServer.NodaTime.Extensions;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Enums.ProductManagement;
+using Wayd.Common.Domain.StatusWorkflows.Enums;
 using Wayd.ProductManagement.Application.Incidents.Dtos;
 using Wayd.ProductManagement.Domain.Models;
 
@@ -53,51 +55,45 @@ public sealed class GetIncidentFiguresQueryHandler(
             _context.Incidents.AsNoTracking(),
             request.Statuses,
             request.SeverityLevelIds);
-        var figures = IncidentDurations.Summarize(
-            await MeasuredRows(query, cancellationToken),
-            _dateTimeProvider.Now);
+        var now = _dateTimeProvider.Now;
+
+        // IncidentActivity.IsActive, written out so SQL Server evaluates it: not closed, not
+        // canceled, and not in a done or removed category.
+        var active = query.Where(incident =>
+            incident.StatusAliasValue != (int)ProductStatusAlias.Closed
+            && incident.StatusAliasValue != (int)ProductStatusAlias.Canceled
+            && incident.StatusCategory != StatusCategory.Done
+            && incident.StatusCategory != StatusCategory.Removed);
+        var activeCount = await active.CountAsync(cancellationToken);
+        var longest = await active
+            .OrderBy(incident => incident.NoticedAt)
+            .ThenBy(incident => incident.Key)
+            .Select(incident => new { incident.Key, incident.Title, incident.NoticedAt })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        // Closed incidents that have recovered. Duration is not a numeric aggregate, so the
+        // difference is the millisecond date-diff SQL Server already translates.
+        var meanMilliseconds = await query
+            .Where(incident =>
+                incident.StatusAliasValue == (int)ProductStatusAlias.Closed
+                && incident.RecoveredAt != null)
+            .AverageAsync(
+                incident => EF.Functions.DateDiffBigMillisecond((Instant?)incident.NoticedAt, incident.RecoveredAt),
+                cancellationToken);
 
         return new IncidentFiguresDto
         {
-            ActiveCount = figures.ActiveCount,
-            LongestActive = figures.LongestActive is { } longest
-                ? new LongestActiveIncidentDto
+            ActiveCount = activeCount,
+            LongestActive = longest is null
+                ? null
+                : new LongestActiveIncidentDto
                 {
                     Key = longest.Key,
                     Title = longest.Title,
-                    ActiveMilliseconds = IncidentDurations.Milliseconds(longest.Active) ?? 0,
-                }
-                : null,
-            MeanTimeToRecoverMilliseconds = IncidentDurations.Milliseconds(figures.MeanTimeToRecover),
+                    ActiveMilliseconds = IncidentDurations.Milliseconds(now - longest.NoticedAt) ?? 0,
+                },
+            MeanTimeToRecoverMilliseconds = IncidentDurations.Milliseconds(
+                meanMilliseconds is double mean ? Duration.FromMilliseconds(mean) : null),
         };
-    }
-
-    private static async Task<List<IncidentDurations.Row>> MeasuredRows(
-        IQueryable<Incident> query,
-        CancellationToken cancellationToken)
-    {
-        var rows = await query
-            .Select(incident => new
-            {
-                incident.Key,
-                incident.Title,
-                incident.NoticedAt,
-                incident.StartedAt,
-                incident.RecoveredAt,
-                incident.StatusAliasValue,
-                incident.StatusCategory,
-            })
-            .ToListAsync(cancellationToken);
-
-        return rows
-            .Select(row => new IncidentDurations.Row(
-                row.Key,
-                row.Title,
-                row.NoticedAt,
-                row.StartedAt,
-                row.RecoveredAt,
-                (ProductStatusAlias)row.StatusAliasValue,
-                row.StatusCategory))
-            .ToList();
     }
 }

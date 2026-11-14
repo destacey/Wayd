@@ -60,14 +60,14 @@ public sealed class TokenScopeEnforcementTests(WaydSqlServerApiFactory factory)
 
     [Theory]
     [InlineData(TokenScope.Read, HttpStatusCode.Forbidden)]
-    [InlineData(TokenScope.Write, HttpStatusCode.Created)]
+    [InlineData(TokenScope.Write, HttpStatusCode.NoContent)]
     public async Task Token_CanChangeDataBehindSignInAlone_OnlyWithWriteScope(TokenScope scope, HttpStatusCode expected)
     {
-        // Arrange — creating a personal access token needs no permission, only a signed-in user
+        // Arrange — changing the caller's theme needs no permission, only a signed-in user
         var client = await ClientWithToken(scope);
 
         // Act
-        var response = await client.PostAsJsonAsync(PersonalAccessTokens, TokenRequest(TokenScope.Write), TestContext.Current.CancellationToken);
+        var response = await client.PutAsJsonAsync("/api/user-management/profiles/theme", new { colorPrimary = "#1677ff", useCompactAlgorithm = false }, TestContext.Current.CancellationToken);
 
         // Assert
         response.StatusCode.Should().Be(expected, await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));

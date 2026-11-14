@@ -50,7 +50,17 @@ public class ApplicationUser : IdentityUser, IEntity
     /// </summary>
     public string? PendingMigrationProviderId { get; set; }
 
+    /// <summary>
+    /// Whether the user's password is a temporary one an administrator set, which they must replace before doing
+    /// anything else. Their access token is restricted to changing it (<c>PasswordChangeRequirement</c>).
+    /// </summary>
     public bool MustChangePassword { get; set; }
+
+    /// <summary>
+    /// When the temporary password was set, from which its lifetime is measured. Null once it is replaced, and for a
+    /// temporary password set before the time was recorded, which therefore does not expire.
+    /// </summary>
+    public Instant? TemporaryPasswordSetAt { get; set; }
 
     /// <summary>
     /// One row per concurrent sign-in session. Sessions live here rather than in columns on
@@ -185,6 +195,10 @@ public class ApplicationUser : IdentityUser, IEntity
         LoginProvider = provider;
         PendingMigrationProviderId = null;
 
+        // A temporary password belongs to the local account the user is leaving; the identity provider owns sign-in now.
+        MustChangePassword = false;
+        TemporaryPasswordSetAt = null;
+
         AddDomainEvent(new ApplicationUserProviderMigrationCompletedEvent(Id, from, provider, actor, timestamp));
     }
 
@@ -200,6 +214,7 @@ public class ApplicationUser : IdentityUser, IEntity
 
         LoginProvider = LoginProviders.Wayd;
         MustChangePassword = true;
+        TemporaryPasswordSetAt = timestamp;
 
         AddDomainEvent(new ApplicationUserConvertedToLocalAccountEvent(Id, from, actor, timestamp));
     }
@@ -217,6 +232,7 @@ public class ApplicationUser : IdentityUser, IEntity
     public void ResetPassword(bool endLockout, EventActor actor, Instant timestamp)
     {
         MustChangePassword = true;
+        TemporaryPasswordSetAt = timestamp;
 
         if (endLockout)
         {

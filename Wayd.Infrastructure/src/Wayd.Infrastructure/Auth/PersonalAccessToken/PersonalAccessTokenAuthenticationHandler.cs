@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Infrastructure.Identity;
 
 namespace Wayd.Infrastructure.Auth.PersonalAccessToken;
@@ -130,6 +131,13 @@ public class PersonalAccessTokenAuthenticationHandler : AuthenticationHandler<Au
             // Narrows every permission check for the request (TokenScopeAccess); the user's permissions are still read
             // from the database, so a scope never grants one they lack.
             claims.Add(new Claim(TokenScopes.ClaimType, matchingToken.Scope.ToScopeString()));
+
+            // An administrator's reset leaves the user's tokens in place, so they are held to replacing the password
+            // as the user's sign-in is (PasswordChangeRequirement).
+            if (PasswordChangeRequirement.AppliesTo(user))
+            {
+                claims.Add(new Claim(PasswordChangeRequirement.ClaimType, "true"));
+            }
 
             var identity = new ClaimsIdentity(claims, Scheme.Name);
             var principal = new ClaimsPrincipal(identity);

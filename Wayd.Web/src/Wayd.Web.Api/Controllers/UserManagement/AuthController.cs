@@ -51,6 +51,7 @@ public class AuthController(
 
     [Authorize]
     [HttpPost("logout")]
+    [AllowedDuringPasswordChange]
     [EndpointSummary("End the calling device's session server-side.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
@@ -65,6 +66,7 @@ public class AuthController(
 
     [Authorize]
     [HttpPost("logout-all")]
+    [AllowedDuringPasswordChange]
     [EndpointSummary("End every session for the calling user, on all devices.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]

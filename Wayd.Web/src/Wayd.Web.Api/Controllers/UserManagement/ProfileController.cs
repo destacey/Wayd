@@ -40,6 +40,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
     }
 
     [HttpPut("change-password")]
+    [AllowedDuringPasswordChange]
     [EndpointSummary("Change password for the currently logged in local user.")]
     [EndpointDescription("Ends every session the user has, this one included, web and connected application alike: the user signs in again with the new password.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

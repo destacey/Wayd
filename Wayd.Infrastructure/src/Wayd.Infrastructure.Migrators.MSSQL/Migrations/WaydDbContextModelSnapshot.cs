@@ -3087,6 +3087,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("TemporaryPasswordSetAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("bit");
 

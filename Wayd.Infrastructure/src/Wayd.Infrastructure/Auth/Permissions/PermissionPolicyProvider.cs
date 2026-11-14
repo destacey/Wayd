@@ -34,7 +34,7 @@ internal class PermissionPolicyProvider : IAuthorizationPolicyProvider
             policy = new AuthorizationPolicyBuilder()
                 .AddAuthenticationSchemes(AuthConstants.DelegatedAccessTokenScheme)
                 .RequireAuthenticatedUser()
-                .AddRequirements(TokenScopeRequirement.Instance)
+                .AddRequirements(TokenScopeRequirement.Instance, PasswordChangeRequirement.Instance)
                 .Build();
         }
         else if (hasApiKeyHeader)
@@ -44,7 +44,7 @@ internal class PermissionPolicyProvider : IAuthorizationPolicyProvider
             policy = new AuthorizationPolicyBuilder()
                 .AddAuthenticationSchemes(AuthConstants.PersonalAccessTokenScheme)
                 .RequireAuthenticatedUser()
-                .AddRequirements(TokenScopeRequirement.Instance)
+                .AddRequirements(TokenScopeRequirement.Instance, PasswordChangeRequirement.Instance)
                 .Build();
         }
         else
@@ -55,7 +55,7 @@ internal class PermissionPolicyProvider : IAuthorizationPolicyProvider
             policy = new AuthorizationPolicyBuilder()
                 .AddAuthenticationSchemes(Local.ConfigureServices.LocalJwtScheme)
                 .RequireAuthenticatedUser()
-                .AddRequirements(TokenScopeRequirement.Instance)
+                .AddRequirements(TokenScopeRequirement.Instance, PasswordChangeRequirement.Instance)
                 .Build();
         }
 
@@ -68,7 +68,7 @@ internal class PermissionPolicyProvider : IAuthorizationPolicyProvider
         if (policyName.StartsWith(ApplicationClaims.Permission, StringComparison.OrdinalIgnoreCase))
         {
             var policy = new AuthorizationPolicyBuilder();
-            policy.AddRequirements(new PermissionRequirement(policyName), TokenScopeRequirement.Instance);
+            policy.AddRequirements(new PermissionRequirement(policyName), TokenScopeRequirement.Instance, PasswordChangeRequirement.Instance);
             return Task.FromResult<AuthorizationPolicy?>(policy.Build());
         }
 
@@ -76,7 +76,7 @@ internal class PermissionPolicyProvider : IAuthorizationPolicyProvider
         {
             var permissions = policyName["MustHaveAnyPermission:".Length..].Split(',');
             var policy = new AuthorizationPolicyBuilder();
-            policy.AddRequirements(new AnyPermissionRequirement(permissions), TokenScopeRequirement.Instance);
+            policy.AddRequirements(new AnyPermissionRequirement(permissions), TokenScopeRequirement.Instance, PasswordChangeRequirement.Instance);
             return Task.FromResult<AuthorizationPolicy?>(policy.Build());
         }
 

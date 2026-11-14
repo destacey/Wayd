@@ -14,7 +14,8 @@ public sealed record AuthenticatedClient(string UserId, HttpClient Client);
 
 public static class AuthenticatedClientExtensions
 {
-    private const string Password = "Integration-Test-Passw0rd";
+    /// <summary>The password every user these helpers create signs in with.</summary>
+    public const string Password = "Integration-Test-Passw0rd";
 
     /// <summary>
     /// Creates a local user holding exactly the given permissions, signs them in through

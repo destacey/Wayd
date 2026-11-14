@@ -30,12 +30,33 @@ public class UserRefreshToken
     public Instant ExpiresAt { get; set; }
 
     /// <summary>
-    /// Hash of the token this row's current one replaced, retained only until
-    /// <see cref="PreviousTokenExpiresAt"/> to make replay detectable. Never a credential.
+    /// Hash of the token this row's current one replaced, retained until
+    /// <see cref="PreviousTokenExpiresAt"/>, the end of the session, so presenting it is recognised as replay for as
+    /// long as the session lives. Never a credential.
     /// </summary>
     public string? PreviousTokenHash { get; set; }
 
+    /// <summary>Until when <see cref="PreviousTokenHash"/> is recognised: the end of the session's lifetime.</summary>
     public Instant? PreviousTokenExpiresAt { get; set; }
+
+    /// <summary>
+    /// The user's credential version when the session was opened (<c>CredentialVersion</c>). The session refreshes
+    /// only while the user's still matches, so one opened with a password that has since changed cannot be used.
+    /// Null for a session opened before sessions recorded one, which is not checked.
+    /// </summary>
+    public string? CredentialVersion { get; set; }
+
+    /// <summary>
+    /// The remote address of the request that last rotated the session's token. Within the retry grace, the
+    /// superseded token is taken for a retry only from this address. Personal data, kept for no other purpose.
+    /// </summary>
+    public string? RotatedFromIpAddress { get; set; }
+
+    /// <summary>
+    /// Changes on every write, so two rotations of the same token, or a rotation racing a revocation, cannot both
+    /// commit.
+    /// </summary>
+    public byte[]? Version { get; set; }
 
     /// <summary>
     /// Coarse device description parsed from the User-Agent at sign-in ("Chrome on Windows"),
@@ -103,4 +124,10 @@ public static class UserRefreshTokenRevokeReasons
     /// A session opened through the old sign-in must not outlive it.
     /// </summary>
     public const string SignInChanged = "SignInChanged";
+
+    /// <summary>
+    /// The session was presented after the user's credentials changed under it: opened by a sign-in that checked a
+    /// password the user has since replaced.
+    /// </summary>
+    public const string CredentialChanged = "CredentialChanged";
 }

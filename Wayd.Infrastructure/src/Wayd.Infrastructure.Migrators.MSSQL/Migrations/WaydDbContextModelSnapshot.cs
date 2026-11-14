@@ -3293,6 +3293,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CredentialVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<string>("DeviceLabel")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -3321,6 +3325,10 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("RotatedFromIpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
                     b.Property<string>("Scope")
                         .HasMaxLength(16)
                         .HasColumnType("nvarchar(16)");
@@ -3334,6 +3342,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired()
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.HasKey("Id");
 
@@ -11299,6 +11312,35 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .HasForeignKey("SeverityLevelId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.OwnsOne("Wayd.Common.Domain.Integrations.RecordIntegration", "TeamsChat", b1 =>
+                        {
+                            b1.Property<Guid>("IncidentId");
+
+                            b1.Property<string>("Connector")
+                                .IsRequired();
+
+                            b1.Property<bool>("CreatedByWayd");
+
+                            b1.Property<string>("ExternalId");
+
+                            b1.Property<string>("Link");
+
+                            b1.Property<string>("Title");
+
+                            b1.HasKey("IncidentId");
+
+                            b1.ToTable("Incidents", "ProductManagement");
+
+                            b1
+                                .ToJson("TeamsChat")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.WithOwner()
+                                .HasForeignKey("IncidentId");
+                        });
+
+                    b.Navigation("TeamsChat");
                 });
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.IncidentProductLink", b =>
@@ -12733,38 +12775,9 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Incident", b =>
                 {
-                    b.OwnsOne("Wayd.Common.Domain.Integrations.RecordIntegration", "TeamsChat", b1 =>
-                        {
-                            b1.Property<Guid>("IncidentId");
-
-                            b1.Property<string>("Connector")
-                                .IsRequired();
-
-                            b1.Property<bool>("CreatedByWayd");
-
-                            b1.Property<string>("ExternalId");
-
-                            b1.Property<string>("Link");
-
-                            b1.Property<string>("Title");
-
-                            b1.HasKey("IncidentId");
-
-                            b1.ToTable("Incidents", "ProductManagement");
-
-                            b1
-                                .ToJson("TeamsChat")
-                                .HasColumnType("nvarchar(max)");
-
-                            b1.WithOwner()
-                                .HasForeignKey("IncidentId");
-                        });
-
                     b.Navigation("ProductLinks");
 
                     b.Navigation("ReleaseLinks");
-
-                    b.Navigation("TeamsChat");
 
                     b.Navigation("TimelineLinkEntries");
 

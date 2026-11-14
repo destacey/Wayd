@@ -23,6 +23,7 @@ internal sealed class FakeRefreshTokenStore : IRefreshTokenStore
         public required string Token { get; set; }
         public string? PreviousToken { get; set; }
         public SessionContext Context { get; init; }
+        public string? CredentialVersion { get; init; }
         public bool Revoked { get; set; }
         public string? RevokedReason { get; set; }
     }
@@ -53,25 +54,39 @@ internal sealed class FakeRefreshTokenStore : IRefreshTokenStore
     }
 
     /// <summary>Not modelled: <see cref="TokenService"/> never opens or refreshes an OAuth client's session.</summary>
-    public Task<ClientSession> IssueForClient(Guid sessionId, string userId, string clientId, string clientName, TokenScope scope, SessionContext context, CancellationToken cancellationToken) =>
+    public Task<ClientSession> IssueForClient(Guid sessionId, string userId, string clientId, string clientName, TokenScope scope, string credentialVersion, SessionContext context, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 
     /// <summary>Not modelled: <see cref="TokenService"/> never opens or refreshes an OAuth client's session.</summary>
-    public Task<ClientRotationResult> RotateForClient(string clientId, string presentedToken, Func<string, CancellationToken, Task<bool>> mayRefresh, CancellationToken cancellationToken) =>
+    public Task<ClientRotationResult> RotateForClient(string clientId, string presentedToken, Func<string, CancellationToken, Task<string?>> credentialVersionOf, SessionContext context, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
 
-    public Task<string> Issue(string userId, SessionContext context, CancellationToken cancellationToken)
+    /// <summary>Opens a session for a test's arrangement, under no credential version, so any refresh may rotate it.</summary>
+    public Task<string> Issue(string userId, SessionContext context, CancellationToken cancellationToken) =>
+        Issue(userId, null!, context, cancellationToken);
+
+    public Task<string> Issue(string userId, string credentialVersion, SessionContext context, CancellationToken cancellationToken)
     {
         var token = $"refresh-{++_counter}";
-        _sessions.Add(new Session { UserId = userId, Token = token, Context = context });
+        _sessions.Add(new Session { UserId = userId, Token = token, Context = context, CredentialVersion = credentialVersion });
         return Task.FromResult(token);
     }
 
-    public Task<RefreshRotationResult> Rotate(string userId, string presentedToken, CancellationToken cancellationToken)
+    /// <summary>The credential version the session holding <paramref name="token"/> was opened under.</summary>
+    public string? CredentialVersionFor(string token) => _sessions.Single(s => s.Token == token).CredentialVersion;
+
+    public Task<RefreshRotationResult> Rotate(string userId, string presentedToken, string credentialVersion, SessionContext context, CancellationToken cancellationToken)
     {
         var live = _sessions.Where(s => s.UserId == userId && !s.Revoked).ToList();
 
         var match = live.FirstOrDefault(s => s.Token == presentedToken);
+        if (match is not null && match.CredentialVersion is { } openedUnder && openedUnder != credentialVersion)
+        {
+            match.Revoked = true;
+            match.RevokedReason = UserRefreshTokenRevokeReasons.CredentialChanged;
+            return Task.FromResult(RefreshRotationResult.NotFound());
+        }
+
         if (match is not null)
         {
             var replacement = $"refresh-{++_counter}";

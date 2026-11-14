@@ -13,6 +13,7 @@ using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Domain.Identity;
 using Wayd.Common.Domain.Interfaces;
+using Wayd.Infrastructure.Auth;
 using Wayd.Infrastructure.Auth.Local;
 using Wayd.Infrastructure.Auth.Oidc;
 using Wayd.Infrastructure.Identity;
@@ -349,6 +350,28 @@ public class TokenServiceTests
         _refreshTokenStore.ActiveSessionCount(user.Id).Should().Be(1, "signing in opens a session");
     }
 
+    [Fact]
+    public async Task GetTokenAsync_IssuesUnderTheCredentialVersionOfTheUserItChecked()
+    {
+        // Arrange — the stamp the sign-in saw, so a password changed while it ran leaves what it issues unusable
+        var user = CreateLocalUser();
+        user.SecurityStamp = "stamp-when-checked";
+        SeedActiveWaydIdentity(user.Id);
+        _mockUserManager.Setup(x => x.FindByNameAsync("testuser")).ReturnsAsync(user);
+        _mockSignInManager.Setup(x => x.CheckPasswordSignInAsync(user, "Password123!", true))
+            .ReturnsAsync(SignInResult.Success);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        // Act
+        var result = await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        var expected = CredentialVersion.Of("stamp-when-checked");
+        new JwtSecurityTokenHandler().ReadJwtToken(result.Token).Claims.Single(c => c.Type == CredentialVersion.ClaimType).Value
+            .Should().Be(expected);
+        _refreshTokenStore.CredentialVersionFor(result.RefreshToken).Should().Be(expected);
+    }
+
     #endregion
 
     #region RefreshTokenAsync
@@ -384,6 +407,29 @@ public class TokenServiceTests
         result.Token.Should().NotBeNullOrWhiteSpace();
         result.RefreshToken.Should().NotBeNullOrWhiteSpace();
         result.RefreshToken.Should().NotBe(currentRefreshToken, "a new refresh token should be generated");
+    }
+
+    [Fact]
+    public async Task RefreshTokenAsync_ShouldThrowUnauthorized_WhenTheUsersCredentialsChangedSinceSignIn()
+    {
+        // Arrange
+        var user = CreateLocalUser();
+        user.SecurityStamp = "stamp-at-sign-in";
+        SeedActiveWaydIdentity(user.Id);
+        _mockUserManager.Setup(x => x.FindByNameAsync("testuser")).ReturnsAsync(user);
+        _mockSignInManager.Setup(x => x.CheckPasswordSignInAsync(user, "Password123!", true))
+            .ReturnsAsync(SignInResult.Success);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+        var signedIn = await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+        user.SecurityStamp = "stamp-after-a-password-change";
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+
+        // Act
+        var act = () => _sut.RefreshTokenAsync(new RefreshTokenCommand(signedIn.Token, signedIn.RefreshToken!), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<UnauthorizedException>();
+        _refreshTokenStore.RevokeReasons(user.Id).Should().Equal(UserRefreshTokenRevokeReasons.CredentialChanged);
     }
 
     [Fact]

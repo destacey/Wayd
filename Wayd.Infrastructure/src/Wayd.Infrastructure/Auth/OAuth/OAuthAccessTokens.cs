@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using NodaTime;
 using Wayd.Infrastructure.Auth.Local;
 using Wayd.Infrastructure.Hosting;
 using Wayd.Infrastructure.Persistence.Context;
@@ -100,9 +101,10 @@ public static class OAuthAccessTokens
     }
 
     /// <summary>
-    /// Refuses a token whose session has been revoked or has expired, or whose user has been deactivated, so revoking a
-    /// connector in the sessions list, a replayed authorization code revoking it, or deactivating the user ends its
-    /// access at once rather than when the token expires. One lookup by primary key per request.
+    /// Refuses a token whose session has been revoked or has expired, whose user has been deactivated, or whose session
+    /// was opened under credentials that have since changed, so revoking a connector in the sessions list, a replayed
+    /// authorization code revoking it, or deactivating the user ends its access at once rather than when the token
+    /// expires. One lookup by primary key per request.
     /// </summary>
     private static async Task RequireLiveSession(TokenValidatedContext context)
     {
@@ -116,12 +118,16 @@ public static class OAuthAccessTokens
 
         var services = context.HttpContext.RequestServices;
         var now = services.GetRequiredService<IDateTimeProvider>().Now;
+        var lifetime = services.GetRequiredService<IConfiguration>().GetSection(LocalJwtSettings.SectionName).Get<LocalJwtSettings>()?.SessionLifetimeInDays
+            ?? new LocalJwtSettings().SessionLifetimeInDays;
+        var openedAfter = now.Minus(Duration.FromDays(lifetime));
         var db = services.GetRequiredService<WaydDbContext>();
-        var live = await db.UserRefreshTokens
+        var session = await db.UserRefreshTokens
             .AsNoTracking()
-            .AnyAsync(t => t.Id == sessionId && t.UserId == token.Subject && t.RevokedAt == null && t.ExpiresAt > now
-                && db.Users.Any(u => u.Id == t.UserId && u.IsActive), context.HttpContext.RequestAborted);
-        if (!live)
+            .Where(t => t.Id == sessionId && t.UserId == token.Subject && t.RevokedAt == null && t.ExpiresAt > now && t.CreatedAt > openedAfter && t.User!.IsActive)
+            .Select(t => new { t.CredentialVersion, t.User!.SecurityStamp })
+            .SingleOrDefaultAsync(context.HttpContext.RequestAborted);
+        if (session is null || (session.CredentialVersion is { } openedUnder && openedUnder != CredentialVersion.Of(session.SecurityStamp)))
         {
             context.Fail("The token's session has ended.");
             return;

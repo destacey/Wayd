@@ -700,13 +700,19 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
         var refreshed = await RefreshRequest(client, original);
         var rotated = await refreshed.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
         var replacement = rotated.GetProperty("refresh_token").GetString()!;
+        var sessionId = Guid.ParseExact(original.Split('.')[0], "N");
+        var withinGrace = await RefreshRequest(client, original);
+        var aliveAfterRetry = await SessionIsLive(sessionId);
+        await AgeLastRotation(sessionId, Duration.FromMinutes(1));
 
-        // Act
+        // Act — replayed after the grace that covers a client's own retry
         var replay = await RefreshRequest(client, original);
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, refreshed.StatusCode);
         Assert.NotEqual(original, replacement);
+        await AssertRefused(withinGrace, "invalid_grant");
+        Assert.True(aliveAfterRetry, "a retry within the grace refuses the old token without ending the session");
         Assert.False(string.IsNullOrEmpty(rotated.GetProperty("access_token").GetString()));
         await AssertRefused(replay, "invalid_grant");
         await AssertRefused(await RefreshRequest(client, replacement), "invalid_grant");
@@ -1001,6 +1007,33 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
             .AsNoTracking()
             .SingleAsync(t => t.Id == sessionId, TestContext.Current.CancellationToken);
         Assert.Equal(UserRefreshTokenRevokeReasons.Deactivated, session.RevokedReason);
+    }
+
+    [Fact]
+    public async Task ACredentialChange_EndsAConnectedClientsSession_EvenWhereNoRevocationRan()
+    {
+        // Arrange — the stamp changes without UserService revoking anything, as a sign-in racing a password change leaves it
+        await SetFlag(true);
+        var client = RegisterClient();
+        var (user, code) = await Approve(client);
+        var tokens = await (await RedeemRequest(client, code)).Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+        var mcp = _factory.CreateClient();
+        mcp.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.GetProperty("access_token").GetString());
+        var before = await mcp.PostAsJsonAsync(McpServerSetup.Path, new { }, TestContext.Current.CancellationToken);
+        Assert.NotEqual(HttpStatusCode.Unauthorized, before.StatusCode);
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            Assert.True((await users.UpdateSecurityStampAsync((await users.FindByIdAsync(user.UserId))!)).Succeeded);
+        }
+
+        // Act
+        var call = await mcp.PostAsJsonAsync(McpServerSetup.Path, new { }, TestContext.Current.CancellationToken);
+        var refresh = await RefreshRequest(client, tokens.GetProperty("refresh_token").GetString()!);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, call.StatusCode);
+        await AssertRefused(refresh, "invalid_grant");
     }
 
     [Theory]
@@ -1353,6 +1386,24 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
         var authorization = await db.OAuthAuthorizations.SingleAsync(a => a.ClientId == client.ClientId, TestContext.Current.CancellationToken);
         change(authorization);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Whether the session <paramref name="sessionId"/> has not been revoked.</summary>
+    private async Task<bool> SessionIsLive(Guid sessionId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        return await scope.ServiceProvider.GetRequiredService<WaydDbContext>().UserRefreshTokens
+            .AnyAsync(t => t.Id == sessionId && t.RevokedAt == null, TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Moves a session's last rotation <paramref name="by"/> into the past, as if that much time had passed since.</summary>
+    private async Task AgeLastRotation(Guid sessionId, Duration by)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<WaydDbContext>();
+        var lastUsed = await db.UserRefreshTokens.Where(t => t.Id == sessionId).Select(t => t.LastUsedAt).SingleAsync(TestContext.Current.CancellationToken);
+        await db.UserRefreshTokens.Where(t => t.Id == sessionId)
+            .ExecuteUpdateAsync(t => t.SetProperty(x => x.LastUsedAt, lastUsed.Minus(by)), TestContext.Current.CancellationToken);
     }
 
     private async Task SetUserActive(string userId, bool active)

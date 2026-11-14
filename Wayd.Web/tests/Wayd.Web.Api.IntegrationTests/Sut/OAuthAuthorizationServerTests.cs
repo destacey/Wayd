@@ -993,6 +993,36 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
     }
 
     [Fact]
+    public async Task Consent_RefusesAPersonalAccessTokenSentWithAnotherUsersSignIn()
+    {
+        // Arrange — the request is authorized as the token's owner, so the other user's sign-in must not vouch for it
+        await SetFlag(true);
+        var handle = await StartAuthorization(RegisterClient());
+        var tokenOwner = await _factory.CreateAuthenticatedClient();
+        var signedIn = await _factory.CreateAuthenticatedClient();
+        var created = await tokenOwner.Client.PostAsJsonAsync("/api/user-management/personal-access-tokens",
+            new { name = "consent-test", expiresAt = SystemClock.Instance.GetCurrentInstant().Plus(Duration.FromDays(7)).ToString() },
+            TestContext.Current.CancellationToken);
+        Assert.True(created.IsSuccessStatusCode, await created.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        var pat = (await created.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken)).GetProperty("token").GetString();
+        var mixed = _factory.CreateClient();
+        mixed.DefaultRequestHeaders.Authorization = signedIn.Client.DefaultRequestHeaders.Authorization;
+        mixed.DefaultRequestHeaders.Add(AuthConstants.ApiKeyHeaderName, pat);
+
+        // Act
+        var read = await mixed.GetAsync($"/api/oauth/authorization-requests/{handle}", TestContext.Current.CancellationToken);
+        var approve = await mixed.PostAsync($"/api/oauth/authorization-requests/{handle}/approve", null, TestContext.Current.CancellationToken);
+        var deny = await mixed.PostAsync($"/api/oauth/authorization-requests/{handle}/deny", null, TestContext.Current.CancellationToken);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Forbidden, read.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, approve.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, deny.StatusCode);
+        var stillPending = await signedIn.Client.GetAsync($"/api/oauth/authorization-requests/{handle}", TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, stillPending.StatusCode);
+    }
+
+    [Fact]
     public async Task Consent_DoesNotFlagAnAppSchemeRedirect_AndNamesNoHostForIt()
     {
         // Arrange — a desktop app's own scheme opens the app on the user's machine

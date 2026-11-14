@@ -1,8 +1,10 @@
 using Ardalis.GuardClauses;
 using CSharpFunctionalExtensions;
 using NodaTime;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Events;
+using Wayd.Common.Domain.Integrations;
 using Wayd.Common.Domain.Events.ProductManagement.Incidents;
 using Wayd.Common.Domain.StatusWorkflows;
 using Wayd.Common.Domain.StatusWorkflows.Enums;
@@ -102,6 +104,12 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
 
     /// <summary>When service was restored, if recorded.</summary>
     public Instant? RecoveredAt { get; private set; }
+
+    /// <summary>
+    /// The one Teams chat stored on the incident. Null when none is.
+    /// The same <see cref="RecordIntegration"/> shape can hold a link to another system.
+    /// </summary>
+    public RecordIntegration? TeamsChat { get; private set; }
 
     /// <summary>The products implicated in the incident.</summary>
     public IReadOnlyCollection<IncidentProductLink> ProductLinks => _productLinks.AsReadOnly();
@@ -417,6 +425,72 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
         return Result.Success();
     }
 
+    /// <summary>
+    /// Stores one pasted Teams link on the incident, or removes the stored chat when the link is empty.
+    /// Wayd does not join the chat and does not look it up. A pasted link is not a chat Wayd created.
+    /// </summary>
+    public Result LinkTeamsChat(string? link, string? displayName, EventActor actor, Instant timestamp)
+    {
+        string? normalizedLink;
+        string? normalizedName;
+        if (string.IsNullOrWhiteSpace(link))
+        {
+            normalizedLink = null;
+            normalizedName = null;
+        }
+        else if (!TryNormalizeHttpsLink(link, out var httpsLink))
+        {
+            return Result.Failure("A Teams chat link must be an https URL.");
+        }
+            else if (httpsLink.Length > RecordIntegration.LinkMaxLength)
+            {
+                return Result.Failure("A Teams chat link cannot be longer than 2048 characters.");
+            }
+            else
+            {
+                normalizedLink = httpsLink;
+                normalizedName = Normalize(displayName);
+                if (normalizedName is not null && normalizedName.Length > RecordIntegration.TitleMaxLength)
+                {
+                    return Result.Failure("A Teams chat name cannot be longer than 256 characters.");
+                }
+            }
+
+        var next = normalizedLink is null
+            ? null
+            : RecordIntegration.Create(Connector.Teams, null, normalizedName, normalizedLink, createdByWayd: false);
+        if (SameIntegration(TeamsChat, next))
+        {
+            return Result.Success();
+        }
+
+        var previous = TeamsChat;
+        TeamsChat = next;
+
+        AddDomainEvent(new IncidentTeamsChatLinkedEvent(
+            Id,
+            Key,
+            previous?.ExternalId,
+            previous?.Title,
+            previous?.Link,
+            previous?.CreatedByWayd ?? false,
+            TeamsChat?.ExternalId,
+            TeamsChat?.Title,
+            TeamsChat?.Link,
+            TeamsChat?.CreatedByWayd ?? false,
+            actor,
+            timestamp));
+
+        return Result.Success();
+    }
+
+    private static bool SameIntegration(RecordIntegration? left, RecordIntegration? right) =>
+        left?.Connector == right?.Connector
+        && left?.ExternalId == right?.ExternalId
+        && left?.Title == right?.Title
+        && left?.Link == right?.Link
+        && (left?.CreatedByWayd ?? false) == (right?.CreatedByWayd ?? false);
+
     /// <summary>Records active response has begun.</summary>
     public Result BeginResponding(
         StatusRef respondingStatus,
@@ -647,6 +721,13 @@ public sealed class Incident : StatusTrackedEntity, IHasIdAndKey
     /// </summary>
     private static string? Normalize(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static bool TryNormalizeHttpsLink(string? link, out string normalized)
+    {
+        normalized = link?.Trim() ?? "";
+        return Uri.TryCreate(normalized, UriKind.Absolute, out var uri)
+            && uri.Scheme == Uri.UriSchemeHttps;
+    }
 
     private static bool SameMillisecond(Instant? previous, Instant? updated) =>
         previous is null

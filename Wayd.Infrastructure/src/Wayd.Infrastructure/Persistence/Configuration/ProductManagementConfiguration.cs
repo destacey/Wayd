@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Enums.Organization;
 using Wayd.Common.Domain.Enums.ProductManagement;
 using Wayd.Common.Domain.Models.Organizations;
@@ -757,6 +758,11 @@ public class IncidentConfiguration : IEntityTypeConfiguration<Incident>
         builder.Property(i => i.NoticedAt).IsRequired();
         builder.Property(i => i.StartedAt);
         builder.Property(i => i.RecoveredAt);
+        builder.OwnsOne(i => i.TeamsChat, chat =>
+        {
+            chat.ToJson();
+            chat.Property(c => c.Connector).HasConversion<EnumConverter<Connector>>();
+        });
 
         builder.Property(i => i.StatusId).IsRequired();
         builder.Property(i => i.StatusWorkflowId).IsRequired();

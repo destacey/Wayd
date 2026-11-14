@@ -19,13 +19,15 @@ public sealed class GetActiveCommunicationConnectionsQueryHandler(IAppIntegratio
     {
         return await _appIntegrationDbContext.Connections
             .AsNoTracking()
-            .Where(c => c.IsActive && !c.IsDeleted && CommunicationConnectors.Contains(c.Connector))
+            .Where(c => c.IsActive && c.IsValidConfiguration && !c.IsDeleted && CommunicationConnectors.Contains(c.Connector))
             .OrderBy(c => c.Name)
             .Select(c => new ActiveCommunicationConnectionSummaryDto
             {
                 Id = c.Id,
                 Name = c.Name,
                 Connector = c.Connector,
+                IsActive = c.IsActive,
+                IsValidConfiguration = c.IsValidConfiguration,
             })
             .ToListAsync(cancellationToken);
     }

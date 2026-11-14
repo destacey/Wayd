@@ -12733,9 +12733,38 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 
             modelBuilder.Entity("Wayd.ProductManagement.Domain.Models.Incident", b =>
                 {
+                    b.OwnsOne("Wayd.Common.Domain.Integrations.RecordIntegration", "TeamsChat", b1 =>
+                        {
+                            b1.Property<Guid>("IncidentId");
+
+                            b1.Property<string>("Connector")
+                                .IsRequired();
+
+                            b1.Property<bool>("CreatedByWayd");
+
+                            b1.Property<string>("ExternalId");
+
+                            b1.Property<string>("Link");
+
+                            b1.Property<string>("Title");
+
+                            b1.HasKey("IncidentId");
+
+                            b1.ToTable("Incidents", "ProductManagement");
+
+                            b1
+                                .ToJson("TeamsChat")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.WithOwner()
+                                .HasForeignKey("IncidentId");
+                        });
+
                     b.Navigation("ProductLinks");
 
                     b.Navigation("ReleaseLinks");
+
+                    b.Navigation("TeamsChat");
 
                     b.Navigation("TimelineLinkEntries");
 

@@ -107,6 +107,9 @@ public sealed class UpdateIncidentDetailsCommandHandler(
 
         var actor = EventActor.User(_currentUser.GetUserId(), employeeId.Value);
         var timestamp = _dateTimeProvider.Now;
+        var previousReportedBy = incident.ReportedByEmployeeId;
+        var previousCommander = incident.CommanderEmployeeId;
+        var createdByWayd = incident.TeamsChat?.CreatedByWayd ?? false;
 
         var updated = incident.UpdateDetails(
             request.Title,
@@ -128,6 +131,17 @@ public sealed class UpdateIncidentDetailsCommandHandler(
         if (updated.IsFailure)
         {
             return updated;
+        }
+
+        if (IncidentTeamsMembership.SkippedBecauseMembersCannotBeAdded(
+            createdByWayd,
+            incident.ReportedByEmployeeId != previousReportedBy,
+            incident.CommanderEmployeeId != previousCommander))
+        {
+            _logger.LogInformation(
+                "Incident {IncidentKey}: {Reason}",
+                incident.Key,
+                IncidentTeamsMembership.MembersNotAdded);
         }
 
         await _productManagementDbContext.SaveChangesAsync(cancellationToken);

@@ -11463,6 +11463,60 @@
         ]
       }
     },
+    "/api/product-management/incidents/{id}/teams-chat": {
+      "put": {
+        "tags": [
+          "Incidents"
+        ],
+        "summary": "Link a Teams chat on an incident.",
+        "description": "Stores one pasted Teams link, or removes the stored chat when the link is empty. Wayd does not join the chat, look it up, or send it for approval. Linking again replaces the stored chat.",
+        "operationId": "Incidents_LinkTeamsChat",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-position": 1
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkIncidentTeamsChatRequest"
+              }
+            }
+          },
+          "required": true,
+          "x-name": "request",
+          "x-position": 2
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      }
+    },
     "/api/product-management/incidents/{idOrKey}/work-items": {
       "get": {
         "tags": [
@@ -67515,7 +67569,9 @@
           "products",
           "releases",
           "status",
-          "statusAlias"
+          "statusAlias",
+          "teamsChatCreatedByWayd",
+          "teamsConnectorConfigured"
         ],
         "type": "object",
         "properties": {
@@ -67605,6 +67661,29 @@
           },
           "statusAlias": {
             "$ref": "#/components/schemas/ProductStatusAlias"
+          },
+          "teamsChatId": {
+            "type": "string",
+            "description": "The Teams chat id, when Wayd created the chat. A pasted link has none.",
+            "nullable": true
+          },
+          "teamsChatDisplayName": {
+            "type": "string",
+            "description": "The name shown for the incident's Teams chat.",
+            "nullable": true
+          },
+          "teamsChatLink": {
+            "type": "string",
+            "description": "The link that opens the incident's one Teams chat. Null when none is stored.",
+            "nullable": true
+          },
+          "teamsChatCreatedByWayd": {
+            "type": "boolean",
+            "description": "True only when Wayd created the stored chat."
+          },
+          "teamsConnectorConfigured": {
+            "type": "boolean",
+            "description": "True when a Teams connector is present, its configuration is valid, and it is active.\nThe add control is hidden when this is false. This is not stored on the incident."
           }
         },
         "additionalProperties": false,
@@ -70392,6 +70471,33 @@
           }
         },
         "additionalProperties": false
+      },
+      "LinkIncidentTeamsChatRequest": {
+        "required": [
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "minLength": 1,
+            "type": "string",
+            "format": "uuid"
+          },
+          "link": {
+            "maxLength": 2048,
+            "type": "string",
+            "description": "The https link that opens the Teams chat. Empty removes the stored chat.",
+            "nullable": true
+          },
+          "displayName": {
+            "maxLength": 256,
+            "type": "string",
+            "description": "The name shown beside the link. Empty when the link stands alone.",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "Stores a pasted Teams link as the incident's one chat, or removes it when the link is empty.\nWayd does not join the chat."
       },
       "LinkProductExternallyRequest": {
         "required": [

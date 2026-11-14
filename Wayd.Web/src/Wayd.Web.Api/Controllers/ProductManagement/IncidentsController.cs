@@ -113,6 +113,27 @@ public class IncidentsController(IDispatcher dispatcher, IWorkDbContext workDbCo
         return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
     }
 
+    [HttpPut("{id:guid}/teams-chat")]
+    [MustHavePermission(ApplicationAction.Update, ApplicationResource.Incidents)]
+    [EndpointSummary("Link a Teams chat on an incident.")]
+    [EndpointDescription("Stores one pasted Teams link, or removes the stored chat when the link is empty. Wayd does not join the chat, look it up, or send it for approval. Linking again replaces the stored chat.")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> LinkTeamsChat(
+        Guid id,
+        [FromBody] LinkIncidentTeamsChatRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (id != request.Id)
+        {
+            return BadRequest(ProblemDetailsExtensions.ForRouteParamMismatch(HttpContext));
+        }
+
+        var result = await _dispatcher.Send(request.ToCommand(), cancellationToken);
+
+        return result.IsSuccess ? NoContent() : BadRequest(result.ToBadRequestObject(HttpContext));
+    }
+
     [HttpGet("{idOrKey}/work-items")]
     [MustHavePermission(ApplicationAction.View, ApplicationResource.Incidents)]
     [EndpointSummary("Get work items linked to an incident.")]

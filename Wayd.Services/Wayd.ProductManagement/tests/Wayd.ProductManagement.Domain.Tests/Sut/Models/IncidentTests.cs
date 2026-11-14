@@ -1,5 +1,6 @@
 using FluentAssertions;
 using NodaTime;
+using Wayd.Common.Domain.Enums.AppIntegrations;
 using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.ProductManagement.Incidents;
 using Wayd.Common.Domain.Enums.ProductManagement;
@@ -848,6 +849,114 @@ public sealed class IncidentTests
         result.Value.TargetId.Should().Be(workItemId);
         incident.DomainEvents.OfType<IncidentTimelineLinkRecordedEvent>().Should().ContainSingle()
             .Which.TargetId.Should().Be(workItemId);
+    }
+
+    [Fact]
+    public void LinkTeamsChat_ShouldStoreAPastedLink_AndNotTreatItAsCreatedByWayd()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        incident.ClearDomainEvents();
+
+        // Act
+        var result = incident.LinkTeamsChat(
+            "  https://teams.microsoft.com/l/chat/19%3Aabc/0  ",
+            "  Bridge  ",
+            EventActor.System,
+            Timestamp);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.TeamsChat.Should().NotBeNull();
+        incident.TeamsChat!.Connector.Should().Be(Connector.Teams);
+        incident.TeamsChat.ExternalId.Should().BeNull();
+        incident.TeamsChat.Title.Should().Be("Bridge");
+        incident.TeamsChat.Link.Should().Be("https://teams.microsoft.com/l/chat/19%3Aabc/0");
+        incident.TeamsChat.CreatedByWayd.Should().BeFalse();
+        var linked = incident.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<IncidentTeamsChatLinkedEvent>().Subject;
+        linked.FromTeamsChatLink.Should().BeNull();
+        linked.ToTeamsChatLink.Should().Be(incident.TeamsChat.Link);
+        linked.FromTeamsChatTitle.Should().BeNull();
+        linked.ToTeamsChatTitle.Should().Be("Bridge");
+        linked.FromTeamsChatCreatedByWayd.Should().BeFalse();
+        linked.ToTeamsChatCreatedByWayd.Should().BeFalse();
+        linked.EventVersion.Should().Be("1.0");
+    }
+
+    [Fact]
+    public void LinkTeamsChat_ShouldNotRaise_WhenTheSameLinkIsStoredAgain()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        incident.LinkTeamsChat("https://teams.microsoft.com/l/chat/19%3Aabc/0", "Bridge", EventActor.System, Timestamp);
+        incident.ClearDomainEvents();
+
+        // Act
+        var result = incident.LinkTeamsChat(
+            "https://teams.microsoft.com/l/chat/19%3Aabc/0",
+            "  Bridge  ",
+            EventActor.System,
+            Timestamp);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void LinkTeamsChat_ShouldClearTheStoredChat_WhenTheLinkIsEmpty()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        incident.LinkTeamsChat("https://teams.microsoft.com/l/chat/19%3Aabc/0", "Bridge", EventActor.System, Timestamp);
+        incident.ClearDomainEvents();
+
+        // Act
+        var result = incident.LinkTeamsChat("  ", "ignored", EventActor.System, Timestamp);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.TeamsChat.Should().BeNull();
+        var linked = incident.DomainEvents.Should().ContainSingle()
+            .Which.Should().BeOfType<IncidentTeamsChatLinkedEvent>().Subject;
+        linked.FromTeamsChatLink.Should().Be("https://teams.microsoft.com/l/chat/19%3Aabc/0");
+        linked.FromTeamsChatTitle.Should().Be("Bridge");
+        linked.ToTeamsChatLink.Should().BeNull();
+        linked.ToTeamsChatTitle.Should().BeNull();
+        linked.ToTeamsChatCreatedByWayd.Should().BeFalse();
+    }
+
+    [Fact]
+    public void LinkTeamsChat_ShouldNotRaise_WhenClearingAChatThatIsAlreadyEmpty()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        incident.ClearDomainEvents();
+
+        // Act
+        var result = incident.LinkTeamsChat(null, "Bridge", EventActor.System, Timestamp);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        incident.TeamsChat.Should().BeNull();
+        incident.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void LinkTeamsChat_ShouldRejectALinkThatIsNotHttps()
+    {
+        // Arrange
+        var incident = OpenIncident(Timestamp, startedAt: null);
+        incident.ClearDomainEvents();
+
+        // Act
+        var result = incident.LinkTeamsChat("http://teams.microsoft.com/l/chat/1", null, EventActor.System, Timestamp);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        incident.TeamsChat.Should().BeNull();
+        incident.DomainEvents.Should().BeEmpty();
     }
 
     private static Incident OpenIncident(Instant noticedAt, Instant? startedAt, IReadOnlyCollection<Guid>? releaseIds = null) =>

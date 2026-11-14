@@ -53,6 +53,14 @@ public sealed class GetActiveCommunicationConnectionsQueryHandlerTests
             Now);
         inactive.Deactivate(ConnectionActivatableArgs.Create(EventActor.System, Now));
 
+        var unverified = TeamsConnection.Create(
+            "Teams Draft",
+            null,
+            new TeamsConnectionConfiguration("t4", "c4", "secret"),
+            false,
+            EventActor.System,
+            Now);
+
         var entra = EntraConnection.Create(
             "Entra",
             null,
@@ -61,7 +69,7 @@ public sealed class GetActiveCommunicationConnectionsQueryHandlerTests
             EventActor.System,
             Now);
 
-        _db.AddConnections([activeOne, activeTwo, inactive, entra]);
+        _db.AddConnections([activeOne, activeTwo, inactive, unverified, entra]);
 
         // Act
         var result = await _sut.Handle(new GetActiveCommunicationConnectionsQuery(), TestContext.Current.CancellationToken);
@@ -69,6 +77,6 @@ public sealed class GetActiveCommunicationConnectionsQueryHandlerTests
         // Assert
         result.Should().HaveCount(2);
         result.Select(r => r.Name).Should().BeEquivalentTo(["Teams Prod", "Teams DR"]);
-        result.Should().OnlyContain(r => r.Connector == Connector.Teams);
+        result.Should().OnlyContain(r => r.Connector == Connector.Teams && r.IsActive && r.IsValidConfiguration);
     }
 }

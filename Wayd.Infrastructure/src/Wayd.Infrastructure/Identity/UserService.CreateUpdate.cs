@@ -8,6 +8,7 @@ using Microsoft.Identity.Web;
 using Wayd.Common.Application.Employees.Queries;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Extensions;
+using Wayd.Infrastructure.Auth.Local;
 using NotFoundException = Wayd.Common.Application.Exceptions.NotFoundException;
 
 namespace Wayd.Infrastructure.Identity;
@@ -344,6 +345,9 @@ internal partial class UserService
                 throw new InternalServerException(
                     $"Failed to clear pending migration flag for user {candidate.Id}: {errors}");
             }
+
+            // Every session open now came through the old tenant: the one this sign-in opens is issued after the rebind commits.
+            await _refreshTokenStore.RevokeAll(candidate.Id, UserRefreshTokenRevokeReasons.SignInChanged, ct);
         });
 
         _logger.LogInformation(
@@ -477,6 +481,9 @@ internal partial class UserService
                 throw new InternalServerException(
                     $"Failed to apply pending provider migration for user {candidate.Id}: {errors}");
             }
+
+            // Every session open now came through the old provider: the one this sign-in opens is issued after the rebind commits.
+            await _refreshTokenStore.RevokeAll(candidate.Id, UserRefreshTokenRevokeReasons.SignInChanged, ct);
         });
 
         var localPasswordCleared = await ClearLocalPasswordAfterRelink(candidate);
@@ -937,7 +944,7 @@ internal partial class UserService
         await _signInManager.RefreshSignInAsync(user);
     }
 
-    public async Task<Result> ChangePasswordAsync(string userId, ChangePasswordCommand command)
+    public async Task<Result> ChangePasswordAsync(string userId, ChangePasswordCommand command, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByIdAsync(userId);
         if (user is null)
@@ -952,26 +959,32 @@ internal partial class UserService
         }
 
         user.RecordPasswordChange(CurrentActor(), _dateTimeProvider.Now);
-        var result = await _userManager.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword);
+
+        // Cleared before the change so its own save writes the flag with the new hash.
+        var mustChangePassword = user.MustChangePassword;
+        user.MustChangePassword = false;
+
+        IdentityResult result = IdentityResult.Success;
+        await _userIdentityStore.ExecuteInTransaction(async ct =>
+        {
+            result = await _userManager.ChangePasswordAsync(user, command.CurrentPassword, command.NewPassword);
+            if (result.Succeeded)
+                await _refreshTokenStore.RevokeAll(user.Id, UserRefreshTokenRevokeReasons.PasswordChanged, ct);
+        }, cancellationToken);
         if (!result.Succeeded)
         {
+            user.MustChangePassword = mustChangePassword;
             user.ClearDomainEvents();
             var errors = string.Join(", ", result.Errors.Select(e => e.Description));
             _logger.LogWarning("Password change failed for user {UserId}: {Errors}", userId, errors);
             return Result.Failure(errors);
         }
 
-        if (user.MustChangePassword)
-        {
-            user.MustChangePassword = false;
-            await _userManager.UpdateAsync(user);
-        }
-
         _logger.LogInformation("Password changed successfully for user {UserId}.", userId);
         return Result.Success();
     }
 
-    public async Task<Result> ResetPasswordAsync(ResetPasswordCommand command)
+    public async Task<Result> ResetPasswordAsync(ResetPasswordCommand command, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByIdAsync(command.UserId);
         if (user is null)
@@ -991,7 +1004,13 @@ internal partial class UserService
         // Applied before the reset so its save writes them with the new hash and the event.
         user.ResetPassword(endLockout: wasLockedOut, CurrentActor(), _dateTimeProvider.Now);
 
-        var result = await _userManager.ResetPasswordAsync(user, token, command.NewPassword);
+        IdentityResult result = IdentityResult.Success;
+        await _userIdentityStore.ExecuteInTransaction(async ct =>
+        {
+            result = await _userManager.ResetPasswordAsync(user, token, command.NewPassword);
+            if (result.Succeeded)
+                await _refreshTokenStore.RevokeAll(user.Id, UserRefreshTokenRevokeReasons.PasswordReset, ct);
+        }, cancellationToken);
         if (!result.Succeeded)
         {
             user.ClearDomainEvents();
@@ -1118,13 +1137,27 @@ internal partial class UserService
             }
 
             var now = _dateTimeProvider.Now;
+            var deactivating = user.IsActive && !employee.IsActive;
             user.UpdateDetails(employee.Name.FirstName, employee.Name.LastName, employee.Email, user.PhoneNumber, actor, now);
             if (employee.IsActive)
                 user.Activate(actor, now);
             else
                 user.Deactivate(actor, now);
 
-            var result = await _userManager.UpdateAsync(user);
+            IdentityResult result = IdentityResult.Success;
+            if (deactivating)
+            {
+                await _userIdentityStore.ExecuteInTransaction(async ct =>
+                {
+                    result = await _userManager.UpdateAsync(user);
+                    if (result.Succeeded)
+                        await _refreshTokenStore.RevokeAll(user.Id, UserRefreshTokenRevokeReasons.Deactivated, ct);
+                }, cancellationToken);
+            }
+            else
+            {
+                result = await _userManager.UpdateAsync(user);
+            }
             if (result.Succeeded)
             {
                 _logger.LogInformation("User {UserId} updated.", user.Id);

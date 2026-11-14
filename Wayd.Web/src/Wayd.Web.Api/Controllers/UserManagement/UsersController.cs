@@ -146,9 +146,9 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> ResetPassword(string id, ResetPasswordRequest request)
+    public async Task<ActionResult> ResetPassword(string id, ResetPasswordRequest request, CancellationToken cancellationToken)
     {
-        var result = await _userService.ResetPasswordAsync(new ResetPasswordCommand(id, request.NewPassword));
+        var result = await _userService.ResetPasswordAsync(new ResetPasswordCommand(id, request.NewPassword), cancellationToken);
         return result.IsSuccess
             ? NoContent()
             : BadRequest(result.ToBadRequestObject(HttpContext));

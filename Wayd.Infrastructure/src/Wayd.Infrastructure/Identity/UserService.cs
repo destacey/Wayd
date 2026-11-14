@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Identity.OidcProviders;
+using Wayd.Infrastructure.Auth.Local;
 
 namespace Wayd.Infrastructure.Identity;
 
@@ -18,7 +19,8 @@ internal partial class UserService(
     IDateTimeProvider dateTimeProvider,
     ICurrentUser currentUser,
     IUserIdentityStore userIdentityStore,
-    IOidcProviderRegistry oidcProviderRegistry) : IUserService
+    IOidcProviderRegistry oidcProviderRegistry,
+    IRefreshTokenStore refreshTokenStore) : IUserService
 {
     private readonly ILogger<UserService> _logger = logger;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
@@ -30,6 +32,7 @@ internal partial class UserService(
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IUserIdentityStore _userIdentityStore = userIdentityStore;
     private readonly IOidcProviderRegistry _oidcProviderRegistry = oidcProviderRegistry;
+    private readonly IRefreshTokenStore _refreshTokenStore = refreshTokenStore;
 
     public async Task<bool> ExistsWithNameAsync(string name)
     {
@@ -151,7 +154,13 @@ internal partial class UserService(
             return Result.Failure("You cannot deactivate your own account.");
 
         user.Deactivate(CurrentActor(), _dateTimeProvider.Now);
-        var result = await _userManager.UpdateAsync(user);
+        IdentityResult result = IdentityResult.Success;
+        await _userIdentityStore.ExecuteInTransaction(async ct =>
+        {
+            result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded)
+                await _refreshTokenStore.RevokeAll(user.Id, UserRefreshTokenRevokeReasons.Deactivated, ct);
+        }, cancellationToken);
         if (!result.Succeeded)
             return Failed(user, result, "deactivate the user");
 
@@ -498,6 +507,8 @@ internal partial class UserService(
                 throw new InternalServerException(
                     $"Failed to update user {user.Id} during local conversion: {errors}");
             }
+
+            await _refreshTokenStore.RevokeAll(user.Id, UserRefreshTokenRevokeReasons.SignInChanged, ct);
         }, cancellationToken);
 
         _logger.LogInformation(

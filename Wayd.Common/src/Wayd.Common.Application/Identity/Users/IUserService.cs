@@ -74,9 +74,9 @@ public interface IUserService : ITransientService
     /// </summary>
     Task<IReadOnlyList<string>> GetEntraTenantIds(CancellationToken cancellationToken);
 
-    Task<Result> ChangePasswordAsync(string userId, ChangePasswordCommand command);
+    Task<Result> ChangePasswordAsync(string userId, ChangePasswordCommand command, CancellationToken cancellationToken);
 
-    Task<Result> ResetPasswordAsync(ResetPasswordCommand command);
+    Task<Result> ResetPasswordAsync(ResetPasswordCommand command, CancellationToken cancellationToken);
 
     Task<Result> UnlockUserAsync(string userId);
 

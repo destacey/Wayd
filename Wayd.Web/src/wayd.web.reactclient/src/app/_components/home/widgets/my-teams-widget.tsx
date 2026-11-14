@@ -13,7 +13,7 @@ import Link from 'next/link'
 import { FC } from 'react'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
 import { HomeWidgetProps } from '../widget-registry'
-import { TEAMS_HREF, useMyTeamsSummary } from './my-teams-tile'
+import { showsBurnUp, TEAMS_HREF, useMyTeamsSummary } from './my-teams-tile'
 import { daysSince, plural } from './team-figures'
 import styles from '../home.module.css'
 
@@ -120,7 +120,10 @@ const TeamFooter: FC<{ summary: MyTeamSummaryResponse }> = ({ summary }) => {
 }
 
 /** One team, drawn for how it works today, with its dependencies and risks underneath. */
-const TeamSection: FC<{ summary: MyTeamSummaryResponse }> = ({ summary }) => {
+const TeamSection: FC<{
+  summary: MyTeamSummaryResponse
+  showBurnUp: boolean
+}> = ({ summary, showBurnUp }) => {
   const isScrum = summary.methodology === Methodology.Scrum
   const activeSprint = summary.sprint?.activeSprint
 
@@ -133,6 +136,7 @@ const TeamSection: FC<{ summary: MyTeamSummaryResponse }> = ({ summary }) => {
           teamId={summary.team.id}
           showTeamLink
           embedded
+          showBurnUp={showBurnUp}
           fallback={<TeamHeader summary={summary} />}
         />
       ) : (
@@ -157,7 +161,7 @@ const TeamSection: FC<{ summary: MyTeamSummaryResponse }> = ({ summary }) => {
  * A section for each team the caller is a member of directly. Teams of teams
  * have a widget of their own.
  */
-const MyTeamsWidget: FC<HomeWidgetProps> = ({ title }) => {
+const MyTeamsWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
   const { data, isLoading, isError, isOnNoTeam } = useMyTeamsSummary()
 
   const body = () => {
@@ -170,7 +174,11 @@ const MyTeamsWidget: FC<HomeWidgetProps> = ({ title }) => {
     return (
       <Flex vertical gap="middle">
         {data.teams.map((summary) => (
-          <TeamSection key={summary.team.id} summary={summary} />
+          <TeamSection
+            key={summary.team.id}
+            summary={summary}
+            showBurnUp={showsBurnUp(settings)}
+          />
         ))}
       </Flex>
     )

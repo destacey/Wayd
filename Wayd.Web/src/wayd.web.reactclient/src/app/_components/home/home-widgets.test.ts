@@ -7,6 +7,7 @@ import { arrangeWidgets, attentionTiles, WidgetAccess } from './widget-registry'
 vi.mock('./widgets/desk-queue-widget', () => ({
   default: () => null,
   DESK_QUEUE_LIMIT: 5,
+  deskQueueSettings: [],
   RequestsAssignedToMeTile: () => null,
   UnassignedRequestsTile: () => null,
 }))
@@ -61,6 +62,19 @@ vi.mock('./widgets/my-teams-tile', () => ({
   CrossTeamDependenciesTile: () => null,
   DependenciesAtRiskTile: () => null,
   SprintsToCompleteTile: () => null,
+  teamsPickSetting: { kind: 'toggle', key: 'teams', label: '', default: true },
+  teamsOfTeamsPickSetting: {
+    kind: 'toggle',
+    key: 'teamsOfTeams',
+    label: '',
+    default: true,
+  },
+  sprintCardSetting: {
+    kind: 'toggle',
+    key: 'sprintCard',
+    label: '',
+    default: true,
+  },
 }))
 vi.mock('./widgets/planning-intervals-widget', () => ({
   default: () => null,

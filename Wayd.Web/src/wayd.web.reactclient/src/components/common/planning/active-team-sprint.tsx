@@ -37,6 +37,8 @@ export interface ActiveTeamSprintProps {
   embedded?: boolean
   /** Drawn instead of nothing when the team turns out to have no active sprint, or it fails to load. */
   fallback?: ReactNode
+  /** Whether the sprint's burn-up chart is drawn under its figures. */
+  showBurnUp?: boolean
 }
 
 const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
@@ -44,6 +46,7 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
   showTeamLink = false,
   embedded = false,
   fallback = null,
+  showBurnUp = true,
 }) => {
   const { token } = useTheme()
 
@@ -162,7 +165,12 @@ const ActiveTeamSprint: FC<ActiveTeamSprintProps> = ({
           sprintKey={sprintData.key}
           teamId={sprintData.team.id}
         />
-        <SprintBurnUp sprintKey={sprintData.key} sizingMethod={sizingMethod} />
+        {showBurnUp ? (
+          <SprintBurnUp
+            sprintKey={sprintData.key}
+            sizingMethod={sizingMethod}
+          />
+        ) : null}
       </Flex>
     </Card>
   )

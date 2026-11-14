@@ -22,6 +22,16 @@ export interface WidgetRequirements {
   involved?: (context: HomeContextResponse) => boolean
 }
 
+/** What the strip hands every tile it renders. */
+export interface HomeTileProps {
+  /**
+   * The values in effect for the settings of the widget the tile belongs to,
+   * so the tile counts only what its widget lists. Left out when a tile is
+   * rendered away from the page, where each reads as its default.
+   */
+  settings?: WidgetSettingValues
+}
+
 /** A count in the attention strip, contributed by the widget whose data it comes from. */
 export interface AttentionTileDefinition {
   id: string
@@ -32,7 +42,12 @@ export interface AttentionTileDefinition {
    */
   priority: number
   /** Renders the tile through `AttentionTile`, loading its own count. */
-  Tile: FC
+  Tile: FC<HomeTileProps>
+}
+
+/** A tile on offer in the strip, with the widget it belongs to. */
+export interface OfferedAttentionTile extends AttentionTileDefinition {
+  widgetId: string
 }
 
 /** What a tile last reported to the strip about its count. */
@@ -160,9 +175,9 @@ export const arrangeWidgets = (
  */
 export const attentionTiles = (
   columns: Record<WidgetColumn, HomeWidget[]>,
-): AttentionTileDefinition[] =>
+): OfferedAttentionTile[] =>
   [...columns.main, ...columns.side]
-    .flatMap((w) => w.tiles ?? [])
+    .flatMap((w) => (w.tiles ?? []).map((t) => ({ ...t, widgetId: w.id })))
     .map((tile, pageOrder) => ({ tile, pageOrder }))
     .sort(
       (a, b) => b.tile.priority - a.tile.priority || a.pageOrder - b.pageOrder,

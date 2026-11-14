@@ -18,8 +18,11 @@ public sealed record UpdateHomeLayoutRequest
     /// <summary>The longest setting key accepted.</summary>
     public const int MaxSettingKeyLength = 64;
 
-    /// <summary>The longest setting value accepted; room for a list of record ids.</summary>
-    public const int MaxSettingValueLength = 1024;
+    /// <summary>
+    /// The longest setting value accepted: room for a list of about 55 record ids. The client's
+    /// `MAX_SETTING_VALUE_LENGTH` (widget-settings.ts) must match, so a pick it allows is never refused.
+    /// </summary>
+    public const int MaxSettingValueLength = 2048;
 
     /// <summary>
     /// The most characters a layout's setting keys and values hold between them. The per-widget limits alone

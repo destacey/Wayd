@@ -1,3 +1,5 @@
+import type { FC, ReactNode } from 'react'
+
 /** One of the values a choice setting offers. */
 export interface WidgetSettingOption {
   /** What is stored; never changed once shipped. */
@@ -40,15 +42,60 @@ export interface WidgetMultiSelectSetting {
   default: string[]
 }
 
+/** What a pick setting's form chooses from, as the widget loads it. */
+export interface WidgetPickOptions {
+  options: WidgetSettingOption[]
+  isLoading: boolean
+  /** True when the list could not be loaded, so the form says so rather than offering nothing. */
+  isError?: boolean
+}
+
+/** A component that loads a pick setting's list and hands it to `children`. */
+export type WidgetPickOptionsSource = FC<{
+  children: (options: WidgetPickOptions) => ReactNode
+}>
+
+/**
+ * A setting that picks some of a list the widget supplies at runtime, such as
+ * the caller's teams. Nothing is stored until the user narrows it, so by
+ * default every entry shows, one added later included; once narrowed, it holds
+ * the ids picked, joined by {@link MULTI_SELECT_SEPARATOR}, and one added later
+ * is not shown. An id no longer on the list is ignored, and when none of the
+ * stored ids is, every entry shows.
+ */
+export interface WidgetPickSetting {
+  kind: 'pick'
+  /** The key the value is stored under; like a widget id, never renamed or reused once shipped. */
+  key: string
+  label: string
+  /** What the list is of, plural and lower case ("teams"), for the form's note on what is not shown. */
+  noun: string
+  /**
+   * Loads the list for the settings form. A component rather than a hook, so
+   * the form never calls a hook it is handed.
+   */
+  Options: WidgetPickOptionsSource
+}
+
 /** Something about what a widget shows that its user can change. */
 export type WidgetSetting =
-  WidgetChoiceSetting | WidgetToggleSetting | WidgetMultiSelectSetting
+  | WidgetChoiceSetting
+  | WidgetToggleSetting
+  | WidgetMultiSelectSetting
+  | WidgetPickSetting
 
 /**
  * Setting values by key, as strings. Stored values hold only what the user
  * changed; resolved values hold every setting the widget declares.
  */
 export type WidgetSettingValues = Record<string, string>
+
+/**
+ * The longest value one setting may store, as the server's
+ * `UpdateHomeLayoutRequest.MaxSettingValueLength` allows; a longer one fails
+ * the whole layout's save. A pick of ids is the only setting that could reach it.
+ */
+export const MAX_SETTING_VALUE_LENGTH = 2048
 
 /** What joins a multi-select setting's values in the one string it is stored as. */
 export const MULTI_SELECT_SEPARATOR = ','
@@ -75,6 +122,8 @@ const defaultOf = (setting: WidgetSetting): string => {
       return String(setting.default)
     case 'multiSelect':
       return joinPicked(setting, setting.default)
+    case 'pick':
+      return ''
     default:
       return setting.default
   }
@@ -96,6 +145,9 @@ const acceptedValue = (
       return (
         joinPicked(setting, value.split(MULTI_SELECT_SEPARATOR)) || undefined
       )
+    // Its list is known only at runtime, so the ids are checked where it is read.
+    case 'pick':
+      return value
     default:
       return setting.options.some((o) => o.value === value) ? value : undefined
   }
@@ -284,4 +336,35 @@ export const pickedOf = (
 ): string[] => {
   const picked = pickedValues(settings?.[key])
   return picked.length > 0 ? picked : defaults
+}
+
+/**
+ * The ids a pick setting narrows to that are still on its list, or an empty
+ * list for every entry: when nothing is stored, or none of the stored ids is
+ * still there.
+ */
+export const pickedIdsOf = (
+  settings: WidgetSettingValues | undefined,
+  key: string,
+  available?: { value: string }[],
+): string[] => {
+  const stored = pickedValues(settings?.[key])
+  if (!available) return stored
+  const ids = new Set(available.map((a) => a.value))
+  return stored.filter((id) => ids.has(id))
+}
+
+/**
+ * What a pick setting stores for the ids picked: nothing when every entry is
+ * picked, so one added later shows too; otherwise the ids in list order.
+ */
+export const pickValue = (
+  options: WidgetSettingOption[],
+  picked: string[],
+): string => {
+  const chosen = new Set(picked)
+  const kept = options.filter((o) => chosen.has(o.value))
+  return kept.length === options.length
+    ? ''
+    : kept.map((o) => o.value).join(MULTI_SELECT_SEPARATOR)
 }

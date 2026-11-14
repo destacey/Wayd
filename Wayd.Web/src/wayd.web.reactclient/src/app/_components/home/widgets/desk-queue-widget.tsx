@@ -20,8 +20,17 @@ import { FC } from 'react'
 import AttentionTile from '../attention-tile'
 import { useHomeContext } from '../use-home-context'
 import WidgetCard, { WidgetEmpty, WidgetError } from '../widget-card'
-import { rowsToShow } from '../widget-settings'
-import { HomeWidgetProps } from '../widget-registry'
+import {
+  pickedIdsOf,
+  pickedOf,
+  rowsToShow,
+  WidgetMultiSelectSetting,
+  WidgetPickOptionsSource,
+  WidgetPickSetting,
+  WidgetSetting,
+  WidgetSettingValues,
+} from '../widget-settings'
+import { HomeTileProps, HomeWidgetProps } from '../widget-registry'
 import styles from '../home.module.css'
 
 const { Text } = Typography
@@ -34,6 +43,30 @@ const REQUESTS = '/demand-management/requests'
 export const UNASSIGNED_ON_MY_DESKS_HREF = `${REQUESTS}?desk=mine&assignee=unassigned`
 /** The Requests page filtered to requests assigned to the reader. */
 export const ASSIGNED_TO_ME_HREF = `${REQUESTS}?assignee=me`
+
+/** The key of the desk queue's choice of desks. */
+export const DESKS_SETTING_KEY = 'desks'
+/** The key of the desk queue's choice of sections. */
+export const SECTIONS_SETTING_KEY = 'sections'
+
+/** A part of the desk queue the user can drop. */
+export type DeskQueueSection = 'desks' | 'assigned' | 'participating'
+
+const ALL_SECTIONS: DeskQueueSection[] = ['desks', 'assigned', 'participating']
+
+/**
+ * The Requests page filtered by `query`, to the desks the queue covers: the
+ * reader's own when it is not narrowed, otherwise the desks chosen, by id.
+ */
+const requestsHref = (query: string, deskIds: string[]) => {
+  const params = new URLSearchParams(query)
+  if (deskIds.length > 0) {
+    params.delete('desk')
+    deskIds.forEach((id) => params.append('desk', id))
+  }
+  const search = params.toString()
+  return search ? `${REQUESTS}?${search}` : REQUESTS
+}
 
 /** One of the reader's desks with their role on it. */
 export interface MyDesk {
@@ -76,6 +109,84 @@ const useMyDesks = () => {
     data: query.data ? myDesks(query.data, employeeId) : undefined,
   }
 }
+
+/** What the desk queue covers: the desks chosen and the sections shown. */
+interface DeskQueueScope {
+  /** The ids of the desks chosen that the reader still works; empty for every desk. */
+  deskIds: string[]
+  sections: DeskQueueSection[]
+}
+
+/**
+ * What the queue's settings narrow it to, the desk ids checked against the
+ * desks the reader works, once those have loaded.
+ */
+const scopeOf = (
+  settings: WidgetSettingValues | undefined,
+  desks: MyDesk[] | undefined,
+): DeskQueueScope => ({
+  deskIds: pickedIdsOf(
+    settings,
+    DESKS_SETTING_KEY,
+    desks?.map(({ desk }) => ({ value: desk.id })),
+  ),
+  sections: pickedOf(
+    settings,
+    SECTIONS_SETTING_KEY,
+    ALL_SECTIONS,
+  ) as DeskQueueSection[],
+})
+
+/** The entries on the desks the scope covers. */
+const onDesks = <T,>(
+  items: T[] | undefined,
+  deskIds: string[],
+  deskOf: (item: T) => string,
+): T[] | undefined =>
+  items && deskIds.length > 0
+    ? items.filter((item) => deskIds.includes(deskOf(item)))
+    : items
+
+/** Every desk the reader works, for the queue's choice of desks. */
+const DeskOptions: WidgetPickOptionsSource = ({ children }) => {
+  const { data, isLoading, isError } = useMyDesks()
+  return children({
+    options: (data ?? []).map(({ desk }) => ({
+      value: desk.id,
+      label: desk.name,
+    })),
+    isLoading,
+    isError,
+  })
+}
+
+/** Which of the reader's desks the queue shows. */
+const desksPickSetting: WidgetPickSetting = {
+  kind: 'pick',
+  key: DESKS_SETTING_KEY,
+  label: 'Desks',
+  noun: 'desks',
+  Options: DeskOptions,
+}
+
+/** Which parts of the queue show. */
+const sectionsSetting: WidgetMultiSelectSetting = {
+  kind: 'multiSelect',
+  key: SECTIONS_SETTING_KEY,
+  label: 'Sections',
+  options: [
+    { value: 'desks', label: 'My desks' },
+    { value: 'assigned', label: 'Assigned to me' },
+    { value: 'participating', label: 'Participating' },
+  ],
+  default: ALL_SECTIONS,
+}
+
+/** The desk queue's own settings, before the ones every list widget shares. */
+export const deskQueueSettings: WidgetSetting[] = [
+  desksPickSetting,
+  sectionsSetting,
+]
 
 /** The open requests assigned to the reader; the widget and its tile share the request. */
 const useAssignedToMe = () => {
@@ -192,57 +303,78 @@ const isListEmpty = ({
 const DeskQueueWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
   const rows = rowsToShow(settings, DESK_QUEUE_LIMIT)
   const desks = useMyDesks()
+  const { deskIds, sections } = scopeOf(settings, desks.data)
+  const shows = (section: DeskQueueSection) => sections.includes(section)
   const assigned = useAssignedToMe()
   const { context } = useHomeContext()
   const participating = useGetIntakeRequestsQuery(
     { participating: true, openOnly: true },
-    { skip: context?.intake.deskCount === 0 },
+    { skip: context?.intake.deskCount === 0 || !shows('participating') },
+  )
+  const shownDesks = onDesks(desks.data, deskIds, ({ desk }) => desk.id)
+  const assignedRequests = onDesks(assigned.data, deskIds, (r) => r.desk.id)
+  const participatingRequests = onDesks(
+    participating.data,
+    deskIds,
+    (r) => r.desk.id,
   )
 
   const hasNoDesks = !desks.data || desks.data.length === 0
+  const requestLists = [
+    ...(shows('assigned') ? [{ ...assigned, data: assignedRequests }] : []),
+    ...(shows('participating')
+      ? [{ ...participating, data: participatingRequests }]
+      : []),
+  ]
 
   const body = () => {
     if (desks.isError)
       return <WidgetError message="Could not load your desks." />
-    if (!desks.data || desks.data.length === 0) {
+    if (!shownDesks || shownDesks.length === 0) {
       return (
         <WidgetEmpty message="You are not on any intake desk. Requests waiting on your desks appear here once a Desk Admin adds you as an Agent." />
       )
     }
     return (
       <Flex vertical gap="middle">
-        <WaydList size="small">
-          {desks.data.map(({ desk, role }) => (
-            <WaydList.Item key={desk.id} className={styles.listItem}>
-              <div className={styles.listItemBody}>
-                <Flex align="center" gap={8} wrap>
-                  <EntityLink href={`/demand-management/desks/${desk.key}`}>
-                    {desk.name}
-                  </EntityLink>
-                  <Tag>{roleLabel[role]}</Tag>
-                </Flex>
-                <DeskCounts desk={desk} />
-              </div>
-            </WaydList.Item>
-          ))}
-        </WaydList>
-        <RequestSection
-          heading="Assigned to me"
-          requests={assigned.data}
-          isLoading={assigned.isLoading}
-          isError={assigned.isError}
-          rows={rows}
-          empty="No open request is assigned to you."
-          moreHref={ASSIGNED_TO_ME_HREF}
-        />
-        <RequestSection
-          heading="Participating"
-          requests={participating.data}
-          isLoading={participating.isLoading}
-          isError={participating.isError}
-          rows={rows}
-          empty="You take part in no open request."
-        />
+        {shows('desks') ? (
+          <WaydList size="small">
+            {shownDesks.map(({ desk, role }) => (
+              <WaydList.Item key={desk.id} className={styles.listItem}>
+                <div className={styles.listItemBody}>
+                  <Flex align="center" gap={8} wrap>
+                    <EntityLink href={`/demand-management/desks/${desk.key}`}>
+                      {desk.name}
+                    </EntityLink>
+                    <Tag>{roleLabel[role]}</Tag>
+                  </Flex>
+                  <DeskCounts desk={desk} />
+                </div>
+              </WaydList.Item>
+            ))}
+          </WaydList>
+        ) : null}
+        {shows('assigned') ? (
+          <RequestSection
+            heading="Assigned to me"
+            requests={assignedRequests}
+            isLoading={assigned.isLoading}
+            isError={assigned.isError}
+            rows={rows}
+            empty="No open request is assigned to you."
+            moreHref={requestsHref('assignee=me', deskIds)}
+          />
+        ) : null}
+        {shows('participating') ? (
+          <RequestSection
+            heading="Participating"
+            requests={participatingRequests}
+            isLoading={participating.isLoading}
+            isError={participating.isError}
+            rows={rows}
+            empty="You take part in no open request."
+          />
+        ) : null}
       </Flex>
     )
   }
@@ -250,15 +382,17 @@ const DeskQueueWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
   return (
     <WidgetCard
       title={title}
-      viewAllHref={`${REQUESTS}?desk=mine`}
+      viewAllHref={requestsHref('desk=mine', deskIds)}
       // Waits for the request lists too: whether the widget is empty depends on them.
       loading={
         desks.isLoading ||
-        (!hasNoDesks && (assigned.isLoading || participating.isLoading))
+        (!hasNoDesks && requestLists.some((list) => list.isLoading))
       }
       failed={desks.isError}
+      // With no request list shown, the desks themselves are what it shows.
       empty={
-        hasNoDesks || (isListEmpty(assigned) && isListEmpty(participating))
+        hasNoDesks ||
+        (requestLists.length > 0 && requestLists.every(isListEmpty))
       }
       emptySummary={hasNoDesks ? 'Not on any desk' : 'No requests for you'}
     >
@@ -267,15 +401,26 @@ const DeskQueueWidget: FC<HomeWidgetProps> = ({ title, settings }) => {
   )
 }
 
-/** Open requests on the caller's desks that no one is assigned to. */
-export const UnassignedRequestsTile: FC = () => {
+/**
+ * Open requests on the caller's desks that no one is assigned to: only on the
+ * desks the queue shows, and none while it leaves out its desks.
+ */
+export const UnassignedRequestsTile: FC<HomeTileProps> = ({ settings }) => {
   const { data, isLoading, isError } = useMyDesks()
+  const { deskIds, sections } = scopeOf(settings, data)
+  const desks = onDesks(data, deskIds, ({ desk }) => desk.id) ?? []
   return (
     <AttentionTile
       title="Unassigned requests"
-      value={isError ? undefined : countUnassigned(data ?? [])}
+      value={
+        isError
+          ? undefined
+          : sections.includes('desks')
+            ? countUnassigned(desks)
+            : 0
+      }
       tooltip="Open intake requests on the desks you work that no one is assigned to."
-      href={UNASSIGNED_ON_MY_DESKS_HREF}
+      href={requestsHref('desk=mine&assignee=unassigned', deskIds)}
       alert="warning"
       loading={isLoading}
       context="on your desks"
@@ -283,17 +428,29 @@ export const UnassignedRequestsTile: FC = () => {
   )
 }
 
-/** Open requests assigned to the caller. */
-export const RequestsAssignedToMeTile: FC = () => {
+/**
+ * Open requests assigned to the caller: only on the desks the queue shows, and
+ * none while it leaves out its Assigned to me list.
+ */
+export const RequestsAssignedToMeTile: FC<HomeTileProps> = ({ settings }) => {
+  const desks = useMyDesks()
   const { data, isLoading, isError } = useAssignedToMe()
+  const { deskIds, sections } = scopeOf(settings, desks.data)
+  const requests = onDesks(data, deskIds, (r) => r.desk.id) ?? []
   return (
     <AttentionTile
       title="Requests assigned"
-      value={isError ? undefined : (data?.length ?? 0)}
+      value={
+        isError
+          ? undefined
+          : sections.includes('assigned')
+            ? requests.length
+            : 0
+      }
       tooltip="Open intake requests assigned to you."
-      href={ASSIGNED_TO_ME_HREF}
+      href={requestsHref('assignee=me', deskIds)}
       alert="warning"
-      loading={isLoading}
+      loading={isLoading || (deskIds.length > 0 && desks.isLoading)}
       context="to you"
     />
   )

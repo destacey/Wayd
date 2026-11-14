@@ -409,9 +409,9 @@ public sealed class MeControllerTests
         ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Risks),
     ];
 
-    private async Task<MyTeamsSummaryResponse> GetSummary()
+    private async Task<MyTeamsSummaryResponse> GetSummary(Guid[]? teamIds = null, Guid[]? teamOfTeamsIds = null)
     {
-        var result = await CreateController().GetTeamsSummary(TestContext.Current.CancellationToken);
+        var result = await CreateController().GetTeamsSummary(teamIds, teamOfTeamsIds, TestContext.Current.CancellationToken);
         return result.Result.Should().BeOfType<OkObjectResult>().Which.Value.Should().BeOfType<MyTeamsSummaryResponse>().Subject;
     }
 
@@ -423,7 +423,7 @@ public sealed class MeControllerTests
         var controller = CreateController();
 
         // Act
-        var result = await controller.GetTeamsSummary(TestContext.Current.CancellationToken);
+        var result = await controller.GetTeamsSummary(null, null, TestContext.Current.CancellationToken);
 
         // Assert
         result.Result.Should().BeOfType<NotFoundObjectResult>();
@@ -1088,6 +1088,156 @@ public sealed class MeControllerTests
         summary.Teams.Single(t => t.Team.Id == loner.Id).PartOf.Should().BeNull();
         summary.TeamsOfTeams.Should().BeEmpty();
         dispatcher.Verify(d => d.Send(It.Is<GetTeamsParentQuery>(q => q.Date == SummaryToday), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetTeamsSummary_NarrowedToSomeTeams_SummarisesAndCountsOnlyThoseButListsEveryTeam()
+    {
+        // Arrange
+        var kept = SummaryTeam("Kept");
+        var left = SummaryTeam("Left");
+        var dispatcher = SummaryOf(SummaryNow, [kept, left], new()
+        {
+            [kept.Id] = [Model(new LocalDate(2026, 1, 1), null, Methodology.Scrum)],
+            [left.Id] = [Model(new LocalDate(2026, 1, 1), null, Methodology.Scrum)],
+        }, _allSummaryPermissions);
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsDependencyHealthQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new TeamsDependencyHealthDto { AtRiskOrUnhealthyCount = 2 });
+
+        // Act
+        var summary = await GetSummary(teamIds: [kept.Id]);
+
+        // Assert
+        summary.Teams.Select(t => t.Team.Id).Should().Equal(kept.Id);
+        summary.AllTeams.Should().Equal(kept, left);
+        summary.DependenciesAtRiskCount.Should().Be(2);
+        dispatcher.Verify(d => d.Send(
+            It.Is<GetTeamsDependencyHealthQuery>(q => q.TeamIds.SequenceEqual(new[] { kept.Id })),
+            It.IsAny<CancellationToken>()), Times.Once);
+        dispatcher.Verify(d => d.Send(
+            It.Is<GetTeamsActiveSprintQuery>(q => q.TeamIds.SequenceEqual(new[] { kept.Id })),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetTeamsSummary_NarrowedToATeamAndOneTheCallerLeft_IgnoresTheOneLeft()
+    {
+        // Arrange
+        var kept = SummaryTeam("Kept");
+        var other = SummaryTeam("Other");
+        SummaryOf(SummaryNow, [kept, other], [], _allSummaryPermissions);
+
+        // Act
+        var summary = await GetSummary(teamIds: [kept.Id, Guid.NewGuid()]);
+
+        // Assert
+        summary.Teams.Select(t => t.Team.Id).Should().Equal(kept.Id);
+    }
+
+    [Fact]
+    public async Task GetTeamsSummary_NarrowedOnlyToTeamsTheCallerLeft_ShowsEveryTeam()
+    {
+        // Arrange
+        var first = SummaryTeam("First");
+        var second = SummaryTeam("Second");
+        SummaryOf(SummaryNow, [first, second], [], _allSummaryPermissions);
+
+        // Act
+        var summary = await GetSummary(teamIds: [Guid.NewGuid()]);
+
+        // Assert
+        summary.Teams.Select(t => t.Team.Id).Should().Equal(first.Id, second.Id);
+    }
+
+    [Fact]
+    public async Task GetTeamsSummary_NarrowedToOneTeamOfTeams_RollsUpAndCountsOnlyThatOne()
+    {
+        // Arrange — each team of teams has a team left with a sprint open; only Train is chosen.
+        var train = SummaryTeamOfTeams("Train");
+        var guild = SummaryTeamOfTeams("Guild");
+        var onTrain = SummaryTeam("OnTrain");
+        var onGuild = SummaryTeam("OnGuild");
+        var scrum = new LocalDate(2026, 1, 1);
+        var dispatcher = SummaryOf(SummaryNow, [], new()
+        {
+            [onTrain.Id] = [Model(scrum, null, Methodology.Scrum)],
+            [onGuild.Id] = [Model(scrum, null, Methodology.Scrum)],
+        }, _allRollupPermissions);
+        TeamsOfTeamsAre(dispatcher, (guild, Structure(guild, (onGuild, guild))), (train, Structure(train, (onTrain, train), (guild, train))));
+        dispatcher
+            .Setup(d => d.Send(It.IsAny<GetTeamsSprintSignalQuery>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((GetTeamsSprintSignalQuery q, CancellationToken _) => q.TeamIds.ToDictionary(
+                id => id, _ => Signal(AttentionStatus.NeedsAttention, endedNotCompleted: true)));
+
+        // Act
+        var summary = await GetSummary(teamOfTeamsIds: [train.Id]);
+
+        // Assert
+        summary.TeamsOfTeams.Select(r => r.Team.Id).Should().Equal(train.Id);
+        summary.AllTeamsOfTeams.Should().Equal(guild, train);
+        summary.TeamsOfTeams.Single().Rows.Single(r => r.Team.Id == guild.Id).IsMine
+            .Should().BeTrue("the caller is still a member of the team of teams left out");
+        summary.SprintsEndedNotCompletedCount.Should().Be(1);
+        dispatcher.Verify(d => d.Send(It.Is<GetTeamStructureQuery>(q => q.TeamId == guild.Id), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetTeamsSummary_NarrowedToOneTeamOfTeams_CountsOnlyItsUnhealthyCrossTeamDependencies()
+    {
+        // Arrange — each team of teams has one unhealthy dependency of its own; only Train is chosen
+        var train = SummaryTeamOfTeams("Train");
+        var guild = SummaryTeamOfTeams("Guild");
+        var payments = SummaryTeam("Payments");
+        var checkout = SummaryTeam("Checkout");
+        var dispatcher = SummaryOf(SummaryNow, [], [], _allRollupPermissions);
+        TeamsOfTeamsAre(dispatcher, (train, Structure(train, (payments, train))), (guild, Structure(guild, (checkout, guild))));
+        dispatcher
+            .Setup(d => d.Send(It.Is<GetTeamsDependenciesQuery>(q => q.TeamIds.Contains(payments.Id)), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Dependency(DependencyPlanningHealth.Unhealthy)]);
+        dispatcher
+            .Setup(d => d.Send(It.Is<GetTeamsDependenciesQuery>(q => q.TeamIds.Contains(checkout.Id)), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([Dependency(DependencyPlanningHealth.Unhealthy)]);
+
+        // Act
+        var summary = await GetSummary(teamOfTeamsIds: [train.Id]);
+
+        // Assert
+        summary.UnhealthyCrossTeamDependencyCount.Should().Be(1);
+        dispatcher.Verify(d => d.Send(It.Is<GetTeamsDependenciesQuery>(q => q.TeamIds.Contains(checkout.Id)), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetTeamsSummary_NarrowedOnlyToATeamOfTeams_KeepsEveryTeam()
+    {
+        // Arrange
+        var first = SummaryTeam("First");
+        var second = SummaryTeam("Second");
+        var train = SummaryTeamOfTeams("Train");
+        var guild = SummaryTeamOfTeams("Guild");
+        var dispatcher = SummaryOf(SummaryNow, [first, second], [], _allRollupPermissions);
+        TeamsOfTeamsAre(dispatcher, (guild, Structure(guild)), (train, Structure(train)));
+
+        // Act
+        var summary = await GetSummary(teamOfTeamsIds: [train.Id]);
+
+        // Assert
+        summary.Teams.Select(t => t.Team.Id).Should().Equal(first.Id, second.Id);
+        summary.TeamsOfTeams.Select(r => r.Team.Id).Should().Equal(train.Id);
+    }
+
+    [Fact]
+    public async Task GetTeamsSummary_OnNoTeam_ListsNoTeamsToChooseFrom()
+    {
+        // Arrange
+        SummaryOf(SummaryNow, [], [], _allSummaryPermissions);
+
+        // Act
+        var summary = await GetSummary(teamIds: [Guid.NewGuid()]);
+
+        // Assert
+        summary.AllTeams.Should().BeEmpty();
+        summary.AllTeamsOfTeams.Should().BeEmpty();
     }
 
     [Theory]

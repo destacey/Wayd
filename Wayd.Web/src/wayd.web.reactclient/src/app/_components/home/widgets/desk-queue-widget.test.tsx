@@ -66,13 +66,17 @@ const desk = (
     waiting: waiting ? { count: 0, unassignedCount: 0, ...waiting } : undefined,
   }) as IntakeDeskDto
 
-const request = (key: number, title: string): IntakeRequestSummaryDto =>
+const request = (
+  key: number,
+  title: string,
+  deskKey = 1,
+): IntakeRequestSummaryDto =>
   ({
     id: `request-${key}`,
     key,
     title,
     status: { id: 's', name: 'In Review', category: StatusCategory.Proposed },
-    desk: { id: 'desk-1', key: 1, name: 'Finance' },
+    desk: { id: `desk-${deskKey}`, key: deskKey, name: `Desk ${deskKey}` },
   }) as IntakeRequestSummaryDto
 
 const loaded = <T,>(data: T) => ({ data, isLoading: false, isError: false })
@@ -446,5 +450,222 @@ describe('RequestsAssignedToMeTile', () => {
     // Assert
     expect(mockPush).toHaveBeenCalledWith(ASSIGNED_TO_ME_HREF)
     expect(ASSIGNED_TO_ME_HREF).toBe('/demand-management/requests?assignee=me')
+  })
+})
+
+describe('desk queue scope', () => {
+  const finance = desk(1, 'Finance', [['me', IntakeDeskRole.Agent]], {
+    unassignedCount: 2,
+  })
+  const legal = desk(2, 'Legal', [['me', IntakeDeskRole.Agent]], {
+    unassignedCount: 5,
+  })
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockHome.context = homeContext({ intake: { deskCount: 2 } })
+    mockDesks.mockReturnValue(loaded([finance, legal]))
+    requestsReturn(
+      [request(1, 'On finance', 1), request(2, 'On legal', 2)],
+      [request(3, 'Taking part on legal', 2)],
+    )
+  })
+
+  it('shows every desk and request when nothing is chosen', () => {
+    // Act
+    render(<DeskQueueWidget title="Desk queue" settings={{}} />)
+
+    // Assert
+    expect(screen.getByRole('link', { name: 'Finance' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Legal' })).toBeInTheDocument()
+    expect(screen.getByText(/On finance/)).toBeInTheDocument()
+    expect(screen.getByText(/^2 · On legal/)).toBeInTheDocument()
+  })
+
+  it('shows only the desks chosen and the requests on them', () => {
+    // Act
+    render(
+      <DeskQueueWidget title="Desk queue" settings={{ desks: 'desk-1' }} />,
+    )
+
+    // Assert
+    expect(screen.getByRole('link', { name: 'Finance' })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'Legal' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText(/On finance/)).toBeInTheDocument()
+    expect(screen.queryByText(/On legal/)).not.toBeInTheDocument()
+    expect(
+      screen.getByText('You take part in no open request.'),
+    ).toBeInTheDocument()
+  })
+
+  it('ignores a chosen desk the caller no longer works', () => {
+    // Act
+    render(
+      <DeskQueueWidget
+        title="Desk queue"
+        settings={{ desks: 'desk-1,desk-gone' }}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByRole('link', { name: 'Finance' })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('link', { name: 'Legal' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows every desk when no chosen desk is still the caller’s', () => {
+    // Act
+    render(
+      <DeskQueueWidget title="Desk queue" settings={{ desks: 'desk-gone' }} />,
+    )
+
+    // Assert
+    expect(screen.getByRole('link', { name: 'Finance' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Legal' })).toBeInTheDocument()
+  })
+
+  it('leaves out the sections not chosen, and skips a list it does not show', () => {
+    // Act
+    render(
+      <DeskQueueWidget
+        title="Desk queue"
+        settings={{ sections: 'assigned' }}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.queryByRole('link', { name: 'Finance' }),
+    ).not.toBeInTheDocument()
+    expect(screen.getByText('Assigned to me')).toBeInTheDocument()
+    expect(screen.queryByText('Participating')).not.toBeInTheDocument()
+    expect(mockRequests).toHaveBeenCalledWith(
+      { participating: true, openOnly: true },
+      { skip: true },
+    )
+  })
+
+  it('opens Requests filtered to the caller’s desks from View all while nothing is chosen', () => {
+    // Act
+    render(<DeskQueueWidget title="Desk queue" settings={{}} />)
+
+    // Assert
+    expect(screen.getByRole('link', { name: /View all/ })).toHaveAttribute(
+      'href',
+      '/demand-management/requests?desk=mine',
+    )
+  })
+
+  it('carries the desks chosen into View all and the rest of the assigned requests', () => {
+    // Arrange — more assigned on the chosen desk than the one row shown
+    requestsReturn([request(1, 'First', 1), request(2, 'Second', 1)])
+
+    // Act
+    render(
+      <DeskQueueWidget
+        title="Desk queue"
+        settings={{ desks: 'desk-1', rows: '1' }}
+      />,
+    )
+
+    // Assert
+    expect(screen.getByRole('link', { name: /View all/ })).toHaveAttribute(
+      'href',
+      '/demand-management/requests?desk=desk-1',
+    )
+    expect(screen.getByRole('link', { name: 'All 2' })).toHaveAttribute(
+      'href',
+      '/demand-management/requests?assignee=me&desk=desk-1',
+    )
+  })
+
+  it('waits for the desks before counting assigned requests on the desks chosen', () => {
+    // Arrange
+    mockDesks.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      isError: false,
+    })
+
+    // Act
+    render(<RequestsAssignedToMeTile settings={{ desks: 'desk-1' }} />)
+
+    // Assert
+    expect(
+      screen.queryByRole('button', { name: /Requests assigned to you: \d/ }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('counts unassigned requests only on the desks chosen, and links to them', () => {
+    // Arrange
+    render(<UnassignedRequestsTile settings={{ desks: 'desk-2' }} />)
+
+    // Act
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Unassigned requests on your desks: 5',
+      }),
+    )
+
+    // Assert
+    expect(mockPush).toHaveBeenCalledWith(
+      '/demand-management/requests?assignee=unassigned&desk=desk-2',
+    )
+  })
+
+  it('counts every desk’s unassigned requests for a stale choice', () => {
+    // Act
+    render(<UnassignedRequestsTile settings={{ desks: 'desk-gone' }} />)
+
+    // Assert
+    expect(
+      screen.getByRole('button', {
+        name: 'Unassigned requests on your desks: 7',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('counts no unassigned requests while the queue leaves out its desks', () => {
+    // Act
+    render(
+      <UnassignedRequestsTile
+        settings={{ sections: 'assigned,participating' }}
+      />,
+    )
+
+    // Assert
+    expect(
+      screen.getByRole('button', {
+        name: 'Unassigned requests on your desks: 0',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('counts requests assigned on the desks chosen, and links to them', () => {
+    // Arrange
+    render(<RequestsAssignedToMeTile settings={{ desks: 'desk-1' }} />)
+
+    // Act
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Requests assigned to you: 1' }),
+    )
+
+    // Assert
+    expect(mockPush).toHaveBeenCalledWith(
+      '/demand-management/requests?assignee=me&desk=desk-1',
+    )
+  })
+
+  it('counts no assigned requests while the queue leaves out that list', () => {
+    // Act
+    render(<RequestsAssignedToMeTile settings={{ sections: 'desks' }} />)
+
+    // Assert
+    expect(
+      screen.getByRole('button', { name: 'Requests assigned to you: 0' }),
+    ).toBeInTheDocument()
   })
 })

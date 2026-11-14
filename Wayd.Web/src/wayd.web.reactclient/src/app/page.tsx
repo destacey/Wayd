@@ -8,6 +8,7 @@ import { Suspense, useReducer, useState } from 'react'
 import AttentionStrip from './_components/home/attention-strip'
 import CustomizeHomeDrawer from './_components/home/customize-home-drawer'
 import HomeGreeting from './_components/home/home-greeting'
+import { HomeSettingsContext } from './_components/home/home-settings-context'
 import HomePageSkeleton from './_components/home/home-page-skeleton'
 import { HomeWidgets } from './_components/home/home-widgets'
 import styles from './_components/home/home.module.css'
@@ -199,76 +200,79 @@ const HomePage = () => {
     customize.layout.main.length + customize.layout.side.length > 0
 
   return (
-    <div className="page-gutters">
-      <div className={styles.header}>
-        <HomeGreeting />
-        {hasCustomizableWidgets && (
-          <Tooltip title="Customize home">
-            <Button
-              type="text"
-              icon={<SettingOutlined />}
-              onClick={customize.open}
-              disabled={!customize.canCustomize}
-              aria-label="Customize home"
-            />
-          </Tooltip>
-        )}
+    <HomeSettingsContext value={widgetSettings}>
+      <div className="page-gutters">
+        <div className={styles.header}>
+          <HomeGreeting />
+          {hasCustomizableWidgets && (
+            <Tooltip title="Customize home">
+              <Button
+                type="text"
+                icon={<SettingOutlined />}
+                onClick={customize.open}
+                disabled={!customize.canCustomize}
+                aria-label="Customize home"
+              />
+            </Tooltip>
+          )}
+        </div>
+        <UnlinkedEmployeeAlert consequence={UNLINKED_CONSEQUENCE} />
+        {/* Waits with the columns: a tile of a widget the user hid would otherwise flash. */}
+        <AttentionStrip
+          tiles={isLayoutLoading ? [] : tiles}
+          settings={widgetSettings}
+          onRevealHiddenWidgets={() => setRevealed(true)}
+        />
+        {isLayoutLoading ? (
+          <HomePageSkeleton />
+        ) : hasWidgets ? (
+          <>
+            {/* With nothing showing in one column, the other takes the width. */}
+            <div
+              className={
+                showsAny(columns.main) && showsAny(columns.side)
+                  ? styles.columns
+                  : undefined
+              }
+            >
+              <WidgetColumn
+                widgets={columns.main}
+                className={styles.column}
+                settings={settings}
+                display={display}
+              />
+              <WidgetColumn
+                widgets={columns.side}
+                className={`${styles.column} ${styles.side}`}
+                settings={settings}
+                display={display}
+              />
+            </div>
+            {/* When every widget is hidden as empty, this line is the page. */}
+            {hiddenWidgets.length > 0 ? (
+              <HiddenWidgetsLine
+                widgets={hiddenWidgets}
+                revealed={revealed}
+                onToggle={() => setRevealed((r) => !r)}
+              />
+            ) : null}
+          </>
+        ) : hasCustomizableWidgets ? (
+          <WaydEmpty message="Every widget is switched off. Use Customize home (the gear) to bring some back." />
+        ) : hasLinkedEmployee ? (
+          // An unlinked account already has the banner saying what will appear.
+          <WaydEmpty message="Nothing on the home page applies to your account yet. It fills as you are given access to the areas you work in." />
+        ) : null}
+        <CustomizeHomeDrawer
+          open={customize.isOpen}
+          layout={customize.layout}
+          widgets={HomeWidgets}
+          onChange={customize.change}
+          onReset={customize.reset}
+          onClose={customize.close}
+        />
       </div>
-      <UnlinkedEmployeeAlert consequence={UNLINKED_CONSEQUENCE} />
-      {/* Waits with the columns: a tile of a widget the user hid would otherwise flash. */}
-      <AttentionStrip
-        tiles={isLayoutLoading ? [] : tiles}
-        onRevealHiddenWidgets={() => setRevealed(true)}
-      />
-      {isLayoutLoading ? (
-        <HomePageSkeleton />
-      ) : hasWidgets ? (
-        <>
-          {/* With nothing showing in one column, the other takes the width. */}
-          <div
-            className={
-              showsAny(columns.main) && showsAny(columns.side)
-                ? styles.columns
-                : undefined
-            }
-          >
-            <WidgetColumn
-              widgets={columns.main}
-              className={styles.column}
-              settings={settings}
-              display={display}
-            />
-            <WidgetColumn
-              widgets={columns.side}
-              className={`${styles.column} ${styles.side}`}
-              settings={settings}
-              display={display}
-            />
-          </div>
-          {/* When every widget is hidden as empty, this line is the page. */}
-          {hiddenWidgets.length > 0 ? (
-            <HiddenWidgetsLine
-              widgets={hiddenWidgets}
-              revealed={revealed}
-              onToggle={() => setRevealed((r) => !r)}
-            />
-          ) : null}
-        </>
-      ) : hasCustomizableWidgets ? (
-        <WaydEmpty message="Every widget is switched off. Use Customize home (the gear) to bring some back." />
-      ) : hasLinkedEmployee ? (
-        // An unlinked account already has the banner saying what will appear.
-        <WaydEmpty message="Nothing on the home page applies to your account yet. It fills as you are given access to the areas you work in." />
-      ) : null}
-      <CustomizeHomeDrawer
-        open={customize.isOpen}
-        layout={customize.layout}
-        widgets={HomeWidgets}
-        onChange={customize.change}
-        onReset={customize.reset}
-        onClose={customize.close}
-      />
-    </div>
+    </HomeSettingsContext>
   )
 }
 

@@ -75561,11 +75561,15 @@ export interface UpdateProductTypeRequest {
     order: number;
 }
 
+/** The details a user may change on their own account. The email is not among them: it is also the username and the address people sync links a user to an employee by, so an administrator changes it from Settings → Access → Users. */
 export interface UpdateProfileRequest {
+    /** The id of the user making the request. */
     id: string;
+    /** The user's first name. */
     firstName: string;
+    /** The user's last name. */
     lastName: string;
-    email: string;
+    /** The user's phone number; empty clears it. */
     phoneNumber?: string | undefined;
 }
 

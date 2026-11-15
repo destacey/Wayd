@@ -16859,6 +16859,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Update profile details of currently logged in user.
         /// </summary>
+        /// <remarks>
+        /// Changes the name and phone number. The email is not part of a profile: it is also the username and the address people sync links a user to an employee by, so an administrator changes it.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         System.Threading.Tasks.Task UpdateAsync(UpdateProfileRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
@@ -17077,6 +17080,9 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// <summary>
         /// Update profile details of currently logged in user.
         /// </summary>
+        /// <remarks>
+        /// Changes the name and phone number. The email is not part of a profile: it is also the username and the address people sync links a user to an employee by, so an administrator changes it.
+        /// </remarks>
         /// <returns>No Content</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
         public virtual async System.Threading.Tasks.Task UpdateAsync(UpdateProfileRequest request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
@@ -150024,28 +150030,40 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
 
     }
 
+    /// <summary>
+    /// The details a user may change on their own account. The email is not among them: it is also the username and
+    /// <br/>the address people sync links a user to an employee by, so an administrator changes it from Settings → Access → Users.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.8.0.0 (NJsonSchema v11.6.2.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class UpdateProfileRequest
     {
 
+        /// <summary>
+        /// The id of the user making the request.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         [System.ComponentModel.DataAnnotations.Required]
         public string Id { get; set; } = default!;
 
+        /// <summary>
+        /// The user's first name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("firstName")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
         public string FirstName { get; set; } = default!;
 
+        /// <summary>
+        /// The user's last name.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lastName")]
         [System.ComponentModel.DataAnnotations.Required]
         [System.ComponentModel.DataAnnotations.StringLength(100, MinimumLength = 1)]
         public string LastName { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("email")]
-        [System.ComponentModel.DataAnnotations.Required]
-        public string Email { get; set; } = default!;
-
+        /// <summary>
+        /// The user's phone number; empty clears it.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("phoneNumber")]
         public string? PhoneNumber { get; set; } = default!;
 

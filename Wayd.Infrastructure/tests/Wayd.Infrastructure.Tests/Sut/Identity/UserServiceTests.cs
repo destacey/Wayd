@@ -773,6 +773,98 @@ public class UserServiceTests
 
     #endregion
 
+    #region UpdateProfile
+
+    [Fact]
+    public async Task UpdateProfile_ShouldChangeNameAndPhone_AndKeepTheEmailAndUserName()
+    {
+        // Arrange
+        var user = CreateUser();
+        var (email, userName, normalizedEmail, normalizedUserName) = (user.Email, user.UserName, user.NormalizedEmail, user.NormalizedUserName);
+        var command = new UpdateProfileCommand { FirstName = "Updated", LastName = "Name", PhoneNumber = "555-1234" };
+
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.UpdateProfile(command, "user-1");
+
+        // Assert
+        user.FirstName.Should().Be("Updated");
+        user.LastName.Should().Be("Name");
+        user.PhoneNumber.Should().Be("555-1234");
+        user.Email.Should().Be(email, "the email is also the username and the people sync's link key, so a profile never sets it");
+        user.UserName.Should().Be(userName);
+        user.NormalizedEmail.Should().Be(normalizedEmail);
+        user.NormalizedUserName.Should().Be(normalizedUserName);
+        _mockUserManager.Verify(x => x.UpdateAsync(user), Times.Once);
+        _mockSignInManager.Verify(x => x.RefreshSignInAsync(user), Times.Once);
+        RaisedEvents(user).Should().ContainSingle().Which.Should().BeOfType<ApplicationUserDetailsUpdatedEvent>();
+    }
+
+    [Fact]
+    public async Task UpdateProfile_ShouldKeepTheEmployeeLink()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var user = CreateUser();
+        user.EmployeeId = employeeId;
+        var command = new UpdateProfileCommand { FirstName = "Updated", LastName = "User" };
+
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var sut = CreateSut();
+
+        // Act
+        await sut.UpdateProfile(command, "user-1");
+
+        // Assert
+        user.EmployeeId.Should().Be(employeeId);
+    }
+
+    [Fact]
+    public async Task UpdateProfile_ShouldThrowNotFound_WhenUserDoesNotExist()
+    {
+        // Arrange
+        _mockUserManager.Setup(x => x.FindByIdAsync("missing")).ReturnsAsync((ApplicationUser?)null);
+        var command = new UpdateProfileCommand { FirstName = "F", LastName = "L" };
+
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.UpdateProfile(command, "missing");
+
+        // Assert
+        await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    [Fact]
+    public async Task UpdateProfile_ShouldThrowAndRecordNothing_WhenUpdateFails()
+    {
+        // Arrange
+        var user = CreateUser();
+        var command = new UpdateProfileCommand { FirstName = "Updated", LastName = "User" };
+
+        _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
+        _mockUserManager.Setup(x => x.UpdateAsync(user))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Update failed." }));
+
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.UpdateProfile(command, "user-1");
+
+        // Assert
+        await act.Should().ThrowAsync<InternalServerException>();
+        RaisedEvents(user).Should().BeEmpty("nothing was saved, so nothing may be recorded");
+        _mockSignInManager.Verify(x => x.RefreshSignInAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    #endregion
+
     #region UpdateAsync
 
     [Fact]
@@ -863,8 +955,8 @@ public class UserServiceTests
     [Fact]
     public async Task UpdateAsync_ShouldPreserveEmployeeLink_WhenUpdateDoesNotManageIt()
     {
-        // Arrange — the self-service profile edit sends no employee id. Applying the command's
-        // default null would silently unlink the user from their employee record on every save.
+        // Arrange — a command that does not manage the link sends no employee id. Applying its
+        // default null would silently unlink the user from their employee record.
         var employeeId = Guid.NewGuid();
         var user = CreateUser();
         user.EmployeeId = employeeId;
@@ -1816,6 +1908,43 @@ public class UserServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_IsForbidden_WhenTheCallerChangesTheEmailOfTheirOwnAccount()
+    {
+        // Arrange — people sync links an unlinked user by email, so a new address of your own choosing would
+        // link you to whichever employee holds it.
+        _mockUserManager.Setup(x => x.UpdateAsync(_caller)).ReturnsAsync(IdentityResult.Success);
+        var email = _caller.Email;
+        var command = AdminEdit(_caller, null, email: "unlinked.employee@example.com");
+        command.ManageEmployeeLink = false;
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.UpdateAsync(command, CallerId);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*your own account*");
+        _caller.Email.Should().Be(email);
+        _mockUserManager.Verify(x => x.UpdateAsync(It.IsAny<ApplicationUser>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ChangesTheEmailOfAnotherUser()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        RoleGrants("Contributor", ViewUsers);
+        var target = TargetIn(["Contributor"]);
+        var sut = CreateSut();
+
+        // Act
+        await sut.UpdateAsync(AdminEdit(target, null, email: "moved@example.com"), target.Id);
+
+        // Assert
+        target.Email.Should().Be("moved@example.com");
+        target.UserName.Should().Be("moved@example.com");
+    }
+
+    [Fact]
     public async Task UpdateAsync_LinksAnEmployee_ToAnOrdinaryUser()
     {
         // Arrange
@@ -1853,7 +1982,7 @@ public class UserServiceTests
     [Fact]
     public async Task UpdateAsync_SavesTheCallersOwnDetails_WhenTheyArePrivileged()
     {
-        // Arrange — the profile edits the caller's own account through the same method.
+        // Arrange — an administrator editing their own account through Settings → Access → Users.
         _mockUserManager.Setup(x => x.UpdateAsync(_caller)).ReturnsAsync(IdentityResult.Success);
         var command = AdminEdit(_caller, null);
         command.ManageEmployeeLink = false;

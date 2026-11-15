@@ -73,7 +73,7 @@ public class PeopleSyncRunnerTests
             .Setup(u => u.UpdateMissingEmployeeIds(It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
         _mocker.GetMock<IUserService>()
-            .Setup(u => u.SyncUsersFromEmployeeRecords(It.IsAny<List<IExternalEmployee>>(), It.IsAny<CancellationToken>()))
+            .Setup(u => u.SyncUsersFromEmployeeRecords(It.IsAny<CancellationToken>()))
             .ReturnsAsync(Result.Success());
 
         _sut = _mocker.CreateInstance<PeopleSyncRunner>();

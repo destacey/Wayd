@@ -8,6 +8,8 @@ using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Identity.OidcProviders;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Authorization;
+using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Events;
 using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Models;
 using Wayd.Infrastructure.Auth.Local;
@@ -36,24 +38,49 @@ public sealed class UserServiceSyncTests(SqlServerDbContextFixture fixture)
     private const string ReturnerUserId = "00000000-0000-0000-0000-000000000005";
     private const string FirstAdministratorId = "00000000-0000-0000-0000-000000000006";
     private const string SecondAdministratorId = "00000000-0000-0000-0000-000000000007";
+    private const string MovedUserId = "00000000-0000-0000-0000-000000000008";
+    private const string UnlinkedUserId = "00000000-0000-0000-0000-000000000009";
 
     private readonly SqlServerDbContextFixture _fixture = fixture;
 
     private async Task Seed(CancellationToken cancellationToken)
     {
+        // Each user already holds their employee's address, so the sync changes names only and leaves the
+        // usernames as they are.
+        var rejectedEmail = $"rejected.{Guid.NewGuid():N}@acme.example";
+        var acceptedEmail = $"accepted.{Guid.NewGuid():N}@acme.example";
+        var rejectedEmployee = await SeedEmployee("Rylee", cancellationToken, email: rejectedEmail);
+        var acceptedEmployee = await SeedEmployee("Alexandra", cancellationToken, email: acceptedEmail);
         await using var context = _fixture.CreateContext();
 
         // A username the validator now refuses: it was stored before the allowed characters narrowed, so every
         // update to this user is rejected, whatever the update changes.
-        var rejected = NewUser(RejectedUserId, "rejected@acme.example", "Riley");
+        var rejected = NewUser(RejectedUserId, rejectedEmail, "Riley", rejectedEmployee);
         rejected.UserName = "riley sync";
         rejected.NormalizedUserName = "RILEY SYNC";
 
-        context.Users.AddRange(rejected, NewUser(AcceptedUserId, "accepted@acme.example", "Alex"));
+        context.Users.AddRange(rejected, NewUser(AcceptedUserId, acceptedEmail, "Alex", acceptedEmployee));
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    private static ApplicationUser NewUser(string id, string email, string firstName) => new()
+    /// <summary>
+    /// An employee record as the sync's upsert leaves it, with an address of its own: employees are not cleared
+    /// between tests.
+    /// </summary>
+    private async Task<Guid> SeedEmployee(string firstName, CancellationToken cancellationToken, bool isActive = true, string? email = null)
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..12];
+        var employee = Employee.Create(new PersonName(firstName, null, "Sync"), $"E-{suffix}", null,
+            new EmailAddress(email ?? $"{firstName.ToLowerInvariant()}.{suffix}@acme.example"), null, null, null, null, isActive, null,
+            EventActor.System, Now);
+
+        await using var context = _fixture.CreateContext();
+        context.Employees.Add(employee);
+        await context.SaveChangesAsync(cancellationToken);
+        return employee.Id;
+    }
+
+    private static ApplicationUser NewUser(string id, string email, string firstName, Guid? employeeId = null) => new()
     {
         Id = id,
         UserName = email,
@@ -65,16 +92,8 @@ public sealed class UserServiceSyncTests(SqlServerDbContextFixture fixture)
         SecurityStamp = Guid.NewGuid().ToString(),
         IsActive = true,
         LoginProvider = LoginProviders.MicrosoftEntraId,
+        EmployeeId = employeeId,
     };
-
-    private static IExternalEmployee Employee(string email, string firstName, bool isActive = true)
-    {
-        var employee = new Mock<IExternalEmployee>();
-        employee.SetupGet(e => e.Email).Returns(new EmailAddress(email));
-        employee.SetupGet(e => e.Name).Returns(new PersonName(firstName, null, "Sync"));
-        employee.SetupGet(e => e.IsActive).Returns(isActive);
-        return employee.Object;
-    }
 
     /// <summary>
     /// A service over the scope's context, with the real identity and session stores, so a deactivation and the
@@ -131,11 +150,14 @@ public sealed class UserServiceSyncTests(SqlServerDbContextFixture fixture)
         // Arrange
         var ct = TestContext.Current.CancellationToken;
         await _fixture.ResetIdentityData(ct);
+        var leaver = await SeedEmployee("Lee", ct, isActive: false);
+        var stayer = await SeedEmployee("Sam", ct);
+        var returning = await SeedEmployee("Robin", ct);
         await using (var context = _fixture.CreateContext())
         {
-            var returner = NewUser(ReturnerUserId, "returner@acme.example", "Robin");
+            var returner = NewUser(ReturnerUserId, "returner@acme.example", "Robin", returning);
             returner.IsActive = false;
-            context.Users.AddRange(NewUser(LeaverUserId, "leaver@acme.example", "Lee"), NewUser(StayerUserId, "stayer@acme.example", "Sam"), returner);
+            context.Users.AddRange(NewUser(LeaverUserId, "leaver@acme.example", "Lee", leaver), NewUser(StayerUserId, "stayer@acme.example", "Sam", stayer), returner);
             await context.SaveChangesAsync(ct);
         }
         await OpenSession(LeaverUserId, ct);
@@ -146,12 +168,7 @@ public sealed class UserServiceSyncTests(SqlServerDbContextFixture fixture)
         var sut = CreateSut(scope.ServiceProvider);
 
         // Act
-        var result = await sut.SyncUsersFromEmployeeRecords(
-        [
-            Employee("leaver@acme.example", "Lee", isActive: false),
-            Employee("stayer@acme.example", "Sam"),
-            Employee("returner@acme.example", "Robin"),
-        ], ct);
+        var result = await sut.SyncUsersFromEmployeeRecords(ct);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -171,9 +188,11 @@ public sealed class UserServiceSyncTests(SqlServerDbContextFixture fixture)
         var ct = TestContext.Current.CancellationToken;
         await _fixture.ResetIdentityData(ct);
         var roleId = Guid.NewGuid().ToString();
+        var firstEmployee = await SeedEmployee("Ash", ct, isActive: false);
+        var secondEmployee = await SeedEmployee("Blair", ct, isActive: false);
         await using (var context = _fixture.CreateContext())
         {
-            context.Users.AddRange(NewUser(FirstAdministratorId, "first.admin@acme.example", "Ash"), NewUser(SecondAdministratorId, "second.admin@acme.example", "Blair"));
+            context.Users.AddRange(NewUser(FirstAdministratorId, "first.admin@acme.example", "Ash", firstEmployee), NewUser(SecondAdministratorId, "second.admin@acme.example", "Blair", secondEmployee));
             await context.SaveChangesAsync(ct);
             await context.Database.ExecuteSqlInterpolatedAsync(
                 $"INSERT INTO [Identity].[Roles] ([Id], [Name], [NormalizedName]) VALUES ({roleId}, {roleId}, {roleId.ToUpperInvariant()});", ct);
@@ -190,11 +209,7 @@ public sealed class UserServiceSyncTests(SqlServerDbContextFixture fixture)
         var sut = CreateSut(scope.ServiceProvider);
 
         // Act
-        var result = await sut.SyncUsersFromEmployeeRecords(
-        [
-            Employee("first.admin@acme.example", "Ash", isActive: false),
-            Employee("second.admin@acme.example", "Blair", isActive: false),
-        ], ct);
+        var result = await sut.SyncUsersFromEmployeeRecords(ct);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -226,11 +241,7 @@ public sealed class UserServiceSyncTests(SqlServerDbContextFixture fixture)
         var sut = CreateSut(scope.ServiceProvider);
 
         // Act
-        var result = await sut.SyncUsersFromEmployeeRecords(
-        [
-            Employee("rejected@acme.example", "Rylee"),
-            Employee("accepted@acme.example", "Alexandra"),
-        ], ct);
+        var result = await sut.SyncUsersFromEmployeeRecords(ct);
 
         // Assert
         result.IsSuccess.Should().BeTrue();
@@ -249,5 +260,92 @@ public sealed class UserServiceSyncTests(SqlServerDbContextFixture fixture)
             .ToListAsync(ct);
         recorded.Should().ContainSingle()
             .Which.Should().Be(new { AggregateId = Guid.Parse(AcceptedUserId), EventType = nameof(ApplicationUserDetailsUpdatedEvent) });
+    }
+
+    [Fact]
+    public async Task SyncUsersFromEmployeeRecords_FollowsTheLinkedEmployee_WhenTheUsersAddressNoLongerMatchesIt()
+    {
+        // Arrange — the user's address has moved off the directory; their employee record has gone inactive.
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var employeeId = await SeedEmployee("Morgan", ct, isActive: false);
+        await using (var context = _fixture.CreateContext())
+        {
+            context.Users.Add(NewUser(MovedUserId, "morgan@elsewhere.example", "Morgan", employeeId));
+            await context.SaveChangesAsync(ct);
+        }
+        await using var provider = BuildProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var sut = CreateSut(scope.ServiceProvider);
+
+        // Act
+        var result = await sut.SyncUsersFromEmployeeRecords(ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var check = _fixture.CreateContext();
+        var user = await check.Users.AsNoTracking().SingleAsync(u => u.Id == MovedUserId, ct);
+        user.IsActive.Should().BeFalse("a linked user follows their employee record, whatever address they hold");
+        user.Email.Should().StartWith("morgan.").And.EndWith("@acme.example", "the employee record's address replaces the user's");
+        user.UserName.Should().Be(user.Email, "the username is the email, so it moves with it");
+        user.NormalizedUserName.Should().Be(user.Email!.ToUpperInvariant());
+    }
+
+    [Fact]
+    public async Task SyncUsersFromEmployeeRecords_LeavesAnUnlinkedUserAlone_WhenTheirAddressMatchesAnEmployee()
+    {
+        // Arrange — an inactive employee no account is linked to, and an unlinked user holding its address.
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var email = $"quinn.{Guid.NewGuid():N}@acme.example";
+        await SeedEmployee("Quinn", ct, isActive: false, email: email);
+        await using (var context = _fixture.CreateContext())
+        {
+            context.Users.Add(NewUser(UnlinkedUserId, email, "Casey"));
+            await context.SaveChangesAsync(ct);
+        }
+        await using var provider = BuildProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var sut = CreateSut(scope.ServiceProvider);
+
+        // Act
+        var result = await sut.SyncUsersFromEmployeeRecords(ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var check = _fixture.CreateContext();
+        var user = await check.Users.AsNoTracking().SingleAsync(u => u.Id == UnlinkedUserId, ct);
+        user.IsActive.Should().BeTrue("only the employee link decides whose record a user follows");
+        user.FirstName.Should().Be("Casey");
+    }
+
+    [Fact]
+    public async Task SyncUsersFromEmployeeRecords_DoesNotSaveALinkedUser_WhoseDetailsAlreadyMatch()
+    {
+        // Arrange
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var email = $"sam.{Guid.NewGuid():N}@acme.example";
+        var employeeId = await SeedEmployee("Sam", ct, email: email);
+        string stamp;
+        await using (var context = _fixture.CreateContext())
+        {
+            var user = NewUser(StayerUserId, email, "Sam", employeeId);
+            stamp = user.ConcurrencyStamp!;
+            context.Users.Add(user);
+            await context.SaveChangesAsync(ct);
+        }
+        await using var provider = BuildProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var sut = CreateSut(scope.ServiceProvider);
+
+        // Act
+        var result = await sut.SyncUsersFromEmployeeRecords(ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var check = _fixture.CreateContext();
+        var saved = await check.Users.AsNoTracking().SingleAsync(u => u.Id == StayerUserId, ct);
+        saved.ConcurrencyStamp.Should().Be(stamp, "the identity store writes a new stamp on every update, wanted or not");
     }
 }

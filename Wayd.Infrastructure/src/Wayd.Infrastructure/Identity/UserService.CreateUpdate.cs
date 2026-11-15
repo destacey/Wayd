@@ -951,7 +951,12 @@ internal partial class UserService
         if (employeeLinkChanged)
             EnsureNotSelf(user.Id, OwnEmployeeLink);
 
-        // The self-service profile edits the caller's own account through this method too.
+        // The email is the address people sync links an unlinked user to an employee by, so changing your own is
+        // linking yourself by another route.
+        if (emailChanged)
+            EnsureNotSelf(user.Id, OwnEmail);
+
+        // A user editing their own account through Settings → Access → Users needs only the endpoint's permission.
         if (user.Id != _currentUser.GetUserId())
             await EnsureMayManage(user, CancellationToken.None);
 
@@ -965,9 +970,8 @@ internal partial class UserService
         }
 
         // The employee link is resolved by email elsewhere (GetEmployeeIdByEmail on registration,
-        // UpdateMissingEmployeeIds, SyncUsersFromEmployeeRecords); only the admin user-edit path
-        // overrides it by hand. Assigning unconditionally wrote the command's default null over an
-        // existing link on every self-service profile save — see UpdateUserCommand.ManageEmployeeLink.
+        // UpdateMissingEmployeeIds); a command changes it only when it says it manages the link,
+        // since a null EmployeeId alone cannot tell "leave it" from "clear it".
         if (employeeLinkChanged)
         {
             user.ChangeEmployeeLink(command.EmployeeId, actor, now);
@@ -978,6 +982,28 @@ internal partial class UserService
         {
             user.ClearDomainEvents();
             _logger.LogError("Error updating user: {Errors}", result.Errors.Select(e => e.Description));
+            throw new InternalServerException("Update profile failed");
+        }
+
+        await _signInManager.RefreshSignInAsync(user);
+    }
+
+    public async Task UpdateProfile(UpdateProfileCommand command, string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            _logger.LogError("User with id {UserId} not found.", userId);
+            throw new NotFoundException("User Not Found.");
+        }
+
+        user.UpdateDetails(command.FirstName, command.LastName, user.Email, command.PhoneNumber, CurrentActor(), _dateTimeProvider.Now);
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+        {
+            user.ClearDomainEvents();
+            _logger.LogError("Error updating profile: {Errors}", result.Errors.Select(e => e.Description));
             throw new InternalServerException("Update profile failed");
         }
 
@@ -1144,8 +1170,11 @@ internal partial class UserService
             return Result.Success();
 
         // Email is the cross-source-stable User↔Employee link key. The active PeopleSync
-        // connector owns Employee.Email; the user's email is set by registration and updated by
-        // SyncUsersFromEmployeeRecords. Case-insensitive match. Project e.Email, not e.Email.Value —
+        // connector owns Employee.Email. Linking on the user's address is safe only because the user
+        // never sets it: it comes from the identity provider at registration, an administrator, or
+        // SyncUsersFromEmployeeRecords — the profile has no email (UpdateProfileCommand), and must
+        // never gain one, or anyone could claim an unlinked employee by typing their address.
+        // Case-insensitive match. Project e.Email, not e.Email.Value —
         // Email is mapped with a value converter, so .Value is untranslatable and throws at runtime.
         var employees = await _db.Employees
             .Select(e => new { e.Id, e.Email })
@@ -1191,36 +1220,33 @@ internal partial class UserService
         return Result.Success();
     }
 
-    public async Task<Result> SyncUsersFromEmployeeRecords(List<IExternalEmployee> externalEmployees, CancellationToken cancellationToken)
+    public async Task<Result> SyncUsersFromEmployeeRecords(CancellationToken cancellationToken)
     {
-        // Match users to the external payload by email. This works regardless of which PeopleSync
-        // connector is currently active (Entra, Workday, future). Users whose email isn't in the
-        // payload are left untouched — separate from the Employee deactivation pass.
+        // A user follows the employee they are linked to, read after the sync's upsert, so the employee id is the
+        // key and the payload is not consulted: an incremental sync's payload holds only changed employees, and an
+        // address match would let a user follow an employee someone else is linked to. An unlinked user is left
+        // alone; UpdateMissingEmployeeIds, which runs first, links the ones an address can.
         var users = await _userManager.Users
-            .Where(u => !string.IsNullOrEmpty(u.Email))
+            .Where(u => u.EmployeeId.HasValue)
             .ToListAsync(cancellationToken);
 
-        _logger.LogDebug("{UserCount} users found.", users.Count);
+        _logger.LogDebug("{UserCount} linked users found.", users.Count);
         if (users.Count == 0)
             return Result.Success();
 
-        // Pre-index by email (case-insensitive) for O(1) lookup.
-        var employeesByEmail = externalEmployees
-            .GroupBy(e => e.Email.Value, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.Last(), StringComparer.OrdinalIgnoreCase);
+        // Project e.Email, not e.Email.Value: Email is mapped with a value converter, so .Value is untranslatable.
+        var linkedEmployeeIds = users.Select(u => u.EmployeeId!.Value).ToList();
+        var employees = await _db.Employees
+            .Where(e => linkedEmployeeIds.Contains(e.Id))
+            .Select(e => new { e.Id, e.Name.FirstName, e.Name.LastName, e.Email, e.IsActive })
+            .ToDictionaryAsync(e => e.Id, cancellationToken);
 
         var actor = SyncActor();
 
         foreach (var user in users)
         {
-            if (string.IsNullOrEmpty(user.Email)) continue;
-
-            var employee = employeesByEmail.GetValueOrDefault(user.Email);
-            if (employee is null)
-            {
-                // Not an error — just means this user isn't in this sync's payload.
+            if (!employees.TryGetValue(user.EmployeeId!.Value, out var employee))
                 continue;
-            }
 
             var now = _dateTimeProvider.Now;
             var deactivating = user.IsActive && !employee.IsActive;
@@ -1234,11 +1260,25 @@ internal partial class UserService
                 }
             }
 
-            user.UpdateDetails(employee.Name.FirstName, employee.Name.LastName, employee.Email, user.PhoneNumber, actor, now);
+            var before = (user.FirstName, user.LastName, user.Email, user.UserName, user.IsActive);
+            var emailChanged = !string.Equals(user.Email, employee.Email, StringComparison.OrdinalIgnoreCase);
+
+            user.UpdateDetails(employee.FirstName, employee.LastName, employee.Email, user.PhoneNumber, actor, now);
+            // The username is the email: left behind, local sign-in would still want the old address, and the old
+            // address would stay reserved against the account its owner signs in with next.
+            if (emailChanged)
+            {
+                user.UserName = user.Email;
+                user.NormalizedUserName = user.Email!.ToUpperInvariant();
+            }
             if (employee.IsActive)
                 user.Activate(actor, now);
             else if (deactivating)
                 user.Deactivate(actor, now);
+
+            // Every run visits every linked user, and the store writes a new concurrency stamp on every update.
+            if (before == (user.FirstName, user.LastName, user.Email, user.UserName, user.IsActive))
+                continue;
 
             IdentityResult result = IdentityResult.Success;
             if (deactivating)

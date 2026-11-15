@@ -27,6 +27,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
 
     [HttpPut]
     [EndpointSummary("Update profile details of currently logged in user.")]
+    [EndpointDescription("Changes the name and phone number. The email is not part of a profile: it is also the username and the address people sync links a user to an employee by, so an administrator changes it.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
@@ -35,7 +36,7 @@ public class ProfileController(IUserService userService, IDispatcher dispatcher,
         if (User.GetUserId() is not { } userId || string.IsNullOrEmpty(userId))
             return Unauthorized();
 
-        await _userService.UpdateAsync(request.ToUpdateUserCommand(), userId);
+        await _userService.UpdateProfile(request.ToUpdateProfileCommand(), userId);
         return NoContent();
     }
 

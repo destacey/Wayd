@@ -52,6 +52,7 @@ User accounts control access to Wayd. Each user has:
   - **Wayd** — A local account: username/password authentication with JWT tokens
   - Any other OIDC provider configured under [Identity Providers](#identity-providers), reached through **Change Identity Provider**
 - **Employee** — The employee record the account is linked to, if any. PPM and sprint changes are attributed to it, so an account without one cannot make them
+- **Email** — Also the user's username, and the address people sync links the account to an employee by. It is changed by an administrator, never on your own account, or by people sync for an account linked to an employee. Users cannot change their own
 - **Roles** — Permission groups that control what the user can see and do
 - **Status** — Active or Inactive, and Locked while a lockout is in force
 
@@ -475,6 +476,17 @@ A **Connector** is a configurable integration type that lets a specific external
 - **Activity** — Records the connection created, its name or description edited, its settings changed (each entry lists the settings before and after), its credentials replaced, activated, deactivated or deleted, and by whom. A credential change records *which* credential was replaced — the personal access token, API key, client secret or password — and never its value, not even hashed. Syncing workspaces, processes and teams from Azure DevOps and probing a Workday configuration are not recorded here; the Sync History section covers them.
 
 **Only one people connection may be active at a time.** Several Entra or Workday connections can exist — stage one, configure it, and activate it at cutover — but activating one while another is active is refused, and a people sync fails while two are active.
+
+**People sync keeps each linked user in step with their employee record.** After it updates the employees, a sync:
+
+1. Links each user who has no employee to the employee with the same email, unless that employee is already linked to someone else.
+2. Gives every linked user their employee's name and email (their username changes with it), and activates or deactivates them with it. This follows the link, not the email, so it holds after either address changes and in a differential sync that didn't include the employee.
+
+To keep someone out while their employee record is active, remove their roles rather than deactivating the account: the next sync reactivates a linked user whose employee is active.
+
+A user with no employee link is never activated or deactivated by people sync, even if their email matches an employee's.
+
+A full sync deactivates every employee its source no longer returns, including employees created by hand in Wayd, and with them the users linked to them. Link a contractor or service account to such an employee only if it should lose access when the next full sync runs.
 
 **Nothing syncs on a schedule until you create one.** Create a recurring **Work** or **People** sync job under [Background Jobs](#background-jobs).
 

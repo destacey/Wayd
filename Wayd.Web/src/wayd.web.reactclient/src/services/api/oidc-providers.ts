@@ -187,8 +187,19 @@ export const oidcProvidersGetActivities = async (id: string,
 
 
   }
-);}
+).then(deserializeOidcProvidersGetActivitiesResponse);}
 
+
+const deserializeOidcProvidersGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getOidcProvidersTestDiscoveryUrl = (id: string,) => {
 
@@ -265,8 +276,19 @@ export const oidcProvidersGetPendingMigrations = async (id: string, options?: Pa
 
 
   }
-);}
+).then(deserializeOidcProvidersGetPendingMigrationsResponse);}
 
+
+const deserializeOidcProvidersGetPendingMigrationsResponse = (data: PendingTenantMigrationDto[]): PendingTenantMigrationDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.stagedAt != null) {
+      item0.stagedAt = new Date(item0.stagedAt);
+    }
+  }
+  return data;
+};
 
 export const getOidcProvidersStageBulkTenantMigrationUrl = (id: string,) => {
 

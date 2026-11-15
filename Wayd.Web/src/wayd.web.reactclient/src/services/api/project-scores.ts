@@ -55,8 +55,16 @@ export const projectScoresGetScoringContext = async (id: string, options?: Param
 
 
   }
-);}
+).then(deserializeProjectScoresGetScoringContextResponse);}
 
+
+const deserializeProjectScoresGetScoringContextResponse = (data: ProjectScoringContextDto): ProjectScoringContextDto => {
+  if (data == null) return data;
+  if (data.currentScore != null) {
+    data.currentScore.scoredOn = new Date(data.currentScore.scoredOn);
+  }
+  return data;
+};
 
 export const getProjectScoresGetScoresUrl = (id: string,) => {
 
@@ -79,8 +87,17 @@ export const projectScoresGetScores = async (id: string, options?: Parameters<ty
 
 
   }
-);}
+).then(deserializeProjectScoresGetScoresResponse);}
 
+
+const deserializeProjectScoresGetScoresResponse = (data: ProjectScoreSummaryDto[]): ProjectScoreSummaryDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.scoredOn = new Date(item0.scoredOn);
+  }
+  return data;
+};
 
 export const getProjectScoresRecordScoreUrl = (id: string,) => {
 
@@ -130,6 +147,12 @@ export const projectScoresGetScore = async (id: string,
 
 
   }
-);}
+).then(deserializeProjectScoresGetScoreResponse);}
 
+
+const deserializeProjectScoresGetScoreResponse = (data: ProjectScoreDetailsDto): ProjectScoreDetailsDto => {
+  if (data == null) return data;
+  data.scoredOn = new Date(data.scoredOn);
+  return data;
+};
 

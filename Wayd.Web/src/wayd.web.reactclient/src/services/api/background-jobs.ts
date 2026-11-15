@@ -83,8 +83,19 @@ export const backgroundJobsGetRunningJobs = async ( options?: Parameters<typeof 
 
 
   }
-);}
+).then(deserializeBackgroundJobsGetRunningJobsResponse);}
 
+
+const deserializeBackgroundJobsGetRunningJobsResponse = (data: BackgroundJobDto[]): BackgroundJobDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.startedAt != null) {
+      item0.startedAt = new Date(item0.startedAt);
+    }
+  }
+  return data;
+};
 
 export const getBackgroundJobsRunUrl = (params?: BackgroundJobsRunParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -166,8 +177,24 @@ export const backgroundJobsGetJobs = async (params?: BackgroundJobsGetJobsParams
 
 
   }
-);}
+).then(deserializeBackgroundJobsGetJobsResponse);}
 
+
+const deserializeBackgroundJobsGetJobsResponse = (data: PagedResponseOfJobSummaryResponse): PagedResponseOfJobSummaryResponse => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      if (item0.timestamp != null) {
+        item0.timestamp = new Date(item0.timestamp);
+      }
+      if (item0.startedAt != null) {
+        item0.startedAt = new Date(item0.startedAt);
+      }
+    }
+  }
+  return data;
+};
 
 export const getBackgroundJobsGetJobDetailUrl = (jobId: string,) => {
 
@@ -189,8 +216,27 @@ export const backgroundJobsGetJobDetail = async (jobId: string, options?: Parame
 
 
   }
-);}
+).then(deserializeBackgroundJobsGetJobDetailResponse);}
 
+
+const deserializeBackgroundJobsGetJobDetailResponse = (data: JobDetailResponse): JobDetailResponse => {
+  if (data == null) return data;
+  if (data.createdAt != null) {
+    data.createdAt = new Date(data.createdAt);
+  }
+  if (data.expiresAt != null) {
+    data.expiresAt = new Date(data.expiresAt);
+  }
+  if (data.history != null) {
+    for (let i0 = 0; i0 < data.history.length; i0++) {
+      const item0 = data.history[i0]!;
+      if (item0.changedAt != null) {
+        item0.changedAt = new Date(item0.changedAt);
+      }
+    }
+  }
+  return data;
+};
 
 export const getBackgroundJobsDeleteJobUrl = (jobId: string,) => {
 
@@ -258,8 +304,22 @@ export const backgroundJobsGetServers = async ( options?: Parameters<typeof apiF
 
 
   }
-);}
+).then(deserializeBackgroundJobsGetServersResponse);}
 
+
+const deserializeBackgroundJobsGetServersResponse = (data: JobServerResponse[]): JobServerResponse[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.startedAt != null) {
+      item0.startedAt = new Date(item0.startedAt);
+    }
+    if (item0.heartbeat != null) {
+      item0.heartbeat = new Date(item0.heartbeat);
+    }
+  }
+  return data;
+};
 
 export const getBackgroundJobsGetRecurringJobsUrl = () => {
 
@@ -281,8 +341,22 @@ export const backgroundJobsGetRecurringJobs = async ( options?: Parameters<typeo
 
 
   }
-);}
+).then(deserializeBackgroundJobsGetRecurringJobsResponse);}
 
+
+const deserializeBackgroundJobsGetRecurringJobsResponse = (data: RecurringJobResponse[]): RecurringJobResponse[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.lastExecution != null) {
+      item0.lastExecution = new Date(item0.lastExecution);
+    }
+    if (item0.nextExecution != null) {
+      item0.nextExecution = new Date(item0.nextExecution);
+    }
+  }
+  return data;
+};
 
 export const getBackgroundJobsRemoveRecurringJobUrl = (recurringJobId: string,) => {
 

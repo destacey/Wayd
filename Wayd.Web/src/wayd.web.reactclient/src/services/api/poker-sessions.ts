@@ -126,8 +126,42 @@ export const pokerSessionsGetSession = async (idOrKey: string, options?: Paramet
 
 
   }
-);}
+).then(deserializePokerSessionsGetSessionResponse);}
 
+
+const deserializePokerSessionsGetSessionResponse = (data: PokerSessionDetailsDto): PokerSessionDetailsDto => {
+  if (data == null) return data;
+  if (data.members != null) {
+    for (let i0 = 0; i0 < data.members.length; i0++) {
+      const item0 = data.members[i0]!;
+      item0.joinedOn = new Date(item0.joinedOn);
+    }
+  }
+  if (data.estimationScaleVersion != null) {
+    data.estimationScaleVersion.publishedOn = new Date(data.estimationScaleVersion.publishedOn);
+  }
+  if (data.activatedOn != null) {
+    data.activatedOn = new Date(data.activatedOn);
+  }
+  if (data.completedOn != null) {
+    data.completedOn = new Date(data.completedOn);
+  }
+  if (data.rounds != null) {
+    for (let i0 = 0; i0 < data.rounds.length; i0++) {
+      const item0 = data.rounds[i0]!;
+      if (item0.publication != null) {
+        item0.publication.at = new Date(item0.publication.at);
+      }
+      if (item0.votes != null) {
+        for (let i1 = 0; i1 < item0.votes.length; i1++) {
+          const item1 = item0.votes[i1]!;
+          item1.submittedOn = new Date(item1.submittedOn);
+        }
+      }
+    }
+  }
+  return data;
+};
 
 export const getPokerSessionsGetInvitedTeamMembersUrl = (id: string,
     teamId: string,) => {
@@ -250,8 +284,22 @@ export const pokerSessionsAddRound = async (id: string,
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(addPokerRoundRequest)
   }
-);}
+).then(deserializePokerSessionsAddRoundResponse);}
 
+
+const deserializePokerSessionsAddRoundResponse = (data: PokerRoundDto): PokerRoundDto => {
+  if (data == null) return data;
+  if (data.publication != null) {
+    data.publication.at = new Date(data.publication.at);
+  }
+  if (data.votes != null) {
+    for (let i0 = 0; i0 < data.votes.length; i0++) {
+      const item0 = data.votes[i0]!;
+      item0.submittedOn = new Date(item0.submittedOn);
+    }
+  }
+  return data;
+};
 
 export const getPokerSessionsRemoveRoundUrl = (id: string,
     roundId: string,) => {
@@ -406,8 +454,22 @@ export const pokerSessionsPublishRound = async (id: string,
 
 
   }
-);}
+).then(deserializePokerSessionsPublishRoundResponse);}
 
+
+const deserializePokerSessionsPublishRoundResponse = (data: PokerRoundDto): PokerRoundDto => {
+  if (data == null) return data;
+  if (data.publication != null) {
+    data.publication.at = new Date(data.publication.at);
+  }
+  if (data.votes != null) {
+    for (let i0 = 0; i0 < data.votes.length; i0++) {
+      const item0 = data.votes[i0]!;
+      item0.submittedOn = new Date(item0.submittedOn);
+    }
+  }
+  return data;
+};
 
 export const getPokerSessionsPublishRoundsUrl = (id: string,) => {
 
@@ -430,8 +492,25 @@ export const pokerSessionsPublishRounds = async (id: string, options?: Parameter
 
 
   }
-);}
+).then(deserializePokerSessionsPublishRoundsResponse);}
 
+
+const deserializePokerSessionsPublishRoundsResponse = (data: PokerRoundDto[]): PokerRoundDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.publication != null) {
+      item0.publication.at = new Date(item0.publication.at);
+    }
+    if (item0.votes != null) {
+      for (let i1 = 0; i1 < item0.votes.length; i1++) {
+        const item1 = item0.votes[i1]!;
+        item1.submittedOn = new Date(item1.submittedOn);
+      }
+    }
+  }
+  return data;
+};
 
 export const getPokerSessionsUpdateRoundLabelUrl = (id: string,
     roundId: string,) => {
@@ -637,8 +716,14 @@ export const pokerSessionsJoin = async (id: string,
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(joinPokerSessionRequest)
   }
-);}
+).then(deserializePokerSessionsJoinResponse);}
 
+
+const deserializePokerSessionsJoinResponse = (data: PokerSessionMemberDto): PokerSessionMemberDto => {
+  if (data == null) return data;
+  data.joinedOn = new Date(data.joinedOn);
+  return data;
+};
 
 export const getPokerSessionsSetVotingUrl = (id: string,) => {
 
@@ -662,6 +747,12 @@ export const pokerSessionsSetVoting = async (id: string,
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(setPokerSessionVotingRequest)
   }
-);}
+).then(deserializePokerSessionsSetVotingResponse);}
 
+
+const deserializePokerSessionsSetVotingResponse = (data: PokerSessionMemberDto): PokerSessionMemberDto => {
+  if (data == null) return data;
+  data.joinedOn = new Date(data.joinedOn);
+  return data;
+};
 

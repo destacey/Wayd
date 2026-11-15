@@ -194,8 +194,22 @@ export const rolesGetUsers = async (id: string, options?: Parameters<typeof apiF
 
 
   }
-);}
+).then(deserializeRolesGetUsersResponse);}
 
+
+const deserializeRolesGetUsersResponse = (data: UserDetailsDto[]): UserDetailsDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.lockoutEnd != null) {
+      item0.lockoutEnd = new Date(item0.lockoutEnd);
+    }
+    if (item0.lastActivityAt != null) {
+      item0.lastActivityAt = new Date(item0.lastActivityAt);
+    }
+  }
+  return data;
+};
 
 export const getRolesGetUsersCountUrl = (id: string,) => {
 

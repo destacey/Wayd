@@ -65,8 +65,21 @@ export const estimationScalesGetScales = async (params?: EstimationScalesGetScal
 
 
   }
-);}
+).then(deserializeEstimationScalesGetScalesResponse);}
 
+
+const deserializeEstimationScalesGetScalesResponse = (data: EstimationScaleDto[]): EstimationScaleDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.currentVersion != null) {
+      if ("publishedOn" in item0.currentVersion && item0.currentVersion.publishedOn != null) {
+        item0.currentVersion.publishedOn = new Date(item0.currentVersion.publishedOn);
+      }
+    }
+  }
+  return data;
+};
 
 export const getEstimationScalesCreateUrl = () => {
 
@@ -113,8 +126,24 @@ export const estimationScalesGetScale = async (idOrKey: string, options?: Parame
 
 
   }
-);}
+).then(deserializeEstimationScalesGetScaleResponse);}
 
+
+const deserializeEstimationScalesGetScaleResponse = (data: EstimationScaleDetailsDto): EstimationScaleDetailsDto => {
+  if (data == null) return data;
+  if (data.currentVersion != null) {
+    if ("publishedOn" in data.currentVersion && data.currentVersion.publishedOn != null) {
+      data.currentVersion.publishedOn = new Date(data.currentVersion.publishedOn);
+    }
+  }
+  if (data.versions != null) {
+    for (let i0 = 0; i0 < data.versions.length; i0++) {
+      const item0 = data.versions[i0]!;
+      item0.publishedOn = new Date(item0.publishedOn);
+    }
+  }
+  return data;
+};
 
 export const getEstimationScalesUpdateUrl = (id: string,) => {
 

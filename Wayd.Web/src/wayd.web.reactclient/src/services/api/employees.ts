@@ -126,8 +126,16 @@ export const employeesGetEmployee = async (idOrKey: string, options?: Parameters
 
 
   }
-);}
+).then(deserializeEmployeesGetEmployeeResponse);}
 
+
+const deserializeEmployeesGetEmployeeResponse = (data: EmployeeDetailsDto): EmployeeDetailsDto => {
+  if (data == null) return data;
+  if (data.hireDate != null) {
+    data.hireDate = new Date(data.hireDate);
+  }
+  return data;
+};
 
 export const getEmployeesImportUrl = (params?: EmployeesImportParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -304,8 +312,20 @@ export const employeesGetAllocations = async (id: string, options?: Parameters<t
 
 
   }
-);}
+).then(deserializeEmployeesGetAllocationsResponse);}
 
+
+const deserializeEmployeesGetAllocationsResponse = (data: EmployeeAllocationDto[]): EmployeeAllocationDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+    if (item0.end != null) {
+      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    }
+  }
+  return data;
+};
 
 export const getEmployeesChangeAllocationsUrl = (id: string,) => {
 
@@ -402,8 +422,20 @@ export const employeesGetTimeAway = async (id: string, options?: Parameters<type
 
 
   }
-);}
+).then(deserializeEmployeesGetTimeAwayResponse);}
 
+
+const deserializeEmployeesGetTimeAwayResponse = (data: EmployeeTimeAwayDto): EmployeeTimeAwayDto => {
+  if (data == null) return data;
+  if (data.entries != null) {
+    for (let i0 = 0; i0 < data.entries.length; i0++) {
+      const item0 = data.entries[i0]!;
+      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    }
+  }
+  return data;
+};
 
 export const getEmployeesRecordTimeAwayUrl = (id: string,) => {
 
@@ -540,7 +572,7 @@ export const getEmployeesGetEmployeeWorkItemsUrl = (id: string,
   Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
     }
   });
 
@@ -563,6 +595,21 @@ export const employeesGetEmployeeWorkItems = async (id: string,
 
 
   }
-);}
+).then(deserializeEmployeesGetEmployeeWorkItemsResponse);}
 
+
+const deserializeEmployeesGetEmployeeWorkItemsResponse = (data: WorkItemListDto[]): WorkItemListDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.created = new Date(item0.created);
+    if (item0.activated != null) {
+      item0.activated = new Date(item0.activated);
+    }
+    if (item0.done != null) {
+      item0.done = new Date(item0.done);
+    }
+  }
+  return data;
+};
 

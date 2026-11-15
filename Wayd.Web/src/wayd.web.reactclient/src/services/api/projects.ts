@@ -105,8 +105,39 @@ export const projectsGetProjects = async (params?: ProjectsGetProjectsParams, op
 
 
   }
-);}
+).then(deserializeProjectsGetProjectsResponse);}
 
+
+const deserializeProjectsGetProjectsResponse = (data: ProjectListDto[]): ProjectListDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.start != null) {
+      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+    }
+    if (item0.end != null) {
+      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    }
+    if (item0.stages != null) {
+      for (let i1 = 0; i1 < item0.stages.length; i1++) {
+        const item1 = item0.stages[i1]!;
+        if (item1.start != null) {
+          item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
+        }
+        if (item1.end != null) {
+          item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
+        }
+      }
+    }
+    if (item0.healthCheck != null) {
+      item0.healthCheck.expiration = new Date(item0.healthCheck.expiration);
+    }
+    if (item0.currentScore != null) {
+      item0.currentScore.scoredOn = new Date(item0.currentScore.scoredOn);
+    }
+  }
+  return data;
+};
 
 export const getProjectsCreateUrl = () => {
 
@@ -222,8 +253,19 @@ export const projectsGetMyProjectTasks = async (params?: ProjectsGetMyProjectTas
 
 
   }
-);}
+).then(deserializeProjectsGetMyProjectTasksResponse);}
 
+
+const deserializeProjectsGetMyProjectTasksResponse = (data: MyProjectTaskDto[]): MyProjectTaskDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.dueDate != null) {
+      item0.dueDate = typeof item0.dueDate === 'string' ? String(item0.dueDate as unknown as string) : item0.dueDate;
+    }
+  }
+  return data;
+};
 
 export const getProjectsGetMyProjectDeliverablesUrl = () => {
 
@@ -246,8 +288,19 @@ export const projectsGetMyProjectDeliverables = async ( options?: Parameters<typ
 
 
   }
-);}
+).then(deserializeProjectsGetMyProjectDeliverablesResponse);}
 
+
+const deserializeProjectsGetMyProjectDeliverablesResponse = (data: MyProjectDeliverableDto[]): MyProjectDeliverableDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.targetDate != null) {
+      item0.targetDate = typeof item0.targetDate === 'string' ? String(item0.targetDate as unknown as string) : item0.targetDate;
+    }
+  }
+  return data;
+};
 
 export const getProjectsGetProjectsTaskMetricsUrl = (params?: ProjectsGetProjectsTaskMetricsParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -300,8 +353,37 @@ export const projectsGetProject = async (idOrKey: string, options?: Parameters<t
 
 
   }
-);}
+).then(deserializeProjectsGetProjectResponse);}
 
+
+const deserializeProjectsGetProjectResponse = (data: ProjectDetailsDto): ProjectDetailsDto => {
+  if (data == null) return data;
+  if (data.start != null) {
+    data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
+  }
+  if (data.end != null) {
+    data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
+  }
+  if (data.stages != null) {
+    for (let i0 = 0; i0 < data.stages.length; i0++) {
+      const item0 = data.stages[i0]!;
+      if (item0.start != null) {
+        item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+      }
+      if (item0.end != null) {
+        item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+      }
+    }
+  }
+  if (data.healthCheck != null) {
+    data.healthCheck.reportedOn = new Date(data.healthCheck.reportedOn);
+    data.healthCheck.expiration = new Date(data.healthCheck.expiration);
+  }
+  if (data.currentScore != null) {
+    data.currentScore.scoredOn = new Date(data.currentScore.scoredOn);
+  }
+  return data;
+};
 
 export const getProjectsGetStatusHistoryUrl = (id: string,) => {
 
@@ -324,8 +406,17 @@ export const projectsGetStatusHistory = async (id: string, options?: Parameters<
 
 
   }
-);}
+).then(deserializeProjectsGetStatusHistoryResponse);}
 
+
+const deserializeProjectsGetStatusHistoryResponse = (data: ProjectStatusHistoryDto[]): ProjectStatusHistoryDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.changedOn = new Date(item0.changedOn);
+  }
+  return data;
+};
 
 export const getProjectsGetActivitiesUrl = (idOrKey: string,
     params?: ProjectsGetActivitiesParams,) => {
@@ -357,8 +448,19 @@ export const projectsGetActivities = async (idOrKey: string,
 
 
   }
-);}
+).then(deserializeProjectsGetActivitiesResponse);}
 
+
+const deserializeProjectsGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getProjectsImportUrl = (params?: ProjectsImportParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -565,8 +667,102 @@ export const projectsGetHealthCheckEvidence = async (idOrKey: string,
 
 
   }
-);}
+).then(deserializeProjectsGetHealthCheckEvidenceResponse);}
 
+
+const deserializeProjectsGetHealthCheckEvidenceResponse = (data: ProjectHealthCheckEvidenceDto): ProjectHealthCheckEvidenceDto => {
+  if (data == null) return data;
+  data.asOf = typeof data.asOf === 'string' ? String(data.asOf as unknown as string) : data.asOf;
+  if (data.project != null) {
+    if ("start" in data.project && data.project.start != null) {
+      data.project.start = typeof data.project.start === 'string' ? String(data.project.start as unknown as string) : data.project.start;
+    }
+    if ("end" in data.project && data.project.end != null) {
+      data.project.end = typeof data.project.end === 'string' ? String(data.project.end as unknown as string) : data.project.end;
+    }
+    if ("stages" in data.project && data.project.stages != null) {
+      for (let i0 = 0; i0 < data.project.stages.length; i0++) {
+        const item0 = data.project.stages[i0]!;
+        if (item0.start != null) {
+          item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+        }
+        if (item0.end != null) {
+          item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+        }
+      }
+    }
+    if ("healthCheck" in data.project && data.project.healthCheck != null) {
+      data.project.healthCheck.reportedOn = new Date(data.project.healthCheck.reportedOn);
+      data.project.healthCheck.expiration = new Date(data.project.healthCheck.expiration);
+    }
+    if ("currentScore" in data.project && data.project.currentScore != null) {
+      data.project.currentScore.scoredOn = new Date(data.project.currentScore.scoredOn);
+    }
+  }
+  if (data.overdueTasks != null) {
+    for (let i0 = 0; i0 < data.overdueTasks.length; i0++) {
+      const item0 = data.overdueTasks[i0]!;
+      if (item0.plannedStart != null) {
+        item0.plannedStart = typeof item0.plannedStart === 'string' ? String(item0.plannedStart as unknown as string) : item0.plannedStart;
+      }
+      if (item0.plannedEnd != null) {
+        item0.plannedEnd = typeof item0.plannedEnd === 'string' ? String(item0.plannedEnd as unknown as string) : item0.plannedEnd;
+      }
+      if (item0.plannedDate != null) {
+        item0.plannedDate = typeof item0.plannedDate === 'string' ? String(item0.plannedDate as unknown as string) : item0.plannedDate;
+      }
+    }
+  }
+  if (data.stages != null) {
+    for (let i0 = 0; i0 < data.stages.length; i0++) {
+      const item0 = data.stages[i0]!;
+      if (item0.start != null) {
+        item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+      }
+      if (item0.end != null) {
+        item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+      }
+    }
+  }
+  if (data.forecast != null) {
+    data.forecast.forecastStart = typeof data.forecast.forecastStart === 'string' ? String(data.forecast.forecastStart as unknown as string) : data.forecast.forecastStart;
+    if (data.forecast.teams != null) {
+      for (let i0 = 0; i0 < data.forecast.teams.length; i0++) {
+        const item0 = data.forecast.teams[i0]!;
+        item0.from = typeof item0.from === 'string' ? String(item0.from as unknown as string) : item0.from;
+        item0.to = typeof item0.to === 'string' ? String(item0.to as unknown as string) : item0.to;
+      }
+    }
+    if (data.forecast.targetDate != null) {
+      data.forecast.targetDate = typeof data.forecast.targetDate === 'string' ? String(data.forecast.targetDate as unknown as string) : data.forecast.targetDate;
+    }
+    if (data.forecast.percentiles != null) {
+      for (let i0 = 0; i0 < data.forecast.percentiles.length; i0++) {
+        const item0 = data.forecast.percentiles[i0]!;
+        if (item0.date != null) {
+          item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
+        }
+      }
+    }
+    if (data.forecast.histogram != null) {
+      for (let i0 = 0; i0 < data.forecast.histogram.length; i0++) {
+        const item0 = data.forecast.histogram[i0]!;
+        item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
+      }
+    }
+  }
+  if (data.latestHealthCheck != null) {
+    data.latestHealthCheck.reportedOn = new Date(data.latestHealthCheck.reportedOn);
+    data.latestHealthCheck.expiration = new Date(data.latestHealthCheck.expiration);
+  }
+  if (data.activitySinceLatestCheck != null) {
+    for (let i0 = 0; i0 < data.activitySinceLatestCheck.length; i0++) {
+      const item0 = data.activitySinceLatestCheck[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getProjectsChangeProgramUrl = (id: string,) => {
 
@@ -805,8 +1001,23 @@ export const projectsGetProjectWorkItems = async (id: string, options?: Paramete
 
 
   }
-);}
+).then(deserializeProjectsGetProjectWorkItemsResponse);}
 
+
+const deserializeProjectsGetProjectWorkItemsResponse = (data: WorkItemListDto[]): WorkItemListDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.created = new Date(item0.created);
+    if (item0.activated != null) {
+      item0.activated = new Date(item0.activated);
+    }
+    if (item0.done != null) {
+      item0.done = new Date(item0.done);
+    }
+  }
+  return data;
+};
 
 export const getProjectsAddWorkItemsUrl = (id: string,) => {
 
@@ -888,8 +1099,38 @@ export const projectsGetProjectForecast = async (idOrKey: string,
 
 
   }
-);}
+).then(deserializeProjectsGetProjectForecastResponse);}
 
+
+const deserializeProjectsGetProjectForecastResponse = (data: WorkItemForecastDto): WorkItemForecastDto => {
+  if (data == null) return data;
+  data.forecastStart = typeof data.forecastStart === 'string' ? String(data.forecastStart as unknown as string) : data.forecastStart;
+  if (data.teams != null) {
+    for (let i0 = 0; i0 < data.teams.length; i0++) {
+      const item0 = data.teams[i0]!;
+      item0.from = typeof item0.from === 'string' ? String(item0.from as unknown as string) : item0.from;
+      item0.to = typeof item0.to === 'string' ? String(item0.to as unknown as string) : item0.to;
+    }
+  }
+  if (data.targetDate != null) {
+    data.targetDate = typeof data.targetDate === 'string' ? String(data.targetDate as unknown as string) : data.targetDate;
+  }
+  if (data.percentiles != null) {
+    for (let i0 = 0; i0 < data.percentiles.length; i0++) {
+      const item0 = data.percentiles[i0]!;
+      if (item0.date != null) {
+        item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
+      }
+    }
+  }
+  if (data.histogram != null) {
+    for (let i0 = 0; i0 < data.histogram.length; i0++) {
+      const item0 = data.histogram[i0]!;
+      item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
+    }
+  }
+  return data;
+};
 
 export const getProjectsAssignLifecycleUrl = (id: string,) => {
 
@@ -961,8 +1202,22 @@ export const projectsGetProjectStages = async (id: string, options?: Parameters<
 
 
   }
-);}
+).then(deserializeProjectsGetProjectStagesResponse);}
 
+
+const deserializeProjectsGetProjectStagesResponse = (data: ProjectStageListDto[]): ProjectStageListDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.start != null) {
+      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+    }
+    if (item0.end != null) {
+      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    }
+  }
+  return data;
+};
 
 export const getProjectsGetProjectPlanTreeUrl = (idOrKey: string,) => {
 
@@ -1082,8 +1337,19 @@ export const projectsGetProjectStage = async (id: string,
 
 
   }
-);}
+).then(deserializeProjectsGetProjectStageResponse);}
 
+
+const deserializeProjectsGetProjectStageResponse = (data: ProjectStageDetailsDto): ProjectStageDetailsDto => {
+  if (data == null) return data;
+  if (data.start != null) {
+    data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
+  }
+  if (data.end != null) {
+    data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
+  }
+  return data;
+};
 
 export const getProjectsUpdateProjectStageUrl = (id: string,
     stageId: string,) => {

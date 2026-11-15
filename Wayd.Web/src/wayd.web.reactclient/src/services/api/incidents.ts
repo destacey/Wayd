@@ -76,8 +76,25 @@ export const incidentsGetIncidents = async (params?: IncidentsGetIncidentsParams
 
 
   }
-);}
+).then(deserializeIncidentsGetIncidentsResponse);}
 
+
+const deserializeIncidentsGetIncidentsResponse = (data: PagedResponseOfIncidentSummaryDto): PagedResponseOfIncidentSummaryDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.noticedAt = new Date(item0.noticedAt);
+      if (item0.startedAt != null) {
+        item0.startedAt = new Date(item0.startedAt);
+      }
+      if (item0.recoveredAt != null) {
+        item0.recoveredAt = new Date(item0.recoveredAt);
+      }
+    }
+  }
+  return data;
+};
 
 export const getIncidentsCreateUrl = () => {
 
@@ -154,8 +171,20 @@ export const incidentsGetIncident = async (idOrKey: string, options?: Parameters
 
 
   }
-);}
+).then(deserializeIncidentsGetIncidentResponse);}
 
+
+const deserializeIncidentsGetIncidentResponse = (data: IncidentDto): IncidentDto => {
+  if (data == null) return data;
+  data.noticedAt = new Date(data.noticedAt);
+  if (data.startedAt != null) {
+    data.startedAt = new Date(data.startedAt);
+  }
+  if (data.recoveredAt != null) {
+    data.recoveredAt = new Date(data.recoveredAt);
+  }
+  return data;
+};
 
 export const getIncidentsGetStatusWorkflowUrl = (idOrKey: string,) => {
 
@@ -275,8 +304,25 @@ export const incidentsGetIncidentWorkItems = async (idOrKey: string, options?: P
 
 
   }
-);}
+).then(deserializeIncidentsGetIncidentWorkItemsResponse);}
 
+
+const deserializeIncidentsGetIncidentWorkItemsResponse = (data: WorkItemsSummaryDto): WorkItemsSummaryDto => {
+  if (data == null) return data;
+  if (data.workItems != null) {
+    for (let i0 = 0; i0 < data.workItems.length; i0++) {
+      const item0 = data.workItems[i0]!;
+      item0.created = new Date(item0.created);
+      if (item0.activated != null) {
+        item0.activated = new Date(item0.activated);
+      }
+      if (item0.done != null) {
+        item0.done = new Date(item0.done);
+      }
+    }
+  }
+  return data;
+};
 
 export const getIncidentsManageIncidentWorkItemsUrl = (id: string,) => {
 
@@ -323,8 +369,17 @@ export const incidentsGetIncidentTimelineNotes = async (idOrKey: string, options
 
 
   }
-);}
+).then(deserializeIncidentsGetIncidentTimelineNotesResponse);}
 
+
+const deserializeIncidentsGetIncidentTimelineNotesResponse = (data: IncidentTimelineNoteDto[]): IncidentTimelineNoteDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.recordedAt = new Date(item0.recordedAt);
+  }
+  return data;
+};
 
 export const getIncidentsGetIncidentTimelineLinkEntriesUrl = (idOrKey: string,) => {
 
@@ -346,8 +401,17 @@ export const incidentsGetIncidentTimelineLinkEntries = async (idOrKey: string, o
 
 
   }
-);}
+).then(deserializeIncidentsGetIncidentTimelineLinkEntriesResponse);}
 
+
+const deserializeIncidentsGetIncidentTimelineLinkEntriesResponse = (data: IncidentTimelineLinkEntryDto[]): IncidentTimelineLinkEntryDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.recordedAt = new Date(item0.recordedAt);
+  }
+  return data;
+};
 
 export const getIncidentsAddIncidentTimelineNoteUrl = (id: string,) => {
 

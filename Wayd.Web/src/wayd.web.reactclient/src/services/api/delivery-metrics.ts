@@ -18,7 +18,7 @@ export const getDeliveryMetricsGetDeliveryMetricsUrl = (params?: DeliveryMetrics
   Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
     }
   });
 
@@ -42,6 +42,13 @@ export const deliveryMetricsGetDeliveryMetrics = async (params?: DeliveryMetrics
 
 
   }
-);}
+).then(deserializeDeliveryMetricsGetDeliveryMetricsResponse);}
 
+
+const deserializeDeliveryMetricsGetDeliveryMetricsResponse = (data: DeliveryMetricsDto): DeliveryMetricsDto => {
+  if (data == null) return data;
+  data.from = new Date(data.from);
+  data.to = new Date(data.to);
+  return data;
+};
 

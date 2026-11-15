@@ -58,8 +58,19 @@ export const profileGet = async ( options?: Parameters<typeof apiFetch>[1]): Pro
 
 
   }
-);}
+).then(deserializeProfileGetResponse);}
 
+
+const deserializeProfileGetResponse = (data: UserDetailsDto): UserDetailsDto => {
+  if (data == null) return data;
+  if (data.lockoutEnd != null) {
+    data.lockoutEnd = new Date(data.lockoutEnd);
+  }
+  if (data.lastActivityAt != null) {
+    data.lastActivityAt = new Date(data.lastActivityAt);
+  }
+  return data;
+};
 
 export const getProfileUpdateUrl = () => {
 

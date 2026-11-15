@@ -229,8 +229,17 @@ export const connectionsGetConnectionIdentities = async (id: string,
 
 
   }
-);}
+).then(deserializeConnectionsGetConnectionIdentitiesResponse);}
 
+
+const deserializeConnectionsGetConnectionIdentitiesResponse = (data: ExternalIdentityMappingDto[]): ExternalIdentityMappingDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.lastSeen = new Date(item0.lastSeen);
+  }
+  return data;
+};
 
 export const getConnectionsUpdateConnectionIdentityUrl = (id: string,) => {
 
@@ -310,8 +319,19 @@ export const connectionsGetActivities = async (id: string,
 
 
   }
-);}
+).then(deserializeConnectionsGetActivitiesResponse);}
 
+
+const deserializeConnectionsGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getConnectionsActivateConnectionUrl = (id: string,) => {
 
@@ -482,7 +502,7 @@ export const getConnectionsGetSyncRunsUrl = (id: string,
   Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
     }
   });
 
@@ -505,8 +525,20 @@ export const connectionsGetSyncRuns = async (id: string,
 
 
   }
-);}
+).then(deserializeConnectionsGetSyncRunsResponse);}
 
+
+const deserializeConnectionsGetSyncRunsResponse = (data: SyncRunListDto[]): SyncRunListDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.startedAt = new Date(item0.startedAt);
+    if (item0.finishedAt != null) {
+      item0.finishedAt = new Date(item0.finishedAt);
+    }
+  }
+  return data;
+};
 
 export const getConnectionsGetSyncRunUrl = (syncRunId: string,) => {
 
@@ -529,6 +561,15 @@ export const connectionsGetSyncRun = async (syncRunId: string, options?: Paramet
 
 
   }
-);}
+).then(deserializeConnectionsGetSyncRunResponse);}
 
+
+const deserializeConnectionsGetSyncRunResponse = (data: SyncRunDetailsDto): SyncRunDetailsDto => {
+  if (data == null) return data;
+  data.startedAt = new Date(data.startedAt);
+  if (data.finishedAt != null) {
+    data.finishedAt = new Date(data.finishedAt);
+  }
+  return data;
+};
 

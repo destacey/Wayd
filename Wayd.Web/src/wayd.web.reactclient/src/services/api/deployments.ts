@@ -50,7 +50,7 @@ export const getDeploymentsGetDeploymentsUrl = (params?: DeploymentsGetDeploymen
   Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
     }
   });
 
@@ -72,8 +72,20 @@ export const deploymentsGetDeployments = async (params?: DeploymentsGetDeploymen
 
 
   }
-);}
+).then(deserializeDeploymentsGetDeploymentsResponse);}
 
+
+const deserializeDeploymentsGetDeploymentsResponse = (data: DeploymentDto[]): DeploymentDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.startedAt = new Date(item0.startedAt);
+    if (item0.completedAt != null) {
+      item0.completedAt = new Date(item0.completedAt);
+    }
+  }
+  return data;
+};
 
 export const getDeploymentsStartUrl = () => {
 
@@ -122,8 +134,17 @@ export const deploymentsGetDeployment = async (idOrKey: string, options?: Parame
 
 
   }
-);}
+).then(deserializeDeploymentsGetDeploymentResponse);}
 
+
+const deserializeDeploymentsGetDeploymentResponse = (data: DeploymentDto): DeploymentDto => {
+  if (data == null) return data;
+  data.startedAt = new Date(data.startedAt);
+  if (data.completedAt != null) {
+    data.completedAt = new Date(data.completedAt);
+  }
+  return data;
+};
 
 export const getDeploymentsGetActivitiesUrl = (idOrKey: string,
     params?: DeploymentsGetActivitiesParams,) => {
@@ -155,8 +176,19 @@ export const deploymentsGetActivities = async (idOrKey: string,
 
 
   }
-);}
+).then(deserializeDeploymentsGetActivitiesResponse);}
 
+
+const deserializeDeploymentsGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getDeploymentsGetStatusHistoryUrl = (idOrKey: string,) => {
 
@@ -179,8 +211,17 @@ export const deploymentsGetStatusHistory = async (idOrKey: string, options?: Par
 
 
   }
-);}
+).then(deserializeDeploymentsGetStatusHistoryResponse);}
 
+
+const deserializeDeploymentsGetStatusHistoryResponse = (data: StatusTransitionDto[]): StatusTransitionDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.changedOn = new Date(item0.changedOn);
+  }
+  return data;
+};
 
 export const getDeploymentsGetStatusWorkflowUrl = (idOrKey: string,) => {
 

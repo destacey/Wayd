@@ -76,8 +76,18 @@ export const roadmapsGetRoadmaps = async (params?: RoadmapsGetRoadmapsParams, op
 
 
   }
-);}
+).then(deserializeRoadmapsGetRoadmapsResponse);}
 
+
+const deserializeRoadmapsGetRoadmapsResponse = (data: RoadmapListDto[]): RoadmapListDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+    item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+  }
+  return data;
+};
 
 export const getRoadmapsCreateUrl = () => {
 
@@ -123,8 +133,15 @@ export const roadmapsGetRoadmap = async (idOrKey: string, options?: Parameters<t
 
 
   }
-);}
+).then(deserializeRoadmapsGetRoadmapResponse);}
 
+
+const deserializeRoadmapsGetRoadmapResponse = (data: RoadmapDetailsDto): RoadmapDetailsDto => {
+  if (data == null) return data;
+  data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
+  data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
+  return data;
+};
 
 export const getRoadmapsCopyUrl = () => {
 
@@ -315,8 +332,18 @@ export const roadmapsGetActivities = async (idOrKey: string, options?: Parameter
 
 
   }
-);}
+).then(deserializeRoadmapsGetActivitiesResponse);}
 
+
+const deserializeRoadmapsGetActivitiesResponse = (data: RoadmapActivityListDto[]): RoadmapActivityListDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+    item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+  }
+  return data;
+};
 
 export const getRoadmapsGetItemUrl = (roadmapIdOrKey: string,
     itemId: string,) => {

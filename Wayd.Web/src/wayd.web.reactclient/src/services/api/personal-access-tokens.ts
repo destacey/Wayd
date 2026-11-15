@@ -54,8 +54,23 @@ export const personalAccessTokensGetMyTokens = async ( options?: Parameters<type
 
 
   }
-);}
+).then(deserializePersonalAccessTokensGetMyTokensResponse);}
 
+
+const deserializePersonalAccessTokensGetMyTokensResponse = (data: PersonalAccessTokenDto[]): PersonalAccessTokenDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.expiresAt = new Date(item0.expiresAt);
+    if (item0.lastUsedAt != null) {
+      item0.lastUsedAt = new Date(item0.lastUsedAt);
+    }
+    if (item0.revokedAt != null) {
+      item0.revokedAt = new Date(item0.revokedAt);
+    }
+  }
+  return data;
+};
 
 export const getPersonalAccessTokensCreateUrl = () => {
 
@@ -78,8 +93,14 @@ export const personalAccessTokensCreate = async (createPersonalAccessTokenReques
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(createPersonalAccessTokenRequest)
   }
-);}
+).then(deserializePersonalAccessTokensCreateResponse);}
 
+
+const deserializePersonalAccessTokensCreateResponse = (data: CreatePersonalAccessTokenResult): CreatePersonalAccessTokenResult => {
+  if (data == null) return data;
+  data.expiresAt = new Date(data.expiresAt);
+  return data;
+};
 
 export const getPersonalAccessTokensGetByIdUrl = (id: string,) => {
 
@@ -101,8 +122,20 @@ export const personalAccessTokensGetById = async (id: string, options?: Paramete
 
 
   }
-);}
+).then(deserializePersonalAccessTokensGetByIdResponse);}
 
+
+const deserializePersonalAccessTokensGetByIdResponse = (data: PersonalAccessTokenDto): PersonalAccessTokenDto => {
+  if (data == null) return data;
+  data.expiresAt = new Date(data.expiresAt);
+  if (data.lastUsedAt != null) {
+    data.lastUsedAt = new Date(data.lastUsedAt);
+  }
+  if (data.revokedAt != null) {
+    data.revokedAt = new Date(data.revokedAt);
+  }
+  return data;
+};
 
 export const getPersonalAccessTokensUpdateUrl = (id: string,) => {
 

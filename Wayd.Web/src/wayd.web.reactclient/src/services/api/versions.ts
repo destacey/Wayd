@@ -77,8 +77,25 @@ export const versionsGetVersions = async (params?: VersionsGetVersionsParams, op
 
 
   }
-);}
+).then(deserializeVersionsGetVersionsResponse);}
 
+
+const deserializeVersionsGetVersionsResponse = (data: VersionDto[]): VersionDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.targetDate != null) {
+      item0.targetDate = typeof item0.targetDate === 'string' ? String(item0.targetDate as unknown as string) : item0.targetDate;
+    }
+    if (item0.cutAt != null) {
+      item0.cutAt = new Date(item0.cutAt);
+    }
+    if (item0.releasedAt != null) {
+      item0.releasedAt = new Date(item0.releasedAt);
+    }
+  }
+  return data;
+};
 
 export const getVersionsPlanUrl = () => {
 
@@ -125,8 +142,22 @@ export const versionsGetVersion = async (idOrKey: string, options?: Parameters<t
 
 
   }
-);}
+).then(deserializeVersionsGetVersionResponse);}
 
+
+const deserializeVersionsGetVersionResponse = (data: VersionDto): VersionDto => {
+  if (data == null) return data;
+  if (data.targetDate != null) {
+    data.targetDate = typeof data.targetDate === 'string' ? String(data.targetDate as unknown as string) : data.targetDate;
+  }
+  if (data.cutAt != null) {
+    data.cutAt = new Date(data.cutAt);
+  }
+  if (data.releasedAt != null) {
+    data.releasedAt = new Date(data.releasedAt);
+  }
+  return data;
+};
 
 export const getVersionsGetActivitiesUrl = (idOrKey: string,
     params?: VersionsGetActivitiesParams,) => {
@@ -158,8 +189,19 @@ export const versionsGetActivities = async (idOrKey: string,
 
 
   }
-);}
+).then(deserializeVersionsGetActivitiesResponse);}
 
+
+const deserializeVersionsGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getVersionsGetStatusHistoryUrl = (idOrKey: string,) => {
 
@@ -182,8 +224,17 @@ export const versionsGetStatusHistory = async (idOrKey: string, options?: Parame
 
 
   }
-);}
+).then(deserializeVersionsGetStatusHistoryResponse);}
 
+
+const deserializeVersionsGetStatusHistoryResponse = (data: StatusTransitionDto[]): StatusTransitionDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.changedOn = new Date(item0.changedOn);
+  }
+  return data;
+};
 
 export const getVersionsGetStatusWorkflowUrl = (idOrKey: string,) => {
 

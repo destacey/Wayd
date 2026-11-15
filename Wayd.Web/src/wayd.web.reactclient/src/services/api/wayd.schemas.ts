@@ -73,7 +73,7 @@ export interface ActivityLogDto {
      * @nullable
      */
   clientId?: string | null;
-  timestamp: string;
+  timestamp: Date;
   /** @nullable */
   correlationId?: string | null;
   eventVersion: string;
@@ -127,7 +127,7 @@ export interface AddIncidentTimelineNoteRequest {
      * When the event occurred; defaults to now when omitted.
      * @nullable
      */
-  recordedAt?: string | null;
+  recordedAt?: Date | null;
 }
 
 export type IntakeRequestOutcomeKind = typeof IntakeRequestOutcomeKind[keyof typeof IntakeRequestOutcomeKind];
@@ -339,7 +339,7 @@ export interface AddStrategicInitiativeKpiMeasurementRequest {
      */
   actualValue: number;
   /** The date and time (in UTC) when the measurement was taken. */
-  measurementDate: string;
+  measurementDate: Date;
   /**
      * Optional note providing context for the measurement.
      * @maxLength 1024
@@ -473,7 +473,7 @@ export interface ApplyIncidentWorkflowActionRequest {
      * Empty means now. Close and cancel ignore it.
      * @nullable
      */
-  occurredAt?: string | null;
+  occurredAt?: Date | null;
 }
 
 export type TokenScope = typeof TokenScope[keyof typeof TokenScope];
@@ -875,7 +875,7 @@ export interface BackgroundJobDto {
   action: string;
   inProcessingState: boolean;
   /** @nullable */
-  startedAt?: string | null;
+  startedAt?: Date | null;
 }
 
 export interface BackgroundJobTypeDto {
@@ -1045,10 +1045,10 @@ export interface BacklogHealthWorkItemDto {
      * @nullable
      */
   estimate?: number | null;
-  created: string;
-  lastModified: string;
+  created: Date;
+  lastModified: Date;
   /** @nullable */
-  activated?: string | null;
+  activated?: Date | null;
   /** @nullable */
   externalViewWorkItemUrl?: string | null;
   /** The item's position in the team's backlog, 1 being the next to be worked. */
@@ -1658,7 +1658,7 @@ export interface CompleteSprintRequest {
      * in the sprint's completion window, which the sprint details report.
      * @nullable
      */
-  completedAt?: string | null;
+  completedAt?: Date | null;
 }
 
 /**
@@ -1754,7 +1754,7 @@ export interface CorrectReleasePackageDatesRequest {
   /** @nullable */
   targetDate?: string | null;
   /** @nullable */
-  releasedAt?: string | null;
+  releasedAt?: Date | null;
   /**
      * The released day, read as 12:00 in the system time zone.
      * @deprecated
@@ -1772,12 +1772,12 @@ export interface SprintActualDatesRequest {
      * When the team actually started the sprint. Omit to follow the planned start.
      * @nullable
      */
-  started?: string | null;
+  started?: Date | null;
   /**
      * When the team actually completed the sprint. Omit to follow the planned end.
      * @nullable
      */
-  completed?: string | null;
+  completed?: Date | null;
 }
 
 /**
@@ -1807,14 +1807,14 @@ export interface CorrectVersionDatesRequest {
      * correction rather than a lifecycle step.
      * @nullable
      */
-  cutAt?: string | null;
+  cutAt?: Date | null;
   /**
      * The corrected released moment. May be added or changed, but not cleared on a version that has
      * one — emptying it would leave the status contradicting the record. Use the revert action to
      * record that a version did not ship.
      * @nullable
      */
-  releasedAt?: string | null;
+  releasedAt?: Date | null;
   /**
      * The cut day, read as 12:00 in the system time zone.
      * @deprecated
@@ -1971,7 +1971,7 @@ export interface CreateEmployeeRequest {
      * Gets the hire date.
      * @nullable
      */
-  hireDate?: string | null;
+  hireDate?: Date | null;
   /**
      * Gets the email.
      * @minLength 1
@@ -2173,11 +2173,11 @@ export interface CreateIncidentRequest {
      */
   commanderEmployeeId?: string | null;
   /** @nullable */
-  noticedAt?: string | null;
+  noticedAt?: Date | null;
   /** @nullable */
-  startedAt?: string | null;
+  startedAt?: Date | null;
   /** @nullable */
-  recoveredAt?: string | null;
+  recoveredAt?: Date | null;
   productIds: string[];
   /** Releases this incident points at. One incident may point at several. */
   releaseIds: string[];
@@ -2461,7 +2461,7 @@ export interface CreatePersonalAccessTokenRequest {
      */
   name: string;
   /** The expiration date for the token. Must be in the future and within 2 years from now. */
-  expiresAt: string;
+  expiresAt: Date;
   /**
      * How much of your access the token may use: `Read` for viewing, searching and exporting only, or `Write` for
      * everything you may do. Defaults to `Write`. A scope never grants a permission you do not have.
@@ -2477,7 +2477,7 @@ export interface CreatePersonalAccessTokenResult {
   id: string;
   name: string;
   token: string;
-  expiresAt: string;
+  expiresAt: Date;
   scope: TokenScope;
 }
 
@@ -2485,7 +2485,7 @@ export interface CreatePlanningIntervalObjectiveHealthCheckRequest {
   /** @minLength 1 */
   planningIntervalObjectiveId: string;
   statusId: number;
-  expiration: string;
+  expiration: Date;
   /**
      * @maxLength 1024
      * @nullable
@@ -2787,7 +2787,7 @@ export const HealthStatus = {
 
 export interface CreateProjectHealthCheckRequest {
   status: HealthStatus;
-  expiration: string;
+  expiration: Date;
   /**
      * @maxLength 1024
      * @nullable
@@ -3765,19 +3765,19 @@ export interface DiscussionMessageDto {
   /** Who wrote the message. */
   author: EmployeeNavigationDto;
   /** When the message was posted. */
-  postedOn: string;
+  postedOn: Date;
   /**
      * When the message was last edited, or null if it never was.
      * @nullable
      */
-  editedOn?: string | null;
+  editedOn?: Date | null;
   /** Whether the message was deleted, leaving only who wrote it, who deleted it and when. */
   isDeleted: boolean;
   /**
      * When the message was deleted, or null while it stands.
      * @nullable
      */
-  deletedOn?: string | null;
+  deletedOn?: Date | null;
   /** Who deleted the message, or null while it stands. */
   deletedBy?: EmployeeNavigationDto | null;
   /** The people the message mentions, by their current names. */
@@ -3788,7 +3788,7 @@ export interface DiscussionMessageDto {
      * When the latest reply in the thread was posted, or null when there are none.
      * @nullable
      */
-  lastReplyOn?: string | null;
+  lastReplyOn?: Date | null;
   /** Up to three people who replied most recently in the thread, newest first. */
   recentRepliers: EmployeeNavigationDto[];
   /**
@@ -3810,7 +3810,7 @@ export interface DiscussionEntryDto {
   /** Which of DiscussionMessageDto? DiscussionEntryDto.Message and ActivityLogDto? DiscussionEntryDto.Activity is set. */
   type: DiscussionEntryType;
   /** When the message was posted or the change happened; the conversation's order. */
-  timestamp: string;
+  timestamp: Date;
   /** The message, when DiscussionEntryType DiscussionEntryDto.Type is DiscussionEntryType.Message. */
   message?: DiscussionMessageDto | null;
   /**
@@ -3910,7 +3910,7 @@ export interface NotificationDto {
   /** The domain event behind the newest change: the id of its entry in the record's activity. */
   eventId: string;
   /** When the newest change happened. */
-  occurredOn: string;
+  occurredOn: Date;
   /** How the newest change was made: a person directly, or the platform reacting for one. */
   actorKind: EventActorKind;
   /**
@@ -3971,7 +3971,7 @@ export interface CutVersionRequest {
      * `CutDate` is sent instead.
      * @nullable
      */
-  cutAt?: string | null;
+  cutAt?: Date | null;
   /**
      * The day it was cut, read as 12:00 in the system time zone.
      * @deprecated
@@ -4037,12 +4037,12 @@ export interface DateMeasuredTeamMetricsSummary {
      * When the measured window begins: the start of the iteration's first day in the team's time zone that day,
      * or in its zone on the last day when it has no operating model on the first.
      */
-  from: string;
+  from: Date;
   /**
      * When the measured window ends, exclusive: the start of the day after the iteration's last, in
      * `timeZone`.
      */
-  until: string;
+  until: Date;
   /** The IANA time zone the team's operating model has on the iteration's last day. */
   timeZone: string;
   /**
@@ -4061,7 +4061,7 @@ export interface DateMeasuredTeamMetricsSummary {
      * future one.
      * @nullable
      */
-  inProgressAsOf?: string | null;
+  inProgressAsOf?: Date | null;
   /** Completed and in-progress items with no value in `sizingMethod`. */
   unestimatedWorkItems: number;
   /** Cycle-time rollup of the completed items. */
@@ -4105,7 +4105,7 @@ export interface DeadLetterMessageResponse {
   exceptionType?: string | null;
   /** @nullable */
   exceptionMessage?: string | null;
-  sentAt: string;
+  sentAt: Date;
   /** Whether the durability agent is set to move this envelope back to incoming for another attempt. */
   replayable: boolean;
   attempts: number;
@@ -4125,7 +4125,7 @@ export type DeadLetterMessageDetailsResponse = DeadLetterMessageResponse & ({
   /** @nullable */
   destination?: string | null;
   /** @nullable */
-  executionTime?: string | null;
+  executionTime?: Date | null;
 });
 
 /**
@@ -4188,9 +4188,9 @@ export interface UnavailableMetricDto {
  */
 export interface DeliveryMetricsDto {
   /** The start of the window these measures cover, inclusive. */
-  from: string;
+  from: Date;
   /** The end of the window these measures cover, inclusive. */
-  to: string;
+  to: Date;
   deploymentFrequency: DeploymentFrequencyDto;
   changeFailureRate: ChangeFailureRateDto;
   /** The measures this module cannot compute yet, each with the reason. */
@@ -4366,9 +4366,9 @@ export interface WorkItemDetailsNavigationDto {
   team?: WorkTeamNavigationDto | null;
   sprint?: WorkIterationNavigationDto | null;
   /** @nullable */
-  activatedTimestamp?: string | null;
+  activatedTimestamp?: Date | null;
   /** @nullable */
-  doneTimestamp?: string | null;
+  doneTimestamp?: Date | null;
   /** @nullable */
   externalViewWorkItemUrl?: string | null;
 }
@@ -4381,7 +4381,7 @@ export interface DependencyDto {
   state: SimpleNavigationDto;
   health: SimpleNavigationDto;
   scope: SimpleNavigationDto;
-  createdOn: string;
+  createdOn: Date;
   createdBy?: EmployeeNavigationDto | null;
   /** @nullable */
   comment?: string | null;
@@ -4460,12 +4460,12 @@ export interface DeploymentDto {
      * @nullable
      */
   artifactId?: string | null;
-  startedAt: string;
+  startedAt: Date;
   /**
      * When it reached a terminal outcome, or null while still in flight.
      * @nullable
      */
-  completedAt?: string | null;
+  completedAt?: Date | null;
   /**
      * Why it failed or was rolled back, where someone recorded a reason.
      * @nullable
@@ -4578,7 +4578,7 @@ export interface DiscussionMessageRevisionDto {
   /** The text before the edit, as markdown. */
   body: string;
   /** When the edit replaced this version. */
-  replacedOn: string;
+  replacedOn: Date;
 }
 
 /**
@@ -4711,7 +4711,7 @@ export interface EmployeeDetailsDto {
      * When the employee was hired, or null when unknown.
      * @nullable
      */
-  hireDate?: string | null;
+  hireDate?: Date | null;
   /** The employee's primary work email address. */
   email: string;
   /**
@@ -4967,7 +4967,7 @@ export interface RolloutItemDto {
      */
   artifactId?: string | null;
   /** When it reached the environment. */
-  deployedAt: string;
+  deployedAt: Date;
   /** Whether a later deployment touching this product failed or was rolled back here. */
   hasFailedAttemptSince: boolean;
 }
@@ -5009,7 +5009,7 @@ export interface EstimationScaleVersionDto {
   id: string;
   /** The version's number within its scale, starting at 1. */
   number: number;
-  publishedOn: string;
+  publishedOn: Date;
   /** The values a participant can vote, in display order. */
   values: EstimationScaleValueDto[];
 }
@@ -5156,7 +5156,7 @@ export interface ExternalIdentityMappingDto {
   /** The mapping status: Unmapped, AutoMatched, ManuallyMapped, or Ignored. */
   status: string;
   /** When a sync last saw this identity on a work item. */
-  lastSeen: string;
+  lastSeen: Date;
 }
 
 /**
@@ -5173,7 +5173,7 @@ export interface FailDeploymentRequest {
      * When it completed. Defaults to now.
      * @nullable
      */
-  completedAt?: string | null;
+  completedAt?: Date | null;
 }
 
 /**
@@ -5317,13 +5317,13 @@ export interface FollowedRecordDto {
      */
   healthCheck?: FollowedHealthCheckDto | null;
   /** When the caller started following the record. */
-  followedOn: string;
+  followedOn: Date;
   /**
      * When the record last changed: the newest entry its Activity section lists, its own or one naming it as
      * related. Null when it has no recorded activity.
      * @nullable
      */
-  lastChangedOn?: string | null;
+  lastChangedOn?: Date | null;
   /** Whether the caller has muted the record: they still follow it, but are told nothing about it. */
   isMuted: boolean;
 }
@@ -5397,7 +5397,7 @@ export interface FollowStatusDto {
      * When the caller started following the record; null when they do not follow it.
      * @nullable
      */
-  followedOn?: string | null;
+  followedOn?: Date | null;
 }
 
 export interface ForecastWorkItemDto {
@@ -5928,7 +5928,7 @@ export interface ImportEmployeeRequest {
      * The date the employee was hired.
      * @nullable
      */
-  hireDate?: string | null;
+  hireDate?: Date | null;
   /**
      * @maxLength 256
      * @nullable
@@ -6211,7 +6211,7 @@ export interface ImportPlanningIntervalObjectivesRequest {
      * When the objective closed, in UTC. Required when the status is Completed or Canceled, and empty otherwise.
      * @nullable
      */
-  closedDateUtc?: string | null;
+  closedDateUtc?: Date | null;
   /**
      * Display position within the team's objectives.
      * @nullable
@@ -6394,13 +6394,13 @@ export interface ImportProcessDto {
   submittedByUserId: string;
   /** @nullable */
   submittedByName?: string | null;
-  submittedOn: string;
+  submittedOn: Date;
   /** @nullable */
-  startedOn?: string | null;
+  startedOn?: Date | null;
   /** @nullable */
-  completedOn?: string | null;
+  completedOn?: Date | null;
   /** @nullable */
-  lastProgressOn?: string | null;
+  lastProgressOn?: Date | null;
   totalRowCount: number;
   succeededRowCount: number;
   failedRowCount: number;
@@ -6486,7 +6486,7 @@ export interface ImportProcessRowDto {
   /** @nullable */
   warning?: string | null;
   /** @nullable */
-  attemptedOn?: string | null;
+  attemptedOn?: Date | null;
   /**
      * Where to see that record — or, for one with no page of its own, the record it belongs to. Null when the
      * row created nothing, when that record or the one the link opens has since been deleted, and for a
@@ -7177,7 +7177,7 @@ export interface ImportRiskRequest {
      * When the risk was reported, in UTC. Must be in the past.
      * @minLength 1
      */
-  reportedOnUtc: string;
+  reportedOnUtc: Date;
   /**
      * The employee who reported it, by id.
      * @minLength 1
@@ -7207,7 +7207,7 @@ export interface ImportRiskRequest {
      * When the risk closed, in UTC. Required when StatusId is 2 (Closed), and empty otherwise. After ReportedOnUtc and in the past.
      * @nullable
      */
-  closedDateUtc?: string | null;
+  closedDateUtc?: Date | null;
 }
 
 /**
@@ -7589,11 +7589,11 @@ export interface IncidentDto {
   /** The employee commanding the response, when one is assigned. */
   commander?: NavigationDto | null;
   severityLevel: IncidentSeverityLevelNavigationDto;
-  noticedAt: string;
+  noticedAt: Date;
   /** @nullable */
-  startedAt?: string | null;
+  startedAt?: Date | null;
   /** @nullable */
-  recoveredAt?: string | null;
+  recoveredAt?: Date | null;
   products: NavigationDto[];
   /** Releases this incident points at. One incident may point at several. */
   releases: NavigationDto[];
@@ -7680,11 +7680,11 @@ export interface IncidentSummaryDto {
   id: string;
   key: number;
   title: string;
-  noticedAt: string;
+  noticedAt: Date;
   /** @nullable */
-  startedAt?: string | null;
+  startedAt?: Date | null;
   /** @nullable */
-  recoveredAt?: string | null;
+  recoveredAt?: Date | null;
   /** The employee who opened the incident. */
   submittedBy: NavigationDto;
   /** The employee who reported the incident. */
@@ -7724,7 +7724,7 @@ export interface IncidentTimelineLinkEntryDto {
   kind: IncidentTimelineLinkKind;
   action: IncidentTimelineLinkAction;
   label: string;
-  recordedAt: string;
+  recordedAt: Date;
   actor: NavigationDto;
   /**
      * The work item or link this entry is about.
@@ -7744,7 +7744,7 @@ export interface IncidentTimelineLinkEntryDto {
 export interface IncidentTimelineNoteDto {
   id: string;
   body: string;
-  recordedAt: string;
+  recordedAt: Date;
   author: NavigationDto;
 }
 
@@ -7800,7 +7800,7 @@ export interface InProgressWorkItemDto {
   /** The work item's title. */
   title: string;
   /** When the work item first entered an In Progress-category status. */
-  activatedOn: string;
+  activatedOn: Date;
 }
 
 /**
@@ -7808,9 +7808,9 @@ export interface InProgressWorkItemDto {
  * `latest` means the window runs up to now, whenever the caller acts.
  */
 export interface InstantWindowDto {
-  earliest: string;
+  earliest: Date;
   /** @nullable */
-  latest?: string | null;
+  latest?: Date | null;
 }
 
 /**
@@ -7867,7 +7867,7 @@ export interface IntakeDeskWaitingDto {
      * When the oldest waiting request was submitted, or null when none is waiting.
      * @nullable
      */
-  oldestSubmittedOn?: string | null;
+  oldestSubmittedOn?: Date | null;
   /** How many of the waiting requests no one is assigned to: what still needs triage. */
   unassignedCount: number;
   /**
@@ -8120,7 +8120,7 @@ export interface IntakeRequestCurrentScoreDto {
   /** The value of the model's primary output. */
   value: number;
   /** When the request was last scored. */
-  scoredOn: string;
+  scoredOn: Date;
   /** The scoring model the score came from, as it was named then. */
   scoringModel: NavigationDto;
   /**
@@ -8212,9 +8212,9 @@ export interface IntakeRequestSummaryDto {
      */
   tags: IntakeRequestTagNavigationDto[];
   /** When the request was submitted, from which its age is read. */
-  submittedOn: string;
+  submittedOn: Date;
   /** When the request entered its current status, from which its time in that status is read. */
-  statusChangedOn: string;
+  statusChangedOn: Date;
 }
 
 /**
@@ -8226,7 +8226,7 @@ export interface IntakeRequestParticipantDto {
   /** The employee who added them, or null when the platform did. */
   addedBy?: EmployeeNavigationDto | null;
   /** When they were added. */
-  addedOn: string;
+  addedOn: Date;
 }
 
 /**
@@ -8383,7 +8383,7 @@ export interface IntakeRequestOutcomeDto {
   /** The employee who recorded the outcome. */
   addedBy: EmployeeNavigationDto;
   /** When the outcome was recorded. */
-  addedOn: string;
+  addedOn: Date;
 }
 
 /**
@@ -8575,7 +8575,7 @@ export interface IntakeRequestScoreDto {
   /** The value of the model's primary output, which requests are ranked on. */
   primaryValue: number;
   /** When the score was recorded. */
-  scoredOn: string;
+  scoredOn: Date;
   /** The agent who rated the request. */
   scoredBy: EmployeeNavigationDto;
   /** The scoring model the request was rated with, as it was named then. */
@@ -8789,7 +8789,7 @@ export interface JobStateHistoryResponse {
   /** @nullable */
   reason?: string | null;
   /** @nullable */
-  changedAt?: string | null;
+  changedAt?: Date | null;
 }
 
 /**
@@ -8802,9 +8802,9 @@ export interface JobDetailResponse {
   namespace: string;
   action: string;
   /** @nullable */
-  createdAt?: string | null;
+  createdAt?: Date | null;
   /** @nullable */
-  expiresAt?: string | null;
+  expiresAt?: Date | null;
   arguments: string[];
   /** @nullable */
   exceptionType?: string | null;
@@ -8824,9 +8824,9 @@ export interface JobServerResponse {
   workerCount: number;
   queues: string[];
   /** @nullable */
-  startedAt?: string | null;
+  startedAt?: Date | null;
   /** @nullable */
-  heartbeat?: string | null;
+  heartbeat?: Date | null;
 }
 
 /**
@@ -8866,7 +8866,7 @@ export interface JobSummaryResponse {
      * The timestamp that matters for the requested state; `TimestampLabel` names it.
      * @nullable
      */
-  timestamp?: string | null;
+  timestamp?: Date | null;
   /** @nullable */
   timestampLabel?: string | null;
   /** @nullable */
@@ -8883,7 +8883,7 @@ export interface JobSummaryResponse {
      * When the successful run began. Set for succeeded jobs only.
      * @nullable
      */
-  startedAt?: string | null;
+  startedAt?: Date | null;
   /**
      * How long the successful run took, in milliseconds, excluding time spent waiting in the queue.
      * Set for succeeded jobs only.
@@ -8970,7 +8970,7 @@ export interface KpiCheckpointPlanItemRequest {
      */
   atRiskValue?: number | null;
   /** The date and time of this checkpoint. */
-  checkpointDate: string;
+  checkpointDate: Date;
   /**
      * A short label describing this checkpoint (e.g. "Q1 2025").
      * @minLength 1
@@ -9205,7 +9205,7 @@ export interface MarkReleasePackageReleasedRequest {
      * recorded after the fact. Required unless the deprecated `ReleasedDate` is sent instead.
      * @nullable
      */
-  releasedAt?: string | null;
+  releasedAt?: Date | null;
   /**
      * The day it shipped, read as 12:00 in the system time zone.
      * @deprecated
@@ -9230,7 +9230,7 @@ export interface MarkVersionReleasedRequest {
      * taken from the clock. Required unless the deprecated `ReleasedDate` is sent instead.
      * @nullable
      */
-  releasedAt?: string | null;
+  releasedAt?: Date | null;
   /**
      * The day it shipped, read as 12:00 in the system time zone.
      * @deprecated
@@ -9443,7 +9443,7 @@ export interface MutedRecordDto {
   /** Whether the caller also follows the record. Muting a record never stops following it. */
   isFollowing: boolean;
   /** When the caller muted the record. */
-  mutedOn: string;
+  mutedOn: Date;
 }
 
 /**
@@ -9569,7 +9569,7 @@ export interface MyTeamOfTeamsFlowResponse {
      * When the item in progress longest started; null when nothing in progress has a start time.
      * @nullable
      */
-  oldestInProgressSince?: string | null;
+  oldestInProgressSince?: Date | null;
   /**
      * The team's median cycle time in days over the last 14 days, which the oldest item's age is weighed against;
      * null when it finished nothing in that time.
@@ -9861,7 +9861,7 @@ export interface OAuthAuthorizationRequestResponse {
      */
   scope: TokenScope;
   /** When the request stops waiting for a decision. */
-  expiresAt: string;
+  expiresAt: Date;
 }
 
 export interface ObjectIdAndKey {
@@ -9877,7 +9877,7 @@ export interface ObjectiveChangesSinceLastCheckDto {
      * When the last check was reported. Null when the objective has never been checked.
      * @nullable
      */
-  lastCheckReportedOn?: string | null;
+  lastCheckReportedOn?: Date | null;
   /**
      * The objective's progress (0 to 100) when it was last checked. Null when it has never been
      * checked or the history read did not reach back that far.
@@ -9938,9 +9938,9 @@ export interface PlanningHealthCheckDto {
   /** The employee who reported the health check. */
   reportedBy: NavigationDto;
   /** The timestamp of when the health check was reported. */
-  reportedOn: string;
+  reportedOn: Date;
   /** When the health check expires; from then on it is no longer the current health check. */
-  expiration: string;
+  expiration: Date;
   /**
      * The note for the health check.
      * @nullable
@@ -9988,7 +9988,7 @@ export interface PlanningIntervalObjectiveDetailsDto {
      * When the objective moved to a closed status; null while it is open.
      * @nullable
      */
-  closedDate?: string | null;
+  closedDate?: Date | null;
   /** Whether the objective is a stretch objective rather than a committed one. */
   isStretch: boolean;
 }
@@ -10062,11 +10062,11 @@ export interface WorkItemListDto {
   project?: WorkProjectNavigationDto | null;
   /** @nullable */
   externalViewWorkItemUrl?: string | null;
-  created: string;
+  created: Date;
   /** @nullable */
-  activated?: string | null;
+  activated?: Date | null;
   /** @nullable */
-  done?: string | null;
+  done?: Date | null;
   tags: string[];
   /** @nullable */
   cycleTime?: number | null;
@@ -10149,9 +10149,9 @@ export interface PlanningIntervalObjectiveHealthCheckDetailsDto {
   /** The employee who reported the health check. */
   reportedBy: NavigationDto;
   /** The timestamp of when the health check was reported. */
-  reportedOn: string;
+  reportedOn: Date;
   /** When the health check expires; from then on it is no longer the objective's current health check. */
-  expiration: string;
+  expiration: Date;
   /**
      * The note for the health check.
      * @nullable
@@ -10164,7 +10164,7 @@ export interface RiskListDto {
   key: number;
   summary: string;
   team?: PlanningTeamNavigationDto | null;
-  reportedOn: string;
+  reportedOn: Date;
   status: string;
   category: string;
   exposure: string;
@@ -10404,7 +10404,7 @@ export interface PendingTenantMigrationDto {
   sourceTenantId?: string | null;
   targetTenantId: string;
   /** @nullable */
-  stagedAt?: string | null;
+  stagedAt?: Date | null;
 }
 
 /**
@@ -10414,11 +10414,11 @@ export interface PendingTenantMigrationDto {
 export interface PersonalAccessTokenDto {
   id: string;
   name: string;
-  expiresAt: string;
+  expiresAt: Date;
   /** @nullable */
-  lastUsedAt?: string | null;
+  lastUsedAt?: Date | null;
   /** @nullable */
-  revokedAt?: string | null;
+  revokedAt?: Date | null;
   isActive: boolean;
   isExpired: boolean;
   isRevoked: boolean;
@@ -10581,13 +10581,13 @@ export interface SprintMetricsSummary {
      * `TimeZone`. Null for a sprint whose team is not mapped.
      * @nullable
      */
-  activeFrom?: string | null;
+  activeFrom?: Date | null;
   /**
      * When the sprint stops being Active, exclusive: a sprint that runs to the end of a day ends at the next
      * midnight, so its last day is the one before.
      * @nullable
      */
-  activeUntil?: string | null;
+  activeUntil?: Date | null;
   /**
      * The IANA time zone the sprint's days are counted in: its team's.
      * @nullable
@@ -10692,12 +10692,12 @@ export interface PlanningSprintListDto {
      * When the sprint became Active. Null for a sprint whose team is not mapped.
      * @nullable
      */
-  activeFrom?: string | null;
+  activeFrom?: Date | null;
   /**
      * When the sprint stops being Active, exclusive.
      * @nullable
      */
-  activeUntil?: string | null;
+  activeUntil?: Date | null;
   /**
      * The IANA time zone the sprint's days are counted in: its team's.
      * @nullable
@@ -10803,12 +10803,12 @@ export interface PlanningIntervalObjectiveHealthCheckDto {
      * The timestamp of when the health check was reported.
      * @nullable
      */
-  reportedOn?: string | null;
+  reportedOn?: Date | null;
   /**
      * The expiration of the health check.
      * @nullable
      */
-  expiration?: string | null;
+  expiration?: Date | null;
   /**
      * The note for the health check.
      * @nullable
@@ -10995,7 +10995,7 @@ export interface PokerRoundPublicationDto {
      */
   outcome: PokerRoundPublicationOutcome;
   /** When the facilitator published, or tried to. */
-  at: string;
+  at: Date;
   /** The id of the employee who published, or tried to. */
   byEmployeeId: string;
   /**
@@ -11021,7 +11021,7 @@ export interface PokerVoteDto {
   id: string;
   participant?: UserNavigationDto | null;
   value: string;
-  submittedOn: string;
+  submittedOn: Date;
 }
 
 export interface PokerRoundDto {
@@ -11089,7 +11089,7 @@ export interface PokerSessionMemberDto {
      */
   isVoting: boolean;
   /** When the member first joined. */
-  joinedOn: string;
+  joinedOn: Date;
 }
 
 export interface PokerSessionDetailsDto {
@@ -11121,9 +11121,9 @@ export interface PokerSessionDetailsDto {
   /** The scale version the session votes on, which stays put when the scale publishes a newer one. */
   estimationScaleVersion?: EstimationScaleVersionDto | null;
   /** @nullable */
-  activatedOn?: string | null;
+  activatedOn?: Date | null;
   /** @nullable */
-  completedOn?: string | null;
+  completedOn?: Date | null;
   /**
      * The round a facilitator last pointed the session at, which everyone following the facilitator is shown.
      * Null when no round is pointed at, where followers see the round in play.
@@ -11560,7 +11560,7 @@ export interface ProjectDeliverableDto {
      * When the deliverable was accepted. Null unless its status means Accepted.
      * @nullable
      */
-  acceptedOn?: string | null;
+  acceptedOn?: Date | null;
   /** Who accepted it. Null unless its status means Accepted, or when an import did. */
   acceptedBy?: EmployeeNavigationDto | null;
   /**
@@ -11590,8 +11590,8 @@ export interface ProjectHealthCheckDto {
   id: string;
   status: SimpleNavigationDto;
   reportedBy: NavigationDto;
-  reportedOn: string;
-  expiration: string;
+  reportedOn: Date;
+  expiration: Date;
   /** @nullable */
   note?: string | null;
 }
@@ -11602,7 +11602,7 @@ export interface ProjectHealthCheckDto {
  */
 export interface ScoreSummaryDto {
   value: number;
-  scoredOn: string;
+  scoredOn: Date;
   scoringModelId: string;
   /** The employee who recorded the score. May be null if the scorer is not found. */
   scoredBy?: EmployeeNavigationDto | null;
@@ -11701,8 +11701,8 @@ export interface ProjectHealthCheckDetailsDto {
   projectId: string;
   status: SimpleNavigationDto;
   reportedBy: NavigationDto;
-  reportedOn: string;
-  expiration: string;
+  reportedOn: Date;
+  expiration: Date;
   /** @nullable */
   note?: string | null;
 }
@@ -11841,7 +11841,7 @@ export interface ProjectHealthCheckSummaryDto {
   id: string;
   status: SimpleNavigationDto;
   /** When the health check stops being current, after which the project has none until another is reported. */
-  expiration: string;
+  expiration: Date;
 }
 
 /**
@@ -12127,7 +12127,7 @@ export interface ProjectScoreDetailsDto {
   scoringModelKey: number;
   scoringModelName: string;
   primaryValue: number;
-  scoredOn: string;
+  scoredOn: Date;
   scoredBy?: EmployeeNavigationDto | null;
   ratings: ProjectScoreRatingDto[];
   outputs: ProjectScoreOutputDto[];
@@ -12144,7 +12144,7 @@ export interface ProjectScoreSummaryDto {
   scoringModelKey: number;
   scoringModelName: string;
   primaryValue: number;
-  scoredOn: string;
+  scoredOn: Date;
   scoredBy?: EmployeeNavigationDto | null;
   outputs: ProjectScoreOutputDto[];
 }
@@ -12236,7 +12236,7 @@ export interface ProjectStatusHistoryDto {
      * `changedBy`.
      */
   changedBySystem: boolean;
-  changedOn: string;
+  changedOn: Date;
   /** Whether the row was recorded as the transition happened or reconstructed from the audit trail. */
   source: SimpleNavigationDto;
   /** @nullable */
@@ -12359,7 +12359,7 @@ export interface ReasonMuteDto {
      * When the caller muted it; null when it is not muted.
      * @nullable
      */
-  mutedOn?: string | null;
+  mutedOn?: Date | null;
 }
 
 /**
@@ -12395,12 +12395,12 @@ export interface RecentDeliveryEventDto {
   /** The well-known meaning of that status. */
   alias: ProductStatusAlias;
   /** When the record moved into this status. */
-  changedOn: string;
+  changedOn: Date;
   /**
      * When the record shipped, where it has shipped.
      * @nullable
      */
-  releasedAt?: string | null;
+  releasedAt?: Date | null;
   /**
      * How many components the package shipped. Null for a version.
      * @nullable
@@ -12428,7 +12428,7 @@ export interface RecordMuteStatusDto {
      * When the caller muted the record; null when it is not muted.
      * @nullable
      */
-  mutedOn?: string | null;
+  mutedOn?: Date | null;
 }
 
 export interface RecordProjectScoreRequest {
@@ -12498,9 +12498,9 @@ export interface RecurringJobResponse {
   /** @nullable */
   action?: string | null;
   /** @nullable */
-  lastExecution?: string | null;
+  lastExecution?: Date | null;
   /** @nullable */
-  nextExecution?: string | null;
+  nextExecution?: Date | null;
   /** @nullable */
   lastJobId?: string | null;
   /** @nullable */
@@ -12526,7 +12526,7 @@ export interface ReleaseVersionDto {
      * When that version shipped, or `null` while it has not.
      * @nullable
      */
-  releasedAt?: string | null;
+  releasedAt?: Date | null;
 }
 
 /**
@@ -12539,7 +12539,7 @@ export interface ReleasePackageSummaryDto {
      * When that package shipped, or `null` while it has not.
      * @nullable
      */
-  releasedAt?: string | null;
+  releasedAt?: Date | null;
 }
 
 /**
@@ -12615,7 +12615,7 @@ export interface ReleasePackageDto {
   /** @nullable */
   targetDate?: string | null;
   /** @nullable */
-  releasedAt?: string | null;
+  releasedAt?: Date | null;
   /** The package's current status: the organization's name for it, its category and its well-known alias. */
   status: StatusNavigationDto;
   components: ReleasePackageComponentDto[];
@@ -12965,7 +12965,7 @@ export interface RiskDetailsDto {
   /** @nullable */
   description?: string | null;
   team?: PlanningTeamNavigationDto | null;
-  reportedOn: string;
+  reportedOn: Date;
   reportedBy: NavigationDto;
   status: SimpleNavigationDto;
   category: SimpleNavigationDto;
@@ -12978,7 +12978,7 @@ export interface RiskDetailsDto {
   /** @nullable */
   response?: string | null;
   /** @nullable */
-  closedDate?: string | null;
+  closedDate?: Date | null;
 }
 
 export interface RiskGradeDto {
@@ -13246,7 +13246,7 @@ export interface RollBackDeploymentRequest {
      * When it was reverted. Defaults to now, and cannot be before the deployment completed.
      * @nullable
      */
-  rolledBackAt?: string | null;
+  rolledBackAt?: Date | null;
 }
 
 /**
@@ -13285,7 +13285,7 @@ export interface ScopedDependencyDto {
   state: SimpleNavigationDto;
   health: SimpleNavigationDto;
   scope: SimpleNavigationDto;
-  createdOn: string;
+  createdOn: Date;
   createdBy?: EmployeeNavigationDto | null;
   /** @nullable */
   comment?: string | null;
@@ -13970,11 +13970,11 @@ export interface SprintBacklogItemDto {
   team?: WorkTeamNavigationDto | null;
   sprint: WorkIterationNavigationDto;
   assignedTo?: EmployeeNavigationDto | null;
-  created: string;
+  created: Date;
   /** @nullable */
-  activated?: string | null;
+  activated?: Date | null;
   /** @nullable */
-  done?: string | null;
+  done?: Date | null;
   rank: number;
   /** @nullable */
   parentRank?: number | null;
@@ -14014,7 +14014,7 @@ export interface SprintScopeMeasureDto {
  */
 export interface SprintBurnPointDto {
   /** When the reading was taken. */
-  at: string;
+  at: Date;
   /** The team's calendar day the reading closes. */
   day: string;
   /** The work in scope at the reading. */
@@ -14028,7 +14028,7 @@ export interface SprintBurnPointDto {
  */
 export interface SprintIdealPointDto {
   /** When the point falls. */
-  at: string;
+  at: Date;
   /**
      * The share of the committed work still expected to remain: 1 at the commitment point, 0 at the effective
      * end. Multiply by the committed work in either unit.
@@ -14050,9 +14050,9 @@ export interface SprintBurnDto {
      */
   sizingMethod: SizingMethod;
   /** The commitment point, where the burn and its ideal line start. */
-  effectiveStart: string;
+  effectiveStart: Date;
   /** The effective end, where the ideal line reaches zero. */
-  effectiveEnd: string;
+  effectiveEnd: Date;
   /** The IANA zone the sprint's days are counted in. */
   timeZone: string;
   /**
@@ -14163,26 +14163,26 @@ export interface SprintDetailsDto {
      * When the team started the sprint, if it did.
      * @nullable
      */
-  started?: string | null;
+  started?: Date | null;
   /**
      * When the team completed the sprint, if it did.
      * @nullable
      */
-  completed?: string | null;
+  completed?: Date | null;
   /**
      * When the sprint became Active: `started`, or by default the start of its first planned day
      * in `timeZone`, never before the previous sprint ended. `state` is Future before
      * it. Null for a sprint whose team is not mapped or that has no planned dates.
      * @nullable
      */
-  activeFrom?: string | null;
+  activeFrom?: Date | null;
   /**
      * When the sprint stops being Active, exclusive: `completed`, or by default the end of its last
      * planned day, cut to the next sprint's start where the two overlap. A sprint that runs to the end of a day
      * ends at the next midnight, so its last day is the one before.
      * @nullable
      */
-  activeUntil?: string | null;
+  activeUntil?: Date | null;
   /**
      * The IANA time zone the sprint's planned days are counted in: its team's on the planned start.
      * @nullable
@@ -14259,12 +14259,12 @@ export interface SprintListDto {
      * When the team started the sprint, if it did.
      * @nullable
      */
-  started?: string | null;
+  started?: Date | null;
   /**
      * When the team completed the sprint, if it did.
      * @nullable
      */
-  completed?: string | null;
+  completed?: Date | null;
   /**
      * Whether the sprint is comparable with the team's other sprints. A non-standard sprint is left out of
      * the team's sprint metrics. Worked out when read: see `sprintTypeSource`.
@@ -14431,14 +14431,14 @@ export interface SprintScopeItemDto {
      * When the item was added to the sprint: during the sprint for an added item, or before its commitment
      * point for a committed one.
      */
-  addedAt: string;
+  addedAt: Date;
   /**
      * When the item was last removed from the sprint — moved to another iteration or out of the requirement
      * tier; not when it reached a Removed status. Null if it was still in at the effective end, or is still
      * in a sprint that has not ended.
      * @nullable
      */
-  removedAt?: string | null;
+  removedAt?: Date | null;
   /**
      * The item's estimate when it was committed or added.
      * @nullable
@@ -14465,18 +14465,18 @@ export interface SprintScopeDto {
      */
   sizingMethod: SizingMethod;
   /** The commitment point: what was in the sprint here is committed. */
-  effectiveStart: string;
+  effectiveStart: Date;
   /** Whether the effective start is the team's recorded start rather than the default. */
   startIsActual: boolean;
   /** The effective end: what is in the sprint here is completed or carried over. */
-  effectiveEnd: string;
+  effectiveEnd: Date;
   /** Whether the effective end is the team's recorded completion rather than the default. */
   endIsActual: boolean;
   /**
      * The start of the sprint's last day. Unfinished work moved to the team's next sprint from here on is
      * carried over; before it, descoped.
      */
-  lastDay: string;
+  lastDay: Date;
   /** The IANA zone the sprint's days are counted in. */
   timeZone: string;
   /**
@@ -14594,7 +14594,7 @@ export interface StartDeploymentRequest {
      * When it began. Defaults to now, so a pipeline reporting in real time can omit it.
      * @nullable
      */
-  startedAt?: string | null;
+  startedAt?: Date | null;
 }
 
 /**
@@ -14637,7 +14637,7 @@ export interface StartSprintRequest {
      * the sprint's start window, which the sprint details report.
      * @nullable
      */
-  startedAt?: string | null;
+  startedAt?: Date | null;
 }
 
 /**
@@ -14683,7 +14683,7 @@ export interface StatusTransitionDto {
   changedByUser?: UserNavigationDto | null;
   /** Whether the platform made the change on its own behalf. */
   changedBySystem: boolean;
-  changedOn: string;
+  changedOn: Date;
   /**
      * Why the change was made, where a reason was recorded.
      * @nullable
@@ -15005,7 +15005,7 @@ export interface StrategicInitiativeDetailsDto {
 export interface StrategicInitiativeKpiMeasurementDto {
   id: string;
   actualValue: number;
-  measurementDate: string;
+  measurementDate: Date;
   measuredBy: EmployeeNavigationDto;
   /** @nullable */
   note?: string | null;
@@ -15016,7 +15016,7 @@ export interface StrategicInitiativeKpiCheckpointDetailsDto {
   targetValue: number;
   /** @nullable */
   atRiskValue?: number | null;
-  checkpointDate: string;
+  checkpointDate: Date;
   dateLabel: string;
   measurement?: StrategicInitiativeKpiMeasurementDto | null;
   health?: KpiHealth | null;
@@ -15028,7 +15028,7 @@ export interface StrategicInitiativeKpiCheckpointDto {
   targetValue: number;
   /** @nullable */
   atRiskValue?: number | null;
-  checkpointDate: string;
+  checkpointDate: Date;
   dateLabel: string;
 }
 
@@ -15263,7 +15263,7 @@ export interface SucceedDeploymentRequest {
      * When it completed. Defaults to now.
      * @nullable
      */
-  completedAt?: string | null;
+  completedAt?: Date | null;
 }
 
 export type SyncRunStatus = typeof SyncRunStatus[keyof typeof SyncRunStatus];
@@ -15297,9 +15297,9 @@ export interface SyncRunDetailsDto {
   id: string;
   connectionId: string;
   connectorType: Connector;
-  startedAt: string;
+  startedAt: Date;
   /** @nullable */
-  finishedAt?: string | null;
+  finishedAt?: Date | null;
   status: SyncRunStatus;
   triggerSource: SyncTriggerSource;
   syncType: SyncType;
@@ -15323,9 +15323,9 @@ export interface SyncRunListDto {
   id: string;
   connectionId: string;
   connectorType: Connector;
-  startedAt: string;
+  startedAt: Date;
   /** @nullable */
-  finishedAt?: string | null;
+  finishedAt?: Date | null;
   status: SyncRunStatus;
   triggerSource: SyncTriggerSource;
   syncType: SyncType;
@@ -16632,7 +16632,7 @@ export interface ToggleFeatureFlagRequest {
 export interface TokenResponse {
   token: string;
   refreshToken: string;
-  tokenExpiresAt: string;
+  tokenExpiresAt: Date;
   mustChangePassword: boolean;
 }
 
@@ -16819,7 +16819,7 @@ export interface UpdateEmployeeRequest {
      * Gets the hire date.
      * @nullable
      */
-  hireDate?: string | null;
+  hireDate?: Date | null;
   /**
      * Gets the email.
      * @minLength 1
@@ -17074,11 +17074,11 @@ export interface UpdateIncidentDetailsRequest {
      * @nullable
      */
   commanderEmployeeId?: string | null;
-  noticedAt: string;
+  noticedAt: Date;
   /** @nullable */
-  startedAt?: string | null;
+  startedAt?: Date | null;
   /** @nullable */
-  recoveredAt?: string | null;
+  recoveredAt?: Date | null;
   productIds: string[];
   /** Releases this incident points at. One incident may point at several. */
   releaseIds: string[];
@@ -17346,7 +17346,7 @@ export interface UpdatePersonalAccessTokenRequest {
      */
   name: string;
   /** The expiration date for the token. Must be in the future and within 2 years from now. */
-  expiresAt: string;
+  expiresAt: Date;
 }
 
 export interface UpdatePersonaRequest {
@@ -17373,7 +17373,7 @@ export interface UpdatePlanningIntervalObjectiveHealthCheckRequest {
   /** @minLength 1 */
   id: string;
   statusId: number;
-  expiration: string;
+  expiration: Date;
   /**
      * @maxLength 1024
      * @nullable
@@ -17721,7 +17721,7 @@ export interface UpdateProjectDeliverableRequest {
 
 export interface UpdateProjectHealthCheckRequest {
   status: HealthStatus;
-  expiration: string;
+  expiration: Date;
   /**
      * @maxLength 1024
      * @nullable
@@ -18778,7 +18778,7 @@ export interface UserDetailsDto {
   email?: string | null;
   isActive: boolean;
   /** @nullable */
-  lockoutEnd?: string | null;
+  lockoutEnd?: Date | null;
   /** @nullable */
   phoneNumber?: string | null;
   loginProvider: string;
@@ -18792,7 +18792,7 @@ export interface UserDetailsDto {
      */
   hasActiveIdentity: boolean;
   /** @nullable */
-  lastActivityAt?: string | null;
+  lastActivityAt?: Date | null;
   employee?: NavigationDto | null;
   roles: RoleListDto[];
 }
@@ -18804,9 +18804,9 @@ export interface UserIdentityDto {
   providerTenantId?: string | null;
   providerSubject: string;
   isActive: boolean;
-  linkedAt: string;
+  linkedAt: Date;
   /** @nullable */
-  unlinkedAt?: string | null;
+  unlinkedAt?: Date | null;
   /** @nullable */
   unlinkReason?: string | null;
 }
@@ -18858,11 +18858,11 @@ export interface UserSessionResponse {
      */
   ipAddress?: string | null;
   /** When it was opened. */
-  createdAt: string;
+  createdAt: Date;
   /** When it was last refreshed. */
-  lastUsedAt: string;
+  lastUsedAt: Date;
   /** When it ends unless refreshed. */
-  expiresAt: string;
+  expiresAt: Date;
   /** Whether it is the caller's own session. */
   isCurrent: boolean;
   /**
@@ -18918,9 +18918,9 @@ export interface VersionDto {
   /** @nullable */
   targetDate?: string | null;
   /** @nullable */
-  cutAt?: string | null;
+  cutAt?: Date | null;
   /** @nullable */
-  releasedAt?: string | null;
+  releasedAt?: Date | null;
   /** The version's current status: the organization's name for it, its category and its well-known alias. */
   status: StatusNavigationDto;
 }
@@ -18940,12 +18940,12 @@ export interface VisionDto {
      * When the vision became active and started guiding the organization; null while it is proposed.
      * @nullable
      */
-  start?: string | null;
+  start?: Date | null;
   /**
      * When the vision was archived; null until it is archived.
      * @nullable
      */
-  end?: string | null;
+  end?: Date | null;
 }
 
 export type VisionStateDto = CommonEnumDtoOfVisionState & { [key: string]: unknown };
@@ -19071,7 +19071,7 @@ export interface WorkdayConnectionConfigurationDto {
      * UTC timestamp of the most recent init probe; null when no probe has run.
      * @nullable
      */
-  lastInitAt?: string | null;
+  lastInitAt?: Date | null;
   /** Whether the most recent init probe succeeded. */
   lastInitSucceeded: boolean;
   /**
@@ -19291,7 +19291,7 @@ export interface WorkItemBacklogItemDto {
   team?: WorkTeamNavigationDto | null;
   sprint?: WorkIterationNavigationDto | null;
   assignedTo?: EmployeeNavigationDto | null;
-  created: string;
+  created: Date;
   rank: number;
   /** @nullable */
   parentRank?: number | null;
@@ -19330,14 +19330,14 @@ export interface WorkItemDetailsDto {
   team?: WorkTeamNavigationDto | null;
   sprint?: WorkIterationNavigationDto | null;
   assignedTo?: EmployeeNavigationDto | null;
-  created: string;
+  created: Date;
   createdBy?: EmployeeNavigationDto | null;
-  lastModified: string;
+  lastModified: Date;
   lastModifiedBy?: EmployeeNavigationDto | null;
   /** @nullable */
-  activatedTimestamp?: string | null;
+  activatedTimestamp?: Date | null;
   /** @nullable */
-  doneTimestamp?: string | null;
+  doneTimestamp?: Date | null;
   project?: WorkProjectNavigationDto | null;
   projectSource: string;
   /** @nullable */
@@ -19553,9 +19553,9 @@ export type MeGetWorkItemsParams = {
   /** @nullable */
   statusCategories?: StatusCategory[] | null;
   /** @nullable */
-  doneFrom?: string | null;
+  doneFrom?: Date | null;
   /** @nullable */
-  doneTo?: string | null;
+  doneTo?: Date | null;
 };
 
 export type MeGetTeamsSummaryParams = {
@@ -19690,8 +19690,8 @@ export type VisionsGetVisionsParams = {
 };
 
 export type DeliveryMetricsGetDeliveryMetricsParams = {
-  from?: string;
-  to?: string;
+  from?: Date;
+  to?: Date;
   /** @nullable */
   productId?: string | null;
 };
@@ -19703,9 +19703,9 @@ export type DeliveryOverviewGetDeliveryOverviewParams = {
    * `Date` and sends `toISOString()`, which no `LocalDate` binder accepts. The caller
    * sends the start of its local day, which lands on that day in its own zone.
    */
-  from?: string;
+  from?: Date;
   /** Any instant on the window's last day, which is inclusive. */
-  to?: string;
+  to?: Date;
   /**
    * The ID of the product to scope the delivery overview to. Omit for the whole catalog.
    * @nullable
@@ -19756,7 +19756,7 @@ export type DeploymentsGetDeploymentsParams = {
   environmentId?: string | null;
   environmentCategory?: EnvironmentCategory | null;
   /** @nullable */
-  startedOnOrAfter?: string | null;
+  startedOnOrAfter?: Date | null;
 };
 
 export type DeploymentsGetActivitiesParams = {
@@ -20300,9 +20300,9 @@ export type EmployeesGetEmployeeWorkItemsParams = {
   /** @nullable */
   statusCategories?: StatusCategory[] | null;
   /** @nullable */
-  doneFrom?: string | null;
+  doneFrom?: Date | null;
   /** @nullable */
-  doneTo?: string | null;
+  doneTo?: Date | null;
 };
 
 export type HolidayCalendarsGetActivitiesParams = {
@@ -20511,9 +20511,9 @@ export type TeamsGetTeamWorkItemsParams = {
   /** @nullable */
   statusCategories?: StatusCategory[] | null;
   /** @nullable */
-  doneFrom?: string | null;
+  doneFrom?: Date | null;
   /** @nullable */
-  doneTo?: string | null;
+  doneTo?: Date | null;
 };
 
 export type TeamsGetRisksParams = {
@@ -20522,13 +20522,13 @@ export type TeamsGetRisksParams = {
 
 export type TeamsGetOperatingModelAsOfParams = {
   /** @nullable */
-  asOfDate?: string | null;
+  asOfDate?: Date | null;
 };
 
 export type TeamsGetOperatingModelsForTeamsParams = {
   teamIds?: string[];
   /** @nullable */
-  asOfDate?: string | null;
+  asOfDate?: Date | null;
 };
 
 export type TeamsGetOperatingModelDefaultsParams = {
@@ -20547,7 +20547,7 @@ export type TeamsGetCadenceMetricsParams = {
 
 export type TeamsGetFunctionalOrganizationChartParams = {
   /** @nullable */
-  asOfDate?: string | null;
+  asOfDate?: Date | null;
 };
 
 export type TeamsOfTeamsGetListParams = {
@@ -20684,7 +20684,7 @@ export type IntakeRequestsGetIntakeRequestsParams = {
   assignedToMe?: boolean;
   participating?: boolean;
   /** @nullable */
-  closedSince?: string | null;
+  closedSince?: Date | null;
 };
 
 export type IntakeRequestsGetIntakeRequestScoresParams = {
@@ -20695,7 +20695,7 @@ export type IntakeRequestsGetIntakeRequestScoresParams = {
   assignedToMe?: boolean;
   participating?: boolean;
   /** @nullable */
-  closedSince?: string | null;
+  closedSince?: Date | null;
 };
 
 export type IntakeRequestsGetIntakeRequestEstimatesParams = {
@@ -20706,7 +20706,7 @@ export type IntakeRequestsGetIntakeRequestEstimatesParams = {
   assignedToMe?: boolean;
   participating?: boolean;
   /** @nullable */
-  closedSince?: string | null;
+  closedSince?: Date | null;
 };
 
 export type IntakeRequestsGetIntakeRequestOutcomesParams = {
@@ -20717,7 +20717,7 @@ export type IntakeRequestsGetIntakeRequestOutcomesParams = {
   assignedToMe?: boolean;
   participating?: boolean;
   /** @nullable */
-  closedSince?: string | null;
+  closedSince?: Date | null;
 };
 
 export type IntakeRequestsGetActivitiesParams = {
@@ -20791,7 +20791,7 @@ export type ConnectionsGetWorkdayOrgsByTypeParams = {
 
 export type ConnectionsGetSyncRunsParams = {
   /** @nullable */
-  since?: string | null;
+  since?: Date | null;
 };
 
 export type BackgroundJobsRunParams = {
@@ -20810,9 +20810,9 @@ export type MessagingGetDeadLettersParams = {
   /** @nullable */
   exceptionType?: string | null;
   /** @nullable */
-  from?: string | null;
+  from?: Date | null;
   /** @nullable */
-  to?: string | null;
+  to?: Date | null;
   page?: number;
   pageSize?: number;
 };

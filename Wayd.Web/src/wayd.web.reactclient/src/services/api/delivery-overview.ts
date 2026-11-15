@@ -20,7 +20,7 @@ export const getDeliveryOverviewGetDeliveryOverviewUrl = (params?: DeliveryOverv
   Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
     }
   });
 
@@ -50,8 +50,24 @@ export const deliveryOverviewGetDeliveryOverview = async (params?: DeliveryOverv
 
 
   }
-);}
+).then(deserializeDeliveryOverviewGetDeliveryOverviewResponse);}
 
+
+const deserializeDeliveryOverviewGetDeliveryOverviewResponse = (data: DeliveryOverviewDto): DeliveryOverviewDto => {
+  if (data == null) return data;
+  if (data.activity != null) {
+    for (let i0 = 0; i0 < data.activity.length; i0++) {
+      const item0 = data.activity[i0]!;
+      if (item0.days != null) {
+        for (let i1 = 0; i1 < item0.days.length; i1++) {
+          const item1 = item0.days[i1]!;
+          item1.date = typeof item1.date === 'string' ? String(item1.date as unknown as string) : item1.date;
+        }
+      }
+    }
+  }
+  return data;
+};
 
 export const getDeliveryOverviewGetRecentDeliveryEventsUrl = (params?: DeliveryOverviewGetRecentDeliveryEventsParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -85,6 +101,18 @@ export const deliveryOverviewGetRecentDeliveryEvents = async (params?: DeliveryO
 
 
   }
-);}
+).then(deserializeDeliveryOverviewGetRecentDeliveryEventsResponse);}
 
+
+const deserializeDeliveryOverviewGetRecentDeliveryEventsResponse = (data: RecentDeliveryEventDto[]): RecentDeliveryEventDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.changedOn = new Date(item0.changedOn);
+    if (item0.releasedAt != null) {
+      item0.releasedAt = new Date(item0.releasedAt);
+    }
+  }
+  return data;
+};
 

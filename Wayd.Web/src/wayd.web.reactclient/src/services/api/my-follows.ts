@@ -43,8 +43,22 @@ export const myFollowsGetFollows = async (params?: MyFollowsGetFollowsParams, op
 
 
   }
-);}
+).then(deserializeMyFollowsGetFollowsResponse);}
 
+
+const deserializeMyFollowsGetFollowsResponse = (data: PagedResponseOfFollowedRecordDto): PagedResponseOfFollowedRecordDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.followedOn = new Date(item0.followedOn);
+      if (item0.lastChangedOn != null) {
+        item0.lastChangedOn = new Date(item0.lastChangedOn);
+      }
+    }
+  }
+  return data;
+};
 
 export const getMyFollowsGetFollowCountsUrl = () => {
 
@@ -93,8 +107,33 @@ export const myFollowsGetFollowedRecord = async (ownerType: string,
 
 
   }
-);}
+).then(deserializeMyFollowsGetFollowedRecordResponse);}
 
+
+const deserializeMyFollowsGetFollowedRecordResponse = (data: FollowedRecordDetailDto): FollowedRecordDetailDto => {
+  if (data == null) return data;
+  if (data.record != null) {
+    if ("followedOn" in data.record && data.record.followedOn != null) {
+      data.record.followedOn = new Date(data.record.followedOn);
+    }
+    if ("lastChangedOn" in data.record && data.record.lastChangedOn != null) {
+      data.record.lastChangedOn = new Date(data.record.lastChangedOn);
+    }
+  }
+  if (data.start != null) {
+    data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
+  }
+  if (data.end != null) {
+    data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
+  }
+  if (data.changesSinceFollowed != null) {
+    for (let i0 = 0; i0 < data.changesSinceFollowed.length; i0++) {
+      const item0 = data.changesSinceFollowed[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getMyFollowsGetFollowStatusUrl = (ownerType: string,
     ownerId: string,) => {
@@ -119,8 +158,16 @@ export const myFollowsGetFollowStatus = async (ownerType: string,
 
 
   }
-);}
+).then(deserializeMyFollowsGetFollowStatusResponse);}
 
+
+const deserializeMyFollowsGetFollowStatusResponse = (data: FollowStatusDto): FollowStatusDto => {
+  if (data == null) return data;
+  if (data.followedOn != null) {
+    data.followedOn = new Date(data.followedOn);
+  }
+  return data;
+};
 
 export const getMyFollowsFollowUrl = (ownerType: string,
     ownerId: string,) => {

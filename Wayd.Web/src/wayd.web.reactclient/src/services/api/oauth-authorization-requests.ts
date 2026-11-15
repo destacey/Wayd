@@ -54,8 +54,14 @@ export const oAuthAuthorizationRequestsGet = async (handle: string, options?: Pa
 
 
   }
-);}
+).then(deserializeOAuthAuthorizationRequestsGetResponse);}
 
+
+const deserializeOAuthAuthorizationRequestsGetResponse = (data: OAuthAuthorizationRequestResponse): OAuthAuthorizationRequestResponse => {
+  if (data == null) return data;
+  data.expiresAt = new Date(data.expiresAt);
+  return data;
+};
 
 export const getOAuthAuthorizationRequestsApproveUrl = (handle: string,) => {
 

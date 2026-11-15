@@ -128,8 +128,22 @@ export const deploymentEnvironmentsGetRollout = async (params?: DeploymentEnviro
 
 
   }
-);}
+).then(deserializeDeploymentEnvironmentsGetRolloutResponse);}
 
+
+const deserializeDeploymentEnvironmentsGetRolloutResponse = (data: EnvironmentRolloutDto[]): EnvironmentRolloutDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.running != null) {
+      for (let i1 = 0; i1 < item0.running.length; i1++) {
+        const item1 = item0.running[i1]!;
+        item1.deployedAt = new Date(item1.deployedAt);
+      }
+    }
+  }
+  return data;
+};
 
 export const getDeploymentEnvironmentsImportUrl = (params?: DeploymentEnvironmentsImportParams,) => {
   const normalizedParams = new URLSearchParams();

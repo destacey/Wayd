@@ -166,8 +166,22 @@ export const teamsGetById = async (id: number, options?: Parameters<typeof apiFe
 
 
   }
-);}
+).then(deserializeTeamsGetByIdResponse);}
 
+
+const deserializeTeamsGetByIdResponse = (data: TeamDetailsDto): TeamDetailsDto => {
+  if (data == null) return data;
+  data.activeDate = typeof data.activeDate === 'string' ? String(data.activeDate as unknown as string) : data.activeDate;
+  if (data.inactiveDate != null) {
+    data.inactiveDate = typeof data.inactiveDate === 'string' ? String(data.inactiveDate as unknown as string) : data.inactiveDate;
+  }
+  if (data.operatingModel != null) {
+    if ("cadenceAnchor" in data.operatingModel && data.operatingModel.cadenceAnchor != null) {
+      data.operatingModel.cadenceAnchor = typeof data.operatingModel.cadenceAnchor === 'string' ? String(data.operatingModel.cadenceAnchor as unknown as string) : data.operatingModel.cadenceAnchor;
+    }
+  }
+  return data;
+};
 
 export const getTeamsUpdateUrl = (id: string,) => {
 
@@ -224,8 +238,19 @@ export const teamsGetActivities = async (idOrKey: string,
 
 
   }
-);}
+).then(deserializeTeamsGetActivitiesResponse);}
 
+
+const deserializeTeamsGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getTeamsImportUrl = (params?: TeamsImportParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -372,8 +397,20 @@ export const teamsGetTeamMemberships = async (id: string, options?: Parameters<t
 
 
   }
-);}
+).then(deserializeTeamsGetTeamMembershipsResponse);}
 
+
+const deserializeTeamsGetTeamMembershipsResponse = (data: TeamMembershipDto[]): TeamMembershipDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+    if (item0.end != null) {
+      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    }
+  }
+  return data;
+};
 
 export const getTeamsAddTeamMembershipUrl = (id: string,) => {
 
@@ -474,8 +511,17 @@ export const teamsGetTeamBacklog = async (idOrCode: string, options?: Parameters
 
 
   }
-);}
+).then(deserializeTeamsGetTeamBacklogResponse);}
 
+
+const deserializeTeamsGetTeamBacklogResponse = (data: WorkItemBacklogItemDto[]): WorkItemBacklogItemDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.created = new Date(item0.created);
+  }
+  return data;
+};
 
 export const getTeamsGetTeamBacklogHealthUrl = (idOrCode: string,
     params?: TeamsGetTeamBacklogHealthParams,) => {
@@ -507,8 +553,25 @@ export const teamsGetTeamBacklogHealth = async (idOrCode: string,
 
 
   }
-);}
+).then(deserializeTeamsGetTeamBacklogHealthResponse);}
 
+
+const deserializeTeamsGetTeamBacklogHealthResponse = (data: TeamBacklogHealthDto): TeamBacklogHealthDto => {
+  if (data == null) return data;
+  data.from = typeof data.from === 'string' ? String(data.from as unknown as string) : data.from;
+  data.to = typeof data.to === 'string' ? String(data.to as unknown as string) : data.to;
+  if (data.workItems != null) {
+    for (let i0 = 0; i0 < data.workItems.length; i0++) {
+      const item0 = data.workItems[i0]!;
+      item0.created = new Date(item0.created);
+      item0.lastModified = new Date(item0.lastModified);
+      if (item0.activated != null) {
+        item0.activated = new Date(item0.activated);
+      }
+    }
+  }
+  return data;
+};
 
 export const getTeamsGetTeamWorkDistributionUrl = (idOrCode: string,
     params?: TeamsGetTeamWorkDistributionParams,) => {
@@ -540,8 +603,22 @@ export const teamsGetTeamWorkDistribution = async (idOrCode: string,
 
 
   }
-);}
+).then(deserializeTeamsGetTeamWorkDistributionResponse);}
 
+
+const deserializeTeamsGetTeamWorkDistributionResponse = (data: TeamWorkDistributionDto): TeamWorkDistributionDto => {
+  if (data == null) return data;
+  data.from = typeof data.from === 'string' ? String(data.from as unknown as string) : data.from;
+  data.to = typeof data.to === 'string' ? String(data.to as unknown as string) : data.to;
+  if (data.periods != null) {
+    for (let i0 = 0; i0 < data.periods.length; i0++) {
+      const item0 = data.periods[i0]!;
+      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    }
+  }
+  return data;
+};
 
 export const getTeamsGetDependencyAnalysisUrl = (idOrCode: string,
     params?: TeamsGetDependencyAnalysisParams,) => {
@@ -573,8 +650,44 @@ export const teamsGetDependencyAnalysis = async (idOrCode: string,
 
 
   }
-);}
+).then(deserializeTeamsGetDependencyAnalysisResponse);}
 
+
+const deserializeTeamsGetDependencyAnalysisResponse = (data: TeamDependencyAnalysisDto): TeamDependencyAnalysisDto => {
+  if (data == null) return data;
+  data.from = typeof data.from === 'string' ? String(data.from as unknown as string) : data.from;
+  data.to = typeof data.to === 'string' ? String(data.to as unknown as string) : data.to;
+  if (data.periods != null) {
+    for (let i0 = 0; i0 < data.periods.length; i0++) {
+      const item0 = data.periods[i0]!;
+      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    }
+  }
+  if (data.dependencies != null) {
+    for (let i0 = 0; i0 < data.dependencies.length; i0++) {
+      const item0 = data.dependencies[i0]!;
+      if (item0.source != null) {
+        if (item0.source.activatedTimestamp != null) {
+          item0.source.activatedTimestamp = new Date(item0.source.activatedTimestamp);
+        }
+        if (item0.source.doneTimestamp != null) {
+          item0.source.doneTimestamp = new Date(item0.source.doneTimestamp);
+        }
+      }
+      if (item0.target != null) {
+        if (item0.target.activatedTimestamp != null) {
+          item0.target.activatedTimestamp = new Date(item0.target.activatedTimestamp);
+        }
+        if (item0.target.doneTimestamp != null) {
+          item0.target.doneTimestamp = new Date(item0.target.doneTimestamp);
+        }
+      }
+      item0.createdOn = new Date(item0.createdOn);
+    }
+  }
+  return data;
+};
 
 export const getTeamsGetCapacityUrl = (id: string,
     params?: TeamsGetCapacityParams,) => {
@@ -606,8 +719,45 @@ export const teamsGetCapacity = async (id: string,
 
 
   }
-);}
+).then(deserializeTeamsGetCapacityResponse);}
 
+
+const deserializeTeamsGetCapacityResponse = (data: TeamCapacityDto): TeamCapacityDto => {
+  if (data == null) return data;
+  data.from = typeof data.from === 'string' ? String(data.from as unknown as string) : data.from;
+  data.to = typeof data.to === 'string' ? String(data.to as unknown as string) : data.to;
+  if (data.people != null) {
+    for (let i0 = 0; i0 < data.people.length; i0++) {
+      const item0 = data.people[i0]!;
+      if (item0.timeAway != null) {
+        for (let i1 = 0; i1 < item0.timeAway.length; i1++) {
+          const item1 = item0.timeAway[i1]!;
+          item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
+          item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
+        }
+      }
+      if (item0.allocations != null) {
+        for (let i1 = 0; i1 < item0.allocations.length; i1++) {
+          const item1 = item0.allocations[i1]!;
+          item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
+          if (item1.end != null) {
+            item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
+          }
+        }
+      }
+      if (item0.elsewhereAllocations != null) {
+        for (let i1 = 0; i1 < item0.elsewhereAllocations.length; i1++) {
+          const item1 = item0.elsewhereAllocations[i1]!;
+          item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
+          if (item1.end != null) {
+            item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
+          }
+        }
+      }
+    }
+  }
+  return data;
+};
 
 export const getTeamsGetCapacityReportUrl = (id: string,
     params?: TeamsGetCapacityReportParams,) => {
@@ -639,8 +789,34 @@ export const teamsGetCapacityReport = async (id: string,
 
 
   }
-);}
+).then(deserializeTeamsGetCapacityReportResponse);}
 
+
+const deserializeTeamsGetCapacityReportResponse = (data: TeamCapacityReportDto): TeamCapacityReportDto => {
+  if (data == null) return data;
+  data.from = typeof data.from === 'string' ? String(data.from as unknown as string) : data.from;
+  data.to = typeof data.to === 'string' ? String(data.to as unknown as string) : data.to;
+  if (data.buckets != null) {
+    for (let i0 = 0; i0 < data.buckets.length; i0++) {
+      const item0 = data.buckets[i0]!;
+      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    }
+  }
+  if (data.teams != null) {
+    for (let i0 = 0; i0 < data.teams.length; i0++) {
+      const item0 = data.teams[i0]!;
+      if (item0.periods != null) {
+        for (let i1 = 0; i1 < item0.periods.length; i1++) {
+          const item1 = item0.periods[i1]!;
+          item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
+          item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
+        }
+      }
+    }
+  }
+  return data;
+};
 
 export const getTeamsGetCapacityPlanUrl = (id: string,
     params?: TeamsGetCapacityPlanParams,) => {
@@ -672,8 +848,84 @@ export const teamsGetCapacityPlan = async (id: string,
 
 
   }
-);}
+).then(deserializeTeamsGetCapacityPlanResponse);}
 
+
+const deserializeTeamsGetCapacityPlanResponse = (data: TeamCapacityPlanDto): TeamCapacityPlanDto => {
+  if (data == null) return data;
+  if (data.capacity != null) {
+    if ("from" in data.capacity && data.capacity.from != null) {
+      data.capacity.from = typeof data.capacity.from === 'string' ? String(data.capacity.from as unknown as string) : data.capacity.from;
+    }
+    if ("to" in data.capacity && data.capacity.to != null) {
+      data.capacity.to = typeof data.capacity.to === 'string' ? String(data.capacity.to as unknown as string) : data.capacity.to;
+    }
+    if ("people" in data.capacity && data.capacity.people != null) {
+      for (let i0 = 0; i0 < data.capacity.people.length; i0++) {
+        const item0 = data.capacity.people[i0]!;
+        if (item0.timeAway != null) {
+          for (let i1 = 0; i1 < item0.timeAway.length; i1++) {
+            const item1 = item0.timeAway[i1]!;
+            item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
+            item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
+          }
+        }
+        if (item0.allocations != null) {
+          for (let i1 = 0; i1 < item0.allocations.length; i1++) {
+            const item1 = item0.allocations[i1]!;
+            item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
+            if (item1.end != null) {
+              item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
+            }
+          }
+        }
+        if (item0.elsewhereAllocations != null) {
+          for (let i1 = 0; i1 < item0.elsewhereAllocations.length; i1++) {
+            const item1 = item0.elsewhereAllocations[i1]!;
+            item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
+            if (item1.end != null) {
+              item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
+            }
+          }
+        }
+      }
+    }
+  }
+  if (data.days != null) {
+    for (let i0 = 0; i0 < data.days.length; i0++) {
+      data.days[i0] = typeof data.days[i0]! === 'string' ? String(data.days[i0]! as unknown as string) : data.days[i0]!;
+    }
+  }
+  if (data.teamDaysOff != null) {
+    for (let i0 = 0; i0 < data.teamDaysOff.length; i0++) {
+      const item0 = data.teamDaysOff[i0]!;
+      item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
+    }
+  }
+  if (data.people != null) {
+    for (let i0 = 0; i0 < data.people.length; i0++) {
+      const item0 = data.people[i0]!;
+      if (item0.days != null) {
+        for (let i1 = 0; i1 < item0.days.length; i1++) {
+          const item1 = item0.days[i1]!;
+          item1.date = typeof item1.date === 'string' ? String(item1.date as unknown as string) : item1.date;
+        }
+      }
+      if (item0.rows != null) {
+        for (let i1 = 0; i1 < item0.rows.length; i1++) {
+          const item1 = item0.rows[i1]!;
+          if (item1.days != null) {
+            for (let i2 = 0; i2 < item1.days.length; i2++) {
+              const item2 = item1.days[i2]!;
+              item2.date = typeof item2.date === 'string' ? String(item2.date as unknown as string) : item2.date;
+            }
+          }
+        }
+      }
+    }
+  }
+  return data;
+};
 
 export const getTeamsGetAllocationProposalUrl = (id: string,
     params?: TeamsGetAllocationProposalParams,) => {
@@ -705,8 +957,22 @@ export const teamsGetAllocationProposal = async (id: string,
 
 
   }
-);}
+).then(deserializeTeamsGetAllocationProposalResponse);}
 
+
+const deserializeTeamsGetAllocationProposalResponse = (data: TeamAllocationProposalDto): TeamAllocationProposalDto => {
+  if (data == null) return data;
+  data.from = typeof data.from === 'string' ? String(data.from as unknown as string) : data.from;
+  if (data.rows != null) {
+    for (let i0 = 0; i0 < data.rows.length; i0++) {
+      const item0 = data.rows[i0]!;
+      if (item0.end != null) {
+        item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+      }
+    }
+  }
+  return data;
+};
 
 export const getTeamsGetTeamThroughputForecastUrl = (idOrCode: string,
     params?: TeamsGetTeamThroughputForecastParams,) => {
@@ -738,8 +1004,19 @@ export const teamsGetTeamThroughputForecast = async (idOrCode: string,
 
 
   }
-);}
+).then(deserializeTeamsGetTeamThroughputForecastResponse);}
 
+
+const deserializeTeamsGetTeamThroughputForecastResponse = (data: TeamThroughputForecastDto): TeamThroughputForecastDto => {
+  if (data == null) return data;
+  if (data.team != null) {
+    data.team.from = typeof data.team.from === 'string' ? String(data.team.from as unknown as string) : data.team.from;
+    data.team.to = typeof data.team.to === 'string' ? String(data.team.to as unknown as string) : data.team.to;
+  }
+  data.forecastStart = typeof data.forecastStart === 'string' ? String(data.forecastStart as unknown as string) : data.forecastStart;
+  data.targetDate = typeof data.targetDate === 'string' ? String(data.targetDate as unknown as string) : data.targetDate;
+  return data;
+};
 
 export const getTeamsGetTeamWorkItemsUrl = (idOrCode: string,
     params?: TeamsGetTeamWorkItemsParams,) => {
@@ -748,7 +1025,7 @@ export const getTeamsGetTeamWorkItemsUrl = (idOrCode: string,
   Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
     }
   });
 
@@ -771,8 +1048,23 @@ export const teamsGetTeamWorkItems = async (idOrCode: string,
 
 
   }
-);}
+).then(deserializeTeamsGetTeamWorkItemsResponse);}
 
+
+const deserializeTeamsGetTeamWorkItemsResponse = (data: WorkItemListDto[]): WorkItemListDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.created = new Date(item0.created);
+    if (item0.activated != null) {
+      item0.activated = new Date(item0.activated);
+    }
+    if (item0.done != null) {
+      item0.done = new Date(item0.done);
+    }
+  }
+  return data;
+};
 
 export const getTeamsGetTeamDependenciesUrl = (id: string,) => {
 
@@ -795,8 +1087,33 @@ export const teamsGetTeamDependencies = async (id: string, options?: Parameters<
 
 
   }
-);}
+).then(deserializeTeamsGetTeamDependenciesResponse);}
 
+
+const deserializeTeamsGetTeamDependenciesResponse = (data: DependencyDto[]): DependencyDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.source != null) {
+      if (item0.source.activatedTimestamp != null) {
+        item0.source.activatedTimestamp = new Date(item0.source.activatedTimestamp);
+      }
+      if (item0.source.doneTimestamp != null) {
+        item0.source.doneTimestamp = new Date(item0.source.doneTimestamp);
+      }
+    }
+    if (item0.target != null) {
+      if (item0.target.activatedTimestamp != null) {
+        item0.target.activatedTimestamp = new Date(item0.target.activatedTimestamp);
+      }
+      if (item0.target.doneTimestamp != null) {
+        item0.target.doneTimestamp = new Date(item0.target.doneTimestamp);
+      }
+    }
+    item0.createdOn = new Date(item0.createdOn);
+  }
+  return data;
+};
 
 export const getTeamsGetRisksUrl = (id: string,
     params?: TeamsGetRisksParams,) => {
@@ -828,8 +1145,20 @@ export const teamsGetRisks = async (id: string,
 
 
   }
-);}
+).then(deserializeTeamsGetRisksResponse);}
 
+
+const deserializeTeamsGetRisksResponse = (data: RiskListDto[]): RiskListDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.reportedOn = new Date(item0.reportedOn);
+    if (item0.followUpDate != null) {
+      item0.followUpDate = typeof item0.followUpDate === 'string' ? String(item0.followUpDate as unknown as string) : item0.followUpDate;
+    }
+  }
+  return data;
+};
 
 export const getTeamsCreateRiskUrl = (id: string,) => {
 
@@ -879,8 +1208,20 @@ export const teamsGetRiskById = async (id: string,
 
 
   }
-);}
+).then(deserializeTeamsGetRiskByIdResponse);}
 
+
+const deserializeTeamsGetRiskByIdResponse = (data: RiskDetailsDto): RiskDetailsDto => {
+  if (data == null) return data;
+  data.reportedOn = new Date(data.reportedOn);
+  if (data.followUpDate != null) {
+    data.followUpDate = typeof data.followUpDate === 'string' ? String(data.followUpDate as unknown as string) : data.followUpDate;
+  }
+  if (data.closedDate != null) {
+    data.closedDate = new Date(data.closedDate);
+  }
+  return data;
+};
 
 export const getTeamsUpdateRiskUrl = (id: string,
     riskId: string,) => {
@@ -932,8 +1273,20 @@ export const teamsGetOperatingModel = async (id: string,
 
 
   }
-);}
+).then(deserializeTeamsGetOperatingModelResponse);}
 
+
+const deserializeTeamsGetOperatingModelResponse = (data: TeamOperatingModelDetailsDto): TeamOperatingModelDetailsDto => {
+  if (data == null) return data;
+  data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
+  if (data.end != null) {
+    data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
+  }
+  if (data.cadenceAnchor != null) {
+    data.cadenceAnchor = typeof data.cadenceAnchor === 'string' ? String(data.cadenceAnchor as unknown as string) : data.cadenceAnchor;
+  }
+  return data;
+};
 
 export const getTeamsUpdateOperatingModelUrl = (id: string,
     operatingModelId: string,) => {
@@ -1009,8 +1362,23 @@ export const teamsGetOperatingModels = async (id: string, options?: Parameters<t
 
 
   }
-);}
+).then(deserializeTeamsGetOperatingModelsResponse);}
 
+
+const deserializeTeamsGetOperatingModelsResponse = (data: TeamOperatingModelDetailsDto[]): TeamOperatingModelDetailsDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+    if (item0.end != null) {
+      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    }
+    if (item0.cadenceAnchor != null) {
+      item0.cadenceAnchor = typeof item0.cadenceAnchor === 'string' ? String(item0.cadenceAnchor as unknown as string) : item0.cadenceAnchor;
+    }
+  }
+  return data;
+};
 
 export const getTeamsSetOperatingModelUrl = (id: string,) => {
 
@@ -1044,7 +1412,7 @@ export const getTeamsGetOperatingModelAsOfUrl = (id: string,
   Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
     }
   });
 
@@ -1067,8 +1435,20 @@ export const teamsGetOperatingModelAsOf = async (id: string,
 
 
   }
-);}
+).then(deserializeTeamsGetOperatingModelAsOfResponse);}
 
+
+const deserializeTeamsGetOperatingModelAsOfResponse = (data: TeamOperatingModelDetailsDto): TeamOperatingModelDetailsDto => {
+  if (data == null) return data;
+  data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
+  if (data.end != null) {
+    data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
+  }
+  if (data.cadenceAnchor != null) {
+    data.cadenceAnchor = typeof data.cadenceAnchor === 'string' ? String(data.cadenceAnchor as unknown as string) : data.cadenceAnchor;
+  }
+  return data;
+};
 
 export const getTeamsGetOperatingModelsForTeamsUrl = (params?: TeamsGetOperatingModelsForTeamsParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -1084,7 +1464,7 @@ export const getTeamsGetOperatingModelsForTeamsUrl = (params?: TeamsGetOperating
     }
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
     }
   });
 
@@ -1106,8 +1486,23 @@ export const teamsGetOperatingModelsForTeams = async (params?: TeamsGetOperating
 
 
   }
-);}
+).then(deserializeTeamsGetOperatingModelsForTeamsResponse);}
 
+
+const deserializeTeamsGetOperatingModelsForTeamsResponse = (data: TeamOperatingModelDetailsDto[]): TeamOperatingModelDetailsDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+    if (item0.end != null) {
+      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    }
+    if (item0.cadenceAnchor != null) {
+      item0.cadenceAnchor = typeof item0.cadenceAnchor === 'string' ? String(item0.cadenceAnchor as unknown as string) : item0.cadenceAnchor;
+    }
+  }
+  return data;
+};
 
 export const getTeamsGetOperatingModelDefaultsUrl = (id: string,
     params?: TeamsGetOperatingModelDefaultsParams,) => {
@@ -1187,8 +1582,24 @@ export const teamsGetSprints = async (id: string, options?: Parameters<typeof ap
 
 
   }
-);}
+).then(deserializeTeamsGetSprintsResponse);}
 
+
+const deserializeTeamsGetSprintsResponse = (data: SprintListDto[]): SprintListDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+    item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    if (item0.started != null) {
+      item0.started = new Date(item0.started);
+    }
+    if (item0.completed != null) {
+      item0.completed = new Date(item0.completed);
+    }
+  }
+  return data;
+};
 
 export const getTeamsGetActiveSprintUrl = (id: string,) => {
 
@@ -1211,8 +1622,50 @@ export const teamsGetActiveSprint = async (id: string, options?: Parameters<type
 
 
   }
-);}
+).then(deserializeTeamsGetActiveSprintResponse);}
 
+
+const deserializeTeamsGetActiveSprintResponse = (data: SprintDetailsDto): SprintDetailsDto => {
+  if (data == null) return data;
+  data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
+  data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
+  if (data.started != null) {
+    data.started = new Date(data.started);
+  }
+  if (data.completed != null) {
+    data.completed = new Date(data.completed);
+  }
+  if (data.activeFrom != null) {
+    data.activeFrom = new Date(data.activeFrom);
+  }
+  if (data.activeUntil != null) {
+    data.activeUntil = new Date(data.activeUntil);
+  }
+  if (data.teamDaysOff != null) {
+    for (let i0 = 0; i0 < data.teamDaysOff.length; i0++) {
+      const item0 = data.teamDaysOff[i0]!;
+      item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
+    }
+  }
+  if (data.holidays != null) {
+    for (let i0 = 0; i0 < data.holidays.length; i0++) {
+      data.holidays[i0] = typeof data.holidays[i0]! === 'string' ? String(data.holidays[i0]! as unknown as string) : data.holidays[i0]!;
+    }
+  }
+  if (data.startWindow != null) {
+    data.startWindow.earliest = new Date(data.startWindow.earliest);
+    if (data.startWindow.latest != null) {
+      data.startWindow.latest = new Date(data.startWindow.latest);
+    }
+  }
+  if (data.completeWindow != null) {
+    data.completeWindow.earliest = new Date(data.completeWindow.earliest);
+    if (data.completeWindow.latest != null) {
+      data.completeWindow.latest = new Date(data.completeWindow.latest);
+    }
+  }
+  return data;
+};
 
 export const getTeamsGetSprintMetricsUrl = (id: string,
     params?: TeamsGetSprintMetricsParams,) => {
@@ -1244,8 +1697,27 @@ export const teamsGetSprintMetrics = async (id: string,
 
 
   }
-);}
+).then(deserializeTeamsGetSprintMetricsResponse);}
 
+
+const deserializeTeamsGetSprintMetricsResponse = (data: TeamSprintMetricsDto): TeamSprintMetricsDto => {
+  if (data == null) return data;
+  if (data.sprints != null) {
+    for (let i0 = 0; i0 < data.sprints.length; i0++) {
+      const item0 = data.sprints[i0]!;
+      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    }
+  }
+  if (data.excluded != null) {
+    for (let i0 = 0; i0 < data.excluded.length; i0++) {
+      const item0 = data.excluded[i0]!;
+      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    }
+  }
+  return data;
+};
 
 export const getTeamsGetCadenceMetricsUrl = (id: string,
     params?: TeamsGetCadenceMetricsParams,) => {
@@ -1277,8 +1749,20 @@ export const teamsGetCadenceMetrics = async (id: string,
 
 
   }
-);}
+).then(deserializeTeamsGetCadenceMetricsResponse);}
 
+
+const deserializeTeamsGetCadenceMetricsResponse = (data: TeamCadenceMetricsDto): TeamCadenceMetricsDto => {
+  if (data == null) return data;
+  if (data.periods != null) {
+    for (let i0 = 0; i0 < data.periods.length; i0++) {
+      const item0 = data.periods[i0]!;
+      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
+      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
+    }
+  }
+  return data;
+};
 
 export const getTeamsGetFunctionalOrganizationChartUrl = (params?: TeamsGetFunctionalOrganizationChartParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -1286,7 +1770,7 @@ export const getTeamsGetFunctionalOrganizationChartUrl = (params?: TeamsGetFunct
   Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
     }
   });
 
@@ -1308,8 +1792,14 @@ export const teamsGetFunctionalOrganizationChart = async (params?: TeamsGetFunct
 
 
   }
-);}
+).then(deserializeTeamsGetFunctionalOrganizationChartResponse);}
 
+
+const deserializeTeamsGetFunctionalOrganizationChartResponse = (data: FunctionalOrganizationChartDto): FunctionalOrganizationChartDto => {
+  if (data == null) return data;
+  data.asOfDate = typeof data.asOfDate === 'string' ? String(data.asOfDate as unknown as string) : data.asOfDate;
+  return data;
+};
 
 export const getTeamsGetMembersUrl = (id: string,) => {
 

@@ -116,8 +116,19 @@ export const systemSettingsGetGeneralSettingsActivities = async (params?: System
 
 
   }
-);}
+).then(deserializeSystemSettingsGetGeneralSettingsActivitiesResponse);}
 
+
+const deserializeSystemSettingsGetGeneralSettingsActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getSystemSettingsGetSchedulingSettingsUrl = () => {
 
@@ -192,8 +203,19 @@ export const systemSettingsGetSchedulingSettingsActivities = async (params?: Sys
 
 
   }
-);}
+).then(deserializeSystemSettingsGetSchedulingSettingsActivitiesResponse);}
 
+
+const deserializeSystemSettingsGetSchedulingSettingsActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getSystemSettingsGetSprintMetricsSettingsUrl = () => {
 
@@ -268,8 +290,19 @@ export const systemSettingsGetSprintMetricsSettingsActivities = async (params?: 
 
 
   }
-);}
+).then(deserializeSystemSettingsGetSprintMetricsSettingsActivitiesResponse);}
 
+
+const deserializeSystemSettingsGetSprintMetricsSettingsActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getSystemSettingsGetProductTagSettingsUrl = () => {
 
@@ -344,6 +377,17 @@ export const systemSettingsGetProductTagSettingsActivities = async (params?: Sys
 
 
   }
-);}
+).then(deserializeSystemSettingsGetProductTagSettingsActivitiesResponse);}
 
+
+const deserializeSystemSettingsGetProductTagSettingsActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 

@@ -174,8 +174,19 @@ export const statusWorkflowsGetActivities = async (idOrKey: string,
 
 
   }
-);}
+).then(deserializeStatusWorkflowsGetActivitiesResponse);}
 
+
+const deserializeStatusWorkflowsGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getStatusWorkflowsUpdateUrl = (id: string,) => {
 

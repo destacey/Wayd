@@ -176,8 +176,19 @@ export const productsGetActivities = async (idOrKey: string,
 
 
   }
-);}
+).then(deserializeProductsGetActivitiesResponse);}
 
+
+const deserializeProductsGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getProductsGetStatusHistoryUrl = (idOrKey: string,) => {
 
@@ -200,8 +211,17 @@ export const productsGetStatusHistory = async (idOrKey: string, options?: Parame
 
 
   }
-);}
+).then(deserializeProductsGetStatusHistoryResponse);}
 
+
+const deserializeProductsGetStatusHistoryResponse = (data: StatusTransitionDto[]): StatusTransitionDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.changedOn = new Date(item0.changedOn);
+  }
+  return data;
+};
 
 export const getProductsGetStatusWorkflowUrl = (idOrKey: string,) => {
 
@@ -614,8 +634,31 @@ export const productsGetDependencies = async (idOrKey: string,
 
 
   }
-);}
+).then(deserializeProductsGetDependenciesResponse);}
 
+
+const deserializeProductsGetDependenciesResponse = (data: ProductDependenciesDto): ProductDependenciesDto => {
+  if (data == null) return data;
+  if (data.dependsOn != null) {
+    for (let i0 = 0; i0 < data.dependsOn.length; i0++) {
+      const item0 = data.dependsOn[i0]!;
+      item0.startsOn = typeof item0.startsOn === 'string' ? String(item0.startsOn as unknown as string) : item0.startsOn;
+      if (item0.endsOn != null) {
+        item0.endsOn = typeof item0.endsOn === 'string' ? String(item0.endsOn as unknown as string) : item0.endsOn;
+      }
+    }
+  }
+  if (data.usedBy != null) {
+    for (let i0 = 0; i0 < data.usedBy.length; i0++) {
+      const item0 = data.usedBy[i0]!;
+      item0.startsOn = typeof item0.startsOn === 'string' ? String(item0.startsOn as unknown as string) : item0.startsOn;
+      if (item0.endsOn != null) {
+        item0.endsOn = typeof item0.endsOn === 'string' ? String(item0.endsOn as unknown as string) : item0.endsOn;
+      }
+    }
+  }
+  return data;
+};
 
 export const getProductsAddDependencyUrl = (id: string,) => {
 

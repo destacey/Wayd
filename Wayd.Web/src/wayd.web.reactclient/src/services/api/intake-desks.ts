@@ -76,8 +76,21 @@ export const intakeDesksGetIntakeDesks = async (params?: IntakeDesksGetIntakeDes
 
 
   }
-);}
+).then(deserializeIntakeDesksGetIntakeDesksResponse);}
 
+
+const deserializeIntakeDesksGetIntakeDesksResponse = (data: IntakeDeskDto[]): IntakeDeskDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.waiting != null) {
+      if (item0.waiting.oldestSubmittedOn != null) {
+        item0.waiting.oldestSubmittedOn = new Date(item0.waiting.oldestSubmittedOn);
+      }
+    }
+  }
+  return data;
+};
 
 export const getIntakeDesksCreateUrl = () => {
 
@@ -122,8 +135,18 @@ export const intakeDesksGetIntakeDesk = async (idOrKey: string, options?: Parame
 
 
   }
-);}
+).then(deserializeIntakeDesksGetIntakeDeskResponse);}
 
+
+const deserializeIntakeDesksGetIntakeDeskResponse = (data: IntakeDeskDto): IntakeDeskDto => {
+  if (data == null) return data;
+  if (data.waiting != null) {
+    if (data.waiting.oldestSubmittedOn != null) {
+      data.waiting.oldestSubmittedOn = new Date(data.waiting.oldestSubmittedOn);
+    }
+  }
+  return data;
+};
 
 export const getIntakeDesksUpdateUrl = (id: string,) => {
 

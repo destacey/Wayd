@@ -77,7 +77,7 @@ export const getIntakeRequestsGetIntakeRequestsUrl = (params?: IntakeRequestsGet
   Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
     }
   });
 
@@ -99,8 +99,24 @@ export const intakeRequestsGetIntakeRequests = async (params?: IntakeRequestsGet
 
 
   }
-);}
+).then(deserializeIntakeRequestsGetIntakeRequestsResponse);}
 
+
+const deserializeIntakeRequestsGetIntakeRequestsResponse = (data: IntakeRequestSummaryDto[]): IntakeRequestSummaryDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.needBy != null) {
+      item0.needBy.date = typeof item0.needBy.date === 'string' ? String(item0.needBy.date as unknown as string) : item0.needBy.date;
+      if (item0.needBy.committedOn != null) {
+        item0.needBy.committedOn = typeof item0.needBy.committedOn === 'string' ? String(item0.needBy.committedOn as unknown as string) : item0.needBy.committedOn;
+      }
+    }
+    item0.submittedOn = new Date(item0.submittedOn);
+    item0.statusChangedOn = new Date(item0.statusChangedOn);
+  }
+  return data;
+};
 
 export const getIntakeRequestsCreateUrl = () => {
 
@@ -132,7 +148,7 @@ export const getIntakeRequestsGetIntakeRequestScoresUrl = (params?: IntakeReques
   Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
     }
   });
 
@@ -154,8 +170,17 @@ export const intakeRequestsGetIntakeRequestScores = async (params?: IntakeReques
 
 
   }
-);}
+).then(deserializeIntakeRequestsGetIntakeRequestScoresResponse);}
 
+
+const deserializeIntakeRequestsGetIntakeRequestScoresResponse = (data: IntakeRequestCurrentScoreDto[]): IntakeRequestCurrentScoreDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.scoredOn = new Date(item0.scoredOn);
+  }
+  return data;
+};
 
 export const getIntakeRequestsGetIntakeRequestEstimatesUrl = (params?: IntakeRequestsGetIntakeRequestEstimatesParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -163,7 +188,7 @@ export const getIntakeRequestsGetIntakeRequestEstimatesUrl = (params?: IntakeReq
   Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
     }
   });
 
@@ -194,7 +219,7 @@ export const getIntakeRequestsGetIntakeRequestOutcomesUrl = (params?: IntakeRequ
   Object.entries(params || {}).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
     }
   });
 
@@ -216,8 +241,22 @@ export const intakeRequestsGetIntakeRequestOutcomes = async (params?: IntakeRequ
 
 
   }
-);}
+).then(deserializeIntakeRequestsGetIntakeRequestOutcomesResponse);}
 
+
+const deserializeIntakeRequestsGetIntakeRequestOutcomesResponse = (data: IntakeRequestOutcomesDto[]): IntakeRequestOutcomesDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    if (item0.outcomes != null) {
+      for (let i1 = 0; i1 < item0.outcomes.length; i1++) {
+        const item1 = item0.outcomes[i1]!;
+        item1.addedOn = new Date(item1.addedOn);
+      }
+    }
+  }
+  return data;
+};
 
 export const getIntakeRequestsGetIntakeRequestUrl = (idOrKey: string,) => {
 
@@ -240,8 +279,41 @@ export const intakeRequestsGetIntakeRequest = async (idOrKey: string, options?: 
 
 
   }
-);}
+).then(deserializeIntakeRequestsGetIntakeRequestResponse);}
 
+
+const deserializeIntakeRequestsGetIntakeRequestResponse = (data: IntakeRequestDetailsDto): IntakeRequestDetailsDto => {
+  if (data == null) return data;
+  if (data.summary != null) {
+    if ("needBy" in data.summary && data.summary.needBy != null) {
+      data.summary.needBy.date = typeof data.summary.needBy.date === 'string' ? String(data.summary.needBy.date as unknown as string) : data.summary.needBy.date;
+      if (data.summary.needBy.committedOn != null) {
+        data.summary.needBy.committedOn = typeof data.summary.needBy.committedOn === 'string' ? String(data.summary.needBy.committedOn as unknown as string) : data.summary.needBy.committedOn;
+      }
+    }
+    if ("submittedOn" in data.summary && data.summary.submittedOn != null) {
+      data.summary.submittedOn = new Date(data.summary.submittedOn);
+    }
+    if ("statusChangedOn" in data.summary && data.summary.statusChangedOn != null) {
+      data.summary.statusChangedOn = new Date(data.summary.statusChangedOn);
+    }
+  }
+  if (data.substance != null) {
+    if (data.substance.participants != null) {
+      for (let i0 = 0; i0 < data.substance.participants.length; i0++) {
+        const item0 = data.substance.participants[i0]!;
+        item0.addedOn = new Date(item0.addedOn);
+      }
+    }
+  }
+  if (data.outcomes != null) {
+    for (let i0 = 0; i0 < data.outcomes.length; i0++) {
+      const item0 = data.outcomes[i0]!;
+      item0.addedOn = new Date(item0.addedOn);
+    }
+  }
+  return data;
+};
 
 export const getIntakeRequestsGetActivitiesUrl = (idOrKey: string,
     params?: IntakeRequestsGetActivitiesParams,) => {
@@ -272,8 +344,19 @@ export const intakeRequestsGetActivities = async (idOrKey: string,
 
 
   }
-);}
+).then(deserializeIntakeRequestsGetActivitiesResponse);}
 
+
+const deserializeIntakeRequestsGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
+  if (data == null) return data;
+  if (data.items != null) {
+    for (let i0 = 0; i0 < data.items.length; i0++) {
+      const item0 = data.items[i0]!;
+      item0.timestamp = new Date(item0.timestamp);
+    }
+  }
+  return data;
+};
 
 export const getIntakeRequestsImportUrl = (params?: IntakeRequestsImportParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -595,8 +678,17 @@ export const intakeRequestsGetStatusHistory = async (idOrKey: string, options?: 
 
 
   }
-);}
+).then(deserializeIntakeRequestsGetStatusHistoryResponse);}
 
+
+const deserializeIntakeRequestsGetStatusHistoryResponse = (data: StatusTransitionDto[]): StatusTransitionDto[] => {
+  if (data == null) return data;
+  for (let i0 = 0; i0 < data.length; i0++) {
+    const item0 = data[i0]!;
+    item0.changedOn = new Date(item0.changedOn);
+  }
+  return data;
+};
 
 export const getIntakeRequestsGetStatusWorkflowUrl = (idOrKey: string,) => {
 
@@ -973,8 +1065,19 @@ export const intakeRequestsGetScoring = async (id: string, options?: Parameters<
 
 
   }
-);}
+).then(deserializeIntakeRequestsGetScoringResponse);}
 
+
+const deserializeIntakeRequestsGetScoringResponse = (data: IntakeRequestScoringDto): IntakeRequestScoringDto => {
+  if (data == null) return data;
+  if (data.scores != null) {
+    for (let i0 = 0; i0 < data.scores.length; i0++) {
+      const item0 = data.scores[i0]!;
+      item0.scoredOn = new Date(item0.scoredOn);
+    }
+  }
+  return data;
+};
 
 export const getIntakeRequestsScoreUrl = (id: string,) => {
 

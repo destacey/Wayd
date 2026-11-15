@@ -125,6 +125,26 @@ public sealed class PagingTests
     }
 
     [Fact]
+    public void FilteredPagedQueries_AreValidatedByTheFilteredPagedQueryValidator()
+    {
+        // Arrange
+        var types = ApplicationTypes();
+        var queries = types.Where(t => t is { IsClass: true, IsAbstract: false } && typeof(IFilteredPagedQuery).IsAssignableFrom(t)).ToList();
+
+        // Act
+        var unvalidated = queries
+            .Where(q => !HasValidator(q, typeof(FilteredPagedQueryValidator<,>), types))
+            .Select(q => q.FullName)
+            .ToList();
+
+        // Assert — without it, a filter naming an unmapped field reaches Gridify and fails with a 500
+        queries.Should().NotBeEmpty();
+        unvalidated.Should().BeEmpty(
+            "every IFilteredPagedQuery has a validator deriving from FilteredPagedQueryValidator<TQuery, TEntity>, which refuses a filter or sort its field map cannot apply. Violating types: {0}",
+            string.Join(", ", unvalidated));
+    }
+
+    [Fact]
     public void CursorQueries_AreValidatedByTheCursorQueryValidator()
     {
         // Arrange

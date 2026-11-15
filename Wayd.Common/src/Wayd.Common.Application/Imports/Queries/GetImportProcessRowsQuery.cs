@@ -5,11 +5,13 @@ using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Application.Models;
 using Wayd.Common.Application.Persistence;
 using Wayd.Common.Domain.Enums.Imports;
+using Wayd.Common.Domain.Imports;
 
 namespace Wayd.Common.Application.Imports.Queries;
 
 /// <summary>
-/// A page of row outcomes for one run, optionally narrowed to one status.
+/// A page of row outcomes for one run, optionally narrowed to one status, filtered and sorted by
+/// <see cref="Fields"/>.
 /// </summary>
 /// <remarks>
 /// Paged rather than whole because a run can hold fifty thousand rows, and the answer a person wants is
@@ -18,10 +20,27 @@ namespace Wayd.Common.Application.Imports.Queries;
 public sealed record GetImportProcessRowsQuery(
     Guid ImportProcessId,
     PageRequest Paging,
-    ImportRowStatus? Status = null) : IQuery<Result<PagedResponse<ImportProcessRowDto>>>, IPagedQuery;
+    ImportRowStatus? Status = null,
+    string? Filter = null,
+    string? Sort = null) : IQuery<Result<PagedResponse<ImportProcessRowDto>>>, IFilteredPagedQuery
+{
+    /// <summary>
+    /// What a caller may sort and filter rows by, in line order by default. The record link is resolved after
+    /// the page is read, so it is in neither.
+    /// </summary>
+    public static ListFieldMap<ImportProcessRow> Fields { get; } =
+        ListFieldMap<ImportProcessRow>.Create("rowNumber", r => r.Id)
+            .Map("rowNumber", r => r.RowNumber)
+            .Map("importId", r => r.ImportId)
+            .Map("status", r => r.Status)
+            .Map("error", r => r.Error)
+            .Map("warning", r => r.Warning)
+            .Map("attemptedOn", r => r.AttemptedOn);
+}
 
-/// <summary>Bounds the page a caller may ask for.</summary>
-public sealed class GetImportProcessRowsQueryValidator : PagedQueryValidator<GetImportProcessRowsQuery>;
+/// <summary>Bounds the page a caller may ask for, and refuses a filter or sort the rows cannot take.</summary>
+public sealed class GetImportProcessRowsQueryValidator()
+    : FilteredPagedQueryValidator<GetImportProcessRowsQuery, ImportProcessRow>(GetImportProcessRowsQuery.Fields);
 
 public sealed class GetImportProcessRowsQueryHandler(
     IImportDbContext importDbContext,
@@ -55,11 +74,11 @@ public sealed class GetImportProcessRowsQueryHandler(
             .Where(p => p.Id == query.ImportProcessId)
             .SelectMany(p => p.Rows)
             .Where(r => query.Status == null || r.Status == query.Status);
+        rows = GetImportProcessRowsQuery.Fields.ApplyFilter(rows, query.Filter);
 
         var totalCount = await rows.CountAsync(cancellationToken);
 
-        var page = await rows
-            .OrderBy(r => r.RowNumber)
+        var page = await GetImportProcessRowsQuery.Fields.ApplySort(rows, query.Sort)
             .Skip(query.Paging.Skip)
             .Take(query.Paging.PageSize)
             .Select(r => new ImportProcessRowDto(

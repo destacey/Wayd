@@ -94,7 +94,7 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
     [HttpGet("{id:guid}/rows")]
     [EndpointSummary("Get a page of an import run's row outcomes, in line order.")]
     [EndpointDescription(
-        "Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing. Paged: the response carries `totalCount` and `hasNextPage`.")]
+        "Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing. Paged: the response carries `totalCount` and `hasNextPage`. `filter` and `sort` use Gridify syntax over `rowNumber`, `importId`, `status`, `error`, `warning` and `attemptedOn`: `filter=error=*duplicate` (contains), `^` starts with, `$` ends with, `!=` not equal, `field=` blank, `,` and, `|` or, parentheses to group, `\\` before any other character to match it literally; `attemptedOn` takes ISO instants (`attemptedOn>=2026-03-01T00:00:00Z`). `sort=status asc, rowNumber desc`; rows are in line order by default. A field outside that list fails with a 422.")]
     [McpTool("Imports_GetRows", "Get import run rows")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -104,10 +104,12 @@ public class ImportsController(IDispatcher dispatcher) : ControllerBase
         CancellationToken cancellationToken,
         ImportRowStatus? status = null,
         [FromQuery] int page = PageRequest.FirstPage,
-        [FromQuery] int pageSize = PageSizes.Default)
+        [FromQuery] int pageSize = PageSizes.Default,
+        [FromQuery] string? filter = null,
+        [FromQuery] string? sort = null)
     {
         var result = await _dispatcher.Send(
-            new GetImportProcessRowsQuery(id, new PageRequest(page, pageSize), status), cancellationToken);
+            new GetImportProcessRowsQuery(id, new PageRequest(page, pageSize), status, filter, sort), cancellationToken);
 
         return result.IsSuccess
             ? Ok(result.Value)

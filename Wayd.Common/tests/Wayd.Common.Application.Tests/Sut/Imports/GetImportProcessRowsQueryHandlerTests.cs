@@ -52,9 +52,10 @@ public sealed class GetImportProcessRowsQueryHandlerTests : IDisposable
     }
 
     private Task<CSharpFunctionalExtensions.Result<PagedResponse<ImportProcessRowDto>>> Get(
-        Guid id, ImportRowStatus? status = null, int page = PageRequest.FirstPage, int pageSize = PageSizes.Default) =>
+        Guid id, ImportRowStatus? status = null, int page = PageRequest.FirstPage, int pageSize = PageSizes.Default,
+        string? filter = null, string? sort = null) =>
         CreateHandler().Handle(
-            new GetImportProcessRowsQuery(id, new PageRequest(page, pageSize), status), TestContext.Current.CancellationToken);
+            new GetImportProcessRowsQuery(id, new PageRequest(page, pageSize), status, filter, sort), TestContext.Current.CancellationToken);
 
     [Fact]
     public async Task Handle_ReturnsEveryRowInFilePositionOrder()
@@ -68,6 +69,48 @@ public sealed class GetImportProcessRowsQueryHandlerTests : IDisposable
         // Assert
         result.Value.TotalCount.Should().Be(10);
         result.Value.Items.Select(r => r.RowNumber).Should().BeInAscendingOrder();
+    }
+
+    [Fact]
+    public async Task Handle_AppliesTheFilterBeforeCountingAndPaging()
+    {
+        // Arrange
+        var process = AddPartlyRejectedRun();
+
+        // Act
+        var result = await Get(process.Id, pageSize: 1, filter: "(rowNumber=2|rowNumber=7|rowNumber=9),status=Succeeded");
+
+        // Assert
+        result.Value.TotalCount.Should().Be(2);
+        result.Value.Items.Should().ContainSingle().Which.RowNumber.Should().Be(7);
+    }
+
+    [Fact]
+    public async Task Handle_SortsByTheRequestedFields()
+    {
+        // Arrange
+        var process = AddPartlyRejectedRun();
+
+        // Act
+        var result = await Get(process.Id, sort: "rowNumber desc");
+
+        // Assert
+        result.Value.Items.Select(r => r.RowNumber).Should().Equal(10, 9, 8, 7, 6, 5, 4, 3, 2, 1);
+    }
+
+    [Fact]
+    public async Task Handle_PagesASortWithTiesWithoutRepeatingOrMissingARow()
+    {
+        // Arrange — every row ties on status, so only the unique key orders them
+        var process = AddPartlyRejectedRun();
+
+        // Act
+        var pages = new List<ImportProcessRowDto>();
+        for (var page = 1; page <= 4; page++)
+            pages.AddRange((await Get(process.Id, page: page, pageSize: 3, sort: "status")).Value.Items);
+
+        // Assert
+        pages.Select(r => r.Id).Should().OnlyHaveUniqueItems().And.HaveCount(10);
     }
 
     [Fact]

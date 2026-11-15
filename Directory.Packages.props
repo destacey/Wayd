@@ -15,6 +15,8 @@
     <PackageVersion Include="CsvHelper" Version="33.1.0" />
     <PackageVersion Include="FluentValidation" Version="12.2.0" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0" />
+    <PackageVersion Include="Gridify" Version="2.20.0" />
+    <PackageVersion Include="Gridify.EntityFramework" Version="2.20.0" />
     <PackageVersion Include="Hangfire" Version="1.8.25" />
     <PackageVersion Include="Hangfire.InMemory" Version="1.0.0" />
     <PackageVersion Include="JasperFx.Aspire" Version="3.2.0" />

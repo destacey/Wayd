@@ -79,7 +79,7 @@ public sealed class ImportAwaiter(IImportsClient imports, TimeSpan pollInterval,
             return summary;
 
         var failed = await _imports.GetRowsAsync(
-            process.Id, ImportRowStatus.Failed, page: 1, pageSize: 10, cancellationToken);
+            process.Id, ImportRowStatus.Failed, page: 1, pageSize: 10, cancellationToken: cancellationToken);
 
         var lines = failed.Items.Select(r => $"  {r.ImportId}: {r.Error}");
         var more = process.FailedRowCount > failed.Items.Count
@@ -96,7 +96,7 @@ public sealed class ImportAwaiter(IImportsClient imports, TimeSpan pollInterval,
         var page = 1;
         while (true)
         {
-            var rows = await _imports.GetRowsAsync(processId, null, page, RowPageSize, cancellationToken);
+            var rows = await _imports.GetRowsAsync(processId, null, page, RowPageSize, cancellationToken: cancellationToken);
 
             foreach (var row in rows.Items.Where(r => r.CreatedEntityId is not null))
                 created[row.ImportId] = row.CreatedEntityId!.Value;

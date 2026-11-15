@@ -2,9 +2,7 @@ import {
   ImportDefinitionDto,
   ImportProcessDto,
   ImportProcessStatus,
-  ImportRowStatus,
   PagedResponseOfImportProcessDto,
-  PagedResponseOfImportProcessRowDto,
   ResumedImport,
 } from '@/src/services/wayd-api'
 import { apiSlice } from '../apiSlice'
@@ -41,19 +39,6 @@ export interface GetImportProcessesRequest {
   /** 1-based. */
   page?: number
   pageSize?: number
-}
-
-export interface GetImportProcessRowsRequest {
-  importProcessId: string
-  status?: ImportRowStatus
-  /** 1-based. */
-  page?: number
-  pageSize?: number
-  /**
-   * Never sent — part of the cache key only, so the rows are read again each time the run moves on. The
-   * last poll while a run is going can land just before it finishes, and nothing else would refetch them.
-   */
-  runStatus?: ImportProcessStatus
 }
 
 export interface SubmitImportRequest {
@@ -291,28 +276,6 @@ export const importsApi = apiSlice.injectEndpoints({
         { type: QueryTags.ImportProcess, id },
       ],
     }),
-    getImportProcessRows: builder.query<
-      PagedResponseOfImportProcessRowDto,
-      GetImportProcessRowsRequest
-    >({
-      queryFn: async (request) => {
-        try {
-          const data = await getImportsClient().getRows(
-            request.importProcessId,
-            request.status,
-            request.page,
-            request.pageSize,
-          )
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
-      },
-      providesTags: (result, error, request) => [
-        { type: QueryTags.ImportProcessRow, id: request.importProcessId },
-      ],
-    }),
     getImportDefinitions: builder.query<ImportDefinitionDto[], void>({
       queryFn: async () => {
         try {
@@ -380,11 +343,9 @@ export const importsApi = apiSlice.injectEndpoints({
           return { error }
         }
       },
-      // The run's rows change with it: a cancel settles everything it never reached.
       invalidatesTags: (result, error, id) => [
         QueryTags.ImportProcess,
         { type: QueryTags.ImportProcess, id },
-        { type: QueryTags.ImportProcessRow, id },
       ],
     }),
     resumeImportProcess: builder.mutation<ResumedImport, string>({
@@ -400,7 +361,6 @@ export const importsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         QueryTags.ImportProcess,
         { type: QueryTags.ImportProcess, id },
-        { type: QueryTags.ImportProcessRow, id },
       ],
     }),
     retryFailedImportRows: builder.mutation<ResumedImport, string>({
@@ -416,7 +376,6 @@ export const importsApi = apiSlice.injectEndpoints({
       invalidatesTags: (result, error, id) => [
         QueryTags.ImportProcess,
         { type: QueryTags.ImportProcess, id },
-        { type: QueryTags.ImportProcessRow, id },
       ],
     }),
   }),
@@ -425,7 +384,6 @@ export const importsApi = apiSlice.injectEndpoints({
 export const {
   useGetImportProcessesQuery,
   useGetImportProcessByIdQuery,
-  useGetImportProcessRowsQuery,
   useGetImportDefinitionsQuery,
   useSubmitImportMutation,
   useApplyImportPreflightMutation,

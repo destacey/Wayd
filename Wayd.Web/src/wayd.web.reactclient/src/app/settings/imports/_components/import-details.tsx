@@ -6,16 +6,15 @@ import Link from 'next/link'
 import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import {
   WaydGrid,
-  WaydGridPager,
-  useGridPaging,
+  type ServerPageRequest,
 } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
+import { getImportsClient } from '@/src/services/clients'
 import {
   ImportProcessDto,
   ImportProcessRowDto,
   ImportRowStatus,
 } from '@/src/services/wayd-api'
-import { useGetImportProcessRowsQuery } from '@/src/store/features/admin/imports-api'
 import {
   ImportRowStatusTag,
   importRowStatusLabel,
@@ -31,6 +30,23 @@ const POLLING_INTERVAL_MS = 5000
 
 type RowFilter = 'all' | ImportRowStatus
 
+/** The fields `GetImportProcessRowsQuery.Fields` sorts and filters by. */
+const ROW_FIELDS = [
+  'rowNumber',
+  'importId',
+  'status',
+  'error',
+  'warning',
+  'attemptedOn',
+] as const
+
+const ROW_STATUSES = [
+  ImportRowStatus.Failed,
+  ImportRowStatus.Succeeded,
+  ImportRowStatus.Pending,
+  ImportRowStatus.Cancelled,
+]
+
 export interface ImportDetailsProps {
   importProcess: ImportProcessDto
 }
@@ -38,7 +54,6 @@ export interface ImportDetailsProps {
 /** The outcome of one run: its counts, why it stopped if it did, and every row. */
 const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
   const [chosenFilter, setChosenFilter] = useState<RowFilter | null>(null)
-  const paging = useGridPaging()
 
   const running = isRunning(importProcess.status)
   const { isPreflight } = importProcess
@@ -50,34 +65,26 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
     chosenFilter ??
     (importProcess.failedRowCount > 0 ? ImportRowStatus.Failed : 'all')
 
-  // The default filter moves to Failed on its own when a running import rejects its first row, so the
-  // page is reset on any change of the filter in effect, not only on a click. Page 7 of all rows is not
-  // page 7 of the rejected ones.
-  const [pagedFilter, setPagedFilter] = useState<RowFilter>(rowFilter)
-  if (pagedFilter !== rowFilter) {
-    setPagedFilter(rowFilter)
-    paging.resetPage()
+  // The run and the status shown make the list (`listKey` below): the default
+  // moving to Failed on its own when a running import rejects its first row
+  // starts it over at the top of the rejected rows, as a click on Failed does.
+  const status = rowFilter === 'all' ? undefined : rowFilter
+  const fetchRows = async ({
+    page,
+    pageSize,
+    filter,
+    sort,
+  }: ServerPageRequest) => {
+    const result = await getImportsClient().getRows(
+      importProcess.id,
+      status,
+      page,
+      pageSize,
+      filter,
+      sort,
+    )
+    return { items: result.items, totalCount: result.totalCount }
   }
-
-  // `currentData` for the rows and `data` for the pager, so a page or filter still loading shows no rows
-  // rather than the last one's under its label.
-  const {
-    data: lastRows,
-    currentData: rows,
-    isFetching: rowsFetching,
-  } = useGetImportProcessRowsQuery(
-    {
-      importProcessId: importProcess.id,
-      status: rowFilter === 'all' ? undefined : rowFilter,
-      page: paging.page,
-      pageSize: paging.pageSize,
-      runStatus: importProcess.status,
-    },
-    {
-      pollingInterval: running ? POLLING_INTERVAL_MS : 0,
-      skipPollingIfUnfocused: true,
-    },
-  )
 
   const columns = useMemo<ColumnDef<ImportProcessRowDto, any>[]>(
     () => [
@@ -86,6 +93,7 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
         accessorKey: 'rowNumber',
         header: 'Line',
         size: 80,
+        meta: { filterType: 'number' },
       },
       {
         id: 'importId',
@@ -119,10 +127,17 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
           ]),
       {
         id: 'status',
-        accessorFn: (row) => importRowStatusLabel(row.status, isPreflight),
+        accessorKey: 'status',
         header: 'Status',
         size: 130,
-        meta: { filterType: 'set' },
+        // The server filters by the code; the options label it.
+        meta: {
+          filterType: 'set',
+          filterOptions: ROW_STATUSES.map((value) => ({
+            value,
+            label: importRowStatusLabel(value, isPreflight),
+          })),
+        },
         cell: ({ row }) => (
           <ImportRowStatusTag
             status={row.original.status}
@@ -151,8 +166,6 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
     ],
     [isPreflight],
   )
-
-  paging.keepInRange(lastRows?.totalPages)
 
   return (
     // A plain block, not a Flex column: WaydGrid takes its height from an inline pixel value that the
@@ -252,12 +265,7 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
         onChange={setChosenFilter}
         options={[
           { label: 'All', value: 'all' },
-          ...[
-            ImportRowStatus.Failed,
-            ImportRowStatus.Succeeded,
-            ImportRowStatus.Pending,
-            ImportRowStatus.Cancelled,
-          ].map((status) => ({
+          ...ROW_STATUSES.map((status) => ({
             label: importRowStatusLabel(status, isPreflight),
             value: status,
           })),
@@ -266,19 +274,18 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
 
       <WaydGrid
         columns={columns}
-        data={rows?.items}
-        isLoading={!rows && rowsFetching}
+        server={{
+          fetchPage: fetchRows,
+          listKey: [importProcess.id, rowFilter],
+          fields: ROW_FIELDS,
+          noun: 'rows',
+          // The rows change while a run goes, and once more when it finishes:
+          // the last poll can land just before.
+          refreshInterval: running ? POLLING_INTERVAL_MS : undefined,
+          refreshKey: importProcess.status,
+        }}
         persistStateKey="settings-imports-rows"
-        csvFileName="import-rows"
-        initialSorting={[{ id: 'rowNumber', desc: false }]}
         emptyMessage="No rows match this filter."
-        rightSlot={
-          <WaydGridPager
-            paging={paging}
-            totalCount={lastRows?.totalCount}
-            noun="rows"
-          />
-        }
       />
     </div>
   )

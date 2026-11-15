@@ -13,14 +13,14 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">=22"
+    "node": ">=26"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
     "tsx": "^4.23.15"
   },
   "devDependencies": {
-    "@types/node": "^24.19.2",
+    "@types/node": "^26.6.6",
     "oxlint": "^1.93.0",
     "typescript": "^7.0.2"
   },

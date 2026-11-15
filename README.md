@@ -50,7 +50,7 @@ The [developer documentation](https://wayd.dev/docs/contributing/prerequisites) 
 ### Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- [Node.js 24+](https://nodejs.org/) and npm
+- [Node.js 26+](https://nodejs.org/) and npm
 - SQL Server 2019+ — the `mssql` service in `docker-compose.yml` (needs [Docker](https://www.docker.com/)), or LocalDB on Windows, or another instance
 - [Git](https://git-scm.com/)
 

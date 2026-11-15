@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { getAuthClient, setRememberMe, storeAuth } from '@/src/services/clients'
+import { authSetup } from '@/src/services/api/auth'
+import { setRememberMe, storeAuth } from '@/src/services/auth-storage'
 import { useDocumentTitle } from '@/src/hooks'
 import { notFound } from 'next/navigation'
 import { navigateWithFullReload } from '@/src/utils/window-utils'
@@ -32,7 +33,9 @@ function LoadingSpinner() {
 export default function SetupPage() {
   useDocumentTitle('Wayd Setup')
 
-  const [status, setStatus] = useState<'checking' | 'ready' | 'done' | 'unavailable'>('checking')
+  const [status, setStatus] = useState<
+    'checking' | 'ready' | 'done' | 'unavailable'
+  >('checking')
   const [token, setToken] = useState('')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -55,11 +58,17 @@ export default function SetupPage() {
     // is active, just rejected), a 409 means already complete.
     const probe = async () => {
       try {
-        await getAuthClient().setup({ token: '', firstName: '', lastName: '', email: '', password: '' })
+        await authSetup({
+          token: '',
+          firstName: '',
+          lastName: '',
+          email: '',
+          password: '',
+        })
         // Should not reach here on empty token, but if it does setup worked.
         setStatus('done')
       } catch (err: any) {
-        const status = err?.response?.status ?? err?.status
+        const status = err?.status
         if (status === 400) {
           // 400 = bad token, but the endpoint is active — bootstrap is available.
           setStatus('ready')
@@ -77,8 +86,10 @@ export default function SetupPage() {
 
   const validatePassword = (pw: string): string => {
     if (pw.length < 8) return 'Password must be at least 8 characters.'
-    if (!/[A-Z]/.test(pw)) return 'Password must contain at least one uppercase letter.'
-    if (!/[a-z]/.test(pw)) return 'Password must contain at least one lowercase letter.'
+    if (!/[A-Z]/.test(pw))
+      return 'Password must contain at least one uppercase letter.'
+    if (!/[a-z]/.test(pw))
+      return 'Password must contain at least one lowercase letter.'
     if (!/[0-9]/.test(pw)) return 'Password must contain at least one digit.'
     return ''
   }
@@ -112,7 +123,7 @@ export default function SetupPage() {
     setIsSubmitting(true)
 
     try {
-      const tokenResponse = await getAuthClient().setup({
+      const tokenResponse = await authSetup({
         token,
         firstName,
         lastName,
@@ -124,7 +135,6 @@ export default function SetupPage() {
       navigateWithFullReload('/')
     } catch (err: any) {
       const message =
-        err?.response?.data?.detail ||
         err?.detail ||
         err?.message ||
         'Setup failed. Check your token and try again.'
@@ -141,8 +151,26 @@ export default function SetupPage() {
 
   return (
     <div style={styles.pageBackground}>
-      <div style={{...styles.bgCircle, top: -120, left: -100, width: 340, height: 340, background: 'rgba(255,255,255,0.06)'}} />
-      <div style={{...styles.bgCircle, bottom: -80, right: -60, width: 260, height: 260, background: 'rgba(255,255,255,0.05)'}} />
+      <div
+        style={{
+          ...styles.bgCircle,
+          top: -120,
+          left: -100,
+          width: 340,
+          height: 340,
+          background: 'rgba(255,255,255,0.06)',
+        }}
+      />
+      <div
+        style={{
+          ...styles.bgCircle,
+          bottom: -80,
+          right: -60,
+          width: 260,
+          height: 260,
+          background: 'rgba(255,255,255,0.05)',
+        }}
+      />
 
       <div style={styles.card}>
         {/* Left panel */}
@@ -156,9 +184,15 @@ export default function SetupPage() {
             </p>
           </div>
           <ol style={styles.steps}>
-            <li style={styles.step}><span style={styles.stepNum}>1</span> Create admin account</li>
-            <li style={styles.step}><span style={styles.stepNum}>2</span> Configure identity provider</li>
-            <li style={styles.step}><span style={styles.stepNum}>3</span> Invite your team</li>
+            <li style={styles.step}>
+              <span style={styles.stepNum}>1</span> Create admin account
+            </li>
+            <li style={styles.step}>
+              <span style={styles.stepNum}>2</span> Configure identity provider
+            </li>
+            <li style={styles.step}>
+              <span style={styles.stepNum}>3</span> Invite your team
+            </li>
           </ol>
         </div>
 
@@ -174,7 +208,8 @@ export default function SetupPage() {
 
             <h1 style={styles.title}>Welcome</h1>
             <p style={styles.subtitle}>
-              Enter the setup token from your server logs to create the first admin account.
+              Enter the setup token from your server logs to create the first
+              admin account.
             </p>
 
             {isLoading ? (
@@ -232,30 +267,62 @@ export default function SetupPage() {
                   type="password"
                   placeholder="Password"
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); setPasswordFieldError('') }}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                    setPasswordFieldError('')
+                  }}
                   onBlur={handlePasswordBlur}
-                  style={{...styles.input, ...(passwordFieldError ? styles.inputError : {})}}
+                  style={{
+                    ...styles.input,
+                    ...(passwordFieldError ? styles.inputError : {}),
+                  }}
                   disabled={isSubmitting}
                   autoComplete="new-password"
                 />
-                {passwordFieldError && <div style={styles.fieldError} role="alert">{passwordFieldError}</div>}
+                {passwordFieldError && (
+                  <div style={styles.fieldError} role="alert">
+                    {passwordFieldError}
+                  </div>
+                )}
                 <input
                   type="password"
                   placeholder="Confirm password"
                   value={confirmPassword}
-                  onChange={(e) => { setConfirmPassword(e.target.value); setConfirmFieldError('') }}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value)
+                    setConfirmFieldError('')
+                  }}
                   onBlur={handleConfirmBlur}
-                  style={{...styles.input, ...(confirmFieldError ? styles.inputError : {})}}
+                  style={{
+                    ...styles.input,
+                    ...(confirmFieldError ? styles.inputError : {}),
+                  }}
                   disabled={isSubmitting}
                   autoComplete="new-password"
                 />
-                {confirmFieldError && <div style={styles.fieldError} role="alert">{confirmFieldError}</div>}
+                {confirmFieldError && (
+                  <div style={styles.fieldError} role="alert">
+                    {confirmFieldError}
+                  </div>
+                )}
 
-                {error && <div style={styles.errorMessage} role="alert">{error}</div>}
+                {error && (
+                  <div style={styles.errorMessage} role="alert">
+                    {error}
+                  </div>
+                )}
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !token || !firstName || !lastName || !email || !password || !confirmPassword}
+                  disabled={
+                    isSubmitting ||
+                    !token ||
+                    !firstName ||
+                    !lastName ||
+                    !email ||
+                    !password ||
+                    !confirmPassword
+                  }
                   style={{
                     ...styles.submitButton,
                     ...(isSubmitting ? styles.submitButtonDisabled : {}),
@@ -282,13 +349,17 @@ export default function SetupPage() {
 const styles: Record<string, React.CSSProperties> = {
   pageBackground: {
     position: 'fixed',
-    top: 0, left: 0, right: 0, bottom: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: '100%',
     height: '100dvh',
     overflowX: 'hidden',
     overflowY: 'auto',
     fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-    background: 'linear-gradient(135deg, #42a5f5 0%, #2196f3 40%, #1976d2 100%)',
+    background:
+      'linear-gradient(135deg, #42a5f5 0%, #2196f3 40%, #1976d2 100%)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

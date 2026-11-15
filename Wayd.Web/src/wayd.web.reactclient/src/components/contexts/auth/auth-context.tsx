@@ -4,17 +4,16 @@ import React, { createContext, useCallback, useMemo, useState } from 'react'
 import { AuthContextType, AuthMethod, Claim, User } from './types'
 import ChangePasswordForm from '@/src/components/common/forms/change-password-form'
 import styles from './auth-provider.module.css'
+import { authLogin, authLogout } from '@/src/services/api/auth'
 import {
   AUTH_MUST_CHANGE_PASSWORD_KEY,
   clearAuth,
-  getAuthClient,
-  getAuthenticatedAuthClient,
   getAuthRefreshToken,
   getAuthStorage,
   getAuthToken,
   isAuthActive,
   storeAuth,
-} from '@/src/services/clients'
+} from '@/src/services/auth-storage'
 import { providerSignoutPath } from './oidc-client-registry'
 import { navigateWithFullReload } from '@/src/utils/window-utils'
 
@@ -97,7 +96,6 @@ function decodeWaydJwt(token: string): DecodedClaims | null {
       unknown
     >
 
-
     const rawPermissions = payload[PERMISSION_CLAIM]
     const permissions = Array.isArray(rawPermissions)
       ? rawPermissions.filter((p): p is string => typeof p === 'string')
@@ -136,9 +134,7 @@ function decodeWaydJwt(token: string): DecodedClaims | null {
   }
 }
 
-function authMethodFromLoginProvider(
-  loginProvider: string | null,
-): AuthMethod {
+function authMethodFromLoginProvider(loginProvider: string | null): AuthMethod {
   if (loginProvider === 'Wayd') return 'local'
   if (loginProvider) return 'oidc'
   return null
@@ -273,7 +269,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const localLogin = useCallback(
     async (username: string, password: string) => {
-      const tokenResponse = await getAuthClient().login({
+      const tokenResponse = await authLogin({
         userName: username,
         password,
       })
@@ -289,7 +285,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Failure is swallowed deliberately: stranding someone in a signed-in UI is worse
     // than a session outliving the click.
     try {
-      await getAuthenticatedAuthClient().logout({
+      await authLogout({
         refreshToken: getAuthRefreshToken() ?? undefined,
       })
     } catch {
@@ -317,8 +313,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       refreshUser,
       hasClaim: (type: string, value: string) =>
         session.user.claims.some((c) => c.type === type && c.value === value),
-      hasPermissionClaim: (value: string) =>
-        session.permissionsSet.has(value),
+      hasPermissionClaim: (value: string) => session.permissionsSet.has(value),
       login,
       localLogin,
       logout,

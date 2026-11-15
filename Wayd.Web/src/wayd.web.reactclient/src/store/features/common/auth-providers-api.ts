@@ -1,7 +1,7 @@
-import { getAuthClient } from '@/src/services/clients'
+import { isApiResponseError } from '@/src/services/api-fetch'
+import { authGetProviders } from '@/src/services/api/auth'
+import { AuthProvidersResponse } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
-import { AuthProvidersResponse } from '@/src/services/wayd-api'
-import { isAxiosError } from 'axios'
 
 /**
  * Advertises which authentication providers are enabled on this deployment.
@@ -15,7 +15,7 @@ export const authProvidersApi = apiSlice.injectEndpoints({
     getAuthProviders: builder.query<AuthProvidersResponse, void>({
       queryFn: async () => {
         try {
-          const data = await getAuthClient().getProviders()
+          const data = await authGetProviders()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -29,21 +29,19 @@ export const authProvidersApi = apiSlice.injectEndpoints({
 export const { useGetAuthProvidersQuery } = authProvidersApi
 
 function toSerializableApiError(error: unknown) {
-  if (isAxiosError(error)) {
-    const status = error.response?.status ?? 'FETCH_ERROR'
-    const message =
-      error.response?.data ??
-      error.message ??
-      'Unable to load authentication providers.'
-
+  if (isApiResponseError(error)) {
     return {
-      status,
-      data: typeof message === 'string' ? message : JSON.stringify(message),
+      status: error.status,
+      data:
+        error.detail ??
+        error.title ??
+        'Unable to load authentication providers.',
     }
   }
 
+  // fetch rejects with an Error only when no response arrived.
   if (error instanceof Error) {
-    return { status: 'CUSTOM_ERROR', data: error.message }
+    return { status: 'FETCH_ERROR', data: error.message }
   }
 
   return { status: 'CUSTOM_ERROR', data: String(error) }

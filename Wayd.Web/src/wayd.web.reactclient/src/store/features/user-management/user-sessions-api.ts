@@ -1,10 +1,12 @@
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
-import { UserSessionResponse } from '@/src/services/wayd-api'
 import {
-  getAuthenticatedAuthClient,
-  getAuthRefreshToken,
-} from '@/src/services/clients'
+  authGetSessions,
+  authLogoutAll,
+  authRevokeSession,
+} from '@/src/services/api/auth'
+import { UserSessionResponse } from '@/src/services/api/wayd.schemas'
+import { getAuthRefreshToken } from '@/src/services/auth-storage'
 
 export const userSessionsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -13,7 +15,7 @@ export const userSessionsApi = apiSlice.injectEndpoints({
     getMySessions: builder.query<UserSessionResponse[], void>({
       queryFn: async () => {
         try {
-          const data = await getAuthenticatedAuthClient().getSessions({
+          const data = await authGetSessions({
             refreshToken: getAuthRefreshToken() ?? undefined,
           })
           return { data }
@@ -27,7 +29,7 @@ export const userSessionsApi = apiSlice.injectEndpoints({
     revokeSession: builder.mutation<void, string>({
       queryFn: async (sessionId) => {
         try {
-          await getAuthenticatedAuthClient().revokeSession(sessionId)
+          await authRevokeSession(sessionId)
           // Not `undefined`: RTK Query checks for the key's presence, and an explicit
           // undefined serialises to {} and is rejected as neither data nor error.
           return { data: null as unknown as void }
@@ -41,7 +43,7 @@ export const userSessionsApi = apiSlice.injectEndpoints({
     revokeAllSessions: builder.mutation<void, void>({
       queryFn: async () => {
         try {
-          await getAuthenticatedAuthClient().logoutAll()
+          await authLogoutAll()
           // Not `undefined`: RTK Query checks for the key's presence, and an explicit
           // undefined serialises to {} and is rejected as neither data nor error.
           return { data: null as unknown as void }

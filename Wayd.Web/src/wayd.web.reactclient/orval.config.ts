@@ -13,11 +13,12 @@ export default defineConfig({
     },
     output: {
       client: 'fetch',
-      mode: 'tags-split',
+      mode: 'tags',
       // One file per tag, and every model in one shared wayd.schemas.ts.
       target: 'src/services/api/wayd.ts',
       clean: true,
-      indexFiles: true,
+      // No barrel: callers import the tag file they use, so a page compiles only those endpoints.
+      indexFiles: false,
       override: {
         ...mutator('apiFetch'),
         fetch: {

@@ -23,6 +23,7 @@ public static class McpServerSetup
         services.AddTransient<IStartupFilter>(sp => sp.GetRequiredService<ApiPipeline>());
         services.AddTransient<IStartupFilter, McpFeatureGate>();
         services.AddSingleton<McpToolCatalog>();
+        services.AddHostedService<McpToolCatalogWarmup>();
         services.AddWaydMcpAuthentication();
 
         services.AddMcpServer(options =>

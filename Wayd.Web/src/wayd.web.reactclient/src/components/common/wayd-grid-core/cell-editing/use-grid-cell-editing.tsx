@@ -313,7 +313,6 @@ export function useGridCellEditing<T extends RowData>({
       )
       if (!openIsDirty && !pending) return
       event.preventDefault()
-      event.returnValue = ''
     }
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => window.removeEventListener('beforeunload', onBeforeUnload)

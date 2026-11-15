@@ -41,8 +41,7 @@ const HolidayCalendarSelect = ({
       value={value ?? undefined}
       onChange={(id) => onChange?.(id ?? undefined)}
       allowClear
-      showSearch
-      optionFilterProp="label"
+      showSearch={{ optionFilterProp: 'label' }}
       loading={isLoading}
       disabled={!canView}
       placeholder={emptyLabel}

@@ -189,7 +189,7 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
         aria-label="Desk"
         value={filters.deskIds}
         onChange={(deskIds) => set({ deskIds })}
-        optionFilterProp="label"
+        showSearch={{ optionFilterProp: 'label' }}
         options={[
           ...(myDeskIds.length > 0
             ? [
@@ -283,7 +283,7 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
         aria-label="Channel"
         value={filters.channelIds}
         onChange={(channelIds) => set({ channelIds })}
-        optionFilterProp="label"
+        showSearch={{ optionFilterProp: 'label' }}
         options={[
           ...(channels ?? []).map((c) => ({
             value: c.id,
@@ -306,7 +306,7 @@ const FilterControls: FC<RequestFilterBarProps & { stacked: boolean }> = ({
           aria-label="Tags"
           value={filters.tagIds}
           onChange={(tagIds) => set({ tagIds })}
-          optionFilterProp="label"
+          showSearch={{ optionFilterProp: 'label' }}
           // Grouped by category, since the same label can sit in two categories; free tags, in none, last.
           options={[
             ...(tagCategories ?? [])

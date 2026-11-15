@@ -25,9 +25,8 @@ const TimeZoneSelect = (props: TimeZoneSelectProps) => {
     <Select
       placeholder="Select a time zone"
       {...props}
-      showSearch
+      showSearch={{ optionFilterProp: 'label' }}
       options={options}
-      optionFilterProp="label"
       loading={isLoading}
     />
   )

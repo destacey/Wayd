@@ -158,7 +158,7 @@ const DeskPokerSessionForm: FC<DeskPokerSessionFormProps> = ({
             aria-label="Requests"
             loading={isLoading}
             options={options}
-            optionFilterProp="label"
+            showSearch={{ optionFilterProp: 'label' }}
             placeholder="Choose open requests"
           />
         </Item>

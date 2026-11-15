@@ -50,7 +50,7 @@ const ProjectDeliverableSelect = ({
       options={options}
       value={value}
       onChange={onChange}
-      optionFilterProp="label"
+      showSearch={{ optionFilterProp: 'label' }}
     />
   )
 }

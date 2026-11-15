@@ -181,10 +181,10 @@ export function IncidentSeveritySetPanel({ set, onChanged, onDeleted }: PanelPro
   }
 
   return (
-    <Space direction="vertical" style={{ width: '100%' }} size="middle">
+    <Space orientation="vertical" style={{ width: '100%' }} size="middle">
       <Typography.Title level={5}>{set.name}</Typography.Title>
       {set.description ? <Typography.Paragraph>{set.description}</Typography.Paragraph> : null}
-      <Space direction="vertical" size={4}>
+      <Space orientation="vertical" size={4}>
         {set.levels.map((level) => (
           <IncidentSeverityRank
             key={level.id}

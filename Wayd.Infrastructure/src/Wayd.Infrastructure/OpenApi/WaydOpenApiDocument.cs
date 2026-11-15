@@ -39,10 +39,13 @@ public static class WaydOpenApiDocument
 
         // Transformers run in the order they are added, after the XML documentation ones the package's source
         // generator adds to the AddOpenApi call. Validation rules can only add to what the declarations
-        // require, so they follow the object transformer; the scalar transformer then drops length rules a
-        // validator states on a date.
-        options.AddSchemaTransformer(new ObjectSchemaTransformer());
+        // require, so they follow the object transformer, and the collection-rule transformer takes back
+        // what they add for a RuleForEach; the scalar transformer then drops length rules a validator states
+        // on a date.
+        var objects = new ObjectSchemaTransformer();
+        options.AddSchemaTransformer(objects);
         options.AddFluentValidationRules();
+        options.AddSchemaTransformer(new CollectionRuleRequiredTransformer(objects));
         options.AddSchemaTransformer(new ScalarSchemaTransformer());
         var inheritance = new InheritanceSchemaTransformer();
         options.AddSchemaTransformer(inheritance);

@@ -59748,8 +59748,7 @@
       },
       "CreateIncidentTeamsChatRequest": {
         "required": [
-          "id",
-          "extraEmployeeIds"
+          "id"
         ],
         "type": "object",
         "properties": {
@@ -88863,10 +88862,7 @@
           "isOpen",
           "requesterMayAddParticipants",
           "members",
-          "expectedRevision",
-          "channelIds",
-          "tagCategoryIds",
-          "triagerIds"
+          "expectedRevision"
         ],
         "type": "object",
         "properties": {

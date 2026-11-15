@@ -65698,7 +65698,7 @@ export interface CreateIncidentSeveritySetRequest {
 export interface CreateIncidentTeamsChatRequest {
     id: string;
     /** Employees included in this chat only. They are not stored on the incident. */
-    extraEmployeeIds: string[] | undefined;
+    extraEmployeeIds?: string[] | undefined;
 }
 
 /** A channel to add to the end of the company's list of where requests come from. */
@@ -75359,14 +75359,14 @@ Leave it out to keep the desk's channels as they are. */
 none, and its submit form does not ask where a request came from. Leave it out to keep the ones it has.
 Ignored unless `offersAllChannels` is false. A channel already chosen may stay after it is archived;
 a newly chosen one must be active. */
-    channelIds: string[] | undefined;
+    channelIds?: string[] | undefined;
     /** Whether the desk's agents tag requests in every active company tag category, including categories added later. A
 new desk does. Leave it out to keep the desk's categories as they are. */
     offersAllTagCategories?: boolean | undefined;
     /** The tag categories the desk's agents tag in when `offersAllTagCategories` is false; empty means none. Leave
 it out to keep the ones it has. Ignored unless `offersAllTagCategories` is false. A category already chosen
 may stay after it is deactivated; a newly chosen one must be active. Requests keep tags in any category. */
-    tagCategoryIds: string[] | undefined;
+    tagCategoryIds?: string[] | undefined;
     /** Whether the desk's agents may add free tags — tags in no category, typed in while tagging. A new desk does not.
 Leave it out to keep the desk's setting. Requests already carrying free tags keep them when it is turned off. */
     allowsFreeTags?: boolean | undefined;
@@ -75376,7 +75376,7 @@ needs the Demand Management Admin. */
     /** The members who triage the desk's new requests — told about requests waiting on it unassigned — after the
 change; empty means nobody, and the desk triages from its board. Leave it out to keep the desk's triagers.
 Each must be in `members`; a member named in this change can triage at once, and a member removed stops. */
-    triagerIds: string[] | undefined;
+    triagerIds?: string[] | undefined;
     /** The desk's `revision` as it was read before making this change. A desk changed since refuses the
 update with 409, so a stale page never undoes what someone else changed. */
     expectedRevision: number;

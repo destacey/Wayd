@@ -2227,7 +2227,7 @@ export interface CreateIncidentTeamsChatRequest {
      * @nullable
      * @items.minLength 1
      */
-  extraEmployeeIds: string[] | null;
+  extraEmployeeIds?: string[] | null;
 }
 
 /**
@@ -17170,7 +17170,7 @@ export interface UpdateIntakeDeskRequest {
      * @nullable
      * @items.minLength 1
      */
-  channelIds: string[] | null;
+  channelIds?: string[] | null;
   /**
      * Whether the desk's agents tag requests in every active company tag category, including categories added later. A
      * new desk does. Leave it out to keep the desk's categories as they are.
@@ -17184,7 +17184,7 @@ export interface UpdateIntakeDeskRequest {
      * @nullable
      * @items.minLength 1
      */
-  tagCategoryIds: string[] | null;
+  tagCategoryIds?: string[] | null;
   /**
      * Whether the desk's agents may add free tags — tags in no category, typed in while tagging. A new desk does not.
      * Leave it out to keep the desk's setting. Requests already carrying free tags keep them when it is turned off.
@@ -17203,7 +17203,7 @@ export interface UpdateIntakeDeskRequest {
      * @nullable
      * @items.minLength 1
      */
-  triagerIds: string[] | null;
+  triagerIds?: string[] | null;
   /**
      * The desk's `revision` as it was read before making this change. A desk changed since refuses the
      * update with 409, so a stale page never undoes what someone else changed.

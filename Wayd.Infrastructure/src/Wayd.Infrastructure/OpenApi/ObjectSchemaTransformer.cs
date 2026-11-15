@@ -54,8 +54,8 @@ public sealed class ObjectSchemaTransformer : IOpenApiSchemaTransformer
             if (!schema.Properties.TryGetValue(property.Name, out var propertySchema))
                 continue;
 
-            var requiredAttribute = property.AttributeProvider?.GetCustomAttributes(typeof(RequiredAttribute), true).OfType<RequiredAttribute>().FirstOrDefault();
-            if (!IsNullable(property) || property.IsRequired || requiredAttribute is not null)
+            var requiredAttribute = RequiredAttributeOf(property);
+            if (IsRequiredByDeclaration(property))
                 schema.Required.Add(property.Name);
             else
                 schema.Required.Remove(property.Name);
@@ -85,6 +85,16 @@ public sealed class ObjectSchemaTransformer : IOpenApiSchemaTransformer
 
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Whether the property's own declaration requires it: it cannot be null, or it is declared
+    /// <c>required</c> or <c>[Required]</c>. Validation rules can require more than this.
+    /// </summary>
+    internal bool IsRequiredByDeclaration(JsonPropertyInfo property) =>
+        !IsNullable(property) || property.IsRequired || RequiredAttributeOf(property) is not null;
+
+    private static RequiredAttribute? RequiredAttributeOf(JsonPropertyInfo property) =>
+        property.AttributeProvider?.GetCustomAttributes(typeof(RequiredAttribute), true).OfType<RequiredAttribute>().FirstOrDefault();
 
     /// <summary>
     /// Whether the property is published as <c>nullable</c>: a property typed by its class's type parameter

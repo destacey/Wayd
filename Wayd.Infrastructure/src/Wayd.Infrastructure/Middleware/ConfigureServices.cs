@@ -30,10 +30,7 @@ internal static class ConfigureServices
     internal static IServiceCollection AddRequestLogging(this IServiceCollection services, IConfiguration config)
     {
         if (GetMiddlewareSettings(config).EnableHttpsLogging)
-        {
             services.AddScoped<RequestLoggingMiddleware>();
-            services.AddScoped<StatusCodeManagerMiddleware>();
-        }
 
         return services;
     }
@@ -44,7 +41,10 @@ internal static class ConfigureServices
         {
             app.UseMiddleware<RequestLoggingMiddleware>();
             ConfigureSerilogRequestLogging(app);
-            app.UseMiddleware<StatusCodeManagerMiddleware>();
+            // Turns an exception into its response inside the request log, as well as outside it in
+            // UseInfrastructure: Serilog records any exception that reaches it as a 500 at Error, whatever
+            // the response, so a validation failure (422) would log as a server fault.
+            app.UseExceptionMiddleware();
         }
 
         return app;
@@ -52,8 +52,6 @@ internal static class ConfigureServices
 
     private static void ConfigureSerilogRequestLogging(IApplicationBuilder app)
     {
-        // TODO: Serilog is logging the wrong status code on unhandled exceptions.
-        // Requests with unhandled exceptions will show as 500s in the logs.  The correct status code is set in the response. This is a known issue with Serilog.
         app.UseSerilogRequestLogging(options =>
         {
             options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";

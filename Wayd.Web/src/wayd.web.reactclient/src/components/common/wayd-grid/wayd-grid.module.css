@@ -530,6 +530,17 @@
   max-width: 0;
 }
 
+/* A server-mode row whose page has not arrived. Inline, so the cell keeps the
+   line box — and the height — of a cell holding text. */
+.placeholderBar {
+  display: inline-block;
+  width: 60%;
+  height: 0.75em;
+  vertical-align: middle;
+  border-radius: var(--ant-border-radius-sm);
+  background: var(--ant-color-fill-secondary);
+}
+
 /* The keyboard cursor. Inset so the cell's overflow clip and its pinned
    neighbours never hide it; a mouse click focuses the cell without one. */
 .td:focus {

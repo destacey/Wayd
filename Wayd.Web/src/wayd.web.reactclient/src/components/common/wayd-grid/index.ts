@@ -7,7 +7,12 @@ export type {
   GridColumnContext,
   GroupHeaderContext,
   RowReorderEvent,
+  WaydGridServerSource,
 } from './types'
+export type {
+  ServerPage,
+  ServerPageRequest,
+} from '../wayd-grid-core/server/server-page-cache'
 
 // Tree-mode types + utilities (re-exported from the shared grid core so
 // consumers have a single import surface)

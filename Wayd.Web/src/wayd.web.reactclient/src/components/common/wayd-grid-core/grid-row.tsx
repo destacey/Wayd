@@ -1,6 +1,6 @@
 'use client'
 
-import type { Cell, Row } from './index'
+import type { Cell, Column, Row } from './index'
 import { flexRender } from '@tanstack/react-table'
 import { GridSortableRow } from './dnd/grid-dnd'
 import {
@@ -342,10 +342,61 @@ export function FlatGridRow<T extends RowData>({
         )
       })}
       {/* Filler data cell keeps the zebra/hover band edge-to-edge. */}
-      <td
-        aria-hidden="true"
-        className={classes.td}
-      />
+      <td aria-hidden="true" className={classes.td} />
+    </tr>
+  )
+}
+
+export interface PlaceholderGridRowProps<
+  T extends RowData,
+> extends GridRowNavigationProps {
+  /** The stand-in row's id, as navigation knows it. */
+  rowId: string
+  /** Display index within the whole list (drives zebra striping). */
+  index: number
+  /** Visible leaf columns in render order — the cells the row stands in for. */
+  columns: Column<T, unknown>[]
+  classes: GridRowClasses & { placeholderBar?: string }
+}
+
+/**
+ * A row of a server-mode grid whose page has not arrived: the real row's cells,
+ * each holding a bar in place of its value, so the list keeps its shape while
+ * the user scrolls or drags through it. Its cells take focus like any other,
+ * so arrow keys move through the whole list.
+ */
+export function PlaceholderGridRow<T extends RowData>({
+  rowId,
+  index,
+  columns,
+  classes,
+  ariaRowIndex,
+  focusColumnId,
+}: PlaceholderGridRowProps<T>) {
+  return (
+    <tr
+      className={flatRowClassName(classes, index, {})}
+      role="row"
+      aria-rowindex={ariaRowIndex}
+      aria-busy="true"
+      data-grid-row={rowId}
+      data-grid-placeholder=""
+    >
+      {columns.map((column, colIndex) => {
+        const pinned = pinnedTdProps({ column } as Cell<T, unknown>, classes)
+        return (
+          <td
+            key={column.id}
+            data-column-id={column.id}
+            className={`${classes.td}${pinned.className}`}
+            style={cellStyle(pinned)}
+            {...gridCellProps(column.id, colIndex, focusColumnId)}
+          >
+            <span className={classes.placeholderBar} aria-hidden="true" />
+          </td>
+        )
+      })}
+      <td aria-hidden="true" className={classes.td} />
     </tr>
   )
 }
@@ -412,10 +463,7 @@ export function SortableFlatGridRow<T extends RowData>({
         )
       })}
       {/* Filler data cell keeps the zebra/hover band edge-to-edge. */}
-      <td
-        aria-hidden="true"
-        className={classes.td}
-      />
+      <td aria-hidden="true" className={classes.td} />
     </GridSortableRow>
   )
 }
@@ -502,10 +550,7 @@ export function TreeGridRow<T extends RowData>({
         )
       })}
       {/* Filler data cell keeps the zebra/hover band edge-to-edge. */}
-      <td
-        aria-hidden="true"
-        className={classes.td}
-      />
+      <td aria-hidden="true" className={classes.td} />
     </GridSortableRow>
   )
 }

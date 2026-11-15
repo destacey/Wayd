@@ -2,11 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { Button, Checkbox, Input } from 'antd'
-import {
-  DownOutlined,
-  RightOutlined,
-  SearchOutlined,
-} from '@ant-design/icons'
+import { DownOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons'
 
 import styles from './date-filter-panel.module.css'
 import FilterPopup from './filter-popup'
@@ -34,6 +30,12 @@ export interface DateFilterPanelProps {
    */
   expandedNodes?: Set<string>
   onToggleNode?: (key: string) => void
+  /**
+   * Whether to show the date tree. Off for a server-mode grid, which holds
+   * only the rows in view and so cannot list the days the column contains;
+   * the Custom Filter section then opens by default.
+   */
+  includeTree?: boolean
 }
 
 /**
@@ -59,10 +61,12 @@ const DateFilterPanel = ({
   maxConditions,
   expandedNodes: expandedNodesProp,
   onToggleNode: onToggleNodeProp,
+  includeTree = true,
 }: DateFilterPanelProps) => {
   const tree = useMemo(() => buildDateTree(dayKeys), [dayKeys])
   const allDayKeys = useMemo(
-    () => tree.flatMap((y) => y.months.flatMap((m) => m.days.map((d) => d.key))),
+    () =>
+      tree.flatMap((y) => y.months.flatMap((m) => m.days.map((d) => d.key))),
     [tree],
   )
 
@@ -70,7 +74,7 @@ const DateFilterPanel = ({
   const isDateSet = value?.type === 'dateSet'
   const isConditions = value?.type === 'date'
   const [quickOpen, setQuickOpen] = useState(false)
-  const [customOpen, setCustomOpen] = useState(isConditions)
+  const [customOpen, setCustomOpen] = useState(isConditions || !includeTree)
 
   // Expanded year/month node keys. Controlled by the parent when provided (the
   // grid owns this so expansion survives the popover content being rebuilt on a
@@ -113,8 +117,7 @@ const DateFilterPanel = ({
     emitChecked(next)
   }
 
-  const allChecked =
-    allDayKeys.length > 0 && checked.size === allDayKeys.length
+  const allChecked = allDayKeys.length > 0 && checked.size === allDayKeys.length
   const someChecked = checked.size > 0 && !allChecked
 
   const q = search.trim().toLowerCase()
@@ -131,62 +134,66 @@ const DateFilterPanel = ({
   return (
     <div className={styles.panel}>
       {/* ── Date tree (set-style) ── */}
-      <Input
-        size="small"
-        allowClear
-        autoFocus
-        placeholder="Search..."
-        prefix={<SearchOutlined />}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className={styles.search}
-      />
-
-      <div className={styles.tree}>
-        {!search && allDayKeys.length > 0 && (
-          <label className={styles.row}>
-            <Checkbox
-              checked={allChecked}
-              indeterminate={someChecked}
-              onChange={(e) => setKeys(allDayKeys, e.target.checked)}
-            />
-            <span className={styles.nodeLabel}>(Select All)</span>
-          </label>
-        )}
-
-        {tree.map((year) => (
-          <YearRow
-            key={year.key}
-            year={year}
-            checked={checked}
-            matches={matches}
-            searching={!!q}
-            expandedNodes={expandedNodes}
-            onToggleNode={toggleNode}
-            onToggle={setKeys}
+      {includeTree && (
+        <>
+          <Input
+            size="small"
+            allowClear
+            autoFocus
+            placeholder="Search..."
+            prefix={<SearchOutlined />}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className={styles.search}
           />
-        ))}
 
-        {allDayKeys.length === 0 && (
-          <div className={styles.empty}>No dates</div>
-        )}
-        {allDayKeys.length > 0 &&
-          q &&
-          allDayKeys.filter(matches).length === 0 && (
-            <div className={styles.empty}>No matches</div>
-          )}
-      </div>
+          <div className={styles.tree}>
+            {!search && allDayKeys.length > 0 && (
+              <label className={styles.row}>
+                <Checkbox
+                  checked={allChecked}
+                  indeterminate={someChecked}
+                  onChange={(e) => setKeys(allDayKeys, e.target.checked)}
+                />
+                <span className={styles.nodeLabel}>(Select All)</span>
+              </label>
+            )}
 
-      <div className={styles.treeFooter}>
-        <Button
-          size="small"
-          type="text"
-          onClick={() => onChange(undefined)}
-          disabled={value === undefined}
-        >
-          Reset
-        </Button>
-      </div>
+            {tree.map((year) => (
+              <YearRow
+                key={year.key}
+                year={year}
+                checked={checked}
+                matches={matches}
+                searching={!!q}
+                expandedNodes={expandedNodes}
+                onToggleNode={toggleNode}
+                onToggle={setKeys}
+              />
+            ))}
+
+            {allDayKeys.length === 0 && (
+              <div className={styles.empty}>No dates</div>
+            )}
+            {allDayKeys.length > 0 &&
+              q &&
+              allDayKeys.filter(matches).length === 0 && (
+                <div className={styles.empty}>No matches</div>
+              )}
+          </div>
+
+          <div className={styles.treeFooter}>
+            <Button
+              size="small"
+              type="text"
+              onClick={() => onChange(undefined)}
+              disabled={value === undefined}
+            >
+              Reset
+            </Button>
+          </div>
+        </>
+      )}
 
       {/* ── Date Filters (relative quick-filters) ── */}
       <button

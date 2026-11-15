@@ -129,6 +129,7 @@ import {
 import {
   FlatGridRow,
   GroupGridRow,
+  PlaceholderGridRow,
   SortableFlatGridRow,
   TreeGridRow,
   type GroupGridRowClasses,
@@ -140,7 +141,20 @@ import {
   sortEmptyLast,
 } from '../wayd-grid-core/grid-sorting'
 import GridToolbar from '../wayd-grid-core/grid-toolbar'
+import {
+  toGridifyFilter,
+  toGridifySort,
+} from '../wayd-grid-core/server/gridify-query'
+import { restrictToServerFields } from '../wayd-grid-core/server/server-columns'
+import {
+  DEFAULT_SERVER_PAGE_SIZE,
+  isPlaceholderRow,
+  toServerDisplayRows,
+  useServerRows,
+} from '../wayd-grid-core/server/use-server-rows'
+import { useDebounce } from '@/src/hooks/use-debounce'
 import { countTreeNodes, flattenTree } from '../wayd-grid-core/tree-utils'
+import { toApiError } from '@/src/utils/problem-details'
 import { useGridColumnStatePersistence } from '../wayd-grid-core/use-grid-persistence'
 import {
   mergeColumnVisibility,
@@ -183,6 +197,43 @@ const SIMPLE_EMPTY_BODY_HEIGHT = 140
  * 0px, so the virtualizer renders indexes 0..overscan. */
 const ROW_OVERSCAN = 10
 
+/** How long a server-mode grid waits after typing before it fetches again. */
+const SERVER_QUERY_DEBOUNCE_MS = 300
+
+/**
+ * What a server-mode grid shows when its first page fails. A 422 is the
+ * server refusing the filter or sort the user built (a decimal in a whole
+ * number column, say), which a refresh would only send again, so its own
+ * reasons are shown instead.
+ */
+const describeServerFailure = (error: unknown): string => {
+  const { status, errors, detail } = toApiError(error)
+  if (status !== 422)
+    return 'The list could not be loaded. Refresh to try again.'
+  const reasons = errors ? Object.values(errors).flat() : []
+  const reason = reasons.length > 0 ? reasons.join(' ') : detail
+  return `The list cannot be filtered or sorted that way${reason ? `: ${reason}` : '.'} Change the filter or sort to try again.`
+}
+
+/**
+ * A server-mode row's id. Rows arrive page by page, so a row's place in the
+ * table moves as pages before it arrive or are let go; its id must not. A row
+ * with no `id` (and no `getRowId`) falls back to its place, which keeps keys
+ * unique but loses selection and focus as pages move, so it is reported once.
+ */
+let reportedMissingRowId = false
+const serverRowId = <T,>(row: T, index: number): string => {
+  const id = (row as { id?: unknown }).id
+  if (id !== undefined && id !== null) return String(id)
+  if (process.env.NODE_ENV !== 'production' && !reportedMissingRowId) {
+    reportedMissingRowId = true
+    console.warn(
+      'WaydGrid server mode: a row has no `id`; pass `getRowId` to identify rows.',
+    )
+  }
+  return `__wayd-row-${index}`
+}
+
 const headerCellClasses: GridHeaderCellClasses = {
   th: styles.th,
   thSortable: styles.thSortable,
@@ -208,7 +259,8 @@ const filterPinnedClasses: PinnedCellClasses = {
   pinnedRightEdge: styles.pinnedRightEdge,
 }
 
-const rowClasses: GridRowClasses = {
+const rowClasses: GridRowClasses & { placeholderBar: string } = {
+  placeholderBar: styles.placeholderBar,
   tr: styles.tr,
   trAlt: styles.trAlt,
   td: styles.td,
@@ -254,12 +306,18 @@ const groupRowClasses: GroupGridRowClasses = {
  *   - otherwise                           → 'text'
  * Empty/mixed data falls back to 'text'. Drives both the per-column filter UI
  * and numeric cell alignment, so the two never disagree.
+ *
+ * Server mode passes `inferFromData: false`: its rows are a window that empties
+ * on every new query, so an inferred type would flip back to 'text' mid-filter.
+ * Its non-text columns declare their type.
  */
 const resolveColumnFilterType = <T extends RowData>(
   column: Column<T, unknown>,
+  inferFromData = true,
 ): FilterType => {
   const meta = column.columnDef.meta
   if (meta?.filterType) return resolveFilterType(meta.filterType)
+  if (!inferFromData) return 'text'
 
   // Display columns (actions, checkboxes — no accessor) have no values to
   // sample; TanStack's faceted-values util throws on them.
@@ -344,6 +402,15 @@ interface GridBodyProps<T extends RowData> {
   measuredRowHeight: number | null
   /** Reports a body row's rendered height. */
   onRowHeightMeasured: (height: number) => void
+  /**
+   * Server mode: told the first and last row index the virtualizer renders,
+   * so the grid fetches the pages under them.
+   */
+  onVisibleRangeChange?: (first: number, last: number) => void
+  /** Server mode: the visible leaf columns, for rows not fetched yet. */
+  placeholderColumns?: Column<T, unknown>[]
+  /** Server mode: the list's generation; a new one resets the Tab stop. */
+  listGeneration?: number
 }
 
 /**
@@ -388,6 +455,9 @@ function GridBody<T extends RowData>({
   footerHintsHost,
   measuredRowHeight,
   onRowHeightMeasured,
+  onVisibleRangeChange,
+  placeholderColumns,
+  listGeneration,
 }: GridBodyProps<T>) {
   // Owns virtualizer + TanStack row JSX — same staleness hazard as the grid.
 
@@ -401,9 +471,15 @@ function GridBody<T extends RowData>({
     columnIds,
     isGrouped,
     treeColumnId,
-    onRowActivate,
+    // A row not fetched yet has no record to activate.
+    onRowActivate: onRowActivate
+      ? (original: T | undefined) => {
+          if (original !== undefined) onRowActivate(original)
+        }
+      : undefined,
     bodyViewportRef,
     rowHeight,
+    resetKey: listGeneration,
   })
 
   // The row with an open editor stays rendered wherever focus is — even in
@@ -434,7 +510,7 @@ function GridBody<T extends RowData>({
         : null
     const rowId = target.closest('tr')?.getAttribute('data-grid-row')
     const row = action ? rows.find((r) => r.id === rowId) : undefined
-    if (action && row && !row.getIsGrouped()) {
+    if (action && row && !isPlaceholderRow(row) && !row.getIsGrouped()) {
       const result = runRowAction!(action, row)
       // A row-action key never falls through to navigation, whose Enter and
       // arrows ignore modifiers (Ctrl+Enter would edit the cell).
@@ -520,6 +596,14 @@ function GridBody<T extends RowData>({
   const virtualRows = rowVirtualizer.getVirtualItems()
   const totalSize = rowVirtualizer.getTotalSize()
   const hasRenderedRows = virtualRows.length > 0
+
+  const firstRenderedIndex = virtualRows[0]?.index
+  const lastRenderedIndex = virtualRows[virtualRows.length - 1]?.index
+  useEffect(() => {
+    if (onVisibleRangeChange && firstRenderedIndex !== undefined) {
+      onVisibleRangeChange(firstRenderedIndex, lastRenderedIndex!)
+    }
+  }, [firstRenderedIndex, lastRenderedIndex, onVisibleRangeChange])
 
   // The virtualizer caches row sizes; a new measured height must replace them.
   useLayoutEffect(() => {
@@ -690,6 +774,20 @@ function GridBody<T extends RowData>({
                       />
                     </tr>
                   ) : null
+
+                if (isPlaceholderRow(row)) {
+                  return [
+                    gapSpacer,
+                    <PlaceholderGridRow
+                      key={row.id}
+                      rowId={row.id}
+                      index={index}
+                      {...navigationProps}
+                      columns={placeholderColumns ?? []}
+                      classes={rowClasses}
+                    />,
+                  ]
+                }
 
                 if (isTree) {
                   const nodeId = (row.original as { id: string }).id
@@ -935,8 +1033,9 @@ function WaydGridInner<T extends RowData>(
 ) {
   const {
     data: dataProp,
+    server,
     columns: columnsProp,
-    isLoading = false,
+    isLoading: isLoadingProp = false,
     onRefresh,
     leftSlot,
     helpContent,
@@ -981,15 +1080,13 @@ function WaydGridInner<T extends RowData>(
     'aria-label': ariaLabel,
   } = props
 
-  // Undefined data (a query hook still loading) renders as an empty grid —
-  // the old ag-grid WaydGrid tolerated undefined rowData the same way, and
-  // TanStack's row model throws on it. Stable fallback so the table's data
-  // identity doesn't churn while loading.
-  const data = dataProp ?? (EMPTY_DATA as T[])
+  // Fixed on mount: the page cache and the table's manual modes cannot be
+  // switched on or off under a mounted grid.
+  const [isServer] = useState(() => !!server)
 
-  const isTree = !!getSubRows
+  const isTree = !isServer && !!getSubRows
   // Grouping is a flat-mode arrangement: a tree already has its hierarchy.
-  const isGrouped = !isTree && !!grouping && grouping.length > 0
+  const isGrouped = !isServer && !isTree && !!grouping && grouping.length > 0
 
   // ─── Auto-height ─────────────────────────────────────────
   const [gridContainerRef, autoHeight] = useRemainingHeight()
@@ -1003,8 +1100,8 @@ function WaydGridInner<T extends RowData>(
   const [measuredRowHeight, setMeasuredRowHeight] = useState<number | null>(
     null,
   )
-  const simpleBodyHeight = data?.length
-    ? data.length * (measuredRowHeight ?? ROW_HEIGHT_ESTIMATE)
+  const simpleBodyHeight = dataProp?.length
+    ? dataProp.length * (measuredRowHeight ?? ROW_HEIGHT_ESTIMATE)
     : SIMPLE_EMPTY_BODY_HEIGHT
   const simpleHeight = SIMPLE_HEADER_HEIGHT + simpleBodyHeight + 2
   const resolvedHeight = height ?? (isSimple ? simpleHeight : autoHeight)
@@ -1188,6 +1285,59 @@ function WaydGridInner<T extends RowData>(
     setColumnPinning,
     resetColumnState,
   } = gridState
+  // ─── Server mode ─────────────────────────────────────────
+  // Typing in a filter or the search box waits for a pause before the list
+  // starts over; a sort change starts it over at once.
+  const serverPageSize = server?.pageSize ?? DEFAULT_SERVER_PAGE_SIZE
+  const serverFilter = useDebounce(
+    isServer ? toGridifyFilter(gridState.columnFilters) : undefined,
+    SERVER_QUERY_DEBOUNCE_MS,
+  )
+  const serverSearch = useDebounce(
+    isServer && server?.search ? searchValue.trim() || undefined : undefined,
+    SERVER_QUERY_DEBOUNCE_MS,
+  )
+  const serverRows = useServerRows<T>(
+    isServer && server
+      ? {
+          fetchPage: server.fetchPage,
+          listKey: server.listKey,
+          pageSize: serverPageSize,
+          refreshInterval: server.refreshInterval,
+          refreshKey: server.refreshKey,
+        }
+      : undefined,
+    {
+      filter: serverFilter,
+      sort: isServer ? toGridifySort(gridState.sorting) : undefined,
+      search: serverSearch,
+    },
+  )
+  const serverSnapshot = serverRows?.snapshot
+  const serverTotal = serverSnapshot?.totalCount
+  const serverFailed =
+    serverSnapshot?.error !== undefined && serverTotal === undefined
+  const isLoading =
+    isLoadingProp || (isServer && serverTotal === undefined && !serverFailed)
+  const serverFailureMessage = serverFailed
+    ? describeServerFailure(serverSnapshot?.error)
+    : undefined
+
+  // Undefined data (a query hook still loading) renders as an empty grid —
+  // the old ag-grid WaydGrid tolerated undefined rowData the same way, and
+  // TanStack's row model throws on it. Stable fallback so the table's data
+  // identity doesn't churn while loading. In server mode the table holds the
+  // fetched pages.
+  const data = serverRows?.data ?? dataProp ?? (EMPTY_DATA as T[])
+
+  // A new query starts the list over, at the top.
+  const serverGeneration = serverSnapshot?.generation ?? 0
+  useEffect(() => {
+    if (serverGeneration > 1 && bodyViewportRef.current) {
+      bodyViewportRef.current.scrollTop = 0
+    }
+  }, [serverGeneration])
+
   const resizeGuard = useResizeClickGuard()
   /** Enter or Space on a filter trigger opens its popover — the popover
    *  itself only listens for clicks. */
@@ -1233,7 +1383,7 @@ function WaydGridInner<T extends RowData>(
   }, [data, draftTasks, createDraftNode])
 
   // ─── Cell editing ────────────────────────────────────────
-  const cellEditingEnabled = !!onCommit
+  const cellEditingEnabled = !isServer && !!onCommit
   const messageApi = useOptionalMessage()
   const cellEditing = useGridCellEditing<T>({
     enabled: cellEditingEnabled,
@@ -1273,6 +1423,7 @@ function WaydGridInner<T extends RowData>(
   // ─── Column context ──────────────────────────────────────
   // Tree drags reparent (onNodeMove); flat drags reorder (onRowReorder).
   const dragEnabledBase =
+    !isServer &&
     (isTree
       ? enableDragAndDrop && !!onNodeMove
       : !isGrouped && !!onRowReorder) &&
@@ -1296,7 +1447,14 @@ function WaydGridInner<T extends RowData>(
   // Resolved outside the memo below and passed as a boolean: keying the column
   // defs on `data` would rebuild them on every refetch, which is the header
   // churn the note on resolvedColumns describes. rowsHaveId reads one row.
-  const injectIdColumn = includeIdColumn && rowsHaveId(data)
+  // Server mode remembers that its rows had one: the fetched window empties on
+  // every new query and on a filter that matches nothing, and the column must
+  // not drop out of the header (and Choose Columns) each time.
+  const [serverRowsHadId, setServerRowsHadId] = useState(false)
+  const dataHasId = rowsHaveId(data)
+  if (isServer && dataHasId && !serverRowsHadId) setServerRowsHadId(true)
+  const injectIdColumn =
+    includeIdColumn && (dataHasId || (isServer && serverRowsHadId))
 
   const columns = useMemo(() => {
     const resolved =
@@ -1311,13 +1469,15 @@ function WaydGridInner<T extends RowData>(
   // rebuilding defs every render made TanStack rebuild its headers, replacing
   // the filter Popover's trigger DOM node — which antd read as a click-outside
   // and closed the open popover on every checkbox toggle.
-  const resolvedColumns = useMemo(
-    () =>
-      columns.map((col) =>
-        applyColumnType(applySafeAccessor(col as ColumnDef<T, unknown>)),
-      ) as typeof columns,
-    [columns],
-  )
+  const serverFields = server?.fields
+  const resolvedColumns = useMemo(() => {
+    const typed = columns.map((col) =>
+      applyColumnType(applySafeAccessor(col as ColumnDef<T, unknown>)),
+    ) as typeof columns
+    return isServer
+      ? (restrictToServerFields(typed, serverFields ?? []) as typeof columns)
+      : typed
+  }, [columns, isServer, serverFields])
 
   // meta.unavailable → columnVisibility, recursing into grouped defs (TanStack
   // shrinks a band's colSpan as its leaves hide).
@@ -1538,7 +1698,13 @@ function WaydGridInner<T extends RowData>(
         filterFn: waydColumnFilter,
         sortFn: sortEmptyLast,
       },
-      ...(getRowId ? { getRowId: (row: T) => getRowId(row) } : {}),
+      ...(getRowId
+        ? { getRowId: (row: T) => getRowId(row) }
+        : isServer
+          ? { getRowId: serverRowId }
+          : {}),
+      // Server mode: the server has already sorted and filtered the pages.
+      ...(isServer ? { manualSorting: true, manualFiltering: true } : {}),
       // Tree mode: rows expand, and a filter match keeps the ancestor chain
       // visible (filterFromLeafRows).
       ...(isTree
@@ -1805,21 +1971,34 @@ function WaydGridInner<T extends RowData>(
     [moveColumn],
   )
 
-  const rows = table.getRowModel().rows
+  const tableRows = table.getRowModel().rows
+  const rows =
+    serverSnapshot && serverTotal !== undefined
+      ? toServerDisplayRows(
+          tableRows,
+          serverSnapshot.pages,
+          serverPageSize,
+          serverTotal,
+        )
+      : tableRows
 
   // Displayed-rows callback: TanStack memoizes the row model, so `rows` only
   // changes identity when the data / filters / sorting actually change — the
   // effect fires exactly on displayed-set changes (plus once on mount).
   // Group headings are not records: the displayed-rows surfaces report the
   // data rows only, whatever the grid put between them.
-  const dataRows = isGrouped ? rows.filter((row) => !row.getIsGrouped()) : rows
+  const dataRows = isGrouped
+    ? tableRows.filter((row) => !row.getIsGrouped())
+    : tableRows
   useEffect(() => {
     onDisplayedRowsChange?.(dataRows.map((row) => row.original))
   }, [dataRows, onDisplayedRowsChange])
-  const displayedRowCount = dataRows.length
-  const totalRowCount = isTree
-    ? countTreeNodes(data as unknown as TreeNode[]) + draftTasks.length
-    : data.length
+  const displayedRowCount = isServer ? (serverTotal ?? 0) : dataRows.length
+  const totalRowCount = isServer
+    ? (serverTotal ?? 0)
+    : isTree
+      ? countTreeNodes(data as unknown as TreeNode[]) + draftTasks.length
+      : data.length
   const visibleColumnCount = table.getVisibleLeafColumns().length
 
   // Columns whose BODY cells right-align: explicit meta.align wins, otherwise
@@ -1835,12 +2014,15 @@ function WaydGridInner<T extends RowData>(
     for (const column of table.getAllLeafColumns()) {
       const align = column.columnDef.meta?.align
       if (align === 'left') continue
-      if (align === 'right' || resolveColumnFilterType(column) === 'number') {
+      if (
+        align === 'right' ||
+        resolveColumnFilterType(column, !isServer) === 'number'
+      ) {
         ids.add(column.id)
       }
     }
     return ids
-  }, [table, data, resolvedColumns])
+  }, [table, data, resolvedColumns, isServer])
 
   const toggleDateTreeNode = useCallback(
     (columnId: string, nodeKey: string) => {
@@ -1934,7 +2116,7 @@ function WaydGridInner<T extends RowData>(
   const showFloatingFilters = showColumnFilters && includeFloatingFilters
 
   const columnFilterType = (header: Header<T, unknown>): FilterType =>
-    resolveColumnFilterType(header.column)
+    resolveColumnFilterType(header.column, !isServer)
 
   /**
    * Wraps a trigger element in the multi-condition {@link FilterPopup} popover.
@@ -1975,7 +2157,8 @@ function WaydGridInner<T extends RowData>(
           <div onClick={(e) => e.stopPropagation()}>
             {isDate ? (
               <DateFilterPanel
-                dayKeys={getDayKeys(header)}
+                dayKeys={isServer ? [] : getDayKeys(header)}
+                includeTree={!isServer}
                 value={filterValue}
                 maxConditions={meta?.maxFilterConditions}
                 onChange={(next) => header.column.setFilterValue(next)}
@@ -2040,6 +2223,9 @@ function WaydGridInner<T extends RowData>(
    */
   const getSetValues = (header: Header<T, unknown>): string[] => {
     const meta = header.column.columnDef.meta
+    // The loaded rows are a window of the list, so their values are not the
+    // column's: only the declared options are.
+    if (isServer) return meta?.filterOptions?.map((o) => o.value) ?? []
     const facetedKeys = Array.from(
       header.column.getFacetedUniqueValues().keys(),
     )
@@ -2155,7 +2341,7 @@ function WaydGridInner<T extends RowData>(
   const treeDndEnabled = isTree && enableDragAndDrop && !!onNodeMove
   // Grouped rows are displayed in group order, not data order, so there is
   // nothing a drag could reorder.
-  const flatDndEnabled = !isTree && !isGrouped && !!onRowReorder
+  const flatDndEnabled = !isServer && !isTree && !isGrouped && !!onRowReorder
   const dndEnabled = treeDndEnabled || flatDndEnabled
   const isDragEnabled =
     dndEnabled && !isLoading && !isEditing && !hasActiveFilters
@@ -2492,7 +2678,7 @@ function WaydGridInner<T extends RowData>(
         rows={rows}
         bodyViewportRef={bodyViewportRef}
         onBodyScroll={handleBodyScroll}
-        rightPane={rightPane}
+        rightPane={isServer ? undefined : rightPane}
         rightPaneWidth={rightPaneWidth}
         onRightPaneDividerDown={onRightPaneDividerDown}
         rightPaneTrackRef={rightPaneTrackRef}
@@ -2500,7 +2686,7 @@ function WaydGridInner<T extends RowData>(
         onBarTrackScroll={handleBarTrackScroll}
         colGroup={colGroup}
         isLoading={isLoading}
-        emptyMessage={emptyMessage}
+        emptyMessage={serverFailureMessage ?? emptyMessage}
         visibleColumnCount={visibleColumnCount}
         columnIds={orderedVisibleLeafColumns.map((column) => column.id)}
         headerRowCount={headerRowCount}
@@ -2528,6 +2714,9 @@ function WaydGridInner<T extends RowData>(
         footerHintsHost={footerHintsHost}
         measuredRowHeight={measuredRowHeight}
         onRowHeightMeasured={setMeasuredRowHeight}
+        onVisibleRangeChange={serverRows?.requestRange}
+        placeholderColumns={isServer ? orderedVisibleLeafColumns : undefined}
+        listGeneration={isServer ? serverGeneration : undefined}
       />
     </div>
   )
@@ -2547,12 +2736,25 @@ function WaydGridInner<T extends RowData>(
           totalRowCount={totalRowCount}
           searchValue={searchValue}
           onSearchChange={onSearchChange}
-          onRefresh={onRefresh}
+          onRefresh={
+            serverRows
+              ? async () => {
+                  await Promise.all([serverRows.refresh(), onRefresh?.()])
+                }
+              : onRefresh
+          }
           onClearFilters={onClearFilters}
           hasActiveFilters={hasActiveFilters}
-          onExportCsv={includeExportButton ? onExportCsv : undefined}
+          // Server mode holds only the rows in view, so an export would be
+          // part of the list presented as all of it.
+          onExportCsv={
+            includeExportButton && !isServer ? onExportCsv : undefined
+          }
           isLoading={isLoading}
-          includeGlobalSearch={includeGlobalSearch}
+          includeGlobalSearch={
+            includeGlobalSearch && (!isServer || !!server?.search)
+          }
+          rowNoun={isServer ? (server?.noun ?? 'rows') : undefined}
           leftSlot={resolvedLeftSlot}
           helpContent={
             helpContent ??

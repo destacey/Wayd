@@ -242,7 +242,7 @@ public sealed class PeopleSyncRunner(
             }
 
             stageTimer.Restart();
-            var userUpdateResult = await _userService.SyncUsersFromEmployeeRecords(employees, cancellationToken);
+            var userUpdateResult = await _userService.SyncUsersFromEmployeeRecords(cancellationToken);
             userSyncMs = stageTimer.ElapsedMilliseconds;
             if (userUpdateResult.IsFailure)
             {

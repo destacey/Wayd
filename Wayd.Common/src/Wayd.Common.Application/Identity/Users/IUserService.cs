@@ -67,6 +67,11 @@ public interface IUserService : ITransientService
     Task UpdateAsync(UpdateUserCommand command, string userId);
 
     /// <summary>
+    /// Updates the caller's own name and phone number. The email is not part of a profile and stays as it is.
+    /// </summary>
+    Task UpdateProfile(UpdateProfileCommand command, string userId);
+
+    /// <summary>
     /// Creates the first user and makes them an Admin, for first-run setup. Refused once any user exists. The
     /// grant is recorded as the system's, since nobody is signed in to make it.
     /// </summary>
@@ -88,7 +93,11 @@ public interface IUserService : ITransientService
 
     Task<Result> UpdateMissingEmployeeIds(CancellationToken cancellationToken);
 
-    Task<Result> SyncUsersFromEmployeeRecords(List<IExternalEmployee> externalEmployees, CancellationToken cancellationToken);
+    /// <summary>
+    /// Brings every user linked to an employee in line with that employee record: name, email, and active state.
+    /// Runs after the people sync has upserted the employees; an unlinked user is not touched.
+    /// </summary>
+    Task<Result> SyncUsersFromEmployeeRecords(CancellationToken cancellationToken);
 
     Task<UserPreferencesDto> GetPreferences(string userId, CancellationToken cancellationToken);
 

@@ -27,6 +27,9 @@ internal partial class UserService
     /// <summary>Refusal for changing the employee linked to the caller's own account.</summary>
     private const string OwnEmployeeLink = "You cannot change the employee linked to your own account.";
 
+    /// <summary>Refusal for changing the email of the caller's own account.</summary>
+    private const string OwnEmail = "You cannot change the email of your own account. Ask another administrator.";
+
     /// <summary>Refusal for changing the caller's own roles.</summary>
     private const string OwnRoles = "You cannot change your own roles. Ask another administrator.";
 

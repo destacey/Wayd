@@ -10,23 +10,17 @@ public sealed record UpdateUserCommand
     public Guid? EmployeeId { get; set; }
 
     /// <summary>
-    /// Whether <see cref="EmployeeId"/> is part of this update. Only the admin user-edit path
-    /// (Settings → Users) sets this; every other caller leaves it <c>false</c> and the link is left
-    /// untouched.
+    /// Whether <see cref="EmployeeId"/> is part of this update. The admin user-edit path
+    /// (Settings → Access → Users) sets this; a caller that leaves it <c>false</c> leaves the link untouched.
     /// </summary>
     /// <remarks>
     /// The employee link is normally resolved server-side by email, not supplied by the caller —
-    /// <c>GetEmployeeIdByEmail</c> at registration, <c>UpdateMissingEmployeeIds</c> as a backfill, and
-    /// <c>SyncUsersFromEmployeeRecords</c> on people-sync. The admin picker is a manual override for
-    /// when that resolution can't (mismatched email, external user); self-service profile editing has
-    /// no employee field at all and must not disturb an authorization edge it does not own.
-    /// <para>
-    /// Hence the flag: without it, "caller isn't managing the link" and "caller wants the link
-    /// cleared" are both <c>EmployeeId = null</c>, so the shared <see cref="IUserService.UpdateAsync"/>
-    /// applied the default null on every profile save and silently unlinked the user — dropping their
-    /// PPM role assignments, roadmap visibility, and team membership. Clearing the link is now an
-    /// explicit act (<c>ManageEmployeeLink = true, EmployeeId = null</c>).
-    /// </para>
+    /// <c>GetEmployeeIdByEmail</c> at registration and <c>UpdateMissingEmployeeIds</c> on people sync.
+    /// The admin picker is a manual override for when that resolution can't (mismatched email, external
+    /// user). Without the flag, "caller isn't managing the link" and "caller wants the link cleared" are
+    /// both <c>EmployeeId = null</c>, and unlinking a user drops their PPM role assignments, roadmap
+    /// visibility and team membership; clearing the link is an explicit act
+    /// (<c>ManageEmployeeLink = true, EmployeeId = null</c>).
     /// </remarks>
     public bool ManageEmployeeLink { get; set; }
 }

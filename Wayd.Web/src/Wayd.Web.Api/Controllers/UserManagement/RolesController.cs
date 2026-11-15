@@ -40,7 +40,7 @@ public class RolesController(IRoleService roleService, IUserService userService,
     }
 
     [HttpGet("{id}/permissions")]
-    [MustHavePermission(ApplicationAction.View, ApplicationResource.RoleClaims)]
+    [MustHavePermission(ApplicationAction.View, ApplicationResource.Roles)]
     [EndpointSummary("Get role details with its permissions.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -55,7 +55,7 @@ public class RolesController(IRoleService roleService, IUserService userService,
     }
 
     [HttpPut("{id}/permissions")]
-    [MustHavePermission(ApplicationAction.Update, ApplicationResource.RoleClaims)]
+    [MustHavePermission(ApplicationAction.Manage, ApplicationResource.Roles)]
     [EndpointSummary("Update a role's permissions.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -72,7 +72,7 @@ public class RolesController(IRoleService roleService, IUserService userService,
     }
 
     [HttpPost]
-    [MustHavePermission(ApplicationAction.Create, ApplicationResource.Roles)]
+    [MustHavePermission(ApplicationAction.Manage, ApplicationResource.Roles)]
     [EndpointSummary("Create or update a role.")]
     [ApiConventionMethod(typeof(WaydApiConventions), nameof(WaydApiConventions.CreateReturn201String))]
     public async Task<ActionResult<string>> CreateOrUpdate(CreateOrUpdateRoleRequest request)
@@ -103,7 +103,7 @@ public class RolesController(IRoleService roleService, IUserService userService,
     }
 
     [HttpDelete("{id}")]
-    [MustHavePermission(ApplicationAction.Delete, ApplicationResource.Roles)]
+    [MustHavePermission(ApplicationAction.Manage, ApplicationResource.Roles)]
     [EndpointSummary("Delete a role.")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]

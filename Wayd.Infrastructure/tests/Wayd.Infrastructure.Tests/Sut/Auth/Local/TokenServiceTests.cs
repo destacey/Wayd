@@ -19,6 +19,7 @@ using Wayd.Infrastructure.Auth.Local;
 using Wayd.Infrastructure.Auth.Permissions;
 using Wayd.Infrastructure.Auth.Oidc;
 using Wayd.Infrastructure.Identity;
+using Wayd.Infrastructure.Tests.Sut.Identity;
 using Wayd.Tests.Shared;
 using Wayd.Tests.Shared.Data;
 
@@ -32,6 +33,7 @@ public class TokenServiceTests
 
     private readonly Mock<UserManager<ApplicationUser>> _mockUserManager;
     private readonly Mock<SignInManager<ApplicationUser>> _mockSignInManager;
+    private readonly Mock<RoleManager<ApplicationRole>> _mockRoleManager;
     private readonly IConfiguration _configuration;
     private readonly TestingDateTimeProvider _dateTimeProvider;
     private readonly Mock<ILogger<TokenService>> _mockLogger;
@@ -42,6 +44,9 @@ public class TokenServiceTests
     private readonly FakeRefreshTokenStore _refreshTokenStore;
     private readonly FakeSessionContextAccessor _sessionContext = new();
     private readonly TokenService _sut;
+
+    /// <summary>The one role, granting every permission, that makes its holders administrators.</summary>
+    private readonly ApplicationRole _adminRole = new(ApplicationRoles.Admin) { Id = "role-admin" };
 
     public TokenServiceTests()
     {
@@ -54,6 +59,12 @@ public class TokenServiceTests
             new Mock<IHttpContextAccessor>().Object,
             new Mock<IUserClaimsPrincipalFactory<ApplicationUser>>().Object,
             null!, null!, null!, null!);
+
+        _mockRoleManager = new Mock<RoleManager<ApplicationRole>>(
+            new Mock<IRoleStore<ApplicationRole>>().Object, null!, null!, null!, null!);
+        _mockRoleManager.Setup(x => x.Roles).Returns(new[] { _adminRole }.AsQueryable().BuildMockDbSet().Object);
+        _mockRoleManager.Setup(x => x.GetClaimsAsync(_adminRole))
+            .ReturnsAsync([.. ApplicationPermissions.Admin.Select(p => new Claim(ApplicationClaims.Permission, p.Name))]);
 
         _configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -92,6 +103,7 @@ public class TokenServiceTests
         _sut = new TokenService(
             _mockUserManager.Object,
             _mockSignInManager.Object,
+            _mockRoleManager.Object,
             _configuration,
             _dateTimeProvider,
             _mockUserIdentityStore.Object,
@@ -390,10 +402,13 @@ public class TokenServiceTests
     }
 
     /// <summary>Makes <paramref name="user"/> the only active administrator.</summary>
-    private void IsTheLastAdministrator(ApplicationUser user)
+    private void IsTheLastAdministrator(ApplicationUser user) => AdministratorsAre(user, [user]);
+
+    /// <summary>Makes <paramref name="user"/> an administrator among <paramref name="administrators"/>.</summary>
+    private void AdministratorsAre(ApplicationUser user, ApplicationUser[] administrators)
     {
-        _mockUserManager.Setup(x => x.IsInRoleAsync(user, ApplicationRoles.Admin)).ReturnsAsync(true);
-        _mockUserManager.Setup(x => x.GetUsersInRoleAsync(ApplicationRoles.Admin)).ReturnsAsync([user]);
+        _mockUserManager.Setup(x => x.GetRolesAsync(user)).ReturnsAsync([ApplicationRoles.Admin]);
+        _mockUserManager.Setup(x => x.GetUsersInRoleAsync(ApplicationRoles.Admin)).ReturnsAsync(administrators);
     }
 
     [Fact]
@@ -573,6 +588,27 @@ public class TokenServiceTests
         _mockUserManager.Verify(x => x.CheckPasswordAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
     }
 
+    [Fact]
+    public async Task GetTokenAsync_ProtectsTheOnlyAdministrator_WhenTheirFullAccessComesFromARoleOtherThanAdmin()
+    {
+        // Arrange — an administrator is whoever holds every permission, whichever role grants it.
+        var fullAccess = new ApplicationRole("Full Access") { Id = "role-full" };
+        _mockRoleManager.Setup(x => x.Roles).Returns(new[] { _adminRole, fullAccess }.AsQueryable().BuildMockDbSet().Object);
+        _mockRoleManager.Setup(x => x.GetClaimsAsync(fullAccess))
+            .ReturnsAsync([.. ApplicationPermissions.Admin.Select(p => new Claim(ApplicationClaims.Permission, p.Name))]);
+        var user = CreateLocalUser();
+        SeedActiveWaydIdentity(user.Id);
+        _mockUserManager.Setup(x => x.GetRolesAsync(user)).ReturnsAsync(["Full Access"]);
+        _mockUserManager.Setup(x => x.GetUsersInRoleAsync("Full Access")).ReturnsAsync([user]);
+        PasswordIsRight(user);
+
+        // Act
+        await _sut.GetTokenAsync(new LoginCommand("testuser", "Password123!"), TestContext.Current.CancellationToken);
+
+        // Assert — a protected administrator is checked directly, never through the sign-in manager's lockout
+        _mockSignInManager.Verify(x => x.CheckPasswordSignInAsync(user, "Password123!", true), Times.Never);
+    }
+
     [Theory]
     [InlineData(false, false, true)]
     [InlineData(true, true, true)]
@@ -585,8 +621,7 @@ public class TokenServiceTests
         var other = CreateLocalUser(id: "admin-2", userName: "other-admin", isActive: otherIsActive);
         if (otherIsLockedOut)
             other.LockoutEnd = _dateTimeProvider.Now.ToDateTimeOffset().AddMinutes(10);
-        _mockUserManager.Setup(x => x.IsInRoleAsync(user, ApplicationRoles.Admin)).ReturnsAsync(true);
-        _mockUserManager.Setup(x => x.GetUsersInRoleAsync(ApplicationRoles.Admin)).ReturnsAsync([user, other]);
+        AdministratorsAre(user, [user, other]);
         PasswordIsRight(user);
 
         // Act
@@ -1233,6 +1268,7 @@ public class TokenServiceTests
         var sut = new TokenService(
             _mockUserManager.Object,
             _mockSignInManager.Object,
+            _mockRoleManager.Object,
             emptyConfig,
             _dateTimeProvider,
             _mockUserIdentityStore.Object,

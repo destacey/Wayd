@@ -117,7 +117,7 @@ public sealed class PasswordChangeRequirementTests(WaydSqlServerApiFactory facto
         var email = $"temporary-{Guid.NewGuid():N}@integration.test";
         using (var scope = _factory.Services.CreateScope())
         {
-            scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+            await scope.ActAsHarnessAdministrator();
             var roleName = $"Temporary Password Role {Guid.NewGuid():N}";
             var roles = scope.ServiceProvider.GetRequiredService<IRoleService>();
             var roleId = await roles.CreateOrUpdate(new CreateOrUpdateRoleCommand(null, roleName, null));
@@ -163,7 +163,7 @@ public sealed class PasswordChangeRequirementTests(WaydSqlServerApiFactory facto
     private async Task ResetPassword(string email, string password)
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var users = scope.ServiceProvider.GetRequiredService<IUserService>();
         (await users.ResetPasswordAsync(new ResetPasswordCommand(_userIds[email], password), TestContext.Current.CancellationToken)).IsSuccess.Should().BeTrue();
     }

@@ -747,6 +747,8 @@ internal partial class UserService
 
     public async Task<Result<string>> CreateAsync(CreateUserCommand command, CancellationToken cancellationToken)
     {
+        await EnsureMayGrant(command.RoleNames, cancellationToken);
+
         // An admin-created Entra user has no oid until they sign in, and a sign-in can
         // no longer link to an existing account by email alone (that was an account
         // takeover). Creating the user is the admin's authorization, so record it as a
@@ -902,6 +904,31 @@ internal partial class UserService
 
     private sealed class UserCreationRollbackException : Exception { }
 
+    public async Task<Result<string>> CreateFirstAdministrator(CreateUserCommand command, CancellationToken cancellationToken)
+    {
+        // Nobody is signed in yet, so nobody could be allowed to grant Admin; an empty user table is the authority,
+        // as it is when the first sign-in through an identity provider is made the administrator.
+        if (await _userManager.Users.AnyAsync(cancellationToken))
+            return Result.Failure<string>("Setup has already been completed.");
+
+        var created = await CreateAsync(command with { RoleNames = [] }, cancellationToken);
+        if (created.IsFailure)
+            return created;
+
+        var user = await _userManager.FindByIdAsync(created.Value)
+            ?? throw new InternalServerException("The first administrator was not found after being created.");
+        var granted = await AddToRoleRecorded(user, ApplicationRoles.Admin, await GetRoleIdsByName(cancellationToken), EventActor.System);
+        if (!granted.Succeeded)
+        {
+            // Left in place, a user without Admin would make every retry refused as setup already done.
+            await _userManager.DeleteAsync(user);
+            throw new InternalServerException("The first administrator could not be made an Admin.");
+        }
+
+        _logger.LogInformation("User {UserId} created as the first administrator.", user.Id);
+        return created;
+    }
+
     public async Task UpdateAsync(UpdateUserCommand command, string userId)
     {
         var user = await _userManager.FindByIdAsync(userId);
@@ -916,6 +943,17 @@ internal partial class UserService
 
         // An address that differs only in case is kept as stored.
         var emailChanged = !string.Equals(user.Email, command.Email, StringComparison.OrdinalIgnoreCase);
+        var employeeLinkChanged = command.ManageEmployeeLink && user.EmployeeId != command.EmployeeId;
+
+        // Linking yourself to an employee takes on that employee's leadership and place in the manager chain.
+        // The loaded id, not the requested one: the lookup ignores case, so the request's could name the caller in
+        // another case and still pass for someone else.
+        if (employeeLinkChanged)
+            EnsureNotSelf(user.Id, OwnEmployeeLink);
+
+        // The self-service profile edits the caller's own account through this method too.
+        if (user.Id != _currentUser.GetUserId())
+            await EnsureMayManage(user, CancellationToken.None);
 
         user.UpdateDetails(command.FirstName, command.LastName, emailChanged ? command.Email : user.Email, command.PhoneNumber, actor, now);
 
@@ -930,7 +968,7 @@ internal partial class UserService
         // UpdateMissingEmployeeIds, SyncUsersFromEmployeeRecords); only the admin user-edit path
         // overrides it by hand. Assigning unconditionally wrote the command's default null over an
         // existing link on every self-service profile save — see UpdateUserCommand.ManageEmployeeLink.
-        if (command.ManageEmployeeLink)
+        if (employeeLinkChanged)
         {
             user.ChangeEmployeeLink(command.EmployeeId, actor, now);
         }
@@ -963,7 +1001,7 @@ internal partial class UserService
         // A wrong current password counts toward lockout as a failed sign-in does, or a stolen session could guess
         // at it freely; a locked-out user may not try. An administrator protected from lockout is throttled instead.
         var now = _dateTimeProvider.Now.ToDateTimeOffset();
-        var throttled = await LastAdministrator.IsProtected(_userManager, user, now);
+        var throttled = await LastAdministrator.IsProtected(_userManager, _roleManager, user, now);
         if (throttled ? !await LastAdministrator.TryTakeAttempt(_userManager, user, now) : await _userManager.IsLockedOutAsync(user))
         {
             return Result.Failure(TooManyWrongPasswords);
@@ -1042,6 +1080,8 @@ internal partial class UserService
             return Result.Failure("Password reset is only available for local accounts.");
         }
 
+        await EnsureMayManage(user, cancellationToken);
+
         var wasLockedOut = await _userManager.IsLockedOutAsync(user);
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
@@ -1085,6 +1125,8 @@ internal partial class UserService
         {
             return Result.Failure("User is not currently locked out.");
         }
+
+        await EnsureMayManage(user, CancellationToken.None);
 
         user.Unlock(CurrentActor(), _dateTimeProvider.Now);
         var result = await _userManager.UpdateAsync(user);
@@ -1182,10 +1224,20 @@ internal partial class UserService
 
             var now = _dateTimeProvider.Now;
             var deactivating = user.IsActive && !employee.IsActive;
+            if (deactivating)
+            {
+                var administrators = await LoadAdministrators(cancellationToken);
+                if (administrators.LosesTheLast(administrators.WithoutUser(user.Id)))
+                {
+                    _logger.LogWarning("User {UserId} was left active although their employee record is inactive: no other active user holds every permission.", user.Id);
+                    deactivating = false;
+                }
+            }
+
             user.UpdateDetails(employee.Name.FirstName, employee.Name.LastName, employee.Email, user.PhoneNumber, actor, now);
             if (employee.IsActive)
                 user.Activate(actor, now);
-            else
+            else if (deactivating)
                 user.Deactivate(actor, now);
 
             IdentityResult result = IdentityResult.Success;

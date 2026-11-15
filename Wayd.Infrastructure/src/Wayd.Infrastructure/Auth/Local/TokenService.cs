@@ -17,6 +17,7 @@ namespace Wayd.Infrastructure.Auth.Local;
 internal class TokenService(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
+    RoleManager<ApplicationRole> roleManager,
     IConfiguration config,
     IDateTimeProvider dateTimeProvider,
     IUserIdentityStore userIdentityStore,
@@ -31,6 +32,7 @@ internal class TokenService(
     private readonly ISessionContextAccessor _sessionContext = sessionContext;
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
+    private readonly RoleManager<ApplicationRole> _roleManager = roleManager;
     private readonly IConfiguration _config = config;
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly IUserIdentityStore _userIdentityStore = userIdentityStore;
@@ -61,7 +63,7 @@ internal class TokenService(
         }
 
         var now = _dateTimeProvider.Now.ToDateTimeOffset();
-        if (await LastAdministrator.IsProtected(_userManager, user, now))
+        if (await LastAdministrator.IsProtected(_userManager, _roleManager, user, now))
         {
             await CheckProtectedAdministratorPassword(user, command);
         }

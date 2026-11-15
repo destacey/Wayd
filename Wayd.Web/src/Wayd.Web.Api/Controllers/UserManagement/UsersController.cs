@@ -20,6 +20,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<string>> CreateUser(CreateUserRequest request, CancellationToken cancellationToken)
     {
         var result = await _userService.CreateAsync(request.ToCreateUserCommand(), cancellationToken);
@@ -87,6 +88,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> UpdateUser(string id, UpdateUserRequest request)
     {
         if (id != request.Id)
@@ -113,6 +115,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> ManageUserRoles(string id, AssignUserRolesRequest request, CancellationToken cancellationToken)
     {
         if (id != request.UserId)
@@ -131,6 +134,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> ManageRoleUsers(ManageRoleUsersRequest request, CancellationToken cancellationToken)
     {
         var result = await _userService.ManageRoleUsersAsync(request.ToManageRoleUsersCommand(), cancellationToken);
@@ -146,6 +150,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> ResetPassword(string id, ResetPasswordRequest request, CancellationToken cancellationToken)
     {
         var result = await _userService.ResetPasswordAsync(new ResetPasswordCommand(id, request.NewPassword), cancellationToken);
@@ -160,6 +165,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> UnlockUser(string id)
     {
         var result = await _userService.UnlockUserAsync(id);
@@ -174,6 +180,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> ActivateUser(string id, CancellationToken cancellationToken)
     {
         var result = await _userService.ActivateUserAsync(new ActivateUserCommand(id), cancellationToken);
@@ -188,6 +195,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> DeactivateUser(string id, CancellationToken cancellationToken)
     {
         var result = await _userService.DeactivateUserAsync(new DeactivateUserCommand(id), cancellationToken);
@@ -206,6 +214,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> CancelTenantMigration(string id, CancellationToken cancellationToken)
     {
         var result = await _userService.CancelTenantMigration(id, cancellationToken);
@@ -220,6 +229,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> StageSignInTenant(string id, StageSignInTenantRequest request, CancellationToken cancellationToken)
     {
         var result = await _userService.StageEntraSignInTenant(
@@ -238,6 +248,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> ConvertToLocalAccount(string id, ConvertToLocalAccountRequest request, CancellationToken cancellationToken)
     {
         var result = await _userService.ConvertToLocalAccount(
@@ -256,6 +267,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(HttpValidationProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> StageProviderMigration(string id, StageProviderMigrationRequest request, CancellationToken cancellationToken)
     {
         var result = await _userService.StageProviderMigration(
@@ -273,6 +285,7 @@ public class UsersController(IUserService userService, IDispatcher dispatcher) :
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> CancelProviderMigration(string id, CancellationToken cancellationToken)
     {
         var result = await _userService.CancelProviderMigration(id, cancellationToken);

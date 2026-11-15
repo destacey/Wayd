@@ -7,6 +7,7 @@ using Moq;
 using Wayd.Common.Application.Identity;
 using Wayd.Common.Application.Identity.OidcProviders;
 using Wayd.Common.Application.Interfaces;
+using Wayd.Common.Domain.Authorization;
 using Wayd.Common.Domain.Events.Identity;
 using Wayd.Common.Models;
 using Wayd.Infrastructure.Auth.Local;
@@ -33,6 +34,8 @@ public sealed class UserServiceSyncTests(SqlServerDbContextFixture fixture)
     private const string LeaverUserId = "00000000-0000-0000-0000-000000000003";
     private const string StayerUserId = "00000000-0000-0000-0000-000000000004";
     private const string ReturnerUserId = "00000000-0000-0000-0000-000000000005";
+    private const string FirstAdministratorId = "00000000-0000-0000-0000-000000000006";
+    private const string SecondAdministratorId = "00000000-0000-0000-0000-000000000007";
 
     private readonly SqlServerDbContextFixture _fixture = fixture;
 
@@ -159,6 +162,48 @@ public sealed class UserServiceSyncTests(SqlServerDbContextFixture fixture)
         sessions.Single(s => s.UserId == ReturnerUserId).RevokedAt.Should().BeNull("reactivating ends nothing");
         (await check.Users.AsNoTracking().SingleAsync(u => u.Id == ReturnerUserId, ct)).IsActive.Should().BeTrue();
         (await check.Users.AsNoTracking().SingleAsync(u => u.Id == LeaverUserId, ct)).IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task SyncUsersFromEmployeeRecords_LeavesTheLastAdministratorActive_WhenEveryAdministratorHasLeft()
+    {
+        // Arrange — two users hold every permission through one role, and both employee records are inactive.
+        var ct = TestContext.Current.CancellationToken;
+        await _fixture.ResetIdentityData(ct);
+        var roleId = Guid.NewGuid().ToString();
+        await using (var context = _fixture.CreateContext())
+        {
+            context.Users.AddRange(NewUser(FirstAdministratorId, "first.admin@acme.example", "Ash"), NewUser(SecondAdministratorId, "second.admin@acme.example", "Blair"));
+            await context.SaveChangesAsync(ct);
+            await context.Database.ExecuteSqlInterpolatedAsync(
+                $"INSERT INTO [Identity].[Roles] ([Id], [Name], [NormalizedName]) VALUES ({roleId}, {roleId}, {roleId.ToUpperInvariant()});", ct);
+            foreach (var permission in ApplicationPermissions.Admin.Select(p => p.Name))
+            {
+                await context.Database.ExecuteSqlInterpolatedAsync(
+                    $"INSERT INTO [Identity].[RoleClaims] ([RoleId], [ClaimType], [ClaimValue], [Created]) VALUES ({roleId}, 'permission', {permission}, SYSUTCDATETIME());", ct);
+            }
+            await context.Database.ExecuteSqlInterpolatedAsync(
+                $"INSERT INTO [Identity].[UserRoles] ([UserId], [RoleId]) VALUES ({FirstAdministratorId}, {roleId}), ({SecondAdministratorId}, {roleId});", ct);
+        }
+        await using var provider = BuildProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var sut = CreateSut(scope.ServiceProvider);
+
+        // Act
+        var result = await sut.SyncUsersFromEmployeeRecords(
+        [
+            Employee("first.admin@acme.example", "Ash", isActive: false),
+            Employee("second.admin@acme.example", "Blair", isActive: false),
+        ], ct);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        await using var check = _fixture.CreateContext();
+        var active = await check.Users.AsNoTracking()
+            .Where(u => u.Id == FirstAdministratorId || u.Id == SecondAdministratorId)
+            .Select(u => u.IsActive)
+            .ToListAsync(ct);
+        active.Should().BeEquivalentTo([false, true], "the first deactivation leaves another administrator, the second would leave none");
     }
 
     [Fact]

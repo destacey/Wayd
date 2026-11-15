@@ -436,4 +436,38 @@ public class CreateUserCommandValidatorTests
     }
 
     #endregion
+
+    #region Employee
+
+    [Fact]
+    public async Task Validate_ShouldFail_WhenTheEmployeeIsAlreadyLinkedToAnotherUser()
+    {
+        // Arrange
+        var employeeId = Guid.NewGuid();
+        var command = CreateValidWaydCommand() with { EmployeeId = employeeId };
+        _mockUserService.Setup(x => x.ExistsWithEmployeeIdAsync(employeeId, null)).ReturnsAsync(true);
+
+        // Act
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldHaveValidationErrorFor(x => x.EmployeeId)
+            .WithErrorMessage("That employee is already linked to another user.");
+    }
+
+    [Fact]
+    public async Task Validate_ShouldPass_WhenTheEmployeeIsNotLinked()
+    {
+        // Arrange
+        var command = CreateValidWaydCommand() with { EmployeeId = Guid.NewGuid() };
+        _mockUserService.Setup(x => x.ExistsWithEmployeeIdAsync(It.IsAny<Guid>(), null)).ReturnsAsync(false);
+
+        // Act
+        var result = await _sut.TestValidateAsync(command, cancellationToken: TestContext.Current.CancellationToken);
+
+        // Assert
+        result.ShouldNotHaveValidationErrorFor(x => x.EmployeeId);
+    }
+
+    #endregion
 }

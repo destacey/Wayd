@@ -421,7 +421,11 @@ describe('ManageRoleUsersForm', () => {
 
   it('shows generic error message on non-422 error', async () => {
     mockManageRoleUsers.mockResolvedValue({
-      error: { status: 400, detail: 'Wayd should have at least 1 Admin.' },
+      error: {
+        status: 400,
+        detail:
+          'Wayd must keep at least one active user who holds every permission.',
+      },
     })
 
     mockUseGetRoleUsersQuery.mockReturnValue({
@@ -456,7 +460,7 @@ describe('ManageRoleUsersForm', () => {
 
         await waitFor(() => {
           expect(mockMessageError).toHaveBeenCalledWith(
-            'Wayd should have at least 1 Admin.',
+            'Wayd must keep at least one active user who holds every permission.',
           )
         })
       }

@@ -61,6 +61,14 @@ public class UserServiceTests
         _mockDispatcher = new Mock<IDispatcher>();
         _mockCurrentUser = new Mock<ICurrentUser>();
         _mockCurrentUser.Setup(x => x.GetUserId()).Returns("current-user-id");
+
+        // The caller is an active Admin, holding every permission, unless a test says otherwise.
+        _caller = CreateUser(CallerId, "caller");
+        _mockUserManager.Setup(x => x.FindByIdAsync(CallerId)).ReturnsAsync(_caller);
+        _mockUserManager.Setup(x => x.GetRolesAsync(_caller)).ReturnsAsync([ApplicationRoles.Admin]);
+        _mockUserManager.Setup(x => x.GetUsersInRoleAsync(ApplicationRoles.Admin)).ReturnsAsync([_caller]);
+        _mockRoleManager.Setup(x => x.GetClaimsAsync(It.Is<ApplicationRole>(r => r.Name == ApplicationRoles.Admin)))
+            .ReturnsAsync([.. ApplicationPermissions.Admin.Select(p => new Claim(ApplicationClaims.Permission, p.Name))]);
         _mockUserIdentityStore = new Mock<IUserIdentityStore>();
         _mockOidcProviderRegistry = new Mock<IOidcProviderRegistry>();
 
@@ -77,6 +85,9 @@ public class UserServiceTests
             new ApplicationRole("Contributor") { Id = ContributorRoleId },
         }.AsQueryable().BuildMockDbSet().Object);
     }
+
+    private const string CallerId = "current-user-id";
+    private readonly ApplicationUser _caller;
 
     private const string AdminRoleId = "role-admin";
     private const string BasicRoleId = "role-basic";
@@ -114,6 +125,67 @@ public class UserServiceTests
             LoginProvider = loginProvider,
         };
     }
+
+    #region CreateFirstAdministrator
+
+    [Fact]
+    public async Task CreateFirstAdministrator_CreatesAnAdmin_RecordedAsTheSystems_WhenNoUserExists()
+    {
+        // Arrange — first-run setup has nobody signed in.
+        _mockCurrentUser.Setup(x => x.GetUserId()).Returns((string?)null);
+        ApplicationUser? created = null;
+        _mockUserManager.Setup(x => x.Users).Returns(Array.Empty<ApplicationUser>().AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), "Password123!"))
+            .Callback<ApplicationUser, string>((user, _) => created = user)
+            .ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>())).ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.FindByIdAsync(It.Is<string>(id => id != CallerId))).ReturnsAsync(() => created);
+        _mockUserManager.Setup(x => x.GetRolesAsync(It.Is<ApplicationUser>(u => u != _caller))).ReturnsAsync([]);
+        _mockUserManager.Setup(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), ApplicationRoles.Admin)).ReturnsAsync(IdentityResult.Success);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.CreateFirstAdministrator(new CreateUserCommand
+        {
+            FirstName = "First",
+            LastName = "Admin",
+            Email = "first@example.com",
+            LoginProvider = LoginProviders.Wayd,
+            Password = "Password123!",
+        }, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        _mockUserManager.Verify(x => x.AddToRoleAsync(created!, ApplicationRoles.Admin), Times.Once);
+        var granted = RaisedEvents(created!).OfType<ApplicationUserRolesChangedEvent>().Single();
+        granted.Added.Should().Equal(AdminRoleId);
+        granted.Actor.Should().Be(EventActor.System);
+    }
+
+    [Fact]
+    public async Task CreateFirstAdministrator_IsRefused_OnceAnyUserExists()
+    {
+        // Arrange
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { CreateUser() }.AsQueryable().BuildMockDbSet().Object);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.CreateFirstAdministrator(new CreateUserCommand
+        {
+            FirstName = "Second",
+            LastName = "Admin",
+            Email = "second@example.com",
+            LoginProvider = LoginProviders.Wayd,
+            Password = "Password123!",
+        }, TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _mockUserManager.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+    }
+
+    #endregion
 
     #region CreateAsync
 
@@ -1159,7 +1231,7 @@ public class UserServiceTests
         // Arrange
         var user = CreateUser(loginProvider: LoginProviders.Wayd);
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.IsInRoleAsync(user, ApplicationRoles.Admin)).ReturnsAsync(true);
+        _mockUserManager.Setup(x => x.GetRolesAsync(user)).ReturnsAsync([ApplicationRoles.Admin]);
         _mockUserManager.Setup(x => x.GetUsersInRoleAsync(ApplicationRoles.Admin)).ReturnsAsync([user]);
         _mockUserManager.Setup(x => x.ChangePasswordAsync(user, "WrongPass1!", "NewPass456!"))
             .ReturnsAsync(IdentityResult.Failed(new IdentityErrorDescriber().PasswordMismatch()));
@@ -1203,7 +1275,7 @@ public class UserServiceTests
         user.AccessFailedCount = 6;
         user.LockoutEnd = _dateTimeProvider.Now.ToDateTimeOffset().AddSeconds(2);
         _mockUserManager.Setup(x => x.FindByIdAsync("user-1")).ReturnsAsync(user);
-        _mockUserManager.Setup(x => x.IsInRoleAsync(user, ApplicationRoles.Admin)).ReturnsAsync(true);
+        _mockUserManager.Setup(x => x.GetRolesAsync(user)).ReturnsAsync([ApplicationRoles.Admin]);
         _mockUserManager.Setup(x => x.GetUsersInRoleAsync(ApplicationRoles.Admin)).ReturnsAsync([user]);
         var sut = CreateSut();
 
@@ -1392,6 +1464,625 @@ public class UserServiceTests
 
         // Assert
         permissions.Should().BeEmpty();
+    }
+
+    #endregion
+
+    #region Privileged accounts
+
+    private static readonly string ViewUsers = ApplicationPermission.NameFor(ApplicationAction.View, ApplicationResource.Users);
+    private static readonly string UpdateUsers = ApplicationPermission.NameFor(ApplicationAction.Update, ApplicationResource.Users);
+    private static readonly string UpdateUserRoles = ApplicationPermission.NameFor(ApplicationAction.Update, ApplicationResource.UserRoles);
+    private static readonly string ManageRoles = ApplicationPermission.NameFor(ApplicationAction.Manage, ApplicationResource.Roles);
+    private static readonly string ManagePrivilegedUsers = ApplicationPermission.NameFor(ApplicationAction.Manage, ApplicationResource.PrivilegedUsers);
+    private static readonly string UpdateProjects = ApplicationPermission.NameFor(ApplicationAction.Update, ApplicationResource.Projects);
+    private static readonly string[] EveryPermission = [.. ApplicationPermissions.Admin.Select(p => p.Name)];
+
+    /// <summary>Makes the caller hold <paramref name="roles"/> in place of Admin.</summary>
+    private void CallerHolds(params string[] roles) =>
+        _mockUserManager.Setup(x => x.GetRolesAsync(_caller)).ReturnsAsync(roles);
+
+    /// <summary>Makes the role named <paramref name="roleName"/> grant <paramref name="permissions"/>.</summary>
+    private void RoleGrants(string roleName, params string[] permissions) =>
+        _mockRoleManager.Setup(x => x.GetClaimsAsync(It.Is<ApplicationRole>(r => r.Name == roleName)))
+            .ReturnsAsync([.. permissions.Select(p => new Claim(ApplicationClaims.Permission, p))]);
+
+    /// <summary>Makes <paramref name="members"/> the users holding the role named <paramref name="roleName"/>.</summary>
+    private void RoleHeldBy(string roleName, params ApplicationUser[] members) =>
+        _mockUserManager.Setup(x => x.GetUsersInRoleAsync(roleName)).ReturnsAsync(members);
+
+    /// <summary>A local user in <paramref name="roles"/>, found by id.</summary>
+    private ApplicationUser TargetIn(string[] roles, string loginProvider = LoginProviders.Wayd, bool isActive = true)
+    {
+        var target = CreateUser(loginProvider: loginProvider, isActive: isActive);
+        _mockUserManager.Setup(x => x.FindByIdAsync(target.Id)).ReturnsAsync(target);
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { target, _caller }.AsQueryable().BuildMockDbSet().Object);
+        _mockUserManager.Setup(x => x.GetRolesAsync(target)).ReturnsAsync(roles);
+        _mockUserManager.Setup(x => x.UpdateAsync(target)).ReturnsAsync(IdentityResult.Success);
+        return target;
+    }
+
+    /// <summary>A caller who administers users but cannot reach privileged accounts.</summary>
+    private void CallerIsAUserAdministrator()
+    {
+        CallerHolds("Basic");
+        RoleGrants("Basic", ViewUsers, UpdateUsers, UpdateUserRoles);
+    }
+
+    private void PasswordResetSucceeds(ApplicationUser target)
+    {
+        _mockUserManager.Setup(x => x.GeneratePasswordResetTokenAsync(target)).ReturnsAsync("reset-token");
+        _mockUserManager.Setup(x => x.ResetPasswordAsync(target, "reset-token", "NewPass456!")).ReturnsAsync(IdentityResult.Success);
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_IsForbidden_WhenTheTargetHoldsAPrivilegedPermission()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        RoleGrants("Contributor", ViewUsers, ManageRoles);
+        var target = TargetIn(["Contributor"]);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.ResetPasswordAsync(new ResetPasswordCommand(target.Id, "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*Manage Privileged Users*");
+        _mockUserManager.Verify(x => x.ResetPasswordAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+        RaisedEvents(target).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_IsAllowed_ForATargetHoldingOrdinaryPermissionsTheCallerLacks()
+    {
+        // Arrange — user administration is delegable: the caller need not hold what an ordinary target holds.
+        CallerIsAUserAdministrator();
+        RoleGrants("Contributor", ViewUsers, UpdateProjects);
+        var target = TargetIn(["Contributor"]);
+        PasswordResetSucceeds(target);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ResetPasswordAsync(new ResetPasswordCommand(target.Id, "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_IsAllowed_ForAPrivilegedTarget_WhenTheCallerMayManagePrivilegedUsers()
+    {
+        // Arrange
+        CallerHolds("Basic");
+        RoleGrants("Basic", ViewUsers, UpdateUsers, ManagePrivilegedUsers);
+        var target = TargetIn([ApplicationRoles.Admin]);
+        PasswordResetSucceeds(target);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ResetPasswordAsync(new ResetPasswordCommand(target.Id, "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_IsForbidden_WhenThePrivilegedTargetIsInactive()
+    {
+        // Arrange — a deactivated administrator's roles still count, or they could be reset and then reactivated.
+        CallerIsAUserAdministrator();
+        var target = TargetIn([ApplicationRoles.Admin], isActive: false);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.ResetPasswordAsync(new ResetPasswordCommand(target.Id, "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_IsAllowed_WhenTheTargetHoldsOnlyARetiredPrivilegedClaim()
+    {
+        // Arrange — a claim the catalog no longer defines is checked by no endpoint, so it grants nothing.
+        CallerIsAUserAdministrator();
+        RoleGrants("Contributor", ViewUsers, "Permissions.RoleClaims.Update");
+        var target = TargetIn(["Contributor"]);
+        PasswordResetSucceeds(target);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ResetPasswordAsync(new ResetPasswordCommand(target.Id, "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ResetPasswordAsync_IsForbidden_ForAPrivilegedTarget_WhenTheCallerIsInactive()
+    {
+        // Arrange — a session issued before the caller was deactivated reaches nothing.
+        _caller.IsActive = false;
+        var target = TargetIn([ApplicationRoles.Admin]);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.ResetPasswordAsync(new ResetPasswordCommand(target.Id, "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+    }
+
+    [Fact]
+    public async Task DeactivateUserAsync_IsForbidden_WhenTheTargetIsPrivileged()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        var target = TargetIn([ApplicationRoles.Admin]);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.DeactivateUserAsync(new DeactivateUserCommand(target.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        target.IsActive.Should().BeTrue();
+        _refreshTokenStore.RevokeReasons(target.Id).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ActivateUserAsync_IsForbidden_WhenTheTargetIsPrivileged()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        var target = TargetIn([ApplicationRoles.Admin], isActive: false);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.ActivateUserAsync(new ActivateUserCommand(target.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        target.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task UnlockUserAsync_IsForbidden_WhenTheTargetIsPrivileged()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        var target = TargetIn([ApplicationRoles.Admin]);
+        _mockUserManager.Setup(x => x.IsLockedOutAsync(target)).ReturnsAsync(true);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.UnlockUserAsync(target.Id);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        RaisedEvents(target).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ConvertToLocalAccount_IsForbidden_WhenTheTargetIsPrivileged()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        RoleGrants("Contributor", ManageRoles);
+        var target = TargetIn(["Contributor"], loginProvider: LoginProviders.MicrosoftEntraId);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.ConvertToLocalAccount(new ConvertToLocalAccountCommand(target.Id, "NewPass456!"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        _mockUserIdentityStore.Verify(s => s.ExecuteInTransaction(It.IsAny<Func<CancellationToken, Task>>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task StageProviderMigration_IsForbidden_WhenTheTargetIsPrivileged()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        var target = TargetIn([ApplicationRoles.Admin], loginProvider: LoginProviders.MicrosoftEntraId);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.StageProviderMigration(new StageProviderMigrationCommand(target.Id, "Acme-Okta"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        target.PendingMigrationProviderId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task StageEntraSignInTenant_IsForbidden_WhenTheTargetIsPrivileged()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        var target = TargetIn([ApplicationRoles.Admin], loginProvider: LoginProviders.MicrosoftEntraId);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.StageEntraSignInTenant(new StageEntraSignInTenantCommand(target.Id, null), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        target.PendingMigrationTenantId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task CancelTenantMigration_IsForbidden_WhenTheTargetIsPrivileged()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        var target = TargetIn([ApplicationRoles.Admin], loginProvider: LoginProviders.MicrosoftEntraId);
+        target.PendingMigrationTenantId = "staged-tenant";
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.CancelTenantMigration(target.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        target.PendingMigrationTenantId.Should().Be("staged-tenant");
+    }
+
+    [Fact]
+    public async Task CancelProviderMigration_IsForbidden_WhenTheTargetIsPrivileged()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        var target = TargetIn([ApplicationRoles.Admin], loginProvider: LoginProviders.MicrosoftEntraId);
+        target.PendingMigrationProviderId = "Acme-Okta";
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.CancelProviderMigration(target.Id, TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        target.PendingMigrationProviderId.Should().Be("Acme-Okta");
+    }
+
+    private static CreateUserCommand NewUserIn(params string[] roles) => new()
+    {
+        FirstName = "John",
+        LastName = "Doe",
+        Email = "john@example.com",
+        LoginProvider = LoginProviders.Wayd,
+        Password = "Password123!",
+        RoleNames = [.. roles],
+    };
+
+    [Fact]
+    public async Task CreateAsync_IsForbidden_WhenARoleGrantsAPrivilegedPermission()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        RoleGrants("Contributor", ViewUsers, ManageRoles);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.CreateAsync(NewUserIn("Contributor"), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*Manage Privileged Users*");
+        _mockUserManager.Verify(x => x.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateAsync_AssignsAnOrdinaryRole_TheCallerDoesNotHold()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        RoleGrants("Contributor", ViewUsers, UpdateProjects);
+        _mockUserManager.Setup(x => x.CreateAsync(It.IsAny<ApplicationUser>(), "Password123!")).ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>())).ReturnsAsync(IdentityResult.Success);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.CreateAsync(NewUserIn("Contributor"), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    private static UpdateUserCommand AdminEdit(ApplicationUser user, Guid? employeeId, string? email = null) => new()
+    {
+        Id = user.Id,
+        FirstName = user.FirstName!,
+        LastName = user.LastName!,
+        Email = email ?? user.Email!,
+        EmployeeId = employeeId,
+        ManageEmployeeLink = true,
+    };
+
+    [Fact]
+    public async Task UpdateAsync_IsForbidden_WhenTheCallerChangesTheEmployeeLinkedToTheirOwnAccount()
+    {
+        // Arrange — an Admin is refused too: linking yourself takes on that employee's standing.
+        _mockUserManager.Setup(x => x.UpdateAsync(_caller)).ReturnsAsync(IdentityResult.Success);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.UpdateAsync(AdminEdit(_caller, Guid.NewGuid()), CallerId);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*your own account*");
+        _caller.EmployeeId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task UpdateAsync_LinksAnEmployee_ToAnOrdinaryUser()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        RoleGrants("Contributor", ViewUsers);
+        var target = TargetIn(["Contributor"]);
+        var employeeId = Guid.NewGuid();
+        var sut = CreateSut();
+
+        // Act
+        await sut.UpdateAsync(AdminEdit(target, employeeId), target.Id);
+
+        // Assert
+        target.EmployeeId.Should().Be(employeeId);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_IsForbidden_ForAnyChangeToAPrivilegedUser()
+    {
+        // Arrange — the rule is the account, not which field: renaming is refused as linking is.
+        CallerIsAUserAdministrator();
+        var target = TargetIn([ApplicationRoles.Admin]);
+        var command = AdminEdit(target, null);
+        command.FirstName = "Renamed";
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.UpdateAsync(command, target.Id);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        target.FirstName.Should().Be("Test");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_SavesTheCallersOwnDetails_WhenTheyArePrivileged()
+    {
+        // Arrange — the profile edits the caller's own account through the same method.
+        _mockUserManager.Setup(x => x.UpdateAsync(_caller)).ReturnsAsync(IdentityResult.Success);
+        var command = AdminEdit(_caller, null);
+        command.ManageEmployeeLink = false;
+        command.FirstName = "Renamed";
+        var sut = CreateSut();
+
+        // Act
+        await sut.UpdateAsync(command, CallerId);
+
+        // Assert
+        _caller.FirstName.Should().Be("Renamed");
+    }
+
+    [Fact]
+    public async Task AssignRolesAsync_IsForbidden_OnTheCallersOwnAccount()
+    {
+        // Arrange
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { _caller }.AsQueryable().BuildMockDbSet().Object);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.AssignRolesAsync(new AssignUserRolesCommand(CallerId, [ApplicationRoles.Admin, "Basic"]), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*your own roles*");
+    }
+
+    [Fact]
+    public async Task AssignRolesAsync_IsForbidden_WhenGrantingAPrivilegedRole()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        RoleGrants("Contributor", ViewUsers);
+        var target = TargetIn(["Contributor"]);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.AssignRolesAsync(new AssignUserRolesCommand(target.Id, ["Contributor", ApplicationRoles.Admin]), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*Manage Privileged Users*");
+        _mockUserManager.Verify(x => x.AddToRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task AssignRolesAsync_IsForbidden_WhenTheTargetIsPrivileged()
+    {
+        // Arrange — taking a privileged role away needs the same reach as granting one.
+        CallerIsAUserAdministrator();
+        var target = TargetIn([ApplicationRoles.Admin]);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.AssignRolesAsync(new AssignUserRolesCommand(target.Id, ["Basic"]), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>();
+        _mockUserManager.Verify(x => x.RemoveFromRolesAsync(It.IsAny<ApplicationUser>(), It.IsAny<IEnumerable<string>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ManageRoleUsersAsync_IsForbidden_WhenTheCallerIsAmongTheUsers()
+    {
+        // Arrange
+        _mockRoleManager.Setup(x => x.FindByIdAsync(BasicRoleId)).ReturnsAsync(new ApplicationRole("Basic") { Id = BasicRoleId });
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { _caller }.AsQueryable().BuildMockDbSet().Object);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.ManageRoleUsersAsync(new ManageRoleUsersCommand(BasicRoleId, [CallerId], []), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*your own roles*");
+    }
+
+    [Fact]
+    public async Task ManageRoleUsersAsync_IsForbidden_WhenAddingUsersToAPrivilegedRole()
+    {
+        // Arrange
+        CallerIsAUserAdministrator();
+        RoleGrants("Contributor", ManageRoles);
+        _mockRoleManager.Setup(x => x.FindByIdAsync(ContributorRoleId)).ReturnsAsync(new ApplicationRole("Contributor") { Id = ContributorRoleId });
+        var target = TargetIn([]);
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.ManageRoleUsersAsync(new ManageRoleUsersCommand(ContributorRoleId, [target.Id], []), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ForbiddenException>().WithMessage("*Manage Privileged Users*");
+        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+    }
+
+    #endregion
+
+    #region The last administrator
+
+    /// <summary>
+    /// A caller who may reach privileged accounts without holding every permission, so they are not an administrator
+    /// themselves and can be the one whose change would leave none.
+    /// </summary>
+    private void CallerIsAPrivilegedUserAdministrator()
+    {
+        CallerHolds("Basic");
+        RoleGrants("Basic", ViewUsers, UpdateUsers, UpdateUserRoles, ManagePrivilegedUsers);
+        RoleHeldBy("Basic", _caller);
+    }
+
+    /// <summary>The only active user holding every permission, through the Admin role.</summary>
+    private ApplicationUser TheOnlyAdministrator()
+    {
+        var target = TargetIn([ApplicationRoles.Admin]);
+        RoleHeldBy(ApplicationRoles.Admin, target);
+        return target;
+    }
+
+    [Fact]
+    public async Task DeactivateUserAsync_Fails_WhenTheTargetIsTheOnlyActiveAdministrator()
+    {
+        // Arrange
+        CallerIsAPrivilegedUserAdministrator();
+        var target = TheOnlyAdministrator();
+        RoleHeldBy(ApplicationRoles.Admin, target, CreateUser(id: "inactive-admin", isActive: false));
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.DeactivateUserAsync(new DeactivateUserCommand(target.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("holds every permission");
+        target.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task DeactivateUserAsync_Succeeds_WhenAnotherUserHoldsEveryPermissionThroughTheirOwnRole()
+    {
+        // Arrange — an administrator is whoever holds every permission, whichever role grants it.
+        CallerIsAPrivilegedUserAdministrator();
+        var target = TheOnlyAdministrator();
+        RoleGrants("Contributor", EveryPermission);
+        RoleHeldBy("Contributor", CreateUser(id: "custom-admin"));
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.DeactivateUserAsync(new DeactivateUserCommand(target.Id), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue();
+        target.IsActive.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task AssignRolesAsync_ThrowsConflict_WhenItTakesAwayTheOnlyAdministratorsAccess()
+    {
+        // Arrange
+        CallerIsAPrivilegedUserAdministrator();
+        var target = TheOnlyAdministrator();
+        var sut = CreateSut();
+
+        // Act
+        var act = () => sut.AssignRolesAsync(new AssignUserRolesCommand(target.Id, ["Basic"]), TestContext.Current.CancellationToken);
+
+        // Assert
+        await act.Should().ThrowAsync<ConflictException>().WithMessage("*holds every permission*");
+    }
+
+    [Fact]
+    public async Task ManageRoleUsersAsync_SavesNothing_WhenTheRemovalsAreRefused()
+    {
+        // Arrange — the additions come first, so a refusal found only afterwards would leave them committed. The
+        // joining user is inactive, so they do not replace the administrator being removed.
+        CallerIsAPrivilegedUserAdministrator();
+        var target = TheOnlyAdministrator();
+        var joining = CreateUser(id: "joining", isActive: false);
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { target, joining, _caller }.AsQueryable().BuildMockDbSet().Object);
+        _mockRoleManager.Setup(x => x.FindByIdAsync(AdminRoleId)).ReturnsAsync(new ApplicationRole(ApplicationRoles.Admin) { Id = AdminRoleId });
+        _mockUserManager.Setup(x => x.GetRolesAsync(joining)).ReturnsAsync([]);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ManageRoleUsersAsync(new ManageRoleUsersCommand(AdminRoleId, [joining.Id], [target.Id]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+        _mockUserManager.Verify(x => x.RemoveFromRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ManageRoleUsersAsync_SwapsOneAdministratorForAnother()
+    {
+        // Arrange
+        CallerIsAPrivilegedUserAdministrator();
+        var target = TheOnlyAdministrator();
+        var joining = CreateUser(id: "joining");
+        _mockUserManager.Setup(x => x.Users).Returns(new[] { target, joining, _caller }.AsQueryable().BuildMockDbSet().Object);
+        _mockRoleManager.Setup(x => x.FindByIdAsync(AdminRoleId)).ReturnsAsync(new ApplicationRole(ApplicationRoles.Admin) { Id = AdminRoleId });
+        _mockUserManager.Setup(x => x.GetRolesAsync(joining)).ReturnsAsync([]);
+        _mockUserManager.Setup(x => x.IsInRoleAsync(joining, ApplicationRoles.Admin)).ReturnsAsync(false);
+        _mockUserManager.Setup(x => x.IsInRoleAsync(target, ApplicationRoles.Admin)).ReturnsAsync(true);
+        _mockUserManager.Setup(x => x.AddToRoleAsync(joining, ApplicationRoles.Admin)).ReturnsAsync(IdentityResult.Success);
+        _mockUserManager.Setup(x => x.RemoveFromRoleAsync(target, ApplicationRoles.Admin)).ReturnsAsync(IdentityResult.Success);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ManageRoleUsersAsync(new ManageRoleUsersCommand(AdminRoleId, [joining.Id], [target.Id]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsSuccess.Should().BeTrue(result.IsFailure ? result.Error : null);
+        _mockUserManager.Verify(x => x.RemoveFromRoleAsync(target, ApplicationRoles.Admin), Times.Once);
+    }
+
+    [Fact]
+    public async Task ManageRoleUsersAsync_Fails_WhenRemovingTheOnlyAdministratorFromTheRoleThatMakesThemOne()
+    {
+        // Arrange
+        CallerIsAPrivilegedUserAdministrator();
+        var target = TheOnlyAdministrator();
+        _mockRoleManager.Setup(x => x.FindByIdAsync(AdminRoleId)).ReturnsAsync(new ApplicationRole(ApplicationRoles.Admin) { Id = AdminRoleId });
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.ManageRoleUsersAsync(new ManageRoleUsersCommand(AdminRoleId, [], [target.Id]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("holds every permission");
+        _mockUserManager.Verify(x => x.RemoveFromRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
     }
 
     #endregion
@@ -1593,7 +2284,7 @@ public class UserServiceTests
 
         // Assert
         await act.Should().ThrowAsync<ConflictException>()
-            .WithMessage("*at least 1 Admin*");
+            .WithMessage("*holds every permission*");
     }
 
     [Fact]

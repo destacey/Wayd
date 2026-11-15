@@ -50,7 +50,7 @@ public static class ApplicationResource
     public const string Users = nameof(Users);
     public const string UserRoles = nameof(UserRoles);
     public const string Roles = nameof(Roles);
-    public const string RoleClaims = nameof(RoleClaims);
+    public const string PrivilegedUsers = nameof(PrivilegedUsers);
     public const string Permissions = nameof(Permissions);
     public const string OidcProviders = nameof(OidcProviders);
     public const string RateLimits = nameof(RateLimits);
@@ -184,29 +184,25 @@ public static class ApplicationPermissions
     private static readonly ApplicationPermission[] _identity =
     [
         new("View Users", ApplicationAction.View, ApplicationResource.Users, IdentityCategory),
-        new("Search Users", ApplicationAction.Search, ApplicationResource.Users, IdentityCategory),
         new("Create Users", ApplicationAction.Create, ApplicationResource.Users, IdentityCategory),
         new("Update Users", ApplicationAction.Update, ApplicationResource.Users, IdentityCategory),
-        new("Delete Users", ApplicationAction.Delete, ApplicationResource.Users, IdentityCategory),
-        new("Export Users", ApplicationAction.Export, ApplicationResource.Users, IdentityCategory),
 
         new("View UserRoles", ApplicationAction.View, ApplicationResource.UserRoles, IdentityCategory),
         new("Update UserRoles", ApplicationAction.Update, ApplicationResource.UserRoles, IdentityCategory),
 
         new("View Roles", ApplicationAction.View, ApplicationResource.Roles, IdentityCategory),
-        new("Create Roles", ApplicationAction.Create, ApplicationResource.Roles, IdentityCategory),
-        new("Update Roles", ApplicationAction.Update, ApplicationResource.Roles, IdentityCategory),
-        new("Delete Roles", ApplicationAction.Delete, ApplicationResource.Roles, IdentityCategory),
+        new("Manage Roles", ApplicationAction.Manage, ApplicationResource.Roles, IdentityCategory, IsPrivileged: true),
 
-        new("View RoleClaims", ApplicationAction.View, ApplicationResource.RoleClaims, IdentityCategory),
-        new("Update RoleClaims", ApplicationAction.Update, ApplicationResource.RoleClaims, IdentityCategory),
+        // Lets user administration reach the accounts holding a privileged permission, and grant the roles that
+        // carry one; without it, both are refused whatever else the caller holds.
+        new("Manage Privileged Users", ApplicationAction.Manage, ApplicationResource.PrivilegedUsers, IdentityCategory, IsPrivileged: true),
 
         new("View Permissions", ApplicationAction.View, ApplicationResource.Permissions, IdentityCategory),
 
         new("View OIDC Providers", ApplicationAction.View, ApplicationResource.OidcProviders, IdentityCategory),
-        new("Create OIDC Providers", ApplicationAction.Create, ApplicationResource.OidcProviders, IdentityCategory),
-        new("Update OIDC Providers", ApplicationAction.Update, ApplicationResource.OidcProviders, IdentityCategory),
-        new("Delete OIDC Providers", ApplicationAction.Delete, ApplicationResource.OidcProviders, IdentityCategory),
+        new("Create OIDC Providers", ApplicationAction.Create, ApplicationResource.OidcProviders, IdentityCategory, IsPrivileged: true),
+        new("Update OIDC Providers", ApplicationAction.Update, ApplicationResource.OidcProviders, IdentityCategory, IsPrivileged: true),
+        new("Delete OIDC Providers", ApplicationAction.Delete, ApplicationResource.OidcProviders, IdentityCategory, IsPrivileged: true),
 
         new("Elevated Rate Limits", ApplicationAction.Elevated, ApplicationResource.RateLimits, IdentityCategory),
     ];
@@ -507,9 +503,22 @@ public static class ApplicationPermissions
     public static IReadOnlyList<ApplicationPermission> All { get; } = new ReadOnlyCollection<ApplicationPermission>(_all);
     public static IReadOnlyList<ApplicationPermission> Root { get; } = new ReadOnlyCollection<ApplicationPermission>([.. _all.Where(p => p.IsRoot)]);
     public static IReadOnlyList<ApplicationPermission> Admin { get; } = new ReadOnlyCollection<ApplicationPermission>([.. _all.Where(p => !p.IsRoot)]);
+
+    /// <summary>
+    /// The permissions that change other people's access: what roles grant, how sign-in works, and who may reach the
+    /// accounts holding these. An account holding any of them is privileged, and user administration reaches it only
+    /// with <c>Permissions.PrivilegedUsers.Manage</c>.
+    /// </summary>
+    public static IReadOnlyList<ApplicationPermission> Privileged { get; } = new ReadOnlyCollection<ApplicationPermission>([.. _all.Where(p => p.IsPrivileged)]);
 }
 
-public record ApplicationPermission(string Description, string Action, string Resource, string Category = "", bool IsRoot = false)
+/// <summary>A permission in the catalog, granted to users through the roles that carry it.</summary>
+/// <param name="IsRoot">Whether the permission is left out of <see cref="ApplicationPermissions.Admin"/>, the set the Admin role is seeded with.</param>
+/// <param name="IsPrivileged">
+/// Whether the permission changes other people's access, which makes whoever holds it a privileged account. See
+/// <see cref="ApplicationPermissions.Privileged"/>.
+/// </param>
+public record ApplicationPermission(string Description, string Action, string Resource, string Category = "", bool IsRoot = false, bool IsPrivileged = false)
 {
     public string Name => NameFor(Action, Resource);
     public static string NameFor(string action, string resource) => $"Permissions.{resource}.{action}";

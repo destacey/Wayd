@@ -884,7 +884,7 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     private async Task<Guid> CreatePortfolio()
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var created = await scope.ServiceProvider.GetRequiredService<IDispatcher>().Send(
             new CreateProjectPortfolioCommand($"MCP {Guid.NewGuid():N}"[..20], "Created by the MCP endpoint tests.", null, null, null),
             TestContext.Current.CancellationToken);
@@ -896,7 +896,7 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     private async Task<string> CreateProject()
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var dbContext = scope.ServiceProvider.GetRequiredService<IProjectPortfolioManagementDbContext>();
         var now = SystemClock.Instance.GetCurrentInstant();
 
@@ -924,7 +924,7 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     private async Task<(Guid PlanningIntervalId, Guid ObjectiveId)> CreatePlanningIntervalObjective()
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var organizationDbContext = scope.ServiceProvider.GetRequiredService<IOrganizationDbContext>();
         var planningDbContext = scope.ServiceProvider.GetRequiredService<IPlanningDbContext>();
         var now = SystemClock.Instance.GetCurrentInstant();
@@ -974,7 +974,7 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     private async Task CreateTeam()
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var created = await scope.ServiceProvider.GetRequiredService<IDispatcher>().Send(
             new CreateTeamCommand($"MCP {Guid.NewGuid():N}"[..20], new TeamCode($"M{Guid.NewGuid():N}"[..8].ToUpperInvariant()), null, new LocalDate(2026, 1, 1)),
             TestContext.Current.CancellationToken);
@@ -984,7 +984,7 @@ public sealed class McpEndpointTests(WaydSqlServerApiFactory factory)
     private async Task SetFlag(bool enabled)
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var flagId = await scope.ServiceProvider.GetRequiredService<IFeatureManagementDbContext>().FeatureFlags
             .Where(f => f.Name == FeatureFlags.Names.McpServer)
             .Select(f => f.Id)

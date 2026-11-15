@@ -54,7 +54,7 @@ const DeleteRoleForm = ({
     onComplete: onFormComplete,
     onCancel: onFormCancel,
     errorMessage: 'An unexpected error occurred while deleting the role.',
-    permission: 'Permissions.Roles.Delete',
+    permission: 'Permissions.Roles.Manage',
   })
 
   // Additional editableRole check

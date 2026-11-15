@@ -22,4 +22,20 @@ public sealed class ApplicationPermissionsTests
         admin.Should().Contain(name);
         root.Should().NotContain(name);
     }
+
+    [Fact]
+    public void Privileged_IsThePermissionsThatChangeOtherPeoplesAccess()
+    {
+        // Act
+        var privileged = ApplicationPermissions.Privileged.Select(p => p.Name);
+
+        // Assert — adding to this list puts every holder out of a user administrator's reach, so it is pinned.
+        privileged.Should().BeEquivalentTo(
+            "Permissions.Roles.Manage",
+            "Permissions.PrivilegedUsers.Manage",
+            "Permissions.OidcProviders.Create",
+            "Permissions.OidcProviders.Update",
+            "Permissions.OidcProviders.Delete");
+        ApplicationPermissions.Admin.Select(p => p.Name).Should().Contain(privileged);
+    }
 }

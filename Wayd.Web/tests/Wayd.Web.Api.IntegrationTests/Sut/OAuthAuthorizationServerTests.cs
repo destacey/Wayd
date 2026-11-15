@@ -944,7 +944,7 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
     private async Task SetFlag(bool enabled)
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var flagId = await scope.ServiceProvider.GetRequiredService<IFeatureManagementDbContext>().FeatureFlags
             .Where(f => f.Name == FeatureFlags.Names.McpServer)
             .Select(f => f.Id)
@@ -1381,7 +1381,7 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
     private async Task ChangeAuthorization(OAuthClient client, Action<OAuthAuthorization> change)
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var db = scope.ServiceProvider.GetRequiredService<WaydDbContext>();
         var authorization = await db.OAuthAuthorizations.SingleAsync(a => a.ClientId == client.ClientId, TestContext.Current.CancellationToken);
         change(authorization);
@@ -1409,7 +1409,7 @@ public sealed class OAuthAuthorizationServerTests(WaydSqlServerApiFactory factor
     private async Task SetUserActive(string userId, bool active)
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var user = await users.FindByIdAsync(userId) ?? throw new InvalidOperationException($"No user {userId}.");
         var now = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>().Now;

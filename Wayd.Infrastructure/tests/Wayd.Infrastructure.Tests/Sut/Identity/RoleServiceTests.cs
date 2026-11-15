@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Wayd.Common.Application.Exceptions;
 using Wayd.Common.Application.Identity.Roles;
@@ -329,6 +330,53 @@ public class RoleServiceTests
         // Assert
         await act.Should().ThrowAsync<ConflictException>()
             .WithMessage("*currently assigned to users*");
+    }
+
+    #endregion
+
+    #region UpdatePermissions - refusals
+
+    [Fact]
+    public async Task UpdatePermissions_RefusesAPermissionTheCatalogDoesNotDefine()
+    {
+        // Arrange
+        var role = new ApplicationRole("Custom") { Id = "role-custom" };
+        _mockRoleManager.Setup(x => x.FindByIdAsync(role.Id)).ReturnsAsync(role);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdatePermissions(
+            new UpdateRolePermissionsCommand(role.Id, ["Permissions.Users.View", "Permissions.RoleClaims.Update"]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("Permissions.RoleClaims.Update").And.NotContain("Permissions.Users.View");
+        RaisedEvents(role).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task UpdatePermissions_Refuses_WhenTheRoleIsWhatMakesTheOnlyAdministratorOne()
+    {
+        // Arrange — the administrator holds every permission through a role of the organisation's own, not Admin.
+        var admin = new ApplicationRole(ApplicationRoles.Admin) { Id = "role-admin" };
+        var fullAccess = new ApplicationRole("Full Access") { Id = "role-full" };
+        var every = ApplicationPermissions.Admin.Select(p => p.Name).ToArray();
+        _mockRoleManager.Setup(x => x.FindByIdAsync(fullAccess.Id)).ReturnsAsync(fullAccess);
+        _mockRoleManager.Setup(x => x.Roles).Returns(new[] { admin, fullAccess }.AsQueryable().BuildMockDbSet().Object);
+        _mockRoleManager.Setup(x => x.GetClaimsAsync(fullAccess))
+            .ReturnsAsync([.. every.Select(p => new Claim(ApplicationClaims.Permission, p))]);
+        _mockUserManager.Setup(x => x.GetUsersInRoleAsync("Full Access"))
+            .ReturnsAsync([new ApplicationUser { Id = "only-admin", IsActive = true }]);
+        var sut = CreateSut();
+
+        // Act
+        var result = await sut.UpdatePermissions(
+            new UpdateRolePermissionsCommand(fullAccess.Id, [.. every.Skip(1)]), TestContext.Current.CancellationToken);
+
+        // Assert
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("holds every permission");
+        RaisedEvents(fullAccess).Should().BeEmpty();
     }
 
     #endregion

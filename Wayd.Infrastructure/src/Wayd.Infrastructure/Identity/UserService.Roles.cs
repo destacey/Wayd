@@ -38,20 +38,21 @@ internal partial class UserService
 
         _ = user ?? throw new NotFoundException("User Not Found.");
 
+        EnsureNotSelf(user.Id, OwnRoles);
+        await EnsureMayManage(user, cancellationToken);
+
         var userCurrentRoles = await _userManager.GetRolesAsync(user);
+        await EnsureMayGrant(command.RoleNames.Except(userCurrentRoles, StringComparer.OrdinalIgnoreCase), cancellationToken);
+
+        var administrators = await LoadAdministrators(cancellationToken);
+        if (administrators.LosesTheLast(administrators.WithUserRoles(user, command.RoleNames)))
+        {
+            _logger.LogWarning("Refused to change the roles of user {UserId}, the only active user holding every permission.", user.Id);
+            throw new ConflictException(Administrators.KeepOne);
+        }
 
         // REMOVE ROLES
         var rolesToRemove = userCurrentRoles.Except(command.RoleNames);
-
-        if (rolesToRemove.Contains(ApplicationRoles.Admin))
-        {
-            var adminCount = (await _userManager.GetUsersInRoleAsync(ApplicationRoles.Admin)).Count;
-            if (adminCount <= 1)
-            {
-                _logger.LogWarning("Wayd should have at least 1 Admin.");
-                throw new ConflictException("Wayd should have at least 1 Admin.");
-            }
-        }
 
         var roleIdsByName = await GetRoleIdsByName(cancellationToken);
 
@@ -98,50 +99,59 @@ internal partial class UserService
         var roleName = role.Name!;
         var roleIdsByName = await GetRoleIdsByName(cancellationToken);
 
-        // ADD USERS TO ROLE (first, so admin swap scenarios work correctly)
-        foreach (var userId in command.UserIdsToAdd)
-        {
-            var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-            if (user is null)
-            {
-                _logger.LogWarning("User with ID {UserId} not found. Skipping addition.", userId);
-                continue;
-            }
+        // Ids are matched as the database matches them, which ignores case, so every rule below works on the users
+        // it found: comparing the request's ids instead would let one in another case pass for someone else.
+        var toAdd = await _userManager.Users.Where(u => command.UserIdsToAdd.Contains(u.Id)).ToListAsync(cancellationToken);
+        var toRemove = await _userManager.Users.Where(u => command.UserIdsToRemove.Contains(u.Id)).ToListAsync(cancellationToken);
 
+        foreach (var user in toAdd.Concat(toRemove))
+        {
+            EnsureNotSelf(user.Id, OwnRoles);
+            await EnsureMayManage(user, cancellationToken);
+        }
+
+        if (toAdd.Count > 0)
+            await EnsureMayGrant([roleName], cancellationToken);
+
+        // Checked against the additions too, so swapping one administrator for another is allowed, and before
+        // anything is saved, so a refusal leaves nothing half done.
+        if (toRemove.Count > 0)
+        {
+            var administrators = await LoadAdministrators(cancellationToken);
+            var after = administrators
+                .WithRoleMembersAdded(roleName, toAdd)
+                .WithoutRoleMembers(roleName, toRemove.Select(u => u.Id));
+            if (administrators.LosesTheLast(after))
+            {
+                _logger.LogWarning("Refused to remove from role {RoleName} every active user holding every permission.", roleName);
+                return Result.Failure(Administrators.KeepOne);
+            }
+        }
+
+        foreach (var userId in command.UserIdsToAdd.Except(toAdd.Select(u => u.Id), StringComparer.OrdinalIgnoreCase))
+            _logger.LogWarning("User with ID {UserId} not found. Skipping addition.", userId);
+
+        foreach (var user in toAdd)
+        {
             if (await _userManager.IsInRoleAsync(user, roleName))
                 continue;
 
             var result = await AddToRoleRecorded(user, roleName, roleIdsByName, CurrentActor());
             if (!result.Succeeded)
             {
-                _logger.LogError("Failed to add user {UserId} to role {RoleName}.", userId, roleName);
-                return Result.Failure($"Failed to add user {userId} to role {roleName}.");
+                _logger.LogError("Failed to add user {UserId} to role {RoleName}.", user.Id, roleName);
+                return Result.Failure($"Failed to add user {user.Id} to role {roleName}.");
             }
         }
 
         // REMOVE USERS FROM ROLE
-        if (command.UserIdsToRemove.Count > 0)
+        if (toRemove.Count > 0)
         {
-            if (roleName == ApplicationRoles.Admin)
-            {
-                var adminCount = (await _userManager.GetUsersInRoleAsync(ApplicationRoles.Admin)).Count;
-                var removalCount = command.UserIdsToRemove.Count;
-                if (adminCount - removalCount < 1)
-                {
-                    _logger.LogWarning("Wayd should have at least 1 Admin.");
-                    return Result.Failure("Wayd should have at least 1 Admin.");
-                }
-            }
+            foreach (var userId in command.UserIdsToRemove.Except(toRemove.Select(u => u.Id), StringComparer.OrdinalIgnoreCase))
+                _logger.LogWarning("User with ID {UserId} not found. Skipping removal.", userId);
 
-            foreach (var userId in command.UserIdsToRemove)
+            foreach (var user in toRemove)
             {
-                var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
-                if (user is null)
-                {
-                    _logger.LogWarning("User with ID {UserId} not found. Skipping removal.", userId);
-                    continue;
-                }
-
                 if (!await _userManager.IsInRoleAsync(user, roleName))
                     continue;
 
@@ -156,8 +166,8 @@ internal partial class UserService
                 if (!result.Succeeded)
                 {
                     user.ClearDomainEvents();
-                    _logger.LogError("Failed to remove user {UserId} from role {RoleName}.", userId, roleName);
-                    return Result.Failure($"Failed to remove user {userId} from role {roleName}.");
+                    _logger.LogError("Failed to remove user {UserId} from role {RoleName}.", user.Id, roleName);
+                    return Result.Failure($"Failed to remove user {user.Id} from role {roleName}.");
                 }
             }
         }

@@ -120,7 +120,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         await using (var arrange = _fixture.CreateContext())
         {
             var desk = await arrange.IntakeDesks.SingleAsync(d => d.Id == scenario.Open.Id, ct);
-            var channel = await arrange.IntakeChannels.FirstAsync(ct);
+            var channel = await arrange.IntakeChannels.FirstAsync(c => c.IsActive, ct);
             var closed = IntakeRequest.Create(UniqueName("Ask"), "Already decided", null, scenario.Requester.Id,
                 scenario.Requester.Id, desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
             var declined = new StatusRef(closed.StatusWorkflowId, Guid.CreateVersion7(), "Declined", StatusCategory.Removed,
@@ -205,7 +205,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
             onPrivate.ChangeAssignee(scenario.Agent.Id, EventActor.System, Now).IsSuccess.Should().BeTrue();
             var desk = await arrange.IntakeDesks.SingleAsync(d => d.Id == scenario.Open.Id, ct);
             var closed = IntakeRequest.Create(UniqueName("Ask"), "Already decided", null, scenario.Requester.Id,
-                scenario.Requester.Id, desk, await arrange.IntakeChannels.FirstAsync(ct), null, null, IntakeStatuses.Submitted(),
+                scenario.Requester.Id, desk, await arrange.IntakeChannels.FirstAsync(c => c.IsActive, ct), null, null, IntakeStatuses.Submitted(),
                 EventActor.System, Now).Value;
             var declined = new StatusRef(closed.StatusWorkflowId, Guid.CreateVersion7(), "Declined", StatusCategory.Removed,
                 StatusWorkflow.NoAlias);
@@ -463,7 +463,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
             request.ChangeEstimate("S", desk, scale, IntakeRequestEstimateSource.Manual, IntakeRequestEditor.System, Now)
                 .IsSuccess.Should().BeTrue();
             arrange.IntakeRequests.Add(IntakeRequest.Create(UniqueName("Ask"), "Not yet triaged", null, scenario.Requester.Id,
-                scenario.Requester.Id, desk, await arrange.IntakeChannels.FirstAsync(ct), null, null, IntakeStatuses.Submitted(),
+                scenario.Requester.Id, desk, await arrange.IntakeChannels.FirstAsync(c => c.IsActive, ct), null, null, IntakeStatuses.Submitted(),
                 EventActor.System, Now).Value);
             await arrange.SaveChangesAsync(ct);
         }
@@ -708,7 +708,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
             var desk = await arrange.IntakeDesks.SingleAsync(d => d.Id == scenario.Private.Id, ct);
             desk.ChangeScoringModel(replacement, current, EventActor.System, Now).IsSuccess.Should().BeTrue();
             arrange.IntakeRequests.Add(IntakeRequest.Create(UniqueName("Ask"), "Never scored", null, scenario.Requester.Id,
-                scenario.Requester.Id, desk, await arrange.IntakeChannels.FirstAsync(ct), null, null, IntakeStatuses.Submitted(),
+                scenario.Requester.Id, desk, await arrange.IntakeChannels.FirstAsync(c => c.IsActive, ct), null, null, IntakeStatuses.Submitted(),
                 EventActor.System, Now).Value);
             await arrange.SaveChangesAsync(ct);
         }
@@ -745,7 +745,7 @@ public sealed class DemandManagementReadTests(SqlServerDbContextFixture fixture)
         context.ScoringModels.Add(model);
         var desk = await context.IntakeDesks.SingleAsync(d => d.Id == scenario.Private.Id, ct);
         desk.ChangeScoringModel(model, null, EventActor.System, Now).IsSuccess.Should().BeTrue();
-        var channel = await context.IntakeChannels.FirstAsync(ct);
+        var channel = await context.IntakeChannels.FirstAsync(c => c.IsActive, ct);
         var second = IntakeRequest.Create(UniqueName("Ask"), "Another ask", null, scenario.Requester.Id, scenario.Requester.Id,
             desk, channel, null, null, IntakeStatuses.Submitted(), EventActor.System, Now).Value;
         context.IntakeRequests.Add(second);

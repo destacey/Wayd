@@ -79,6 +79,11 @@ public sealed class CreateUserCommandValidator : CustomValidator<CreateUserComma
                 .WithMessage("Password must not be provided for non-Wayd accounts.")
             .When(u => u.LoginProvider != LoginProviders.Wayd);
 
+        RuleFor(u => u.EmployeeId)
+            .MustAsync(async (employeeId, _) => !await userService.ExistsWithEmployeeIdAsync(employeeId!.Value))
+                .WithMessage("That employee is already linked to another user.")
+            .When(u => u.EmployeeId.HasValue);
+
         RuleFor(u => u.RoleNames)
             .NotEmpty()
                 .WithMessage("At least one role must be assigned.");

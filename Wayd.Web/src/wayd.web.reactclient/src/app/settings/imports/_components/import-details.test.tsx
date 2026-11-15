@@ -34,8 +34,8 @@ const run = (overrides: Partial<ImportProcessDto> = {}): ImportProcessDto => ({
 
 /** Steps the pager forward from the first page to the third. */
 const toPage3 = () => {
-  act(() => screen.getByTitle('Next Page').click())
-  act(() => screen.getByTitle('Next Page').click())
+  act(() => screen.getByRole('button', { name: 'Next Page' }).click())
+  act(() => screen.getByRole('button', { name: 'Next Page' }).click())
 }
 
 /** The arguments of the most recent rows request. */

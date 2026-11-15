@@ -161,7 +161,7 @@ describe('WaydGridPager', () => {
     )
 
     // Act
-    act(() => screen.getByTitle('Next Page').click())
+    act(() => screen.getByRole('button', { name: 'Next Page' }).click())
 
     // Assert
     expect(setPaging).toHaveBeenCalledWith(2, 50)

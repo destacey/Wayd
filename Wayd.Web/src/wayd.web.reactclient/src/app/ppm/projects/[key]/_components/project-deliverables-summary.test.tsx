@@ -127,9 +127,10 @@ describe('ProjectDeliverablesSummary', () => {
 
   it('lists the most recently accepted deliverables once none is open', () => {
     // Arrange
+    // The API sends an instant as an ISO string, whatever the DTO's type says.
     const accepted = (name: string, acceptedOn: string) => ({
       ...deliverable(name, StatusCategory.Done),
-      acceptedOn: new Date(acceptedOn),
+      acceptedOn: acceptedOn as unknown as Date,
     })
     mockQuery.mockReturnValue({
       data: [

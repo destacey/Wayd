@@ -32,13 +32,16 @@ const byTargetDate = (a: ProjectDeliverableDto, b: ProjectDeliverableDto) => {
   return a.order - b.order
 }
 
+// Through `new Date`: the API sends the instant as an ISO string, though the
+// DTO types it `Date`.
+const acceptedAt = (deliverable: ProjectDeliverableDto) =>
+  deliverable.acceptedOn ? new Date(deliverable.acceptedOn).getTime() : 0
+
 /** Latest acceptance first; ties and undated acceptances in their agreed order. */
 const byMostRecentlyAccepted = (
   a: ProjectDeliverableDto,
   b: ProjectDeliverableDto,
-) =>
-  (b.acceptedOn?.getTime() ?? 0) - (a.acceptedOn?.getTime() ?? 0) ||
-  a.order - b.order
+) => acceptedAt(b) - acceptedAt(a) || a.order - b.order
 
 /** Rows after the first are ruled off from the one above. */
 const rowStyle = (index: number): React.CSSProperties => ({

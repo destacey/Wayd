@@ -52,6 +52,14 @@
   padding: 24px;
 }
 
+/* Narrow screens: the section picker, the section and the facts in one
+   column. */
+.compactStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ant-margin);
+}
+
 /*
  * The knob floats clear of the content rather than insetting it: reserving a
  * gutter for a control this small gives back exactly the width the floating

@@ -36,9 +36,7 @@ export interface RecordLayoutProps {
   children: (activeSection: string) => ReactNode
 }
 
-const SectionFallback = () => (
-  <Skeleton active paragraph={{ rows: 4 }} />
-)
+const SectionFallback = () => <Skeleton active paragraph={{ rows: 4 }} />
 
 const RecordLayoutInner = ({
   sections,
@@ -57,10 +55,7 @@ const RecordLayoutInner = ({
 
   const compact = !screens.md
 
-  const all = useMemo(
-    () => [...sections, ...reports],
-    [sections, reports],
-  )
+  const all = useMemo(() => [...sections, ...reports], [sections, reports])
 
   // An unknown or forbidden section falls back rather than rendering an empty
   // panel — sections are permission-gated, so a shared link can legitimately
@@ -143,7 +138,9 @@ const RecordLayoutInner = ({
       key={activeSection}
       sectionLabel={activeLabel}
       onLeave={
-        activeSection === defaultSection ? undefined : () => goTo(defaultSection)
+        activeSection === defaultSection
+          ? undefined
+          : () => goTo(defaultSection)
       }
     >
       <Suspense fallback={<SectionFallback />}>
@@ -178,35 +175,31 @@ const RecordLayoutInner = ({
           />
         </div>
       )}
+      {/* The section body sits at the same place in the tree at every width.
+          `useBreakpoint` reports no breakpoints on the first render, so
+          `compact` starts true and turns false once measured; a body that
+          moved between two layouts would mount the section twice on every
+          load, refetching whatever it holds in its own state. */}
       <div className={styles.body}>
-        {compact ? (
-          <div className={styles.content}>
-            <Flex vertical gap="middle">
-              {nav}
-              <div>
-                {sectionHeading}
-                {body}
-              </div>
-              {/* After the section, as the panel is on desktop. Placing the
-                  facts between the nav and the content pushed the content off
-                  screen on a record with a long panel. */}
-              {factsRail.mode === 'inline' && facts && (
-                <Flex vertical gap={10}>
-                  {facts}
-                </Flex>
-              )}
-            </Flex>
-          </div>
-        ) : (
-          <>
-            {nav}
-            <div className={styles.content}>
+        {!compact && nav}
+        <div className={styles.content}>
+          <div className={compact ? styles.compactStack : undefined}>
+            {compact && nav}
+            <div>
               {sectionHeading}
               {body}
             </div>
-            {factsPanel}
-          </>
-        )}
+            {/* After the section, as the panel is on desktop. Placing the
+                facts between the nav and the content pushed the content off
+                screen on a record with a long panel. */}
+            {compact && factsRail.mode === 'inline' && facts && (
+              <Flex vertical gap={10}>
+                {facts}
+              </Flex>
+            )}
+          </div>
+        </div>
+        {!compact && factsPanel}
       </div>
     </div>
   )

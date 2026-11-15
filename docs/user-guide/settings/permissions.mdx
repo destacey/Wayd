@@ -26,8 +26,7 @@ Permissions are named `Permissions.{Resource}.{Action}` and follow a consistent 
 | `Delete` | Remove entities |
 | `Import` | Bulk-load entities from a file |
 | `Run` | Trigger an operation — for example running or requeuing a [background job](./index.mdx#background-jobs) |
-| `Manage` | Create, update and delete in one permission — used for planning interval objectives |
-| `Search` / `Export` | Search or export users |
+| `Manage` | Create, update and delete in one permission — used for roles, privileged users and planning interval objectives |
 | `Administer` | Domain-wide administrative standing (see [PPM Administrator](#ppm-administrator), [Planning Poker](#planning-poker-facilitators-and-invites), [Story Maps](#story-maps-owners-and-editors) and [Roadmaps](#roadmaps-owners)) |
 
 Some resources add specific actions — `Permissions.Projects.ManageProjectWorkItems`, `Permissions.Teams.ManageTeamMemberships` and `Permissions.RateLimits.Elevated`.
@@ -47,12 +46,12 @@ Every permission Wayd defines, as **Settings → Access → Roles** groups them.
 | Background Jobs | `BackgroundJobs` | `View`, `Create`, `Run`, `Delete` |
 | Messaging | `Messaging` | `View`, `Run` (replay dead letters), `Delete` (discard dead letters) |
 | Imports | `Imports` | `View` — every import, read-only (see [Imports](./imports.mdx#who-sees-what)) |
-| Identity | `Users` | `View`, `Search`, `Create`, `Update`, `Delete`, `Export` |
+| Identity | `Users` | `View`, `Create`, `Update` |
 | Identity | `UserRoles` | `View`, `Update` |
-| Identity | `Roles` | `View`, `Create`, `Update`, `Delete` |
-| Identity | `RoleClaims` | `View`, `Update` |
+| Identity | `Roles` | `View`, `Manage` (privileged) |
+| Identity | `PrivilegedUsers` | `Manage` (privileged; see [User administration](#user-administration-and-privileged-permissions)) |
 | Identity | `Permissions` | `View` |
-| Identity | `OidcProviders` | `View`, `Create`, `Update`, `Delete` |
+| Identity | `OidcProviders` | `View`, `Create`, `Update`, `Delete` (all but `View` privileged) |
 | Identity | `RateLimits` | `Elevated` (see [Elevated rate limits](#elevated-rate-limits)) |
 | Integrations | `Connections` | `View`, `Create`, `Update`, `Delete` |
 | Integrations | `Connectors` | `View` |
@@ -259,6 +258,30 @@ Grant it to accounts whose steady traffic outgrows what a person needs — a ser
 
 By default a grant or revoke takes up to five minutes to apply, because Wayd remembers each user's budget for that long rather than checking it on every request.
 
+## User administration and privileged permissions
+
+User administration can be delegated. Someone who manages users can onboard, support and offboard the people they look after, and every change they make is recorded in the user's **Activity**. Inside that, they can act as any ordinary user: whoever can reset someone's password can sign in as them, as on any help desk. Grant the user-management permissions to people you trust with that.
+
+**Privileged permissions change other people's access.** An account holding one is a *privileged account*, and user administration does not reach it without `Permissions.PrivilegedUsers.Manage`:
+
+| Permission | Why it is privileged |
+|---|---|
+| `Permissions.Roles.Manage` | Creates, renames and deletes roles and chooses what they grant |
+| `Permissions.OidcProviders.Create` / `.Update` / `.Delete` | Decide who can sign in, and which role new sign-ins are given |
+| `Permissions.PrivilegedUsers.Manage` | Reaches privileged accounts, and grants the roles that make them |
+
+The **Roles** page tags these permissions **Privileged**.
+
+**Privileged accounts are out of a user administrator's reach.** Without `Permissions.PrivilegedUsers.Manage`, you cannot make any change to a privileged account: its details, email or linked employee, its password, how it signs in, whether it is active or locked out, or its roles. The account's roles count even while it is inactive. The **Admin** role holds every permission, so every Admin is a privileged account.
+
+**Privileged roles are granted only with `Permissions.PrivilegedUsers.Manage`.** Assigning a role that carries a privileged permission, whether when creating a user or afterwards, is refused without it. Every other role can be assigned by anyone with `Permissions.Users.Create` (at creation) or `Permissions.UserRoles.Update`, including roles granting permissions you do not hold yourself.
+
+**Nobody changes their own roles or linked employee.** Another administrator makes those changes, so taking on access always involves a second person. A linked employee carries its PPM leadership, manager chain and team memberships.
+
+**Wayd keeps at least one administrator.** An administrator here is an active user whose roles grant every permission, whether through **Admin** or a role of your own. A change that would leave none is refused: deactivating them, removing their roles (from the user or from the role's members), or removing a permission from the role that makes them one. People sync leaves that account active, and sign-in never locks it out while no other administrator could unlock it.
+
+A role's permissions must be ones Wayd defines; saving a role with a permission name Wayd does not recognise is refused.
+
 ## Why an action might be unavailable
 
 When a PPM or sprint action is missing from a menu or rejected on submit, it is one of:
@@ -270,9 +293,15 @@ When a PPM or sprint action is missing from a menu or rejected on submit, it is 
 | Not on the sprint's team | Ask to be added to the team or its team of teams, or ask a member to perform the action |
 | Not the person or one of their managers | A person's time away is recorded by them or by someone they report up to. Ask one of them, or a time away administrator |
 | No linked employee record | PPM and sprint changes are attributed to an employee. Ask an administrator to link your user account to one. |
+| The user is privileged | Changing a user who holds a privileged permission, or assigning a role that grants one, needs `Permissions.PrivilegedUsers.Manage`. See [User administration](#user-administration-and-privileged-permissions) |
+| It is your own account | Nobody changes their own roles or linked employee. Ask another administrator |
 | A domain rule blocks it | The action may be invalid for the record's current state — for example, a portfolio cannot close while it still contains open projects |
 
 ## Upgrading to this version
+
+**Role management is one permission.** `Permissions.Roles.Create`, `.Update` and `.Delete` and `Permissions.RoleClaims.Update` are replaced by `Permissions.Roles.Manage`, and `Permissions.RoleClaims.View` by `Permissions.Roles.View`. The upgrade gives `Roles.Manage` only to roles that held `RoleClaims.Update`, which could already choose what roles grant; roles that held only `Roles.Create`, `.Update` or `.Delete` lose them, since alone they could not change what any role grants. `Permissions.Users.Search`, `.Delete` and `.Export` are removed: no endpoint ever checked them. To let someone manage roles again, grant them `Permissions.Roles.Manage`.
+
+**Privileged accounts need a new permission.** Changing a privileged account, or assigning a role that grants a privileged permission, needs `Permissions.PrivilegedUsers.Manage` (see [User administration](#user-administration-and-privileged-permissions)). The seeded **Admin** role holds it; anyone else who looks after administrators' accounts needs it added to a role.
 
 **PPM changes are membership-gated after upgrading.** Before this version, any user holding a PPM `Update` permission could change any project, program, or portfolio — including assigning roles on it.
 

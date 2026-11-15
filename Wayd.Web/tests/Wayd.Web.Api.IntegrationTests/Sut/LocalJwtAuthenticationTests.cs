@@ -128,7 +128,7 @@ public sealed class LocalJwtAuthenticationTests(WaydSqlServerApiFactory factory)
     private async Task SetUserActive(string userId, bool active)
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var user = await users.FindByIdAsync(userId) ?? throw new InvalidOperationException($"No user {userId}.");
         var now = scope.ServiceProvider.GetRequiredService<IDateTimeProvider>().Now;

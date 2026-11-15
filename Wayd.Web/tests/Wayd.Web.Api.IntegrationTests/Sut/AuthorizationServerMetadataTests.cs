@@ -112,7 +112,7 @@ public sealed class AuthorizationServerMetadataTests(WaydSqlServerApiFactory fac
     private async Task SetFlag(bool enabled)
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var flagId = await scope.ServiceProvider.GetRequiredService<IFeatureManagementDbContext>().FeatureFlags
             .Where(f => f.Name == FeatureFlags.Names.McpServer)
             .Select(f => f.Id)

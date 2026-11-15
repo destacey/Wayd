@@ -22,13 +22,15 @@ internal static class LastAdministrator
     /// Whether <paramref name="user"/> is an active administrator whom no other active administrator could unlock,
     /// because each other is locked out at <paramref name="now"/> or there is none.
     /// </summary>
-    public static async Task<bool> IsProtected(UserManager<ApplicationUser> userManager, ApplicationUser user, DateTimeOffset now)
+    /// <remarks>An administrator is an active user holding every permission; see <see cref="Administrators"/>.</remarks>
+    public static async Task<bool> IsProtected(
+        UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, ApplicationUser user, DateTimeOffset now)
     {
-        if (!user.IsActive || !await userManager.IsInRoleAsync(user, ApplicationRoles.Admin))
+        if (!await Administrators.IsAdministrator(userManager, roleManager, user, CancellationToken.None))
             return false;
 
-        var administrators = await userManager.GetUsersInRoleAsync(ApplicationRoles.Admin);
-        return !administrators.Any(u => u.Id != user.Id && u.IsActive && !(u.LockoutEnd > now));
+        var administrators = await Administrators.Load(userManager, roleManager, CancellationToken.None);
+        return administrators.Active(u => u.Id == user.Id || u.LockoutEnd > now).Count == 0;
     }
 
     /// <summary>

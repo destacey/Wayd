@@ -10,6 +10,8 @@ import { useGetEmployeesQuery } from '@/src/store/features/organizations/employe
 import { UserDetailsDto } from '@/src/services/wayd-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
+import useAuth from '@/src/components/contexts/auth'
+import { isOwnAccount } from './is-own-account'
 
 const { Item } = Form
 
@@ -33,6 +35,9 @@ const EditUserForm = ({
   onFormCancel,
 }: EditUserFormProps) => {
   const messageApi = useMessage()
+  const { user: authUser } = useAuth()
+  // Linking your own account to an employee would take on that employee's standing, so the server refuses it.
+  const isCurrentUser = isOwnAccount(user, authUser?.username)
   const [updateUser] = useUpdateUserMutation()
   const { data: employeesData, isLoading: employeesLoading } =
     useGetEmployeesQuery(false)
@@ -53,37 +58,37 @@ const EditUserForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditUserFormValues>({
       onSubmit: async (values: EditUserFormValues, form) => {
-          try {
-            const response = await updateUser({
-              id: user.id,
-              firstName: values.firstName,
-              lastName: values.lastName,
-              email: values.email,
-              phoneNumber: values.phoneNumber || undefined,
-              employeeId: values.employeeId || undefined,
-            })
+        try {
+          const response = await updateUser({
+            id: user.id,
+            firstName: values.firstName,
+            lastName: values.lastName,
+            email: values.email,
+            phoneNumber: values.phoneNumber || undefined,
+            employeeId: values.employeeId || undefined,
+          })
 
-            if (response.error) {
-              throw response.error
-            }
-
-            messageApi.success('Successfully updated user.')
-            onFormUpdate()
-            return false
-          } catch (error: any) {
-            if (error.status === 422 && error.errors) {
-              const formErrors = toFormErrors(error.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                error.detail ??
-                  'An unexpected error occurred while updating the user.',
-              )
-            }
-            return false
+          if (response.error) {
+            throw response.error
           }
-        },
+
+          messageApi.success('Successfully updated user.')
+          onFormUpdate()
+          return false
+        } catch (error: any) {
+          if (error.status === 422 && error.errors) {
+            const formErrors = toFormErrors(error.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              error.detail ??
+                'An unexpected error occurred while updating the user.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: () => {},
       onCancel: onFormCancel,
       errorMessage: 'An unexpected error occurred while updating the user.',
@@ -146,8 +151,17 @@ const EditUserForm = ({
           <Input maxLength={20} />
         </Item>
 
-        <Item label="Employee" name="employeeId">
+        <Item
+          label="Employee"
+          name="employeeId"
+          extra={
+            isCurrentUser
+              ? 'Another administrator must change the employee linked to your own account.'
+              : undefined
+          }
+        >
           <Select
+            disabled={isCurrentUser}
             allowClear
             showSearch={{ optionFilterProp: 'label' }}
             options={employeeOptions}

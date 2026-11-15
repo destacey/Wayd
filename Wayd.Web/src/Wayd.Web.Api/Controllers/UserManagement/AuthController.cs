@@ -156,7 +156,7 @@ public class AuthController(
         if (userCount > 0)
             return Conflict(ProblemDetailsExtensions.ForConflict("Setup has already been completed.", HttpContext));
 
-        var createResult = await _userService.CreateAsync(new CreateUserCommand
+        var createResult = await _userService.CreateFirstAdministrator(new CreateUserCommand
         {
             FirstName = request.FirstName,
             LastName = request.LastName,
@@ -168,12 +168,6 @@ public class AuthController(
 
         if (createResult.IsFailure)
             return BadRequest(createResult.ToBadRequestObject(HttpContext));
-
-        var userId = createResult.Value;
-
-        await _userService.AssignRolesAsync(
-            new AssignUserRolesCommand(userId, [ApplicationRoles.Admin]),
-            cancellationToken);
 
         // Consume the token only after successful user creation so a failed
         // attempt (e.g. validation error, duplicate email) doesn't force the

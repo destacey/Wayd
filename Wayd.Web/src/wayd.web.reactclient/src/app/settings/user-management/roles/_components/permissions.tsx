@@ -15,6 +15,7 @@ import {
   Spin,
   Switch,
   Tag,
+  Tooltip,
   Typography,
 } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
@@ -32,6 +33,7 @@ interface PermissionsProps {
 interface PermissionItem {
   name: string
   description: string
+  isPrivileged: boolean
 }
 
 interface PermissionGroup {
@@ -58,7 +60,7 @@ const Permissions = (props: PermissionsProps) => {
   const theme = useTheme()
 
   const canUpdate =
-    hasPermissionClaim('Permissions.Roles.Update') && !props.isSystemRole
+    hasPermissionClaim('Permissions.Roles.Manage') && !props.isSystemRole
 
   const { data: permissionsData, isLoading } = useGetPermissionsQuery()
 
@@ -156,6 +158,7 @@ const Permissions = (props: PermissionsProps) => {
       groupMap.get(permission.resource)!.push({
         name: permission.name,
         description: permission.description,
+        isPrivileged: permission.isPrivileged,
       })
     })
 
@@ -363,6 +366,17 @@ const Permissions = (props: PermissionsProps) => {
                   <div>
                     <div style={{ fontWeight: 600 }}>
                       {permission.description}
+                      {permission.isPrivileged && (
+                        <Tooltip title="Changes other people's access. Holders are out of reach of user administrators without Manage Privileged Users.">
+                          <Tag
+                            color="warning"
+                            tabIndex={0}
+                            style={{ marginInlineStart: 'var(--ant-margin-xs)' }}
+                          >
+                            Privileged
+                          </Tag>
+                        </Tooltip>
+                      )}
                     </div>
                     <div
                       style={{

@@ -46,7 +46,7 @@ public static class AuthenticatedClientExtensions
         string userId;
         using (var scope = factory.Services.CreateScope())
         {
-            scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+            await scope.ActAsHarnessAdministrator();
             var roleService = scope.ServiceProvider.GetRequiredService<IRoleService>();
             var userService = scope.ServiceProvider.GetRequiredService<IUserService>();
 
@@ -82,5 +82,46 @@ public static class AuthenticatedClientExtensions
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token.Token);
 
         return new AuthenticatedClient(userId, client);
+    }
+
+    private const string HarnessAdministratorEmail = "harness-administrator@integration.test";
+
+    /// <summary>
+    /// Creates the Admin that test setup acts as, through first-run setup's own path, so it must run while the
+    /// database still has no users: once one exists, only an Admin could grant Admin.
+    /// </summary>
+    public static async Task CreateHarnessAdministrator(IServiceProvider services, CancellationToken cancellationToken)
+    {
+        using var scope = services.CreateScope();
+        var created = await scope.ServiceProvider.GetRequiredService<IUserService>().CreateFirstAdministrator(new CreateUserCommand
+        {
+            FirstName = "Harness",
+            LastName = "Administrator",
+            Email = HarnessAdministratorEmail,
+            LoginProvider = LoginProviders.Wayd,
+            Password = Password,
+            MustChangePassword = false,
+        }, cancellationToken);
+        if (created.IsFailure)
+            throw new InvalidOperationException($"Could not create the harness administrator: {created.Error}");
+    }
+
+    /// <summary>
+    /// Makes <paramref name="scope"/> act as the harness's Admin, so setup that assigns roles or changes another user
+    /// passes the rules user administration enforces on whoever is signed in.
+    /// </summary>
+    /// <returns>The administrator's user id.</returns>
+    public static async Task<string> ActAsHarnessAdministrator(this IServiceScope scope)
+    {
+        string userId;
+        using (var lookup = scope.ServiceProvider.GetRequiredService<IServiceScopeFactory>().CreateScope())
+        {
+            userId = (await lookup.ServiceProvider.GetRequiredService<IUserService>().GetListAsync(TestContext.Current.CancellationToken))
+                .FirstOrDefault(u => u.Email == HarnessAdministratorEmail)?.Id
+                ?? throw new InvalidOperationException("The harness administrator was not created when the host booted.");
+        }
+
+        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId(userId);
+        return userId;
     }
 }

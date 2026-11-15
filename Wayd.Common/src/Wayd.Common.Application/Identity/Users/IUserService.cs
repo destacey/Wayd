@@ -66,6 +66,12 @@ public interface IUserService : ITransientService
 
     Task UpdateAsync(UpdateUserCommand command, string userId);
 
+    /// <summary>
+    /// Creates the first user and makes them an Admin, for first-run setup. Refused once any user exists. The
+    /// grant is recorded as the system's, since nobody is signed in to make it.
+    /// </summary>
+    Task<Result<string>> CreateFirstAdministrator(CreateUserCommand command, CancellationToken cancellationToken);
+
     Task<Result<string>> CreateAsync(CreateUserCommand command, CancellationToken cancellationToken);
 
     /// <summary>

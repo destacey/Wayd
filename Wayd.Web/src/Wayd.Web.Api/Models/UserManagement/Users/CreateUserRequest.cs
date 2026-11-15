@@ -32,3 +32,21 @@ public sealed record CreateUserRequest
             RoleNames = RoleNames
         };
 }
+
+/// <summary>
+/// Validates a <see cref="CreateUserRequest"/> by the rules of the <see cref="CreateUserCommand"/> it maps to. The controller calls
+/// <see cref="IUserService"/> directly rather than dispatching, so this is the only place those rules run.
+/// </summary>
+/// <remarks>The two share property names, so each failure is reported against the request's own property.</remarks>
+public sealed class CreateUserRequestValidator : CustomValidator<CreateUserRequest>
+{
+    public CreateUserRequestValidator(IValidator<CreateUserCommand> commandValidator)
+    {
+        RuleFor(r => r).CustomAsync(async (request, context, cancellationToken) =>
+        {
+            var result = await commandValidator.ValidateAsync(request.ToCreateUserCommand(), cancellationToken);
+            foreach (var failure in result.Errors)
+                context.AddFailure(failure);
+        });
+    }
+}

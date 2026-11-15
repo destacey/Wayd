@@ -15,6 +15,7 @@ import {
   useGetUserQuery,
   useLazyGetUserActivitiesQuery,
 } from '@/src/store/features/user-management/users-api'
+import { isOwnAccount } from '../_components/is-own-account'
 import {
   ACTIVITY_LOG_PAGE_SIZE,
   ActivityLogExportButton,
@@ -56,7 +57,7 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
 
   const [dialog, setDialog] = useState<DialogId | null>(null)
 
-  const { hasPermissionClaim } = useAuth()
+  const { hasPermissionClaim, user: authUser } = useAuth()
   const canUpdateUser = hasPermissionClaim('Permissions.Users.Update')
   const canUpdateUserRoles = hasPermissionClaim('Permissions.UserRoles.Update')
 
@@ -233,7 +234,8 @@ const UserDetailsPage = (props: { params: Promise<{ id: string }> }) => {
         onClick: () => setDialog('convert-to-local'),
       })
     }
-    if (canUpdateUserRoles) {
+    // Your own roles are changed by another administrator, never by you.
+    if (canUpdateUserRoles && !isOwnAccount(user, authUser?.username)) {
       secondaryItems.push({
         key: 'manage-roles',
         label: 'Manage Roles',

@@ -88,7 +88,7 @@ const CreateRoleForm = ({
       onComplete: () => {}, // handled in onSubmit via onFormCreate(id)
       onCancel: onFormCancel,
       errorMessage: 'An unexpected error occurred while creating the role.',
-      permission: 'Permissions.Roles.Create',
+      permission: 'Permissions.Roles.Manage',
     })
 
   return (

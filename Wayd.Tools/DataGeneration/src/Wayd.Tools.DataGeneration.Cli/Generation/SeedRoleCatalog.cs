@@ -17,9 +17,8 @@ public sealed record SeedRole(string Name, string Description, IReadOnlyList<str
 /// and hands Admin to almost nobody.
 /// <para>
 /// Permissions are looked up from <see cref="ApplicationPermissions"/> rather than written as strings.
-/// <c>UpdatePermissions</c> stores whatever it is sent without checking it against the catalogue, so a
-/// renamed resource would be written as a claim that silently grants nothing. Reading them from the
-/// catalogue makes that a compile error instead.
+/// <c>UpdatePermissions</c> refuses a name the catalogue does not define, so a renamed resource would fail
+/// the seed at run time. Reading them from the catalogue makes that a compile error instead.
 /// </para>
 /// </remarks>
 public static class SeedRoleCatalog

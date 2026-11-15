@@ -539,7 +539,7 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
     private async Task<Guid> SeedEmployee()
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var dbContext = scope.ServiceProvider.GetRequiredService<IWaydDbContext>();
         var now = NodaTime.SystemClock.Instance.GetCurrentInstant();
         var employee = Employee.Create(
@@ -563,7 +563,7 @@ public sealed class DemandManagementEndpointTests(WaydSqlServerApiFactory factor
     private async Task SetFlag(bool enabled)
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var flagId = await scope.ServiceProvider.GetRequiredService<IFeatureManagementDbContext>().FeatureFlags
             .Where(f => f.Name == FeatureFlags.Names.DemandManagement)
             .Select(f => f.Id)

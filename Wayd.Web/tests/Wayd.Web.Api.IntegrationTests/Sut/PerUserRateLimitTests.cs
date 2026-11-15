@@ -301,7 +301,7 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
     private async Task RevokeEveryPermission(string userId)
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var roles = await scope.ServiceProvider.GetRequiredService<IUserService>().GetRolesAsync(userId, includeUnassigned: false, TestContext.Current.CancellationToken);
         var roleService = scope.ServiceProvider.GetRequiredService<IRoleService>();
         foreach (var role in roles.Where(r => r.Enabled))
@@ -349,7 +349,7 @@ public sealed class PerUserRateLimitTests(WaydSqlServerApiFactory factory)
     private async Task SetMcpFlag(bool enabled)
     {
         using var scope = _factory.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<ICurrentUserInitializer>().SetCurrentUserId("integration-test-harness");
+        await scope.ActAsHarnessAdministrator();
         var flagId = await scope.ServiceProvider.GetRequiredService<IFeatureManagementDbContext>().FeatureFlags
             .Where(f => f.Name == FeatureFlags.Names.McpServer)
             .Select(f => f.Id)

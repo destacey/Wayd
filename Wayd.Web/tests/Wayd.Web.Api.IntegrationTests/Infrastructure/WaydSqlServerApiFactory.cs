@@ -106,6 +106,7 @@ public sealed class WaydSqlServerApiFactory : WebApplicationFactory<Program>, IA
         }
 
         await BootHost();
+        await AuthenticatedClientExtensions.CreateHarnessAdministrator(Services, CancellationToken.None);
     }
 
     public override async ValueTask DisposeAsync()

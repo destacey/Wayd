@@ -64,7 +64,7 @@ const EditRoleForm = ({
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage: 'An unexpected error occurred while updating the role.',
-      permission: 'Permissions.Roles.Update',
+      permission: 'Permissions.Roles.Manage',
     })
 
   // Additional editableRole check — if the role is not editable, cancel

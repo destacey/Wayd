@@ -25,6 +25,9 @@ internal class RoleService(
     private readonly IDateTimeProvider _dateTimeProvider = dateTimeProvider;
     private readonly ILogger<RoleService> _logger = logger;
 
+    /// <summary>Every permission a role may hold.</summary>
+    private static readonly HashSet<string> _catalog = [.. ApplicationPermissions.Admin.Select(p => p.Name)];
+
     public async Task<List<RoleListDto>> GetList(CancellationToken cancellationToken)
         => await _roleManager.Roles.ProjectToType<RoleListDto>().ToListAsync(cancellationToken);
 
@@ -140,15 +143,25 @@ internal class RoleService(
             return Result.Failure("Not allowed to modify Permissions for this Role.");
         }
 
-        //if (_currentTenant.Id != MultitenancyConstants.Root.Id)
-        //{
-        //    // Remove Root Permissions if the Role is not created for Root Tenant.
-        //    request.Permissions.RemoveAll(u => u.StartsWith("Permissions.Root."));
-        //}
-
         var requested = request.Permissions
             .Where(p => !string.IsNullOrEmpty(p))
             .ToHashSet();
+
+        // A claim the catalog does not define is checked by no endpoint, so it can only be a mistake, or a permission
+        // a later release defines and that would then be granted without anyone having chosen it.
+        var unknown = requested.Where(p => !_catalog.Contains(p)).Order(StringComparer.Ordinal).ToList();
+        if (unknown.Count > 0)
+        {
+            _logger.LogWarning("Role permissions update rejected for {RoleId}: unknown permissions {Permissions}.", role.Id, unknown);
+            return Result.Failure($"Unknown permissions: {string.Join(", ", unknown)}.");
+        }
+
+        var administrators = await Administrators.Load(_userManager, _roleManager, cancellationToken);
+        if (administrators.LosesTheLast(administrators.WithRolePermissions(role.Name!, requested)))
+        {
+            _logger.LogWarning("Role permissions update rejected for {RoleId}: no active user would hold every permission.", role.Id);
+            return Result.Failure(Administrators.KeepOne);
+        }
 
         var currentClaims = await _db.RoleClaims
             .Where(c => c.RoleId == role.Id)

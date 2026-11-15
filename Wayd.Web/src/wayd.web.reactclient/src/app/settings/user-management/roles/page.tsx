@@ -21,7 +21,7 @@ const RoleListPage = () => {
   const { data: roleData, isLoading, error, refetch } = useGetRolesQuery()
 
   const { hasClaim } = useAuth()
-  const canCreateRole = hasClaim('Permission', 'Permissions.Roles.Create')
+  const canCreateRole = hasClaim('Permission', 'Permissions.Roles.Manage')
 
   const columns = useMemo<ColumnDef<RoleListDto, any>[]>(
     () => [

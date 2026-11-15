@@ -41,13 +41,19 @@ internal partial class UserService(
 
     public async Task<bool> ExistsWithEmailAsync(string email, string? exceptId = null)
     {
-        return await _userManager.FindByEmailAsync(email.Normalize()) is ApplicationUser user && user.Id != exceptId;
+        return await _userManager.FindByEmailAsync(email.Normalize()) is ApplicationUser user && !IsSameUserId(user.Id, exceptId);
     }
 
     public async Task<bool> ExistsWithPhoneNumberAsync(string phoneNumber, string? exceptId = null)
     {
-        return await _userManager.Users.FirstOrDefaultAsync(x => x.PhoneNumber == phoneNumber) is ApplicationUser user && user.Id != exceptId;
+        return await _userManager.Users.FirstOrDefaultAsync(x => x.PhoneNumber == phoneNumber) is ApplicationUser user && !IsSameUserId(user.Id, exceptId);
     }
+
+    /// <summary>
+    /// Whether two user ids name the same user, compared as the database compares them: without regard to case, so a
+    /// request naming a user in another case is still recognised as that user.
+    /// </summary>
+    private static bool IsSameUserId(string id, string? other) => string.Equals(id, other, StringComparison.OrdinalIgnoreCase);
 
     public async Task<bool> ExistsWithEmployeeIdAsync(Guid employeeId, string? exceptId = null)
     {
@@ -132,6 +138,8 @@ internal partial class UserService(
         if (user.IsActive)
             return Result.Failure("User is already active.");
 
+        await EnsureMayManage(user, cancellationToken);
+
         user.Activate(CurrentActor(), _dateTimeProvider.Now);
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
@@ -150,8 +158,14 @@ internal partial class UserService(
         if (!user.IsActive)
             return Result.Failure("User is already inactive.");
 
-        if (command.UserId == _currentUser.GetUserId())
+        if (user.Id == _currentUser.GetUserId())
             return Result.Failure("You cannot deactivate your own account.");
+
+        await EnsureMayManage(user, cancellationToken);
+
+        var administrators = await LoadAdministrators(cancellationToken);
+        if (administrators.LosesTheLast(administrators.WithoutUser(user.Id)))
+            return Result.Failure(Administrators.KeepOne);
 
         user.Deactivate(CurrentActor(), _dateTimeProvider.Now);
         IdentityResult result = IdentityResult.Success;
@@ -173,6 +187,8 @@ internal partial class UserService(
         var user = await _userManager.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
         if (user is null)
             throw new NotFoundException("User Not Found.");
+
+        await EnsureMayManage(user, cancellationToken);
 
         if (user.PendingMigrationTenantId is null)
         {
@@ -199,6 +215,8 @@ internal partial class UserService(
 
         if (user.LoginProvider != LoginProviders.MicrosoftEntraId)
             return Result.Failure("Only Microsoft Entra ID users sign in from a tenant.");
+
+        await EnsureMayManage(user, cancellationToken);
 
         // Someone already signs in with this account; pointing its next sign-in at another
         // tenant would hand it to whoever there matches the UPN.
@@ -283,6 +301,12 @@ internal partial class UserService(
                 if (!onSourceTenantSet.Contains(userId))
                 {
                     skipped.Add(new SkippedUser(userId, "User is no longer on the source tenant."));
+                    continue;
+                }
+
+                if (!await MayManage(user, ct))
+                {
+                    skipped.Add(new SkippedUser(userId, "User holds a privileged permission, which needs Manage Privileged Users."));
                     continue;
                 }
 
@@ -398,6 +422,8 @@ internal partial class UserService(
         if (user is null)
             throw new NotFoundException("User Not Found.");
 
+        await EnsureMayManage(user, cancellationToken);
+
         // Can't migrate to the same provider — that's a tenant migration (or a no-op)
         if (string.Equals(user.LoginProvider, command.TargetProviderId, StringComparison.OrdinalIgnoreCase))
             return Result.Failure("Target provider is the same as the user's current provider.");
@@ -430,6 +456,8 @@ internal partial class UserService(
         if (user is null)
             throw new NotFoundException("User Not Found.");
 
+        await EnsureMayManage(user, cancellationToken);
+
         if (user.PendingMigrationProviderId is null)
         {
             // Idempotent: same semantics as CancelTenantMigration
@@ -453,6 +481,8 @@ internal partial class UserService(
 
         if (user.LoginProvider == LoginProviders.Wayd)
             return Result.Failure("User is already a local account.");
+
+        await EnsureMayManage(user, cancellationToken);
 
         // Validate the password before entering the transaction so a bad password
         // returns a clean Result.Failure without touching the database.

@@ -55,7 +55,7 @@ User accounts control access to Wayd. Each user has:
 - **Roles** — Permission groups that control what the user can see and do
 - **Status** — Active or Inactive, and Locked while a lockout is in force
 
-**Account operations** (the user's **Actions** menu; each needs `Permissions.Users.Update`, except **Manage Roles**, which needs `Permissions.UserRoles.Update`):
+**Account operations** (the user's **Actions** menu; each needs `Permissions.Users.Update`, except **Manage Roles**, which needs `Permissions.UserRoles.Update`). A user who holds a privileged permission, such as any Admin, can be changed only with `Permissions.PrivilegedUsers.Manage`, and nobody changes their own roles or linked employee; see [User administration](./permissions.mdx#user-administration-and-privileged-permissions):
 - **Activate Account** — Enable a user account
 - **Deactivate Account** — Disable a user account. It signs them out of every device straight away and disconnects their connected applications; their personal access tokens stop working while the account is inactive. People sync deactivating a user does the same.
 - **Unlock Account** — Unlock an account locked due to failed login attempts. An administrator no other active, unlocked administrator could unlock is never locked out: wrong passwords slow their sign-in instead, so nobody is left unable to unlock anyone.
@@ -76,6 +76,8 @@ The form captures the user's details, their **Login Provider** (set here and imm
 
 **Things to know:**
 
+- **Privileged roles need `Permissions.PrivilegedUsers.Manage`.** You can assign any other role, but one that grants a [privileged permission](./permissions.mdx#user-administration-and-privileged-permissions), Admin among them, is refused without it.
+- **An employee can be linked to one user only.** Choosing an employee already linked to another account is refused.
 - **At least one role is required.** You must assign one or more roles when creating a user — there is no default role applied automatically. A user with no roles has no permissions, so the form won't submit until at least one is selected.
 - **Login provider is permanent.** The provider chosen at creation can't be changed later through editing; use **Change Identity Provider** to move a user between providers.
 - **Microsoft Entra ID users sign in from one tenant.** Their first sign-in from that tenant, with a matching email, links the account. If your Entra provider allows only one tenant it's used automatically; if it allows several, pick it in **Sign-in Tenant**. A sign-in from any other tenant is refused. To change the tenant before they've signed in, use **Set Sign-in Tenant** on the user's page.
@@ -186,7 +188,7 @@ Managing roles, from **Settings → Access → Roles**:
 
 - **The seeded Admin role holds every permission and cannot be edited, deleted, or have its permissions changed.** A permission added to Wayd is granted to it automatically on startup.
 - **A role in use can't be deleted** — not while users hold it, and not while it is an identity provider's default role.
-- Viewing roles needs `Permissions.Roles.View`; creating, editing and deleting them need `Permissions.Roles.Create`, `.Update` and `.Delete`. Changing who holds a role needs `Permissions.UserRoles.Update`.
+- Viewing roles and what they grant needs `Permissions.Roles.View`; creating, editing and deleting them, and choosing their permissions, needs `Permissions.Roles.Manage`, which is privileged. Changing who holds a role needs `Permissions.UserRoles.Update`, and `Permissions.PrivilegedUsers.Manage` as well for a role that grants a privileged permission.
 
 #### A baseline role for everyone
 

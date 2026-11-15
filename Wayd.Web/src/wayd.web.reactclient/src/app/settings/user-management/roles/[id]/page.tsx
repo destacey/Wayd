@@ -50,9 +50,9 @@ const RoleDetailsPage = (props: { params: Promise<{ id: string }> }) => {
   const editableRole = !!role && !isSystemRole
 
   const canUpdateRole =
-    hasPermissionClaim('Permissions.Roles.Update') && editableRole
+    hasPermissionClaim('Permissions.Roles.Manage') && editableRole
   const canDeleteRole =
-    hasPermissionClaim('Permissions.Roles.Delete') && editableRole
+    hasPermissionClaim('Permissions.Roles.Manage') && editableRole
   const canUpdateUserRoles = hasPermissionClaim('Permissions.UserRoles.Update')
 
   const hasAssignedUsers = userCount !== undefined && userCount > 0

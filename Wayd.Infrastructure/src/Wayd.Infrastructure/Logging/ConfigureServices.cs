@@ -15,6 +15,7 @@ internal static class ConfigureServices
 
             // In code because logger.json cannot pass the enricher its destructurer and filter.
             config.Enrich.WithWaydExceptionDetails();
+            config.Filter.With<InvokedValidationFailureFilter>();
 
             // Add version enricher
             var version = Environment.GetEnvironmentVariable("version")

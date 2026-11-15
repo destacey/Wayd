@@ -45108,7 +45108,7 @@
           "Imports"
         ],
         "summary": "Get a page of an import run's row outcomes, in line order.",
-        "description": "Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing. Paged: the response carries `totalCount` and `hasNextPage`.",
+        "description": "Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing. Paged: the response carries `totalCount` and `hasNextPage`. `filter` and `sort` use Gridify syntax over `rowNumber`, `importId`, `status`, `error`, `warning` and `attemptedOn`: `filter=error=*duplicate` (contains), `^` starts with, `$` ends with, `!=` not equal, `field=` blank, `,` and, `|` or, parentheses to group, `\\` before any other character to match it literally; `attemptedOn` takes ISO instants (`attemptedOn>=2026-03-01T00:00:00Z`). `sort=status asc, rowNumber desc`; rows are in line order by default. A field outside that list fails with a 422.",
         "operationId": "Imports_GetRows",
         "parameters": [
           {
@@ -45153,6 +45153,24 @@
               "default": 50
             },
             "x-position": 4
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 5
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "nullable": true
+            },
+            "x-position": 6
           }
         ],
         "responses": {

@@ -47,6 +47,15 @@ public sealed class ControllerPagingTests
     /// </summary>
     private static readonly Dictionary<string, string> ResponseTypeStrays = new();
 
+    /// <summary>
+    /// Actions that take a <c>filter</c> or <c>sort</c> of their own rather than the Gridify pair, each with
+    /// what moves it. An entry is removed with the action; the list never grows.
+    /// </summary>
+    private static readonly Dictionary<string, string> FilterSortStrays = new()
+    {
+        ["MyFollowsController.GetFollows"] = "a `FollowSort` enum and `direction`, predating the Gridify pair (#1143)",
+    };
+
     private sealed record Action(
         string Name,
         IReadOnlyList<string> Parameters,
@@ -147,6 +156,31 @@ public sealed class ControllerPagingTests
         actions.Should().NotBeEmpty();
         violations.Should().BeEmpty("an action answering with PagedResponse<T> takes `page` and `pageSize`, and not `before`");
         ownDefaults.Should().BeEmpty("`page` defaults to PageRequest.FirstPage and `pageSize` to PageSizes.Default");
+    }
+
+    [Fact]
+    public void ActionsTakingFilterOrSort_AnswerWithAPagedResponse_AndTakeBoth()
+    {
+        // Arrange
+        var all = Actions().Where(a => Takes(a, "filter") || Takes(a, "sort")).ToList();
+        var actions = all.Where(a => !FilterSortStrays.ContainsKey(a.Name)).ToList();
+
+        // Act
+        var violations = actions
+            .Where(a => !Answers(a, typeof(PagedResponse<>)) || !Takes(a, "filter") || !Takes(a, "sort"))
+            .Select(a => a.Name)
+            .ToList();
+        var ownDefaults = actions
+            .Where(a => !DefaultsTo(a, "filter", null) || !DefaultsTo(a, "sort", null))
+            .Select(a => a.Name)
+            .ToList();
+
+        // Assert — the grid's server mode sends both to any list it pages, in Gridify's syntax
+        actions.Should().NotBeEmpty();
+        violations.Should().BeEmpty("`filter` and `sort` go together, on an action answering with PagedResponse<T>");
+        ownDefaults.Should().BeEmpty("`filter` and `sort` default to null, for every row in the list's default order");
+        FilterSortStrays.Keys.Except(all.Select(a => a.Name)).Should().BeEmpty(
+            "an allow-listed action that no longer takes `filter` or `sort`, or no longer exists, comes off the list");
     }
 
     [Fact]

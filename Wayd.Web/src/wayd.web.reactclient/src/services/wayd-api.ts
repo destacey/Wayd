@@ -51342,9 +51342,11 @@ export class ImportsClient {
      * @param status (optional) 
      * @param page (optional) 
      * @param pageSize (optional) 
+     * @param filter (optional) 
+     * @param sort (optional) 
      * @return OK
      */
-    getRows(id: string, status?: ImportRowStatus | null | undefined, page?: number | undefined, pageSize?: number | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfImportProcessRowDto> {
+    getRows(id: string, status?: ImportRowStatus | null | undefined, page?: number | undefined, pageSize?: number | undefined, filter?: string | null | undefined, sort?: string | null | undefined, cancelToken?: CancelToken): Promise<PagedResponseOfImportProcessRowDto> {
         let url_ = this.baseUrl + "/api/imports/{id}/rows?";
         if (id === undefined || id === null)
             throw new globalThis.Error("The parameter 'id' must be defined.");
@@ -51359,6 +51361,10 @@ export class ImportsClient {
             throw new globalThis.Error("The parameter 'pageSize' cannot be null.");
         else if (pageSize !== undefined)
             url_ += "pageSize=" + encodeURIComponent("" + pageSize) + "&";
+        if (filter !== undefined && filter !== null)
+            url_ += "filter=" + encodeURIComponent("" + filter) + "&";
+        if (sort !== undefined && sort !== null)
+            url_ += "sort=" + encodeURIComponent("" + sort) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: AxiosRequestConfig = {

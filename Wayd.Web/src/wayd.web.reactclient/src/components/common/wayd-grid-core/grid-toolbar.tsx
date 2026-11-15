@@ -34,6 +34,12 @@ export interface GridToolbarProps {
   actionsSlot?: React.ReactNode
   /** Slot for actions rendered on the far right of the toolbar. */
   rightSlot?: React.ReactNode
+  /**
+   * What the rows are, plural. Given, the count reads as one total ("3,120
+   * rows") rather than "shown of all": a server-mode grid shows every row of
+   * its total, filtered on the server.
+   */
+  rowNoun?: string
 }
 
 /**
@@ -58,6 +64,7 @@ const GridToolbar = ({
   leftSlot,
   helpContent,
   rightSlot,
+  rowNoun,
 }: GridToolbarProps) => {
   return (
     <div className={styles.toolbar}>
@@ -65,7 +72,9 @@ const GridToolbar = ({
 
       <div className={styles.toolbarRight}>
         <Text>
-          {displayedRowCount} of {totalRowCount}
+          {rowNoun
+            ? `${totalRowCount.toLocaleString()} ${rowNoun}`
+            : `${displayedRowCount} of ${totalRowCount}`}
         </Text>
         {includeGlobalSearch && (
           <Input

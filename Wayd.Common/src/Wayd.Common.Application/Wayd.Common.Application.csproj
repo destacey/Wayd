@@ -3,6 +3,9 @@
     <ItemGroup>
         <PackageReference Include="CSharpFunctionalExtensions" />
         <PackageReference Include="FluentValidation" />
+        <!-- Reached only through ListFieldMap, so the dependency stays in one place. -->
+        <PackageReference Include="Gridify" />
+        <PackageReference Include="Gridify.EntityFramework" />
         <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
         <PackageReference Include="Mapster" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />

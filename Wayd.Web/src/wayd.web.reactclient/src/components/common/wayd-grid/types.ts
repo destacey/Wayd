@@ -2,6 +2,7 @@ import type { ColumnDef, Row, SortingState } from '../wayd-grid-core'
 import type { OnChangeFn, RowSelectionState } from '@tanstack/react-table'
 import type { DraftItem } from '../wayd-grid-core/draft-utils'
 import type { MoveValidator } from '../wayd-grid-core/dnd/tree-projection'
+import type { FetchServerPage } from '../wayd-grid-core/server/server-page-cache'
 
 // Column meta + filter option types moved to the shared grid core (including
 // the TanStack ColumnMeta module augmentation); re-exported so wayd-grid
@@ -99,9 +100,22 @@ export interface WaydGridProps<T extends RowData> {
   /**
    * Row data. In tree mode, the root nodes (children come from getSubRows).
    * May be undefined while loading (e.g. straight from a query hook) — treated
-   * as an empty grid, matching the old ag-grid `rowData` tolerance.
+   * as an empty grid, matching the old ag-grid `rowData` tolerance. Leave it
+   * out in server mode ({@link server}), where the grid fetches its own rows.
    */
-  data: T[] | undefined
+  data?: T[] | undefined
+  /**
+   * Server mode, for a list the server pages, sorts and filters
+   * (`PagedResponse<T>` with `filter` and `sort`): one continuous list whose
+   * scrollbar spans the server's total, fetching the pages under the visible
+   * window as the user scrolls. See {@link WaydGridServerSource}.
+   *
+   * Decided on mount; a grid does not switch modes. In server mode `data`,
+   * grouping, tree mode, row reorder, cell editing, the chart pane and CSV
+   * export are off, the date tree is hidden, and set filters list only
+   * `meta.filterOptions`.
+   */
+  server?: WaydGridServerSource<T>
   /**
    * The grid's accessible name, announced when a screen reader enters it.
    * Give one when the page has more than one grid or no heading naming it.
@@ -353,6 +367,49 @@ export interface WaydGridProps<T extends RowData> {
    * completely unchanged when this is absent.
    */
   rightPane?: WaydGridRightPane<T>
+}
+
+/**
+ * The page a server-mode grid reads ({@link WaydGridProps.server}). The grid
+ * owns the rest: which pages to fetch, the sort and filter it sends, and
+ * starting over at the top when they change.
+ */
+export interface WaydGridServerSource<T extends RowData> {
+  /**
+   * Fetches one page. Pass the request's `filter`, `sort` and `search` to the
+   * API unchanged, and its `signal` where the client takes one. It may be a
+   * new function each render; the grid calls the latest.
+   */
+  fetchPage: FetchServerPage<T>
+  /**
+   * What the list is, beyond the grid's own sort, filters and search: the
+   * values `fetchPage` reads that make it a different list (a run id, an
+   * outside status filter). Compared by value; a change starts the list over
+   * at the top.
+   */
+  listKey?: unknown
+  /**
+   * The fields the server sorts and filters by: its field map, named as the
+   * grid's column ids. Any other column has its sort and filter turned off.
+   */
+  fields: readonly string[]
+  /** Rows per request. 100 by default; at most the API's 500. */
+  pageSize?: number
+  /** Whether the list takes `search`; quick search is hidden otherwise. */
+  search?: boolean
+  /** What the list holds, plural, for the toolbar's total ("3,120 rows"). */
+  noun?: string
+  /**
+   * Refetches the pages in view this often (ms) while the tab is visible, for
+   * a list that changes while it is open. Off by default.
+   */
+  refreshInterval?: number
+  /**
+   * A value whose change refetches the pages in view without starting over —
+   * the state of a run that moves on, say. A change that makes the list a
+   * different list belongs in `fetchPage` instead.
+   */
+  refreshKey?: unknown
 }
 
 /** The consumer's half of the row-action keys ({@link WaydGridProps.rowActions}). */

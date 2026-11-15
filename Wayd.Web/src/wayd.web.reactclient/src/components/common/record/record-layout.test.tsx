@@ -223,6 +223,36 @@ describe('RecordLayout', () => {
     expect(screen.getByRole('combobox')).toBeInTheDocument()
   })
 
+  it('mounts the section once while the breakpoints are first measured', () => {
+    // Arrange — useBreakpoint reports nothing on the first render
+    mockBreakpoint.mockReturnValue({})
+    const mounted = vi.fn()
+    const Section = () => {
+      React.useEffect(() => {
+        mounted()
+      }, [])
+      return <div>section body</div>
+    }
+    const layout = () => (
+      <RecordLayout
+        sections={SECTIONS}
+        reports={REPORTS}
+        defaultSection="overview"
+      >
+        {() => <Section />}
+      </RecordLayout>
+    )
+    const { rerender } = render(layout())
+
+    // Act
+    mockBreakpoint.mockReturnValue({ md: true, lg: true })
+    rerender(layout())
+
+    // Assert
+    expect(screen.getByText('section body')).toBeInTheDocument()
+    expect(mounted).toHaveBeenCalledTimes(1)
+  })
+
   it('keeps the rail usable when a section throws', () => {
     // Arrange
     const Boom = () => {

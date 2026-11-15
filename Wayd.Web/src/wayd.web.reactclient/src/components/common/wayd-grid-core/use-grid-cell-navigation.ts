@@ -29,6 +29,12 @@ export interface GridCellNavigationOptions<T extends RowData> {
   bodyViewportRef: React.RefObject<HTMLElement | null>
   /** A rendered row's height in px, for the page size. */
   rowHeight: number
+  /**
+   * A change moves the Tab stop back to the first cell: the rows are a
+   * different list (a server-mode grid's new query), so the old position, kept
+   * by index when its row is gone, would pin a row far down the new one.
+   */
+  resetKey?: unknown
 }
 
 const escapeSelectorValue = (value: string) =>
@@ -80,8 +86,14 @@ export function useGridCellNavigation<T extends RowData>({
   onRowActivate,
   bodyViewportRef,
   rowHeight,
+  resetKey,
 }: GridCellNavigationOptions<T>) {
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null)
+  const [seenResetKey, setSeenResetKey] = useState(resetKey)
+  if (!Object.is(seenResetKey, resetKey)) {
+    setSeenResetKey(resetKey)
+    setActiveCell(null)
+  }
   const [hasFocusWithin, setHasFocusWithin] = useState(false)
   const pendingFocusRef = useRef<ActiveCell | null>(null)
   const sentinelBeforeRef = useRef<HTMLSpanElement>(null)

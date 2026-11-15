@@ -93536,11 +93536,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a page of an import run's row outcomes, in line order.
         /// </summary>
         /// <remarks>
-        /// Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing. Paged: the response carries `totalCount` and `hasNextPage`.
+        /// Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing. Paged: the response carries `totalCount` and `hasNextPage`. `filter` and `sort` use Gridify syntax over `rowNumber`, `importId`, `status`, `error`, `warning` and `attemptedOn`: `filter=error=*duplicate` (contains), `^` starts with, `$` ends with, `!=` not equal, `field=` blank, `,` and, `|` or, parentheses to group, `\` before any other character to match it literally; `attemptedOn` takes ISO instants (`attemptedOn&gt;=2026-03-01T00:00:00Z`). `sort=status asc, rowNumber desc`; rows are in line order by default. A field outside that list fails with a 422.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        System.Threading.Tasks.Task<PagedResponseOfImportProcessRowDto> GetRowsAsync(System.Guid id, ImportRowStatus? status = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
+        System.Threading.Tasks.Task<PagedResponseOfImportProcessRowDto> GetRowsAsync(System.Guid id, ImportRowStatus? status = null, int? page = null, int? pageSize = null, string? filter = null, string? sort = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken));
 
         /// <param name="cancellationToken">A cancellation token that can be used by other objects or threads to receive notice of cancellation.</param>
         /// <summary>
@@ -93932,11 +93932,11 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
         /// Get a page of an import run's row outcomes, in line order.
         /// </summary>
         /// <remarks>
-        /// Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing. Paged: the response carries `totalCount` and `hasNextPage`.
+        /// Each row has its `importId` (the file's ImportId column, or its position when that cell was blank), `rowNumber`, `status` (Pending, Succeeded, Failed, Cancelled), the `error` a rejected row was refused for, any `warning` a successful row recorded, and `createdEntityId`. In a preflight, Succeeded means the row would have been imported. Filter by `status: Failed` to see only what needs fixing. Paged: the response carries `totalCount` and `hasNextPage`. `filter` and `sort` use Gridify syntax over `rowNumber`, `importId`, `status`, `error`, `warning` and `attemptedOn`: `filter=error=*duplicate` (contains), `^` starts with, `$` ends with, `!=` not equal, `field=` blank, `,` and, `|` or, parentheses to group, `\` before any other character to match it literally; `attemptedOn` takes ISO instants (`attemptedOn&gt;=2026-03-01T00:00:00Z`). `sort=status asc, rowNumber desc`; rows are in line order by default. A field outside that list fails with a 422.
         /// </remarks>
         /// <returns>OK</returns>
         /// <exception cref="WaydApiException">A server side error occurred.</exception>
-        public virtual async System.Threading.Tasks.Task<PagedResponseOfImportProcessRowDto> GetRowsAsync(System.Guid id, ImportRowStatus? status = null, int? page = null, int? pageSize = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+        public virtual async System.Threading.Tasks.Task<PagedResponseOfImportProcessRowDto> GetRowsAsync(System.Guid id, ImportRowStatus? status = null, int? page = null, int? pageSize = null, string? filter = null, string? sort = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
         {
             if (id == null)
                 throw new System.ArgumentNullException("id");
@@ -93968,6 +93968,14 @@ namespace Wayd.Tools.DataGeneration.Cli.Client
                     if (pageSize != null)
                     {
                         urlBuilder_.Append(System.Uri.EscapeDataString("pageSize")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(pageSize, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (filter != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("filter")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(filter, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
+                    }
+                    if (sort != null)
+                    {
+                        urlBuilder_.Append(System.Uri.EscapeDataString("sort")).Append('=').Append(System.Uri.EscapeDataString(ConvertToString(sort, System.Globalization.CultureInfo.InvariantCulture))).Append('&');
                     }
                     urlBuilder_.Length--;
 

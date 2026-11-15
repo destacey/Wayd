@@ -253,6 +253,68 @@ response type but those two carries paging. `PagingTests` (`Wayd.ArchitectureTes
 answering with either shape implements the matching interface, has the matching validator, and carries no
 paging properties of its own.
 
+#### Filtering and sorting a paged list
+
+A list paged by number that a grid sorts and filters takes two more parameters, `filter` and `sort`, in
+[Gridify](https://alirezanet.github.io/Gridify/)'s syntax, so the grid can scroll the whole list while the
+server decides which rows match and in what order:
+
+```text
+GET /imports/{id}/rows?page=1&pageSize=100
+   &sort=status asc, rowNumber desc
+   &filter=(status=Failed|status=Pending), error=*duplicate, (attemptedOn>=2026-03-01T00:00:00Z,attemptedOn<2026-03-02T00:00:00Z)
+```
+
+| Grid filter | Gridify |
+| --- | --- |
+| Contains, does not contain, starts with, ends with | `name=*x`, `name!*x`, `name^x`, `name$x` |
+| Equals, not equal | `name=x`, `name!=x` |
+| Blank (null or empty), not blank | `name=`, `name!=` |
+| Greater than, less than, in range | `score>10`, `score<=20`, `(score>=10,score<=20)` |
+| A date (`LocalDate`, ISO date) or a moment (`Instant`, ISO instant) | `(due>=2026-03-01,due<2026-03-02)` |
+| Set, including (Blanks) | `(status=Open\|status=Mitigating\|status=)` |
+| AND / OR, grouping | `,` / `\|`, parentheses |
+| Multi-column sort | `status asc, due desc` |
+
+A `\` before any character makes it part of the value (`\,` is a comma, `\\` a backslash); the grid escapes every character but letters, digits and spaces. An enum is matched by its code, ignoring
+case; its number, an undefined code and a comma-joined list of codes are refused. Field names and `asc`/`desc`
+match ignoring case. The word `null` is text like any other: a blank is `field=`.
+Text compares under the column's collation, which is case-insensitive, so Gridify's `/i` flag is refused: it
+only wraps the column in `LOWER()`, which no index serves.
+An enum stored as text sorts by its code, alphabetically.
+
+The query implements `IFilteredPagedQuery` (`Filter` and `Sort` beside `Paging`) and declares a
+`ListFieldMap<TEntity>` (`GetImportProcessRowsQuery.Fields`). The map is the allow-list: only the fields it
+names can be sorted or filtered, under the names it gives them, which are the grid's column ids. Its handler
+applies it to the entity query before projecting to the DTO, so everything is translated to SQL:
+
+```csharp
+rows = GetImportProcessRowsQuery.Fields.ApplyFilter(rows, query.Filter);
+var totalCount = await rows.CountAsync(cancellationToken);
+var page = await GetImportProcessRowsQuery.Fields.ApplySort(rows, query.Sort)
+    .Skip(query.Paging.Skip).Take(query.Paging.PageSize)
+    .Select(...)
+```
+
+`ListFieldMap.Create(defaultSort, uniqueKey)` takes the order used when the caller names none and a key no two
+rows share; `ApplySort` always sorts on that key last, so rows that tie keep one order between requests and no
+page boundary repeats or skips one. A field computed after the page is read (a resolved link, say) cannot be in
+the map. Handlers never call Gridify directly; `ListFieldMap` is the only type that does, and it switches on
+Gridify's Entity Framework compatibility layer, which sends values as parameters and escapes `LIKE` wildcards.
+
+Its validator derives from `FilteredPagedQueryValidator<TQuery, TEntity>`, passing the map
+(`public sealed class GetImportProcessRowsQueryValidator() : FilteredPagedQueryValidator<GetImportProcessRowsQuery, ImportProcessRow>(GetImportProcessRowsQuery.Fields);`).
+It answers 422 with a failure named `Filter` or `Sort` for a string it cannot read, a value it cannot convert,
+or a field the map does not name — listing the ones it does — and caps a filter at 4,000 characters, 100
+conditions and 8 levels of parentheses, and a sort at 1,000 characters and 10 fields. The failure describes
+the input, never a CLR type. Validation runs the filter over an empty in-memory list, so it cannot tell
+whether SQL Server can run it; the integration tests hold that. The action takes
+`[FromQuery] string? filter = null` and `[FromQuery] string? sort = null`, and its description lists the fields,
+so MCP tools and agents can use them. `ControllerPagingTests` holds every action that takes `filter` or `sort`
+to taking both and answering with `PagedResponse<T>`; `PagingTests` holds every `IFilteredPagedQuery` to the
+validator. Over an in-memory fake a text operator other than equality throws on a null value, so prove a new
+map's translation against SQL Server, as `ImportRowListTranslationIntegrationTests` does.
+
 An action that reads its page without a query, because it reads host plumbing outside the handler pipeline
 (background jobs from Hangfire, dead letters from Wolverine), checks the `PageRequest` it builds with
 `PageRequestValidation.IsValid` and answers 422 on failure, so it holds the same bounds as a query would.

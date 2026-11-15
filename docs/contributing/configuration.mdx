@@ -759,7 +759,7 @@ The API serves no Hangfire dashboard. Jobs are monitored, run, requeued and sche
 
 ## Request logging
 
-`MiddlewareSettings:EnableHttpsLogging` (`Configurations/middleware.json`, default `true`) turns on the request-logging middleware, which logs each request at a level set by its status code: 401 and 403 as warnings, 404 and 422 as information, any other status above 400 or an exception as an error, and the rest as information. Serilog itself is configured in `Configurations/logger.json` (console sink by default); `docker compose` adds the Seq sink through `Serilog__*` environment variables.
+`MiddlewareSettings:EnableHttpsLogging` (`Configurations/middleware.json`, default `true`) turns on the request-logging middleware, which logs each request at a level set by its status code: 401 and 403 as warnings, 404 and 422 as information, any other status above 400 or an exception as an error, and the rest as information. An exception is turned into its response inside the request log, so a validation failure logs as the 422 it answered. Wolverine's own `Invocation of {Message} failed!` error for a command or query an HTTP request invoked and that failed validation is dropped (`InvokedValidationFailureFilter`): the caller's mistake is not a fault, and the 422 is already logged. Serilog itself is configured in `Configurations/logger.json` (console sink by default); `docker compose` adds the Seq sink through `Serilog__*` environment variables.
 
 No log event carries a request's payload. Handlers log the request's name, never the request itself (see [Logging](./coding-standards.mdx#logging)), and the two paths that log on behalf of every message follow the same rule:
 

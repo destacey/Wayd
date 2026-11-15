@@ -111,8 +111,10 @@ form of the group id and filters like any other column; a file submitted on its 
 
 Open a run to go to its page, which shows each row's outcome and updates while the run is still going. It
 opens on the **rejected** rows when there are any, since that is usually why you came, and each carries
-the reason it was refused and the line it came from. The rows come 50 to a page, in line order; the pager
-above the grid moves between pages and shows up to 500 at a time. The page has its own address, so a run can be
+the reason it was refused and the line it came from. The rows are one list, in line order, however many the
+run has: scroll and they load as you reach them, and the toolbar counts them all. Sorting a column or
+filtering one applies to the whole run, not only the rows loaded so far. The Wayd Record column cannot be
+sorted or filtered, and the rows cannot be exported to CSV; the import's own file holds them. The page has its own address, so a run can be
 bookmarked or shared with someone who may see that kind of import. A run that was submitted as part of
 a batch lists the batch's other files under **Submitted With**, each with its status, so a seed or a
 split export can be walked file by file from any of them.

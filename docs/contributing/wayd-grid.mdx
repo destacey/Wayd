@@ -263,36 +263,57 @@ These come for free — no wiring beyond the column defs:
 
 ## Server-paged lists
 
-A grid over a list that pages on the server (`PagedResponse<T>`, see [Paging](./api.mdx#paging)) holds one page,
-so it gets its page controls from `WaydGridPager` in the toolbar's `rightSlot`, with `useGridPaging` holding the
-page and size it requests:
+A grid over a list that pages on the server (`PagedResponse<T>` with `filter` and `sort`, see
+[Filtering and sorting a paged list](./api.mdx#filtering-and-sorting-a-paged-list)) runs in **server mode**: one
+continuous list whose scrollbar spans the server's total. It fetches the pages under the visible window as the
+user scrolls or drags, shows placeholder rows for the rest, and sends its sort and column filters to the server.
+The page supplies one function that fetches a page; the grid owns everything else.
 
 ```tsx
-const paging = useGridPaging()
-const { data } = useGetJobsQuery({ state, page: paging.page, pageSize: paging.pageSize })
-paging.keepInRange(data?.totalPages)
+const fetchRows = async ({ page, pageSize, filter, sort }: ServerPageRequest) => {
+  const result = await getImportsClient().getRows(importProcess.id, status, page, pageSize, filter, sort)
+  return { items: result.items, totalCount: result.totalCount }
+}
 
 <WaydGrid
-  data={data?.items}
-  rightSlot={<WaydGridPager paging={paging} totalCount={data?.totalCount} noun="jobs" />}
-  …
+  columns={columns}
+  server={{
+    fetchPage: fetchRows,
+    listKey: [importProcess.id, status],
+    fields: ['rowNumber', 'importId', 'status', 'error', 'warning', 'attemptedOn'],
+    noun: 'rows',
+    refreshInterval: running ? 5000 : undefined,
+    refreshKey: importProcess.status,
+  }}
 />
 ```
 
-- **Call `keepInRange` during render** with the response's `totalPages`, so a list that shrinks while someone
-  reads its last page (jobs finishing, messages replayed) moves back to the page that is now last.
-- **Call `resetPage` when a filter sent to the server changes**: page 4 of one filter is not page 4 of another.
-  Changing the page size goes back to the first page on its own.
-- **Pass `currentData` as the rows and `data` to the pager.** RTK Query's `data` is the last answer for any
-  page, so passing it as the rows shows the previous page under the new page's range while the next one
-  loads; `currentData` is empty until it arrives. Show loading only while there is no `currentData`, so a
-  poll of the same page does not flash.
-- **Leave out `initialSorting`.** The page arrives in the list's own order, and sorting it in the browser
-  reorders only that page: with jobs that run soonest first, "latest first" would put each page backwards
-  against the next.
-- **The grid's sorting, search, filters and CSV export act on the page it holds**, not the list. Offer a filter
-  the API takes as a request parameter (a `Segmented` over states, as the jobs and import rows grids do) rather
-  than leaving the reader to filter a page.
+- **`fields` is the server's field map**, named as the grid's column ids. A column outside it cannot be sorted or
+  filtered. A field the server computes after reading the page (a resolved link) is never in it.
+- **`listKey` names what else makes the list** — the values `fetchPage` reads beyond the grid's own sort, filters
+  and search (a run id, a status chosen outside the grid). Compared by value; a change starts the list over at
+  the top, as a new sort or filter does. `fetchPage` itself may be a new function every render.
+- **`refreshKey` and `refreshInterval` refetch the pages in view** without starting over, for a list that changes
+  while it is open. The toolbar's refresh does the same. A refresh lets go of every page outside the view, so
+  scrolling back fetches it afresh rather than showing it as it was. A page whose fetch failed is not asked for
+  again until a refresh, or until the user scrolls away from it and back.
+- **Column types decide what a date filter sends**: `columnType: 'dateOnly'` sends calendar dates, for a
+  `LocalDate` field; `'dateTime'` sends instants to the minute in the viewer's zone, for an `Instant` field. Give a
+  date column one of the two. Server mode infers no type from the rows — they are a window that empties on every
+  new query — so a number column declares `meta: { filterType: 'number' }`, and an undeclared column filters as
+  text.
+- **A set filter lists `meta.filterOptions`**, whose values are what the server compares — an enum's codes, with
+  the labels to show. The loaded rows are a window of the list, so their values are not the column's.
+- **Quick search shows only with `search: true`**, for a list that takes a `search` parameter.
+- **Off in server mode:** grouping, tree mode, row reorder, cell editing, the chart pane, the date tree and CSV
+  export. Each needs the whole list (or a server operation of its own), which the grid does not have.
+- **Rows need an `id`** (or `getRowId`): rows arrive page by page, so a row's place in the table moves while its id
+  must not. A row with neither falls back to its place in the table, with a warning in development.
+
+Lists that page but do not yet sort or filter on the server (background jobs, dead letters, incidents, the import
+process list) still use `WaydGridPager` in the toolbar's `rightSlot`, with `useGridPaging` holding the page; the
+grid's sort, search, filters and export act only on the page it holds there. Each moves to server mode in turn,
+and the pager goes with the last of them.
 
 ## Column reordering
 

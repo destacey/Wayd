@@ -1,7 +1,7 @@
 import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { PokerRoundDto } from '@/src/services/wayd-api'
+import { PokerRoundDto } from '@/src/services/api/wayd.schemas'
 import VotingActions from './voting-actions'
 import {
   useRevealPokerRoundMutation,

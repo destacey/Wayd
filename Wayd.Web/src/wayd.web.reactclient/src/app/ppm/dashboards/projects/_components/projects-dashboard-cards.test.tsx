@@ -3,7 +3,7 @@ import { userEvent } from '@testing-library/user-event'
 import dayjs from 'dayjs'
 import ProjectsDashboardCards from './projects-dashboard-cards'
 import { ProjectGroup } from './dashboard-model'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
 
 global.ResizeObserver = class {
   observe() {}

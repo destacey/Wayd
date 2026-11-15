@@ -10,7 +10,7 @@ import {
   IntakeDeskVisibility,
   IntakeRequestDetailsDto,
   IntakeRequestSubstanceDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   DiscussionChannelTypes,
   useGetDiscussionSettingsQuery,

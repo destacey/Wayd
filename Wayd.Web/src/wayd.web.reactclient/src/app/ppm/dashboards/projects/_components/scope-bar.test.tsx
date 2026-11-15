@@ -2,7 +2,10 @@ import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import ScopeBar from './scope-bar'
-import { ProjectMemberRole, ProjectStatus } from '@/src/services/wayd-api'
+import {
+  ProjectMemberRole,
+  ProjectStatus,
+} from '@/src/services/api/wayd.schemas'
 
 global.ResizeObserver = class {
   observe() {}

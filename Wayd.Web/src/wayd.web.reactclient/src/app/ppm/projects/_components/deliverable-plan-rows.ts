@@ -1,7 +1,7 @@
 import {
   ProjectDeliverableDto,
   ProjectPlanNodeDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 /** The heading the plan work no deliverable is served by sits under. */
 export const NO_DELIVERABLE = 'No deliverable'

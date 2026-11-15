@@ -1,6 +1,6 @@
 'use client'
 
-import { PokerRoundDto } from '@/src/services/wayd-api'
+import { PokerRoundDto } from '@/src/services/api/wayd.schemas'
 import { Statistic } from 'antd'
 import { FC } from 'react'
 import styles from './poker-session.module.css'

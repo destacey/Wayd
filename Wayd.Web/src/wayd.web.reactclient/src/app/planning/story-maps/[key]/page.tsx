@@ -57,7 +57,7 @@ import {
   StoryMapEditAccess,
   StoryMapTaskDto,
   Visibility,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { togglePersonaId } from '@/src/store/features/planning/story-map-patches'
 import { generateCsv, downloadCsvWithTimestamp } from '@/src/utils/csv-utils'
 import type { CalendarDate } from '@/src/utils/calendar-date'

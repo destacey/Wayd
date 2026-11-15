@@ -1,8 +1,11 @@
-import { getDeliveryOverviewClient } from '@/src/services/clients'
+import {
+  deliveryOverviewGetDeliveryOverview,
+  deliveryOverviewGetRecentDeliveryEvents,
+} from '@/src/services/api/delivery-overview'
 import {
   DeliveryOverviewDto,
   RecentDeliveryEventDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import dayjs from 'dayjs'
@@ -35,14 +38,12 @@ export const deliveryOverviewApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getDeliveryOverviewClient().getDeliveryOverview(
-            // Local midnight, not `new Date('YYYY-MM-DD')`, which is UTC midnight and so the previous
-            // day anywhere west of Greenwich.
-            dayjs(request.from).toDate(),
-            dayjs(request.to).toDate(),
-            request.productId,
-            Intl.DateTimeFormat().resolvedOptions().timeZone,
-          )
+          const data = await deliveryOverviewGetDeliveryOverview({
+            from: dayjs(request.from).toDate(),
+            to: dayjs(request.to).toDate(),
+            productId: request.productId,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -63,11 +64,10 @@ export const deliveryOverviewApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request = {}) => {
         try {
-          const data =
-            await getDeliveryOverviewClient().getRecentDeliveryEvents(
-              request.take,
-              request.productId,
-            )
+          const data = await deliveryOverviewGetRecentDeliveryEvents({
+            take: request.take,
+            productId: request.productId,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

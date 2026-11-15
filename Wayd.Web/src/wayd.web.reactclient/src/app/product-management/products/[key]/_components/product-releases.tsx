@@ -1,7 +1,7 @@
 'use client'
 
 import { ReleasesGrid } from '@/src/app/product-management/releases/_components'
-import { ReleaseDto } from '@/src/services/wayd-api'
+import { ReleaseDto } from '@/src/services/api/wayd.schemas'
 
 export interface ProductReleasesProps {
   releases: ReleaseDto[]

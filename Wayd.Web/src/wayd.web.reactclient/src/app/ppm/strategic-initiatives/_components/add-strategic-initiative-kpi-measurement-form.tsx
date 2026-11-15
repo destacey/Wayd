@@ -4,7 +4,7 @@ import { createTypedFormItem } from '@/src/components/common/forms/utils'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { AddStrategicInitiativeKpiMeasurementRequest } from '@/src/services/wayd-api'
+import { AddStrategicInitiativeKpiMeasurementRequest } from '@/src/services/api/wayd.schemas'
 import {
   useAddStrategicInitiativeKpiMeasurementMutation,
   useGetStrategicInitiativeKpiQuery,

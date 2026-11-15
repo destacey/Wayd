@@ -7,8 +7,19 @@ import {
   UpdateStrategicThemeRequest,
   PagedResponseOfActivityLogDto,
   StrategicThemeState,
-} from '@/src/services/wayd-api'
-import { getStrategicThemesClient } from '@/src/services/clients'
+} from '@/src/services/api/wayd.schemas'
+import { strategicThemesGetStrategicThemes } from '@/src/services/api/strategic-themes'
+import {
+  strategicThemesActivate,
+  strategicThemesArchive,
+  strategicThemesCreate,
+  strategicThemesDelete,
+  strategicThemesGetActivities,
+  strategicThemesGetStateOptions,
+  strategicThemesGetStrategicTheme,
+  strategicThemesGetStrategicThemeOptions,
+  strategicThemesUpdate,
+} from '@/src/services/api/strategic-themes'
 import { QueryTags } from '../query-tags'
 import { OptionModel } from '@/src/components/types'
 import type { BaseOptionType } from 'antd/es/select'
@@ -21,11 +32,10 @@ export const strategicThemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request = undefined) => {
         try {
-          const data = await (
-            await getStrategicThemesClient()
-          ).getStrategicThemes(
-            (request?.state?.length ?? 0) > 0 ? request!.state : undefined,
-          )
+          const data = await strategicThemesGetStrategicThemes({
+            state:
+              (request?.state?.length ?? 0) > 0 ? request!.state : undefined,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -37,9 +47,7 @@ export const strategicThemesApi = apiSlice.injectEndpoints({
     getStrategicTheme: builder.query<StrategicThemeDetailsDto, number>({
       queryFn: async (key) => {
         try {
-          const data = await getStrategicThemesClient().getStrategicTheme(
-            key.toString(),
-          )
+          const data = await strategicThemesGetStrategicTheme(key.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -56,7 +64,7 @@ export const strategicThemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getStrategicThemesClient().create(request)
+          const data = await strategicThemesCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -73,10 +81,7 @@ export const strategicThemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ request, cacheKey }) => {
         try {
-          const data = await getStrategicThemesClient().update(
-            request.id,
-            request,
-          )
+          const data = await strategicThemesUpdate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -96,7 +101,7 @@ export const strategicThemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id }) => {
         try {
-          const data = await getStrategicThemesClient().activate(id)
+          const data = await strategicThemesActivate(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -116,7 +121,7 @@ export const strategicThemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id }) => {
         try {
-          const data = await getStrategicThemesClient().archive(id)
+          const data = await strategicThemesArchive(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -136,7 +141,7 @@ export const strategicThemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ strategicThemeId }) => {
         try {
-          const data = await getStrategicThemesClient().delete(strategicThemeId)
+          const data = await strategicThemesDelete(strategicThemeId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -150,7 +155,7 @@ export const strategicThemesApi = apiSlice.injectEndpoints({
     getStateOptions: builder.query<OptionModel<StrategicThemeState>[], void>({
       queryFn: async () => {
         try {
-          const states = await getStrategicThemesClient().getStateOptions()
+          const states = await strategicThemesGetStateOptions()
 
           const data: OptionModel<StrategicThemeState>[] = states
             .sort((a, b) => a.order - b.order)
@@ -173,10 +178,9 @@ export const strategicThemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (includeArchived = false) => {
         try {
-          const themes =
-            await getStrategicThemesClient().getStrategicThemeOptions(
-              includeArchived,
-            )
+          const themes = await strategicThemesGetStrategicThemeOptions({
+            includeArchived: includeArchived,
+          })
 
           const data: BaseOptionType[] = themes
             .sort((a, b) => a.name.localeCompare(b.name))
@@ -199,11 +203,10 @@ export const strategicThemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getStrategicThemesClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await strategicThemesGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

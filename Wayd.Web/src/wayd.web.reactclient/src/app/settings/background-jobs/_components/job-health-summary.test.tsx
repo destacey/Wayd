@@ -3,7 +3,7 @@ import {
   JobServerResponse,
   JobStateFilter,
   JobStatisticsResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import JobHealthSummary from './job-health-summary'
 
 const statistics = {

@@ -27,7 +27,7 @@ import {
   SyncRunStatus,
   SyncTriggerSource,
   SyncType,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { formatDuration } from '@/src/utils/duration'
 import styles from './sync-history-tab.module.css'
 

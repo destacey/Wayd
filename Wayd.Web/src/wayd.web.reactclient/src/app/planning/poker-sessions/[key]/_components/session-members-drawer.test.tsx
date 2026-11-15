@@ -1,7 +1,10 @@
 import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { PokerSessionDetailsDto, Visibility } from '@/src/services/wayd-api'
+import {
+  PokerSessionDetailsDto,
+  Visibility,
+} from '@/src/services/api/wayd.schemas'
 import SessionMembersDrawer from './session-members-drawer'
 import { useGetPokerSessionInvitedTeamMembersQuery } from '@/src/store/features/planning/poker-sessions-api'
 

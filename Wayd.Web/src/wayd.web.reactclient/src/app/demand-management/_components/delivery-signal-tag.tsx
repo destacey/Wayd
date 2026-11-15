@@ -1,4 +1,4 @@
-import { DeliverySignal, StatusCategory } from '@/src/services/wayd-api'
+import { DeliverySignal, StatusCategory } from '@/src/services/api/wayd.schemas'
 import { Tag } from 'antd'
 import { FC } from 'react'
 
@@ -25,9 +25,11 @@ const deliverySignalColor: Record<DeliverySignal, string> = {
  */
 export const shownDeliveryState = (
   statusCategory: StatusCategory,
-  deliveryState: DeliverySignal | undefined,
+  deliveryState: DeliverySignal | undefined | null,
 ): DeliverySignal | undefined =>
-  statusCategory === StatusCategory.Removed ? undefined : deliveryState
+  statusCategory === StatusCategory.Removed
+    ? undefined
+    : (deliveryState ?? undefined)
 
 export interface DeliverySignalTagProps {
   signal: DeliverySignal

@@ -1,4 +1,24 @@
-import { getPortfoliosClient } from '@/src/services/clients'
+import {
+  portfoliosActivate,
+  portfoliosArchive,
+  portfoliosAssignScoringModel,
+  portfoliosClearScoringModel,
+  portfoliosClose,
+  portfoliosCreate,
+  portfoliosDelete,
+  portfoliosGetActivities,
+  portfoliosGetPortfolio,
+  portfoliosGetPortfolioOptions,
+  portfoliosGetPortfolioStatuses,
+  portfoliosGetPortfolios,
+  portfoliosGetPrograms,
+  portfoliosGetProjects,
+  portfoliosGetRankingScoreboard,
+  portfoliosGetStrategicInitiatives,
+  portfoliosMoveProjectRanks,
+  portfoliosRebalanceProjectRanks,
+  portfoliosUpdate,
+} from '@/src/services/api/portfolios'
 import { apiSlice } from '../apiSlice'
 import {
   CreatePortfolioRequest,
@@ -16,7 +36,7 @@ import {
   ProjectPortfolioStatus,
   ProjectStatus,
   StrategicInitiativeStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 import { ppmActivityTag } from './ppm-activity-tags'
 import type { BaseOptionType } from 'antd/es/select'
@@ -30,7 +50,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (portfolioState = undefined) => {
         try {
-          const data = await getPortfoliosClient().getPortfolios(portfolioState)
+          const data = await portfoliosGetPortfolios({ status: portfolioState })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -42,7 +62,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     getPortfolio: builder.query<ProjectPortfolioDetailsDto, number>({
       queryFn: async (key) => {
         try {
-          const data = await getPortfoliosClient().getPortfolio(key.toString())
+          const data = await portfoliosGetPortfolio(key.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -56,7 +76,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     createPortfolio: builder.mutation<ObjectIdAndKey, CreatePortfolioRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getPortfoliosClient().create(request)
+          const data = await portfoliosCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -73,7 +93,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ request, cacheKey }) => {
         try {
-          const data = await getPortfoliosClient().update(request.id, request)
+          const data = await portfoliosUpdate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -92,7 +112,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
       {
         queryFn: async ({ id }) => {
           try {
-            const data = await getPortfoliosClient().activate(id)
+            const data = await portfoliosActivate(id)
             return { data }
           } catch (error) {
             console.error('API Error:', error)
@@ -111,7 +131,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     closePortfolio: builder.mutation<void, { id: string; cacheKey: number }>({
       queryFn: async ({ id }) => {
         try {
-          const data = await getPortfoliosClient().close(id)
+          const data = await portfoliosClose(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -129,7 +149,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     archivePortfolio: builder.mutation<void, { id: string; cacheKey: number }>({
       queryFn: async ({ id }) => {
         try {
-          const data = await getPortfoliosClient().archive(id)
+          const data = await portfoliosArchive(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -150,7 +170,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ portfolioId }) => {
         try {
-          const data = await getPortfoliosClient().delete(portfolioId)
+          const data = await portfoliosDelete(portfolioId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -167,7 +187,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, scoringModelId }) => {
         try {
-          const data = await getPortfoliosClient().assignScoringModel(id, {
+          const data = await portfoliosAssignScoringModel(id, {
             scoringModelId,
           })
           return { data }
@@ -189,7 +209,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id }) => {
         try {
-          const data = await getPortfoliosClient().clearScoringModel(id)
+          const data = await portfoliosClearScoringModel(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -209,7 +229,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getPortfoliosClient().moveProjectRanks(id, request)
+          const data = await portfoliosMoveProjectRanks(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -227,7 +247,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id }) => {
         try {
-          const data = await getPortfoliosClient().rebalanceProjectRanks(id)
+          const data = await portfoliosRebalanceProjectRanks(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -245,8 +265,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (portfolioId) => {
         try {
-          const data =
-            await getPortfoliosClient().getRankingScoreboard(portfolioId)
+          const data = await portfoliosGetRankingScoreboard(portfolioId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -264,10 +283,9 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ portfolioIdOrKey, status }) => {
         try {
-          const data = await getPortfoliosClient().getPrograms(
-            portfolioIdOrKey,
-            (status?.length ?? 0) > 0 ? status : undefined,
-          )
+          const data = await portfoliosGetPrograms(portfolioIdOrKey, {
+            status: (status?.length ?? 0) > 0 ? status : undefined,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -285,10 +303,9 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ portfolioIdOrKey, status }) => {
         try {
-          const data = await getPortfoliosClient().getProjects(
-            portfolioIdOrKey,
-            status,
-          )
+          const data = await portfoliosGetProjects(portfolioIdOrKey, {
+            status: status,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -306,9 +323,9 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ portfolioIdOrKey, status }) => {
         try {
-          const data = await getPortfoliosClient().getStrategicInitiatives(
+          const data = await portfoliosGetStrategicInitiatives(
             portfolioIdOrKey,
-            (status?.length ?? 0) > 0 ? status : undefined,
+            { status: (status?.length ?? 0) > 0 ? status : undefined },
           )
           return { data }
         } catch (error) {
@@ -327,7 +344,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     >({
       queryFn: async () => {
         try {
-          const statuses = await getPortfoliosClient().getPortfolioStatuses()
+          const statuses = await portfoliosGetPortfolioStatuses()
 
           const data: OptionModel<ProjectPortfolioStatus>[] = statuses
             .sort((a, b) => a.order - b.order)
@@ -348,7 +365,7 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     getPortfolioOptions: builder.query<BaseOptionType[], void>({
       queryFn: async () => {
         try {
-          const portfolios = await getPortfoliosClient().getPortfolioOptions()
+          const portfolios = await portfoliosGetPortfolioOptions()
 
           const data: BaseOptionType[] = portfolios
             .sort((a, b) => a.name.localeCompare(b.name))
@@ -368,10 +385,9 @@ export const portfoliosApi = apiSlice.injectEndpoints({
       queryFn: async (portfolioIdOrKey) => {
         try {
           // TODO: hard coding status for now.  Need status values from the client.
-          const programs = await getPortfoliosClient().getPrograms(
-            portfolioIdOrKey,
-            [ProgramStatus.Active],
-          )
+          const programs = await portfoliosGetPrograms(portfolioIdOrKey, {
+            status: [ProgramStatus.Active],
+          })
 
           const data: BaseOptionType[] = programs
             .sort((a, b) => a.name.localeCompare(b.name))
@@ -398,11 +414,10 @@ export const portfoliosApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getPortfoliosClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await portfoliosGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

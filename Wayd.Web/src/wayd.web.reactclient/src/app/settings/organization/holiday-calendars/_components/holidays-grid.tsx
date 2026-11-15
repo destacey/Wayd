@@ -6,7 +6,7 @@ import {
 } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { HolidayDto } from '@/src/services/wayd-api'
+import { HolidayDto } from '@/src/services/api/wayd.schemas'
 import { useRemoveHolidayMutation } from '@/src/store/features/organization/holiday-calendars-api'
 import { formatCalendarDate, isApiError } from '@/src/utils'
 import { Modal } from 'antd'

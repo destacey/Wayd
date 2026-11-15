@@ -1,7 +1,7 @@
 'use client'
 
 import { Form, Input, Modal } from 'antd'
-import { UpdateStoryMapRequest } from '@/src/services/wayd-api'
+import { UpdateStoryMapRequest } from '@/src/services/api/wayd.schemas'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useMessage } from '@/src/components/contexts/messaging'
 import {
@@ -22,7 +22,7 @@ export interface EditStoryMapFormProps {
 
 interface EditStoryMapFormValues {
   name: string
-  description?: string
+  description?: string | null
 }
 
 const EditStoryMapForm = ({

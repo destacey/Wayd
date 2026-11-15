@@ -7,7 +7,7 @@ import { ExclamationCircleOutlined } from '@ant-design/icons'
 import { useCreatePersonalAccessTokenMutation } from '@/src/store/features/user-management/personal-access-tokens-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useModalForm } from '@/src/hooks'
-import { TokenScope } from '@/src/services/wayd-api'
+import { TokenScope } from '@/src/services/api/wayd.schemas'
 
 const { Item } = Form
 

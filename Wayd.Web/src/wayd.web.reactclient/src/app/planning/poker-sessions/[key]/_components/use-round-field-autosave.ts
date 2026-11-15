@@ -30,7 +30,7 @@ const flushPending = (
 export interface RoundFieldAutosaveOptions {
   roundId: string
   /** The field as the server last returned it. */
-  serverValue: string | undefined
+  serverValue: string | undefined | null
   /** Persists the trimmed value; called once per pause in typing, on blur, and before the field goes away. */
   save: (roundId: string, value: string) => void
 }

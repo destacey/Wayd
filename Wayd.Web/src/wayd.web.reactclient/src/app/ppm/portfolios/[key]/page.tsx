@@ -52,7 +52,7 @@ import {
   ProgramStatus,
   ProjectStatus,
   StrategicInitiativeStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 enum PortfolioSections {
   Overview = 'overview',
@@ -71,11 +71,14 @@ const RANKING_STATUSES = [
 ]
 
 /** The programs a portfolio is currently delivering through. */
-const DEFAULT_PROGRAM_STATUSES = [ProgramStatus.Active]
+const DEFAULT_PROGRAM_STATUSES: ProgramStatus[] = [ProgramStatus.Active]
 /** The projects actually in flight. */
-const DEFAULT_PROJECT_STATUSES = [ProjectStatus.Approved, ProjectStatus.Active]
+const DEFAULT_PROJECT_STATUSES: ProjectStatus[] = [
+  ProjectStatus.Approved,
+  ProjectStatus.Active,
+]
 /** The initiatives approved or underway. */
-const DEFAULT_SI_STATUSES = [
+const DEFAULT_SI_STATUSES: StrategicInitiativeStatus[] = [
   StrategicInitiativeStatus.Approved,
   StrategicInitiativeStatus.Active,
 ]

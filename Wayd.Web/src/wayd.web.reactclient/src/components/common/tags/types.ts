@@ -15,7 +15,7 @@
 export interface TagOption {
   id: string
   name: string
-  description?: string
+  description?: string | null
   /**
    * Whether the tag can still be applied. An inactive tag stays visible on the
    * records already carrying it — deactivating retires it from new use rather
@@ -28,7 +28,7 @@ export interface TagOption {
 export interface TagCategory {
   id: string
   name: string
-  description?: string
+  description?: string | null
   /**
    * Whether a record can carry several tags from this category. False means a second
    * choice replaces the first.
@@ -44,6 +44,6 @@ export interface TagCategory {
 export interface TagAssignment {
   tagId: string
   tagName: string
-  categoryId?: string
-  categoryName?: string
+  categoryId?: string | null
+  categoryName?: string | null
 }

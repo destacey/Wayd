@@ -2,7 +2,7 @@ import {
   IntakeDeskDto,
   IntakeRequestSummaryDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 /** The permission Planning asks of anyone opening a poker session. */
 export const POKER_VIEW_PERMISSION = 'Permissions.PokerSessions.View'

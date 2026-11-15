@@ -1,7 +1,7 @@
 import React from 'react'
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { WorkTypeTier } from '@/src/services/wayd-api'
+import { WorkTypeTier } from '@/src/services/api/wayd.schemas'
 import AddProjectWorkItemsForm from './add-project-work-items-form'
 import type { UseModalFormOptions } from '@/src/hooks'
 

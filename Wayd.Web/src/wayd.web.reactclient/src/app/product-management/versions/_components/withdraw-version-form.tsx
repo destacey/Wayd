@@ -2,7 +2,10 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { VersionDto, WithdrawVersionRequest } from '@/src/services/wayd-api'
+import {
+  VersionDto,
+  WithdrawVersionRequest,
+} from '@/src/services/api/wayd.schemas'
 import { useWithdrawVersionMutation } from '@/src/store/features/product-management/versions-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'

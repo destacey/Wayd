@@ -1,6 +1,9 @@
 import type { Mock } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { SizingMethod, TeamSprintMetricsDto } from '@/src/services/wayd-api'
+import {
+  SizingMethod,
+  TeamSprintMetricsDto,
+} from '@/src/services/api/wayd.schemas'
 import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations/team-api'
 import TeamSprintMetricsSummary from './team-sprint-metrics-summary'
 

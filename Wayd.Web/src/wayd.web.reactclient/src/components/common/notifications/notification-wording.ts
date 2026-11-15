@@ -4,7 +4,7 @@ import {
   NotificationEvent,
   NotificationReason,
   UnreadNotificationCountDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 /**
  * What each change did, worded to sit between the actor and the record's name:

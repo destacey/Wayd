@@ -7,7 +7,7 @@ import {
   DeploymentEnvironmentDto,
   EnvironmentCategory,
   UpdateDeploymentEnvironmentRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useCreateDeploymentEnvironmentMutation,
   useUpdateDeploymentEnvironmentMutation,

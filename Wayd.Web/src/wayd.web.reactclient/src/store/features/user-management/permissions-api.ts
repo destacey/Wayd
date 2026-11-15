@@ -1,6 +1,6 @@
-import { ApplicationPermission } from '@/src/services/wayd-api'
+import { ApplicationPermission } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
-import { getPermissionsClient } from '@/src/services/clients'
+import { permissionsGetList } from '@/src/services/api/permissions'
 import { QueryTags } from '../query-tags'
 
 export const permissionsApi = apiSlice.injectEndpoints({
@@ -8,7 +8,7 @@ export const permissionsApi = apiSlice.injectEndpoints({
     getPermissions: builder.query<ApplicationPermission[], void>({
       queryFn: async () => {
         try {
-          const data = await getPermissionsClient().getList()
+          const data = await permissionsGetList()
           return { data }
         } catch (error) {
           console.error('API Error:', error)

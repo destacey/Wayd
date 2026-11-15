@@ -8,7 +8,7 @@ import {
   NeedByBasisDto,
   NeedByBasisFamily,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import IntakeRequestsGrid from './intake-requests-grid'
 
 let mockClaims = new Set<string>()

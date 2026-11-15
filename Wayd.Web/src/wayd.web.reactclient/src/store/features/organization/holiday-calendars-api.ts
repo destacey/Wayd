@@ -1,4 +1,14 @@
-import { getHolidayCalendarsClient } from '@/src/services/clients'
+import {
+  holidayCalendarsAddHoliday,
+  holidayCalendarsChangeHoliday,
+  holidayCalendarsCreate,
+  holidayCalendarsDelete,
+  holidayCalendarsGet,
+  holidayCalendarsGetActivities,
+  holidayCalendarsGetList,
+  holidayCalendarsRemoveHoliday,
+  holidayCalendarsUpdate,
+} from '@/src/services/api/holiday-calendars'
 import {
   CreateHolidayCalendarRequest,
   HolidayCalendarDetailsDto,
@@ -7,7 +17,7 @@ import {
   ObjectIdAndKey,
   PagedResponseOfActivityLogDto,
   UpdateHolidayCalendarRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { isApiError } from '@/src/utils'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
@@ -32,11 +42,11 @@ export interface HolidayMutationArg {
 export const holidayCalendarsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getHolidayCalendars: builder.query<HolidayCalendarListDto[], void>({
-      queryFn: () => run(() => getHolidayCalendarsClient().getList()),
+      queryFn: () => run(() => holidayCalendarsGetList()),
       providesTags: [{ type: QueryTags.HolidayCalendar, id: 'LIST' }],
     }),
     getHolidayCalendar: builder.query<HolidayCalendarDetailsDto, string>({
-      queryFn: (idOrKey) => run(() => getHolidayCalendarsClient().get(idOrKey)),
+      queryFn: (idOrKey) => run(() => holidayCalendarsGet(idOrKey)),
       providesTags: (result) => [
         { type: QueryTags.HolidayCalendar, id: result?.id ?? 'DETAIL' },
       ],
@@ -47,11 +57,10 @@ export const holidayCalendarsApi = apiSlice.injectEndpoints({
     >({
       queryFn: ({ idOrKey, page, pageSize }) =>
         run(() =>
-          getHolidayCalendarsClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          ),
+          holidayCalendarsGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          }),
         ),
       providesTags: (result, error, { idOrKey }) => [
         { type: QueryTags.ActivityLog, id: String(idOrKey) },
@@ -61,14 +70,13 @@ export const holidayCalendarsApi = apiSlice.injectEndpoints({
       ObjectIdAndKey,
       CreateHolidayCalendarRequest
     >({
-      queryFn: (request) =>
-        run(() => getHolidayCalendarsClient().create(request)),
+      queryFn: (request) => run(() => holidayCalendarsCreate(request)),
       invalidatesTags: [{ type: QueryTags.HolidayCalendar, id: 'LIST' }],
     }),
     updateHolidayCalendar: builder.mutation<void, UpdateHolidayCalendarRequest>(
       {
         queryFn: (request) =>
-          run(() => getHolidayCalendarsClient().update(request.id, request)),
+          run(() => holidayCalendarsUpdate(request.id, request)),
         invalidatesTags: (result, error, arg) => [
           { type: QueryTags.HolidayCalendar, id: 'LIST' },
           { type: QueryTags.HolidayCalendar, id: arg.id },
@@ -77,12 +85,12 @@ export const holidayCalendarsApi = apiSlice.injectEndpoints({
       },
     ),
     deleteHolidayCalendar: builder.mutation<void, string>({
-      queryFn: (id) => run(() => getHolidayCalendarsClient().delete(id)),
+      queryFn: (id) => run(() => holidayCalendarsDelete(id)),
       invalidatesTags: [{ type: QueryTags.HolidayCalendar, id: 'LIST' }],
     }),
     addHoliday: builder.mutation<string, HolidayMutationArg>({
       queryFn: ({ calendarId, request }) =>
-        run(() => getHolidayCalendarsClient().addHoliday(calendarId, request)),
+        run(() => holidayCalendarsAddHoliday(calendarId, request)),
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.HolidayCalendar, id: 'LIST' },
         { type: QueryTags.HolidayCalendar, id: arg.calendarId },
@@ -95,11 +103,7 @@ export const holidayCalendarsApi = apiSlice.injectEndpoints({
     >({
       queryFn: ({ calendarId, holidayId, request }) =>
         run(() =>
-          getHolidayCalendarsClient().changeHoliday(
-            calendarId,
-            holidayId,
-            request,
-          ),
+          holidayCalendarsChangeHoliday(calendarId, holidayId, request),
         ),
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.HolidayCalendar, id: arg.calendarId },
@@ -111,9 +115,7 @@ export const holidayCalendarsApi = apiSlice.injectEndpoints({
       { calendarId: string; holidayId: string }
     >({
       queryFn: ({ calendarId, holidayId }) =>
-        run(() =>
-          getHolidayCalendarsClient().removeHoliday(calendarId, holidayId),
-        ),
+        run(() => holidayCalendarsRemoveHoliday(calendarId, holidayId)),
       invalidatesTags: (result, error, arg) => [
         { type: QueryTags.HolidayCalendar, id: 'LIST' },
         { type: QueryTags.HolidayCalendar, id: arg.calendarId },

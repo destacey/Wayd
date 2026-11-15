@@ -1,6 +1,6 @@
 'use client'
 
-import { StoryMapSwimLaneDto } from '@/src/services/wayd-api'
+import { StoryMapSwimLaneDto } from '@/src/services/api/wayd.schemas'
 import { WaydTooltip } from '@/src/components/common'
 import {
   CalendarOutlined,
@@ -28,8 +28,8 @@ const DISPLAY_FORMAT = 'D MMM YYYY'
 
 /** "1 Mar 2026 – 14 Mar 2026", or just the one date when only a start or an end is set. */
 const formatRange = (
-  start: CalendarDate | undefined,
-  end: CalendarDate | undefined,
+  start: CalendarDate | undefined | null,
+  end: CalendarDate | undefined | null,
 ) => {
   const from = start ? formatCalendarDate(start, DISPLAY_FORMAT) : null
   const to = end ? formatCalendarDate(end, DISPLAY_FORMAT) : null
@@ -37,7 +37,7 @@ const formatRange = (
   return from ?? to
 }
 
-const toDayjs = (value: CalendarDate | undefined): Dayjs | null =>
+const toDayjs = (value: CalendarDate | undefined | null): Dayjs | null =>
   value ? parseCalendarDate(value) : null
 
 const toLocalDate = (

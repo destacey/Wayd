@@ -1,6 +1,9 @@
 import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { SizingMethod, TeamCadenceMetricsDto } from '@/src/services/wayd-api'
+import {
+  SizingMethod,
+  TeamCadenceMetricsDto,
+} from '@/src/services/api/wayd.schemas'
 import { useGetTeamCadenceMetricsQuery } from '@/src/store/features/organizations/team-api'
 import TeamCadenceMetricsSummary from './team-cadence-metrics-summary'
 

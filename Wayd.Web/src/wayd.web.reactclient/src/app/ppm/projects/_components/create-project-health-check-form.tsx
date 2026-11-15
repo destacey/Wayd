@@ -9,7 +9,7 @@ import { useCreateProjectHealthCheckMutation } from '@/src/store/features/ppm/pr
 import { toFormErrors } from '@/src/utils'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { MarkdownEditor } from '@/src/components/common/markdown'
-import { HealthStatus } from '@/src/services/wayd-api'
+import { HealthStatus } from '@/src/services/api/wayd.schemas'
 const { Item } = Form
 const { Group: RadioGroup } = Radio
 

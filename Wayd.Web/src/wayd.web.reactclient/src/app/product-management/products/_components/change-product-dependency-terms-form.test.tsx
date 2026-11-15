@@ -3,7 +3,7 @@ import {
   DependencyStrength,
   InteractionStyle,
   ProductDependencyDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { todayCalendarDate } from '@/src/utils'
 import ChangeProductDependencyTermsForm from './change-product-dependency-terms-form'
 import type { FormInstance } from 'antd'

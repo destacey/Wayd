@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { CutVersionRequest, VersionDto } from '@/src/services/wayd-api'
+import { CutVersionRequest, VersionDto } from '@/src/services/api/wayd.schemas'
 import { useCutVersionMutation } from '@/src/store/features/product-management/versions-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'

@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { StartDeploymentRequest } from '@/src/services/wayd-api'
+import { StartDeploymentRequest } from '@/src/services/api/wayd.schemas'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { useStartDeploymentMutation } from '@/src/store/features/product-management/deployments-api'
 import { useGetDeploymentEnvironmentsQuery } from '@/src/store/features/product-management/deployment-environments-api'

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { InteractionStyle } from '@/src/services/wayd-api'
+import { InteractionStyle } from '@/src/services/api/wayd.schemas'
 import { InteractionStyleTags } from './interaction-style'
 
 describe('InteractionStyleTags', () => {

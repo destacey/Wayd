@@ -12,7 +12,7 @@ import {
   workItemKeySort,
   workStatusCategorySort,
 } from '@/src/components/common/wayd-grid'
-import { SizingMethod, WorkItemListDto } from '@/src/services/wayd-api'
+import { SizingMethod, WorkItemListDto } from '@/src/services/api/wayd.schemas'
 import { estimateColumns } from './estimate-columns'
 import { createActionsColumn, type ColumnDef } from '../wayd-grid-core'
 import type { ItemType } from 'antd/es/menu/interface'

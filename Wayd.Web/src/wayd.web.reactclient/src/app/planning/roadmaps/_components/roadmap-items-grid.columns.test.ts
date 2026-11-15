@@ -1,5 +1,5 @@
 import { roadmapColorDisplayText } from './roadmap-items-grid.columns'
-import type { RoadmapColorDto } from '@/src/services/wayd-api'
+import type { RoadmapColorDto } from '@/src/services/api/wayd.schemas'
 
 const palette: RoadmapColorDto[] = [
   { color: '#FF0000', name: 'At Risk', order: 1, isDefault: false },

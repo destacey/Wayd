@@ -2,13 +2,13 @@ import {
   IntakeRequestSummaryDto,
   NeedByBasis,
   NeedByBasisFamily,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { compareNeedBy } from './intake-requests-grid'
 
 const withNeedBy = (
   id: string,
   date?: string,
-  family = NeedByBasisFamily.ChosenByUs,
+  family: NeedByBasisFamily = NeedByBasisFamily.ChosenByUs,
 ): IntakeRequestSummaryDto =>
   ({
     id,

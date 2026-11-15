@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { FollowCountsDto, FollowView } from '@/src/services/wayd-api'
+import { FollowCountsDto, FollowView } from '@/src/services/api/wayd.schemas'
 import FollowingRail from './following-rail'
 
 const counts: FollowCountsDto = {

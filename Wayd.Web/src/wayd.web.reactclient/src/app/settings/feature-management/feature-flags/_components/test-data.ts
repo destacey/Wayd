@@ -2,7 +2,7 @@ import {
   FeatureFlagDto,
   FeatureFlagModule,
   FeatureFlagModuleDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 export const moduleDto = (
   code: FeatureFlagModule,

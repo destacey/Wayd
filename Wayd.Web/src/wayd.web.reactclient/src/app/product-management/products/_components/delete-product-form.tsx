@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { ProductDto } from '@/src/services/wayd-api'
+import { ProductDto } from '@/src/services/api/wayd.schemas'
 import { useDeleteProductMutation } from '@/src/store/features/product-management/products-api'
 import { isApiError, type ApiError } from '@/src/utils'
 import { Alert, Form, Modal, Typography } from 'antd'

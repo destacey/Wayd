@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { Dropdown } from 'antd'
-import { EstimationScaleDto } from '@/src/services/wayd-api'
+import { EstimationScaleDto } from '@/src/services/api/wayd.schemas'
 import useEstimationScaleActions from './use-estimation-scale-actions'
 
 const mockHasPermissionClaim = vi.fn()

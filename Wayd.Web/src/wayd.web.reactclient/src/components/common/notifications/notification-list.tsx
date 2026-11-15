@@ -9,7 +9,7 @@ import { recordId, typeLabel } from '../record/record-identity'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { formatTimeAgo } from '@/src/utils/time-ago'
 import { toApiError } from '@/src/utils/problem-details'
-import { NotificationDto } from '@/src/services/wayd-api'
+import { NotificationDto } from '@/src/services/api/wayd.schemas'
 import { useMarkRecordNotificationsReadMutation } from '@/src/store/features/common/notifications-api'
 import {
   useMuteRecordMutation,

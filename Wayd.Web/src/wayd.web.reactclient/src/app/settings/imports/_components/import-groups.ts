@@ -2,7 +2,7 @@ import {
   ImportAtomicity,
   ImportProcessDto,
   ImportProcessStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { isRunning } from './import-status-tag'
 
 /**
@@ -43,16 +43,12 @@ const rollupStatus = (runs: ImportProcessDto[]): ImportProcessStatus => {
     : ImportProcessStatus.Failed
 }
 
-// The DTO types these as Date, but the generated client hands the JSON through untouched, so at
-// runtime they are ISO strings. Both parse the same way; the picked value is passed on as it came,
-// which is what the grid's date column already formats.
-const byTime = (a: Date, b: Date) =>
-  new Date(a).getTime() - new Date(b).getTime()
+const byTime = (a: Date, b: Date) => a.getTime() - b.getTime()
 
-const earliest = (values: (Date | undefined)[]) =>
+const earliest = (values: (Date | null | undefined)[]) =>
   values.filter((v): v is Date => !!v).sort(byTime)[0]
 
-const latest = (values: (Date | undefined)[]) =>
+const latest = (values: (Date | null | undefined)[]) =>
   values
     .filter((v): v is Date => !!v)
     .sort(byTime)

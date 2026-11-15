@@ -13,7 +13,7 @@ import {
   HomeContextResponse,
   MyProjectTaskDto,
   ProjectStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { tileValueStyle } from '../attention-tile-test-utils'
 import { homeContext } from '../home-context-test-utils'
 import { renderReportingWidget } from '../widget-display-test-utils'

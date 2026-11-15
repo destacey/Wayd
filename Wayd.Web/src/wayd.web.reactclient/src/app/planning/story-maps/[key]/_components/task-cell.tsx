@@ -1,6 +1,6 @@
 'use client'
 
-import { StoryMapTaskDto } from '@/src/services/wayd-api'
+import { StoryMapTaskDto } from '@/src/services/api/wayd.schemas'
 import { PlusOutlined } from '@ant-design/icons'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'

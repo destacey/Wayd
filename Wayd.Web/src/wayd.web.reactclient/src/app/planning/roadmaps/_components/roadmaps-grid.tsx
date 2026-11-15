@@ -1,7 +1,7 @@
 'use client'
 
 import { WaydGrid } from '@/src/components/common/wayd-grid'
-import { RoadmapListDto } from '@/src/services/wayd-api'
+import { RoadmapListDto } from '@/src/services/api/wayd.schemas'
 import { getSortedNames } from '@/src/utils'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import Link from 'next/link'

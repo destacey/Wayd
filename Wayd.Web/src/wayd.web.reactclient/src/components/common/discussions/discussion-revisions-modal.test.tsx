@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import {
   DiscussionMessageDto,
   DiscussionMessageKind,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { DiscussionContext } from './discussion-context'
 import DiscussionRevisionsModal from './discussion-revisions-modal'
 

@@ -7,7 +7,7 @@ import {
   StatusCategoryLabelDto,
   WorkflowAliasDto,
   WorkflowStatusDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useAddWorkflowStatusMutation } from '@/src/store/features/common/status-workflows-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal, Select } from 'antd'

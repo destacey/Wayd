@@ -11,7 +11,7 @@ import {
   volcano,
 } from '@ant-design/colors'
 import { LifecycleCategory } from '../components/types'
-import { LifecycleNavigationDto } from '../services/wayd-api'
+import { LifecycleNavigationDto } from '@/src/services/api/wayd.schemas'
 
 /**
  * Determines the ant design status color string based on the status of a work status category.
@@ -99,7 +99,8 @@ export const getLuminanceTheme = (hexColor: string): string => {
 export const getLifecycleCategoryColor = (
   category: LifecycleCategory,
   token: SemanticColorTokens,
-): string => getSemanticChartColor(getLifecycleCategoryTagColor(category), token)
+): string =>
+  getSemanticChartColor(getLifecycleCategoryTagColor(category), token)
 
 export const getLifecycleCategoryColorFromStatus = (
   status: LifecycleNavigationDto,
@@ -113,8 +114,16 @@ export const getLifecycleCategoryColorFromStatus = (
   )
 
 const avatarColors = [
-  '#1677ff', '#722ed1', '#13c2c2', '#eb2f96', '#fa8c16',
-  '#52c41a', '#2f54eb', '#faad14', '#f5222d', '#a0d911',
+  '#1677ff',
+  '#722ed1',
+  '#13c2c2',
+  '#eb2f96',
+  '#fa8c16',
+  '#52c41a',
+  '#2f54eb',
+  '#faad14',
+  '#f5222d',
+  '#a0d911',
 ]
 
 /**
@@ -157,10 +166,10 @@ export const personaColorPalette = [
  * @param usedColors - The colors already assigned (e.g. existing personas' colors).
  * @returns A hex color from {@link personaColorPalette}.
  */
-export const nextUnusedPersonaColor = (usedColors: Iterable<string>): string => {
-  const taken = new Set(
-    Array.from(usedColors, (c) => c.trim().toLowerCase()),
-  )
+export const nextUnusedPersonaColor = (
+  usedColors: Iterable<string>,
+): string => {
+  const taken = new Set(Array.from(usedColors, (c) => c.trim().toLowerCase()))
   const free = personaColorPalette.find((c) => !taken.has(c.toLowerCase()))
   return free ?? personaColorPalette[taken.size % personaColorPalette.length]
 }
@@ -280,7 +289,10 @@ export const getSemanticStatusSurface = (
       // translucent fill and the muted text instead inverts the treatment in dark mode:
       // a pale film over a dark ground, carrying dimmer text than the colored statuses.
       return {
-        background: flattenOnto(token.colorFillTertiary, token.colorBgContainer),
+        background: flattenOnto(
+          token.colorFillTertiary,
+          token.colorBgContainer,
+        ),
         border: token.colorBorder,
         text: token.colorText,
       }

@@ -25,7 +25,10 @@ import {
   ThemeSelection,
   UserThemeConfigDto,
 } from './types'
-import { getProfileClient } from '@/src/services/clients'
+import {
+  profileGetThemeConfig,
+  profileUpdateThemeConfig,
+} from '@/src/services/api/profile'
 
 export const ThemeContext = createContext<ThemeContextType | null>(null)
 
@@ -119,8 +122,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   // Load theme config from server once on mount.
   useEffect(() => {
-    getProfileClient()
-      .getThemeConfig()
+    profileGetThemeConfig()
       .then((config) => {
         if (config) setUserThemeConfigState(config)
       })
@@ -131,11 +133,9 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   const saveThemeConfig = useDebouncedCallback(
     (config: UserThemeConfigDto | null) => {
-      getProfileClient()
-        .updateThemeConfig(config ?? undefined)
-        .catch(() => {
-          // Silent — user can retry via settings.
-        })
+      profileUpdateThemeConfig(config ?? undefined).catch(() => {
+        // Silent — user can retry via settings.
+      })
     },
     500,
   )

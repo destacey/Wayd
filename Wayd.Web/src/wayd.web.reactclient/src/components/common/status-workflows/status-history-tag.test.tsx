@@ -1,6 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { StatusCategory, StatusNavigationDto } from '@/src/services/wayd-api'
+import {
+  StatusCategory,
+  StatusNavigationDto,
+} from '@/src/services/api/wayd.schemas'
 import StatusHistoryTag from './status-history-tag'
 
 const status: StatusNavigationDto = {

@@ -1,6 +1,6 @@
 'use client'
 
-import { StatusCategory } from '@/src/services/wayd-api'
+import { StatusCategory } from '@/src/services/api/wayd.schemas'
 import { useGetProjectDeliverablesQuery } from '@/src/store/features/ppm/project-deliverables-api'
 import { Select } from 'antd'
 

@@ -1,4 +1,7 @@
-import { IntakeDeskDto, PokerSessionHostKind } from '@/src/services/wayd-api'
+import {
+  IntakeDeskDto,
+  PokerSessionHostKind,
+} from '@/src/services/api/wayd.schemas'
 import { sessionParent, worksDesk } from './session-parent'
 
 const deskHost = { kind: PokerSessionHostKind.IntakeDesk, id: 'd-1' }

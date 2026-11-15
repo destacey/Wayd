@@ -1,5 +1,5 @@
 import { DependencyHealth } from '@/src/components/types'
-import { DependencyDto } from '@/src/services/wayd-api'
+import { DependencyDto } from '@/src/services/api/wayd.schemas'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 
 /** The group key for work items with no team; every other group is keyed by team id. */
@@ -80,7 +80,7 @@ const noHealth = (): DependencyHealthCounts => ({
   [DependencyHealth.Closed]: 0,
 })
 
-const groupKey = (team: { id: string } | undefined): string =>
+const groupKey = (team: { id: string } | undefined | null): string =>
   team?.id ?? NO_TEAM_KEY
 
 /** Counts dependencies between teams, the shape a directed chord diagram draws. */
@@ -92,7 +92,7 @@ export function buildDependencyWheelData(
   let undrawn = 0
 
   const touch = (
-    team: { id: string; name: string; code: string } | undefined,
+    team: { id: string; name: string; code: string } | undefined | null,
   ) => {
     const key = groupKey(team)
     let group = groupsByKey.get(key)

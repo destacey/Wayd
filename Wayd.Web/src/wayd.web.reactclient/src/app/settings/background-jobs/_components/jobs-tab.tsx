@@ -16,7 +16,7 @@ import {
   CurrentJobCountsResponse,
   JobStateFilter,
   JobSummaryResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   JOB_LIST_POLLING_MS,
   useGetJobsQuery,

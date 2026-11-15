@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   ConnectionDetailsDto,
   TeamsConnectionDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useTestCommunicationConnectionMutation } from '@/src/store/features/app-integration/connections-api'
 import { toApiError } from '@/src/utils'
 import { Collapse } from 'antd'

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { CycleTimeAnalysisChart } from './cycle-time-analysis-chart'
-import { WorkItemListDto } from '@/src/services/wayd-api'
+import { WorkItemListDto } from '@/src/services/api/wayd.schemas'
 
 // Mock Next.js dynamic import
 vi.mock('next/dynamic', () => ({

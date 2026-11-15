@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { BacklogHealthThresholds } from '@/src/services/wayd-api'
+import { BacklogHealthThresholds } from '@/src/services/api/wayd.schemas'
 import BacklogHealthSettingsPopover from './backlog-health-settings-popover'
 
 const thresholds: BacklogHealthThresholds = {

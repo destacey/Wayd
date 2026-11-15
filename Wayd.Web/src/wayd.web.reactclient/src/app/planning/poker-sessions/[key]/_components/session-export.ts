@@ -1,5 +1,5 @@
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { PokerRoundDto, PokerVoteDto } from '@/src/services/wayd-api'
+import { PokerRoundDto, PokerVoteDto } from '@/src/services/api/wayd.schemas'
 import { roundTitle } from './round-title'
 
 /**

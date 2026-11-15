@@ -1,4 +1,4 @@
-import { StoryMapDetailsDto } from '@/src/services/wayd-api'
+import { StoryMapDetailsDto } from '@/src/services/api/wayd.schemas'
 
 /**
  * Flattening a story map to CSV.

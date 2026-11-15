@@ -8,7 +8,7 @@ import {
   IncidentSeveritySetDto,
   IncidentSeveritySetLevelRequest,
   UpdateIncidentSeveritySetRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useCreateIncidentSeveritySetMutation,
   useDeleteIncidentSeveritySetMutation,
@@ -183,7 +183,9 @@ export function IncidentSeveritySetPanel({ set, onChanged, onDeleted }: PanelPro
   return (
     <Space orientation="vertical" style={{ width: '100%' }} size="middle">
       <Typography.Title level={5}>{set.name}</Typography.Title>
-      {set.description ? <Typography.Paragraph>{set.description}</Typography.Paragraph> : null}
+      {set.description ? (
+        <Typography.Paragraph>{set.description}</Typography.Paragraph>
+      ) : null}
       <Space orientation="vertical" size={4}>
         {set.levels.map((level) => (
           <IncidentSeverityRank

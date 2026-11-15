@@ -12,7 +12,7 @@ import {
 import {
   ProductDependenciesDto,
   ProductDependencyDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Segmented, Space, Switch, Typography } from 'antd'
 import { useState } from 'react'
 import { DependencyStrengthTag } from '../../_components/dependency-strength'

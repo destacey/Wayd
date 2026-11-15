@@ -6,7 +6,7 @@ import {
   SizingMethod,
   SprintMetricsSummary,
   SprintScopeDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetSprintScopeQuery } from '@/src/store/features/work-management/sprints-api'
 import type { MetricCardProps } from '@/src/components/common/metrics/metric-card'
 

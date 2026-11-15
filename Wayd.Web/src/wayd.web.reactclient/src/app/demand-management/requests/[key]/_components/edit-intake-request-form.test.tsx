@@ -7,7 +7,7 @@ import {
   IntakeRequestSubstanceDto,
   NeedByBasis,
   NeedByBasisFamily,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import EditIntakeRequestForm from './edit-intake-request-form'
 import type { UseModalFormOptions } from '@/src/hooks'
 

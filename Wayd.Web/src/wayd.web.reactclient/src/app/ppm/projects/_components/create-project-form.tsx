@@ -7,7 +7,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   CreateProjectRequest,
   ProjectLifecycleState,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetProjectLifecycleQuery,
   useGetProjectLifecyclesQuery,
@@ -125,27 +125,27 @@ const CreateProjectForm = ({
             const response = await createProject(request)
             if (response.error) throw response.error
 
-            messageApi.success(
-              'Project created successfully. Project key: ' + response.data!.key,
+          messageApi.success(
+            'Project created successfully. Project key: ' + response.data!.key,
+          )
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn('dateRange'),
+            })
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              (isApiError(apiError) ? apiError.detail : undefined) ??
+                'An error occurred while creating the project. Please try again.',
             )
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: rangeErrorsOn('dateRange'),
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                (isApiError(apiError) ? apiError.detail : undefined) ??
-                  'An error occurred while creating the project. Please try again.',
-              )
-            }
-            return false
           }
-        },
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:

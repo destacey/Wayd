@@ -1,4 +1,30 @@
-import { getScoringModelsClient } from '@/src/services/clients'
+import {
+  scoringModelsActivate,
+  scoringModelsAddCriterion,
+  scoringModelsAddOutput,
+  scoringModelsAddScale,
+  scoringModelsAddScaleLevel,
+  scoringModelsArchive,
+  scoringModelsCreate,
+  scoringModelsDelete,
+  scoringModelsEvaluate,
+  scoringModelsGetActivities,
+  scoringModelsGetScoringModel,
+  scoringModelsGetScoringModels,
+  scoringModelsRemoveCriterion,
+  scoringModelsRemoveOutput,
+  scoringModelsRemoveScale,
+  scoringModelsRemoveScaleLevel,
+  scoringModelsReorderCriteria,
+  scoringModelsReorderOutputs,
+  scoringModelsReorderScaleLevels,
+  scoringModelsReorderScales,
+  scoringModelsUpdate,
+  scoringModelsUpdateCriterion,
+  scoringModelsUpdateOutput,
+  scoringModelsUpdateScale,
+  scoringModelsUpdateScaleLevel,
+} from '@/src/services/api/scoring-models'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
@@ -14,7 +40,7 @@ import {
   ScoringScaleLevelRequest,
   ScoringScaleRequest,
   UpdateScoringModelRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 export const scoringModelsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -24,7 +50,9 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (state) => {
         try {
-          const data = await getScoringModelsClient().getScoringModels(state)
+          const data = await scoringModelsGetScoringModels({
+            state: state ?? undefined,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -36,7 +64,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     getScoringModel: builder.query<ScoringModelDetailsDto, string>({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getScoringModelsClient().getScoringModel(idOrKey)
+          const data = await scoringModelsGetScoringModel(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -54,7 +82,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     createScoringModel: builder.mutation<string, CreateScoringModelRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getScoringModelsClient().create(request)
+          const data = await scoringModelsCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -69,7 +97,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getScoringModelsClient().update(request.id, request)
+          const data = await scoringModelsUpdate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -85,7 +113,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     deleteScoringModel: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getScoringModelsClient().delete(id)
+          const data = await scoringModelsDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -97,7 +125,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     activateScoringModel: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getScoringModelsClient().activate(id)
+          const data = await scoringModelsActivate(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -113,7 +141,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     archiveScoringModel: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getScoringModelsClient().archive(id)
+          const data = await scoringModelsArchive(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -132,10 +160,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, ...request }) => {
         try {
-          const data = await getScoringModelsClient().addCriterion(
-            scoringModelId,
-            request,
-          )
+          const data = await scoringModelsAddCriterion(scoringModelId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -149,11 +174,14 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     }),
     updateScoringModelCriterion: builder.mutation<
       void,
-      { scoringModelId: string; criterionId: string } & ScoringModelCriterionRequest
+      {
+        scoringModelId: string
+        criterionId: string
+      } & ScoringModelCriterionRequest
     >({
       queryFn: async ({ scoringModelId, criterionId, ...request }) => {
         try {
-          const data = await getScoringModelsClient().updateCriterion(
+          const data = await scoringModelsUpdateCriterion(
             scoringModelId,
             criterionId,
             request,
@@ -175,7 +203,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, criterionId }) => {
         try {
-          const data = await getScoringModelsClient().removeCriterion(
+          const data = await scoringModelsRemoveCriterion(
             scoringModelId,
             criterionId,
           )
@@ -196,10 +224,9 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, orderedCriterionIds }) => {
         try {
-          const data = await getScoringModelsClient().reorderCriteria(
-            scoringModelId,
-            { orderedCriterionIds },
-          )
+          const data = await scoringModelsReorderCriteria(scoringModelId, {
+            orderedCriterionIds,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -217,10 +244,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, ...request }) => {
         try {
-          const data = await getScoringModelsClient().addScale(
-            scoringModelId,
-            request,
-          )
+          const data = await scoringModelsAddScale(scoringModelId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -238,7 +262,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, scaleId, ...request }) => {
         try {
-          const data = await getScoringModelsClient().updateScale(
+          const data = await scoringModelsUpdateScale(
             scoringModelId,
             scaleId,
             request,
@@ -260,10 +284,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, scaleId }) => {
         try {
-          const data = await getScoringModelsClient().removeScale(
-            scoringModelId,
-            scaleId,
-          )
+          const data = await scoringModelsRemoveScale(scoringModelId, scaleId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -281,10 +302,9 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, orderedScaleIds }) => {
         try {
-          const data = await getScoringModelsClient().reorderScales(
-            scoringModelId,
-            { orderedScaleIds },
-          )
+          const data = await scoringModelsReorderScales(scoringModelId, {
+            orderedScaleIds,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -302,7 +322,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, scaleId, ...request }) => {
         try {
-          const data = await getScoringModelsClient().addScaleLevel(
+          const data = await scoringModelsAddScaleLevel(
             scoringModelId,
             scaleId,
             request,
@@ -328,7 +348,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, scaleId, levelId, ...request }) => {
         try {
-          const data = await getScoringModelsClient().updateScaleLevel(
+          const data = await scoringModelsUpdateScaleLevel(
             scoringModelId,
             scaleId,
             levelId,
@@ -351,7 +371,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, scaleId, levelId }) => {
         try {
-          const data = await getScoringModelsClient().removeScaleLevel(
+          const data = await scoringModelsRemoveScaleLevel(
             scoringModelId,
             scaleId,
             levelId,
@@ -373,7 +393,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, scaleId, orderedLevelIds }) => {
         try {
-          const data = await getScoringModelsClient().reorderScaleLevels(
+          const data = await scoringModelsReorderScaleLevels(
             scoringModelId,
             scaleId,
             { orderedLevelIds },
@@ -395,10 +415,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, ...request }) => {
         try {
-          const data = await getScoringModelsClient().addOutput(
-            scoringModelId,
-            request,
-          )
+          const data = await scoringModelsAddOutput(scoringModelId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -416,7 +433,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, outputId, ...request }) => {
         try {
-          const data = await getScoringModelsClient().updateOutput(
+          const data = await scoringModelsUpdateOutput(
             scoringModelId,
             outputId,
             request,
@@ -438,10 +455,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, outputId }) => {
         try {
-          const data = await getScoringModelsClient().removeOutput(
-            scoringModelId,
-            outputId,
-          )
+          const data = await scoringModelsRemoveOutput(scoringModelId, outputId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -459,10 +473,9 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, orderedOutputIds }) => {
         try {
-          const data = await getScoringModelsClient().reorderOutputs(
-            scoringModelId,
-            { orderedOutputIds },
-          )
+          const data = await scoringModelsReorderOutputs(scoringModelId, {
+            orderedOutputIds,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -480,11 +493,10 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getScoringModelsClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await scoringModelsGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -501,10 +513,7 @@ export const scoringModelsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ scoringModelId, ...request }) => {
         try {
-          const data = await getScoringModelsClient().evaluate(
-            scoringModelId,
-            request,
-          )
+          const data = await scoringModelsEvaluate(scoringModelId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

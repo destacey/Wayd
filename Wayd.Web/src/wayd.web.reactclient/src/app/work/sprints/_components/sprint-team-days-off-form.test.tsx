@@ -5,7 +5,7 @@ import {
   SprintDetailsDto,
   SprintType,
   SprintTypeSource,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import SprintTeamDaysOffForm, {
   alreadyOff,
   sprintPlannedDays,

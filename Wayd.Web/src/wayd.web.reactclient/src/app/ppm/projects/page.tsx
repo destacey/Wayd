@@ -10,10 +10,16 @@ import { FC, useEffect, useState } from 'react'
 import { CreateProjectForm } from './_components'
 import { ProjectsFilterBar, ProjectsGrid } from '../_components'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ProjectMemberRole, ProjectStatus } from '@/src/services/wayd-api'
+import {
+  ProjectMemberRole,
+  ProjectStatus,
+} from '@/src/services/api/wayd.schemas'
 import { keepValidCodes } from '../_components/use-status-filter'
 
-const DEFAULT_STATUSES = [ProjectStatus.Approved, ProjectStatus.Active]
+const DEFAULT_STATUSES: ProjectStatus[] = [
+  ProjectStatus.Approved,
+  ProjectStatus.Active,
+]
 
 const ALL_ROLES = Object.values(ProjectMemberRole)
 

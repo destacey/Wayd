@@ -4,7 +4,10 @@ import { LabeledContent } from '@/src/components/common/content'
 import { byGroup } from '@/src/components/common/import'
 import { RecordFactsGroup } from '@/src/components/common/record'
 import { formatDateTime } from '@/src/components/common/wayd-grid'
-import { ImportAtomicity, ImportProcessDto } from '@/src/services/wayd-api'
+import {
+  ImportAtomicity,
+  ImportProcessDto,
+} from '@/src/services/api/wayd.schemas'
 import { useGetImportProcessesQuery } from '@/src/store/features/admin/imports-api'
 import { Flex, Tooltip, Typography } from 'antd'
 import Link from 'next/link'

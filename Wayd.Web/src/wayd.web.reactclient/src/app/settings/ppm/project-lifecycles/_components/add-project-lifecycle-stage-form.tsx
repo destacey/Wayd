@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ProjectLifecycleStageRequest } from '@/src/services/wayd-api'
+import { ProjectLifecycleStageRequest } from '@/src/services/api/wayd.schemas'
 import { useAddProjectLifecycleStageMutation } from '@/src/store/features/ppm/project-lifecycles-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -42,32 +42,32 @@ const AddProjectLifecycleStageForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<AddProjectLifecycleStageFormValues>({
       onSubmit: async (values: AddProjectLifecycleStageFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values)
-            const response = await addProjectLifecycleStage({
-              lifecycleId,
-              ...request,
-            })
-            if (response.error) {
-              throw response.error
-            }
-            messageApi.success('Stage added successfully.')
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while adding the stage. Please try again.',
-              )
-            }
-            return false
+        try {
+          const request = mapToRequestValues(values)
+          const response = await addProjectLifecycleStage({
+            lifecycleId,
+            ...request,
+          })
+          if (response.error) {
+            throw response.error
           }
-        },
+          messageApi.success('Stage added successfully.')
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while adding the stage. Please try again.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:

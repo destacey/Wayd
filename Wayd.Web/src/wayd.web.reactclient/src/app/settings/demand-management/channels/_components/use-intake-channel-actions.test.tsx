@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { Dropdown } from 'antd'
-import { IntakeChannelDto } from '@/src/services/wayd-api'
+import { IntakeChannelDto } from '@/src/services/api/wayd.schemas'
 import useIntakeChannelActions from './use-intake-channel-actions'
 
 const mockHasPermissionClaim = vi.fn()

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { EmployeeNavigationDto } from '@/src/services/wayd-api'
+import { EmployeeNavigationDto } from '@/src/services/api/wayd.schemas'
 import RecordRoleList from './record-role-list'
 
 const mockEmployee = vi.fn()

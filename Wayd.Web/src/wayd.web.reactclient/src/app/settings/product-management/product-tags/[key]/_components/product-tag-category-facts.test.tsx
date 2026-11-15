@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { ProductTagCategoryDto } from '@/src/services/wayd-api'
+import { ProductTagCategoryDto } from '@/src/services/api/wayd.schemas'
 import ProductTagCategoryFacts from './product-tag-category-facts'
 
 const category = (

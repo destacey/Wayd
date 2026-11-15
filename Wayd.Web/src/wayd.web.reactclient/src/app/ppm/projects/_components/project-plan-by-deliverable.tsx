@@ -9,7 +9,7 @@ import type { ColumnDef, Row } from '@/src/components/common/wayd-grid-core'
 import {
   ProjectDeliverableDto,
   ProjectPlanNodeDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Flex, Typography } from 'antd'
 import { ReactNode } from 'react'
 import {

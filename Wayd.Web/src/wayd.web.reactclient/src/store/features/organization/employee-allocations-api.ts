@@ -1,9 +1,13 @@
-import { getEmployeesClient } from '@/src/services/clients'
+import {
+  employeesChangeAllocations,
+  employeesGetAllocations,
+  employeesMoveAllocation,
+} from '@/src/services/api/employees'
 import {
   ChangeEmployeeAllocationsRequest,
   EmployeeAllocationDto,
   MoveEmployeeAllocationRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
@@ -17,7 +21,7 @@ export const employeeAllocationsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ employeeId }) => {
         try {
-          const data = await getEmployeesClient().getAllocations(employeeId)
+          const data = await employeesGetAllocations(employeeId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -35,10 +39,7 @@ export const employeeAllocationsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ employeeId, request }) => {
         try {
-          const data = await getEmployeesClient().changeAllocations(
-            employeeId,
-            request,
-          )
+          const data = await employeesChangeAllocations(employeeId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -63,10 +64,7 @@ export const employeeAllocationsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ employeeId, request }) => {
         try {
-          const data = await getEmployeesClient().moveAllocation(
-            employeeId,
-            request,
-          )
+          const data = await employeesMoveAllocation(employeeId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

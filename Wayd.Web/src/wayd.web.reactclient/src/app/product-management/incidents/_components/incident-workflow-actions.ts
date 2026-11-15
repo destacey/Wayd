@@ -1,4 +1,4 @@
-import { IncidentWorkflowAction } from '@/src/services/wayd-api'
+import { IncidentWorkflowAction } from '@/src/services/api/wayd.schemas'
 
 export interface IncidentWorkflowActionAvailability {
   canBeginResponding: boolean

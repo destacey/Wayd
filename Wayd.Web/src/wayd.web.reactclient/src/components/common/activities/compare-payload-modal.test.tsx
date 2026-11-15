@@ -3,7 +3,7 @@ import {
   ActivityCategory,
   ActivityLogDto,
   EventActorKind,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import ComparePayloadModal, {
   computePayloadDiff,
 } from './compare-payload-modal'

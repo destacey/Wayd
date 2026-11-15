@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { WorkProcessDto } from '@/src/services/wayd-api'
+import { WorkProcessDto } from '@/src/services/api/wayd.schemas'
 import WorkProcessFacts from './work-process-facts'
 
 const workProcess = (

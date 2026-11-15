@@ -5,7 +5,7 @@ import {
   CreateStoryMapRequest,
   StoryMapEditAccess,
   Visibility,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useMessage } from '@/src/components/contexts/messaging'
 import useAuth from '@/src/components/contexts/auth'

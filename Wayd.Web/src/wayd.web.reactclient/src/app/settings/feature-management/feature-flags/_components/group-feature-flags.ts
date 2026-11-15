@@ -1,7 +1,7 @@
 import type {
   FeatureFlagDto,
   FeatureFlagModuleDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 
 /** One module's card on the Feature Flags page. */
@@ -13,7 +13,7 @@ export interface FeatureFlagModuleGroup {
   flags: FeatureFlagDto[]
 }
 
-const contains = (text: string | undefined, term: string) =>
+const contains = (text: string | undefined | null, term: string) =>
   !!text && text.toLowerCase().includes(term)
 
 /**

@@ -2,7 +2,7 @@
 
 import { Card, Switch, Typography } from 'antd'
 import { useId } from 'react'
-import type { FeatureFlagDto } from '@/src/services/wayd-api'
+import type { FeatureFlagDto } from '@/src/services/api/wayd.schemas'
 import type { FeatureFlagModuleGroup } from './group-feature-flags'
 import styles from './feature-flag-module-card.module.css'
 

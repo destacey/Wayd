@@ -1,5 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { GeneralSettingsDto, TimeZoneDto } from '@/src/services/wayd-api'
+import {
+  GeneralSettingsDto,
+  TimeZoneDto,
+} from '@/src/services/api/wayd.schemas'
 import GeneralSettingsForm, {
   GeneralSettingsFormProps,
 } from './general-settings-form'

@@ -14,7 +14,7 @@ import { getHealthDescription } from '@/src/components/common/work/dependency-he
 import {
   ScopedDependencyDto,
   WorkItemDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { toFileName } from '@/src/utils'
 import ViewAllLink from '@/src/components/common/view-all-link'
 import {

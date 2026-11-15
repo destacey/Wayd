@@ -4,7 +4,7 @@ import { ReactNode } from 'react'
 
 export interface ExternalIconLinkProps {
   content: string | ReactNode
-  url?: string
+  url?: string | null
   tooltip?: string
 }
 

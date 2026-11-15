@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { CreateProjectLifecycleRequest } from '@/src/services/wayd-api'
+import { CreateProjectLifecycleRequest } from '@/src/services/api/wayd.schemas'
 import { useCreateProjectLifecycleMutation } from '@/src/store/features/ppm/project-lifecycles-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -40,31 +40,31 @@ const CreateProjectLifecycleForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CreateProjectLifecycleFormValues>({
       onSubmit: async (values: CreateProjectLifecycleFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values)
-            const response = await createProjectLifecycle(request)
-            if (response.error) {
-              throw response.error
-            }
-            messageApi.success(
-              'Project Lifecycle created successfully. Key: ' + response.data,
-            )
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while creating the project lifecycle. Please try again.',
-              )
-            }
-            return false
+        try {
+          const request = mapToRequestValues(values)
+          const response = await createProjectLifecycle(request)
+          if (response.error) {
+            throw response.error
           }
-        },
+          messageApi.success(
+            'Project Lifecycle created successfully. Key: ' + response.data,
+          )
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while creating the project lifecycle. Please try again.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:

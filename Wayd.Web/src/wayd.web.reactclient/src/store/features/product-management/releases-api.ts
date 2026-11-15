@@ -1,4 +1,20 @@
-import { getReleasesClient } from '@/src/services/clients'
+import {
+  releasesCorrectDates,
+  releasesDelete,
+  releasesGetActivities,
+  releasesGetRelease,
+  releasesGetReleases,
+  releasesGetStatusHistory,
+  releasesGetStatusWorkflow,
+  releasesGetWorkflowActions,
+  releasesMarkReleased,
+  releasesMoveTargetDate,
+  releasesPlan,
+  releasesRevert,
+  releasesSetContents,
+  releasesUpdate,
+  releasesWithdraw,
+} from '@/src/services/api/releases'
 import { apiSlice } from '../apiSlice'
 import {
   CorrectReleaseDatesRequest,
@@ -16,7 +32,7 @@ import {
   WithdrawReleaseRequest,
   PagedResponseOfActivityLogDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 
 export interface GetReleasesRequest {
@@ -60,11 +76,11 @@ export const releasesApi = apiSlice.injectEndpoints({
     getReleases: builder.query<ReleaseDto[], GetReleasesRequest | undefined>({
       queryFn: async (request = {}) => {
         try {
-          const data = await getReleasesClient().getReleases(
-            request.productId,
-            request.statusCategory,
-            request.containingVersionId,
-          )
+          const data = await releasesGetReleases({
+            productId: request.productId,
+            statusCategory: request.statusCategory,
+            containingVersionId: request.containingVersionId,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -76,7 +92,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     getRelease: builder.query<ReleaseDto, string>({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getReleasesClient().getRelease(idOrKey)
+          const data = await releasesGetRelease(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -90,7 +106,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     getReleaseStatusHistory: builder.query<StatusTransitionDto[], string>({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getReleasesClient().getStatusHistory(idOrKey)
+          const data = await releasesGetStatusHistory(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -108,7 +124,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     getReleaseStatusWorkflow: builder.query<StatusWorkflowDetailsDto, string>({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getReleasesClient().getStatusWorkflow(idOrKey)
+          const data = await releasesGetStatusWorkflow(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -132,7 +148,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getReleasesClient().getWorkflowActions(idOrKey)
+          const data = await releasesGetWorkflowActions(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -146,7 +162,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     planRelease: builder.mutation<ObjectIdAndKey, PlanReleaseRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getReleasesClient().plan(request)
+          const data = await releasesPlan(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -161,7 +177,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getReleasesClient().update(id, request)
+          const data = await releasesUpdate(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -184,7 +200,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getReleasesClient().setContents(id, request)
+          const data = await releasesSetContents(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -200,7 +216,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getReleasesClient().moveTargetDate(id, request)
+          const data = await releasesMoveTargetDate(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -221,7 +237,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getReleasesClient().correctDates(id, request)
+          const data = await releasesCorrectDates(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -239,7 +255,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getReleasesClient().markReleased(id, request)
+          const data = await releasesMarkReleased(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -255,7 +271,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getReleasesClient().withdraw(id, request)
+          const data = await releasesWithdraw(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -273,7 +289,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     deleteRelease: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getReleasesClient().delete(id)
+          const data = await releasesDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -297,7 +313,7 @@ export const releasesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getReleasesClient().revert(id, request)
+          const data = await releasesRevert(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -314,11 +330,10 @@ export const releasesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getReleasesClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await releasesGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

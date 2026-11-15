@@ -1,6 +1,9 @@
 'use client'
 
-import { StoryMapDetailsDto, StoryMapPersonaDto } from '@/src/services/wayd-api'
+import {
+  StoryMapDetailsDto,
+  StoryMapPersonaDto,
+} from '@/src/services/api/wayd.schemas'
 import { useAddPersonaMutation } from '@/src/store/features/planning/story-maps-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { nextUnusedPersonaColor } from '@/src/utils'

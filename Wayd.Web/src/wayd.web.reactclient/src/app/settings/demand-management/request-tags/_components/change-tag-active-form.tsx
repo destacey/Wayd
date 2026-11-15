@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { IntakeRequestTagOptionDto } from '@/src/services/wayd-api'
+import { IntakeRequestTagOptionDto } from '@/src/services/api/wayd.schemas'
 import { useSetIntakeRequestTagActiveMutation } from '@/src/store/features/demand-management/demand-management-api'
 import { Modal } from 'antd'
 import { useConfirmModal } from '@/src/hooks'

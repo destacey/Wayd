@@ -5,7 +5,7 @@ import { useDebounce, useModalForm } from '@/src/hooks'
 import {
   IntakeRequestDetailsDto,
   IntakeRequestOutcomeKind,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useAddIntakeRequestOutcomeMutation } from '@/src/store/features/demand-management/demand-management-api'
 import { useGetProjectOptionsQuery } from '@/src/store/features/ppm/projects-api'
 import { useSearchWorkItemsQuery } from '@/src/store/features/work-management/workspace-api'

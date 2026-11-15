@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   EndProductDependencyRequest,
   ProductDependencyDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useEndProductDependencyMutation } from '@/src/store/features/product-management/products-api'
 import {
   toFormErrors,

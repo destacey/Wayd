@@ -13,7 +13,7 @@ import useAuth from '@/src/components/contexts/auth'
 import { Button } from 'antd'
 import { authorizePage } from '@/src/components/hoc'
 import { useGetPlanningIntervalsQuery } from '@/src/store/features/planning/planning-interval-api'
-import { PlanningIntervalListDto } from '@/src/services/wayd-api'
+import { PlanningIntervalListDto } from '@/src/services/api/wayd.schemas'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 const stateOrder = ['Active', 'Future', 'Completed']
 

@@ -1,6 +1,6 @@
 import { render, screen, act } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
-import { ProductStatusAlias } from '@/src/services/wayd-api'
+import { ProductStatusAlias } from '@/src/services/api/wayd.schemas'
 import { formatInstantInZone } from '@/src/utils'
 import IncidentStatusStepper from './incident-status-stepper'
 
@@ -156,11 +156,15 @@ describe('IncidentStatusStepper', () => {
     triggerResize(800)
 
     // Assert
-    expect(container.querySelector('.ant-steps-item-error')).toHaveTextContent('Canceled')
-    expect(screen.getByText('Canceled').closest('.ant-steps-item')).not.toHaveTextContent(/\d/)
-    expect(screen.getByText('Responding').closest('.ant-steps-item')).toHaveClass(
-      'ant-steps-item-wait',
+    expect(container.querySelector('.ant-steps-item-error')).toHaveTextContent(
+      'Canceled',
     )
+    expect(
+      screen.getByText('Canceled').closest('.ant-steps-item'),
+    ).not.toHaveTextContent(/\d/)
+    expect(
+      screen.getByText('Responding').closest('.ant-steps-item'),
+    ).toHaveClass('ant-steps-item-wait')
     expect(screen.getByText('Open').closest('.ant-steps-item')).toHaveClass(
       'ant-steps-item-finish',
     )

@@ -7,7 +7,7 @@ import {
   NeedByBasisDto,
   NeedByBasisFamily,
   NeedByBasisFamilyDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useEffect } from 'react'
 import { NeedByFields } from './need-by-fields'
 

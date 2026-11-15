@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { ProjectDetailsDto } from '@/src/services/wayd-api'
+import { ProjectDetailsDto } from '@/src/services/api/wayd.schemas'
 import ProjectDrawer from './project-drawer'
 
 vi.mock('next/link', () => {

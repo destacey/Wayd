@@ -5,7 +5,7 @@ import {
   LabeledContent,
 } from '@/src/components/common/content'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
-import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
+import { IntakeRequestDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Alert, Card, Flex, Typography } from 'antd'
 import { FC, ReactNode } from 'react'
 import { NeedByCallout } from '../../../_components/need-by'

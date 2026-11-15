@@ -1,4 +1,15 @@
-import { getDeploymentsClient } from '@/src/services/clients'
+import {
+  deploymentsDelete,
+  deploymentsFail,
+  deploymentsGetActivities,
+  deploymentsGetDeployment,
+  deploymentsGetDeployments,
+  deploymentsGetStatusHistory,
+  deploymentsGetStatusWorkflow,
+  deploymentsRollBack,
+  deploymentsStart,
+  deploymentsSucceed,
+} from '@/src/services/api/deployments'
 import { apiSlice } from '../apiSlice'
 import {
   DeploymentDto,
@@ -11,7 +22,7 @@ import {
   StatusWorkflowDetailsDto,
   SucceedDeploymentRequest,
   PagedResponseOfActivityLogDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 
 export interface GetDeploymentsRequest {
@@ -50,15 +61,15 @@ export const deploymentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request = {}) => {
         try {
-          const data = await getDeploymentsClient().getDeployments(
-            request.versionId,
-            request.packageId,
-            request.environmentId,
-            request.environmentCategory,
-            request.startedOnOrAfter
+          const data = await deploymentsGetDeployments({
+            versionId: request.versionId,
+            packageId: request.packageId,
+            environmentId: request.environmentId,
+            environmentCategory: request.environmentCategory,
+            startedOnOrAfter: request.startedOnOrAfter
               ? new Date(request.startedOnOrAfter)
               : undefined,
-          )
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -70,7 +81,7 @@ export const deploymentsApi = apiSlice.injectEndpoints({
     getDeployment: builder.query<DeploymentDto, string>({
       queryFn: async (id) => {
         try {
-          const data = await getDeploymentsClient().getDeployment(id)
+          const data = await deploymentsGetDeployment(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -84,7 +95,7 @@ export const deploymentsApi = apiSlice.injectEndpoints({
     getDeploymentStatusHistory: builder.query<StatusTransitionDto[], string>({
       queryFn: async (id) => {
         try {
-          const data = await getDeploymentsClient().getStatusHistory(id)
+          const data = await deploymentsGetStatusHistory(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -105,7 +116,7 @@ export const deploymentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getDeploymentsClient().getStatusWorkflow(idOrKey)
+          const data = await deploymentsGetStatusWorkflow(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -120,7 +131,7 @@ export const deploymentsApi = apiSlice.injectEndpoints({
     startDeployment: builder.mutation<ObjectIdAndKey, StartDeploymentRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getDeploymentsClient().start(request)
+          const data = await deploymentsStart(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -138,7 +149,7 @@ export const deploymentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getDeploymentsClient().succeed(id, request)
+          const data = await deploymentsSucceed(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -154,7 +165,7 @@ export const deploymentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getDeploymentsClient().fail(id, request)
+          const data = await deploymentsFail(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -170,7 +181,7 @@ export const deploymentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getDeploymentsClient().rollBack(id, request)
+          const data = await deploymentsRollBack(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -183,23 +194,21 @@ export const deploymentsApi = apiSlice.injectEndpoints({
 
     // Only lists: invalidating the deleted record's own tags refetches its page, still mounted until
     // the redirect lands, and every one of those queries 404s.
-    deleteDeployment: builder.mutation<void, string>(
-      {
-        queryFn: async (id) => {
-          try {
-            const data = await getDeploymentsClient().delete(id)
-            return { data }
-          } catch (error) {
-            console.error('API Error:', error)
-            return { error }
-          }
-        },
-        invalidatesTags: () => [
-          { type: QueryTags.Deployment, id: 'LIST' },
-          { type: QueryTags.DeliveryMetrics, id: 'LIST' },
-        ],
+    deleteDeployment: builder.mutation<void, string>({
+      queryFn: async (id) => {
+        try {
+          const data = await deploymentsDelete(id)
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
       },
-    ),
+      invalidatesTags: () => [
+        { type: QueryTags.Deployment, id: 'LIST' },
+        { type: QueryTags.DeliveryMetrics, id: 'LIST' },
+      ],
+    }),
 
     getDeploymentActivities: builder.query<
       PagedResponseOfActivityLogDto,
@@ -207,11 +216,10 @@ export const deploymentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getDeploymentsClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await deploymentsGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

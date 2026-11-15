@@ -1,6 +1,9 @@
 'use client'
 
-import { IntakeDeskDto, IntakeDeskWaitingDto } from '@/src/services/wayd-api'
+import {
+  IntakeDeskDto,
+  IntakeDeskWaitingDto,
+} from '@/src/services/api/wayd.schemas'
 import { formatTimeAgo } from '@/src/utils/time-ago'
 import { Alert, Tag } from 'antd'
 import { FC } from 'react'

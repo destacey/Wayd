@@ -3,7 +3,7 @@ import {
   SizingMethod,
   TeamCadenceMetricsDto,
   TeamCadencePeriodDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   TeamCadenceMetricsReportView,
   TeamCadenceMetricsReportViewProps,

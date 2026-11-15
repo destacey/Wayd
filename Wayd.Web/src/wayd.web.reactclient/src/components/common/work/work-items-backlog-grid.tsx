@@ -12,7 +12,10 @@ import {
   workItemKeySort,
   workStatusCategorySort,
 } from '@/src/components/common/wayd-grid'
-import { SizingMethod, WorkItemBacklogItemDto } from '@/src/services/wayd-api'
+import {
+  SizingMethod,
+  WorkItemBacklogItemDto,
+} from '@/src/services/api/wayd.schemas'
 import { estimateColumns } from './estimate-columns'
 import type { ColumnDef } from '../wayd-grid-core'
 export interface WorkItemsBacklogGridProps {

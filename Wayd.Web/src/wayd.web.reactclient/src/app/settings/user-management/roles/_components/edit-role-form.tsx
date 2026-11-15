@@ -3,7 +3,10 @@
 import { Form, Input, Modal } from 'antd'
 import { useEffect } from 'react'
 import { toFormErrors } from '@/src/utils'
-import { CreateOrUpdateRoleRequest, RoleDto } from '@/src/services/wayd-api'
+import {
+  CreateOrUpdateRoleRequest,
+  RoleDto,
+} from '@/src/services/api/wayd.schemas'
 import { useUpsertRoleMutation } from '@/src/store/features/user-management/roles-api'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
@@ -40,27 +43,27 @@ const EditRoleForm = ({
               description: values.description,
             })
 
-            if (response.error) {
-              throw response.error
-            }
-
-            messageApi.success('Successfully updated Role.')
-            return true
-          } catch (error: any) {
-            if (error.status === 422 && error.errors) {
-              const formErrors = toFormErrors(error.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else if (error.statusCode === 409 && error.exception) {
-              messageApi.error(error.exception)
-            } else {
-              messageApi.error(
-                'An unexpected error occurred while updating the role.',
-              )
-            }
-            return false
+          if (response.error) {
+            throw response.error
           }
-        },
+
+          messageApi.success('Successfully updated Role.')
+          return true
+        } catch (error: any) {
+          if (error.status === 422 && error.errors) {
+            const formErrors = toFormErrors(error.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else if (error.statusCode === 409 && error.exception) {
+            messageApi.error(error.exception)
+          } else {
+            messageApi.error(
+              'An unexpected error occurred while updating the role.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage: 'An unexpected error occurred while updating the role.',

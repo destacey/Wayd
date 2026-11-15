@@ -2,7 +2,10 @@ import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import ProjectsDashboardPage from './page'
-import { ProjectMemberRole, ProjectStatus } from '@/src/services/wayd-api'
+import {
+  ProjectMemberRole,
+  ProjectStatus,
+} from '@/src/services/api/wayd.schemas'
 
 const IN_FLIGHT = [ProjectStatus.Approved, ProjectStatus.Active]
 

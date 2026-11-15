@@ -2,7 +2,7 @@
 
 import { DatePicker, Form, Input, Modal, Radio, Select } from 'antd'
 import { useEffect } from 'react'
-import { CreateRiskRequest } from '@/src/services/wayd-api'
+import { CreateRiskRequest } from '@/src/services/api/wayd.schemas'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { type Dayjs } from 'dayjs'
 import { MarkdownEditor } from '../markdown'

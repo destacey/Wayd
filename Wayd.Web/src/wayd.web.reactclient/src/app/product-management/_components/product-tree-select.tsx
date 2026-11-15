@@ -1,7 +1,7 @@
 'use client'
 
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { ProductDto } from '@/src/services/wayd-api'
+import { ProductDto } from '@/src/services/api/wayd.schemas'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { TreeSelect } from 'antd'
 import {

@@ -2,7 +2,7 @@
 
 import StatusRemapTable from '@/src/app/settings/status-workflows/_components/status-remap-table'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { IntakeDeskWorkflowDto } from '@/src/services/wayd-api'
+import { IntakeDeskWorkflowDto } from '@/src/services/api/wayd.schemas'
 import {
   useChangeIntakeDeskWorkflowMutation,
   useGetIntakeWorkflowChoicesQuery,

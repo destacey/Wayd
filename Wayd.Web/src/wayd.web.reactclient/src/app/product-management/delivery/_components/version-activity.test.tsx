@@ -1,4 +1,4 @@
-import { ProductActivityDto } from '@/src/services/wayd-api'
+import { ProductActivityDto } from '@/src/services/api/wayd.schemas'
 import { render, screen } from '@testing-library/react'
 import VersionActivity, {
   levelDescription,

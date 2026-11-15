@@ -1,4 +1,20 @@
-import { getIncidentsClient } from '@/src/services/clients'
+import {
+  incidentsAddIncidentTimelineNote,
+  incidentsApplyIncidentWorkflowAction,
+  incidentsCreate,
+  incidentsCreateTeamsChat,
+  incidentsGetIncident,
+  incidentsGetIncidentFigures,
+  incidentsGetIncidentTimelineLinkEntries,
+  incidentsGetIncidentTimelineNotes,
+  incidentsGetIncidentWorkItems,
+  incidentsGetIncidentWorkflowActions,
+  incidentsGetIncidents,
+  incidentsGetStatusWorkflow,
+  incidentsLinkTeamsChat,
+  incidentsManageIncidentWorkItems,
+  incidentsUpdateDetails,
+} from '@/src/services/api/incidents'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import type {
@@ -19,7 +35,7 @@ import type {
   ApplyIncidentWorkflowActionRequest,
   ProductStatusAlias,
   StatusWorkflowDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 export interface GetIncidentsRequest {
   page?: number
@@ -36,12 +52,12 @@ export const incidentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (args) => {
         try {
-          const data = await getIncidentsClient().getIncidents(
-            args?.page,
-            args?.pageSize,
-            args?.statuses,
-            args?.severityLevelIds,
-          )
+          const data = await incidentsGetIncidents({
+            page: args?.page,
+            pageSize: args?.pageSize,
+            status: args?.statuses,
+            severityLevelId: args?.severityLevelIds,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -65,10 +81,10 @@ export const incidentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (args) => {
         try {
-          const data = await getIncidentsClient().getIncidentFigures(
-            args?.statuses,
-            args?.severityLevelIds,
-          )
+          const data = await incidentsGetIncidentFigures({
+            status: args?.statuses,
+            severityLevelId: args?.severityLevelIds,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -82,7 +98,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
     getIncident: builder.query<IncidentDto, string>({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getIncidentsClient().getIncident(idOrKey)
+          const data = await incidentsGetIncident(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -99,7 +115,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
     createIncident: builder.mutation<ObjectIdAndKey, CreateIncidentRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getIncidentsClient().create(request)
+          const data = await incidentsCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -114,7 +130,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          await getIncidentsClient().createTeamsChat(request.id, request)
+          await incidentsCreateTeamsChat(request.id, request)
           return { data: undefined }
         } catch (error) {
           console.error('API Error:', error)
@@ -129,7 +145,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
       {
         queryFn: async (request) => {
           try {
-            await getIncidentsClient().linkTeamsChat(request.id, request)
+            await incidentsLinkTeamsChat(request.id, request)
             return { data: undefined }
           } catch (error) {
             console.error('API Error:', error)
@@ -145,7 +161,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
       {
         queryFn: async (request) => {
           try {
-            await getIncidentsClient().updateDetails(request.id, request)
+            await incidentsUpdateDetails(request.id, request)
             return { data: undefined }
           } catch (error) {
             console.error('API Error:', error)
@@ -164,7 +180,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey }) => {
         try {
-          const data = await getIncidentsClient().getIncidentWorkItems(idOrKey)
+          const data = await incidentsGetIncidentWorkItems(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -181,10 +197,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          await getIncidentsClient().manageIncidentWorkItems(
-            request.incidentId,
-            request,
-          )
+          await incidentsManageIncidentWorkItems(request.incidentId, request)
           return { data: undefined }
         } catch (error) {
           console.error('API Error:', error)
@@ -205,8 +218,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey }) => {
         try {
-          const data =
-            await getIncidentsClient().getIncidentTimelineNotes(idOrKey)
+          const data = await incidentsGetIncidentTimelineNotes(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -223,8 +235,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey }) => {
         try {
-          const data =
-            await getIncidentsClient().getIncidentTimelineLinkEntries(idOrKey)
+          const data = await incidentsGetIncidentTimelineLinkEntries(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -241,7 +252,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getIncidentsClient().addIncidentTimelineNote(
+          const data = await incidentsAddIncidentTimelineNote(
             request.incidentId,
             request,
           )
@@ -259,7 +270,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
     getIncidentStatusWorkflow: builder.query<StatusWorkflowDetailsDto, string>({
       queryFn: async (incidentId) => {
         try {
-          const data = await getIncidentsClient().getStatusWorkflow(incidentId)
+          const data = await incidentsGetStatusWorkflow(incidentId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -279,8 +290,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (idOrKey) => {
         try {
-          const data =
-            await getIncidentsClient().getIncidentWorkflowActions(idOrKey)
+          const data = await incidentsGetIncidentWorkflowActions(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -301,7 +311,7 @@ export const incidentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          await getIncidentsClient().applyIncidentWorkflowAction(id, request)
+          await incidentsApplyIncidentWorkflowAction(id, request)
           return { data: undefined }
         } catch (error) {
           console.error('API Error:', error)

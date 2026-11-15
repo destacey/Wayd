@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import {
   IntakeRequestDetailsDto,
   IntakeRequestSubstanceDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import IntakeRequestParticipants from './intake-request-participants'
 
 vi.mock('@/src/components/contexts/messaging', () => ({

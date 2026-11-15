@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { StrategicInitiativeDetailsDto } from '@/src/services/wayd-api'
+import { StrategicInitiativeDetailsDto } from '@/src/services/api/wayd.schemas'
 import {
   useActivateStrategicInitiativeMutation,
   useApproveStrategicInitiativeMutation,

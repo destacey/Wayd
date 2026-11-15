@@ -5,7 +5,7 @@ import { DependencyPartnersExplorer } from '@/src/components/common/work/depende
 import {
   DependencyDto,
   TeamDependencyAnalysisDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetTeamDependencyAnalysisQuery } from '@/src/store/features/organizations/team-api'
 import {
   parseCalendarDate,

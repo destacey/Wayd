@@ -4,7 +4,7 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { UpdateProjectRequest } from '@/src/services/wayd-api'
+import { UpdateProjectRequest } from '@/src/services/api/wayd.schemas'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { useGetExpenditureCategoryOptionsQuery } from '@/src/store/features/ppm/expenditure-categories-api'
 import {
@@ -36,8 +36,8 @@ export interface EditProjectFormProps {
 interface EditProjectFormValues {
   name: string
   description: string
-  businessCase?: string
-  expectedBenefits?: string
+  businessCase?: string | null
+  expectedBenefits?: string | null
   expenditureCategoryId: number
   dateRange?: [dayjs.Dayjs, dayjs.Dayjs] | null
   sponsorIds: string[]
@@ -99,25 +99,25 @@ const EditProjectForm = ({
             })
             if (response.error) throw response.error
 
-            messageApi.success('Project updated successfully.')
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: rangeErrorsOn('dateRange'),
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while updating the project. Please try again.',
-              )
-            }
-            return false
+          messageApi.success('Project updated successfully.')
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn('dateRange'),
+            })
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while updating the project. Please try again.',
+            )
           }
-        },
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:

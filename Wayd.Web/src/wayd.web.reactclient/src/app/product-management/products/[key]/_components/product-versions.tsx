@@ -1,7 +1,7 @@
 'use client'
 
 import { VersionsGrid } from '@/src/app/product-management/versions/_components'
-import { VersionDto } from '@/src/services/wayd-api'
+import { VersionDto } from '@/src/services/api/wayd.schemas'
 
 export interface ProductVersionsProps {
   versions: VersionDto[]

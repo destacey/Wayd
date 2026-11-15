@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { Button } from 'antd'
-import { ResumedImport } from '@/src/services/wayd-api'
+import { ResumedImport } from '@/src/services/api/wayd.schemas'
 import useImportActions from './use-import-actions'
 
 const mockCancel = vi.fn()

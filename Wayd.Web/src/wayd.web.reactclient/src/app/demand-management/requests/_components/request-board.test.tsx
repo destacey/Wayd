@@ -5,7 +5,7 @@ import {
   NeedByBasisFamily,
   StatusCategory,
   StatusNavigationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import RequestBoard, { boardColumns } from './request-board'
 
 const status = (

@@ -2,7 +2,7 @@
 
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { WaydEmpty } from '@/src/components/common'
-import { ReleaseDto } from '@/src/services/wayd-api'
+import { ReleaseDto } from '@/src/services/api/wayd.schemas'
 
 export interface ReleaseOverviewProps {
   release: ReleaseDto

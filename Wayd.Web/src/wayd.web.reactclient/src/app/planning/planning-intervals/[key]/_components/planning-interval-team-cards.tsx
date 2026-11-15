@@ -2,7 +2,7 @@
 
 import { CycleTimeMetric, MetricCard } from '@/src/components/common/metrics'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
-import { PlanningIntervalTeamMetrics } from '@/src/services/wayd-api'
+import { PlanningIntervalTeamMetrics } from '@/src/services/api/wayd.schemas'
 import {
   useGetPlanningIntervalMetricsQuery,
   useGetPlanningIntervalObjectivesQuery,
@@ -167,4 +167,3 @@ const PlanningIntervalTeamCards = ({
 }
 
 export default PlanningIntervalTeamCards
-

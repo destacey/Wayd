@@ -1,5 +1,8 @@
 import dayjs from 'dayjs'
-import { EmployeeNavigationDto, ProjectListDto } from '@/src/services/wayd-api'
+import {
+  EmployeeNavigationDto,
+  ProjectListDto,
+} from '@/src/services/api/wayd.schemas'
 
 import {
   collectLeadership,

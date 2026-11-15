@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import {
   EstimationScaleDto,
   EstimationScaleVersionDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import EstimationScalePanel from './estimation-scale-panel'
 
 const version = (

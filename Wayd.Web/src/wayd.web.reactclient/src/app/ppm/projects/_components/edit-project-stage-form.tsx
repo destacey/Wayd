@@ -6,7 +6,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   JsonPatchOperation,
   JsonPatchOperationType,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetProjectStageQuery,
   useGetProjectPlanTreeQuery,
@@ -67,97 +67,94 @@ const EditProjectStageForm = ({
       onSubmit: async (values: EditStageFormValues, form: any): Promise<boolean> => {
           const patchOperations: JsonPatchOperation[] = []
 
-          if (values.description !== stageData?.description) {
-            patchOperations.push({
-              op: JsonPatchOperationType.Replace,
-              path: '/Description',
-              value: values.description,
-            })
-          }
-
-          if (values.statusId !== stageData?.status?.id) {
-            patchOperations.push({
-              op: JsonPatchOperationType.Replace,
-              path: '/Status',
-              value: values.statusId,
-            })
-          }
-
-          const newStart =
-            values.plannedRange?.[0]?.format('YYYY-MM-DD') ?? null
-          const newEnd =
-            values.plannedRange?.[1]?.format('YYYY-MM-DD') ?? null
-          const oldStart = stageData?.start
-            ? dayjs(stageData.start.toString()).format('YYYY-MM-DD')
-            : null
-          const oldEnd = stageData?.end
-            ? dayjs(stageData.end.toString()).format('YYYY-MM-DD')
-            : null
-
-          if (newStart !== oldStart) {
-            patchOperations.push({
-              op: JsonPatchOperationType.Replace,
-              path: '/PlannedStart',
-              value: newStart,
-            })
-          }
-          if (newEnd !== oldEnd) {
-            patchOperations.push({
-              op: JsonPatchOperationType.Replace,
-              path: '/PlannedEnd',
-              value: newEnd,
-            })
-          }
-
-          if (values.progress !== stageData?.progress) {
-            patchOperations.push({
-              op: JsonPatchOperationType.Replace,
-              path: '/Progress',
-              value: values.progress,
-            })
-          }
-
-          const currentAssigneeIds =
-            stageData?.assignees?.map((a) => a.id).sort() ?? []
-          const newAssigneeIds = [...(values.assigneeIds ?? [])].sort()
-          if (
-            JSON.stringify(currentAssigneeIds) !==
-            JSON.stringify(newAssigneeIds)
-          ) {
-            patchOperations.push({
-              op: JsonPatchOperationType.Replace,
-              path: '/AssigneeIds',
-              value: values.assigneeIds ?? [],
-            })
-          }
-
-          if (patchOperations.length === 0) return true
-
-          // Through the mutation rather than a bare fetch, so its
-          // invalidatesTags refresh the plan summary counts alongside the
-          // tree. A direct fetch updates the server and leaves the cache
-          // untouched, so the counts stay stale until a reload.
-          const result = await patchProjectStage({
-            projectId,
-            projectKey,
-            stageId,
-            patchOperations,
+        if (values.description !== stageData?.description) {
+          patchOperations.push({
+            op: JsonPatchOperationType.replace,
+            path: '/Description',
+            value: values.description,
           })
+        }
 
-          if ('error' in result && result.error) {
-            const errorData = (result.error as { data?: any })?.data
-            if (errorData?.errors) {
-              const formErrors = toFormErrors(errorData.errors, {
-                fieldFor: rangeErrorsOn(
-                  'plannedRange',
-                  'plannedStart',
-                  'plannedEnd',
-                ),
-              })
-              form.setFields(formErrors)
-            }
-            return false
+        if (values.statusId !== stageData?.status?.id) {
+          patchOperations.push({
+            op: JsonPatchOperationType.replace,
+            path: '/Status',
+            value: values.statusId,
+          })
+        }
+
+        const newStart = values.plannedRange?.[0]?.format('YYYY-MM-DD') ?? null
+        const newEnd = values.plannedRange?.[1]?.format('YYYY-MM-DD') ?? null
+        const oldStart = stageData?.start
+          ? dayjs(stageData.start.toString()).format('YYYY-MM-DD')
+          : null
+        const oldEnd = stageData?.end
+          ? dayjs(stageData.end.toString()).format('YYYY-MM-DD')
+          : null
+
+        if (newStart !== oldStart) {
+          patchOperations.push({
+            op: JsonPatchOperationType.replace,
+            path: '/PlannedStart',
+            value: newStart,
+          })
+        }
+        if (newEnd !== oldEnd) {
+          patchOperations.push({
+            op: JsonPatchOperationType.replace,
+            path: '/PlannedEnd',
+            value: newEnd,
+          })
+        }
+
+        if (values.progress !== stageData?.progress) {
+          patchOperations.push({
+            op: JsonPatchOperationType.replace,
+            path: '/Progress',
+            value: values.progress,
+          })
+        }
+
+        const currentAssigneeIds =
+          stageData?.assignees?.map((a) => a.id).sort() ?? []
+        const newAssigneeIds = [...(values.assigneeIds ?? [])].sort()
+        if (
+          JSON.stringify(currentAssigneeIds) !== JSON.stringify(newAssigneeIds)
+        ) {
+          patchOperations.push({
+            op: JsonPatchOperationType.replace,
+            path: '/AssigneeIds',
+            value: values.assigneeIds ?? [],
+          })
+        }
+
+        if (patchOperations.length === 0) return true
+
+        // Through the mutation rather than a bare fetch, so its
+        // invalidatesTags refresh the plan summary counts alongside the
+        // tree. A direct fetch updates the server and leaves the cache
+        // untouched, so the counts stay stale until a reload.
+        const result = await patchProjectStage({
+          projectId,
+          projectKey,
+          stageId,
+          patchOperations,
+        })
+
+        if ('error' in result && result.error) {
+          const errorData = (result.error as { data?: any })?.data
+          if (errorData?.errors) {
+            const formErrors = toFormErrors(errorData.errors, {
+              fieldFor: rangeErrorsOn(
+                'plannedRange',
+                'plannedStart',
+                'plannedEnd',
+              ),
+            })
+            form.setFields(formErrors)
           }
+          return false
+        }
 
           return true
         },
@@ -254,7 +251,9 @@ const EditProjectStageForm = ({
                 if (childrenSpan) {
                   if (!value || !value[0] || !value[1]) {
                     return Promise.reject(
-                      new Error('Planned dates cannot be cleared when child items have dates.')
+                      new Error(
+                        'Planned dates cannot be cleared when child items have dates.',
+                      ),
                     )
                   }
                   const start = value[0]
@@ -271,8 +270,8 @@ const EditProjectStageForm = ({
                   }
                 }
                 return Promise.resolve()
-              }
-            }
+              },
+            },
           ]}
         >
           <RangePicker style={{ width: '60%' }} format="MMM D, YYYY" />

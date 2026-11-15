@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { SprintMetricsSettingsDto } from '@/src/services/wayd-api'
+import { SprintMetricsSettingsDto } from '@/src/services/api/wayd.schemas'
 import SprintMetricsSettingsForm, {
   SprintMetricsSettingsFormProps,
 } from './sprint-metrics-settings-form'

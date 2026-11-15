@@ -2,7 +2,10 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PpmFilterBar from './ppm-filter-bar'
 import { StatusOptionModel } from '@/src/components/types'
-import { ProjectStatus, StrategicThemeState } from '@/src/services/wayd-api'
+import {
+  ProjectStatus,
+  StrategicThemeState,
+} from '@/src/services/api/wayd.schemas'
 
 const { Proposed, Approved, Active, Completed } = ProjectStatus
 

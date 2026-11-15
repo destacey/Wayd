@@ -2,7 +2,7 @@ import {
   DependencyStrength,
   InteractionStyle,
   ProductDependencyDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { SET_FILTER_BLANK } from '@/src/components/common/wayd-grid-core'
 import { buildDependencyColumns } from './product-dependencies'
 

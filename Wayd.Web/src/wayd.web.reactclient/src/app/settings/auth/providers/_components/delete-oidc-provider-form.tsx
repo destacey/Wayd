@@ -1,7 +1,10 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { DeleteOidcProviderResult, OidcProviderListItemDto } from '@/src/services/wayd-api'
+import {
+  DeleteOidcProviderResult,
+  OidcProviderListItemDto,
+} from '@/src/services/api/wayd.schemas'
 import { useDeleteOidcProviderMutation } from '@/src/store/features/user-management/oidc-providers-api'
 import { Alert, Flex, Modal, Typography } from 'antd'
 import { useState } from 'react'

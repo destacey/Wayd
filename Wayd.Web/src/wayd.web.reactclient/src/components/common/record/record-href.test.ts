@@ -1,4 +1,7 @@
-import { FollowedRecordDto, LifecycleCategory } from '@/src/services/wayd-api'
+import {
+  FollowedRecordDto,
+  LifecycleCategory,
+} from '@/src/services/api/wayd.schemas'
 import { recordHref } from './record-href'
 
 const record = (overrides: Partial<FollowedRecordDto>): FollowedRecordDto => ({

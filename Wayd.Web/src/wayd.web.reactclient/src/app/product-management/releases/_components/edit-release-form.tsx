@@ -3,7 +3,10 @@
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { ReleaseDto, UpdateReleaseRequest } from '@/src/services/wayd-api'
+import {
+  ReleaseDto,
+  UpdateReleaseRequest,
+} from '@/src/services/api/wayd.schemas'
 import { useUpdateReleaseMutation } from '@/src/store/features/product-management/releases-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { ProductTreeSelect } from '../../_components'

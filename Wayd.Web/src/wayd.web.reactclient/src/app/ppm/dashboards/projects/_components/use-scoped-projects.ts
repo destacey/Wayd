@@ -4,7 +4,7 @@ import {
   ProjectListDto,
   ProjectMemberRole,
   ProjectStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetPortfolioProjectsQuery } from '@/src/store/features/ppm/portfolios-api'
 import { useGetProgramProjectsQuery } from '@/src/store/features/ppm/programs-api'
 import {

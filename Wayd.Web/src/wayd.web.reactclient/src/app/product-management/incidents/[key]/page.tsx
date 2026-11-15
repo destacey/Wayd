@@ -53,7 +53,7 @@ import styles from '@/src/app/product-management/incidents/_components/incidents
 import {
   IncidentWorkflowAction,
   ApplyIncidentWorkflowActionRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { toApiError, toFormErrors } from '@/src/utils'
 
 const { TextArea } = Input

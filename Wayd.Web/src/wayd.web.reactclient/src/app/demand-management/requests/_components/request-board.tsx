@@ -6,7 +6,7 @@ import {
   NeedByBasisFamily,
   StatusCategory,
   StatusNavigationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { ConfigProvider, Empty, Grid, Select, Typography } from 'antd'
 import Link from 'next/link'
 import { FC, useState } from 'react'
@@ -29,7 +29,10 @@ export interface BoardColumn {
   requests: IntakeRequestSummaryDto[]
 }
 
-const OPEN_CATEGORIES = [StatusCategory.Proposed, StatusCategory.Active]
+const OPEN_CATEGORIES: StatusCategory[] = [
+  StatusCategory.Proposed,
+  StatusCategory.Active,
+]
 
 /**
  * The board's columns: every status of the workflow, in its order, holding the requests in it. A stage

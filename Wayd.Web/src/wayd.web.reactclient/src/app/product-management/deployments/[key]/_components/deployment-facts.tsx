@@ -3,7 +3,7 @@
 import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
 import { formatDateTime } from '@/src/components/common/wayd-grid'
-import { DeploymentDto } from '@/src/services/wayd-api'
+import { DeploymentDto } from '@/src/services/api/wayd.schemas'
 import { Flex, Tag, Tooltip } from 'antd'
 import Link from 'next/link'
 

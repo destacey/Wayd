@@ -4,7 +4,7 @@ import {
   StoryMapDetailsDto,
   StoryMapPersonaDto,
   StoryMapTaskDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { LabeledContent } from '@/src/components/common/content'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { getDrawerWidthPixels } from '@/src/utils'
@@ -320,7 +320,7 @@ const TaskDrawerBody: FC<TaskDrawerBodyProps> = ({
       <LabeledContent label="Description">
         <div className={styles.countOnFocus}>
           <TextArea
-            value={description}
+            value={description ?? undefined}
             disabled={!canUpdate}
             placeholder="What still needs deciding?"
             maxLength={2048}

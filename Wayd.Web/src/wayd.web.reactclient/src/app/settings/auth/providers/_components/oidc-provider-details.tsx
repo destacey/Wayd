@@ -1,6 +1,9 @@
 'use client'
 
-import { OidcProviderDto, OidcProviderType } from '@/src/services/wayd-api'
+import {
+  OidcProviderDto,
+  OidcProviderType,
+} from '@/src/services/api/wayd.schemas'
 import { useTestOidcProviderDiscoveryMutation } from '@/src/store/features/user-management/oidc-providers-api'
 import { useGetRolesQuery } from '@/src/store/features/user-management/roles-api'
 import {
@@ -32,9 +35,9 @@ const providerTypeLabel = (type: string) => {
 
 interface DiscoveryState {
   status: 'idle' | 'loading' | 'success' | 'error'
-  issuer?: string
+  issuer?: string | null
   jwksKeyCount?: number
-  error?: string
+  error?: string | null
 }
 
 const DiscoveryTest = ({ providerId }: { providerId: string }) => {

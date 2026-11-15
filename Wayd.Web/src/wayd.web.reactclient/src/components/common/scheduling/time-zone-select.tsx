@@ -1,7 +1,7 @@
 'use client'
 
 import { Select, SelectProps } from 'antd'
-import { TimeZoneDto } from '@/src/services/wayd-api'
+import { TimeZoneDto } from '@/src/services/api/wayd.schemas'
 import { useGetTimeZonesQuery } from '@/src/store/features/common/time-zones-api'
 
 export const timeZoneLabel = (zone: TimeZoneDto) =>

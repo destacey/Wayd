@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import {
   PlanningIntervalCapacityDto,
   PlanningIntervalTeamCapacityDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import PlanningIntervalCapacitySection, {
   capacityText,
   teamHref,

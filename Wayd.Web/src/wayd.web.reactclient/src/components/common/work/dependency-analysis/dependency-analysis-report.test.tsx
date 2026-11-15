@@ -4,7 +4,7 @@ import dayjs from 'dayjs'
 import {
   DependencyDto,
   TeamDependencyAnalysisDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetTeamDependencyAnalysisQuery } from '@/src/store/features/organizations/team-api'
 import { addCalendarDays, calendarDateInZone } from '@/src/utils/calendar-date'
 import {

@@ -5,7 +5,7 @@ import {
   PokerRoundSubjectKind,
   PokerSessionDetailsDto,
   PokerSessionHostKind,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Button } from 'antd'
 import { FC, useState } from 'react'
 

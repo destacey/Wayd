@@ -4,7 +4,7 @@ import { addCalendarDays, CalendarDate } from '@/src/utils'
 export interface AllocationSpan {
   start: CalendarDate
   /** Absent when the allocation has no end. */
-  end?: CalendarDate
+  end?: CalendarDate | null
   percent: number
 }
 

@@ -8,13 +8,13 @@ import HealthCheckTag, {
 } from '@/src/components/common/health-check/health-check-tag'
 
 export interface PiObjectiveHealthCheckTagProps {
-  healthCheck?: HealthCheckStatusTagData & { id: string }
+  healthCheck?: (HealthCheckStatusTagData & { id: string }) | null
   /**
    * Parent context required to resolve the health check via the nested
    * /planning-intervals/{id}/objectives/{objectiveId}/health-checks endpoint.
    * Required when the popover should fetch full health-check details on hover.
    */
-  planningIntervalId?: string
+  planningIntervalId?: string | null
   objectiveId?: string
   variant?: HealthCheckVariant
 }

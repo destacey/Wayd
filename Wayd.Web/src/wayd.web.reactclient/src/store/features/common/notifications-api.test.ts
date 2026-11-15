@@ -11,14 +11,19 @@ const getUnreadCount = vi.fn()
 const markRecordRead = vi.fn()
 const markAllRead = vi.fn()
 
-vi.mock('@/src/services/clients', () => ({
-  getMyNotificationsClient: () => ({
-    getNotifications,
-    getUnreadCount,
-    markRecordRead,
-    markAllRead,
+vi.mock(
+  import('@/src/services/api/my-notifications'),
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    myNotificationsGetNotifications: (...args: unknown[]) =>
+      getNotifications(...args),
+    myNotificationsGetUnreadCount: (...args: unknown[]) =>
+      getUnreadCount(...args),
+    myNotificationsMarkRecordRead: (...args: unknown[]) =>
+      markRecordRead(...args),
+    myNotificationsMarkAllRead: (...args: unknown[]) => markAllRead(...args),
   }),
-}))
+)
 
 const createStore = () =>
   configureStore({
@@ -69,7 +74,11 @@ describe('notificationsApi', () => {
     )
 
     // Assert
-    expect(getNotifications).toHaveBeenCalledWith(true, null, 25)
+    expect(getNotifications).toHaveBeenCalledWith({
+      unreadOnly: true,
+      before: undefined,
+      pageSize: 25,
+    })
   })
 
   it('refetches the list and the count after a record is marked read', async () => {
@@ -137,13 +146,16 @@ describe('notificationsApi paging', () => {
     )
 
     // Assert
-    expect(getNotifications).toHaveBeenNthCalledWith(1, undefined, null, 1)
-    expect(getNotifications).toHaveBeenNthCalledWith(
-      2,
-      undefined,
-      'cursor-1',
-      1,
-    )
+    expect(getNotifications).toHaveBeenNthCalledWith(1, {
+      unreadOnly: undefined,
+      before: undefined,
+      pageSize: 1,
+    })
+    expect(getNotifications).toHaveBeenNthCalledWith(2, {
+      unreadOnly: undefined,
+      before: 'cursor-1',
+      pageSize: 1,
+    })
     const state = notificationsApi.endpoints.getMyNotifications.select(arg)(
       store.getState(),
     )
@@ -181,13 +193,16 @@ describe('notificationsApi paging', () => {
 
     // Assert — the refetch asks for the first page again, then the page after
     // its new last entry, not the stale stored cursor.
-    expect(getNotifications).toHaveBeenNthCalledWith(3, undefined, null, 1)
-    expect(getNotifications).toHaveBeenNthCalledWith(
-      4,
-      undefined,
-      'cursor-c',
-      1,
-    )
+    expect(getNotifications).toHaveBeenNthCalledWith(3, {
+      unreadOnly: undefined,
+      before: undefined,
+      pageSize: 1,
+    })
+    expect(getNotifications).toHaveBeenNthCalledWith(4, {
+      unreadOnly: undefined,
+      before: 'cursor-c',
+      pageSize: 1,
+    })
     const state = notificationsApi.endpoints.getMyNotifications.select(arg)(
       store.getState(),
     )

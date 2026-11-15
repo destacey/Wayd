@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   MoveReleaseTargetDateRequest,
   ReleaseDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useMoveReleaseTargetDateMutation } from '@/src/store/features/product-management/releases-api'
 import {
   toFormErrors,

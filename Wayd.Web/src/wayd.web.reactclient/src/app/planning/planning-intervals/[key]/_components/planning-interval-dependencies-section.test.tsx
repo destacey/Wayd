@@ -1,5 +1,5 @@
 import { DependencyHealth } from '@/src/components/types'
-import { DependencyDto } from '@/src/services/wayd-api'
+import { DependencyDto } from '@/src/services/api/wayd.schemas'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PlanningIntervalDependenciesSection from './planning-interval-dependencies-section'

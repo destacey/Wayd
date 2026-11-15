@@ -2,7 +2,7 @@
 
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { WaydEmpty } from '@/src/components/common'
-import { VersionDto } from '@/src/services/wayd-api'
+import { VersionDto } from '@/src/services/api/wayd.schemas'
 
 export interface VersionOverviewProps {
   version: VersionDto

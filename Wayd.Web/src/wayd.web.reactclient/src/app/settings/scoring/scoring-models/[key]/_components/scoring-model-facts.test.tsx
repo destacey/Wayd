@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { ScoringModelDetailsDto } from '@/src/services/wayd-api'
+import { ScoringModelDetailsDto } from '@/src/services/api/wayd.schemas'
 import ScoringModelFacts from './scoring-model-facts'
 
 const scoringModel = (

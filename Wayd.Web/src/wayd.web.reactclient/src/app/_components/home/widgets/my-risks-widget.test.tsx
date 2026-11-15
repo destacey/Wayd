@@ -5,7 +5,10 @@ import MyRisksWidget, {
   RiskFollowUpsTile,
   sortByFollowUp,
 } from './my-risks-widget'
-import { HomeContextResponse, RiskListDto } from '@/src/services/wayd-api'
+import {
+  HomeContextResponse,
+  RiskListDto,
+} from '@/src/services/api/wayd.schemas'
 import { tileValueStyle } from '../attention-tile-test-utils'
 import { homeContext } from '../home-context-test-utils'
 import { renderReportingWidget } from '../widget-display-test-utils'

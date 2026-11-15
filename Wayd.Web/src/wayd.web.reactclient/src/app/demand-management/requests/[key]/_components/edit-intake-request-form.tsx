@@ -6,7 +6,7 @@ import {
   IntakeChannelDto,
   IntakeRequestDetailsDto,
   IntakeRequestSubstanceDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetIntakeChannelsQuery,
   useGetIntakeEmployeeOptionsQuery,
@@ -37,7 +37,7 @@ export interface EditIntakeRequestFormProps {
 interface EditIntakeRequestFormValues {
   title: string
   description: string
-  expectedBenefits?: string
+  expectedBenefits?: string | null
   channelId?: string
   needBy?: NeedByFormValues
 }

@@ -4,7 +4,7 @@ import {
   ManifestEntryKind,
   ReleasePackageDto,
   VersionDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import ContentsEditor, { type ContentsDraft } from './contents-editor'
 
 const version = (id: string, number: string, product: string): VersionDto =>

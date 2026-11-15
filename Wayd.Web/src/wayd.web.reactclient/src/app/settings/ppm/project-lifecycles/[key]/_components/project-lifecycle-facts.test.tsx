@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { ProjectLifecycleDetailsDto } from '@/src/services/wayd-api'
+import { ProjectLifecycleDetailsDto } from '@/src/services/api/wayd.schemas'
 import ProjectLifecycleFacts from './project-lifecycle-facts'
 
 const lifecycle = (

@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ProductTagListItemDto } from '@/src/services/wayd-api'
+import { ProductTagListItemDto } from '@/src/services/api/wayd.schemas'
 import MergeProductTagForm from './merge-product-tag-form'
 import type { UseModalFormOptions } from '@/src/hooks'
 

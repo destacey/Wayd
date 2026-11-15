@@ -8,7 +8,7 @@
 // The plan tree is Stage → Task → (nested Task), where a task whose type is
 // "Milestone" is a single-date marker on `plannedDate` rather than a span.
 
-import type { ProjectPlanNodeDto } from '@/src/services/wayd-api'
+import type { ProjectPlanNodeDto } from '@/src/services/api/wayd.schemas'
 import type { CalendarDate } from '@/src/utils'
 import {
   toMs,

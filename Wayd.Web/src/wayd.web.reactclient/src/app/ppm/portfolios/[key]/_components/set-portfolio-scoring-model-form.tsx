@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ScoringModelState } from '@/src/services/wayd-api'
+import { ScoringModelState } from '@/src/services/api/wayd.schemas'
 import { useGetScoringModelsQuery } from '@/src/store/features/scoring/scoring-models-api'
 import {
   useAssignPortfolioScoringModelMutation,

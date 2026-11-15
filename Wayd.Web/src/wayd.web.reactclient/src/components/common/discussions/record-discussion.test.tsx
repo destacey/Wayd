@@ -8,7 +8,7 @@ import {
   DiscussionMessageDto,
   DiscussionMessageKind,
   EventActorKind,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import RecordDiscussion from './record-discussion'
 
 const mockMessageError = vi.fn()

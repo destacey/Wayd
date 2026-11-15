@@ -3,7 +3,7 @@
 import {
   StrategicInitiativeKpiCheckpointDetailsDto,
   StrategicInitiativeKpiListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetStrategicInitiativeKpiCheckpointPlanQuery } from '@/src/store/features/ppm/strategic-initiatives-api'
 import { AppstoreOutlined, MenuOutlined } from '@ant-design/icons'
 import { Flex, Segmented, Spin } from 'antd'

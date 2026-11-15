@@ -2,7 +2,7 @@
 
 import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
-import { WorkspaceDto } from '@/src/services/wayd-api'
+import { WorkspaceDto } from '@/src/services/api/wayd.schemas'
 import { Divider, Flex, Typography } from 'antd'
 import Link from 'next/link'
 

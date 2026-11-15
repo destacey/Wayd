@@ -5,7 +5,7 @@ import {
   EmployeeMatchProperty,
   WorkdayOrgExclusionRequest,
   WorkdayWorkerKey,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { ConnectorType, CONNECTOR_NAMES } from '@/src/types/connectors'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Button, Flex, Form, Modal } from 'antd'

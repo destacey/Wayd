@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { Form } from 'antd'
-import { StoryMapEditAccess, Visibility } from '@/src/services/wayd-api'
+import { StoryMapEditAccess, Visibility } from '@/src/services/api/wayd.schemas'
 import StoryMapAccessFields, {
   StoryMapAccessValues,
 } from './story-map-access-fields'

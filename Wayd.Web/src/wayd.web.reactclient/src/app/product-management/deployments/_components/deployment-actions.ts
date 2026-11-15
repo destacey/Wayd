@@ -1,4 +1,7 @@
-import { DeploymentDto, ProductStatusAlias } from '@/src/services/wayd-api'
+import {
+  DeploymentDto,
+  ProductStatusAlias,
+} from '@/src/services/api/wayd.schemas'
 
 /**
  * Which moves a deployment will accept.

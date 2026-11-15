@@ -1,4 +1,4 @@
-import { SizingMethod, SprintBurnDto } from '@/src/services/wayd-api'
+import { SizingMethod, SprintBurnDto } from '@/src/services/api/wayd.schemas'
 import { BurnSeries, sprintBurnSeries } from './sprint-burn-series'
 
 const measure = (count: number, estimate: number) => ({ count, estimate })

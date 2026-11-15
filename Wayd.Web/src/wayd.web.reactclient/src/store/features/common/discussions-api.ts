@@ -1,7 +1,19 @@
 import {
-  getDiscussionSettingsClient,
-  getDiscussionsClient,
-} from '@/src/services/clients'
+  discussionSettingsGetSettings,
+  discussionSettingsSaveSettings,
+} from '@/src/services/api/discussion-settings'
+import {
+  discussionsDeleteMessage,
+  discussionsEditMessage,
+  discussionsGetDiscussion,
+  discussionsGetEntries,
+  discussionsGetReplies,
+  discussionsGetRevisions,
+  discussionsLock,
+  discussionsPostMessage,
+  discussionsReply,
+  discussionsUnlock,
+} from '@/src/services/api/discussions'
 import {
   CursorPageOfDiscussionEntryDto,
   DiscussionDto,
@@ -11,7 +23,7 @@ import {
   DiscussionOrder,
   DiscussionSettingsDto,
   SaveDiscussionSettingsRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
@@ -123,7 +135,7 @@ export const discussionsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getDiscussion: builder.query<DiscussionDto, DiscussionTarget>({
       queryFn: ({ channelType, ownerId }) =>
-        run(() => getDiscussionsClient().getDiscussion(channelType, ownerId)),
+        run(() => discussionsGetDiscussion(channelType, ownerId)),
       providesTags: (result, error, target) => [discussionTag(target)],
     }),
 
@@ -138,14 +150,12 @@ export const discussionsApi = apiSlice.injectEndpoints({
       },
       queryFn: ({ queryArg, pageParam }) =>
         run(() =>
-          getDiscussionsClient().getEntries(
-            queryArg.channelType,
-            queryArg.ownerId,
-            pageParam,
-            DiscussionPageSize,
-            queryArg.order,
-            queryArg.messagesOnly,
-          ),
+          discussionsGetEntries(queryArg.channelType, queryArg.ownerId, {
+            before: pageParam ?? undefined,
+            pageSize: DiscussionPageSize,
+            order: queryArg.order,
+            messagesOnly: queryArg.messagesOnly,
+          }),
         ),
       providesTags: (result, error, request) => [discussionTag(request)],
     }),
@@ -155,9 +165,7 @@ export const discussionsApi = apiSlice.injectEndpoints({
       DiscussionMessageArgs
     >({
       queryFn: ({ channelType, ownerId, messageId }) =>
-        run(() =>
-          getDiscussionsClient().getReplies(channelType, ownerId, messageId),
-        ),
+        run(() => discussionsGetReplies(channelType, ownerId, messageId)),
       providesTags: (result, error, args) => [discussionTag(args)],
     }),
 
@@ -166,16 +174,14 @@ export const discussionsApi = apiSlice.injectEndpoints({
       DiscussionMessageArgs
     >({
       queryFn: ({ channelType, ownerId, messageId }) =>
-        run(() =>
-          getDiscussionsClient().getRevisions(channelType, ownerId, messageId),
-        ),
+        run(() => discussionsGetRevisions(channelType, ownerId, messageId)),
       providesTags: (result, error, args) => [discussionTag(args)],
     }),
 
     postDiscussionMessage: builder.mutation<string, PostDiscussionMessageArgs>({
       queryFn: ({ channelType, ownerId, kind, subject, body }) =>
         run(() =>
-          getDiscussionsClient().postMessage(channelType, ownerId, {
+          discussionsPostMessage(channelType, ownerId, {
             kind,
             subject,
             body,
@@ -190,7 +196,7 @@ export const discussionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: ({ channelType, ownerId, parentMessageId, body }) =>
         run(() =>
-          getDiscussionsClient().reply(channelType, ownerId, parentMessageId, {
+          discussionsReply(channelType, ownerId, parentMessageId, {
             body,
           }),
         ),
@@ -200,7 +206,7 @@ export const discussionsApi = apiSlice.injectEndpoints({
     editDiscussionMessage: builder.mutation<null, EditDiscussionMessageArgs>({
       queryFn: ({ channelType, ownerId, messageId, subject, body }) =>
         runVoid(() =>
-          getDiscussionsClient().editMessage(channelType, ownerId, messageId, {
+          discussionsEditMessage(channelType, ownerId, messageId, {
             subject,
             body,
           }),
@@ -211,7 +217,7 @@ export const discussionsApi = apiSlice.injectEndpoints({
     deleteDiscussionMessage: builder.mutation<null, DiscussionMessageArgs>({
       queryFn: ({ channelType, ownerId, messageId }) =>
         runVoid(() =>
-          getDiscussionsClient().deleteMessage(channelType, ownerId, messageId),
+          discussionsDeleteMessage(channelType, ownerId, messageId),
         ),
       invalidatesTags: (result, error, args) => [discussionTag(args)],
     }),
@@ -221,11 +227,10 @@ export const discussionsApi = apiSlice.injectEndpoints({
       DiscussionTarget & { locked: boolean }
     >({
       queryFn: ({ channelType, ownerId, locked }) => {
-        const client = getDiscussionsClient()
         return runVoid(() =>
           locked
-            ? client.lock(channelType, ownerId)
-            : client.unlock(channelType, ownerId),
+            ? discussionsLock(channelType, ownerId)
+            : discussionsUnlock(channelType, ownerId),
         )
       },
       invalidatesTags: (result, error, args) => [discussionTag(args)],
@@ -237,7 +242,7 @@ export const discussionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: ({ channelType, scopeId }) =>
         run(() =>
-          getDiscussionSettingsClient().getSettings(channelType, scopeId),
+          discussionSettingsGetSettings(channelType, { scopeId: scopeId }),
         ),
       providesTags: (result, error, args) => [settingsTag(args)],
     }),
@@ -245,11 +250,9 @@ export const discussionsApi = apiSlice.injectEndpoints({
     saveDiscussionSettings: builder.mutation<null, SaveDiscussionSettingsArgs>({
       queryFn: ({ channelType, scopeId, ...request }) =>
         runVoid(() =>
-          getDiscussionSettingsClient().saveSettings(
-            channelType,
-            request,
-            scopeId,
-          ),
+          discussionSettingsSaveSettings(channelType, request, {
+            scopeId: scopeId,
+          }),
         ),
       // A default reaches every scope that follows it, and any setting can
       // change what an open conversation offers, so every one is refreshed.

@@ -1,10 +1,14 @@
-import { getMeClient } from '@/src/services/clients'
+import {
+  meGetHomeContext,
+  meGetTeamsSummary,
+  meGetWorkItems,
+} from '@/src/services/api/me'
 import {
   HomeContextResponse,
   MyTeamsSummaryResponse,
   StatusCategory,
   WorkItemListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
@@ -30,7 +34,7 @@ export const meApi = apiSlice.injectEndpoints({
     getHomeContext: builder.query<HomeContextResponse, void>({
       queryFn: async () => {
         try {
-          const data = await getMeClient().getHomeContext()
+          const data = await meGetHomeContext()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -44,10 +48,12 @@ export const meApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (args) => {
         try {
-          const data = await getMeClient().getTeamsSummary(
-            args?.teamIds?.length ? args.teamIds : undefined,
-            args?.teamOfTeamsIds?.length ? args.teamOfTeamsIds : undefined,
-          )
+          const data = await meGetTeamsSummary({
+            teamIds: args?.teamIds?.length ? args.teamIds : undefined,
+            teamOfTeamsIds: args?.teamOfTeamsIds?.length
+              ? args.teamOfTeamsIds
+              : undefined,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -58,10 +64,10 @@ export const meApi = apiSlice.injectEndpoints({
     getMyWorkItems: builder.query<WorkItemListDto[], MyWorkItemsArgs>({
       queryFn: async ({ statusCategories, doneFrom }) => {
         try {
-          const data = await getMeClient().getWorkItems(
-            statusCategories,
-            doneFrom ? new Date(doneFrom) : null,
-          )
+          const data = await meGetWorkItems({
+            statusCategories: statusCategories,
+            doneFrom: doneFrom ? new Date(doneFrom) : undefined,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

@@ -1,7 +1,7 @@
 'use client'
 
 import { DatePicker, Form, Input, InputNumber, Modal, Typography } from 'antd'
-import { CreatePlanningIntervalRequest } from '@/src/services/wayd-api'
+import { CreatePlanningIntervalRequest } from '@/src/services/api/wayd.schemas'
 import {
   toCalendarDate,
   toFormErrors,

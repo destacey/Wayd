@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   ScoringModelDetailsDto,
   ScoringModelEvaluationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useEvaluateScoringModelMutation } from '@/src/store/features/scoring/scoring-models-api'
 import { isApiError, type ApiError } from '@/src/utils'
 import {

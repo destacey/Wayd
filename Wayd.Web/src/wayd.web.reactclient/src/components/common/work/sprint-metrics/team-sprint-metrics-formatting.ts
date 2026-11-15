@@ -5,7 +5,7 @@ import {
   SprintMetricSummaryDto,
   TeamSprintMetricsDto,
   TeamSprintMetricsSprintDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 /** The bounds the API holds a sprint window to. */
 export const MIN_SPRINT_WINDOW = 3
@@ -37,7 +37,7 @@ export const formatSprintMetric = (
  */
 export const formatSprintMetricAverage = (
   kind: SprintMetricKind,
-  summary: SprintMetricSummaryDto | undefined,
+  summary: SprintMetricSummaryDto | undefined | null,
 ): string => {
   if (!summary) return NO_VALUE
   return kind === 'velocity'
@@ -52,7 +52,7 @@ export const sprintCountText = (count: number): string =>
 /** A metric's spread across the sprints, as its lowest and highest sprint. */
 export const formatSprintMetricRange = (
   kind: SprintMetricKind,
-  summary: SprintMetricSummaryDto | undefined,
+  summary: SprintMetricSummaryDto | undefined | null,
 ): string | undefined =>
   summary
     ? `Range ${formatSprintMetric(kind, summary.min)}–${formatSprintMetric(kind, summary.max)}`

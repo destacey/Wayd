@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { IntakeDeskDto } from '@/src/services/wayd-api'
+import { IntakeDeskDto } from '@/src/services/api/wayd.schemas'
 import { UnownedDeskAlert, describeWaiting, deskPhrase } from './desk-status'
 
 describe('deskPhrase', () => {

@@ -1,7 +1,10 @@
 'use client'
 
 import { MetricCard } from '@/src/components/common/metrics'
-import { CutToReleasedDto, ReleaseFrequencyDto } from '@/src/services/wayd-api'
+import {
+  CutToReleasedDto,
+  ReleaseFrequencyDto,
+} from '@/src/services/api/wayd.schemas'
 import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons'
 import { Col, Flex, Row, Typography } from 'antd'
 

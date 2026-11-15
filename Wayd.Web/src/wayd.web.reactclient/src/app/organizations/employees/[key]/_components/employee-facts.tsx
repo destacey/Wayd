@@ -5,7 +5,7 @@ import {
   RecordFactsGroup,
   RecordPersonLink,
 } from '@/src/components/common/record'
-import { EmployeeDetailsDto } from '@/src/services/wayd-api'
+import { EmployeeDetailsDto } from '@/src/services/api/wayd.schemas'
 import { useGetDirectReportsQuery } from '@/src/store/features/organizations/employee-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { Divider, Flex, Typography } from 'antd'

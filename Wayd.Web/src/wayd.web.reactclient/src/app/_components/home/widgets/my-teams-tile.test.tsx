@@ -14,7 +14,7 @@ import { HomeSettingsContext } from '../home-settings-context'
 import {
   HomeContextResponse,
   MyTeamsSummaryResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { homeContext } from '../home-context-test-utils'
 import { widgetAnchorId } from '../widget-registry'
 

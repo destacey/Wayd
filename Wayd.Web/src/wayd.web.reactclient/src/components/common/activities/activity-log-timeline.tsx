@@ -36,7 +36,7 @@ import {
   ActivityLogDto,
   EventActorKind,
   NavigationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import BaselineNotice, { BASELINE_RECORD_KEYS } from './baseline-notice'
 import ComparePayloadModal, {
   isComparableActivity,

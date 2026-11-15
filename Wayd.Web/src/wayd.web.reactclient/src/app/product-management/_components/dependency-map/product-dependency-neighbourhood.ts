@@ -12,7 +12,7 @@ import {
   NavigationDto,
   ProductDependenciesDto,
   ProductDependencyDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 /** Which links the map draws: all of them, or only those a product cannot work without. */
 export type DependencyStrengthFilter = 'all' | 'hard'

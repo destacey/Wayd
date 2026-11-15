@@ -2,7 +2,7 @@
 
 import { DatePicker, Form, InputNumber } from 'antd'
 import { type Dayjs } from 'dayjs'
-import { Methodology } from '@/src/services/wayd-api'
+import { Methodology } from '@/src/services/api/wayd.schemas'
 import { formatCalendarDate, toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item: FormItem } = Form

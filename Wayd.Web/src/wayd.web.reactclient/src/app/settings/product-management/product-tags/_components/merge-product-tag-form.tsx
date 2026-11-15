@@ -3,7 +3,7 @@
 import { tagText } from '@/src/components/common/tags'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ProductTagListItemDto } from '@/src/services/wayd-api'
+import { ProductTagListItemDto } from '@/src/services/api/wayd.schemas'
 import {
   useMergeProductTagMutation,
   useSearchProductTagsQuery,

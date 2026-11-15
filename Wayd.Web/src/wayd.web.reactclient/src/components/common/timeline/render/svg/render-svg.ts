@@ -116,10 +116,11 @@ const SVG_COLOR =
  * otherwise `fallback`. Item and background colours come from the records
  * drawn, so they are checked rather than trusted.
  */
-export function svgColor(value: string | undefined, fallback: string): string {
-  return value !== undefined && SVG_COLOR.test(value.trim())
-    ? value.trim()
-    : fallback
+export function svgColor(
+  value: string | undefined | null,
+  fallback: string,
+): string {
+  return value != null && SVG_COLOR.test(value.trim()) ? value.trim() : fallback
 }
 
 /**

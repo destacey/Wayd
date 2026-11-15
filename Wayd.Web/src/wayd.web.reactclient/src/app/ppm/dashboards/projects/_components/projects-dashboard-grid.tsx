@@ -14,7 +14,7 @@ import PpmViewSelector, {
 } from '@/src/app/ppm/_components/ppm-view-selector'
 import StageTimeline from '@/src/app/ppm/_components/stage-timeline'
 import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-health-check-tag'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
 import { Dayjs } from 'dayjs'
 import { FC } from 'react'
 import {

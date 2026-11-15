@@ -4,29 +4,55 @@ import {
   ImportProcessStatus,
   PagedResponseOfImportProcessDto,
   ResumedImport,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
+import { deploymentEnvironmentsImport } from '@/src/services/api/deployment-environments'
+import { deploymentsImport } from '@/src/services/api/deployments'
+import { employeesImport } from '@/src/services/api/employees'
 import {
-  getDeploymentEnvironmentsClient,
-  getDeploymentsClient,
-  getEmployeesClient,
-  getImportsClient,
-  getIntakeRequestsClient,
-  getPlanningIntervalsClient,
-  getPortfoliosClient,
-  getProductsClient,
-  getProgramsClient,
-  getProjectDeliverablesClient,
-  getProjectsClient,
-  getReleasePackagesClient,
-  getReleasesClient,
-  getRisksClient,
-  getStrategicInitiativesClient,
-  getStrategicThemesClient,
-  getTeamsClient,
-  getVersionsClient,
-} from '@/src/services/clients'
+  importsApply,
+  importsCancel,
+  importsGetById,
+  importsGetDefinitions,
+  importsGetList,
+  importsResume,
+  importsRetryFailed,
+} from '@/src/services/api/imports'
+import {
+  intakeRequestsImport,
+  intakeRequestsImportOutcomes,
+} from '@/src/services/api/intake-requests'
+import {
+  planningIntervalsImport,
+  planningIntervalsImportObjectives,
+} from '@/src/services/api/planning-intervals'
+import {
+  portfoliosFinalizeImport,
+  portfoliosImport,
+} from '@/src/services/api/portfolios'
+import {
+  productsImport,
+  productsImportDependencies,
+} from '@/src/services/api/products'
+import { programsImport } from '@/src/services/api/programs'
+import { projectDeliverablesImportDeliverables } from '@/src/services/api/project-deliverables'
+import {
+  projectsImport,
+  projectsImportStages,
+  projectsImportTasks,
+} from '@/src/services/api/projects'
+import { releasePackagesImport } from '@/src/services/api/release-packages'
+import { releasesImport } from '@/src/services/api/releases'
+import { risksImport } from '@/src/services/api/risks'
+import { strategicInitiativesImport } from '@/src/services/api/strategic-initiatives'
+import { strategicThemesImport } from '@/src/services/api/strategic-themes'
+import {
+  teamsImport,
+  teamsImportMembers,
+  teamsImportTeamMemberships,
+} from '@/src/services/api/teams'
+import { versionsImport } from '@/src/services/api/versions'
 import type { ImportKey } from '@/src/components/common/import/import-templates.generated'
 import { isApiError } from '@/src/utils'
 
@@ -35,7 +61,7 @@ export interface GetImportProcessesRequest {
   importType?: string
   submittedByUserId?: string
   /** Only the runs of one batch — the files a caller posted together. */
-  submissionGroupId?: string
+  submissionGroupId?: string | null
   /** 1-based. */
   page?: number
   pageSize?: number
@@ -120,9 +146,12 @@ const IMPORTED_RECORD_TAGS: Record<ImportKey, ImportedRecordTag[]> = {
 export const importedRecordTags = (importType: string) =>
   IMPORTED_RECORD_TAGS[importType as ImportKey] ?? []
 
-// The generated client takes a FileParameter, so the browser File travels with its name.
-const upload = (file: File | undefined) =>
-  file ? { data: file, fileName: file.name } : undefined
+// The form will not submit without an import's required file, so this fails
+// only if that ever changes, rather than posting the text "undefined" as the file.
+const required = (file: File | undefined): File => {
+  if (!file) throw new Error('Choose a file to import.')
+  return file
+}
 
 /**
  * Posts each import's files to its endpoint through the generated client. A file uploaded from the app
@@ -139,96 +168,105 @@ const SUBMITTERS: Record<
   ) => Promise<ImportProcessDto>
 > = {
   employees: ({ file }, validateOnly) =>
-    getEmployeesClient().import(undefined, validateOnly, upload(file)),
+    employeesImport({ file: required(file) }, { validateOnly: validateOnly }),
   teams: ({ file }, validateOnly) =>
-    getTeamsClient().import(undefined, validateOnly, upload(file)),
+    teamsImport({ file: required(file) }, { validateOnly: validateOnly }),
   'team-members': ({ file }, validateOnly) =>
-    getTeamsClient().importMembers(undefined, validateOnly, upload(file)),
+    teamsImportMembers(
+      { file: required(file) },
+      { validateOnly: validateOnly },
+    ),
   'team-memberships': ({ file }, validateOnly) =>
-    getTeamsClient().importTeamMemberships(
-      undefined,
-      validateOnly,
-      upload(file),
+    teamsImportTeamMemberships(
+      { file: required(file) },
+      { validateOnly: validateOnly },
     ),
   'planning.planning-intervals': ({ file }, validateOnly) =>
-    getPlanningIntervalsClient().import(undefined, validateOnly, upload(file)),
+    planningIntervalsImport(
+      { file: required(file) },
+      { validateOnly: validateOnly },
+    ),
   'planning.planning-interval-objectives': ({ file }, validateOnly) =>
-    getPlanningIntervalsClient().importObjectives(
-      undefined,
-      validateOnly,
-      upload(file),
+    planningIntervalsImportObjectives(
+      { file: required(file) },
+      { validateOnly: validateOnly },
     ),
   'planning.risks': ({ file }, validateOnly) =>
-    getRisksClient().import(undefined, validateOnly, upload(file)),
+    risksImport({ file: required(file) }, { validateOnly: validateOnly }),
   'ppm.portfolios': ({ file }, validateOnly) =>
-    getPortfoliosClient().import(undefined, validateOnly, upload(file)),
+    portfoliosImport({ file: required(file) }, { validateOnly: validateOnly }),
   'ppm.programs': ({ file }, validateOnly) =>
-    getProgramsClient().import(undefined, validateOnly, upload(file)),
+    programsImport({ file: required(file) }, { validateOnly: validateOnly }),
   'ppm.projects': ({ file }, validateOnly) =>
-    getProjectsClient().import(undefined, validateOnly, upload(file)),
+    projectsImport({ file: required(file) }, { validateOnly: validateOnly }),
   'ppm.project-tasks': ({ file }, validateOnly) =>
-    getProjectsClient().importTasks(undefined, validateOnly, upload(file)),
+    projectsImportTasks(
+      { file: required(file) },
+      { validateOnly: validateOnly },
+    ),
   'ppm.project-stages': ({ file }, validateOnly) =>
-    getProjectsClient().importStages(undefined, validateOnly, upload(file)),
+    projectsImportStages(
+      { file: required(file) },
+      { validateOnly: validateOnly },
+    ),
   'ppm.project-deliverables': ({ file }, validateOnly) =>
-    getProjectDeliverablesClient().importDeliverables(
-      undefined,
-      validateOnly,
-      upload(file),
+    projectDeliverablesImportDeliverables(
+      { file: required(file) },
+      { validateOnly: validateOnly },
     ),
   'ppm.finalizations': ({ file }, validateOnly) =>
-    getPortfoliosClient().finalizeImport(undefined, validateOnly, upload(file)),
+    portfoliosFinalizeImport(
+      { file: required(file) },
+      { validateOnly: validateOnly },
+    ),
   'ppm.strategic-initiatives': ({ file, kpiFile }, validateOnly) =>
-    getStrategicInitiativesClient().import(
-      undefined,
-      validateOnly,
-      upload(file),
-      upload(kpiFile),
+    strategicInitiativesImport(
+      { file: required(file), kpiFile: kpiFile },
+      { validateOnly: validateOnly },
     ),
   'strategic.themes': ({ file }, validateOnly) =>
-    getStrategicThemesClient().import(undefined, validateOnly, upload(file)),
+    strategicThemesImport(
+      { file: required(file) },
+      { validateOnly: validateOnly },
+    ),
   'product-management.products': ({ file }, validateOnly) =>
-    getProductsClient().import(undefined, validateOnly, upload(file)),
+    productsImport({ file: required(file) }, { validateOnly: validateOnly }),
   'product-management.product-dependencies': ({ file }, validateOnly) =>
-    getProductsClient().importDependencies(
-      undefined,
-      validateOnly,
-      upload(file),
+    productsImportDependencies(
+      { file: required(file) },
+      { validateOnly: validateOnly },
     ),
   'product-management.versions': ({ file }, validateOnly) =>
-    getVersionsClient().import(undefined, validateOnly, upload(file)),
+    versionsImport({ file: required(file) }, { validateOnly: validateOnly }),
   'product-management.releases': ({ file, contentsFile }, validateOnly) =>
-    getReleasesClient().import(
-      undefined,
-      validateOnly,
-      upload(file),
-      upload(contentsFile),
+    releasesImport(
+      { file: required(file), contentsFile: contentsFile },
+      { validateOnly: validateOnly },
     ),
   'product-management.release-packages': (
     { file, manifestFile },
     validateOnly,
   ) =>
-    getReleasePackagesClient().import(
-      undefined,
-      validateOnly,
-      upload(file),
-      upload(manifestFile),
+    releasePackagesImport(
+      { file: required(file), manifestFile: required(manifestFile) },
+      { validateOnly: validateOnly },
     ),
   'product-management.deployment-environments': ({ file }, validateOnly) =>
-    getDeploymentEnvironmentsClient().import(
-      undefined,
-      validateOnly,
-      upload(file),
+    deploymentEnvironmentsImport(
+      { file: required(file) },
+      { validateOnly: validateOnly },
     ),
   'product-management.deployments': ({ file }, validateOnly) =>
-    getDeploymentsClient().import(undefined, validateOnly, upload(file)),
+    deploymentsImport({ file: required(file) }, { validateOnly: validateOnly }),
   'demand-management.intake-requests': ({ file }, validateOnly) =>
-    getIntakeRequestsClient().import(undefined, validateOnly, upload(file)),
+    intakeRequestsImport(
+      { file: required(file) },
+      { validateOnly: validateOnly },
+    ),
   'demand-management.intake-request-outcomes': ({ file }, validateOnly) =>
-    getIntakeRequestsClient().importOutcomes(
-      undefined,
-      validateOnly,
-      upload(file),
+    intakeRequestsImportOutcomes(
+      { file: required(file) },
+      { validateOnly: validateOnly },
     ),
 }
 
@@ -240,14 +278,14 @@ export const importsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getImportsClient().getList(
-            request.status,
-            request.importType,
-            request.submittedByUserId,
-            request.submissionGroupId,
-            request.page,
-            request.pageSize,
-          )
+          const data = await importsGetList({
+            status: request.status,
+            importType: request.importType,
+            submittedByUserId: request.submittedByUserId,
+            submissionGroupId: request.submissionGroupId ?? undefined,
+            page: request.page,
+            pageSize: request.pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -265,7 +303,7 @@ export const importsApi = apiSlice.injectEndpoints({
     getImportProcessById: builder.query<ImportProcessDto, string>({
       queryFn: async (id) => {
         try {
-          const data = await getImportsClient().getById(id)
+          const data = await importsGetById(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -279,7 +317,7 @@ export const importsApi = apiSlice.injectEndpoints({
     getImportDefinitions: builder.query<ImportDefinitionDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getImportsClient().getDefinitions()
+          const data = await importsGetDefinitions()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -318,7 +356,7 @@ export const importsApi = apiSlice.injectEndpoints({
     applyImportPreflight: builder.mutation<ImportProcessDto, string>({
       queryFn: async (id) => {
         try {
-          const data = await getImportsClient().apply(id)
+          const data = await importsApply(id)
           return { data }
         } catch (error) {
           if (!isApiError(error) || error.status !== 400) {
@@ -336,7 +374,7 @@ export const importsApi = apiSlice.injectEndpoints({
     cancelImportProcess: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getImportsClient().cancel(id)
+          const data = await importsCancel(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -351,7 +389,7 @@ export const importsApi = apiSlice.injectEndpoints({
     resumeImportProcess: builder.mutation<ResumedImport, string>({
       queryFn: async (id) => {
         try {
-          const data = await getImportsClient().resume(id)
+          const data = await importsResume(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -366,7 +404,7 @@ export const importsApi = apiSlice.injectEndpoints({
     retryFailedImportRows: builder.mutation<ResumedImport, string>({
       queryFn: async (id) => {
         try {
-          const data = await getImportsClient().retryFailed(id)
+          const data = await importsRetryFailed(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

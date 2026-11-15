@@ -1,6 +1,6 @@
 'use client'
 
-import { WorkItemDetailsDto } from '@/src/services/wayd-api'
+import { WorkItemDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Card, Timeline, TimelineItemProps } from 'antd'
 import dayjs from 'dayjs'
 

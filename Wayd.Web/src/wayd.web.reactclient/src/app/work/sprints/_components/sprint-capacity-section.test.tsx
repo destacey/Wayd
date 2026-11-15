@@ -4,7 +4,7 @@ import {
   SprintDetailsDto,
   SprintType,
   SprintTypeSource,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import SprintCapacitySection from './sprint-capacity-section'
 
 const mockPlan = vi.fn()

@@ -8,7 +8,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   ProjectLifecycleDetailsDto,
   ProjectLifecycleStageDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useRemoveProjectLifecycleStageMutation,
   useReorderProjectLifecycleStagesMutation,

@@ -4,7 +4,7 @@ import {
   PlanningTeamNavigationDto,
   PokerSessionDetailsDto,
   Visibility,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   EmployeeRow,
   PeopleSection as Section,

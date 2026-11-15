@@ -5,7 +5,7 @@ import { useEffect } from 'react'
 import { useMessage } from '@/src/components/contexts/messaging'
 import dayjs, { Dayjs } from 'dayjs'
 import { useUpdatePersonalAccessTokenMutation } from '@/src/store/features/user-management/personal-access-tokens-api'
-import { PersonalAccessTokenDto } from '@/src/services/wayd-api'
+import { PersonalAccessTokenDto } from '@/src/services/api/wayd.schemas'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useModalForm } from '@/src/hooks'
 

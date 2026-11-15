@@ -1,6 +1,6 @@
 'use client'
 
-import { UnavailableMetricDto } from '@/src/services/wayd-api'
+import { UnavailableMetricDto } from '@/src/services/api/wayd.schemas'
 import { WaydList } from '@/src/components/common'
 import { Card, Typography } from 'antd'
 

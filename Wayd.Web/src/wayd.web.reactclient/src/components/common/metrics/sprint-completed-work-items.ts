@@ -1,4 +1,4 @@
-import { PlanningIntervalIterationMetricsResponse } from '@/src/services/wayd-api'
+import { PlanningIntervalIterationMetricsResponse } from '@/src/services/api/wayd.schemas'
 
 /**
  * The work items completed in a PI iteration's sprints alone. The iteration's

@@ -5,7 +5,7 @@ import {
   Methodology,
   MyTeamOfTeamsRowResponse,
   MyTeamOfTeamsSummaryResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import useAuth from '@/src/components/contexts/auth'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
 import { teamUrl } from '@/src/utils'

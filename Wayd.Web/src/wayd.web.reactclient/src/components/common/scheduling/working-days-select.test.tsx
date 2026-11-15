@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { IsoDayOfWeek } from '@/src/services/wayd-api'
+import { IsoDayOfWeek } from '@/src/services/api/wayd.schemas'
 import WorkingDaysSelect, { formatWorkingDays } from './working-days-select'
 
 describe('formatWorkingDays', () => {

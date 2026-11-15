@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { IntakeRequestTagOptionDto } from '@/src/services/wayd-api'
+import { IntakeRequestTagOptionDto } from '@/src/services/api/wayd.schemas'
 import { useUpdateIntakeRequestTagMutation } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -20,7 +20,7 @@ export interface EditTagFormProps {
 
 interface EditTagFormValues {
   name: string
-  description?: string
+  description?: string | null
 }
 
 /** Renames and re-describes a tag. */

@@ -1,4 +1,4 @@
-import { StatusCategory } from '@/src/services/wayd-api'
+import { StatusCategory } from '@/src/services/api/wayd.schemas'
 import {
   statusCategoryDescription,
   statusCategoryFromId,

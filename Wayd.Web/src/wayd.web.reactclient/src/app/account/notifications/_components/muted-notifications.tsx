@@ -13,7 +13,7 @@ import {
   MutedRecordDto,
   NotificationReason,
   ReasonMuteDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetMutedRecordsInfiniteQuery,
   useGetReasonMutesQuery,
@@ -75,7 +75,7 @@ const reasonWording: Partial<
 export const NoMutedRecordsMessage =
   'You have not muted any records. Mute one with the muted-speaker button beside it in your notifications.'
 
-const mutedAgo = (mutedOn?: Date) => {
+const mutedAgo = (mutedOn?: Date | null) => {
   const date = mutedOn ? new Date(mutedOn) : null
   return date && !Number.isNaN(date.getTime())
     ? `Muted ${formatTimeAgo(date)}`

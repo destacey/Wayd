@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { IntakeDeskDto } from '@/src/services/wayd-api'
+import { IntakeDeskDto } from '@/src/services/api/wayd.schemas'
 import { useDeleteIntakeDeskMutation } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError } from '@/src/utils'
 import { Modal, Typography } from 'antd'

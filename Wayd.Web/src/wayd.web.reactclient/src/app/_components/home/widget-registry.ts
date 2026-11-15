@@ -1,4 +1,4 @@
-import { HomeContextResponse } from '@/src/services/wayd-api'
+import { HomeContextResponse } from '@/src/services/api/wayd.schemas'
 import { ComponentType, FC } from 'react'
 import { WidgetSetting, WidgetSettingValues } from './widget-settings'
 

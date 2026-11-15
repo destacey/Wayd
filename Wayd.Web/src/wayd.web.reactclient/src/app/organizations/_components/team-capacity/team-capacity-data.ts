@@ -9,7 +9,7 @@ import {
   ChangeEmployeeAllocationsRequest,
   EmployeeAllocationChangeRequest,
   NavigationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   TeamCapacityPersonDto,
   TeamCapacityRoleDto,
@@ -67,11 +67,11 @@ export interface CapacityRow {
   /** The allocation's id. */
   id: string
   person: TeamCapacityPersonDto
-  role?: NavigationDto
+  role?: NavigationDto | null
   countsTowardDeliveryCapacity: boolean
   start: CalendarDate
   /** Absent when the allocation has no end. */
-  end?: CalendarDate
+  end?: CalendarDate | null
   percent: number
   personDays: number
 }
@@ -154,7 +154,7 @@ export interface ProposedAllocation {
   employeeId: string
   roleId: string
   /** The last day, or absent for no end. */
-  end?: CalendarDate
+  end?: CalendarDate | null
   percent: number
 }
 

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ConfigProvider } from 'antd'
-import { ProductDto } from '@/src/services/wayd-api'
+import { ProductDto } from '@/src/services/api/wayd.schemas'
 import EditProductForm from './edit-product-form'
 import type { UseModalFormOptions } from '@/src/hooks'
 

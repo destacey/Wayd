@@ -1,4 +1,4 @@
-import { ProductDto } from '@/src/services/wayd-api'
+import { ProductDto } from '@/src/services/api/wayd.schemas'
 import {
   ancestorIdsOf,
   buildMoveTargetTree,

@@ -3,7 +3,7 @@
 import { FC, ReactNode, useState } from 'react'
 import dayjs from 'dayjs'
 import { theme } from 'antd'
-import { StrategicInitiativeListDto } from '@/src/services/wayd-api'
+import { StrategicInitiativeListDto } from '@/src/services/api/wayd.schemas'
 import { WaydTimeline } from '@/src/components/common/timeline'
 import type { TimelineItem } from '@/src/components/common/timeline'
 import { getLifecycleCategoryColorFromStatus } from '@/src/utils'
@@ -76,42 +76,42 @@ const StrategicInitiativesTimeline: FC<StrategicInitiativesTimelineProps> =
       token,
     )
 
-    return (
-      <>
-        <WaydTimeline<StrategicInitiativePayload>
-          variant="timeline"
-          items={items}
-          windowStart={windowStart}
-          windowEnd={windowEnd}
-          minDate={minDate}
-          maxDate={maxDate}
-          storageKey="ppm-strategic-initiatives"
-          height={650}
-          editable={false}
-          isLoading={isLoading}
-          allowFullScreen
-          allowSaveAsImage
-          saveImageFileName="Strategic Initiatives Timeline"
-          onRefresh={onRefresh}
-          toolbarRightSlot={viewSelector}
-          onItemClick={(item) => {
-            if (!item.data) return
-            setSelectedKey(item.data.dto.key)
-            setDrawerOpen(true)
+  return (
+    <>
+      <WaydTimeline<StrategicInitiativePayload>
+        variant="timeline"
+        items={items}
+        windowStart={windowStart}
+        windowEnd={windowEnd}
+        minDate={minDate}
+        maxDate={maxDate}
+        storageKey="ppm-strategic-initiatives"
+        height={650}
+        editable={false}
+        isLoading={isLoading}
+        allowFullScreen
+        allowSaveAsImage
+        saveImageFileName="Strategic Initiatives Timeline"
+        onRefresh={onRefresh}
+        toolbarRightSlot={viewSelector}
+        onItemClick={(item) => {
+          if (!item.data) return
+          setSelectedKey(item.data.dto.key)
+          setDrawerOpen(true)
+        }}
+      />
+      {selectedKey !== null && (
+        <StrategicInitiativeDrawer
+          strategicInitiativeKey={selectedKey}
+          drawerOpen={drawerOpen}
+          onDrawerClose={() => {
+            setDrawerOpen(false)
+            setSelectedKey(null)
           }}
         />
-        {selectedKey !== null && (
-          <StrategicInitiativeDrawer
-            strategicInitiativeKey={selectedKey}
-            drawerOpen={drawerOpen}
-            onDrawerClose={() => {
-              setDrawerOpen(false)
-              setSelectedKey(null)
-            }}
-          />
-        )}
-      </>
-    )
-  }
+      )}
+    </>
+  )
+}
 
 export default StrategicInitiativesTimeline

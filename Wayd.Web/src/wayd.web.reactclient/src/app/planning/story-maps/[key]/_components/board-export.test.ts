@@ -5,7 +5,7 @@ import {
   StoryMapStepDto,
   StoryMapSwimLaneDto,
   StoryMapTaskDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { generateCsv } from '@/src/utils/csv-utils'
 import { buildExportRows, EXPORT_HEADERS } from './board-export'
 

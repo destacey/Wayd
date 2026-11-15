@@ -3,7 +3,7 @@ import {
   FollowedRecordDto,
   HealthStatus,
   LifecycleCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import FollowedRecordHealth from './followed-record-health'
 
 const mockProjectHealthCheckQuery = vi.fn()

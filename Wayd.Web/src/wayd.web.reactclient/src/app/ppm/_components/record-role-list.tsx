@@ -2,7 +2,7 @@
 
 import { PersonAvatar, PersonPopover } from '@/src/components/common'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { EmployeeNavigationDto } from '@/src/services/wayd-api'
+import { EmployeeNavigationDto } from '@/src/services/api/wayd.schemas'
 import { Flex, Typography } from 'antd'
 import Link from 'next/link'
 

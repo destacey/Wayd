@@ -1,6 +1,9 @@
 'use client'
 
-import { DeactivateTeamRequest, TeamDetailsDto } from '@/src/services/wayd-api'
+import {
+  DeactivateTeamRequest,
+  TeamDetailsDto,
+} from '@/src/services/api/wayd.schemas'
 import { useDeactivateTeamMutation } from '@/src/store/features/organizations/team-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'

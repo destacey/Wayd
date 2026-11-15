@@ -12,7 +12,7 @@ import {
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
-import { EstimationScaleDto } from '@/src/services/wayd-api'
+import { EstimationScaleDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetEstimationScaleQuery,
   useGetEstimationScalesQuery,

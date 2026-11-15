@@ -10,7 +10,7 @@ import {
   ProductTeamLinkDto,
   ProductTeamNavigationDto,
   TeamType,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Card, Empty, Flex, Spin, Tag, Typography } from 'antd'
 import { Fragment } from 'react'
 import styles from './product-teams.module.css'

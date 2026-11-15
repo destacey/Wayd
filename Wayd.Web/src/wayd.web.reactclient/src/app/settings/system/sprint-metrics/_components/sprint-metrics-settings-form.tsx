@@ -4,7 +4,7 @@ import { Button, Form, InputNumber, Skeleton } from 'antd'
 import { useEffect, useState } from 'react'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { toFormErrors } from '@/src/utils'
-import { SprintMetricsSettingsDto } from '@/src/services/wayd-api'
+import { SprintMetricsSettingsDto } from '@/src/services/api/wayd.schemas'
 import { useUpdateSprintMetricsSettingsMutation } from '@/src/store/features/admin/system-settings-api'
 import {
   MAX_SPRINT_WINDOW,

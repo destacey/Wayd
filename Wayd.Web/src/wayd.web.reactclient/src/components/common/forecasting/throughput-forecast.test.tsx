@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { TeamThroughputForecastDto } from '@/src/services/wayd-api'
+import { TeamThroughputForecastDto } from '@/src/services/api/wayd.schemas'
 import { ForecastOutcome } from './forecast-formatting'
 import ThroughputForecast from './throughput-forecast'
 

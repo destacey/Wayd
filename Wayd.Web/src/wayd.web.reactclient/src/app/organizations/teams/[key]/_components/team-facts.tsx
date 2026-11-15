@@ -9,7 +9,10 @@ import {
 } from '@/src/components/common/record'
 import { formatReportingCadence } from '@/src/components/common/scheduling'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { TeamDetailsDto, TeamOfTeamsDetailsDto } from '@/src/services/wayd-api'
+import {
+  TeamDetailsDto,
+  TeamOfTeamsDetailsDto,
+} from '@/src/services/api/wayd.schemas'
 import { useGetTeamOfTeamsMembershipsQuery } from '@/src/store/features/organizations/team-api'
 import { formatCalendarDate, sizingMethodLabel, teamUrl } from '@/src/utils'
 import { Divider, Flex, Typography } from 'antd'

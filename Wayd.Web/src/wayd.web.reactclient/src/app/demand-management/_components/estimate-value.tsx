@@ -1,6 +1,6 @@
 'use client'
 
-import { IntakeRequestEstimateDto } from '@/src/services/wayd-api'
+import { IntakeRequestEstimateDto } from '@/src/services/api/wayd.schemas'
 import { Tag, Tooltip } from 'antd'
 import { FC } from 'react'
 import { estimateScaleDescription } from './request-estimates'

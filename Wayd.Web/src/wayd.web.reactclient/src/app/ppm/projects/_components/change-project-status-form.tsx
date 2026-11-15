@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { ProjectDetailsDto } from '@/src/services/wayd-api'
+import { ProjectDetailsDto } from '@/src/services/api/wayd.schemas'
 import {
   useApproveProjectMutation,
   useActivateProjectMutation,

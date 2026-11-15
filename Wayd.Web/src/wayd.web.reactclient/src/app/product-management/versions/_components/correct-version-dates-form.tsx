@@ -2,7 +2,10 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { CorrectVersionDatesRequest, VersionDto } from '@/src/services/wayd-api'
+import {
+  CorrectVersionDatesRequest,
+  VersionDto,
+} from '@/src/services/api/wayd.schemas'
 import { useCorrectVersionDatesMutation } from '@/src/store/features/product-management/versions-api'
 import {
   toFormErrors,

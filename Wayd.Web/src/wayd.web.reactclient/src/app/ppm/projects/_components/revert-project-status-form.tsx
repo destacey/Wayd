@@ -2,7 +2,10 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { ProjectDetailsDto, ProjectStatus } from '@/src/services/wayd-api'
+import {
+  ProjectDetailsDto,
+  ProjectStatus,
+} from '@/src/services/api/wayd.schemas'
 import { useRevertProjectStatusMutation } from '@/src/store/features/ppm/projects-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Alert, Flex, Form, Input, Modal, Select, Typography } from 'antd'

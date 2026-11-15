@@ -2,7 +2,7 @@ import {
   ActivityLogDto,
   IncidentTimelineLinkAction,
   IncidentTimelineLinkKind,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { formatEventTitle } from './activity-log-timeline'
 
 type LinkRecordedPayload = {

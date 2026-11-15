@@ -1,4 +1,4 @@
-import { SizingMethod, SprintScopeDto } from '@/src/services/wayd-api'
+import { SizingMethod, SprintScopeDto } from '@/src/services/api/wayd.schemas'
 import { SprintMetricFigures } from './sprint-metric-values'
 import {
   scopeIsReadable,

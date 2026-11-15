@@ -6,7 +6,7 @@ import {
   RecordFactsGroup,
   RecordPersonLink,
 } from '@/src/components/common/record'
-import { RiskDetailsDto } from '@/src/services/wayd-api'
+import { RiskDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Divider, Flex, Typography } from 'antd'
 import {
   calendarDaysBetween,
@@ -37,7 +37,7 @@ export interface RiskFactsProps {
  * A raw reported date makes the reader do this arithmetic, and "open 94 days"
  * is the part that says whether a risk is being sat on.
  */
-const ageOf = (reportedOn: Date, closedDate?: Date) => {
+const ageOf = (reportedOn: Date, closedDate?: Date | null) => {
   const days = calendarDaysBetween(reportedOn, closedDate ?? new Date())
   if (days < 0) return null
 
@@ -61,7 +61,10 @@ const ageOf = (reportedOn: Date, closedDate?: Date) => {
  * and it is coloured, since a date alone leaves the reader to work out that
  * it has passed.
  */
-const followUpStatus = (followUpDate: CalendarDate, closedDate?: Date) => {
+const followUpStatus = (
+  followUpDate: CalendarDate,
+  closedDate?: Date | null,
+) => {
   // A closed risk is not chased, so its follow-up date is just history.
   if (closedDate) return null
 

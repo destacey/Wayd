@@ -5,7 +5,7 @@ import {
   ProgramListDto,
   ProjectListDto,
   StrategicInitiativeListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Card, Col, Flex, Row, theme } from 'antd'
 import { ReactNode } from 'react'
 import BreakdownPie from '../../../_components/breakdown-pie'

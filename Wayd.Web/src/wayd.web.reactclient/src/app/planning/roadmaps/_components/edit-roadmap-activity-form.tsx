@@ -5,7 +5,7 @@ import {
   RoadmapActivityDetailsDto,
   RoadmapActivityListDto,
   UpdateRoadmapActivityRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetRoadmapActivitiesQuery,
   useGetRoadmapItemQuery,
@@ -51,7 +51,7 @@ interface EditRoadmapActivityFormValues {
   name: string
   description?: string
   range: any[]
-  color?: string
+  color?: string | null
 }
 
 const mapToRequestValues = (

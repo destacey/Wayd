@@ -1,6 +1,6 @@
-import { getProductTypesClient } from '@/src/services/clients'
+import { productTypesGetProductTypes } from '@/src/services/api/product-types'
 import { apiSlice } from '../apiSlice'
-import { ProductTypeDto } from '@/src/services/wayd-api'
+import { ProductTypeDto } from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 
 export const productTypesApi = apiSlice.injectEndpoints({
@@ -14,7 +14,7 @@ export const productTypesApi = apiSlice.injectEndpoints({
     getProductTypes: builder.query<ProductTypeDto[], boolean | undefined>({
       queryFn: async (isActive = undefined) => {
         try {
-          const data = await getProductTypesClient().getProductTypes(isActive)
+          const data = await productTypesGetProductTypes({ isActive: isActive })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

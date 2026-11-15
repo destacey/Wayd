@@ -3,7 +3,10 @@
 import { requiresReason } from '@/src/components/common/status-workflows'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { ChangeProductStatusRequest, ProductDto } from '@/src/services/wayd-api'
+import {
+  ChangeProductStatusRequest,
+  ProductDto,
+} from '@/src/services/api/wayd.schemas'
 import {
   useChangeProductStatusMutation,
   useGetProductStatusOptionsQuery,
@@ -169,7 +172,8 @@ const ChangeProductStatusForm = ({
           >
             <TextArea autoSize={{ minRows: 2 }} showCount maxLength={1024} />
           </Item>
-        )}      </Form>
+        )}{' '}
+      </Form>
     </Modal>
   )
 }

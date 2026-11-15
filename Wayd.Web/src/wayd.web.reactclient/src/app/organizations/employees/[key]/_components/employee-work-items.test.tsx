@@ -3,7 +3,7 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import EmployeeWorkItems from './employee-work-items'
 import { useGetEmployeeWorkItemsQuery } from '@/src/store/features/organizations/employee-api'
-import { StatusCategory } from '@/src/services/wayd-api'
+import { StatusCategory } from '@/src/services/api/wayd.schemas'
 
 vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetEmployeeWorkItemsQuery: vi.fn(),

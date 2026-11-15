@@ -1,5 +1,8 @@
 import { render, screen } from '@testing-library/react'
-import { StatusCategory, StatusTransitionDto } from '@/src/services/wayd-api'
+import {
+  StatusCategory,
+  StatusTransitionDto,
+} from '@/src/services/api/wayd.schemas'
 import StatusHistoryTimeline from './status-history-timeline'
 
 const transition = (

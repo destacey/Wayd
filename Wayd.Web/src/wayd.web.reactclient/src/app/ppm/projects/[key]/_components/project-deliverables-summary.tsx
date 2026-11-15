@@ -1,6 +1,9 @@
 'use client'
 
-import { ProjectDeliverableDto, StatusCategory } from '@/src/services/wayd-api'
+import {
+  ProjectDeliverableDto,
+  StatusCategory,
+} from '@/src/services/api/wayd.schemas'
 import { useGetProjectDeliverablesQuery } from '@/src/store/features/ppm/project-deliverables-api'
 import {
   compareCalendarDates,

@@ -17,7 +17,7 @@ import {
   useLazyGetIntakeRequestActivitiesQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
 import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
-import { StatusCategory } from '@/src/services/wayd-api'
+import { StatusCategory } from '@/src/services/api/wayd.schemas'
 import { toApiError } from '@/src/utils'
 import { Alert, Button, Flex } from 'antd'
 import dayjs from 'dayjs'

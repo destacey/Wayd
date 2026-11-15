@@ -1,4 +1,4 @@
-import { TeamCapacityPlanDto } from '@/src/services/wayd-api'
+import { TeamCapacityPlanDto } from '@/src/services/api/wayd.schemas'
 import {
   dayEditKey,
   hoursLabel,

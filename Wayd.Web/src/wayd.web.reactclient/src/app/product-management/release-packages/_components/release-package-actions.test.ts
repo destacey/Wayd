@@ -3,7 +3,7 @@ import {
   ManifestEntryKind,
   ReleasePackageDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { releasePackageActionAvailability } from './release-package-actions'
 
 const component = () => ({

@@ -2,7 +2,7 @@ import {
   HomeLayoutColumn,
   HomeLayoutWidgetRequest,
   HomeLayoutWidgetResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   arrangeWidgets,
   defaultPlacement,

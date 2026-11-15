@@ -12,15 +12,15 @@ export type HealthCheckVariant = 'tag' | 'flag'
 
 export interface HealthCheckStatusTagData {
   status: { name: string }
-  expiration?: Date
-  reportedOn?: Date
-  note?: string
+  expiration?: Date | null
+  reportedOn?: Date | null
+  note?: string | null
 }
 
 export interface HealthCheckDetailsData extends HealthCheckStatusTagData {
   reportedBy: { name: string }
   reportedOn: Date
-  note?: string
+  note?: string | null
 }
 
 export interface HealthCheckTagProps {

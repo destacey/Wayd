@@ -3,7 +3,7 @@ import {
   NavigationDto,
   ProductDependenciesDto,
   ProductDependencyDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   DEPENDENCY_HANDLES,
   groupNodeId,

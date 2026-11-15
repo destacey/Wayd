@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { IncidentSummaryDto } from '@/src/services/wayd-api'
+import { IncidentSummaryDto } from '@/src/services/api/wayd.schemas'
 import IncidentsGrid from './incidents-grid'
 
 const incident = (

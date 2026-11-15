@@ -1,5 +1,5 @@
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
 
 export type AttentionSortMode = 'health' | 'name' | 'rank' | 'program'
 

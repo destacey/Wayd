@@ -1,6 +1,6 @@
 'use client'
 
-import { CreateLinkRequest } from '@/src/services/wayd-api'
+import { CreateLinkRequest } from '@/src/services/api/wayd.schemas'
 import { Form, Input, Modal } from 'antd'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useCreateLinkMutation } from '@/src/store/features/common/links-api'

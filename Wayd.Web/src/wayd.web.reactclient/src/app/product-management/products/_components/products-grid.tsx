@@ -6,7 +6,7 @@ import {
   caseInsensitiveCompare,
   createCsvColumn,
 } from '@/src/components/common/wayd-grid'
-import { ProductDto } from '@/src/services/wayd-api'
+import { ProductDto } from '@/src/services/api/wayd.schemas'
 import {
   renderTeamLink,
   type ColumnDef,

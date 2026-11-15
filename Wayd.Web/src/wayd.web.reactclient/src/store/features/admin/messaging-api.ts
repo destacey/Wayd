@@ -2,10 +2,16 @@ import {
   DeadLetterMessageDetailsResponse,
   MessagingCountsResponse,
   PagedResponseOfDeadLetterMessageResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
-import { getMessagingClient } from '@/src/services/clients'
+import {
+  messagingDiscardDeadLetters,
+  messagingGetCounts,
+  messagingGetDeadLetterById,
+  messagingGetDeadLetters,
+  messagingReplayDeadLetters,
+} from '@/src/services/api/messaging'
 
 export interface GetDeadLettersRequest {
   messageType?: string
@@ -22,7 +28,7 @@ export const messagingApi = apiSlice.injectEndpoints({
     getMessagingCounts: builder.query<MessagingCountsResponse, void>({
       queryFn: async () => {
         try {
-          const data = await getMessagingClient().getCounts()
+          const data = await messagingGetCounts()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -34,37 +40,35 @@ export const messagingApi = apiSlice.injectEndpoints({
     getDeadLetters: builder.query<
       PagedResponseOfDeadLetterMessageResponse,
       GetDeadLettersRequest
-    >(
-      {
-        queryFn: async (request) => {
-          try {
-            const data = await getMessagingClient().getDeadLetters(
-              request.messageType,
-              request.exceptionType,
-              request.from,
-              request.to,
-              request.page,
-              request.pageSize,
-            )
-            return { data }
-          } catch (error) {
-            console.error('API Error:', error)
-            return { error }
-          }
-        },
-        providesTags: (result) => [
-          QueryTags.DeadLetterMessage,
-          ...(result?.items?.map(({ id }) => ({
-            type: QueryTags.DeadLetterMessage,
-            id,
-          })) ?? []),
-        ],
+    >({
+      queryFn: async (request) => {
+        try {
+          const data = await messagingGetDeadLetters({
+            messageType: request.messageType,
+            exceptionType: request.exceptionType,
+            from: request.from,
+            to: request.to,
+            page: request.page,
+            pageSize: request.pageSize,
+          })
+          return { data }
+        } catch (error) {
+          console.error('API Error:', error)
+          return { error }
+        }
       },
-    ),
+      providesTags: (result) => [
+        QueryTags.DeadLetterMessage,
+        ...(result?.items?.map(({ id }) => ({
+          type: QueryTags.DeadLetterMessage,
+          id,
+        })) ?? []),
+      ],
+    }),
     getDeadLetterById: builder.query<DeadLetterMessageDetailsResponse, string>({
       queryFn: async (id) => {
         try {
-          const data = await getMessagingClient().getDeadLetterById(id)
+          const data = await messagingGetDeadLetterById(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -78,7 +82,7 @@ export const messagingApi = apiSlice.injectEndpoints({
     replayDeadLetters: builder.mutation<void, string[]>({
       queryFn: async (ids) => {
         try {
-          const data = await getMessagingClient().replayDeadLetters({ ids })
+          const data = await messagingReplayDeadLetters({ ids })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -90,7 +94,7 @@ export const messagingApi = apiSlice.injectEndpoints({
     discardDeadLetters: builder.mutation<void, string[]>({
       queryFn: async (ids) => {
         try {
-          const data = await getMessagingClient().discardDeadLetters({ ids })
+          const data = await messagingDiscardDeadLetters({ ids })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

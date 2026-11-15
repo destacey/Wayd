@@ -6,7 +6,7 @@ import {
   ProductDependenciesDto,
   ProductDependencyDto,
   ProductDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import type {
   DependencyNode,
   DependencyNodeData,
@@ -91,7 +91,7 @@ const link = (
   id: string,
   from: NavigationDto,
   to: NavigationDto,
-  strength = DependencyStrength.Hard,
+  strength: DependencyStrength = DependencyStrength.Hard,
 ): ProductDependencyDto => ({
   id,
   product: from,

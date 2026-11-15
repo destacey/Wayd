@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { PokerVoteDto } from '@/src/services/wayd-api'
+import { PokerVoteDto } from '@/src/services/api/wayd.schemas'
 import ParticipantCards from './participant-cards'
 
 const participants = [

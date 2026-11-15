@@ -1,7 +1,7 @@
 'use client'
 
 import { LabeledContent } from '@/src/components/common/content'
-import { ProjectLifecycleDetailsDto } from '@/src/services/wayd-api'
+import { ProjectLifecycleDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Flex } from 'antd'
 
 export interface ProjectLifecycleFactsProps {

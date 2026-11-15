@@ -1,4 +1,4 @@
-import { WorkTypeLevelDto } from '@/src/services/wayd-api'
+import { WorkTypeLevelDto } from '@/src/services/api/wayd.schemas'
 import { Button, Card } from 'antd'
 import WaydList from '@/src/components/common/wayd-list'
 import { EditWorkTypeLevelForm } from '.'

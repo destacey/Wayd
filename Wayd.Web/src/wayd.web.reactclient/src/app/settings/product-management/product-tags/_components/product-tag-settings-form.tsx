@@ -4,7 +4,7 @@ import { Button, Form, Skeleton, Switch } from 'antd'
 import { useEffect, useState } from 'react'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { toFormErrors } from '@/src/utils'
-import { ProductTagSettingsDto } from '@/src/services/wayd-api'
+import { ProductTagSettingsDto } from '@/src/services/api/wayd.schemas'
 import { useUpdateProductTagSettingsMutation } from '@/src/store/features/admin/system-settings-api'
 
 interface ProductTagSettingsFormValues {

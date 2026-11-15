@@ -4,7 +4,7 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { UpdateProgramRequest } from '@/src/services/wayd-api'
+import { UpdateProgramRequest } from '@/src/services/api/wayd.schemas'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import {
   useGetProgramQuery,

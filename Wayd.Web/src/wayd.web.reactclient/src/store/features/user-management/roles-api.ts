@@ -5,8 +5,16 @@ import {
   RoleListDto,
   UpdateRolePermissionsRequest,
   UserDetailsDto,
-} from '@/src/services/wayd-api'
-import { getRolesClient } from '@/src/services/clients'
+} from '@/src/services/api/wayd.schemas'
+import {
+  rolesCreateOrUpdate,
+  rolesDelete,
+  rolesGetByIdWithPermissions,
+  rolesGetList,
+  rolesGetUsers,
+  rolesGetUsersCount,
+  rolesUpdatePermissions,
+} from '@/src/services/api/roles'
 import { QueryTags } from '../query-tags'
 
 export const rolesApi = apiSlice.injectEndpoints({
@@ -14,7 +22,7 @@ export const rolesApi = apiSlice.injectEndpoints({
     getRoles: builder.query<RoleListDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getRolesClient().getList()
+          const data = await rolesGetList()
           return {
             data: data.sort((a, b) => a.name.localeCompare(b.name)),
           }
@@ -32,7 +40,7 @@ export const rolesApi = apiSlice.injectEndpoints({
     getRole: builder.query<RoleDto, string>({
       queryFn: async (id: string) => {
         try {
-          const data = await getRolesClient().getByIdWithPermissions(id)
+          const data = await rolesGetByIdWithPermissions(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -45,7 +53,7 @@ export const rolesApi = apiSlice.injectEndpoints({
     upsertRole: builder.mutation<string, CreateOrUpdateRoleRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getRolesClient().createOrUpdate(request)
+          const data = await rolesCreateOrUpdate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -61,13 +69,10 @@ export const rolesApi = apiSlice.injectEndpoints({
     updatePermissions: builder.mutation<void, UpdateRolePermissionsRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getRolesClient().updatePermissions(
-            request.roleId,
-            {
-              roleId: request.roleId,
-              permissions: request.permissions,
-            },
-          )
+          const data = await rolesUpdatePermissions(request.roleId, {
+            roleId: request.roleId,
+            permissions: request.permissions,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -82,8 +87,10 @@ export const rolesApi = apiSlice.injectEndpoints({
     getRoleUsers: builder.query<UserDetailsDto[], string>({
       queryFn: async (id: string) => {
         try {
-          const data = await getRolesClient().getUsers(id)
-          data.sort((a, b) => (a.userName ?? '').localeCompare(b.userName ?? ''))
+          const data = await rolesGetUsers(id)
+          data.sort((a, b) =>
+            (a.userName ?? '').localeCompare(b.userName ?? ''),
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -98,7 +105,7 @@ export const rolesApi = apiSlice.injectEndpoints({
     getRoleUsersCount: builder.query<number, string>({
       queryFn: async (id: string) => {
         try {
-          const data = await getRolesClient().getUsersCount(id)
+          const data = await rolesGetUsersCount(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -113,7 +120,7 @@ export const rolesApi = apiSlice.injectEndpoints({
     deleteRole: builder.mutation<void, string>({
       queryFn: async (id: string) => {
         try {
-          const data = await getRolesClient().delete(id)
+          const data = await rolesDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

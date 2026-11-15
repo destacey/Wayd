@@ -2,7 +2,10 @@
 
 import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
-import { IntakeDeskDto, IntakeDeskVisibilityDto } from '@/src/services/wayd-api'
+import {
+  IntakeDeskDto,
+  IntakeDeskVisibilityDto,
+} from '@/src/services/api/wayd.schemas'
 import { FC } from 'react'
 import { describeWaiting } from '../../../_components/desk-status'
 

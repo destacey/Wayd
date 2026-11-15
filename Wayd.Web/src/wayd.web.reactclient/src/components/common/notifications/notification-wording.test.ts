@@ -2,7 +2,7 @@ import {
   EventActorKind,
   NotificationEvent,
   NotificationReason,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   notificationAction,
   notificationActorName,

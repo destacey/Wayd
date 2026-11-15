@@ -1,11 +1,11 @@
-import { SizingMethod } from '@/src/services/wayd-api'
+import { SizingMethod } from '@/src/services/api/wayd.schemas'
 import type { ColumnDef } from '../wayd-grid-core'
 
 /** A work item's three estimates, each its own field and null when unestimated. */
 export interface WorkItemEstimates {
-  storyPoints?: number | undefined
-  effort?: number | undefined
-  size?: number | undefined
+  storyPoints?: number | null
+  effort?: number | null
+  size?: number | null
 }
 
 /**

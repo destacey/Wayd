@@ -8,7 +8,7 @@ import {
   IntakeRequestOutcomeKind,
   ProjectDeliverableStatusAlias,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import IntakeRequestOutcomes from './intake-request-outcomes'
 
 vi.mock('@/src/components/contexts/messaging', () => ({
@@ -197,7 +197,7 @@ describe('IntakeRequestOutcomes', () => {
   const mappedRequest = (
     outcome: IntakeRequestOutcomeDto,
     deliverablesMet: boolean | undefined,
-    category = StatusCategory.Active,
+    category: StatusCategory = StatusCategory.Active,
     canChangeOutcomes = true,
   ) =>
     ({

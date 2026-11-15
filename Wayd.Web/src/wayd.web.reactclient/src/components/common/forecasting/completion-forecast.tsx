@@ -1,6 +1,6 @@
 'use client'
 
-import { WorkItemForecastDto } from '@/src/services/wayd-api'
+import { WorkItemForecastDto } from '@/src/services/api/wayd.schemas'
 import { CalendarDate, teamUrl } from '@/src/utils'
 import { Alert, Card, Flex, Progress, Skeleton, Tag, Typography } from 'antd'
 import Link from 'next/link'
@@ -228,7 +228,7 @@ const CompletionForecast: FC<CompletionForecastProps> = ({
               />
               <Text type="secondary">blocks</Text>
               <ForecastWorkItemLink workItem={d.successor} showTitle={false} />
-              {d.shareOfTrialsSettingFinish !== undefined ? (
+              {d.shareOfTrialsSettingFinish != null ? (
                 <Progress
                   percent={Math.round(d.shareOfTrialsSettingFinish * 100)}
                   size="small"

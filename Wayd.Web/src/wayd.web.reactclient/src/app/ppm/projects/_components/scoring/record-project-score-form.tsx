@@ -5,7 +5,7 @@ import {
   ScoringModelDetailsDto,
   ProjectScoreDetailsDto,
   ScoringModelEvaluationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useEvaluateScoringModelMutation } from '@/src/store/features/scoring/scoring-models-api'
 import { useRecordProjectScoreMutation } from '@/src/store/features/ppm/project-scores-api'
 import { errorsByField, toApiError } from '@/src/utils'
@@ -31,7 +31,7 @@ export interface RecordProjectScoreFormProps {
   projectId: string
   scoringModel: ScoringModelDetailsDto
   modelArchived: boolean
-  currentScore?: ProjectScoreDetailsDto
+  currentScore?: ProjectScoreDetailsDto | null
   onFormComplete: () => void
   onFormCancel: () => void
 }
@@ -76,19 +76,21 @@ const RecordProjectScoreForm = ({
   )
 
   // Seed from the current score so re-scoring starts from the last values.
-  const [ratings, setRatings] = useState<Record<string, CriterionRating>>(() => {
-    const seed: Record<string, CriterionRating> = {}
-    for (const criterion of scoringModel.criteria ?? []) {
-      const previous = currentScore?.ratings?.find(
-        (r) => r.criterionId === criterion.id,
-      )
-      seed[criterion.id] = {
-        value: previous?.ratingValue ?? null,
-        ratingLevelId: previous?.ratingLevelId ?? null,
+  const [ratings, setRatings] = useState<Record<string, CriterionRating>>(
+    () => {
+      const seed: Record<string, CriterionRating> = {}
+      for (const criterion of scoringModel.criteria ?? []) {
+        const previous = currentScore?.ratings?.find(
+          (r) => r.criterionId === criterion.id,
+        )
+        seed[criterion.id] = {
+          value: previous?.ratingValue ?? null,
+          ratingLevelId: previous?.ratingLevelId ?? null,
+        }
       }
-    }
-    return seed
-  })
+      return seed
+    },
+  )
 
   // The server's errors by criterion id, until that criterion is rated again.
   const [ratingErrors, setRatingErrors] = useState<Record<string, string>>({})

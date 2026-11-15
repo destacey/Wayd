@@ -9,13 +9,13 @@ const follow = vi.fn()
 const unfollow = vi.fn()
 const getFollowedRecord = vi.fn()
 
-vi.mock('@/src/services/clients', () => ({
-  getMyFollowsClient: () => ({
-    getFollowStatus,
-    follow,
-    unfollow,
-    getFollowedRecord,
-  }),
+vi.mock(import('@/src/services/api/my-follows'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  myFollowsGetFollowStatus: (...args: unknown[]) => getFollowStatus(...args),
+  myFollowsFollow: (...args: unknown[]) => follow(...args),
+  myFollowsUnfollow: (...args: unknown[]) => unfollow(...args),
+  myFollowsGetFollowedRecord: (...args: unknown[]) =>
+    getFollowedRecord(...args),
 }))
 
 const createStore = () =>

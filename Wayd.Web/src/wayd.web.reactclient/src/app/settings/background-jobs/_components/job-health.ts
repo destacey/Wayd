@@ -1,4 +1,4 @@
-import { JobServerResponse } from '@/src/services/wayd-api'
+import { JobServerResponse } from '@/src/services/api/wayd.schemas'
 
 /**
  * How long a server may go without a heartbeat before it reads as unresponsive.

@@ -4,7 +4,7 @@ import {
   EnvironmentCategory,
   EnvironmentRolloutDto,
   RolloutItemDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { WarningOutlined } from '@ant-design/icons'
 import { Card, Empty, Flex, Space, Tag, Tooltip, Typography } from 'antd'
 import Link from 'next/link'

@@ -7,7 +7,7 @@ import {
   NeedByBasisDto,
   NeedByBasisFamily,
   NeedByBasisFamilyDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { toCalendarDate } from '@/src/utils'
 import { Button, DatePicker, Flex, Form, Input, Radio, Typography } from 'antd'
 import { FC } from 'react'

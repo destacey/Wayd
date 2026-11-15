@@ -8,7 +8,7 @@ import TeamSprintMetricsSummary from '@/src/components/common/work/sprint-metric
 import TeamCadenceMetricsSummary from '@/src/components/common/work/cadence-metrics/team-cadence-metrics-summary'
 import TeamMemberCard from '@/src/app/organizations/teams/_components/team-member-card'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { Methodology, TeamDetailsDto } from '@/src/services/wayd-api'
+import { Methodology, TeamDetailsDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetTeamBacklogQuery,
   useGetTeamDependenciesQuery,

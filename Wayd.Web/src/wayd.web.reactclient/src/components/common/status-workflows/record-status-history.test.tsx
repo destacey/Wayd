@@ -5,7 +5,7 @@ import {
   StatusWorkflowDetailsDto,
   TransitionMode,
   WorkflowOwnership,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import RecordStatusHistory, {
   RecordStatusHistoryProps,
 } from './record-status-history'

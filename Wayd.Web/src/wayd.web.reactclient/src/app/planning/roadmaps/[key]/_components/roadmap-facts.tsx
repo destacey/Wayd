@@ -7,7 +7,7 @@ import {
   RecordPersonLink,
 } from '@/src/components/common/record'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { RoadmapDetailsDto } from '@/src/services/wayd-api'
+import { RoadmapDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Divider, Flex, Typography } from 'antd'
 import { formatCalendarDate } from '@/src/utils'
 

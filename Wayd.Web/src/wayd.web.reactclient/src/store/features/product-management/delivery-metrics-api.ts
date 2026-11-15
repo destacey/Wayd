@@ -1,6 +1,6 @@
-import { getDeliveryMetricsClient } from '@/src/services/clients'
+import { deliveryMetricsGetDeliveryMetrics } from '@/src/services/api/delivery-metrics'
 import { apiSlice } from '../apiSlice'
-import { DeliveryMetricsDto } from '@/src/services/wayd-api'
+import { DeliveryMetricsDto } from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 
 /**
@@ -28,11 +28,11 @@ export const deliveryMetricsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getDeliveryMetricsClient().getDeliveryMetrics(
-            new Date(request.from),
-            new Date(request.to),
-            request.productId,
-          )
+          const data = await deliveryMetricsGetDeliveryMetrics({
+            from: new Date(request.from),
+            to: new Date(request.to),
+            productId: request.productId,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

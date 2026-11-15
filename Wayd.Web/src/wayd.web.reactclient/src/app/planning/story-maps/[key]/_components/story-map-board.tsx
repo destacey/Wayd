@@ -1,6 +1,6 @@
 'use client'
 
-import { StoryMapDetailsDto } from '@/src/services/wayd-api'
+import { StoryMapDetailsDto } from '@/src/services/api/wayd.schemas'
 import { useRemainingHeight } from '@/src/hooks'
 import { PlusOutlined } from '@ant-design/icons'
 import { Button } from 'antd'

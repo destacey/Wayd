@@ -2,7 +2,7 @@ import { act, render } from '@testing-library/react'
 import {
   DependencyStrength,
   ProductDependencyDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import RemoveProductDependencyForm from './remove-product-dependency-form'
 import type { FormInstance } from 'antd'
 import type { UseModalFormOptions } from '@/src/hooks'

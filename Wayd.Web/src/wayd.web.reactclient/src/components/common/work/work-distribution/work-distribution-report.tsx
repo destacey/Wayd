@@ -21,7 +21,7 @@ import {
   TeamWorkDistributionDto,
   ThemeCounting,
   UnestimatedHandling,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetTeamWorkDistributionQuery } from '@/src/store/features/organizations/team-api'
 import { parseCalendarDate, todayInZone } from '@/src/utils/calendar-date'
 import { isApiError } from '@/src/utils/problem-details'

@@ -1,10 +1,10 @@
 import { renderHook, act } from '@testing-library/react'
 import { keepValidCodes, useStatusFilter } from './use-status-filter'
-import { ProjectStatus } from '@/src/services/wayd-api'
+import { ProjectStatus } from '@/src/services/api/wayd.schemas'
 
 const { Proposed, Approved, Active, Completed } = ProjectStatus
 
-const DEFAULTS = [Approved, Active]
+const DEFAULTS: ProjectStatus[] = [Approved, Active]
 const KEY = 'portfolio:12:projectStatus'
 const STORAGE_KEY = `wayd-ppm-filter:${KEY}:v2`
 

@@ -47,7 +47,7 @@ vi.mock(import('@/src/components/common/timeline'), async (importOriginal) => ({
 }))
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
-import type { RoadmapItemListDto } from '@/src/services/wayd-api'
+import type { RoadmapItemListDto } from '@/src/services/api/wayd.schemas'
 import RoadmapItemsGrid from './roadmap-items-grid'
 
 const ITEMS = [

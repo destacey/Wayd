@@ -1,7 +1,7 @@
 'use client'
 
 import useAuth from '@/src/components/contexts/auth'
-import { NavigationDto } from '@/src/services/wayd-api'
+import { NavigationDto } from '@/src/services/api/wayd.schemas'
 import { useGetHolidayCalendarsQuery } from '@/src/store/features/organization/holiday-calendars-api'
 import { Select } from 'antd'
 
@@ -14,7 +14,7 @@ export interface HolidayCalendarSelectProps {
    * The calendar the record holds now, from the record itself, so its name
    * shows even when the calendars cannot be listed.
    */
-  current?: NavigationDto
+  current?: NavigationDto | null
   'aria-label'?: string
 }
 

@@ -9,7 +9,7 @@ import { authorizePage } from '@/src/components/hoc'
 import useAuth from '@/src/components/contexts/auth'
 import { useDocumentTitle } from '@/src/hooks'
 import { PageActions } from '@/src/components/common'
-import { JobStateFilter } from '@/src/services/wayd-api'
+import { JobStateFilter } from '@/src/services/api/wayd.schemas'
 import {
   JOB_SERVER_POLLING_MS,
   STATISTICS_POLLING_MS,
@@ -95,7 +95,7 @@ const BackgroundJobsListPage = () => {
       children: jobTypes.map((jobType) => ({
         label: jobType.name,
         key: `job-type-${jobType.id}`,
-        title: jobType.description,
+        title: jobType.description ?? undefined,
         onClick: () => handleRunJob(jobType.id, jobType.name),
       })),
     }))

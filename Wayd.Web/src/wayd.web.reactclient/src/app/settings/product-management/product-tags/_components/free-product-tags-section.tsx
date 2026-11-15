@@ -6,7 +6,7 @@ import {
   type ColumnDef,
 } from '@/src/components/common/wayd-grid-core'
 import useAuth from '@/src/components/contexts/auth'
-import { ProductTagListItemDto } from '@/src/services/wayd-api'
+import { ProductTagListItemDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetProductTagsSettingsQuery,
   useSearchProductTagsQuery,

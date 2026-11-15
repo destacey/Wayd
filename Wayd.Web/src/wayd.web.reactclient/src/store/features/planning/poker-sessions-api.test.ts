@@ -1,23 +1,20 @@
 // @vitest-environment jsdom
 import { configureStore } from '@reduxjs/toolkit'
-import { PokerSessionDetailsDto } from '@/src/services/wayd-api'
+import { PokerSessionDetailsDto } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { pokerSessionsApi, setCachedFocusedRound } from './poker-sessions-api'
 
 const getSession = vi.fn()
 const focusRound = vi.fn()
 
-vi.mock(import('@/src/services/clients'), async (importOriginal) => {
-  const actual = await importOriginal()
-  return {
-    ...actual,
-    // These endpoints call only the two methods stubbed here.
-    getPokerSessionsClient: (() => ({
-      getSession,
-      focusRound,
-    })) as unknown as typeof actual.getPokerSessionsClient,
-  }
-})
+vi.mock(
+  import('@/src/services/api/poker-sessions'),
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    pokerSessionsGetSession: (...args: unknown[]) => getSession(...args),
+    pokerSessionsFocusRound: (...args: unknown[]) => focusRound(...args),
+  }),
+)
 
 const createStore = () =>
   configureStore({

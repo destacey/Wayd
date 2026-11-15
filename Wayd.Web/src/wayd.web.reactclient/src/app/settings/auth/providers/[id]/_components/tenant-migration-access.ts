@@ -1,4 +1,7 @@
-import { OidcProviderDto, OidcProviderType } from '@/src/services/wayd-api'
+import {
+  OidcProviderDto,
+  OidcProviderType,
+} from '@/src/services/api/wayd.schemas'
 
 export interface TenantMigrationAccess {
   /** Whether the "Migrate Users to New Tenant" action is offered. */

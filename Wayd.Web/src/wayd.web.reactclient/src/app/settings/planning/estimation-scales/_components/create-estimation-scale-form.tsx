@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   CreateEstimationScaleRequest,
   EstimationScaleValueRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useCreateEstimationScaleMutation } from '@/src/store/features/planning/estimation-scales-api'
 import { toFormErrors, toApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -39,35 +39,35 @@ const CreateEstimationScaleForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CreateEstimationScaleFormValues>({
       onSubmit: async (values: CreateEstimationScaleFormValues, form) => {
-          try {
-            const request: CreateEstimationScaleRequest = {
-              name: values.name,
-              description: values.description,
-              values: values.values,
-            }
-            const response = await createEstimationScale(request)
-            if (response.error) {
-              throw response.error
-            }
-            messageApi.success('Estimation scale created successfully.')
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: estimationScaleValueErrorFieldFor,
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while creating the estimation scale. Please try again.',
-              )
-            }
-            return false
+        try {
+          const request: CreateEstimationScaleRequest = {
+            name: values.name,
+            description: values.description,
+            values: values.values,
           }
-        },
+          const response = await createEstimationScale(request)
+          if (response.error) {
+            throw response.error
+          }
+          messageApi.success('Estimation scale created successfully.')
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: estimationScaleValueErrorFieldFor,
+            })
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while creating the estimation scale. Please try again.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:

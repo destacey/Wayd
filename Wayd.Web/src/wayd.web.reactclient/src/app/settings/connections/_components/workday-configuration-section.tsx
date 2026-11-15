@@ -1,12 +1,12 @@
 'use client'
 
-import { getConnectionsClient } from '@/src/services/clients'
+import { connectionsGetWorkdayOrgsByType } from '@/src/services/api/connections'
 import {
   DiscoveredOrg,
   EmployeeMatchProperty,
   WorkdayConnectionDetailsDto,
   WorkdayWorkerKey,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { CloseOutlined, PlusOutlined } from '@ant-design/icons'
 import {
   AutoComplete,
@@ -175,7 +175,7 @@ export const WorkdayConfigurationSection: React.FC<ConfigSectionProps> = ({
         initialValue="SUPERVISORY"
         extra={
           orgTypeOptions.length > 0
-            ? "Workday Organization_Type_ID that drives Employee.Department. Pick from the discovered catalog or type a custom type ID. Leave blank to skip Department sync."
+            ? 'Workday Organization_Type_ID that drives Employee.Department. Pick from the discovered catalog or type a custom type ID. Leave blank to skip Department sync.'
             : "Workday Organization_Type_ID that drives Employee.Department. Default 'SUPERVISORY' (Workday's reporting hierarchy — present in every tenant). After the first init probe runs, this field will suggest the types discovered in your tenant. Leave blank to skip Department sync."
         }
       >
@@ -310,10 +310,9 @@ const ExclusionRow = ({
     setOrgsLoading(true)
     setOrgsError(null)
     try {
-      const result = await getConnectionsClient().getWorkdayOrgsByType(
-        connectionId,
-        selectedType,
-      )
+      const result = await connectionsGetWorkdayOrgsByType(connectionId, {
+        typeId: selectedType,
+      })
       setOrgs(result ?? [])
       setLoadedForType(selectedType)
     } catch (e) {

@@ -1,5 +1,5 @@
 import { act, render } from '@testing-library/react'
-import { ProductTeamLinkDto } from '@/src/services/wayd-api'
+import { ProductTeamLinkDto } from '@/src/services/api/wayd.schemas'
 import UnlinkProductTeamForm from './unlink-product-team-form'
 
 const mutate = vi.fn()

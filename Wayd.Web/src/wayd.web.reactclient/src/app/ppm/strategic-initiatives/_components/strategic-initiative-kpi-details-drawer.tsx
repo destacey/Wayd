@@ -7,7 +7,7 @@ import {
   KpiTrend,
   StrategicInitiativeKpiCheckpointDetailsDto,
   StrategicInitiativeKpiMeasurementDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetStrategicInitiativeKpiCheckpointPlanQuery,
   useGetStrategicInitiativeKpiMeasurementsQuery,
@@ -63,7 +63,7 @@ export interface StrategicInitiativeKpiDetailsDrawerProps {
 }
 
 const formatValue = (
-  value: number | undefined,
+  value: number | undefined | null,
   prefix?: string,
   suffix?: string,
 ): string => {

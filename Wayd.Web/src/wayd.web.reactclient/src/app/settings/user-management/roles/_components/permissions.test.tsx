@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import type { MockInstance } from 'vitest'
-import { RoleDto } from '@/src/services/wayd-api'
+import { RoleDto } from '@/src/services/api/wayd.schemas'
 import Permissions from './permissions'
 
 const mockHasPermissionClaim = vi.fn()

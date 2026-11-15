@@ -8,7 +8,7 @@ import {
   RecordLinkList,
   RecordPersonLink,
 } from '@/src/components/common/record'
-import { IncidentDto } from '@/src/services/wayd-api'
+import { IncidentDto } from '@/src/services/api/wayd.schemas'
 import { formatInstantInZone } from '@/src/utils'
 import { Divider, Flex, Typography } from 'antd'
 import type { BaseOptionType } from 'antd/es/select'

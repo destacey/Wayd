@@ -1,4 +1,7 @@
-import { IntakeDeskRole, IntakeDeskVisibility } from '@/src/services/wayd-api'
+import {
+  IntakeDeskRole,
+  IntakeDeskVisibility,
+} from '@/src/services/api/wayd.schemas'
 import { toUpdateRequest, triagerIds } from './desk-update'
 
 const desk = {

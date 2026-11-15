@@ -2,7 +2,7 @@ import {
   IntakeDeskDto,
   PokerSessionHostDto,
   PokerSessionHostKind,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 export interface SessionParentLink {
   label: string

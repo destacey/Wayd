@@ -5,7 +5,7 @@ import {
   HealthStatus,
   LifecycleCategory,
   SortDirection,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import FollowedRecordsList, {
   FollowedRecordsListProps,
 } from './followed-records-list'

@@ -9,7 +9,7 @@ import {
   WorkDistributionGroupDto,
   WorkDistributionMeasure,
   TeamWorkDistributionDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   GroupSwatch,
   describeGroup,

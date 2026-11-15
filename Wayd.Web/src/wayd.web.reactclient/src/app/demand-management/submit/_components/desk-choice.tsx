@@ -1,6 +1,6 @@
 'use client'
 
-import { IntakeDeskDto } from '@/src/services/wayd-api'
+import { IntakeDeskDto } from '@/src/services/api/wayd.schemas'
 import { RightOutlined } from '@ant-design/icons'
 import { Avatar, Flex, Typography } from 'antd'
 import { FC } from 'react'

@@ -21,7 +21,7 @@ import {
   useGridDragHandle,
 } from '@/src/components/common/wayd-grid'
 import type { RoadmapItemTreeNode } from './roadmap-items-grid'
-import type { RoadmapColorDto } from '@/src/services/wayd-api'
+import type { RoadmapColorDto } from '@/src/services/api/wayd.schemas'
 import {
   roadmapColorEditor,
   roadmapEndEditor,

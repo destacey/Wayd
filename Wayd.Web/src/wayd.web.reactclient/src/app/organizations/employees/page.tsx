@@ -14,7 +14,7 @@ import {
 import { authorizePage } from '@/src/components/hoc'
 import { useGetEmployeesQuery } from '@/src/store/features/organizations/employee-api'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { EmployeeListDto } from '@/src/services/wayd-api'
+import { EmployeeListDto } from '@/src/services/api/wayd.schemas'
 
 const EmployeeListPage = () => {
   useDocumentTitle('Employees')

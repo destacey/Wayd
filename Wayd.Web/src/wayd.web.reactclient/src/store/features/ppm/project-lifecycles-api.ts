@@ -1,4 +1,16 @@
-import { getProjectLifecyclesClient } from '@/src/services/clients'
+import {
+  projectLifecyclesActivate,
+  projectLifecyclesAddStage,
+  projectLifecyclesArchive,
+  projectLifecyclesCreate,
+  projectLifecyclesDelete,
+  projectLifecyclesGetProjectLifecycle,
+  projectLifecyclesGetProjectLifecycles,
+  projectLifecyclesRemoveStage,
+  projectLifecyclesReorderStages,
+  projectLifecyclesUpdate,
+  projectLifecyclesUpdateStage,
+} from '@/src/services/api/project-lifecycles'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
@@ -8,7 +20,7 @@ import {
   ProjectLifecycleStageRequest,
   ProjectLifecycleState,
   UpdateProjectLifecycleRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 export const projectLifecyclesApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -18,8 +30,9 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (state) => {
         try {
-          const data =
-            await getProjectLifecyclesClient().getProjectLifecycles(state)
+          const data = await projectLifecyclesGetProjectLifecycles({
+            state: state ?? undefined,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -33,8 +46,7 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
     getProjectLifecycle: builder.query<ProjectLifecycleDetailsDto, string>({
       queryFn: async (idOrKey) => {
         try {
-          const data =
-            await getProjectLifecyclesClient().getProjectLifecycle(idOrKey)
+          const data = await projectLifecyclesGetProjectLifecycle(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -51,7 +63,7 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getProjectLifecyclesClient().create(request)
+          const data = await projectLifecyclesCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -68,10 +80,7 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getProjectLifecyclesClient().update(
-            request.id,
-            request,
-          )
+          const data = await projectLifecyclesUpdate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -88,7 +97,7 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
     deleteProjectLifecycle: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getProjectLifecyclesClient().delete(id)
+          const data = await projectLifecyclesDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -102,7 +111,7 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
     activateProjectLifecycle: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getProjectLifecyclesClient().activate(id)
+          const data = await projectLifecyclesActivate(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -119,7 +128,7 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
     archiveProjectLifecycle: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getProjectLifecyclesClient().archive(id)
+          const data = await projectLifecyclesArchive(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -139,10 +148,7 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ lifecycleId, ...request }) => {
         try {
-          const data = await getProjectLifecyclesClient().addStage(
-            lifecycleId,
-            request,
-          )
+          const data = await projectLifecyclesAddStage(lifecycleId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -159,7 +165,7 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ lifecycleId, stageId, ...request }) => {
         try {
-          const data = await getProjectLifecyclesClient().updateStage(
+          const data = await projectLifecyclesUpdateStage(
             lifecycleId,
             stageId,
             request,
@@ -178,10 +184,7 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ lifecycleId, stageId }) => {
         try {
-          const data = await getProjectLifecyclesClient().removeStage(
-            lifecycleId,
-            stageId,
-          )
+          const data = await projectLifecyclesRemoveStage(lifecycleId, stageId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -198,10 +201,9 @@ export const projectLifecyclesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ lifecycleId, orderedStageIds }) => {
         try {
-          const data = await getProjectLifecyclesClient().reorderStages(
-            lifecycleId,
-            { orderedStageIds },
-          )
+          const data = await projectLifecyclesReorderStages(lifecycleId, {
+            orderedStageIds,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

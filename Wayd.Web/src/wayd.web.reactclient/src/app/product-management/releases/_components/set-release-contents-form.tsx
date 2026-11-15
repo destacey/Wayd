@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   ReleaseDto,
   SetReleaseContentsRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useSetReleaseContentsMutation } from '@/src/store/features/product-management/releases-api'
 import { useGetReleasePackagesQuery } from '@/src/store/features/product-management/release-packages-api'
 import { useGetVersionsQuery } from '@/src/store/features/product-management/versions-api'

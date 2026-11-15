@@ -1,4 +1,4 @@
-import { IncidentWorkflowAction } from '@/src/services/wayd-api'
+import { IncidentWorkflowAction } from '@/src/services/api/wayd.schemas'
 import { incidentTransitionDate } from './incident-transition-date'
 
 const at = new Date('2026-11-12T16:00:00Z')

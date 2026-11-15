@@ -7,7 +7,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   CreateStrategicInitiativeKpiRequest,
   KpiTargetDirection,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useCreateStrategicInitiativeKpiMutation } from '@/src/store/features/ppm/strategic-initiatives-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, InputNumber, Modal, Select } from 'antd'

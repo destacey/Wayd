@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { Form } from 'antd'
 import dayjs from 'dayjs'
-import { Methodology } from '@/src/services/wayd-api'
+import { Methodology } from '@/src/services/api/wayd.schemas'
 import ReportingCadenceFields, {
   formatReportingCadence,
   toReportingCadenceRequest,

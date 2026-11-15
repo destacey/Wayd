@@ -3,7 +3,7 @@
 import {
   AzureOpenAIConnectionDetailsDto,
   ConnectionDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { DetailEntry } from '../_components/detail-registry'
 import GenericConnectionDetails from '../_components/generic-connection-details'
 

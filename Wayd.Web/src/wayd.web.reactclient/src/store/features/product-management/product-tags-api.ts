@@ -1,11 +1,17 @@
-import { getProductTagsClient } from '@/src/services/clients'
+import {
+  productTagsDeleteFreeTag,
+  productTagsGetSettings,
+  productTagsMerge,
+  productTagsSearch,
+  productTagsUpdateFreeTag,
+} from '@/src/services/api/product-tags'
 import { apiSlice } from '../apiSlice'
 import {
   MergeProductTagRequest,
   ProductTagListItemDto,
   ProductTagSettingsDto,
   UpdateFreeProductTagRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 
 /** Narrows the product tag search. Every field is optional; none returns every applicable tag. */
@@ -47,7 +53,7 @@ export const productTagsApi = apiSlice.injectEndpoints({
     getProductTagsSettings: builder.query<ProductTagSettingsDto, void>({
       queryFn: async () => {
         try {
-          const data = await getProductTagsClient().getSettings()
+          const data = await productTagsGetSettings()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -65,11 +71,11 @@ export const productTagsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (args) => {
         try {
-          const data = await getProductTagsClient().search(
-            args?.search,
-            args?.isFree,
-            args?.includeInactive,
-          )
+          const data = await productTagsSearch({
+            search: args?.search,
+            isFree: args?.isFree,
+            includeInactive: args?.includeInactive,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -81,7 +87,7 @@ export const productTagsApi = apiSlice.injectEndpoints({
     updateFreeProductTag: builder.mutation<void, UpdateFreeProductTagArgs>({
       queryFn: async ({ id, ...request }) => {
         try {
-          const data = await getProductTagsClient().updateFreeTag(id, request)
+          const data = await productTagsUpdateFreeTag(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -93,7 +99,7 @@ export const productTagsApi = apiSlice.injectEndpoints({
     mergeProductTag: builder.mutation<void, MergeProductTagArgs>({
       queryFn: async ({ id, ...request }) => {
         try {
-          const data = await getProductTagsClient().merge(id, request)
+          const data = await productTagsMerge(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -105,7 +111,7 @@ export const productTagsApi = apiSlice.injectEndpoints({
     deleteFreeProductTag: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getProductTagsClient().deleteFreeTag(id)
+          const data = await productTagsDeleteFreeTag(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

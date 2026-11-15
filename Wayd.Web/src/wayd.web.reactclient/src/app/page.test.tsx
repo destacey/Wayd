@@ -2,7 +2,7 @@ import {
   HomeContextResponse,
   HomeLayoutColumn,
   HomeLayoutWidgetResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { homeContext } from './_components/home/home-context-test-utils'
 import HomePage from './page'

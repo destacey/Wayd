@@ -2,7 +2,7 @@
 
 import { useGetProjectStatusOptionsQuery } from '@/src/store/features/ppm/projects-api'
 import { useGetPortfolioOptionsQuery } from '@/src/store/features/ppm/portfolios-api'
-import { ProjectStatus } from '@/src/services/wayd-api'
+import { ProjectStatus } from '@/src/services/api/wayd.schemas'
 import { FC } from 'react'
 import PpmFilterBar from './ppm-filter-bar'
 

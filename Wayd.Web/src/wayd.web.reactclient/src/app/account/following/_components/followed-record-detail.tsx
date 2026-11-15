@@ -19,7 +19,10 @@ import StageTimeline from '@/src/app/ppm/_components/stage-timeline'
 import { ActivityLogTimeline } from '@/src/components/common/activities'
 import { LifecycleStatusTag, PersonAvatar } from '@/src/components/common'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { FollowedRecordDetailDto, RecordPerson } from '@/src/services/wayd-api'
+import {
+  FollowedRecordDetailDto,
+  RecordPerson,
+} from '@/src/services/api/wayd.schemas'
 import {
   FollowOwnerType,
   FollowOwnerTypes,

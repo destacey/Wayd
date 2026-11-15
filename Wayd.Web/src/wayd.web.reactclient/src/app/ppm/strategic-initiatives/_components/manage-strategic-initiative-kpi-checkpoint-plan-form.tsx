@@ -6,7 +6,7 @@ import {
   KpiCheckpointPlanItemRequest,
   KpiTargetDirection,
   ManageStrategicInitiativeKpiCheckpointPlanRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetStrategicInitiativeKpiCheckpointsQuery,
   useGetStrategicInitiativeKpiQuery,

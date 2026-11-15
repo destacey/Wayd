@@ -6,7 +6,7 @@ import {
   FollowView,
   LifecycleCategory,
   SortDirection,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import FollowingPage, { parseRecord } from './page'
 
 vi.mock('@/src/components/hoc', () => ({

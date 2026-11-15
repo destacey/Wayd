@@ -2,7 +2,7 @@
 
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { CreateStrategicThemeRequest } from '@/src/services/wayd-api'
+import { CreateStrategicThemeRequest } from '@/src/services/api/wayd.schemas'
 import { useCreateStrategicThemeMutation } from '@/src/store/features/strategic-management/strategic-themes-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -40,32 +40,32 @@ const CreateStrategicThemeForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CreateStrategicThemeFormValues>({
       onSubmit: async (values: CreateStrategicThemeFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values)
-            const response = await createStrategicTheme(request)
-            if (response.error) {
-              throw response.error
-            }
-            messageApi.success(
-              'Strategic Theme created successfully. Strategic Theme key: ' +
-                response.data!.key,
-            )
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while creating the strategic theme. Please try again.',
-              )
-            }
-            return false
+        try {
+          const request = mapToRequestValues(values)
+          const response = await createStrategicTheme(request)
+          if (response.error) {
+            throw response.error
           }
-        },
+          messageApi.success(
+            'Strategic Theme created successfully. Strategic Theme key: ' +
+              response.data!.key,
+          )
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while creating the strategic theme. Please try again.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:

@@ -3,7 +3,7 @@ import {
   SizingMethod,
   TeamCadenceMetricsDto,
   TeamCadencePeriodDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { formatCalendarDate } from '@/src/utils/calendar-date'
 
 /** The bounds the API holds a period window to. */

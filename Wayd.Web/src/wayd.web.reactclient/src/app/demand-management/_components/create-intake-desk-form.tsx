@@ -3,7 +3,10 @@
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { IntakeDeskRole, IntakeDeskVisibility } from '@/src/services/wayd-api'
+import {
+  IntakeDeskRole,
+  IntakeDeskVisibility,
+} from '@/src/services/api/wayd.schemas'
 import {
   useCreateIntakeDeskMutation,
   useGetIntakeDeskVisibilitiesQuery,

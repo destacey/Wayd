@@ -1,4 +1,4 @@
-import { JobServerResponse } from '@/src/services/wayd-api'
+import { JobServerResponse } from '@/src/services/api/wayd.schemas'
 import {
   findLongestRunningJobId,
   isRequeueableState,

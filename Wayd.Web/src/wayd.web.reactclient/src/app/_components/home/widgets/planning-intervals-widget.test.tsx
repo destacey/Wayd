@@ -4,7 +4,7 @@ import PlanningIntervalsWidget, {
   countdownText,
   currentPlanningIntervals,
 } from './planning-intervals-widget'
-import { PlanningIntervalListDto } from '@/src/services/wayd-api'
+import { PlanningIntervalListDto } from '@/src/services/api/wayd.schemas'
 import { IterationState } from '@/src/components/types'
 import { renderReportingWidget } from '../widget-display-test-utils'
 

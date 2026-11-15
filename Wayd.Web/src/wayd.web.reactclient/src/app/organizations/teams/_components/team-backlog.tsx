@@ -1,7 +1,7 @@
 'use client'
 
 import { WorkItemsBacklogGrid } from '@/src/components/common/work'
-import { SizingMethod } from '@/src/services/wayd-api'
+import { SizingMethod } from '@/src/services/api/wayd.schemas'
 import { useGetTeamBacklogQuery } from '@/src/store/features/organizations/team-api'
 import { FC } from 'react'
 

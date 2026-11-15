@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
-import { WorkProcessSchemeDto } from '@/src/services/wayd-api'
+import { WorkProcessSchemeDto } from '@/src/services/api/wayd.schemas'
 import WorkProcessSchemes from './work-process-schemes'
 
 const mockSchemesQuery = vi.fn()

@@ -4,12 +4,77 @@ const mutator = (name: string) => ({
   mutator: { path: 'src/services/api-fetch.ts', name },
 })
 
+type Schema = {
+  allOf?: unknown[]
+  properties?: object
+  additionalProperties?: unknown
+  type?: string
+  nullable?: boolean
+  items?: Schema
+}
+
+type Parameter = { in?: string; schema?: Schema; explode?: boolean }
+
+type Spec = {
+  components?: { schemas?: Record<string, unknown> }
+  paths?: Record<string, Record<string, unknown>>
+}
+
+/**
+ * Removes the `{ type: 'object', additionalProperties: false }` member the API
+ * adds to a derived schema's `allOf`. It declares no properties, yet Orval
+ * renders it as `{ [key: string]: unknown }`, an index signature that no
+ * interface satisfies, so a DTO could not be passed where its base type is
+ * expected.
+ */
+function dropEmptyClosedAllOfMembers(spec: Spec): void {
+  for (const schema of Object.values(spec.components?.schemas ?? {})) {
+    const s = schema as Schema
+    if (!s.allOf) continue
+    s.allOf = s.allOf.filter((member) => {
+      const m = member as Schema
+      return !(m.additionalProperties === false && !m.properties && !m.allOf)
+    })
+  }
+}
+
+/**
+ * Adapts each query parameter to how a URL carries it.
+ *
+ * - An array is exploded (`status=A&status=B`), the OpenAPI default for a
+ *   query and what ASP.NET binds. Orval explodes only a parameter that says
+ *   so, and otherwise joins the values with commas, which the API refuses.
+ * - Nothing is nullable: a query string has no null, only a parameter left
+ *   out, and Orval would send the text `null`. A C# `Guid?` or `DateTime?`
+ *   parameter is published nullable, so callers pass `undefined` instead.
+ */
+function adaptQueryParameters(spec: Spec): void {
+  for (const item of Object.values(spec.paths ?? {})) {
+    for (const operation of Object.values(item)) {
+      const parameters = (operation as { parameters?: Parameter[] })?.parameters
+      for (const parameter of parameters ?? []) {
+        if (parameter.in !== 'query' || !parameter.schema) continue
+        delete parameter.schema.nullable
+        if (parameter.schema.items) delete parameter.schema.items.nullable
+        if (parameter.schema.type === 'array') parameter.explode ??= true
+      }
+    }
+  }
+}
+
+function adaptSpec<T>(spec: T): T {
+  dropEmptyClosedAllOfMembers(spec as Spec)
+  adaptQueryParameters(spec as Spec)
+  return spec
+}
+
 // Generates the typed fetch client in src/services/api from the OpenAPI
 // document a Debug build of Wayd.Web.Api writes. Run `npm run generate:api`.
 export default defineConfig({
   wayd: {
     input: {
       target: '../Wayd.Web.Api/wwwroot/api/v1/specification.json',
+      override: { transformer: adaptSpec },
     },
     output: {
       client: 'fetch',

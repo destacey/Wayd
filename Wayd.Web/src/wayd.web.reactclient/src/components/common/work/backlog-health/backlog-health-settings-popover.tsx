@@ -11,7 +11,7 @@ import {
   Typography,
 } from 'antd'
 import { FC, useState } from 'react'
-import { BacklogHealthThresholds } from '@/src/services/wayd-api'
+import { BacklogHealthThresholds } from '@/src/services/api/wayd.schemas'
 import {
   BacklogHealthSettings,
   EMPTY_BACKLOG_HEALTH_SETTINGS,

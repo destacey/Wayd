@@ -1,4 +1,4 @@
-import { ProjectPlanNodeDto } from '@/src/services/wayd-api'
+import { ProjectPlanNodeDto } from '@/src/services/api/wayd.schemas'
 import { linkedTasks, toTreeOptions } from './set-deliverable-tasks-form'
 
 const node = (

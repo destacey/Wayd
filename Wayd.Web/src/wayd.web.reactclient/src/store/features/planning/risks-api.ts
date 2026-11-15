@@ -1,4 +1,14 @@
-import { getRisksClient } from '@/src/services/clients'
+import {
+  risksCreate,
+  risksDelete,
+  risksGetActivities,
+  risksGetCategories,
+  risksGetGrades,
+  risksGetMyRisks,
+  risksGetRisk,
+  risksGetStatuses,
+  risksUpdate,
+} from '@/src/services/api/risks'
 import { apiSlice } from '../apiSlice'
 import {
   CreateRiskRequest,
@@ -8,7 +18,7 @@ import {
   RiskDetailsDto,
   RiskListDto,
   UpdateRiskRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 import { OptionModel } from '@/src/components/types'
 
@@ -17,7 +27,7 @@ export const risksApi = apiSlice.injectEndpoints({
     getRisk: builder.query<RiskDetailsDto, number>({
       queryFn: async (key) => {
         try {
-          const data = await getRisksClient().getRisk(key.toString())
+          const data = await risksGetRisk(key.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -29,7 +39,7 @@ export const risksApi = apiSlice.injectEndpoints({
     getMyRisks: builder.query<RiskListDto[], string>({
       queryFn: async () => {
         try {
-          const data = await getRisksClient().getMyRisks()
+          const data = await risksGetMyRisks()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -43,7 +53,7 @@ export const risksApi = apiSlice.injectEndpoints({
     createRisk: builder.mutation<ObjectIdAndKey, CreateRiskRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getRisksClient().create(request)
+          const data = await risksCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -66,7 +76,7 @@ export const risksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ request }) => {
         try {
-          const data = await getRisksClient().update(request.riskId, request)
+          const data = await risksUpdate(request.riskId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -87,7 +97,7 @@ export const risksApi = apiSlice.injectEndpoints({
     deleteRisk: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getRisksClient().delete(id)
+          const data = await risksDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -107,11 +117,10 @@ export const risksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getRisksClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await risksGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -125,7 +134,7 @@ export const risksApi = apiSlice.injectEndpoints({
     getRiskStatusOptions: builder.query<OptionModel<number>[], void>({
       queryFn: async () => {
         try {
-          const portfolios = await getRisksClient().getStatuses()
+          const portfolios = await risksGetStatuses()
 
           const statuses = portfolios.toSorted((a, b) => a.order - b.order)
           const data: OptionModel<number>[] = statuses.map((category) => ({
@@ -147,7 +156,7 @@ export const risksApi = apiSlice.injectEndpoints({
     getRiskCategories: builder.query<RiskCategoryDto[], void>({
       queryFn: async () => {
         try {
-          const categories = await getRisksClient().getCategories()
+          const categories = await risksGetCategories()
           return { data: categories.toSorted((a, b) => a.order - b.order) }
         } catch (error) {
           console.error('API Error:', error)
@@ -159,7 +168,7 @@ export const risksApi = apiSlice.injectEndpoints({
     getRiskCategoryOptions: builder.query<OptionModel<number>[], void>({
       queryFn: async () => {
         try {
-          const portfolios = await getRisksClient().getCategories()
+          const portfolios = await risksGetCategories()
 
           const categories = portfolios.toSorted((a, b) => a.order - b.order)
           const data: OptionModel<number>[] = categories.map((category) => ({
@@ -178,7 +187,7 @@ export const risksApi = apiSlice.injectEndpoints({
     getRiskGradeOptions: builder.query<OptionModel<number>[], void>({
       queryFn: async () => {
         try {
-          const portfolios = await getRisksClient().getGrades()
+          const portfolios = await risksGetGrades()
 
           const grades = portfolios.toSorted((a, b) => a.order - b.order)
           const data: OptionModel<number>[] = grades.map((category) => ({

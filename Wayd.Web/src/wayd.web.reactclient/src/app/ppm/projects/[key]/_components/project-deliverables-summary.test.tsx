@@ -1,6 +1,9 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-import { ProjectDeliverableDto, StatusCategory } from '@/src/services/wayd-api'
+import {
+  ProjectDeliverableDto,
+  StatusCategory,
+} from '@/src/services/api/wayd.schemas'
 import ProjectDeliverablesSummary from './project-deliverables-summary'
 
 vi.mock(import('@/src/utils/calendar-date'), async (importOriginal) => ({

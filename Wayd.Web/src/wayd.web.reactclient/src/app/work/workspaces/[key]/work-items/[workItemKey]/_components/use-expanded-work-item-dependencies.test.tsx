@@ -5,15 +5,20 @@ import type { ReactNode } from 'react'
 import {
   ScopedDependencyDto,
   WorkItemDetailsNavigationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '@/src/store/features/apiSlice'
 import { useExpandedWorkItemDependencies } from './use-expanded-work-item-dependencies'
 
 const getWorkItemDependencies = vi.fn()
 
 vi.mock('@/src/services/clients', () => ({
-  getWorkspacesClient: () => ({ getWorkItemDependencies }),
   isAuthActive: () => false,
+}))
+
+vi.mock(import('@/src/services/api/workspaces'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  workspacesGetWorkItemDependencies: (...args: unknown[]) =>
+    getWorkItemDependencies(...args),
 }))
 
 const item = (id: string, key: string): WorkItemDetailsNavigationDto => ({

@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { ProjectPortfolioDetailsDto } from '@/src/services/wayd-api'
+import { ProjectPortfolioDetailsDto } from '@/src/services/api/wayd.schemas'
 import { useDeletePortfolioMutation } from '@/src/store/features/ppm/portfolios-api'
 import { Modal } from 'antd'
 import { isApiError, type ApiError } from '@/src/utils'

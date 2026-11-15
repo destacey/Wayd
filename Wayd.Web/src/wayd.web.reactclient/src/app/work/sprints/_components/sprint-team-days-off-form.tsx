@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { SprintDetailsDto, IsoDayOfWeek } from '@/src/services/wayd-api'
+import { SprintDetailsDto, IsoDayOfWeek } from '@/src/services/api/wayd.schemas'
 import { useSetSprintTeamDaysOffMutation } from '@/src/store/features/work-management/sprints-api'
 import {
   calendarDaysBetween,

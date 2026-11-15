@@ -5,7 +5,7 @@ import {
   ImportDefinitionDto,
   ImportProcessDto,
   ImportProcessStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import CsvImportForm from './csv-import-form'
 import { importTemplates } from './import-templates.generated'
 

@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { TeamCapacityPlanDto } from '@/src/services/wayd-api'
+import { TeamCapacityPlanDto } from '@/src/services/api/wayd.schemas'
 import TeamCapacityPlan from './team-capacity-plan'
 
 // The antd Table measures its scrollbar with a pseudo-element, which jsdom does

@@ -1,4 +1,7 @@
-import { SprintBurnDto, SprintScopeMeasureDto } from '@/src/services/wayd-api'
+import {
+  SprintBurnDto,
+  SprintScopeMeasureDto,
+} from '@/src/services/api/wayd.schemas'
 
 export enum BurnSeries {
   Scope = 'Scope',

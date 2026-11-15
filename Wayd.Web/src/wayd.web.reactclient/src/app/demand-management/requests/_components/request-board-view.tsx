@@ -4,7 +4,7 @@ import {
   IntakeDeskDto,
   IntakeDeskWorkflowDto,
   IntakeRequestSummaryDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetIntakeDeskWorkflowsQuery } from '@/src/store/features/demand-management/demand-management-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { Alert, Button, Flex, Skeleton, Typography } from 'antd'

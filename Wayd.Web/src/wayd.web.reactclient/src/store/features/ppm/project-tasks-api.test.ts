@@ -1,13 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { JsonPatchOperationType } from '@/src/services/wayd-api'
+import { JsonPatchOperationType } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { projectTasksApi } from './project-tasks-api'
 
 const patchProjectTask = vi.fn()
 
-vi.mock('@/src/services/clients', () => ({
-  getProjectTasksClient: () => ({ patchProjectTask }),
-  getProjectsClient: () => ({}),
+vi.mock(import('@/src/services/api/project-tasks'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  projectTasksPatchProjectTask: (...args: unknown[]) =>
+    patchProjectTask(...args),
 }))
 
 const createStore = () =>
@@ -17,7 +18,7 @@ const createStore = () =>
   })
 
 const operations = [
-  { op: JsonPatchOperationType.Replace, path: '/Name', value: 'Design' },
+  { op: JsonPatchOperationType.replace, path: '/Name', value: 'Design' },
 ]
 
 const patch = () =>

@@ -5,7 +5,7 @@ import {
   SprintListDto,
   SprintType,
   SprintTypeSource,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import CorrectSprintActualDatesForm from './correct-sprint-actual-dates-form'
 
 const correctActualDates = vi.fn()

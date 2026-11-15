@@ -3,7 +3,7 @@ import KanbanTeamCard from './kanban-team-card'
 import {
   DateMeasuredTeamMetricsSummary,
   SizingMethod,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 vi.mock('@/src/components/contexts/theme', () => ({
   default: () => ({ token: { colorSuccess: '#52c41a' } }),

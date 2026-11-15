@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import { TimeAwayReason } from '@/src/services/wayd-api'
+import { TimeAwayReason } from '@/src/services/api/wayd.schemas'
 import { toFormErrors } from '@/src/utils'
 import { fieldForError, timeAwayRequestFor } from './time-away-form'
 

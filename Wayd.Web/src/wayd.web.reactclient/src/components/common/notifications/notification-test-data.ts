@@ -4,7 +4,7 @@ import {
   NotificationEvent,
   NotificationReason,
   NotifiedRecordDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 /** A project to be told about, overridable field by field. */
 export const buildNotifiedRecord = (

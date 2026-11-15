@@ -1,6 +1,9 @@
 'use client'
 
-import { RoadmapDetailsDto, RoadmapItemListDto } from '@/src/services/wayd-api'
+import {
+  RoadmapDetailsDto,
+  RoadmapItemListDto,
+} from '@/src/services/api/wayd.schemas'
 import { BuildOutlined, MenuOutlined } from '@ant-design/icons'
 import type { SegmentedLabeledOption } from 'antd/es/segmented'
 import { memo, useState } from 'react'

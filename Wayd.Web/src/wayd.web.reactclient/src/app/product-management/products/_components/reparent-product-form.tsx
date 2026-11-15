@@ -2,7 +2,10 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { ProductDto, ReparentProductRequest } from '@/src/services/wayd-api'
+import {
+  ProductDto,
+  ReparentProductRequest,
+} from '@/src/services/api/wayd.schemas'
 import { useReparentProductMutation } from '@/src/store/features/product-management/products-api'
 import { ProductTreeSelect } from '../../_components'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'

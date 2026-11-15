@@ -10,7 +10,7 @@ import {
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
-import { ProductTagCategoryDto } from '@/src/services/wayd-api'
+import { ProductTagCategoryDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetProductTagCategoriesQuery,
   useReorderProductTagCategoriesMutation,

@@ -15,7 +15,7 @@ import {
   SizingMethod,
   SprintDetailsDto,
   SprintType,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetSprintMetricsQuery,
   useGetSprintScopeQuery,

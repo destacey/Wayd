@@ -18,7 +18,7 @@ import type { ItemType } from 'antd/es/menu/interface'
 import {
   PokerSessionListDto,
   PokerSessionStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetPokerSessionsQuery,
   useCompletePokerSessionMutation,

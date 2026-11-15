@@ -4,7 +4,7 @@ import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 export interface TagText {
   name: string
   /** The tag's category, absent for a free tag. */
-  categoryName?: string
+  categoryName?: string | null
 }
 
 /**

@@ -4,7 +4,7 @@ import {
   SprintDetailsDto,
   SprintType,
   SprintTypeSource,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import SprintTypeForm from './sprint-type-form'
 
 const setSprintType = vi.fn()

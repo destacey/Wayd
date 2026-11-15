@@ -3,9 +3,16 @@ import {
   AzureDevOpsWorkspaceTeamDto,
   InitWorkspaceIntegrationRequest,
   TestAzureDevOpsConnectionRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
-import { getAzureDevOpsConnectionsClient } from '@/src/services/clients'
+import {
+  azureDevOpsConnectionsGetConnectionTeams,
+  azureDevOpsConnectionsInitWorkspaceIntegration,
+  azureDevOpsConnectionsMapConnectionTeams,
+  azureDevOpsConnectionsSetWorkspaceSync,
+  azureDevOpsConnectionsSyncOrganizationConfiguration,
+  azureDevOpsConnectionsTestConfig,
+} from '@/src/services/api/azure-dev-ops-connections'
 import { QueryTags } from '../query-tags'
 
 export interface GetAzdoConnectionTeamsRequest {
@@ -25,7 +32,7 @@ export const azdoIntegrationApi = apiSlice.injectEndpoints({
       queryFn: async (connectionId) => {
         try {
           const data =
-            await getAzureDevOpsConnectionsClient().syncOrganizationConfiguration(
+            await azureDevOpsConnectionsSyncOrganizationConfiguration(
               connectionId,
             )
           return { data }
@@ -46,7 +53,7 @@ export const azdoIntegrationApi = apiSlice.injectEndpoints({
     setAzdoWorkspaceSync: builder.mutation<void, SetAzdoWorkspaceSyncRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getAzureDevOpsConnectionsClient().setWorkspaceSync(
+          const data = await azureDevOpsConnectionsSetWorkspaceSync(
             request.connectionId,
             request.workspaceExternalId,
             { isEnabled: request.isEnabled },
@@ -72,11 +79,10 @@ export const azdoIntegrationApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data =
-            await getAzureDevOpsConnectionsClient().initWorkspaceIntegration(
-              request.id,
-              request,
-            )
+          const data = await azureDevOpsConnectionsInitWorkspaceIntegration(
+            request.id,
+            request,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -98,11 +104,10 @@ export const azdoIntegrationApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request: GetAzdoConnectionTeamsRequest) => {
         try {
-          const data =
-            await getAzureDevOpsConnectionsClient().getConnectionTeams(
-              request.connectionId,
-              request.workspaceId,
-            )
+          const data = await azureDevOpsConnectionsGetConnectionTeams(
+            request.connectionId,
+            { workspaceId: request.workspaceId ?? undefined },
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -124,11 +129,10 @@ export const azdoIntegrationApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data =
-            await getAzureDevOpsConnectionsClient().mapConnectionTeams(
-              request.connectionId,
-              request,
-            )
+          const data = await azureDevOpsConnectionsMapConnectionTeams(
+            request.connectionId,
+            request,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -146,8 +150,7 @@ export const azdoIntegrationApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data =
-            await getAzureDevOpsConnectionsClient().testConfig(request)
+          const data = await azureDevOpsConnectionsTestConfig(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import {
   PokerSessionDetailsDto,
   PokerSessionMemberDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import SessionMembershipBar from './session-membership-bar'
 import {
   useJoinPokerSessionMutation,

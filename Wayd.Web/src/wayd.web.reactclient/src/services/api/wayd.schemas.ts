@@ -53,9 +53,9 @@ export interface NavigationDtoOfGuidAndInteger {
   name: string;
 }
 
-export type NavigationDto = NavigationDtoOfGuidAndInteger & { [key: string]: unknown };
+export type NavigationDto = NavigationDtoOfGuidAndInteger;
 
-export type EmployeeNavigationDto = NavigationDto & { [key: string]: unknown };
+export type EmployeeNavigationDto = NavigationDto;
 
 export interface ActivityLogDto {
   /** The entry's key, used only to tell one row from another. It is not the id of the event the entry records. */
@@ -823,7 +823,7 @@ export interface ConnectionListDto {
   $type: string;
 }
 
-export type AzureDevOpsConnectionListDto = Omit<ConnectionListDto & { [key: string]: unknown }, '$type'> & {
+export type AzureDevOpsConnectionListDto = Omit<ConnectionListDto, '$type'> & {
   $type: AzureDevOpsConnectionListDtoType;
 };
 
@@ -863,7 +863,7 @@ export const AzureOpenAIConnectionListDtoType = {
   'azure-openai': 'azure-openai',
 } as const;
 
-export type AzureOpenAIConnectionListDto = Omit<ConnectionListDto & { [key: string]: unknown }, '$type'> & {
+export type AzureOpenAIConnectionListDto = Omit<ConnectionListDto, '$type'> & {
   $type: AzureOpenAIConnectionListDtoType;
 };
 
@@ -997,7 +997,7 @@ export interface NavigationDtoOfGuidAndString {
   name: string;
 }
 
-export type WorkspaceNavigationDto = NavigationDtoOfGuidAndString & { [key: string]: unknown };
+export type WorkspaceNavigationDto = NavigationDtoOfGuidAndString;
 
 export interface WorkItemNavigationDto {
   id: string;
@@ -4531,7 +4531,7 @@ export interface DescriptiveNavigationDtoOfGuidAndInteger {
   description?: string | null;
 }
 
-export type DescriptiveNavigationDto = DescriptiveNavigationDtoOfGuidAndInteger & { [key: string]: unknown };
+export type DescriptiveNavigationDto = DescriptiveNavigationDtoOfGuidAndInteger;
 
 /**
  * One Workday organization of a given organization type.
@@ -4942,7 +4942,7 @@ export const EntraConnectionListDtoType = {
   entra: 'entra',
 } as const;
 
-export type EntraConnectionListDto = Omit<ConnectionListDto & { [key: string]: unknown }, '$type'> & {
+export type EntraConnectionListDto = Omit<ConnectionListDto, '$type'> & {
   $type: EntraConnectionListDtoType;
 };
 
@@ -5203,7 +5203,7 @@ export interface FeatureFlagDto {
 /**
  * An area of the app that feature flags are grouped under, with its name, description and display order.
  */
-export type FeatureFlagModuleDto = CommonEnumDtoOfFeatureFlagModule & { [key: string]: unknown };
+export type FeatureFlagModuleDto = CommonEnumDtoOfFeatureFlagModule;
 
 export interface FocusPokerRoundRequest {
   /**
@@ -7963,12 +7963,12 @@ export interface IntakeDeskOpenEstimateCountDto {
 /**
  * One desk role: its code, name and what it may do.
  */
-export type IntakeDeskRoleDto = CommonEnumDtoOfIntakeDeskRole & { [key: string]: unknown };
+export type IntakeDeskRoleDto = CommonEnumDtoOfIntakeDeskRole;
 
 /**
  * One desk visibility value: its code, name and what it exposes.
  */
-export type IntakeDeskVisibilityDto = CommonEnumDtoOfIntakeDeskVisibility & { [key: string]: unknown };
+export type IntakeDeskVisibilityDto = CommonEnumDtoOfIntakeDeskVisibility;
 
 /**
  * A published intake request workflow a desk can follow.
@@ -9816,7 +9816,7 @@ export type NeedByBasisDto = CommonEnumDtoOfNeedByBasis & {
 /**
  * One need-by basis family: its code, its name, and what it means for the date.
  */
-export type NeedByBasisFamilyDto = CommonEnumDtoOfNeedByBasisFamily & { [key: string]: unknown };
+export type NeedByBasisFamilyDto = CommonEnumDtoOfNeedByBasisFamily;
 
 /**
  * Where to send the browser after the user approves or denies a connection request.
@@ -13182,7 +13182,7 @@ export type RoadmapMilestoneListDto = Omit<RoadmapItemListDto & {
   $type: RoadmapMilestoneListDtoType;
 };
 
-export type RoadmapStateDto = CommonEnumDtoOfRoadmapState & { [key: string]: unknown };
+export type RoadmapStateDto = CommonEnumDtoOfRoadmapState;
 
 export type RoadmapTimeboxDetailsDtoType = typeof RoadmapTimeboxDetailsDtoType[keyof typeof RoadmapTimeboxDetailsDtoType];
 
@@ -14503,7 +14503,7 @@ export interface SprintScopeDto {
 /**
  * A sprint type, with the code a sprint carries and the request to set one accepts.
  */
-export type SprintTypeDto = CommonEnumDtoOfSprintType & { [key: string]: unknown };
+export type SprintTypeDto = CommonEnumDtoOfSprintType;
 
 /**
  * Work item metrics for a single sprint, as item counts and as estimates in the sprint's sizing method. Only
@@ -15199,7 +15199,7 @@ export interface StrategicThemeOptionDto {
   state: string;
 }
 
-export type StrategicThemeStateDto = CommonEnumDtoOfStrategicThemeState & { [key: string]: unknown };
+export type StrategicThemeStateDto = CommonEnumDtoOfStrategicThemeState;
 
 export interface StrategyDetailsDto {
   /** The unique identifier of the strategy. */
@@ -15245,7 +15245,7 @@ export interface StrategyListDto {
   end?: string | null;
 }
 
-export type StrategyStatusDto = CommonEnumDtoOfStrategyStatus & { [key: string]: unknown };
+export type StrategyStatusDto = CommonEnumDtoOfStrategyStatus;
 
 export interface SubmitVoteRequest {
   /**
@@ -16277,7 +16277,7 @@ export const TeamsConnectionListDtoType = {
   teams: 'teams',
 } as const;
 
-export type TeamsConnectionListDto = Omit<ConnectionListDto & { [key: string]: unknown }, '$type'> & {
+export type TeamsConnectionListDto = Omit<ConnectionListDto, '$type'> & {
   $type: TeamsConnectionListDtoType;
 };
 
@@ -16615,7 +16615,7 @@ export const ThemeCounting = {
 /**
  * A reason for time away, with the code a stretch of time away carries and the requests accept.
  */
-export type TimeAwayReasonDto = CommonEnumDtoOfTimeAwayReason & { [key: string]: unknown };
+export type TimeAwayReasonDto = CommonEnumDtoOfTimeAwayReason;
 
 export interface TimeZoneDto {
   /** The IANA time zone id, e.g. "America/Chicago". */
@@ -18925,7 +18925,7 @@ export interface VersionDto {
   status: StatusNavigationDto;
 }
 
-export type VisibilityDto = CommonEnumDto & { [key: string]: unknown };
+export type VisibilityDto = CommonEnumDto;
 
 export interface VisionDto {
   /** The unique identifier of the vision. */
@@ -18948,7 +18948,7 @@ export interface VisionDto {
   end?: Date | null;
 }
 
-export type VisionStateDto = CommonEnumDtoOfVisionState & { [key: string]: unknown };
+export type VisionStateDto = CommonEnumDtoOfVisionState;
 
 /**
  * A requester withdrawing their own intake request.
@@ -19114,7 +19114,7 @@ export const WorkdayConnectionListDtoType = {
   workday: 'workday',
 } as const;
 
-export type WorkdayConnectionListDto = Omit<ConnectionListDto & { [key: string]: unknown }, '$type'> & {
+export type WorkdayConnectionListDto = Omit<ConnectionListDto, '$type'> & {
   $type: WorkdayConnectionListDtoType;
 };
 
@@ -19532,45 +19532,35 @@ export interface WorkTypeTierDto {
 }
 
 export type DiscussionsGetEntriesParams = {
-  /** @nullable */
-  before?: string | null;
+  before?: string;
   pageSize?: number;
   order?: DiscussionOrder;
   messagesOnly?: boolean;
 };
 
 export type DiscussionSettingsGetSettingsParams = {
-  /** @nullable */
-  scopeId?: string | null;
+  scopeId?: string;
 };
 
 export type DiscussionSettingsSaveSettingsParams = {
-  /** @nullable */
-  scopeId?: string | null;
+  scopeId?: string;
 };
 
 export type MeGetWorkItemsParams = {
-  /** @nullable */
-  statusCategories?: StatusCategory[] | null;
-  /** @nullable */
-  doneFrom?: Date | null;
-  /** @nullable */
-  doneTo?: Date | null;
+  statusCategories?: StatusCategory[];
+  doneFrom?: Date;
+  doneTo?: Date;
 };
 
 export type MeGetTeamsSummaryParams = {
-  /** @nullable */
-  teamIds?: string[] | null;
-  /** @nullable */
-  teamOfTeamsIds?: string[] | null;
+  teamIds?: string[];
+  teamOfTeamsIds?: string[];
 };
 
 export type MyFollowsGetFollowsParams = {
-  /** @nullable */
-  ownerType?: string[] | null;
-  view?: FollowView | null;
-  /** @nullable */
-  search?: string | null;
+  ownerType?: string[];
+  view?: FollowView;
+  search?: string;
   sort?: FollowSort;
   page?: number;
   pageSize?: number;
@@ -19584,8 +19574,7 @@ export type MyNotificationMutesGetMutedRecordsParams = {
 
 export type MyNotificationsGetNotificationsParams = {
   unreadOnly?: boolean;
-  /** @nullable */
-  before?: string | null;
+  before?: string;
   pageSize?: number;
 };
 
@@ -19595,8 +19584,7 @@ export type SearchSearchParams = {
 };
 
 export type SprintsGetSprintsParams = {
-  /** @nullable */
-  teamId?: string | null;
+  teamId?: string;
 };
 
 export type SprintsGetActivitiesParams = {
@@ -19618,20 +19606,16 @@ export type WorkspacesGetListParams = {
 };
 
 export type WorkspacesGetWorkItemForecastParams = {
-  /** @nullable */
-  targetDate?: string | null;
-  /** @nullable */
-  lookbackDays?: number | null;
-  /** @nullable */
-  ignoreDependencies?: boolean | null;
-  /** @nullable */
-  startedWorkFirst?: boolean | null;
+  targetDate?: string;
+  lookbackDays?: number;
+  ignoreDependencies?: boolean;
+  startedWorkFirst?: boolean;
 };
 
 export type WorkspacesSearchWorkItemsParams = {
   query?: string;
   top?: number;
-  tier?: WorkTypeTier | null;
+  tier?: WorkTypeTier;
 };
 
 export type WorkTypesGetListParams = {
@@ -19657,8 +19641,7 @@ export type UsersGetRolesParams = {
 };
 
 export type StrategicThemesGetStrategicThemesParams = {
-  /** @nullable */
-  state?: StrategicThemeState[] | null;
+  state?: StrategicThemeState[];
 };
 
 export type StrategicThemesGetActivitiesParams = {
@@ -19667,8 +19650,7 @@ export type StrategicThemesGetActivitiesParams = {
 };
 
 export type StrategicThemesImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -19677,23 +19659,21 @@ export type StrategicThemesImportBody = {
 };
 
 export type StrategicThemesGetStrategicThemeOptionsParams = {
-  /** @nullable */
-  includeArchived?: boolean | null;
+  includeArchived?: boolean;
 };
 
 export type StrategiesGetStrategiesParams = {
-  status?: StrategyStatus | null;
+  status?: StrategyStatus;
 };
 
 export type VisionsGetVisionsParams = {
-  state?: VisionState | null;
+  state?: VisionState;
 };
 
 export type DeliveryMetricsGetDeliveryMetricsParams = {
   from?: Date;
   to?: Date;
-  /** @nullable */
-  productId?: string | null;
+  productId?: string;
 };
 
 export type DeliveryOverviewGetDeliveryOverviewParams = {
@@ -19706,40 +19686,31 @@ export type DeliveryOverviewGetDeliveryOverviewParams = {
   from?: Date;
   /** Any instant on the window's last day, which is inclusive. */
   to?: Date;
-  /**
-   * The ID of the product to scope the delivery overview to. Omit for the whole catalog.
-   * @nullable
-   */
-  productId?: string | null;
+  /** The ID of the product to scope the delivery overview to. Omit for the whole catalog. */
+  productId?: string;
   /**
    * The IANA zone whose days the window and the daily buckets are, normally the viewer's. Defaults
    * to UTC.
-   * @nullable
    */
-  timeZone?: string | null;
+  timeZone?: string;
 };
 
 export type DeliveryOverviewGetRecentDeliveryEventsParams = {
-  /** @nullable */
-  take?: number | null;
-  /** @nullable */
-  productId?: string | null;
+  take?: number;
+  productId?: string;
 };
 
 export type DeploymentEnvironmentsGetDeploymentEnvironmentsParams = {
-  /** @nullable */
-  isActive?: boolean | null;
-  category?: EnvironmentCategory | null;
+  isActive?: boolean;
+  category?: EnvironmentCategory;
 };
 
 export type DeploymentEnvironmentsGetRolloutParams = {
-  /** @nullable */
-  includeInactive?: boolean | null;
+  includeInactive?: boolean;
 };
 
 export type DeploymentEnvironmentsImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -19748,15 +19719,11 @@ export type DeploymentEnvironmentsImportBody = {
 };
 
 export type DeploymentsGetDeploymentsParams = {
-  /** @nullable */
-  versionId?: string | null;
-  /** @nullable */
-  packageId?: string | null;
-  /** @nullable */
-  environmentId?: string | null;
-  environmentCategory?: EnvironmentCategory | null;
-  /** @nullable */
-  startedOnOrAfter?: Date | null;
+  versionId?: string;
+  packageId?: string;
+  environmentId?: string;
+  environmentCategory?: EnvironmentCategory;
+  startedOnOrAfter?: Date;
 };
 
 export type DeploymentsGetActivitiesParams = {
@@ -19765,8 +19732,7 @@ export type DeploymentsGetActivitiesParams = {
 };
 
 export type DeploymentsImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -19777,17 +19743,13 @@ export type DeploymentsImportBody = {
 export type IncidentsGetIncidentsParams = {
   page?: number;
   pageSize?: number;
-  /** @nullable */
-  status?: ProductStatusAlias[] | null;
-  /** @nullable */
-  severityLevelId?: string[] | null;
+  status?: ProductStatusAlias[];
+  severityLevelId?: string[];
 };
 
 export type IncidentsGetIncidentFiguresParams = {
-  /** @nullable */
-  status?: ProductStatusAlias[] | null;
-  /** @nullable */
-  severityLevelId?: string[] | null;
+  status?: ProductStatusAlias[];
+  severityLevelId?: string[];
 };
 
 export type IncidentSeveritySetsGetSetsParams = {
@@ -19795,14 +19757,10 @@ export type IncidentSeveritySetsGetSetsParams = {
 };
 
 export type ProductsGetProductsParams = {
-  /** @nullable */
-  parentId?: string | null;
-  /** @nullable */
-  productTypeId?: string | null;
-  /** @nullable */
-  statusCategory?: StatusCategory[] | null;
-  /** @nullable */
-  tagId?: string[] | null;
+  parentId?: string;
+  productTypeId?: string;
+  statusCategory?: StatusCategory[];
+  tagId?: string[];
 };
 
 export type ProductsGetActivitiesParams = {
@@ -19814,14 +19772,12 @@ export type ProductsGetStatusOptionsParams = {
   /**
    * A product whose allowed moves to return, excluding its current status. Omit for every status in
    * the workflow.
-   * @nullable
    */
-  productId?: string | null;
+  productId?: string;
 };
 
 export type ProductsImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -19830,8 +19786,7 @@ export type ProductsImportBody = {
 };
 
 export type ProductsImportDependenciesParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -19844,30 +19799,23 @@ export type ProductsGetDependenciesParams = {
 };
 
 export type ProductTagCategoriesGetProductTagCategoriesParams = {
-  /** @nullable */
-  isActive?: boolean | null;
+  isActive?: boolean;
 };
 
 export type ProductTagsSearchParams = {
-  /** @nullable */
-  search?: string | null;
-  /** @nullable */
-  isFree?: boolean | null;
+  search?: string;
+  isFree?: boolean;
   includeInactive?: boolean;
 };
 
 export type ProductTypesGetProductTypesParams = {
-  /** @nullable */
-  isActive?: boolean | null;
+  isActive?: boolean;
 };
 
 export type ReleasePackagesGetReleasePackagesParams = {
-  /** @nullable */
-  statusCategory?: StatusCategory[] | null;
-  /** @nullable */
-  containingProductId?: string | null;
-  /** @nullable */
-  containingVersionId?: string | null;
+  statusCategory?: StatusCategory[];
+  containingProductId?: string;
+  containingVersionId?: string;
 };
 
 export type ReleasePackagesGetActivitiesParams = {
@@ -19876,8 +19824,7 @@ export type ReleasePackagesGetActivitiesParams = {
 };
 
 export type ReleasePackagesImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -19887,12 +19834,9 @@ export type ReleasePackagesImportBody = {
 };
 
 export type ReleasesGetReleasesParams = {
-  /** @nullable */
-  productId?: string | null;
-  /** @nullable */
-  statusCategory?: StatusCategory[] | null;
-  /** @nullable */
-  containingVersionId?: string | null;
+  productId?: string;
+  statusCategory?: StatusCategory[];
+  containingVersionId?: string;
 };
 
 export type ReleasesGetActivitiesParams = {
@@ -19901,8 +19845,7 @@ export type ReleasesGetActivitiesParams = {
 };
 
 export type ReleasesImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -19913,10 +19856,8 @@ export type ReleasesImportBody = {
 };
 
 export type VersionsGetVersionsParams = {
-  /** @nullable */
-  productId?: string | null;
-  /** @nullable */
-  statusCategory?: StatusCategory[] | null;
+  productId?: string;
+  statusCategory?: StatusCategory[];
 };
 
 export type VersionsGetActivitiesParams = {
@@ -19925,8 +19866,7 @@ export type VersionsGetActivitiesParams = {
 };
 
 export type VersionsImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -19935,13 +19875,11 @@ export type VersionsImportBody = {
 };
 
 export type ExpenditureCategoriesGetExpenditureCategoryOptionsParams = {
-  /** @nullable */
-  includeArchived?: boolean | null;
+  includeArchived?: boolean;
 };
 
 export type PortfoliosGetPortfoliosParams = {
-  /** @nullable */
-  status?: ProjectPortfolioStatus[] | null;
+  status?: ProjectPortfolioStatus[];
 };
 
 export type PortfoliosGetActivitiesParams = {
@@ -19950,8 +19888,7 @@ export type PortfoliosGetActivitiesParams = {
 };
 
 export type PortfoliosImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -19960,8 +19897,7 @@ export type PortfoliosImportBody = {
 };
 
 export type PortfoliosFinalizeImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -19970,25 +19906,20 @@ export type PortfoliosFinalizeImportBody = {
 };
 
 export type PortfoliosGetProgramsParams = {
-  /** @nullable */
-  status?: ProgramStatus[] | null;
+  status?: ProgramStatus[];
 };
 
 export type PortfoliosGetProjectsParams = {
-  /** @nullable */
-  status?: ProjectStatus[] | null;
+  status?: ProjectStatus[];
 };
 
 export type PortfoliosGetStrategicInitiativesParams = {
-  /** @nullable */
-  status?: StrategicInitiativeStatus[] | null;
+  status?: StrategicInitiativeStatus[];
 };
 
 export type ProgramsGetProgramsParams = {
-  /** @nullable */
-  status?: ProgramStatus[] | null;
-  /** @nullable */
-  portfolioId?: string | null;
+  status?: ProgramStatus[];
+  portfolioId?: string;
 };
 
 export type ProgramsGetActivitiesParams = {
@@ -19997,8 +19928,7 @@ export type ProgramsGetActivitiesParams = {
 };
 
 export type ProgramsImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20007,18 +19937,15 @@ export type ProgramsImportBody = {
 };
 
 export type ProgramsGetProjectsParams = {
-  /** @nullable */
-  status?: ProjectStatus[] | null;
+  status?: ProjectStatus[];
 };
 
 export type ProjectDeliverablesDeleteDeliverableParams = {
-  /** @nullable */
-  expectedRevision?: number | null;
+  expectedRevision?: number;
 };
 
 export type ProjectDeliverablesImportDeliverablesParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20027,44 +19954,33 @@ export type ProjectDeliverablesImportDeliverablesBody = {
 };
 
 export type ProjectLifecyclesGetProjectLifecyclesParams = {
-  state?: ProjectLifecycleState | null;
+  state?: ProjectLifecycleState;
 };
 
 export type ProjectsGetProjectsParams = {
-  /** @nullable */
-  status?: ProjectStatus[] | null;
-  /** @nullable */
-  portfolioId?: string | null;
-  /** @nullable */
-  role?: ProjectMemberRole[] | null;
-  /** @nullable */
-  employeeId?: string | null;
+  status?: ProjectStatus[];
+  portfolioId?: string;
+  role?: ProjectMemberRole[];
+  employeeId?: string;
 };
 
 export type ProjectsGetMyProjectsSummaryParams = {
-  /** @nullable */
-  status?: ProjectStatus[] | null;
+  status?: ProjectStatus[];
 };
 
 export type ProjectsGetMyProjectsTaskMetricsParams = {
-  /** @nullable */
-  status?: ProjectStatus[] | null;
-  /** @nullable */
-  role?: ProjectMemberRole[] | null;
+  status?: ProjectStatus[];
+  role?: ProjectMemberRole[];
 };
 
 export type ProjectsGetMyProjectTasksParams = {
-  /** @nullable */
-  status?: ProjectStatus[] | null;
+  status?: ProjectStatus[];
 };
 
 export type ProjectsGetProjectsTaskMetricsParams = {
-  /** @nullable */
-  status?: ProjectStatus[] | null;
-  /** @nullable */
-  role?: ProjectMemberRole[] | null;
-  /** @nullable */
-  employeeId?: string | null;
+  status?: ProjectStatus[];
+  role?: ProjectMemberRole[];
+  employeeId?: string;
 };
 
 export type ProjectsGetActivitiesParams = {
@@ -20073,8 +19989,7 @@ export type ProjectsGetActivitiesParams = {
 };
 
 export type ProjectsImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20083,8 +19998,7 @@ export type ProjectsImportBody = {
 };
 
 export type ProjectsImportTasksParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20093,8 +20007,7 @@ export type ProjectsImportTasksBody = {
 };
 
 export type ProjectsImportStagesParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20103,52 +20016,39 @@ export type ProjectsImportStagesBody = {
 };
 
 export type ProjectsGetHealthCheckEvidenceParams = {
-  /** @nullable */
-  lookbackDays?: number | null;
-  /** @nullable */
-  ignoreDependencies?: boolean | null;
-  /** @nullable */
-  startedWorkFirst?: boolean | null;
+  lookbackDays?: number;
+  ignoreDependencies?: boolean;
+  startedWorkFirst?: boolean;
 };
 
 export type ProjectsGetProjectForecastParams = {
-  /** @nullable */
-  targetDate?: string | null;
-  /** @nullable */
-  lookbackDays?: number | null;
-  /** @nullable */
-  ignoreDependencies?: boolean | null;
-  /** @nullable */
-  startedWorkFirst?: boolean | null;
+  targetDate?: string;
+  lookbackDays?: number;
+  ignoreDependencies?: boolean;
+  startedWorkFirst?: boolean;
 };
 
 export type ProjectsGetProjectPlanSummaryParams = {
-  /** @nullable */
-  employeeId?: string | null;
+  employeeId?: string;
 };
 
 export type ProjectsGetProjectsPlanSummariesParams = {
   projectId?: string[];
-  /** @nullable */
-  role?: ProjectMemberRole[] | null;
-  /** @nullable */
-  employeeId?: string | null;
+  role?: ProjectMemberRole[];
+  employeeId?: string;
   allTasks?: boolean;
 };
 
 export type ProjectsGetProjectsPlanSummaries200 = {[key: string]: ProjectPlanSummaryDto};
 
 export type ProjectTasksGetProjectTasksParams = {
-  status?: TaskStatus | null;
-  /** @nullable */
-  parentId?: string | null;
+  status?: TaskStatus;
+  parentId?: string;
 };
 
 export type StrategicInitiativesGetStrategicInitiativesParams = {
-  /** @nullable */
-  status?: StrategicInitiativeStatus[] | null;
-  /** @nullable */
-  portfolioId?: string | null;
+  status?: StrategicInitiativeStatus[];
+  portfolioId?: string;
 };
 
 export type StrategicInitiativesGetActivitiesParams = {
@@ -20157,8 +20057,7 @@ export type StrategicInitiativesGetActivitiesParams = {
 };
 
 export type StrategicInitiativesImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20178,8 +20077,7 @@ export type PlanningIntervalsGetActivitiesParams = {
 };
 
 export type PlanningIntervalsImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20188,13 +20086,11 @@ export type PlanningIntervalsImportBody = {
 };
 
 export type PlanningIntervalsGetIterationSprintsParams = {
-  /** @nullable */
-  iterationId?: string | null;
+  iterationId?: string;
 };
 
 export type PlanningIntervalsGetObjectivesParams = {
-  /** @nullable */
-  teamId?: string | null;
+  teamId?: string;
 };
 
 export type PlanningIntervalsGetObjectiveActivitiesParams = {
@@ -20203,24 +20099,18 @@ export type PlanningIntervalsGetObjectiveActivitiesParams = {
 };
 
 export type PlanningIntervalsGetObjectivesHealthReportParams = {
-  /** @nullable */
-  teamId?: string | null;
+  teamId?: string;
 };
 
 export type PlanningIntervalsGetObjectiveForecastParams = {
-  /** @nullable */
-  targetDate?: string | null;
-  /** @nullable */
-  lookbackDays?: number | null;
-  /** @nullable */
-  ignoreDependencies?: boolean | null;
-  /** @nullable */
-  startedWorkFirst?: boolean | null;
+  targetDate?: string;
+  lookbackDays?: number;
+  ignoreDependencies?: boolean;
+  startedWorkFirst?: boolean;
 };
 
 export type PlanningIntervalsImportObjectivesParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20229,28 +20119,21 @@ export type PlanningIntervalsImportObjectivesBody = {
 };
 
 export type PlanningIntervalsGetObjectiveHealthCheckEvidenceParams = {
-  /** @nullable */
-  lookbackDays?: number | null;
-  /** @nullable */
-  ignoreDependencies?: boolean | null;
-  /** @nullable */
-  startedWorkFirst?: boolean | null;
-  /** @nullable */
-  includeClosedRisks?: boolean | null;
+  lookbackDays?: number;
+  ignoreDependencies?: boolean;
+  startedWorkFirst?: boolean;
+  includeClosedRisks?: boolean;
 };
 
 export type PlanningIntervalsGetRisksParams = {
-  /** @nullable */
-  includeClosed?: boolean | null;
-  /** @nullable */
-  teamId?: string | null;
+  includeClosed?: boolean;
+  teamId?: string;
 };
 
 export type PokerSessionsGetListParams = {
-  status?: PokerSessionStatus | null;
-  hostKind?: PokerSessionHostKind | null;
-  /** @nullable */
-  hostId?: string | null;
+  status?: PokerSessionStatus;
+  hostKind?: PokerSessionHostKind;
+  hostId?: string;
 };
 
 export type RisksGetListParams = {
@@ -20263,8 +20146,7 @@ export type RisksGetActivitiesParams = {
 };
 
 export type RisksImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20273,8 +20155,7 @@ export type RisksImportBody = {
 };
 
 export type RoadmapsGetRoadmapsParams = {
-  /** @nullable */
-  state?: RoadmapState[] | null;
+  state?: RoadmapState[];
   ownedByMe?: boolean;
 };
 
@@ -20287,8 +20168,7 @@ export type EmployeesGetListParams = {
 };
 
 export type EmployeesImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20297,12 +20177,9 @@ export type EmployeesImportBody = {
 };
 
 export type EmployeesGetEmployeeWorkItemsParams = {
-  /** @nullable */
-  statusCategories?: StatusCategory[] | null;
-  /** @nullable */
-  doneFrom?: Date | null;
-  /** @nullable */
-  doneTo?: Date | null;
+  statusCategories?: StatusCategory[];
+  doneFrom?: Date;
+  doneTo?: Date;
 };
 
 export type HolidayCalendarsGetActivitiesParams = {
@@ -20324,8 +20201,7 @@ export type TeamsGetActivitiesParams = {
 };
 
 export type TeamsImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20334,8 +20210,7 @@ export type TeamsImportBody = {
 };
 
 export type TeamsImportMembersParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20344,8 +20219,7 @@ export type TeamsImportMembersBody = {
 };
 
 export type TeamsImportTeamMembershipsParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20354,166 +20228,93 @@ export type TeamsImportTeamMembershipsBody = {
 };
 
 export type TeamsGetTeamBacklogHealthParams = {
-  /**
-   * Days of history to measure throughput, cycle time and net flow over (14-365, default 90).
-   * @nullable
-   */
-  LookbackDays?: number | null;
-  /**
-   * Days without a change before a work item is stale (default 90).
-   * @nullable
-   */
-  StaleDays?: number | null;
-  /**
-   * Days since creation before a proposed work item is old (default 180).
-   * @nullable
-   */
-  OldProposedDays?: number | null;
-  /**
-   * The cycle time percentile an active work item is aging beyond (default 85).
-   * @nullable
-   */
-  AgingWipPercentile?: number | null;
-  /**
-   * The percentile of completed work's estimates, in the team's sizing method, a work item is oversized above (default 85).
-   * @nullable
-   */
-  OversizedPercentile?: number | null;
-  /**
-   * Weeks of throughput the readiness checks look ahead (default 4).
-   * @nullable
-   */
-  ReadinessWindowWeeks?: number | null;
-  /**
-   * Top-ranked work items the readiness checks look at without enough history (default 20).
-   * @nullable
-   */
-  ReadinessFallbackItems?: number | null;
-  /**
-   * Percent of work items flagged at which a check is At Risk (default 10).
-   * @nullable
-   */
-  AtRiskPercent?: number | null;
-  /**
-   * Percent of work items flagged at which a check is Unhealthy (default 25).
-   * @nullable
-   */
-  UnhealthyPercent?: number | null;
-  /**
-   * Runway weeks below which the backlog is At Risk (default 4).
-   * @nullable
-   */
-  RunwayAtRiskWeeks?: number | null;
-  /**
-   * Runway weeks below which the backlog is Unhealthy (default 2).
-   * @nullable
-   */
-  RunwayUnhealthyWeeks?: number | null;
-  /**
-   * Runway weeks above which the backlog is At Risk for being too long (default 26).
-   * @nullable
-   */
-  RunwayTooLongWeeks?: number | null;
-  /**
-   * Work items created per item completed above which net flow is At Risk (default 1.2).
-   * @nullable
-   */
-  NetFlowAtRisk?: number | null;
-  /**
-   * Work items created per item completed above which net flow is Unhealthy (default 1.5).
-   * @nullable
-   */
-  NetFlowUnhealthy?: number | null;
-  /**
-   * Active work items per member above which WIP load is At Risk (default 1.5).
-   * @nullable
-   */
-  WipLoadAtRisk?: number | null;
-  /**
-   * Active work items per member above which WIP load is Unhealthy (default 2).
-   * @nullable
-   */
-  WipLoadUnhealthy?: number | null;
+  /** Days of history to measure throughput, cycle time and net flow over (14-365, default 90). */
+  LookbackDays?: number;
+  /** Days without a change before a work item is stale (default 90). */
+  StaleDays?: number;
+  /** Days since creation before a proposed work item is old (default 180). */
+  OldProposedDays?: number;
+  /** The cycle time percentile an active work item is aging beyond (default 85). */
+  AgingWipPercentile?: number;
+  /** The percentile of completed work's estimates, in the team's sizing method, a work item is oversized above (default 85). */
+  OversizedPercentile?: number;
+  /** Weeks of throughput the readiness checks look ahead (default 4). */
+  ReadinessWindowWeeks?: number;
+  /** Top-ranked work items the readiness checks look at without enough history (default 20). */
+  ReadinessFallbackItems?: number;
+  /** Percent of work items flagged at which a check is At Risk (default 10). */
+  AtRiskPercent?: number;
+  /** Percent of work items flagged at which a check is Unhealthy (default 25). */
+  UnhealthyPercent?: number;
+  /** Runway weeks below which the backlog is At Risk (default 4). */
+  RunwayAtRiskWeeks?: number;
+  /** Runway weeks below which the backlog is Unhealthy (default 2). */
+  RunwayUnhealthyWeeks?: number;
+  /** Runway weeks above which the backlog is At Risk for being too long (default 26). */
+  RunwayTooLongWeeks?: number;
+  /** Work items created per item completed above which net flow is At Risk (default 1.2). */
+  NetFlowAtRisk?: number;
+  /** Work items created per item completed above which net flow is Unhealthy (default 1.5). */
+  NetFlowUnhealthy?: number;
+  /** Active work items per member above which WIP load is At Risk (default 1.5). */
+  WipLoadAtRisk?: number;
+  /** Active work items per member above which WIP load is Unhealthy (default 2). */
+  WipLoadUnhealthy?: number;
 };
 
 export type TeamsGetTeamWorkDistributionParams = {
-  /**
-   * The first day of completed work to include (yyyy-MM-dd, in the team's time zone).
-   * @nullable
-   */
-  From?: string | null;
-  /**
-   * The last day of completed work to include (yyyy-MM-dd, in the team's time zone).
-   * @nullable
-   */
-  To?: string | null;
+  /** The first day of completed work to include (yyyy-MM-dd, in the team's time zone). */
+  From?: string;
+  /** The last day of completed work to include (yyyy-MM-dd, in the team's time zone). */
+  To?: string;
   /** What to group work by (default Portfolio). */
-  Dimension?: WorkDistributionDimension | null;
+  Dimension?: WorkDistributionDimension;
   /** How to weigh each work item (default Count). */
-  Measure?: WorkDistributionMeasure | null;
+  Measure?: WorkDistributionMeasure;
   /** StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude). */
-  Unestimated?: UnestimatedHandling | null;
+  Unestimated?: UnestimatedHandling;
   /** Strategic theme only: how to credit a project with several themes (default SplitEvenly). */
-  ThemeCounting?: ThemeCounting | null;
+  ThemeCounting?: ThemeCounting;
 };
 
 export type TeamsGetDependencyAnalysisParams = {
-  /**
-   * The first day of the range (yyyy-MM-dd, in the team's time zone).
-   * @nullable
-   */
-  From?: string | null;
-  /**
-   * The last day of the range (yyyy-MM-dd, in the team's time zone).
-   * @nullable
-   */
-  To?: string | null;
+  /** The first day of the range (yyyy-MM-dd, in the team's time zone). */
+  From?: string;
+  /** The last day of the range (yyyy-MM-dd, in the team's time zone). */
+  To?: string;
 };
 
 export type TeamsGetCapacityParams = {
-  /** @nullable */
-  from?: string | null;
-  /** @nullable */
-  to?: string | null;
+  from?: string;
+  to?: string;
 };
 
 export type TeamsGetCapacityReportParams = {
-  /** @nullable */
-  from?: string | null;
-  /** @nullable */
-  to?: string | null;
-  interval?: CapacityReportInterval | null;
+  from?: string;
+  to?: string;
+  interval?: CapacityReportInterval;
 };
 
 export type TeamsGetCapacityPlanParams = {
-  /** @nullable */
-  from?: string | null;
-  /** @nullable */
-  to?: string | null;
-  /** @nullable */
-  daysOff?: string[] | null;
+  from?: string;
+  to?: string;
+  daysOff?: string[];
 };
 
 export type TeamsGetAllocationProposalParams = {
-  /** @nullable */
-  from?: string | null;
+  from?: string;
 };
 
 export type TeamsGetTeamThroughputForecastParams = {
   targetDate?: string;
-  /** @nullable */
-  lookbackDays?: number | null;
-  /** @nullable */
-  startedWorkFirst?: boolean | null;
+  lookbackDays?: number;
+  startedWorkFirst?: boolean;
 };
 
 export type TeamsGetTeamWorkItemsParams = {
-  /** @nullable */
-  statusCategories?: StatusCategory[] | null;
-  /** @nullable */
-  doneFrom?: Date | null;
-  /** @nullable */
-  doneTo?: Date | null;
+  statusCategories?: StatusCategory[];
+  doneFrom?: Date;
+  doneTo?: Date;
 };
 
 export type TeamsGetRisksParams = {
@@ -20521,14 +20322,12 @@ export type TeamsGetRisksParams = {
 };
 
 export type TeamsGetOperatingModelAsOfParams = {
-  /** @nullable */
-  asOfDate?: Date | null;
+  asOfDate?: Date;
 };
 
 export type TeamsGetOperatingModelsForTeamsParams = {
   teamIds?: string[];
-  /** @nullable */
-  asOfDate?: Date | null;
+  asOfDate?: Date;
 };
 
 export type TeamsGetOperatingModelDefaultsParams = {
@@ -20536,18 +20335,15 @@ export type TeamsGetOperatingModelDefaultsParams = {
 };
 
 export type TeamsGetSprintMetricsParams = {
-  /** @nullable */
-  sprintWindow?: number | null;
+  sprintWindow?: number;
 };
 
 export type TeamsGetCadenceMetricsParams = {
-  /** @nullable */
-  periodWindow?: number | null;
+  periodWindow?: number;
 };
 
 export type TeamsGetFunctionalOrganizationChartParams = {
-  /** @nullable */
-  asOfDate?: Date | null;
+  asOfDate?: Date;
 };
 
 export type TeamsOfTeamsGetListParams = {
@@ -20560,71 +20356,50 @@ export type TeamsOfTeamsGetActivitiesParams = {
 };
 
 export type TeamsOfTeamsGetWorkDistributionParams = {
-  /**
-   * The first day of completed work to include (yyyy-MM-dd, in the team's time zone).
-   * @nullable
-   */
-  From?: string | null;
-  /**
-   * The last day of completed work to include (yyyy-MM-dd, in the team's time zone).
-   * @nullable
-   */
-  To?: string | null;
+  /** The first day of completed work to include (yyyy-MM-dd, in the team's time zone). */
+  From?: string;
+  /** The last day of completed work to include (yyyy-MM-dd, in the team's time zone). */
+  To?: string;
   /** What to group work by (default Portfolio). */
-  Dimension?: WorkDistributionDimension | null;
+  Dimension?: WorkDistributionDimension;
   /** How to weigh each work item (default Count). */
-  Measure?: WorkDistributionMeasure | null;
+  Measure?: WorkDistributionMeasure;
   /** StoryPoints and TeamEffort: what to do with items that have no estimate in their team's sizing method (default Exclude). */
-  Unestimated?: UnestimatedHandling | null;
+  Unestimated?: UnestimatedHandling;
   /** Strategic theme only: how to credit a project with several themes (default SplitEvenly). */
-  ThemeCounting?: ThemeCounting | null;
+  ThemeCounting?: ThemeCounting;
 };
 
 export type TeamsOfTeamsGetDependencyAnalysisParams = {
-  /**
-   * The first day of the range (yyyy-MM-dd, in the team's time zone).
-   * @nullable
-   */
-  From?: string | null;
-  /**
-   * The last day of the range (yyyy-MM-dd, in the team's time zone).
-   * @nullable
-   */
-  To?: string | null;
+  /** The first day of the range (yyyy-MM-dd, in the team's time zone). */
+  From?: string;
+  /** The last day of the range (yyyy-MM-dd, in the team's time zone). */
+  To?: string;
 };
 
 export type TeamsOfTeamsGetCapacityParams = {
-  /** @nullable */
-  from?: string | null;
-  /** @nullable */
-  to?: string | null;
+  from?: string;
+  to?: string;
 };
 
 export type TeamsOfTeamsGetCapacityRollupParams = {
-  /** @nullable */
-  from?: string | null;
-  /** @nullable */
-  to?: string | null;
+  from?: string;
+  to?: string;
 };
 
 export type TeamsOfTeamsGetCapacityReportParams = {
-  /** @nullable */
-  from?: string | null;
-  /** @nullable */
-  to?: string | null;
-  interval?: CapacityReportInterval | null;
+  from?: string;
+  to?: string;
+  interval?: CapacityReportInterval;
 };
 
 export type TeamsOfTeamsGetCapacityPlanParams = {
-  /** @nullable */
-  from?: string | null;
-  /** @nullable */
-  to?: string | null;
+  from?: string;
+  to?: string;
 };
 
 export type TeamsOfTeamsGetAllocationProposalParams = {
-  /** @nullable */
-  from?: string | null;
+  from?: string;
 };
 
 export type TeamsOfTeamsGetOperatingModelDefaultsParams = {
@@ -20636,36 +20411,29 @@ export type TeamsOfTeamsGetRisksParams = {
 };
 
 export type ImportsGetListParams = {
-  status?: ImportProcessStatus | null;
-  /** @nullable */
-  importType?: string | null;
-  /** @nullable */
-  submittedByUserId?: string | null;
-  /** @nullable */
-  submissionGroupId?: string | null;
+  status?: ImportProcessStatus;
+  importType?: string;
+  submittedByUserId?: string;
+  submissionGroupId?: string;
   page?: number;
   pageSize?: number;
 };
 
 export type ImportsGetRowsParams = {
-  status?: ImportRowStatus | null;
+  status?: ImportRowStatus;
   page?: number;
   pageSize?: number;
-  /** @nullable */
-  filter?: string | null;
-  /** @nullable */
-  sort?: string | null;
+  filter?: string;
+  sort?: string;
 };
 
 export type ImportsApplyParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
 };
 
 export type IntakeChannelsGetIntakeChannelsParams = {
   includeArchived?: boolean;
-  /** @nullable */
-  deskId?: string | null;
+  deskId?: string;
 };
 
 export type IntakeDesksGetIntakeDesksParams = {
@@ -20677,47 +20445,39 @@ export type IntakeDesksPreviewWorkflowChangeParams = {
 };
 
 export type IntakeRequestsGetIntakeRequestsParams = {
-  /** @nullable */
-  deskId?: string | null;
+  deskId?: string;
   mine?: boolean;
   openOnly?: boolean;
   assignedToMe?: boolean;
   participating?: boolean;
-  /** @nullable */
-  closedSince?: Date | null;
+  closedSince?: Date;
 };
 
 export type IntakeRequestsGetIntakeRequestScoresParams = {
-  /** @nullable */
-  deskId?: string | null;
+  deskId?: string;
   mine?: boolean;
   openOnly?: boolean;
   assignedToMe?: boolean;
   participating?: boolean;
-  /** @nullable */
-  closedSince?: Date | null;
+  closedSince?: Date;
 };
 
 export type IntakeRequestsGetIntakeRequestEstimatesParams = {
-  /** @nullable */
-  deskId?: string | null;
+  deskId?: string;
   mine?: boolean;
   openOnly?: boolean;
   assignedToMe?: boolean;
   participating?: boolean;
-  /** @nullable */
-  closedSince?: Date | null;
+  closedSince?: Date;
 };
 
 export type IntakeRequestsGetIntakeRequestOutcomesParams = {
-  /** @nullable */
-  deskId?: string | null;
+  deskId?: string;
   mine?: boolean;
   openOnly?: boolean;
   assignedToMe?: boolean;
   participating?: boolean;
-  /** @nullable */
-  closedSince?: Date | null;
+  closedSince?: Date;
 };
 
 export type IntakeRequestsGetActivitiesParams = {
@@ -20726,8 +20486,7 @@ export type IntakeRequestsGetActivitiesParams = {
 };
 
 export type IntakeRequestsImportParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20736,8 +20495,7 @@ export type IntakeRequestsImportBody = {
 };
 
 export type IntakeRequestsImportOutcomesParams = {
-  /** @nullable */
-  submissionGroupId?: string | null;
+  submissionGroupId?: string;
   validateOnly?: boolean;
 };
 
@@ -20751,21 +20509,17 @@ export type IntakeRequestsGetArrivalStatusesParams = {
 
 export type IntakeRequestTagCategoriesGetIntakeRequestTagCategoriesParams = {
   includeInactive?: boolean;
-  /** @nullable */
-  deskId?: string | null;
+  deskId?: string;
 };
 
 export type IntakeRequestTagsSearchParams = {
-  /** @nullable */
-  search?: string | null;
-  /** @nullable */
-  isFree?: boolean | null;
+  search?: string;
+  isFree?: boolean;
   includeInactive?: boolean;
 };
 
 export type AzureDevOpsConnectionsGetConnectionTeamsParams = {
-  /** @nullable */
-  workspaceId?: string | null;
+  workspaceId?: string;
 };
 
 export type ConnectionsGetConnectionsParams = {
@@ -20790,8 +20544,7 @@ export type ConnectionsGetWorkdayOrgsByTypeParams = {
 };
 
 export type ConnectionsGetSyncRunsParams = {
-  /** @nullable */
-  since?: Date | null;
+  since?: Date;
 };
 
 export type BackgroundJobsRunParams = {
@@ -20805,25 +20558,20 @@ export type BackgroundJobsGetJobsParams = {
 };
 
 export type MessagingGetDeadLettersParams = {
-  /** @nullable */
-  messageType?: string | null;
-  /** @nullable */
-  exceptionType?: string | null;
-  /** @nullable */
-  from?: Date | null;
-  /** @nullable */
-  to?: Date | null;
+  messageType?: string;
+  exceptionType?: string;
+  from?: Date;
+  to?: Date;
   page?: number;
   pageSize?: number;
 };
 
 export type RecordTypesGetRecordTypesParams = {
-  /** @nullable */
-  ownerType?: string | null;
+  ownerType?: string;
 };
 
 export type ScoringModelsGetScoringModelsParams = {
-  state?: ScoringModelState | null;
+  state?: ScoringModelState;
 };
 
 export type ScoringModelsGetActivitiesParams = {
@@ -20832,9 +20580,8 @@ export type ScoringModelsGetActivitiesParams = {
 };
 
 export type StatusWorkflowsGetStatusWorkflowsParams = {
-  /** @nullable */
-  ownerType?: string | null;
-  state?: StatusWorkflowState | null;
+  ownerType?: string;
+  state?: StatusWorkflowState;
 };
 
 export type StatusWorkflowsGetActivitiesParams = {
@@ -20863,8 +20610,7 @@ export type SystemSettingsGetProductTagSettingsActivitiesParams = {
 };
 
 export type WorkflowAssignmentsGetWorkflowAssignmentsParams = {
-  /** @nullable */
-  ownerType?: string | null;
+  ownerType?: string;
 };
 
 export type WorkflowAssignmentsPreviewRemapParams = {
@@ -20876,13 +20622,11 @@ export type WorkflowAssignmentsPreviewAssignSchemeParams = {
 };
 
 export type WorkflowSchemesGetWorkflowSchemesParams = {
-  /** @nullable */
-  ownerType?: string | null;
+  ownerType?: string;
 };
 
 export type WorkflowSchemesPreviewEntryParams = {
-  /** @nullable */
-  workflowId?: string | null;
+  workflowId?: string;
 };
 
 export type WorkflowSchemesPreviewDefaultParams = {

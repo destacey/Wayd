@@ -7,7 +7,7 @@ import {
   ImportDefinitionDto,
   ImportProcessDto,
   ImportProcessStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useSubmitImportMutation } from '@/src/store/features/admin/imports-api'
 import { isApiError, toFileName, type ApiError } from '@/src/utils'
 import { downloadCsv, generateCsv } from '@/src/utils/csv-utils'

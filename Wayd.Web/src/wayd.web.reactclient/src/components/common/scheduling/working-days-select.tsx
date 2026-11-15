@@ -1,7 +1,7 @@
 'use client'
 
 import { Checkbox } from 'antd'
-import { IsoDayOfWeek } from '@/src/services/wayd-api'
+import { IsoDayOfWeek } from '@/src/services/api/wayd.schemas'
 
 /** The days of the week, Monday first, as the server orders a working week. */
 export const daysOfWeek: IsoDayOfWeek[] = [

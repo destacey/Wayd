@@ -2,7 +2,10 @@
 
 import { DEFAULT_STATUSES } from '@/src/app/ppm/dashboards/projects/_components/dashboard-model'
 import { WaydTooltip } from '@/src/components/common'
-import { MyProjectsSummaryDto, ProjectStatus } from '@/src/services/wayd-api'
+import {
+  MyProjectsSummaryDto,
+  ProjectStatus,
+} from '@/src/services/api/wayd.schemas'
 import { useGetMyProjectsSummaryQuery } from '@/src/store/features/ppm/projects-api'
 import { Badge, Tag, Typography } from 'antd'
 import { FC } from 'react'

@@ -20,7 +20,7 @@ import {
 } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
 import { useEffect, useState } from 'react'
-import { RoleDto } from '@/src/services/wayd-api'
+import { RoleDto } from '@/src/services/api/wayd.schemas'
 
 const { Title } = Typography
 
@@ -53,7 +53,6 @@ const Permissions = (props: PermissionsProps) => {
   const [expandedKeys, setExpandedKeys] = useState<string[]>([])
   const [isEditMode, setIsEditMode] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-
 
   const { hasPermissionClaim } = useAuth()
   const messageApi = useMessage()

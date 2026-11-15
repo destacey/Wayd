@@ -1,6 +1,6 @@
 'use client'
 
-import { UpdateRoadmapRequest } from '@/src/services/wayd-api'
+import { UpdateRoadmapRequest } from '@/src/services/api/wayd.schemas'
 import {
   useUpdateRoadmapMutation,
   useGetVisibilityOptionsQuery,

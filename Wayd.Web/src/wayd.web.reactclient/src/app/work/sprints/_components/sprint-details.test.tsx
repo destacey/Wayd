@@ -3,7 +3,7 @@ import {
   SprintDetailsDto,
   SprintType,
   SprintTypeSource,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import SprintDetails, { sprintOverlapWarning } from './sprint-details'
 
 vi.mock('@/src/components/common/planning/timeline-progress', () => {

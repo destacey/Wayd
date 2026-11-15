@@ -2,7 +2,10 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { ProductDto, RetypeProductRequest } from '@/src/services/wayd-api'
+import {
+  ProductDto,
+  RetypeProductRequest,
+} from '@/src/services/api/wayd.schemas'
 import { useRetypeProductMutation } from '@/src/store/features/product-management/products-api'
 import { useGetProductTypesQuery } from '@/src/store/features/product-management/product-types-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'

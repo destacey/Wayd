@@ -1,4 +1,4 @@
-import { SizingMethod, SprintScopeDto } from '@/src/services/wayd-api'
+import { SizingMethod, SprintScopeDto } from '@/src/services/api/wayd.schemas'
 import { sprintScopeWindowText } from './sprint-scope-window-text'
 
 // Started at noon in Chicago, ending at the end of its last planned day there.

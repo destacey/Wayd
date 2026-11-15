@@ -1,4 +1,32 @@
-import { getProductsClient } from '@/src/services/clients'
+import {
+  productsAddDependency,
+  productsChangeDependencyTerms,
+  productsChangeStatus,
+  productsCreate,
+  productsDelete,
+  productsEndDependency,
+  productsGetActivities,
+  productsGetDependencies,
+  productsGetProduct,
+  productsGetProducts,
+  productsGetStatusHistory,
+  productsGetStatusOptions,
+  productsGetStatusWorkflow,
+  productsGetTeamProducts,
+  productsGetTeams,
+  productsLinkExternally,
+  productsRemoveDependency,
+  productsReparent,
+  productsRetype,
+  productsSetTeamProducts,
+  productsSetTeams,
+  productsTag,
+  productsTagByName,
+  productsUnlinkTeam,
+  productsUntag,
+  productsUpdate,
+  productsUpdateDependency,
+} from '@/src/services/api/products'
 import { apiSlice } from '../apiSlice'
 import {
   AddProductDependencyRequest,
@@ -21,7 +49,7 @@ import {
   UpdateProductRequest,
   PagedResponseOfActivityLogDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 
 export interface GetProductsRequest {
@@ -90,12 +118,12 @@ export const productsApi = apiSlice.injectEndpoints({
     getProducts: builder.query<ProductDto[], GetProductsRequest | undefined>({
       queryFn: async (request = {}) => {
         try {
-          const data = await getProductsClient().getProducts(
-            request.parentId,
-            request.productTypeId,
-            request.statusCategory,
-            request.tagId,
-          )
+          const data = await productsGetProducts({
+            parentId: request.parentId,
+            productTypeId: request.productTypeId,
+            statusCategory: request.statusCategory,
+            tagId: request.tagId,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -107,7 +135,7 @@ export const productsApi = apiSlice.injectEndpoints({
     getProduct: builder.query<ProductDto, string>({
       queryFn: async (id) => {
         try {
-          const data = await getProductsClient().getProduct(id)
+          const data = await productsGetProduct(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -133,9 +161,9 @@ export const productsApi = apiSlice.injectEndpoints({
     getProductStatusOptions: builder.query<StatusOptionDto[], string | void>({
       queryFn: async (productId) => {
         try {
-          const data = await getProductsClient().getStatusOptions(
-            productId || undefined,
-          )
+          const data = await productsGetStatusOptions({
+            productId: productId || undefined,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -158,7 +186,7 @@ export const productsApi = apiSlice.injectEndpoints({
     getProductStatusHistory: builder.query<StatusTransitionDto[], string>({
       queryFn: async (productId) => {
         try {
-          const data = await getProductsClient().getStatusHistory(productId)
+          const data = await productsGetStatusHistory(productId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -176,7 +204,7 @@ export const productsApi = apiSlice.injectEndpoints({
     getProductStatusWorkflow: builder.query<StatusWorkflowDetailsDto, string>({
       queryFn: async (productId) => {
         try {
-          const data = await getProductsClient().getStatusWorkflow(productId)
+          const data = await productsGetStatusWorkflow(productId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -191,7 +219,7 @@ export const productsApi = apiSlice.injectEndpoints({
     createProduct: builder.mutation<ObjectIdAndKey, CreateProductRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getProductsClient().create(request)
+          const data = await productsCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -211,7 +239,7 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getProductsClient().update(id, request)
+          const data = await productsUpdate(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -226,7 +254,7 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getProductsClient().reparent(id, request)
+          const data = await productsReparent(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -243,7 +271,7 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getProductsClient().linkExternally(id, request)
+          const data = await productsLinkExternally(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -261,7 +289,7 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getProductsClient().retype(id, request)
+          const data = await productsRetype(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -279,7 +307,7 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getProductsClient().changeStatus(id, request)
+          const data = await productsChangeStatus(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -296,7 +324,7 @@ export const productsApi = apiSlice.injectEndpoints({
     tagProduct: builder.mutation<void, { id: string; tagId: string }>({
       queryFn: async ({ id, tagId }) => {
         try {
-          const data = await getProductsClient().tag(id, tagId)
+          const data = await productsTag(id, tagId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -319,7 +347,7 @@ export const productsApi = apiSlice.injectEndpoints({
     tagProductByName: builder.mutation<string, { id: string; name: string }>({
       queryFn: async ({ id, name }) => {
         try {
-          const data = await getProductsClient().tagByName(id, { name })
+          const data = await productsTagByName(id, { name })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -337,7 +365,7 @@ export const productsApi = apiSlice.injectEndpoints({
     untagProduct: builder.mutation<void, { id: string; tagId: string }>({
       queryFn: async ({ id, tagId }) => {
         try {
-          const data = await getProductsClient().untag(id, tagId)
+          const data = await productsUntag(id, tagId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -355,7 +383,7 @@ export const productsApi = apiSlice.injectEndpoints({
     deleteProduct: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getProductsClient().delete(id)
+          const data = await productsDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -383,10 +411,9 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, includeEnded }) => {
         try {
-          const data = await getProductsClient().getDependencies(
-            idOrKey,
-            includeEnded,
-          )
+          const data = await productsGetDependencies(idOrKey, {
+            includeEnded: includeEnded,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -401,10 +428,7 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ productId, request }) => {
         try {
-          const data = await getProductsClient().addDependency(
-            productId,
-            request,
-          )
+          const data = await productsAddDependency(productId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -420,7 +444,7 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ productId, dependencyId, request }) => {
         try {
-          const data = await getProductsClient().updateDependency(
+          const data = await productsUpdateDependency(
             productId,
             dependencyId,
             request,
@@ -440,7 +464,7 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ productId, dependencyId, request }) => {
         try {
-          const data = await getProductsClient().endDependency(
+          const data = await productsEndDependency(
             productId,
             dependencyId,
             request,
@@ -460,7 +484,7 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ productId, dependencyId, request }) => {
         try {
-          const data = await getProductsClient().changeDependencyTerms(
+          const data = await productsChangeDependencyTerms(
             productId,
             dependencyId,
             request,
@@ -480,7 +504,7 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ productId, dependencyId, request }) => {
         try {
-          const data = await getProductsClient().removeDependency(
+          const data = await productsRemoveDependency(
             productId,
             dependencyId,
             request,
@@ -502,7 +526,7 @@ export const productsApi = apiSlice.injectEndpoints({
     getProductTeams: builder.query<ProductTeamLinkDto[], string>({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getProductsClient().getTeams(idOrKey)
+          const data = await productsGetTeams(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -515,7 +539,7 @@ export const productsApi = apiSlice.injectEndpoints({
     getTeamProducts: builder.query<ProductTeamLinkDto[], string>({
       queryFn: async (teamId) => {
         try {
-          const data = await getProductsClient().getTeamProducts(teamId)
+          const data = await productsGetTeamProducts(teamId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -531,7 +555,7 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ productId, teamIds }) => {
         try {
-          const data = await getProductsClient().setTeams(productId, {
+          const data = await productsSetTeams(productId, {
             teamIds,
           })
           return { data }
@@ -546,7 +570,7 @@ export const productsApi = apiSlice.injectEndpoints({
     unlinkProductTeam: builder.mutation<void, ProductTeamLinkMutationArgs>({
       queryFn: async ({ productId, teamId }) => {
         try {
-          const data = await getProductsClient().unlinkTeam(productId, teamId)
+          const data = await productsUnlinkTeam(productId, teamId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -567,7 +591,7 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, productIds }) => {
         try {
-          const data = await getProductsClient().setTeamProducts(teamId, {
+          const data = await productsSetTeamProducts(teamId, {
             productIds,
           })
           return { data }
@@ -589,11 +613,10 @@ export const productsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getProductsClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await productsGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

@@ -6,7 +6,7 @@ import {
   ApplyIncidentWorkflowActionRequest,
   IncidentDto,
   IncidentWorkflowAction,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useApplyIncidentWorkflowActionMutation } from '@/src/store/features/product-management/incidents-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'

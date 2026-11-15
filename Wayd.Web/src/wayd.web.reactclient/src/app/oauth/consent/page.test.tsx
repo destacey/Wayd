@@ -6,13 +6,16 @@ const mockDeny = vi.fn()
 const mockNavigate = vi.fn()
 let mockFlag = { isEnabled: true, isLoading: false }
 
-vi.mock('@/src/services/clients', () => ({
-  getOAuthAuthorizationRequestsClient: () => ({
-    get: mockGet,
-    approve: mockApprove,
-    deny: mockDeny,
+vi.mock(
+  import('@/src/services/api/oauth-authorization-requests'),
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    oAuthAuthorizationRequestsGet: (...args: unknown[]) => mockGet(...args),
+    oAuthAuthorizationRequestsApprove: (...args: unknown[]) =>
+      mockApprove(...args),
+    oAuthAuthorizationRequestsDeny: (...args: unknown[]) => mockDeny(...args),
   }),
-}))
+)
 
 vi.mock('@/src/hooks', () => ({
   useDocumentTitle: vi.fn(),

@@ -1,6 +1,6 @@
 'use client'
 
-import { ProjectPortfolioListDto } from '@/src/services/wayd-api'
+import { ProjectPortfolioListDto } from '@/src/services/api/wayd.schemas'
 import { Flex } from 'antd'
 import { ReactElement } from 'react'
 import PortfolioCard from './portfolio-card'

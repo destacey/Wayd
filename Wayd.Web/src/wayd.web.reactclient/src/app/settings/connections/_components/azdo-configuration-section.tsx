@@ -3,7 +3,7 @@
 import {
   ConnectionDetailsDto,
   TestAzureDevOpsConnectionRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useTestAzdoConfigurationMutation } from '@/src/store/features/app-integration/azdo-integration-api'
 import { Button, Form, FormInstance, Input, Typography } from 'antd'
 import { useState } from 'react'

@@ -2,7 +2,10 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { SprintDetailsDto, SprintListDto } from '@/src/services/wayd-api'
+import {
+  SprintDetailsDto,
+  SprintListDto,
+} from '@/src/services/api/wayd.schemas'
 import { useCorrectSprintActualDatesMutation } from '@/src/store/features/work-management/sprints-api'
 import { errorsByField, pickerTimeZoneNote, toApiError } from '@/src/utils'
 import { disabledTimeAfter } from './past-moment'
@@ -27,7 +30,7 @@ interface ActualDates {
   completed: Dayjs | null
 }
 
-const toDayjs = (instant?: Date) => (instant ? dayjs(instant) : null)
+const toDayjs = (instant?: Date | null) => (instant ? dayjs(instant) : null)
 
 const sameMoment = (a: Dayjs | null, b: Dayjs | null) =>
   a === null || b === null ? a === b : a.isSame(b)

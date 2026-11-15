@@ -1,6 +1,6 @@
 'use client'
 
-import { RiskListDto } from '@/src/services/wayd-api'
+import { RiskListDto } from '@/src/services/api/wayd.schemas'
 import { PlusOutlined } from '@ant-design/icons'
 import { Badge, Button, Card, Space } from 'antd'
 import RiskListItem from './risk-list-item'

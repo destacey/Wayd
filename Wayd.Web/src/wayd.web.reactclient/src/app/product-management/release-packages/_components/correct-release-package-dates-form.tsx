@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   CorrectReleasePackageDatesRequest,
   ReleasePackageDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useCorrectReleasePackageDatesMutation } from '@/src/store/features/product-management/release-packages-api'
 import {
   toFormErrors,

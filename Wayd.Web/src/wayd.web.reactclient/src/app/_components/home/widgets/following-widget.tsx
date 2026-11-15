@@ -6,7 +6,7 @@ import {
   recordId,
   typeLabel,
 } from '@/src/components/common/record/record-identity'
-import { FollowSort, SortDirection } from '@/src/services/wayd-api'
+import { FollowSort, SortDirection } from '@/src/services/api/wayd.schemas'
 import {
   FollowOwnerTypes,
   useGetMyFollowsInfiniteQuery,

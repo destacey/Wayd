@@ -1,6 +1,9 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { IntakeDeskRole, IntakeDeskVisibility } from '@/src/services/wayd-api'
+import {
+  IntakeDeskRole,
+  IntakeDeskVisibility,
+} from '@/src/services/api/wayd.schemas'
 import EditIntakeDeskSettingsForm from './edit-intake-desk-settings-form'
 import type { UseModalFormOptions } from '@/src/hooks'
 

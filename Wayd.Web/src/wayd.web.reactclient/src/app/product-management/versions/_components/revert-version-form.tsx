@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   VersionDto,
   RevertVersionReleaseRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useRevertVersionMutation } from '@/src/store/features/product-management/versions-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Alert, Flex, Form, Input, Modal } from 'antd'

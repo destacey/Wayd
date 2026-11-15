@@ -1,6 +1,6 @@
 import { render, screen, act } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
-import { ProjectStageListDto } from '@/src/services/wayd-api'
+import { ProjectStageListDto } from '@/src/services/api/wayd.schemas'
 import StageTimeline from './stage-timeline'
 
 // --- ResizeObserver mock that allows triggering resize callbacks ---

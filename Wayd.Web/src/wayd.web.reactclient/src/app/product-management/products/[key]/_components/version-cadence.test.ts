@@ -1,4 +1,4 @@
-import { VersionDto } from '@/src/services/wayd-api'
+import { VersionDto } from '@/src/services/api/wayd.schemas'
 import dayjs from 'dayjs'
 import { countReleasedWithin } from './version-cadence'
 

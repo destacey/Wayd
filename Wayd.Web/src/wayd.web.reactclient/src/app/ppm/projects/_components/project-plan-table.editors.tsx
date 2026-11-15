@@ -13,7 +13,7 @@ import type {
   EmployeeNavigationDto,
   JsonPatchOperation,
   ProjectPlanNodeDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { parseCalendarDate, type CalendarDate } from '@/src/utils/calendar-date'
 import { rangeChangeContainmentError } from '@/src/utils/date-containment'
 import { planChildrenSpan } from './project-parent-date-hint'

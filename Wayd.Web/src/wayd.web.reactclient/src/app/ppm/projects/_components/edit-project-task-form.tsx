@@ -4,7 +4,7 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { UpdateProjectTaskRequest } from '@/src/services/wayd-api'
+import { UpdateProjectTaskRequest } from '@/src/services/api/wayd.schemas'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import {
   useGetProjectTaskQuery,
@@ -55,7 +55,7 @@ export interface EditProjectTaskFormProps {
 
 interface EditProjectTaskFormValues {
   name: string
-  description?: string
+  description?: string | null
   status: number
   priority?: number
   assigneeIds: string[]
@@ -64,7 +64,7 @@ interface EditProjectTaskFormValues {
   parentId?: string
   plannedRange?: any[]
   plannedDate?: Dayjs
-  estimatedEffortHours?: number
+  estimatedEffortHours?: number | null
 }
 
 const mapToRequestValues = (
@@ -135,38 +135,38 @@ const EditProjectTaskForm = ({
             return false
           }
 
-          try {
-            const request = mapToRequestValues(values, taskData.id)
-            const response = await updateProjectTask({
-              projectIdOrKey,
-              request,
-              cacheKey: taskIdOrKey,
-            })
-            if (response.error) throw response.error
+        try {
+          const request = mapToRequestValues(values, taskData.id)
+          const response = await updateProjectTask({
+            projectIdOrKey,
+            request,
+            cacheKey: taskIdOrKey,
+          })
+          if (response.error) throw response.error
 
-            messageApi.success('Task updated successfully.')
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: rangeErrorsOn(
-                  'plannedRange',
-                  'plannedStart',
-                  'plannedEnd',
-                ),
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while update the project task. Please try again.',
-              )
-            }
-            return false
+          messageApi.success('Task updated successfully.')
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn(
+                'plannedRange',
+                'plannedStart',
+                'plannedEnd',
+              ),
+            })
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while update the project task. Please try again.',
+            )
           }
-        },
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:
@@ -321,7 +321,9 @@ const EditProjectTaskForm = ({
                     if (childrenSpan) {
                       if (!value || !value[0] || !value[1]) {
                         return Promise.reject(
-                          new Error('Planned dates cannot be cleared when child items have dates.')
+                          new Error(
+                            'Planned dates cannot be cleared when child items have dates.',
+                          ),
                         )
                       }
                       const start = value[0]
@@ -338,8 +340,8 @@ const EditProjectTaskForm = ({
                       }
                     }
                     return Promise.resolve()
-                  }
-                }
+                  },
+                },
               ]}
             >
               <RangePicker style={{ width: '60%' }} format="MMM D, YYYY" />

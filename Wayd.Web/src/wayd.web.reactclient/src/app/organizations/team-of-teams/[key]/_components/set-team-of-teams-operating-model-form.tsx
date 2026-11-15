@@ -2,7 +2,7 @@
 
 import { DatePicker, Form, Modal } from 'antd'
 import { useEffect, useState } from 'react'
-import { SetTeamOfTeamsOperatingModelRequest } from '@/src/services/wayd-api'
+import { SetTeamOfTeamsOperatingModelRequest } from '@/src/services/api/wayd.schemas'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import {
   useGetOperatingModelDefaultsQuery,

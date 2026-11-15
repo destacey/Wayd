@@ -26,7 +26,7 @@ import {
   GlobalSearchCategoryDto,
   GlobalSearchResultDto,
   GlobalSearchResultItemDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { getSearchResultUrl } from './search-result-url'
 import styles from './global-search-modal.module.css'
 
@@ -286,7 +286,10 @@ const GlobalSearchModal: FC<GlobalSearchModalProps> = memo(
     })()
 
     // Group items by category for "All" tab
-    const groupedResults = (!data?.categories || activeTab !== 'all') ? null : data.categories.filter((c) => c.items.length > 0)
+    const groupedResults =
+      !data?.categories || activeTab !== 'all'
+        ? null
+        : data.categories.filter((c) => c.items.length > 0)
 
     const renderResultItem = (
       item: GlobalSearchResultItemDto & { category?: string },
@@ -482,4 +485,3 @@ const GlobalSearchModal: FC<GlobalSearchModalProps> = memo(
 GlobalSearchModal.displayName = 'GlobalSearchModal'
 
 export default GlobalSearchModal
-

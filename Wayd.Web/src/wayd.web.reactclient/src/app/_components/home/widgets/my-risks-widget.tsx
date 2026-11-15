@@ -4,7 +4,7 @@ import { WaydList } from '@/src/components/common'
 import EntityLink from '@/src/components/common/entity-link'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
-import { RiskListDto } from '@/src/services/wayd-api'
+import { RiskListDto } from '@/src/services/api/wayd.schemas'
 import { useGetMyRisksQuery } from '@/src/store/features/planning/risks-api'
 import {
   CalendarDate,

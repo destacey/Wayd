@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { UpdateExpenditureCategoryRequest } from '@/src/services/wayd-api'
+import { UpdateExpenditureCategoryRequest } from '@/src/services/api/wayd.schemas'
 import {
   useGetExpenditureCategoryQuery,
   useUpdateExpenditureCategoryMutation,
@@ -25,7 +25,7 @@ interface UpdateExpenditureCategoryFormValues {
   description: string
   isCapitalizable: boolean
   requiresDepreciation: boolean
-  accountingCode?: string
+  accountingCode?: string | null
 }
 
 const mapToRequestValues = (
@@ -61,29 +61,29 @@ const EditExpenditureCategoryForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<UpdateExpenditureCategoryFormValues>({
       onSubmit: async (values: UpdateExpenditureCategoryFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values, categoryData!.id)
-            const response = await updateExpenditureCategory(request)
-            if (response.error) {
-              throw response.error
-            }
-            messageApi.success('Expenditure Category updated successfully.')
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                (isApiError(apiError) ? apiError.detail : undefined) ??
-                  'An error occurred while updating the expenditure category. Please try again.',
-              )
-            }
-            return false
+        try {
+          const request = mapToRequestValues(values, categoryData!.id)
+          const response = await updateExpenditureCategory(request)
+          if (response.error) {
+            throw response.error
           }
-        },
+          messageApi.success('Expenditure Category updated successfully.')
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              (isApiError(apiError) ? apiError.detail : undefined) ??
+                'An error occurred while updating the expenditure category. Please try again.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:

@@ -4,7 +4,7 @@ import { LabeledContent } from '@/src/components/common/content'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { RecordFactsGroup } from '@/src/components/common/record'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { ProductDto } from '@/src/services/wayd-api'
+import { ProductDto } from '@/src/services/api/wayd.schemas'
 import { Flex, Tag } from 'antd'
 import Link from 'next/link'
 

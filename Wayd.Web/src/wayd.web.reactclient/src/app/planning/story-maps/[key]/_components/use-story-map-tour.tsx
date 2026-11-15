@@ -1,7 +1,7 @@
 'use client'
 
 import { useTourCompleted } from '@/src/hooks'
-import { StoryMapDetailsDto } from '@/src/services/wayd-api'
+import { StoryMapDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Button, Space, TourProps, Typography } from 'antd'
 import { useMemo, useState } from 'react'
 

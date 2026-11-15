@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { FeatureFlagModule } from '@/src/services/wayd-api'
+import { FeatureFlagModule } from '@/src/services/api/wayd.schemas'
 import FeatureFlagModuleCard from './feature-flag-module-card'
 import { flagDto, moduleDto } from './test-data'
 

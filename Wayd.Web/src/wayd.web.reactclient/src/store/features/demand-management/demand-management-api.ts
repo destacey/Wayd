@@ -1,16 +1,91 @@
 import {
-  getIntakeChannelsClient,
-  getIntakeDesksClient,
-  getIntakeEmployeeOptionsClient,
-  getIntakeRequestsClient,
-  getIntakeRequestTagCategoriesClient,
-  getIntakeRequestTagsClient,
-} from '@/src/services/clients'
+  intakeChannelsArchive,
+  intakeChannelsCreate,
+  intakeChannelsGetIntakeChannels,
+  intakeChannelsReorder,
+  intakeChannelsRestore,
+  intakeChannelsUpdate,
+} from '@/src/services/api/intake-channels'
+import {
+  intakeDesksAddRequestsToPokerSession,
+  intakeDesksChangeEstimationScale,
+  intakeDesksChangeScoringModel,
+  intakeDesksChangeWorkflow,
+  intakeDesksCreate,
+  intakeDesksDelete,
+  intakeDesksGetEstimationScaleChoices,
+  intakeDesksGetIntakeDesk,
+  intakeDesksGetIntakeDesks,
+  intakeDesksGetOpenEstimates,
+  intakeDesksGetRoles,
+  intakeDesksGetScoringModelChoices,
+  intakeDesksGetVisibilities,
+  intakeDesksGetWorkflow,
+  intakeDesksGetWorkflowChoices,
+  intakeDesksPreviewWorkflowChange,
+  intakeDesksStartPokerSession,
+  intakeDesksUpdate,
+} from '@/src/services/api/intake-desks'
+import { intakeEmployeeOptionsGetEmployeeOptions } from '@/src/services/api/intake-employee-options'
+import {
+  intakeRequestTagCategoriesAddTag,
+  intakeRequestTagCategoriesCreate,
+  intakeRequestTagCategoriesDelete,
+  intakeRequestTagCategoriesDeleteTag,
+  intakeRequestTagCategoriesGetIntakeRequestTagCategories,
+  intakeRequestTagCategoriesReorder,
+  intakeRequestTagCategoriesSetActive,
+  intakeRequestTagCategoriesSetTagActive,
+  intakeRequestTagCategoriesUpdate,
+  intakeRequestTagCategoriesUpdateTag,
+} from '@/src/services/api/intake-request-tag-categories'
+import {
+  intakeRequestTagsDeleteFreeTag,
+  intakeRequestTagsMerge,
+  intakeRequestTagsSearch,
+  intakeRequestTagsUpdateFreeTag,
+} from '@/src/services/api/intake-request-tags'
+import {
+  intakeRequestsAddOutcome,
+  intakeRequestsAddParticipant,
+  intakeRequestsChangeAssignee,
+  intakeRequestsChangeEstimate,
+  intakeRequestsChangeStatus,
+  intakeRequestsCreate,
+  intakeRequestsGetActivities,
+  intakeRequestsGetArrivalStatuses,
+  intakeRequestsGetIntakeRequest,
+  intakeRequestsGetIntakeRequestEstimates,
+  intakeRequestsGetIntakeRequestOutcomes,
+  intakeRequestsGetIntakeRequestScores,
+  intakeRequestsGetIntakeRequests,
+  intakeRequestsGetNeedByBases,
+  intakeRequestsGetNeedByBasisFamilies,
+  intakeRequestsGetProjectDeliverables,
+  intakeRequestsGetProjectIntakeRequests,
+  intakeRequestsGetScoring,
+  intakeRequestsGetStatusHistory,
+  intakeRequestsGetStatusOptions,
+  intakeRequestsGetStatusWorkflow,
+  intakeRequestsGetWorkItemIntakeRequests,
+  intakeRequestsPreviewScore,
+  intakeRequestsRemoveOutcome,
+  intakeRequestsRemoveParticipant,
+  intakeRequestsReroute,
+  intakeRequestsScore,
+  intakeRequestsSetOutcomeDeliverables,
+  intakeRequestsTag,
+  intakeRequestsTagByName,
+  intakeRequestsUntag,
+  intakeRequestsUpdate,
+  intakeRequestsWithdraw,
+} from '@/src/services/api/intake-requests'
 import {
   discussionTag,
   DiscussionChannelTypes,
 } from '../common/discussions-api'
 import {
+  IntakeRequestsGetIntakeRequestsParams,
   AddIntakeRequestOutcomeRequest,
   AddIntakeRequestTagRequest,
   IntakeRequestProjectDeliverableDto,
@@ -62,7 +137,7 @@ import {
   UpdateIntakeDeskRequest,
   UpdateIntakeRequestRequest,
   ScaleChangeEstimateHandling,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import { ActivityLogQueryArg } from '@/src/components/common/activities'
@@ -85,15 +160,16 @@ export interface IntakeRequestListArgs {
 }
 
 /** The list's filters in the generated client's argument order. */
-const listFilters = (args: IntakeRequestListArgs | void) =>
-  [
-    args?.deskId,
-    args?.mine,
-    args?.openOnly,
-    args?.assignedToMe,
-    args?.participating,
-    args?.closedSince ? new Date(args.closedSince) : undefined,
-  ] as const
+const listFilters = (
+  args: IntakeRequestListArgs | void,
+): IntakeRequestsGetIntakeRequestsParams => ({
+  deskId: args?.deskId,
+  mine: args?.mine,
+  openOnly: args?.openOnly,
+  assignedToMe: args?.assignedToMe,
+  participating: args?.participating,
+  closedSince: args?.closedSince ? new Date(args.closedSince) : undefined,
+})
 
 export interface IntakeRequestParticipantArgs {
   requestId: string
@@ -135,7 +211,7 @@ const workItemRequestsTag = (workItemId: string) =>
   ({ type: QueryTags.IntakeRequest, id: `WORK-ITEM-${workItemId}` }) as const
 
 /** The list on the outcome target's page, whichever kind of record the target is. */
-const outcomeTargetTags = (targetId: string | undefined) =>
+const outcomeTargetTags = (targetId: string | undefined | null) =>
   targetId ? [projectRequestsTag(targetId), workItemRequestsTag(targetId)] : []
 
 /**
@@ -256,7 +332,7 @@ export interface ChangeIntakeRequestEstimateArgs {
 
 /**
  * Rejects with what the generated client threw, unchanged, so pages and forms read it with `toApiError`:
- * a documented response arrives as its problem details and an undocumented one as an `ApiException`.
+ * a failed response arrives as its problem details with its status.
  */
 const toError = (error: unknown) => {
   console.error('API Error:', error)
@@ -271,9 +347,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (args) => {
         try {
-          const data = await getIntakeRequestsClient().getIntakeRequests(
-            ...listFilters(args),
-          )
+          const data = await intakeRequestsGetIntakeRequests(listFilters(args))
           return { data }
         } catch (error) {
           return toError(error)
@@ -292,8 +366,8 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (args) => {
         try {
-          const data = await getIntakeRequestsClient().getIntakeRequestScores(
-            ...listFilters(args),
+          const data = await intakeRequestsGetIntakeRequestScores(
+            listFilters(args),
           )
           return { data }
         } catch (error) {
@@ -311,10 +385,9 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (args) => {
         try {
-          const data =
-            await getIntakeRequestsClient().getIntakeRequestEstimates(
-              ...listFilters(args),
-            )
+          const data = await intakeRequestsGetIntakeRequestEstimates(
+            listFilters(args),
+          )
           return { data }
         } catch (error) {
           return toError(error)
@@ -333,8 +406,8 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (args) => {
         try {
-          const data = await getIntakeRequestsClient().getIntakeRequestOutcomes(
-            ...listFilters(args),
+          const data = await intakeRequestsGetIntakeRequestOutcomes(
+            listFilters(args),
           )
           return { data }
         } catch (error) {
@@ -363,10 +436,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ deskId, ...request }) => {
         try {
-          const data = await getIntakeDesksClient().startPokerSession(
-            deskId,
-            request,
-          )
+          const data = await intakeDesksStartPokerSession(deskId, request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -382,7 +452,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ deskId, sessionId, requestIds }) => {
         try {
-          const data = await getIntakeDesksClient().addRequestsToPokerSession(
+          const data = await intakeDesksAddRequestsToPokerSession(
             deskId,
             sessionId,
             { requestIds },
@@ -404,10 +474,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ requestId, value }) => {
         try {
-          const data = await getIntakeRequestsClient().changeEstimate(
-            requestId,
-            { value },
-          )
+          const data = await intakeRequestsChangeEstimate(requestId, { value })
           return { data }
         } catch (error) {
           return toError(error)
@@ -424,7 +491,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     getIntakeRequestScoring: builder.query<IntakeRequestScoringDto, string>({
       queryFn: async (requestId) => {
         try {
-          const data = await getIntakeRequestsClient().getScoring(requestId)
+          const data = await intakeRequestsGetScoring(requestId)
           return { data }
         } catch (error) {
           return toError(error)
@@ -439,7 +506,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     scoreIntakeRequest: builder.mutation<string, ScoreIntakeRequestArgs>({
       queryFn: async ({ requestId, ...request }) => {
         try {
-          const data = await getIntakeRequestsClient().score(requestId, request)
+          const data = await intakeRequestsScore(requestId, request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -460,10 +527,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ requestId, ...request }) => {
         try {
-          const data = await getIntakeRequestsClient().previewScore(
-            requestId,
-            request,
-          )
+          const data = await intakeRequestsPreviewScore(requestId, request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -474,7 +538,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     getIntakeRequest: builder.query<IntakeRequestDetailsDto, string>({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getIntakeRequestsClient().getIntakeRequest(idOrKey)
+          const data = await intakeRequestsGetIntakeRequest(idOrKey)
           return { data }
         } catch (error) {
           return toError(error)
@@ -496,11 +560,10 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getIntakeRequestsClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await intakeRequestsGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           return toError(error)
@@ -517,7 +580,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getIntakeRequestsClient().create(request)
+          const data = await intakeRequestsCreate(request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -530,10 +593,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     updateIntakeRequest: builder.mutation<void, UpdateIntakeRequestRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getIntakeRequestsClient().update(
-            request.id,
-            request,
-          )
+          const data = await intakeRequestsUpdate(request.id, request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -551,10 +611,9 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ requestId, employeeId }) => {
         try {
-          const data = await getIntakeRequestsClient().addParticipant(
-            requestId,
-            { employeeId },
-          )
+          const data = await intakeRequestsAddParticipant(requestId, {
+            employeeId,
+          })
           return { data }
         } catch (error) {
           return toError(error)
@@ -574,10 +633,9 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ requestId, assigneeId }) => {
         try {
-          const data = await getIntakeRequestsClient().changeAssignee(
-            requestId,
-            { assigneeId },
-          )
+          const data = await intakeRequestsChangeAssignee(requestId, {
+            assigneeId,
+          })
           return { data }
         } catch (error) {
           return toError(error)
@@ -595,10 +653,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     rerouteIntakeRequest: builder.mutation<void, RerouteIntakeRequestArgs>({
       queryFn: async ({ requestId, ...request }) => {
         try {
-          const data = await getIntakeRequestsClient().reroute(
-            requestId,
-            request,
-          )
+          const data = await intakeRequestsReroute(requestId, request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -616,10 +671,9 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ requestId, deskId }) => {
         try {
-          const data = await getIntakeRequestsClient().getArrivalStatuses(
-            requestId,
-            deskId,
-          )
+          const data = await intakeRequestsGetArrivalStatuses(requestId, {
+            deskId: deskId,
+          })
           return { data }
         } catch (error) {
           return toError(error)
@@ -639,8 +693,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (requestId) => {
         try {
-          const data =
-            await getIntakeRequestsClient().getStatusOptions(requestId)
+          const data = await intakeRequestsGetStatusOptions(requestId)
           return { data }
         } catch (error) {
           return toError(error)
@@ -657,10 +710,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ requestId, ...request }) => {
         try {
-          const data = await getIntakeRequestsClient().changeStatus(
-            requestId,
-            request,
-          )
+          const data = await intakeRequestsChangeStatus(requestId, request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -673,10 +723,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     withdrawIntakeRequest: builder.mutation<void, WithdrawIntakeRequestArgs>({
       queryFn: async ({ requestId, ...request }) => {
         try {
-          const data = await getIntakeRequestsClient().withdraw(
-            requestId,
-            request,
-          )
+          const data = await intakeRequestsWithdraw(requestId, request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -694,8 +741,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       {
         queryFn: async (requestId) => {
           try {
-            const data =
-              await getIntakeRequestsClient().getStatusHistory(requestId)
+            const data = await intakeRequestsGetStatusHistory(requestId)
             return { data }
           } catch (error) {
             return toError(error)
@@ -714,8 +760,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (requestId) => {
         try {
-          const data =
-            await getIntakeRequestsClient().getStatusWorkflow(requestId)
+          const data = await intakeRequestsGetStatusWorkflow(requestId)
           return { data }
         } catch (error) {
           return toError(error)
@@ -733,7 +778,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ requestId, employeeId }) => {
         try {
-          const data = await getIntakeRequestsClient().removeParticipant(
+          const data = await intakeRequestsRemoveParticipant(
             requestId,
             employeeId,
           )
@@ -754,10 +799,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ requestId, request }) => {
         try {
-          const data = await getIntakeRequestsClient().addOutcome(
-            requestId,
-            request,
-          )
+          const data = await intakeRequestsAddOutcome(requestId, request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -776,10 +818,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ requestId, targetId }) => {
         try {
-          const data = await getIntakeRequestsClient().removeOutcome(
-            requestId,
-            targetId,
-          )
+          const data = await intakeRequestsRemoveOutcome(requestId, targetId)
           return { data }
         } catch (error) {
           return toError(error)
@@ -804,7 +843,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
         expectedDeliverableIds,
       }) => {
         try {
-          const data = await getIntakeRequestsClient().setOutcomeDeliverables(
+          const data = await intakeRequestsSetOutcomeDeliverables(
             requestId,
             targetId,
             { deliverableIds, expectedDeliverableIds },
@@ -827,7 +866,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ requestId, projectId }) => {
         try {
-          const data = await getIntakeRequestsClient().getProjectDeliverables(
+          const data = await intakeRequestsGetProjectDeliverables(
             requestId,
             projectId,
           )
@@ -842,8 +881,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     getProjectIntakeRequests: builder.query<ProjectIntakeRequestDto[], string>({
       queryFn: async (projectId) => {
         try {
-          const data =
-            await getIntakeRequestsClient().getProjectIntakeRequests(projectId)
+          const data = await intakeRequestsGetProjectIntakeRequests(projectId)
           return { data }
         } catch (error) {
           return toError(error)
@@ -865,10 +903,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (workItemId) => {
         try {
-          const data =
-            await getIntakeRequestsClient().getWorkItemIntakeRequests(
-              workItemId,
-            )
+          const data = await intakeRequestsGetWorkItemIntakeRequests(workItemId)
           return { data }
         } catch (error) {
           return toError(error)
@@ -887,7 +922,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     getNeedByBases: builder.query<NeedByBasisDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getIntakeRequestsClient().getNeedByBases()
+          const data = await intakeRequestsGetNeedByBases()
           return { data }
         } catch (error) {
           return toError(error)
@@ -899,7 +934,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     getNeedByBasisFamilies: builder.query<NeedByBasisFamilyDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getIntakeRequestsClient().getNeedByBasisFamilies()
+          const data = await intakeRequestsGetNeedByBasisFamilies()
           return { data }
         } catch (error) {
           return toError(error)
@@ -914,9 +949,9 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (args) => {
         try {
-          const data = await getIntakeDesksClient().getIntakeDesks(
-            args?.submittableOnly,
-          )
+          const data = await intakeDesksGetIntakeDesks({
+            submittableOnly: args?.submittableOnly,
+          })
           return { data }
         } catch (error) {
           return toError(error)
@@ -932,7 +967,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     getIntakeDesk: builder.query<IntakeDeskDto, string>({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getIntakeDesksClient().getIntakeDesk(idOrKey)
+          const data = await intakeDesksGetIntakeDesk(idOrKey)
           return { data }
         } catch (error) {
           return toError(error)
@@ -947,7 +982,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     updateIntakeDesk: builder.mutation<void, UpdateIntakeDeskRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getIntakeDesksClient().update(request.id, request)
+          const data = await intakeDesksUpdate(request.id, request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -969,7 +1004,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     deleteIntakeDesk: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getIntakeDesksClient().delete(id)
+          const data = await intakeDesksDelete(id)
           return { data }
         } catch (error) {
           return toError(error)
@@ -984,9 +1019,8 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     getIntakeDeskWorkflows: builder.query<IntakeDeskWorkflowDto[], string[]>({
       queryFn: async (deskIds) => {
         try {
-          const client = getIntakeDesksClient()
           const data = await Promise.all(
-            deskIds.map((id) => client.getWorkflow(id)),
+            deskIds.map((id) => intakeDesksGetWorkflow(id)),
           )
           return { data }
         } catch (error) {
@@ -1007,7 +1041,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     getIntakeDeskWorkflow: builder.query<IntakeDeskWorkflowDto, string>({
       queryFn: async (deskId) => {
         try {
-          const data = await getIntakeDesksClient().getWorkflow(deskId)
+          const data = await intakeDesksGetWorkflow(deskId)
           return { data }
         } catch (error) {
           return toError(error)
@@ -1024,7 +1058,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     getIntakeWorkflowChoices: builder.query<IntakeWorkflowChoiceDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getIntakeDesksClient().getWorkflowChoices()
+          const data = await intakeDesksGetWorkflowChoices()
           return { data }
         } catch (error) {
           return toError(error)
@@ -1040,10 +1074,9 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ deskId, workflowId }) => {
         try {
-          const data = await getIntakeDesksClient().previewWorkflowChange(
-            deskId,
-            workflowId,
-          )
+          const data = await intakeDesksPreviewWorkflowChange(deskId, {
+            workflowId: workflowId,
+          })
           return { data }
         } catch (error) {
           return toError(error)
@@ -1062,7 +1095,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ deskId, workflowId, decisions }) => {
         try {
-          const data = await getIntakeDesksClient().changeWorkflow(deskId, {
+          const data = await intakeDesksChangeWorkflow(deskId, {
             workflowId,
             decisions,
           })
@@ -1091,7 +1124,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async () => {
         try {
-          const data = await getIntakeDesksClient().getScoringModelChoices()
+          const data = await intakeDesksGetScoringModelChoices()
           return { data }
         } catch (error) {
           return toError(error)
@@ -1108,7 +1141,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ deskId, scoringModelId }) => {
         try {
-          const data = await getIntakeDesksClient().changeScoringModel(deskId, {
+          const data = await intakeDesksChangeScoringModel(deskId, {
             scoringModelId,
           })
           return { data }
@@ -1129,7 +1162,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async () => {
         try {
-          const data = await getIntakeDesksClient().getEstimationScaleChoices()
+          const data = await intakeDesksGetEstimationScaleChoices()
           return { data }
         } catch (error) {
           return toError(error)
@@ -1146,10 +1179,10 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ deskId, estimationScaleId, openEstimates }) => {
         try {
-          const data = await getIntakeDesksClient().changeEstimationScale(
-            deskId,
-            { estimationScaleId, openEstimates },
-          )
+          const data = await intakeDesksChangeEstimationScale(deskId, {
+            estimationScaleId,
+            openEstimates,
+          })
           return { data }
         } catch (error) {
           return toError(error)
@@ -1170,7 +1203,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (deskId) => {
         try {
-          const data = await getIntakeDesksClient().getOpenEstimates(deskId)
+          const data = await intakeDesksGetOpenEstimates(deskId)
           return { data }
         } catch (error) {
           return toError(error)
@@ -1182,7 +1215,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     getIntakeDeskRoles: builder.query<IntakeDeskRoleDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getIntakeDesksClient().getRoles()
+          const data = await intakeDesksGetRoles()
           return { data }
         } catch (error) {
           return toError(error)
@@ -1195,7 +1228,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       {
         queryFn: async (request) => {
           try {
-            const data = await getIntakeDesksClient().create(request)
+            const data = await intakeDesksCreate(request)
             return { data }
           } catch (error) {
             return toError(error)
@@ -1208,7 +1241,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     getIntakeDeskVisibilities: builder.query<IntakeDeskVisibilityDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getIntakeDesksClient().getVisibilities()
+          const data = await intakeDesksGetVisibilities()
           return { data }
         } catch (error) {
           return toError(error)
@@ -1224,10 +1257,10 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (args) => {
         try {
-          const data = await getIntakeChannelsClient().getIntakeChannels(
-            args?.includeArchived,
-            args?.deskId,
-          )
+          const data = await intakeChannelsGetIntakeChannels({
+            includeArchived: args?.includeArchived,
+            deskId: args?.deskId,
+          })
           return { data }
         } catch (error) {
           return toError(error)
@@ -1239,7 +1272,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     createIntakeChannel: builder.mutation<string, CreateIntakeChannelRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getIntakeChannelsClient().create(request)
+          const data = await intakeChannelsCreate(request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -1252,10 +1285,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     updateIntakeChannel: builder.mutation<void, UpdateIntakeChannelRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getIntakeChannelsClient().update(
-            request.id,
-            request,
-          )
+          const data = await intakeChannelsUpdate(request.id, request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -1267,7 +1297,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     archiveIntakeChannel: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getIntakeChannelsClient().archive(id)
+          const data = await intakeChannelsArchive(id)
           return { data }
         } catch (error) {
           return toError(error)
@@ -1279,7 +1309,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     restoreIntakeChannel: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getIntakeChannelsClient().restore(id)
+          const data = await intakeChannelsRestore(id)
           return { data }
         } catch (error) {
           return toError(error)
@@ -1292,7 +1322,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       {
         queryFn: async (request) => {
           try {
-            const data = await getIntakeChannelsClient().reorder(request)
+            const data = await intakeChannelsReorder(request)
             return { data }
           } catch (error) {
             return toError(error)
@@ -1311,10 +1341,10 @@ export const demandManagementApi = apiSlice.injectEndpoints({
       queryFn: async (args) => {
         try {
           const data =
-            await getIntakeRequestTagCategoriesClient().getIntakeRequestTagCategories(
-              args?.includeInactive,
-              args?.deskId,
-            )
+            await intakeRequestTagCategoriesGetIntakeRequestTagCategories({
+              includeInactive: args?.includeInactive,
+              deskId: args?.deskId,
+            })
           return { data }
         } catch (error) {
           return toError(error)
@@ -1329,8 +1359,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data =
-            await getIntakeRequestTagCategoriesClient().create(request)
+          const data = await intakeRequestTagCategoriesCreate(request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -1346,7 +1375,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getIntakeRequestTagCategoriesClient().update(
+          const data = await intakeRequestTagCategoriesUpdate(
             request.id,
             request,
           )
@@ -1364,10 +1393,9 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, isActive }) => {
         try {
-          const data = await getIntakeRequestTagCategoriesClient().setActive(
-            id,
-            { isActive },
-          )
+          const data = await intakeRequestTagCategoriesSetActive(id, {
+            isActive,
+          })
           return { data }
         } catch (error) {
           return toError(error)
@@ -1383,8 +1411,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data =
-            await getIntakeRequestTagCategoriesClient().reorder(request)
+          const data = await intakeRequestTagCategoriesReorder(request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -1396,7 +1423,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     deleteIntakeRequestTagCategory: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getIntakeRequestTagCategoriesClient().delete(id)
+          const data = await intakeRequestTagCategoriesDelete(id)
           return { data }
         } catch (error) {
           return toError(error)
@@ -1411,7 +1438,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ categoryId, ...request }) => {
         try {
-          const data = await getIntakeRequestTagCategoriesClient().addTag(
+          const data = await intakeRequestTagCategoriesAddTag(
             categoryId,
             request,
           )
@@ -1430,7 +1457,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ categoryId, tagId, ...request }) => {
         try {
-          const data = await getIntakeRequestTagCategoriesClient().updateTag(
+          const data = await intakeRequestTagCategoriesUpdateTag(
             categoryId,
             tagId,
             request,
@@ -1449,7 +1476,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ categoryId, tagId, isActive }) => {
         try {
-          const data = await getIntakeRequestTagCategoriesClient().setTagActive(
+          const data = await intakeRequestTagCategoriesSetTagActive(
             categoryId,
             tagId,
             { isActive },
@@ -1468,7 +1495,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ categoryId, tagId }) => {
         try {
-          const data = await getIntakeRequestTagCategoriesClient().deleteTag(
+          const data = await intakeRequestTagCategoriesDeleteTag(
             categoryId,
             tagId,
           )
@@ -1484,7 +1511,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     tagIntakeRequest: builder.mutation<void, IntakeRequestTagArgs>({
       queryFn: async ({ requestId, tagId }) => {
         try {
-          const data = await getIntakeRequestsClient().tag(requestId, tagId)
+          const data = await intakeRequestsTag(requestId, tagId)
           return { data }
         } catch (error) {
           return toError(error)
@@ -1500,7 +1527,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     untagIntakeRequest: builder.mutation<void, IntakeRequestTagArgs>({
       queryFn: async ({ requestId, tagId }) => {
         try {
-          const data = await getIntakeRequestsClient().untag(requestId, tagId)
+          const data = await intakeRequestsUntag(requestId, tagId)
           return { data }
         } catch (error) {
           return toError(error)
@@ -1520,7 +1547,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ requestId, name }) => {
         try {
-          const data = await getIntakeRequestsClient().tagByName(requestId, {
+          const data = await intakeRequestsTagByName(requestId, {
             name,
           })
           return { data }
@@ -1543,11 +1570,11 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (args) => {
         try {
-          const data = await getIntakeRequestTagsClient().search(
-            args?.search,
-            args?.isFree,
-            args?.includeInactive,
-          )
+          const data = await intakeRequestTagsSearch({
+            search: args?.search,
+            isFree: args?.isFree,
+            includeInactive: args?.includeInactive,
+          })
           return { data }
         } catch (error) {
           return toError(error)
@@ -1563,10 +1590,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, ...request }) => {
         try {
-          const data = await getIntakeRequestTagsClient().updateFreeTag(
-            id,
-            request,
-          )
+          const data = await intakeRequestTagsUpdateFreeTag(id, request)
           return { data }
         } catch (error) {
           return toError(error)
@@ -1579,7 +1603,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     mergeIntakeRequestTag: builder.mutation<void, MergeIntakeRequestTagArgs>({
       queryFn: async ({ id, targetTagId }) => {
         try {
-          const data = await getIntakeRequestTagsClient().merge(id, {
+          const data = await intakeRequestTagsMerge(id, {
             targetTagId,
           })
           return { data }
@@ -1598,7 +1622,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     deleteFreeIntakeRequestTag: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getIntakeRequestTagsClient().deleteFreeTag(id)
+          const data = await intakeRequestTagsDeleteFreeTag(id)
           return { data }
         } catch (error) {
           return toError(error)
@@ -1614,8 +1638,7 @@ export const demandManagementApi = apiSlice.injectEndpoints({
     getIntakeEmployeeOptions: builder.query<EmployeeNavigationDto[], void>({
       queryFn: async () => {
         try {
-          const data =
-            await getIntakeEmployeeOptionsClient().getEmployeeOptions()
+          const data = await intakeEmployeeOptionsGetEmployeeOptions()
           return { data }
         } catch (error) {
           return toError(error)

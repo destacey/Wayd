@@ -1,7 +1,7 @@
 'use client'
 
 import { MarkdownRenderer } from '@/src/components/common/markdown'
-import { ProjectPortfolioListDto } from '@/src/services/wayd-api'
+import { ProjectPortfolioListDto } from '@/src/services/api/wayd.schemas'
 import { getSortedNames } from '@/src/utils'
 import { Card, Descriptions, Tag } from 'antd'
 import { useRouter } from 'next/navigation'

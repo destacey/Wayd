@@ -5,7 +5,7 @@ import {
   ProjectMemberRole,
   ProjectPlanSummaryDto,
   ProjectStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   CalendarDate,
   compareCalendarDates,
@@ -257,7 +257,7 @@ export const STATUS_ORDER: Record<string, number> = {
 /** Active first, then the pipeline, then the closed states; unknown last. */
 export const statusRank = (name: string): number => STATUS_ORDER[name] ?? 99
 
-export const formatEnd = (end: CalendarDate | undefined) =>
+export const formatEnd = (end: CalendarDate | undefined | null) =>
   end ? formatCalendarDate(end) : null
 
 const compareName = (a: ProjectListDto, b: ProjectListDto) => {

@@ -11,7 +11,7 @@ import {
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
 import useTheme from '@/src/components/contexts/theme'
-import { PlanningIntervalIterationDetailsDto } from '@/src/services/wayd-api'
+import { PlanningIntervalIterationDetailsDto } from '@/src/services/api/wayd.schemas'
 import { useGetPlanningIntervalIterationMetricsQuery } from '@/src/store/features/planning/planning-interval-api'
 import {
   Col,

@@ -1,6 +1,6 @@
 'use client'
 
-import { DependencyAnalysisPairDto } from '@/src/services/wayd-api'
+import { DependencyAnalysisPairDto } from '@/src/services/api/wayd.schemas'
 import { Tag, Typography } from 'antd'
 import { FC } from 'react'
 import { WaydGrid, renderTeamLink } from '../../wayd-grid'

@@ -1,7 +1,7 @@
 'use client'
 
 import { WorkItemsGrid } from '@/src/components/common/work'
-import { StatusCategory } from '@/src/services/wayd-api'
+import { StatusCategory } from '@/src/services/api/wayd.schemas'
 import { useGetEmployeeWorkItemsQuery } from '@/src/store/features/organizations/employee-api'
 import { FC } from 'react'
 

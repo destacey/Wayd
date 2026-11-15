@@ -18,7 +18,7 @@ import {
   type CreateRoadmapTimeboxRequest,
   type JsonPatchOperation,
   type RoadmapColorDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   parseCalendarDate,
   toCalendarDate,
@@ -243,7 +243,7 @@ export const toRoadmapItemPatch = (
   patch: Record<string, unknown>,
 ): JsonPatchOperation[] =>
   Object.entries(patch).map(([field, value]) => ({
-    op: JsonPatchOperationType.Replace,
+    op: JsonPatchOperationType.replace,
     path: `/${field}`,
     value,
   }))

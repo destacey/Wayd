@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ProductTagListItemDto } from '@/src/services/wayd-api'
+import { ProductTagListItemDto } from '@/src/services/api/wayd.schemas'
 import { useUpdateFreeProductTagMutation } from '@/src/store/features/product-management/product-tags-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -19,7 +19,7 @@ export interface EditFreeProductTagFormProps {
 
 interface EditFreeProductTagFormValues {
   name: string
-  description?: string
+  description?: string | null
 }
 
 /** Renames a free tag. Products carry it by id, so every one shows the new name. */

@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import dayjs from 'dayjs'
 import ProjectsDashboardGrid from './projects-dashboard-grid'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
 
 global.ResizeObserver = class {
   observe() {}

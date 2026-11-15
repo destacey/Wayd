@@ -3,7 +3,7 @@
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import RiskMatrix from '@/src/components/common/planning/risk-matrix'
 import RiskRoam from '@/src/components/common/planning/risk-roam'
-import { RiskDetailsDto } from '@/src/services/wayd-api'
+import { RiskDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Col, Flex, Row, Typography } from 'antd'
 
 const { Text } = Typography
@@ -18,7 +18,7 @@ const Section = ({
   empty,
 }: {
   label: string
-  markdown?: string
+  markdown?: string | null
   empty: string
 }) => (
   <Flex vertical gap={6}>

@@ -1,4 +1,4 @@
-import { IncidentWorkflowAction } from '@/src/services/wayd-api'
+import { IncidentWorkflowAction } from '@/src/services/api/wayd.schemas'
 
 /**
  * Which empty instant a lifecycle action will fill.

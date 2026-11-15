@@ -1,4 +1,4 @@
-import { HomeContextResponse } from '@/src/services/wayd-api'
+import { HomeContextResponse } from '@/src/services/api/wayd.schemas'
 
 /** Overrides for {@link homeContext}, each area's counts merged over zeros. */
 export interface HomeContextOverrides {

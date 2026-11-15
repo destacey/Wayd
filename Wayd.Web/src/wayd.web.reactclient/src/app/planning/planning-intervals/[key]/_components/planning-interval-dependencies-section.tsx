@@ -1,7 +1,7 @@
 'use client'
 
 import { DependencyWheelExplorer } from '@/src/components/common/dependency-wheel'
-import { DependencyDto } from '@/src/services/wayd-api'
+import { DependencyDto } from '@/src/services/api/wayd.schemas'
 import { useGetPlanningIntervalDependenciesQuery } from '@/src/store/features/planning/planning-interval-api'
 import { Segmented } from 'antd'
 import { useState } from 'react'

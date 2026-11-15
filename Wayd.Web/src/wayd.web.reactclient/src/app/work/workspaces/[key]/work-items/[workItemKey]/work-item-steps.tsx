@@ -1,4 +1,4 @@
-import { WorkItemDetailsDto } from '@/src/services/wayd-api'
+import { WorkItemDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Steps } from 'antd'
 import dayjs from 'dayjs'
 

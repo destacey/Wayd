@@ -21,7 +21,7 @@ import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/e
 import {
   ExternalIdentityMappingDto,
   IdentityMappingAction,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   WaydGrid,
   createActionsColumn,

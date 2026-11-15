@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ProductTagOptionDto } from '@/src/services/wayd-api'
+import { ProductTagOptionDto } from '@/src/services/api/wayd.schemas'
 import { useRenameProductTagMutation } from '@/src/store/features/product-management/product-tag-categories-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -20,7 +20,7 @@ export interface EditProductTagFormProps {
 
 interface EditProductTagFormValues {
   name: string
-  description?: string
+  description?: string | null
 }
 
 const EditProductTagForm = ({

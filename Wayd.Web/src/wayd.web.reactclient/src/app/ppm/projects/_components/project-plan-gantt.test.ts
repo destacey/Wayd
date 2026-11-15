@@ -1,4 +1,4 @@
-import type { ProjectPlanNodeDto } from '@/src/services/wayd-api'
+import type { ProjectPlanNodeDto } from '@/src/services/api/wayd.schemas'
 import { parseCalendarDate } from '@/src/utils'
 import {
   computeProjectPlanGanttDomain,

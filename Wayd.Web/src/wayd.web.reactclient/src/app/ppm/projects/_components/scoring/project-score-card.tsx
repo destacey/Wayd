@@ -1,18 +1,8 @@
 'use client'
 
 import { useGetProjectScoringContextQuery } from '@/src/store/features/ppm/project-scores-api'
-import {
-  NavigationDto,
-  ScoreSummaryDto,
-} from '@/src/services/wayd-api'
-import {
-  Button,
-  Card,
-  Divider,
-  Flex,
-  Typography,
-  theme,
-} from 'antd'
+import { NavigationDto, ScoreSummaryDto } from '@/src/services/api/wayd.schemas'
+import { Button, Card, Divider, Flex, Typography, theme } from 'antd'
 import { FC, useState } from 'react'
 import dayjs from 'dayjs'
 import RecordProjectScoreForm from './record-project-score-form'
@@ -23,9 +13,9 @@ const { Text, Title } = Typography
 export interface ProjectScoreCardProps {
   projectId: string
   /** The portfolio's assigned scoring model, or undefined when scoring is not enabled. */
-  scoringModel?: NavigationDto
+  scoringModel?: NavigationDto | null
   /** The project's current score summary, or undefined if not yet scored. */
-  currentScore?: ScoreSummaryDto
+  currentScore?: ScoreSummaryDto | null
   /** Whether the current user may record a score (project/portfolio/program Owner or Manager). */
   canManageProject: boolean
   /**

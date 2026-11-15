@@ -1,4 +1,7 @@
-import { CutToReleasedDto, ReleaseFrequencyDto } from '@/src/services/wayd-api'
+import {
+  CutToReleasedDto,
+  ReleaseFrequencyDto,
+} from '@/src/services/api/wayd.schemas'
 import { render, screen } from '@testing-library/react'
 import DeliveryOverviewTiles from './delivery-overview-tiles'
 

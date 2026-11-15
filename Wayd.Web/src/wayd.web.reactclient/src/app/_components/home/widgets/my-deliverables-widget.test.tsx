@@ -7,7 +7,7 @@ import MyDeliverablesWidget, {
 import {
   MyProjectDeliverableDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { renderReportingWidget } from '../widget-display-test-utils'
 
 vi.mock('next/navigation', () => ({

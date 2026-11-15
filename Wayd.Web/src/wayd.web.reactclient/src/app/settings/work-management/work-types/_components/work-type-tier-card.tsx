@@ -1,7 +1,10 @@
 'use client'
 
 import { WaydEmpty, WaydList } from '@/src/components/common'
-import { WorkTypeLevelDto, WorkTypeTierDto } from '@/src/services/wayd-api'
+import {
+  WorkTypeLevelDto,
+  WorkTypeTierDto,
+} from '@/src/services/api/wayd.schemas'
 import { Button, Card, Typography } from 'antd'
 import { useState } from 'react'
 import { CreateWorkTypeLevelForm, WorkTypeLevelCard } from '.'

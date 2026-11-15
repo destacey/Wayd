@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { InitWorkspaceIntegrationRequest } from '@/src/services/wayd-api'
+import { InitWorkspaceIntegrationRequest } from '@/src/services/api/wayd.schemas'
 import { useInitAzdoConnectionWorkspaceMutation } from '@/src/store/features/app-integration/azdo-integration-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Alert, Form, Input, Modal } from 'antd'

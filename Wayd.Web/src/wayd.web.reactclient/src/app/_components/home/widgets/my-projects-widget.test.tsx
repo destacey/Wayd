@@ -5,7 +5,7 @@ import {
   HomeContextResponse,
   MyProjectsSummaryDto,
   ProjectStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { homeContext } from '../home-context-test-utils'
 import { renderReportingWidget } from '../widget-display-test-utils'
 

@@ -6,7 +6,7 @@ import {
   IntakeDeskDto,
   IntakeDeskMemberDto,
   IntakeDeskRole,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Alert, Typography } from 'antd'
 import { FC } from 'react'
 

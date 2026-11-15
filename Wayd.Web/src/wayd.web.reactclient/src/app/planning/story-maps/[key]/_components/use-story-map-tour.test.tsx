@@ -2,7 +2,7 @@ import type { Mock } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useStoryMapTour } from './use-story-map-tour'
 import { useTourCompleted } from '@/src/hooks'
-import { StoryMapDetailsDto } from '@/src/services/wayd-api'
+import { StoryMapDetailsDto } from '@/src/services/api/wayd.schemas'
 
 vi.mock('@/src/hooks', () => ({
   useTourCompleted: vi.fn(),

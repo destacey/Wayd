@@ -9,7 +9,7 @@ import { Typography } from 'antd'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import type { ItemType } from 'antd/es/menu/interface'
 import useAuth from '@/src/components/contexts/auth'
-import { RecurringJobResponse } from '@/src/services/wayd-api'
+import { RecurringJobResponse } from '@/src/services/api/wayd.schemas'
 import {
   RECURRING_JOB_POLLING_MS,
   useGetRecurringJobsQuery,

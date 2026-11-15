@@ -12,7 +12,7 @@ import { useDocumentTitle } from '@/src/hooks'
 import {
   OidcProviderListItemDto,
   OidcProviderType,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetOidcProvidersQuery,
   useTestOidcProviderDiscoveryMutation,
@@ -44,9 +44,9 @@ const providerTypeLabel = (type: string) => {
 
 interface TestState {
   status: 'idle' | 'loading' | 'success' | 'error'
-  issuer?: string
+  issuer?: string | null
   jwksKeyCount?: number
-  error?: string
+  error?: string | null
 }
 
 const DiscoveryTestCell = ({

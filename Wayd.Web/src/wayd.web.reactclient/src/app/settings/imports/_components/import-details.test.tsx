@@ -4,17 +4,14 @@ import {
   ImportProcessDto,
   ImportProcessStatus,
   ImportRowStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import ImportDetails from './import-details'
 
 const mockGetRows = vi.fn()
 
-vi.mock(import('@/src/services/clients'), async (importOriginal) => ({
+vi.mock(import('@/src/services/api/imports'), async (importOriginal) => ({
   ...(await importOriginal()),
-  getImportsClient: () =>
-    ({
-      getRows: (...args: unknown[]) => mockGetRows(...args),
-    }) as never,
+  importsGetRows: (...args: unknown[]) => mockGetRows(...args),
 }))
 
 const run = (overrides: Partial<ImportProcessDto> = {}): ImportProcessDto => ({
@@ -37,7 +34,7 @@ const run = (overrides: Partial<ImportProcessDto> = {}): ImportProcessDto => ({
 
 /** The status, page and filter of each rows request so far. */
 const requests = () =>
-  mockGetRows.mock.calls.map(([, status, page, , filter, sort]) => ({
+  mockGetRows.mock.calls.map(([, { status, page, filter, sort }]) => ({
     status,
     page,
     filter,
@@ -53,9 +50,7 @@ describe('ImportDetails', () => {
     mockGetRows.mockImplementation(
       async (
         _id: string,
-        _status: unknown,
-        page: number,
-        pageSize: number,
+        { page, pageSize }: { page: number; pageSize: number },
       ) => ({
         items: Array.from({ length: pageSize }, (_, i) => ({
           id: `row-${page}-${i}`,

@@ -6,7 +6,7 @@ import {
   Methodology,
   MyTeamOfTeamsRowResponse,
   MyTeamOfTeamsSummaryResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 const mockAuth = { claims: new Set(['Permissions.Iterations.View']) }
 

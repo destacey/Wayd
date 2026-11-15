@@ -1,4 +1,4 @@
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
 import {
   getHealthBreakdown,
   getStatusBreakdown,
@@ -345,7 +345,6 @@ describe('getHealthBreakdown', () => {
       [NO_HEALTH_LABEL]: healthTokens.colorTextDisabled,
     })
   })
-
 
   it('excludes completed and canceled projects', () => {
     // Arrange — a closed project's last health check describes work that is

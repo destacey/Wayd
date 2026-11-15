@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { ProductDto } from '@/src/services/wayd-api'
+import { ProductDto } from '@/src/services/api/wayd.schemas'
 import ManageTeamProductsForm, { toTreeData } from './manage-team-products-form'
 import { buildProductTree } from '../../_components'
 

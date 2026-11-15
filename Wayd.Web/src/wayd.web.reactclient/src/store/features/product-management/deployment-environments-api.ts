@@ -1,4 +1,11 @@
-import { getDeploymentEnvironmentsClient } from '@/src/services/clients'
+import {
+  deploymentEnvironmentsCreate,
+  deploymentEnvironmentsDelete,
+  deploymentEnvironmentsGetDeploymentEnvironments,
+  deploymentEnvironmentsGetRollout,
+  deploymentEnvironmentsSetActive,
+  deploymentEnvironmentsUpdate,
+} from '@/src/services/api/deployment-environments'
 import { apiSlice } from '../apiSlice'
 import {
   CreateDeploymentEnvironmentRequest,
@@ -8,7 +15,7 @@ import {
   ObjectIdAndKey,
   SetDeploymentEnvironmentActiveRequest,
   UpdateDeploymentEnvironmentRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 
 export interface GetDeploymentEnvironmentsRequest {
@@ -30,11 +37,10 @@ export const deploymentEnvironmentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request = {}) => {
         try {
-          const data =
-            await getDeploymentEnvironmentsClient().getDeploymentEnvironments(
-              request.isActive,
-              request.category,
-            )
+          const data = await deploymentEnvironmentsGetDeploymentEnvironments({
+            isActive: request.isActive,
+            category: request.category,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -57,9 +63,9 @@ export const deploymentEnvironmentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request = {}) => {
         try {
-          const data = await getDeploymentEnvironmentsClient().getRollout(
-            request.includeInactive,
-          )
+          const data = await deploymentEnvironmentsGetRollout({
+            includeInactive: request.includeInactive,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -77,7 +83,7 @@ export const deploymentEnvironmentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getDeploymentEnvironmentsClient().create(request)
+          const data = await deploymentEnvironmentsCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -94,7 +100,7 @@ export const deploymentEnvironmentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getDeploymentEnvironmentsClient().update(id, request)
+          const data = await deploymentEnvironmentsUpdate(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -115,10 +121,7 @@ export const deploymentEnvironmentsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getDeploymentEnvironmentsClient().setActive(
-            id,
-            request,
-          )
+          const data = await deploymentEnvironmentsSetActive(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -136,7 +139,7 @@ export const deploymentEnvironmentsApi = apiSlice.injectEndpoints({
     deleteDeploymentEnvironment: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getDeploymentEnvironmentsClient().delete(id)
+          const data = await deploymentEnvironmentsDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

@@ -1,4 +1,4 @@
-import { IntakeRequestSummaryDto } from '@/src/services/wayd-api'
+import { IntakeRequestSummaryDto } from '@/src/services/api/wayd.schemas'
 import {
   BUILT_IN_VIEWS,
   DEFAULT_REQUEST_FILTERS,
@@ -12,7 +12,7 @@ import {
   toSearchParams,
 } from './request-filters'
 import { NOT_RECORDED_CHANNEL } from '../../_components/channel'
-import { NeedByBasis, NeedByBasisFamily } from '@/src/services/wayd-api'
+import { NeedByBasis, NeedByBasisFamily } from '@/src/services/api/wayd.schemas'
 
 const request = (
   id: string,

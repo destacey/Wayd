@@ -46,9 +46,9 @@ export interface IterationHealthParams {
 export interface SprintDays {
   start: CalendarDate
   end: CalendarDate
-  activeFrom?: Date
-  activeUntil?: Date
-  timeZone?: string
+  activeFrom?: Date | null
+  activeUntil?: Date | null
+  timeZone?: string | null
 }
 
 /**

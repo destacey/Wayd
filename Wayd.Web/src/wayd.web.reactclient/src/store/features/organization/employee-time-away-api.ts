@@ -1,4 +1,12 @@
-import { getEmployeesClient } from '@/src/services/clients'
+import {
+  employeesChangeHolidayCalendar,
+  employeesChangeTimeAway,
+  employeesChangeWorkingDayHours,
+  employeesGetTimeAway,
+  employeesGetTimeAwayReasons,
+  employeesRecordTimeAway,
+  employeesRemoveTimeAway,
+} from '@/src/services/api/employees'
 import {
   ChangeEmployeeHolidayCalendarRequest,
   ChangeEmployeeWorkingDayHoursRequest,
@@ -6,7 +14,7 @@ import {
   EmployeeTimeAwayEntryDto,
   EmployeeTimeAwayRequest,
   TimeAwayReasonDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
@@ -30,7 +38,7 @@ export const employeeTimeAwayApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ employeeId }) => {
         try {
-          const data = await getEmployeesClient().getTimeAway(employeeId)
+          const data = await employeesGetTimeAway(employeeId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -45,7 +53,7 @@ export const employeeTimeAwayApi = apiSlice.injectEndpoints({
     getTimeAwayReasons: builder.query<TimeAwayReasonDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getEmployeesClient().getTimeAwayReasons()
+          const data = await employeesGetTimeAwayReasons()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -62,10 +70,7 @@ export const employeeTimeAwayApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ employeeId, request }) => {
         try {
-          const data = await getEmployeesClient().recordTimeAway(
-            employeeId,
-            request,
-          )
+          const data = await employeesRecordTimeAway(employeeId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -85,7 +90,7 @@ export const employeeTimeAwayApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ employeeId, timeAwayId, request }) => {
         try {
-          const data = await getEmployeesClient().changeTimeAway(
+          const data = await employeesChangeTimeAway(
             employeeId,
             timeAwayId,
             request,
@@ -105,10 +110,7 @@ export const employeeTimeAwayApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ employeeId, timeAwayId }) => {
         try {
-          const data = await getEmployeesClient().removeTimeAway(
-            employeeId,
-            timeAwayId,
-          )
+          const data = await employeesRemoveTimeAway(employeeId, timeAwayId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -124,10 +126,7 @@ export const employeeTimeAwayApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ employeeId, request }) => {
         try {
-          const data = await getEmployeesClient().changeHolidayCalendar(
-            employeeId,
-            request,
-          )
+          const data = await employeesChangeHolidayCalendar(employeeId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -147,10 +146,7 @@ export const employeeTimeAwayApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ employeeId, request }) => {
         try {
-          const data = await getEmployeesClient().changeWorkingDayHours(
-            employeeId,
-            request,
-          )
+          const data = await employeesChangeWorkingDayHours(employeeId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

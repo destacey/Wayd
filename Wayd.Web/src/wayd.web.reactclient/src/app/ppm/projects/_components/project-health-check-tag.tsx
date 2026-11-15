@@ -9,7 +9,7 @@ import HealthCheckTag, {
 } from '@/src/components/common/health-check/health-check-tag'
 
 export interface ProjectHealthCheckTagProps {
-  healthCheck?: HealthCheckStatusTagData & { id: string }
+  healthCheck?: (HealthCheckStatusTagData & { id: string }) | null
   projectId?: string
   variant?: HealthCheckVariant
 }

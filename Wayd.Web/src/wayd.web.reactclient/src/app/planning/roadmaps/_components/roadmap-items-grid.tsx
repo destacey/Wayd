@@ -5,7 +5,7 @@ import {
   RoadmapItemListDto,
   RoadmapMilestoneListDto,
   RoadmapTimeboxListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { PlusOutlined } from '@ant-design/icons'
 import { Button } from 'antd'
 import dayjs from 'dayjs'
@@ -222,12 +222,17 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
       try {
         // A milestone is a single instant, so its request carries `date` rather
         // than a start/end pair (both drag bounds hold the same value).
-        const item = { $type: node.$type, roadmapId, itemId: change.id }
+        const item = { roadmapId, itemId: change.id }
         const response = await updateRoadmapItemDates(
           node.type === 'Milestone'
-            ? { ...item, date: toCalendarDate(dayjs(change.start)) }
+            ? {
+                ...item,
+                $type: 'milestone',
+                date: toCalendarDate(dayjs(change.start)),
+              }
             : {
                 ...item,
+                $type: node.$type === 'timebox' ? 'timebox' : 'activity',
                 start: toCalendarDate(dayjs(change.start)),
                 end: toCalendarDate(dayjs(change.end)),
               },

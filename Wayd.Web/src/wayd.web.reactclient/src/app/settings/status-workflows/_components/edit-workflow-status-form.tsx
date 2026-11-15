@@ -6,7 +6,7 @@ import {
   StatusCategoryLabelDto,
   WorkflowAliasDto,
   WorkflowStatusDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useDescribeWorkflowStatusMutation,
   useReclassifyWorkflowStatusMutation,
@@ -55,7 +55,7 @@ export interface EditWorkflowStatusFormProps {
 
 interface EditWorkflowStatusFormValues {
   name: string
-  description?: string
+  description?: string | null
   category: StatusCategory
   alias: number
 }

@@ -6,7 +6,7 @@ import useTheme from '@/src/components/contexts/theme'
 import {
   DateMeasuredTeamMetricsSummary,
   SizingMethod,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { sizingMethodLabel, sizingMethodMeasure } from '@/src/utils'
 import { Card, Col, Flex, Row, Tag } from 'antd'
 import Link from 'next/link'

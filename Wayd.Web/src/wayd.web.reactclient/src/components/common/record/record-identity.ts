@@ -1,4 +1,4 @@
-import { FollowedRecordDto } from '@/src/services/wayd-api'
+import { FollowedRecordDto } from '@/src/services/api/wayd.schemas'
 import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 
 /** Short names for the kinds of record, sized to fit a list row. */

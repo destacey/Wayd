@@ -2,7 +2,7 @@ import {
   DeliveryRecordKind,
   ProductStatusAlias,
   RecentDeliveryEventDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { render, screen } from '@testing-library/react'
 import dayjs from 'dayjs'
 import RecentDeliveryActivity from './recent-delivery-activity'

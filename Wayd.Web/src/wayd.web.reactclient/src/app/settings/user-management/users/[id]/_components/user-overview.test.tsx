@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { UserDetailsDto } from '@/src/services/wayd-api'
+import { UserDetailsDto } from '@/src/services/api/wayd.schemas'
 import UserOverview from './user-overview'
 
 vi.mock('next/link', () => {

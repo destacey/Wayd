@@ -2,7 +2,7 @@
 
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
 import DependenciesGrid from '@/src/components/common/work/dependencies-grid'
-import { DependencyDto } from '@/src/services/wayd-api'
+import { DependencyDto } from '@/src/services/api/wayd.schemas'
 import { CloseOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import { Button, Card, Empty, Flex, Tag, Typography } from 'antd'
 import { ReactNode, useState } from 'react'

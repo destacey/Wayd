@@ -8,7 +8,7 @@ import {
 import {
   ProductTagCategoryDto,
   ProductTagOptionDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Button } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'

@@ -1,4 +1,15 @@
-import { getProductTagCategoriesClient } from '@/src/services/clients'
+import {
+  productTagCategoriesAddTag,
+  productTagCategoriesCreate,
+  productTagCategoriesDelete,
+  productTagCategoriesDeleteTag,
+  productTagCategoriesGetProductTagCategories,
+  productTagCategoriesRenameTag,
+  productTagCategoriesReorder,
+  productTagCategoriesSetActive,
+  productTagCategoriesSetTagActive,
+  productTagCategoriesUpdate,
+} from '@/src/services/api/product-tag-categories'
 import { apiSlice } from '../apiSlice'
 import {
   AddProductTagRequest,
@@ -9,7 +20,7 @@ import {
   ReorderProductTagCategoriesRequest,
   SetProductTagCategoryActiveRequest,
   UpdateProductTagCategoryRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 
 /** Adds a tag to one category. The category owns the tag, so its id travels with the request. */
@@ -50,10 +61,9 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (isActive = undefined) => {
         try {
-          const data =
-            await getProductTagCategoriesClient().getProductTagCategories(
-              isActive,
-            )
+          const data = await productTagCategoriesGetProductTagCategories({
+            isActive: isActive,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -68,7 +78,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getProductTagCategoriesClient().create(request)
+          const data = await productTagCategoriesCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -87,10 +97,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getProductTagCategoriesClient().update(
-            request.id,
-            request,
-          )
+          const data = await productTagCategoriesUpdate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -109,10 +116,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getProductTagCategoriesClient().setActive(
-            request.id,
-            request,
-          )
+          const data = await productTagCategoriesSetActive(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -133,7 +137,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getProductTagCategoriesClient().reorder(request)
+          const data = await productTagCategoriesReorder(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -149,7 +153,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
     deleteProductTagCategory: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getProductTagCategoriesClient().delete(id)
+          const data = await productTagCategoriesDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -168,10 +172,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
     addProductTag: builder.mutation<string, AddProductTagArgs>({
       queryFn: async ({ categoryId, ...request }) => {
         try {
-          const data = await getProductTagCategoriesClient().addTag(
-            categoryId,
-            request,
-          )
+          const data = await productTagCategoriesAddTag(categoryId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -187,7 +188,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
     renameProductTag: builder.mutation<void, RenameProductTagArgs>({
       queryFn: async ({ categoryId, tagId, ...request }) => {
         try {
-          const data = await getProductTagCategoriesClient().renameTag(
+          const data = await productTagCategoriesRenameTag(
             categoryId,
             tagId,
             request,
@@ -207,7 +208,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
     setProductTagActive: builder.mutation<void, SetProductTagActiveArgs>({
       queryFn: async ({ categoryId, tagId, isActive }) => {
         try {
-          const data = await getProductTagCategoriesClient().setTagActive(
+          const data = await productTagCategoriesSetTagActive(
             categoryId,
             tagId,
             { isActive },
@@ -227,10 +228,7 @@ export const productTagCategoriesApi = apiSlice.injectEndpoints({
     deleteProductTag: builder.mutation<void, DeleteProductTagArgs>({
       queryFn: async ({ categoryId, tagId }) => {
         try {
-          const data = await getProductTagCategoriesClient().deleteTag(
-            categoryId,
-            tagId,
-          )
+          const data = await productTagCategoriesDeleteTag(categoryId, tagId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

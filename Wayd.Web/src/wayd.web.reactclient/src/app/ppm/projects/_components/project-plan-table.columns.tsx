@@ -1,6 +1,6 @@
 'use client'
 
-import { ProjectPlanNodeDto } from '@/src/services/wayd-api'
+import { ProjectPlanNodeDto } from '@/src/services/api/wayd.schemas'
 import {
   CaretDownOutlined,
   CaretRightOutlined,

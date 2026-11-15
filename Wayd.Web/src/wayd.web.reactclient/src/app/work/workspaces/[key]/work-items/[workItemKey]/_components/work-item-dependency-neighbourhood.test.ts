@@ -8,7 +8,7 @@ import {
   ScopedDependencyDto,
   WorkItemDetailsNavigationDto,
   WorkTeamNavigationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   buildWorkItemDependencyNeighbourhood,
   variantOf,

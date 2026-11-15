@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   StatusWorkflowState,
   WorkflowAssignmentDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetStatusWorkflowQuery,
   useGetStatusWorkflowsQuery,

@@ -1,6 +1,9 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ProductDto, TransitionConditionKind } from '@/src/services/wayd-api'
+import {
+  ProductDto,
+  TransitionConditionKind,
+} from '@/src/services/api/wayd.schemas'
 import ChangeProductStatusForm from './change-product-status-form'
 import type { UseModalFormOptions } from '@/src/hooks'
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { CreateScoringModelRequest } from '@/src/services/wayd-api'
+import { CreateScoringModelRequest } from '@/src/services/api/wayd.schemas'
 import { useCreateScoringModelMutation } from '@/src/store/features/scoring/scoring-models-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'

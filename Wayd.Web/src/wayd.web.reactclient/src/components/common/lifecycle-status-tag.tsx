@@ -1,6 +1,6 @@
 'use client'
 
-import { LifecycleNavigationDto } from '@/src/services/wayd-api'
+import { LifecycleNavigationDto } from '@/src/services/api/wayd.schemas'
 import { FC, memo } from 'react'
 import { Tag } from 'antd'
 import { LifecycleCategory } from '../types'

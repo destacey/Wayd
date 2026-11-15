@@ -7,7 +7,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   KpiTargetDirection,
   UpdateStrategicInitiativeKpiRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetStrategicInitiativeKpiQuery,
   useUpdateStrategicInitiativeKpiMutation,
@@ -27,11 +27,11 @@ export interface EditStrategicInitiativeKpiFormProps {
 
 interface EditStrategicInitiativeKpiFormValues {
   name: string
-  description?: string
-  startingValue?: number
+  description?: string | null
+  startingValue?: number | null
   targetValue: number
-  prefix?: string
-  suffix?: string
+  prefix?: string | null
+  suffix?: string | null
   targetDirection: KpiTargetDirection
 }
 

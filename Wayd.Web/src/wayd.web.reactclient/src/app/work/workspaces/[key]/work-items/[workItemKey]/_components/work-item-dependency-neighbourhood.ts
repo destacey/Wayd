@@ -10,7 +10,7 @@ import {
 import {
   ScopedDependencyDto,
   WorkTeamNavigationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { teamUrl } from '@/src/utils/team-url'
 
 /** Which links the map draws: all of them, or only those not yet closed. */
@@ -37,7 +37,7 @@ export interface WorkItemMapRef {
   key: string
   title: string
   workspaceKey: string
-  team?: WorkTeamNavigationDto
+  team?: WorkTeamNavigationDto | null
 }
 
 /** A work item the reader expanded, with whatever has loaded for it. */

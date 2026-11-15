@@ -12,7 +12,7 @@ export interface TagListItem {
    * Context shown before the label, dimmed and separated by a pipe. For curated
    * tags this is the category, so a bare "gold" says what kind of thing it is.
    */
-  qualifier?: string
+  qualifier?: string | null
 }
 
 export interface TagListProps {

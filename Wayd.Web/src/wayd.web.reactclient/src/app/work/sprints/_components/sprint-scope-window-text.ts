@@ -1,4 +1,4 @@
-import { SprintScopeDto } from '@/src/services/wayd-api'
+import { SprintScopeDto } from '@/src/services/api/wayd.schemas'
 import { calendarDateInZone, formatInstantInZone } from '@/src/utils'
 
 /**

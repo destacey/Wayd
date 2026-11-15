@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   OidcProviderType,
   UpdateOidcProviderRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetOidcProviderQuery,
   useUpdateOidcProviderMutation,
@@ -44,7 +44,7 @@ interface EditOidcProviderFormValues {
   clockSkewSeconds: number
   isEnabled: boolean
   allowAutoRegistration: boolean
-  requireEmployeeRecord: boolean
+  requireEmployeeRecord: boolean | null
   defaultRoleId?: string
 }
 

@@ -8,7 +8,7 @@ import {
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle, useFeatureFlag } from '@/src/hooks'
-import { TeamMemberRoleDto } from '@/src/services/wayd-api'
+import { TeamMemberRoleDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetTeamMemberRolesQuery,
   useActivateTeamMemberRoleMutation,

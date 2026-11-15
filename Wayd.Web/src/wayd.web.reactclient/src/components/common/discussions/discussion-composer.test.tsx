@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { DiscussionMessageKind } from '@/src/services/wayd-api'
+import { DiscussionMessageKind } from '@/src/services/api/wayd.schemas'
 import DiscussionComposer from './discussion-composer'
 
 const agent = { id: '01a18a77-484d-790c-ba91-93acff2826c1', name: 'Marcus Lee' }

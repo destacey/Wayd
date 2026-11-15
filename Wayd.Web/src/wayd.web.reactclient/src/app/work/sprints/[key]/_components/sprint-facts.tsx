@@ -3,7 +3,10 @@
 import { LabeledContent } from '@/src/components/common/content'
 import LinksCard from '@/src/components/common/links/links-card'
 import { RecordFactsGroup } from '@/src/components/common/record'
-import { SprintDetailsDto, SprintTypeSource } from '@/src/services/wayd-api'
+import {
+  SprintDetailsDto,
+  SprintTypeSource,
+} from '@/src/services/api/wayd.schemas'
 import { sprintTypeLabels } from '@/src/components/common/planning/sprint-type-labels'
 import { Divider, Flex, Typography } from 'antd'
 import {
@@ -31,7 +34,7 @@ const sprintTypeSourceNote: Record<SprintTypeSource, string | undefined> = {
 }
 
 // Only what the team recorded, as the time it entered in the viewer's zone.
-const formatActual = (recorded: Date | undefined) =>
+const formatActual = (recorded: Date | undefined | null) =>
   recorded ? dayjs(recorded).format(INSTANT_FORMAT) : '—'
 
 export interface SprintFactsProps {

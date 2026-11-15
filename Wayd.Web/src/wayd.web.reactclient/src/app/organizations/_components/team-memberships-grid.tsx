@@ -6,7 +6,7 @@ import {
   createActionsColumn,
   renderTeamLink,
 } from '@/src/components/common/wayd-grid'
-import { TeamMembershipDto } from '@/src/services/wayd-api'
+import { TeamMembershipDto } from '@/src/services/api/wayd.schemas'
 import useAuth from '@/src/components/contexts/auth'
 import type { ItemType } from 'antd/es/menu/interface'
 import EditTeamMembershipForm from './edit-team-membership-form'

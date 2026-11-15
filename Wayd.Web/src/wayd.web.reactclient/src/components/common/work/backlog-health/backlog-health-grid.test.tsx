@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react'
-import { SizingMethod } from '@/src/services/wayd-api'
+import { SizingMethod } from '@/src/services/api/wayd.schemas'
 
 // A stand-in that records the columns the grid is given.
 const mockWaydGrid = vi.fn(

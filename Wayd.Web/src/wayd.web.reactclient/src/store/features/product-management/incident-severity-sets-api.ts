@@ -1,4 +1,11 @@
-import { getIncidentSeveritySetsClient } from '@/src/services/clients'
+import {
+  incidentSeveritySetsCreate,
+  incidentSeveritySetsDelete,
+  incidentSeveritySetsGetSets,
+  incidentSeveritySetsSelectSet,
+  incidentSeveritySetsSetActiveStatus,
+  incidentSeveritySetsUpdate,
+} from '@/src/services/api/incident-severity-sets'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
@@ -7,7 +14,7 @@ import {
   SelectIncidentSeveritySetRequest,
   SetIncidentSeveritySetActiveStatusRequest,
   UpdateIncidentSeveritySetRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 export const incidentSeveritySetsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -17,9 +24,9 @@ export const incidentSeveritySetsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (includeInactive) => {
         try {
-          const data = await getIncidentSeveritySetsClient().getSets(
-            includeInactive || undefined,
-          )
+          const data = await incidentSeveritySetsGetSets({
+            includeInactive: includeInactive || undefined,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -37,7 +44,7 @@ export const incidentSeveritySetsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getIncidentSeveritySetsClient().create(request)
+          const data = await incidentSeveritySetsCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -55,10 +62,7 @@ export const incidentSeveritySetsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getIncidentSeveritySetsClient().update(
-            request.id,
-            request,
-          )
+          const data = await incidentSeveritySetsUpdate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -76,7 +80,7 @@ export const incidentSeveritySetsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getIncidentSeveritySetsClient().setActiveStatus(
+          const data = await incidentSeveritySetsSetActiveStatus(
             request.id,
             request,
           )
@@ -97,8 +101,7 @@ export const incidentSeveritySetsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data =
-            await getIncidentSeveritySetsClient().selectSet(request)
+          const data = await incidentSeveritySetsSelectSet(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -113,7 +116,7 @@ export const incidentSeveritySetsApi = apiSlice.injectEndpoints({
     deleteIncidentSeveritySet: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getIncidentSeveritySetsClient().delete(id)
+          const data = await incidentSeveritySetsDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import {
   IntakeRequestDetailsDto,
   IntakeRequestTagCategoryDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import ManageIntakeRequestTagsForm from './manage-intake-request-tags-form'
 import type { UseModalFormOptions } from '@/src/hooks'
 

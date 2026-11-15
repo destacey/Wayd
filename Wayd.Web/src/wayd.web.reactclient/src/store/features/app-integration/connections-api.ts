@@ -11,10 +11,28 @@ import {
   SyncType,
   UpdateConnectionRequest,
   UpdateConnectionIdentityMappingRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
-import { getConnectionsClient } from '@/src/services/clients'
+import {
+  connectionsActivateConnection,
+  connectionsCreateConnection,
+  connectionsDeactivateConnection,
+  connectionsDeleteConnection,
+  connectionsGetActivities,
+  connectionsGetConnection,
+  connectionsGetConnectionIdentities,
+  connectionsGetConnections,
+  connectionsGetConnectors,
+  connectionsGetSyncRun,
+  connectionsGetSyncRuns,
+  connectionsInitConnection,
+  connectionsRunSync,
+  connectionsTestCommunicationConnection,
+  connectionsUpdateConnection,
+  connectionsUpdateConnectionIdentity,
+  connectionsVerifyTeamsCommunicationConnection,
+} from '@/src/services/api/connections'
 
 export interface GetAzdoConnectionTeamsRequest {
   connectionId: string
@@ -31,8 +49,9 @@ export const connectionsApi = apiSlice.injectEndpoints({
     getConnections: builder.query<ConnectionListDto[], boolean>({
       queryFn: async (includeDisabled: boolean = false) => {
         try {
-          const data =
-            await getConnectionsClient().getConnections(includeDisabled)
+          const data = await connectionsGetConnections({
+            includeDisabled: includeDisabled,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -49,7 +68,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
     getConnection: builder.query<ConnectionDetailsDto, string>({
       queryFn: async (id: string) => {
         try {
-          const data = await getConnectionsClient().getConnection(id)
+          const data = await connectionsGetConnection(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -65,7 +84,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
     getConnectors: builder.query<ConnectorListDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getConnectionsClient().getConnectors()
+          const data = await connectionsGetConnectors()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -78,7 +97,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
     createConnection: builder.mutation<string, CreateConnectionRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getConnectionsClient().createConnection(request)
+          const data = await connectionsCreateConnection(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -95,10 +114,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
     updateConnection: builder.mutation<void, UpdateConnectionRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getConnectionsClient().updateConnection(
-            request.id,
-            request,
-          )
+          const data = await connectionsUpdateConnection(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -116,7 +132,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
     deleteConnection: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getConnectionsClient().deleteConnection(id)
+          const data = await connectionsDeleteConnection(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -133,7 +149,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
     activateConnection: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getConnectionsClient().activateConnection(id)
+          const data = await connectionsActivateConnection(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -152,7 +168,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
     deactivateConnection: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getConnectionsClient().deactivateConnection(id)
+          const data = await connectionsDeactivateConnection(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -173,10 +189,9 @@ export const connectionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ connectionId, sinceIso }) => {
         try {
-          const data = await getConnectionsClient().getSyncRuns(
-            connectionId,
-            sinceIso ? new Date(sinceIso) : undefined,
-          )
+          const data = await connectionsGetSyncRuns(connectionId, {
+            since: sinceIso ? new Date(sinceIso) : undefined,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -194,10 +209,9 @@ export const connectionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ connectionId, syncType }) => {
         try {
-          const data = await getConnectionsClient().runSync(
-            connectionId,
-            syncType,
-          )
+          const data = await connectionsRunSync(connectionId, {
+            syncType: syncType,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -212,7 +226,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
     initConnection: builder.mutation<ConnectionInitResult, string>({
       queryFn: async (id) => {
         try {
-          const data = await getConnectionsClient().initConnection(id)
+          const data = await connectionsInitConnection(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -229,9 +243,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
     testCommunicationConnection: builder.mutation<void, { id: string }>({
       queryFn: async ({ id }) => {
         try {
-          const data = await getConnectionsClient().testCommunicationConnection(
-            id,
-          )
+          const data = await connectionsTestCommunicationConnection(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -251,9 +263,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
       queryFn: async (request) => {
         try {
           const data =
-            await getConnectionsClient().verifyTeamsCommunicationConnection(
-              request,
-            )
+            await connectionsVerifyTeamsCommunicationConnection(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -268,9 +278,9 @@ export const connectionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getConnectionsClient().getConnectionIdentities(
+          const data = await connectionsGetConnectionIdentities(
             request.connectionId,
-            request.unmappedOnly,
+            { unmappedOnly: request.unmappedOnly },
           )
           return { data }
         } catch (error) {
@@ -289,7 +299,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getConnectionsClient().updateConnectionIdentity(
+          const data = await connectionsUpdateConnectionIdentity(
             request.connectionId,
             request,
           )
@@ -310,11 +320,10 @@ export const connectionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getConnectionsClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await connectionsGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -329,7 +338,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
     getSyncRun: builder.query<SyncRunDetailsDto, string>({
       queryFn: async (syncRunId) => {
         try {
-          const data = await getConnectionsClient().getSyncRun(syncRunId)
+          const data = await connectionsGetSyncRun(syncRunId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

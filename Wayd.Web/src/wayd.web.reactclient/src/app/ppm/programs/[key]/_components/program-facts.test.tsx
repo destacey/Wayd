@@ -1,5 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
-import { ProgramDetailsDto } from '@/src/services/wayd-api'
+import { ProgramDetailsDto } from '@/src/services/api/wayd.schemas'
 import ProgramFacts from './program-facts'
 
 vi.mock('next/link', () => {

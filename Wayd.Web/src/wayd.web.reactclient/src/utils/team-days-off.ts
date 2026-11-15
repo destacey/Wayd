@@ -1,4 +1,4 @@
-import { TeamDayOffDto } from '@/src/services/wayd-api'
+import { TeamDayOffDto } from '@/src/services/api/wayd.schemas'
 import { CalendarDate } from './calendar-date'
 
 /** The percent off of a whole team day off. */

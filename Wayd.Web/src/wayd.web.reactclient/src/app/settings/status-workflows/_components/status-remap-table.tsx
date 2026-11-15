@@ -3,7 +3,7 @@
 import {
   StatusRemapEntryDto,
   WorkflowStatusDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Alert, Flex, Select, Table, Tag, Typography } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 

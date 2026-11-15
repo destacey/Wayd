@@ -2,7 +2,7 @@ import { renderHook } from '@testing-library/react'
 import {
   DependencyStrength,
   ProductDependencyDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import useProductDependencyActions from './use-product-dependency-actions'
 
 let mockCanUpdate = true

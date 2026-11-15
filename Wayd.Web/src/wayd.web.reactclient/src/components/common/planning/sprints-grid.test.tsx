@@ -32,7 +32,7 @@ import {
   SprintListDto,
   SprintType,
   SprintTypeSource,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 describe('SprintsGrid', () => {
   const mockRefetch = vi.fn()

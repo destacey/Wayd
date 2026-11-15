@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   ReleasePackageDto,
   WithdrawReleasePackageRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useWithdrawReleasePackageMutation } from '@/src/store/features/product-management/release-packages-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'

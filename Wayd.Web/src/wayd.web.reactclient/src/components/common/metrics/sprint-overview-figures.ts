@@ -1,4 +1,7 @@
-import { SprintScopeDto, SprintScopeMeasureDto } from '@/src/services/wayd-api'
+import {
+  SprintScopeDto,
+  SprintScopeMeasureDto,
+} from '@/src/services/api/wayd.schemas'
 import type { SprintCommitment } from '@/src/utils/iteration-health'
 import { SprintMetricFigures, sprintMetricValues } from './sprint-metric-values'
 

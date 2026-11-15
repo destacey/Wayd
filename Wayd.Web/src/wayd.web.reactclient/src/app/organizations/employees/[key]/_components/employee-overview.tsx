@@ -3,7 +3,10 @@
 import { CycleTimeMetric, MetricCard } from '@/src/components/common/metrics'
 import { getCycleTimeWorkItems } from '@/src/components/common/work/cycle-time-report.filtering'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { EmployeeDetailsDto, StatusCategory } from '@/src/services/wayd-api'
+import {
+  EmployeeDetailsDto,
+  StatusCategory,
+} from '@/src/services/api/wayd.schemas'
 import { teamUrl } from '@/src/utils'
 import {
   useGetDirectReportsQuery,
@@ -189,32 +192,30 @@ const EmployeeOverview = ({
       {/* The tile above already says zero; an empty-state card here would only
           take up space. Same rule as Direct Reports. */}
       {(teamsLoading || sortedTeams.length > 0) && (
-      <SectionCard title="Teams" isLoading={teamsLoading}>
-        <Flex vertical gap={10}>
-          {sortedTeams.map((m) => (
-            <Flex
-              key={m.team.id}
-              align="center"
-              gap="small"
-              wrap
-              justify="space-between"
-            >
-              <Link href={teamUrl(m.team)}>
-                {m.team.name}
-              </Link>
-              <Flex gap={4} wrap>
-                {m.roles.length > 0 ? (
-                  [...m.roles]
-                    .sort((a, b) => caseInsensitiveCompare(a.name, b.name))
-                    .map((r) => <Tag key={r.id}>{r.name}</Tag>)
-                ) : (
-                  <Text type="secondary">Member</Text>
-                )}
+        <SectionCard title="Teams" isLoading={teamsLoading}>
+          <Flex vertical gap={10}>
+            {sortedTeams.map((m) => (
+              <Flex
+                key={m.team.id}
+                align="center"
+                gap="small"
+                wrap
+                justify="space-between"
+              >
+                <Link href={teamUrl(m.team)}>{m.team.name}</Link>
+                <Flex gap={4} wrap>
+                  {m.roles.length > 0 ? (
+                    [...m.roles]
+                      .sort((a, b) => caseInsensitiveCompare(a.name, b.name))
+                      .map((r) => <Tag key={r.id}>{r.name}</Tag>)
+                  ) : (
+                    <Text type="secondary">Member</Text>
+                  )}
+                </Flex>
               </Flex>
-            </Flex>
-          ))}
-        </Flex>
-      </SectionCard>
+            ))}
+          </Flex>
+        </SectionCard>
       )}
 
       {/* Most people manage nobody, so an empty-state card here would be noise

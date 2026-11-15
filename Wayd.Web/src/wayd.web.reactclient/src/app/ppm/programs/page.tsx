@@ -10,9 +10,9 @@ import { FC, useEffect, useState } from 'react'
 import { CreateProgramForm } from './_components'
 import { ProgramsFilterBar, ProgramsGrid } from '../_components'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ProgramStatus } from '@/src/services/wayd-api'
+import { ProgramStatus } from '@/src/services/api/wayd.schemas'
 
-const DEFAULT_STATUSES = [ProgramStatus.Active]
+const DEFAULT_STATUSES: ProgramStatus[] = [ProgramStatus.Active]
 
 const ProgramsPage: FC = () => {
   useDocumentTitle('Programs')

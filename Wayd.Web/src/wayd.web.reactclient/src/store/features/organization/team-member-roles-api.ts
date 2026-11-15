@@ -1,42 +1,55 @@
-import { getTeamMemberRolesClient } from '@/src/services/clients'
+import {
+  teamMemberRolesActivate,
+  teamMemberRolesCreate,
+  teamMemberRolesDeactivate,
+  teamMemberRolesDelete,
+  teamMemberRolesGetList,
+  teamMemberRolesUpdate,
+} from '@/src/services/api/team-member-roles'
 import {
   CreateTeamMemberRoleRequest,
   TeamMemberRoleDto,
   UpdateTeamMemberRoleRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
 export const teamMemberRolesApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getTeamMemberRoles: builder.query<TeamMemberRoleDto[], boolean | undefined>({
-      queryFn: async (includeInactive = false) => {
-        try {
-          const data = await getTeamMemberRolesClient().getList(includeInactive)
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
+    getTeamMemberRoles: builder.query<TeamMemberRoleDto[], boolean | undefined>(
+      {
+        queryFn: async (includeInactive = false) => {
+          try {
+            const data = await teamMemberRolesGetList({
+              includeInactive: includeInactive,
+            })
+            return { data }
+          } catch (error) {
+            console.error('API Error:', error)
+            return { error }
+          }
+        },
+        providesTags: () => [{ type: QueryTags.TeamMemberRole, id: 'LIST' }],
       },
-      providesTags: () => [{ type: QueryTags.TeamMemberRole, id: 'LIST' }],
-    }),
-    createTeamMemberRole: builder.mutation<string, CreateTeamMemberRoleRequest>({
-      queryFn: async (request) => {
-        try {
-          const data = await getTeamMemberRolesClient().create(request)
-          return { data }
-        } catch (error) {
-          console.error('API Error:', error)
-          return { error }
-        }
+    ),
+    createTeamMemberRole: builder.mutation<string, CreateTeamMemberRoleRequest>(
+      {
+        queryFn: async (request) => {
+          try {
+            const data = await teamMemberRolesCreate(request)
+            return { data }
+          } catch (error) {
+            console.error('API Error:', error)
+            return { error }
+          }
+        },
+        invalidatesTags: () => [{ type: QueryTags.TeamMemberRole, id: 'LIST' }],
       },
-      invalidatesTags: () => [{ type: QueryTags.TeamMemberRole, id: 'LIST' }],
-    }),
+    ),
     updateTeamMemberRole: builder.mutation<void, UpdateTeamMemberRoleRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getTeamMemberRolesClient().update(request.id, request)
+          const data = await teamMemberRolesUpdate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -51,7 +64,7 @@ export const teamMemberRolesApi = apiSlice.injectEndpoints({
     deleteTeamMemberRole: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getTeamMemberRolesClient().delete(id)
+          const data = await teamMemberRolesDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -63,7 +76,7 @@ export const teamMemberRolesApi = apiSlice.injectEndpoints({
     activateTeamMemberRole: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getTeamMemberRolesClient().activate(id)
+          const data = await teamMemberRolesActivate(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -78,7 +91,7 @@ export const teamMemberRolesApi = apiSlice.injectEndpoints({
     deactivateTeamMemberRole: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getTeamMemberRolesClient().deactivate(id)
+          const data = await teamMemberRolesDeactivate(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

@@ -2,7 +2,10 @@
 
 import { MetricCard } from '@/src/components/common/metrics'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
-import { ProgramDetailsDto, ProjectListDto } from '@/src/services/wayd-api'
+import {
+  ProgramDetailsDto,
+  ProjectListDto,
+} from '@/src/services/api/wayd.schemas'
 import { parseCalendarDate } from '@/src/utils'
 import { Card, Col, Flex, Row, theme } from 'antd'
 import dayjs from 'dayjs'

@@ -3,7 +3,7 @@
 import {
   PlanningIntervalDetailsDto,
   PlanningIntervalTeamResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Col, Flex, Row, Segmented, Space, Spin, Tag, Typography } from 'antd'
 import { useState } from 'react'
 import TeamObjectivesListCard from './team-objectives-list-card'

@@ -20,7 +20,7 @@ import {
   TeamSprintMetricsDto,
   TeamSprintMetricsExcludedSprintDto,
   TeamSprintMetricsSprintDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations/team-api'
 import { useLocalStorageState } from '@/src/hooks'
 import { sizingMethodLabel, sizingMethodMeasure } from '@/src/utils'

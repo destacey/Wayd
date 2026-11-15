@@ -3,7 +3,7 @@ import {
   NeedByBasis,
   NeedByBasisDto,
   NeedByBasisFamily,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { needByFieldFor, toNeedByRequest } from './need-by'
 
 const basis = (

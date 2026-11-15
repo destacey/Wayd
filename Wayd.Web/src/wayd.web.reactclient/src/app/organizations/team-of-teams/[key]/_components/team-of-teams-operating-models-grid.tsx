@@ -9,7 +9,7 @@ import {
   useDeleteTeamOfTeamsOperatingModelMutation,
   useGetTeamOfTeamsOperatingModelsQuery,
 } from '@/src/store/features/organizations/team-api'
-import { TeamOfTeamsOperatingModelDetailsDto } from '@/src/services/wayd-api'
+import { TeamOfTeamsOperatingModelDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Tag } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
 import EditTeamOfTeamsOperatingModelForm from './edit-team-of-teams-operating-model-form'

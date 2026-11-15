@@ -4,7 +4,7 @@ import {
   NotificationDto,
   NotificationEvent,
   NotificationReason,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import NotificationList, { NoNotificationsMessage } from './notification-list'
 import {
   buildNotification,

@@ -6,7 +6,10 @@ import MyWorkItemsWidget, {
   recentlyDoneSince,
 } from './my-work-items-widget'
 import { StatusCategoryId } from '@/src/components/types'
-import { StatusCategory, WorkItemListDto } from '@/src/services/wayd-api'
+import {
+  StatusCategory,
+  WorkItemListDto,
+} from '@/src/services/api/wayd.schemas'
 import { renderReportingWidget } from '../widget-display-test-utils'
 
 vi.mock('next/navigation', () => ({

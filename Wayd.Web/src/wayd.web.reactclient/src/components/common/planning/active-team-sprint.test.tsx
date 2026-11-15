@@ -1,7 +1,7 @@
 import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import ActiveTeamSprint from './active-team-sprint'
-import { SizingMethod } from '../../../services/wayd-api'
+import { SizingMethod } from '@/src/services/api/wayd.schemas'
 
 // Mock the API hooks
 vi.mock('../../../store/features/organizations/team-api', () => ({

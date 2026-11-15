@@ -1,4 +1,4 @@
-import { BacklogHealthThresholds } from '@/src/services/wayd-api'
+import { BacklogHealthThresholds } from '@/src/services/api/wayd.schemas'
 
 /**
  * What the viewer changed from the API's defaults. Only overrides are held:

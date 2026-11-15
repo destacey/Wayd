@@ -3,7 +3,7 @@ import {
   FollowedRecordDetailDto,
   HealthStatus,
   LifecycleCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import FollowedRecordDetail from './followed-record-detail'
 
 vi.mock('@/src/store/features/ppm/project-health-checks-api', () => ({

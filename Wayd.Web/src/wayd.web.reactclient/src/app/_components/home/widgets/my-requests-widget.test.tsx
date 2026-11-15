@@ -13,7 +13,7 @@ import {
   IntakeRequestSummaryDto,
   ProjectDeliverableStatusAlias,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { renderReportingWidget } from '../widget-display-test-utils'
 
 vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({

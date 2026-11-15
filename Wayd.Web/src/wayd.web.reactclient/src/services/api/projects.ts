@@ -81,6 +81,14 @@ export const getProjectsGetProjectsUrl = (params?: ProjectsGetProjectsParams,) =
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["status","role"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
@@ -167,10 +175,16 @@ export const getProjectsGetMyProjectsSummaryUrl = (params?: ProjectsGetMyProject
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["status"];
 
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
     }
+
+
   });
 
   const stringifiedParams = normalizedParams.toString();
@@ -198,10 +212,16 @@ export const getProjectsGetMyProjectsTaskMetricsUrl = (params?: ProjectsGetMyPro
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["status","role"];
 
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
     }
+
+
   });
 
   const stringifiedParams = normalizedParams.toString();
@@ -229,10 +249,16 @@ export const getProjectsGetMyProjectTasksUrl = (params?: ProjectsGetMyProjectTas
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["status"];
 
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
     }
+
+
   });
 
   const stringifiedParams = normalizedParams.toString();
@@ -306,6 +332,14 @@ export const getProjectsGetProjectsTaskMetricsUrl = (params?: ProjectsGetProject
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["status","role"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
@@ -1280,7 +1314,7 @@ export const getProjectsGetProjectsPlanSummariesUrl = (params?: ProjectsGetProje
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    const explodeParameters = ["projectId"];
+    const explodeParameters = ["projectId","role"];
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) => {

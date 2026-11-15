@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { HolidayDto } from '@/src/services/wayd-api'
+import { HolidayDto } from '@/src/services/api/wayd.schemas'
 import {
   useAddHolidayMutation,
   useChangeHolidayMutation,

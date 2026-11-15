@@ -10,7 +10,7 @@ import {
   DiscussionMessageKind,
   EmployeeNavigationDto,
   IncidentDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { DiscussionChannelTypes } from '@/src/store/features/common/discussions-api'
 import { useGetEmployeesQuery } from '@/src/store/features/organizations/employee-api'
 

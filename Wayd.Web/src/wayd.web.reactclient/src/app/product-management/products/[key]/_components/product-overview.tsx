@@ -5,7 +5,7 @@ import {
   ProductDependenciesDto,
   ProductDto,
   VersionDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Col, Row } from 'antd'
 import ProductDependencyMapCard from './product-dependency-map-card'
 import { countReleasedWithin } from './version-cadence'

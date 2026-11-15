@@ -3,7 +3,7 @@
 import { LifecycleStatusTag } from '@/src/components/common'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
 import StageTimeline from './stage-timeline'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
 import { getSortedNames, parseCalendarDate } from '@/src/utils'
 import { Card, Flex, Segmented, Spin, Typography } from 'antd'
 import dayjs from 'dayjs'

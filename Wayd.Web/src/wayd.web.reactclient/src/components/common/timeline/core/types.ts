@@ -26,7 +26,7 @@ export interface TimelineItem<T = unknown> {
   /** Optional full tooltip/title text. Falls back to label when omitted. */
   tooltip?: string
   /** Bar background color (any CSS color). Text contrast is auto-derived. */
-  color?: string
+  color?: string | null
   /** Group this item belongs to; undefined = ungrouped. */
   groupId?: string
   /**

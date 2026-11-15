@@ -1,4 +1,4 @@
-import { AzureDevOpsConnectionDetailsDto } from '@/src/services/wayd-api'
+import { AzureDevOpsConnectionDetailsDto } from '@/src/services/api/wayd.schemas'
 import { getCapabilityNames } from '@/src/types/connectors'
 import { ResponsiveFlex } from '@/src/components/common'
 import { Descriptions, Flex, Typography } from 'antd'

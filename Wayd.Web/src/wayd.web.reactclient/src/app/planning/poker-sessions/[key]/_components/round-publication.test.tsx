@@ -5,7 +5,7 @@ import {
   PokerRoundDto,
   PokerRoundPublicationOutcome,
   PokerRoundSubjectKind,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { usePublishPokerRoundsMutation } from '@/src/store/features/planning/poker-sessions-api'
 import RoundPublication, { canPublishRound } from './round-publication'
 

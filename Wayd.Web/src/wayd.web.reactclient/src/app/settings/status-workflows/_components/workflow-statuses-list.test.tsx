@@ -10,7 +10,7 @@ import {
   TransitionMode,
   WorkflowStatusDto,
   WorkflowOwnership,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import WorkflowStatusesList from './workflow-statuses-list'
 
 /** The list reaches for `App.useApp().modal` to confirm a delete. */

@@ -1,5 +1,5 @@
 import dayjs, { Dayjs } from 'dayjs'
-import type { RoadmapActivityListDto } from '@/src/services/wayd-api'
+import type { RoadmapActivityListDto } from '@/src/services/api/wayd.schemas'
 import { childrenSpan, type ChildrenSpan } from '@/src/utils/date-containment'
 
 /**

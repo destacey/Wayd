@@ -4,7 +4,7 @@ import {
   RoadmapActivityDetailsDto,
   RoadmapMilestoneDetailsDto,
   RoadmapTimeboxDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetRoadmapItemQuery } from '@/src/store/features/planning/roadmaps-api'
 import { Button, Drawer } from 'antd'
 import {

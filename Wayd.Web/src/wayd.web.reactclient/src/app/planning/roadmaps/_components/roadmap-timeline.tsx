@@ -15,7 +15,7 @@ import {
   RoadmapItemListDto,
   RoadmapMilestoneListDto,
   RoadmapTimeboxListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { WaydTimeline } from '@/src/components/common/timeline'
 import type {
   TimelineItem,
@@ -61,7 +61,7 @@ const formatDateTooltip = (name: string | undefined, date: CalendarDate) =>
 
 interface RoadmapPayload {
   dto: RoadmapItemListDto
-  color?: string
+  color?: string | null
   openDrawer: (id: string) => void
 }
 
@@ -227,13 +227,24 @@ const RoadmapTimeline: FC<RoadmapTimelineProps> = (props) => {
 
     setUpdatingId(change.id)
     try {
-      const response = await updateRoadmapItemDates({
-        $type: dto.$type,
-        roadmapId: dto.roadmapId,
-        itemId: change.id,
-        start: toCalendarDate(new Date(change.start)),
-        end: toCalendarDate(new Date(change.end)),
-      })
+      const item = { roadmapId: dto.roadmapId, itemId: change.id }
+      // A milestone is a single day, so its request carries `date` rather than
+      // a start/end pair.
+      const response = await updateRoadmapItemDates(
+        dto.$type === RoadmapItemType.Milestone
+          ? {
+              ...item,
+              $type: 'milestone',
+              date: toCalendarDate(new Date(change.start)),
+            }
+          : {
+              ...item,
+              $type:
+                dto.$type === RoadmapItemType.Timebox ? 'timebox' : 'activity',
+              start: toCalendarDate(new Date(change.start)),
+              end: toCalendarDate(new Date(change.end)),
+            },
+      )
       if ('error' in response && response.error) throw response.error
     } catch (error) {
       const apiError: ApiError = isApiError(error) ? error : {}

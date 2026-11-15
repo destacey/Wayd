@@ -1,7 +1,7 @@
 'use client'
 
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { ReleasePackageDto, VersionDto } from '@/src/services/wayd-api'
+import { ReleasePackageDto, VersionDto } from '@/src/services/api/wayd.schemas'
 import { Alert, Flex, Select, Typography } from 'antd'
 
 const { Text } = Typography

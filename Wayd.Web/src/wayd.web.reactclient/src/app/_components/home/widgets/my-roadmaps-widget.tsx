@@ -3,7 +3,7 @@
 import { WaydList } from '@/src/components/common'
 import EntityLink from '@/src/components/common/entity-link'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { RoadmapListDto, RoadmapState } from '@/src/services/wayd-api'
+import { RoadmapListDto, RoadmapState } from '@/src/services/api/wayd.schemas'
 import { useGetRoadmapsQuery } from '@/src/store/features/planning/roadmaps-api'
 import {
   CalendarDate,

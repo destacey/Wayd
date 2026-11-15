@@ -1,4 +1,4 @@
-import { PokerRoundDto } from '@/src/services/wayd-api'
+import { PokerRoundDto } from '@/src/services/api/wayd.schemas'
 import { shownRound } from './shown-round'
 
 const round = (id: string, status: string, order: number): PokerRoundDto =>

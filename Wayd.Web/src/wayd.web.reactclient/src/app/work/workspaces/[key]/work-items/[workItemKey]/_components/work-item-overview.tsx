@@ -4,7 +4,7 @@ import {
   WorkItemDetailsDto,
   WorkItemListDto,
   WorkItemProgressDailyRollupDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import BreakdownPie from '@/src/app/ppm/_components/breakdown-pie'
 import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import { WorkItemsCumulativeFlowChart } from '@/src/components/common/work'

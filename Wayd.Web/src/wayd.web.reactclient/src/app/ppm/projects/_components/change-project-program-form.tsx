@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   ChangeProjectProgramRequest,
   ProjectDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetPortfolioProgramOptionsQuery } from '@/src/store/features/ppm/portfolios-api'
 import { useChangeProjectProgramMutation } from '@/src/store/features/ppm/projects-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
@@ -43,34 +43,34 @@ const ChangeProjectProgramForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<ChangeProjectProgramFormValues>({
       onSubmit: async (values: ChangeProjectProgramFormValues, form) => {
-          try {
-            const request: ChangeProjectProgramRequest = {
-              programId: values.programId ?? undefined,
-            }
-            const response = await changeProjectProgram({
-              id: project.id,
-              request,
-              cacheKey: project.key,
-            })
-            if (response.error) throw response.error
-
-            messageApi.success('Project program changed successfully.')
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                (isApiError(apiError) ? apiError.detail : undefined) ??
-                  'An error occurred while changing the project program. Please try again.',
-              )
-            }
-            return false
+        try {
+          const request: ChangeProjectProgramRequest = {
+            programId: values.programId ?? undefined,
           }
-        },
+          const response = await changeProjectProgram({
+            id: project.id,
+            request,
+            cacheKey: project.key,
+          })
+          if (response.error) throw response.error
+
+          messageApi.success('Project program changed successfully.')
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              (isApiError(apiError) ? apiError.detail : undefined) ??
+                'An error occurred while changing the project program. Please try again.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:

@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { RiskDetailsDto } from '@/src/services/wayd-api'
+import { RiskDetailsDto } from '@/src/services/api/wayd.schemas'
 import { useDeleteRiskMutation } from '@/src/store/features/planning/risks-api'
 import { Modal } from 'antd'
 import { isApiError, type ApiError } from '@/src/utils'

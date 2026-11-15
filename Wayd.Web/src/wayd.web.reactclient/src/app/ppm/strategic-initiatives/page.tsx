@@ -13,9 +13,9 @@ import {
   StrategicInitiativesGrid,
 } from '../_components'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { StrategicInitiativeStatus } from '@/src/services/wayd-api'
+import { StrategicInitiativeStatus } from '@/src/services/api/wayd.schemas'
 
-const DEFAULT_STATUSES = [
+const DEFAULT_STATUSES: StrategicInitiativeStatus[] = [
   StrategicInitiativeStatus.Approved,
   StrategicInitiativeStatus.Active,
   StrategicInitiativeStatus.OnHold,

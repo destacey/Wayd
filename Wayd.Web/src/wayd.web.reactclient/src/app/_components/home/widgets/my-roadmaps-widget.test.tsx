@@ -4,7 +4,7 @@ import MyRoadmapsWidget, {
   MY_ROADMAPS_LIMIT,
   sortRoadmaps,
 } from './my-roadmaps-widget'
-import { RoadmapListDto, RoadmapState } from '@/src/services/wayd-api'
+import { RoadmapListDto, RoadmapState } from '@/src/services/api/wayd.schemas'
 import { renderReportingWidget } from '../widget-display-test-utils'
 
 vi.mock('next/navigation', () => ({

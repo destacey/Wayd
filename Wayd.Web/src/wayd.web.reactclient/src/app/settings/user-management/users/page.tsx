@@ -16,7 +16,7 @@ import { WaydTooltip } from '@/src/components/common'
 import useAuth from '@/src/components/contexts/auth'
 import { useDocumentTitle } from '@/src/hooks'
 import { useGetUsersQuery } from '@/src/store/features/user-management/users-api'
-import { UserDetailsDto } from '@/src/services/wayd-api'
+import { UserDetailsDto } from '@/src/services/api/wayd.schemas'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import dayjs from 'dayjs'
 import {

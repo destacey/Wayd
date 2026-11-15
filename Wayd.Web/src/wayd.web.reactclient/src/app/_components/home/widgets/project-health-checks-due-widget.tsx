@@ -8,7 +8,7 @@ import {
   ProjectListDto,
   ProjectMemberRole,
   ProjectStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetProjectsQuery } from '@/src/store/features/ppm/projects-api'
 import { calendarDaysBetween, toCalendarDate } from '@/src/utils'
 import { Typography } from 'antd'

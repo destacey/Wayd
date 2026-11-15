@@ -1,4 +1,4 @@
-import { ReleaseDto } from '@/src/services/wayd-api'
+import { ReleaseDto } from '@/src/services/api/wayd.schemas'
 import { buildContentsColumns, toEntries } from './release-contents'
 import type { ContentsEntry } from './release-contents'
 

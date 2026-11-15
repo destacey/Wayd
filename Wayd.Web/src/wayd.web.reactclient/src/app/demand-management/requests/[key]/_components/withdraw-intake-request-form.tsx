@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
+import { IntakeRequestDetailsDto } from '@/src/services/api/wayd.schemas'
 import { useWithdrawIntakeRequestMutation } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Form, Input, Modal, Typography } from 'antd'

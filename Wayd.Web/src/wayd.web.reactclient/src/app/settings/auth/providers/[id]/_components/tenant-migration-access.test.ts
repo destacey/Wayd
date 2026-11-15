@@ -1,4 +1,7 @@
-import { OidcProviderDto, OidcProviderType } from '@/src/services/wayd-api'
+import {
+  OidcProviderDto,
+  OidcProviderType,
+} from '@/src/services/api/wayd.schemas'
 import { getTenantMigrationAccess } from './tenant-migration-access'
 
 const provider = (overrides: Partial<OidcProviderDto> = {}): OidcProviderDto =>

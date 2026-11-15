@@ -9,12 +9,12 @@ import {
   type ServerPageRequest,
 } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
-import { getImportsClient } from '@/src/services/clients'
+import { importsGetRows } from '@/src/services/api/imports'
 import {
   ImportProcessDto,
   ImportProcessRowDto,
   ImportRowStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   ImportRowStatusTag,
   importRowStatusLabel,
@@ -75,14 +75,13 @@ const ImportDetails: FC<ImportDetailsProps> = ({ importProcess }) => {
     filter,
     sort,
   }: ServerPageRequest) => {
-    const result = await getImportsClient().getRows(
-      importProcess.id,
-      status,
-      page,
-      pageSize,
-      filter,
-      sort,
-    )
+    const result = await importsGetRows(importProcess.id, {
+      status: status,
+      page: page,
+      pageSize: pageSize,
+      filter: filter,
+      sort: sort,
+    })
     return { items: result.items, totalCount: result.totalCount }
   }
 

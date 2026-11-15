@@ -1,4 +1,4 @@
-import { VersionDto } from '@/src/services/wayd-api'
+import { VersionDto } from '@/src/services/api/wayd.schemas'
 import { render, screen } from '@testing-library/react'
 import VersionFacts from './version-facts'
 

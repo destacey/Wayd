@@ -3,7 +3,7 @@
 import { requiresReason } from '@/src/components/common/status-workflows'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { ProjectDeliverableDto } from '@/src/services/wayd-api'
+import { ProjectDeliverableDto } from '@/src/services/api/wayd.schemas'
 import {
   useChangeProjectDeliverableStatusMutation,
   useGetProjectDeliverableStatusOptionsQuery,

@@ -10,7 +10,7 @@ import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
-import { WorkflowSchemeEntryDto } from '@/src/services/wayd-api'
+import { WorkflowSchemeEntryDto } from '@/src/services/api/wayd.schemas'
 import {
   useDeleteWorkflowSchemeMutation,
   useGetRecordTypesQuery,

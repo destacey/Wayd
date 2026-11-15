@@ -1,10 +1,10 @@
-import { PokerRoundDto } from '@/src/services/wayd-api'
+import { PokerRoundDto } from '@/src/services/api/wayd.schemas'
 
 export interface ShownRoundChoice {
   /** Whether this screen follows the facilitator. */
   following: boolean
   /** The round a facilitator pointed the session at, if any. */
-  focusedRoundId: string | undefined
+  focusedRoundId: string | undefined | null
   /** The round this viewer chose for themselves, if any. */
   selectedRoundId: string | undefined
 }

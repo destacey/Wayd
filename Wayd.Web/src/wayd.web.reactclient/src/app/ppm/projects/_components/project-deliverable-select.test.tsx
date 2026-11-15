@@ -1,7 +1,10 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ProjectDeliverableDto, StatusCategory } from '@/src/services/wayd-api'
+import {
+  ProjectDeliverableDto,
+  StatusCategory,
+} from '@/src/services/api/wayd.schemas'
 import ProjectDeliverableSelect from './project-deliverable-select'
 
 const mockQuery = vi.fn()

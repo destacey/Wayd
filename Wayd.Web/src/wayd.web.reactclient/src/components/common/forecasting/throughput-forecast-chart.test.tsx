@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { TeamThroughputForecastDto } from '@/src/services/wayd-api'
+import { TeamThroughputForecastDto } from '@/src/services/api/wayd.schemas'
 import ThroughputForecastChart from './throughput-forecast-chart'
 
 vi.mock('next/dynamic', () => ({

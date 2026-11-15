@@ -26,7 +26,7 @@ import type { Color } from 'antd/es/color-picker'
 
 export interface ModaColorPickerProps {
   id?: string // required by antd for custom form controls
-  value?: string // required by antd for custom form controls
+  value?: string | null // required by antd for custom form controls
   onChange?: (value: string | undefined) => void // required by antd for custom form controls
   /** Whether the picker is open, when the caller controls it (a grid cell). */
   open?: boolean

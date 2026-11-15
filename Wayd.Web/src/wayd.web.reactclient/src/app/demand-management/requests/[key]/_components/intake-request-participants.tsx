@@ -5,7 +5,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   IntakeRequestDetailsDto,
   IntakeRequestSubstanceDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useRemoveIntakeRequestParticipantMutation } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError } from '@/src/utils'
 import { Button, Flex, Popconfirm, Tag, Typography } from 'antd'

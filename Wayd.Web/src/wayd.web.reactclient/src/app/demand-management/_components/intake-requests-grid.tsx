@@ -17,7 +17,7 @@ import {
   IntakeRequestSummaryDto,
   NeedByBasisDto,
   NeedByBasisFamily,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { formatCalendarDate } from '@/src/utils'
 import { Checkbox, Tooltip } from 'antd'
 import Link from 'next/link'
@@ -63,8 +63,7 @@ export interface IntakeRequestsGridProps {
   rowSelection?: RowSelectionState
   onRowSelectionChange?: (
     updater:
-      | RowSelectionState
-      | ((previous: RowSelectionState) => RowSelectionState),
+      RowSelectionState | ((previous: RowSelectionState) => RowSelectionState),
   ) => void
 }
 

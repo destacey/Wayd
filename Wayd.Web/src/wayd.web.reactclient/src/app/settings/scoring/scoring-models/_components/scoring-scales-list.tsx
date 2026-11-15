@@ -9,7 +9,7 @@ import {
   ScoringModelDetailsDto,
   ScoringRatingLevelDto,
   ScoringScaleDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useRemoveScoringScaleMutation,
   useRemoveScoringScaleLevelMutation,

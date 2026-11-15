@@ -5,7 +5,7 @@ import {
   TransitionConditionKind,
   TransitionMode,
   WorkflowOwnership,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import WaydWorkflowDiagram from './wayd-workflow-diagram'
 import { buildRecordPath } from './workflow-diagram-layout'
 

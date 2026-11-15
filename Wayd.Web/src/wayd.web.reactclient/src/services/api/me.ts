@@ -106,6 +106,14 @@ export const getMeGetWorkItemsUrl = (params?: MeGetWorkItemsParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["statusCategories"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
@@ -176,10 +184,16 @@ export const getMeGetTeamsSummaryUrl = (params?: MeGetTeamsSummaryParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["teamIds","teamOfTeamsIds"];
 
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : String(value))
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
     }
+
+
   });
 
   const stringifiedParams = normalizedParams.toString();

@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import {
   AzureDevOpsWorkProcessDto,
   AzureDevOpsWorkspaceDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { AzdoConnectionContext } from './connection-context'
 import AzdoProjects from './projects'
 

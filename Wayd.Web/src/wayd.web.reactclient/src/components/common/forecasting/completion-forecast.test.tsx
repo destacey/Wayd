@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { WorkItemForecastDto } from '@/src/services/wayd-api'
+import { WorkItemForecastDto } from '@/src/services/api/wayd.schemas'
 import CompletionForecast from './completion-forecast'
 import { ForecastOutcome } from './forecast-formatting'
 

@@ -9,7 +9,7 @@ import {
   NavigationDto,
   TeamCapacityPlanDto,
   TeamCapacityPlanPersonDayDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { formatHours } from '../time-away/time-away-duration'
 
 /**
@@ -61,7 +61,7 @@ export interface PlanRow {
   employee: NavigationDto
   /** How many hours the person's working day has, which their percent and time away are shares of. */
   workingDayHours: number
-  role?: NavigationDto
+  role?: NavigationDto | null
   countsTowardDeliveryCapacity: boolean
   /** The percent allocated each working day; a day left out has none. */
   percentByDate: Map<CalendarDate, number>

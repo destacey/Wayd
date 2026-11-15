@@ -5,7 +5,10 @@ import ProjectsDashboardTimeline, {
   buildTimelineModel,
 } from './projects-dashboard-timeline'
 import { ProjectGroup } from './dashboard-model'
-import { ProjectListDto, ProjectStageListDto } from '@/src/services/wayd-api'
+import {
+  ProjectListDto,
+  ProjectStageListDto,
+} from '@/src/services/api/wayd.schemas'
 import { CalendarDate } from '@/src/utils'
 
 const captured: { props: Record<string, unknown> | null } = { props: null }

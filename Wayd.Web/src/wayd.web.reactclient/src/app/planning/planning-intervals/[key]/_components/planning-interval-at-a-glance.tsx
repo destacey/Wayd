@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons'
 import TimelineProgress from '@/src/components/common/planning/timeline-progress'
 import { IterationState } from '@/src/components/types'
-import { PlanningIntervalDetailsDto } from '@/src/services/wayd-api'
+import { PlanningIntervalDetailsDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetPlanningIntervalMetricsQuery,
   useGetPlanningIntervalObjectivesQuery,

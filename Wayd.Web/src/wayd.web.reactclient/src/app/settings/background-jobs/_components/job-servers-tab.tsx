@@ -3,7 +3,7 @@
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import { useMemo } from 'react'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
-import { JobServerResponse } from '@/src/services/wayd-api'
+import { JobServerResponse } from '@/src/services/api/wayd.schemas'
 import {
   JOB_SERVER_POLLING_MS,
   useGetJobServersQuery,

@@ -1,4 +1,4 @@
-import { PokerRoundDto, PokerVoteDto } from '@/src/services/wayd-api'
+import { PokerRoundDto, PokerVoteDto } from '@/src/services/api/wayd.schemas'
 import { buildExportRows, EXPORT_HEADERS } from './session-export'
 
 const vote = (name: string, value: string): PokerVoteDto =>

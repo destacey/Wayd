@@ -1,6 +1,6 @@
 'use client'
 
-import { StatusNavigationDto } from '@/src/services/wayd-api'
+import { StatusNavigationDto } from '@/src/services/api/wayd.schemas'
 import { Flex, Tooltip } from 'antd'
 import { FC } from 'react'
 import { statusCategoryDescription } from './status-category'
@@ -22,7 +22,9 @@ const StatusHistoryTag: FC<StatusHistoryTagProps> = ({
   status,
   onOpenHistory,
 }) => {
-  const tag = <WorkflowStatusTag name={status.name} category={status.category} />
+  const tag = (
+    <WorkflowStatusTag name={status.name} category={status.category} />
+  )
   const description = statusCategoryDescription(status)
 
   // What the status means, then what clicking does — kept apart rather than run together, since

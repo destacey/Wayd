@@ -9,7 +9,7 @@ import {
   IntakeRequestOutcomeDto,
   IntakeRequestOutcomeKind,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useRemoveIntakeRequestOutcomeMutation } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError } from '@/src/utils'
 import { Alert, Button, Flex, Popconfirm, Tag, Typography } from 'antd'

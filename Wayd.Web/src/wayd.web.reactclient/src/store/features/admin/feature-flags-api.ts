@@ -4,15 +4,19 @@ import {
   FeatureFlagDto,
   FeatureFlagModuleDto,
   ToggleFeatureFlagRequest,
-} from '@/src/services/wayd-api'
-import { getFeatureFlagsClient } from '@/src/services/clients'
+} from '@/src/services/api/wayd.schemas'
+import {
+  featureFlagsFeatureFlags,
+  featureFlagsModules,
+  featureFlagsToggle,
+} from '@/src/services/api/feature-flags'
 
 export const featureFlagsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getFeatureFlags: builder.query<FeatureFlagDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getFeatureFlagsClient().featureFlags()
+          const data = await featureFlagsFeatureFlags()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -35,7 +39,7 @@ export const featureFlagsApi = apiSlice.injectEndpoints({
     getFeatureFlagModules: builder.query<FeatureFlagModuleDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getFeatureFlagsClient().modules()
+          const data = await featureFlagsModules()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -49,7 +53,7 @@ export const featureFlagsApi = apiSlice.injectEndpoints({
     toggleFeatureFlag: builder.mutation<void, ToggleFeatureFlagRequest>({
       queryFn: async (request) => {
         try {
-          await getFeatureFlagsClient().toggle(request.id, request)
+          await featureFlagsToggle(request.id, request)
           return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)

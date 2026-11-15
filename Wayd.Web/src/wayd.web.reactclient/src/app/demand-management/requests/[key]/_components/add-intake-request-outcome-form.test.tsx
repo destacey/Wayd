@@ -6,7 +6,7 @@ import {
   IntakeRequestOutcomeKind,
   ProjectDeliverableStatusAlias,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import AddIntakeRequestOutcomeForm from './add-intake-request-outcome-form'
 import type { UseModalFormOptions } from '@/src/hooks'
 

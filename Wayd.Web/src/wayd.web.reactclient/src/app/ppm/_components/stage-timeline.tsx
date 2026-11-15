@@ -1,7 +1,7 @@
 'use client'
 
 import { CheckCircleFilled, CloseCircleFilled } from '@ant-design/icons'
-import { ProjectStageListDto } from '@/src/services/wayd-api'
+import { ProjectStageListDto } from '@/src/services/api/wayd.schemas'
 import { Steps } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
 import {
@@ -72,8 +72,8 @@ function getIcon(status: StageStatus, tooltipContent: React.ReactNode) {
 }
 
 function formatDateRange(
-  start?: CalendarDate,
-  end?: CalendarDate,
+  start?: CalendarDate | null,
+  end?: CalendarDate | null,
 ): string | null {
   if (!start && !end) return null
   if (start && end) {

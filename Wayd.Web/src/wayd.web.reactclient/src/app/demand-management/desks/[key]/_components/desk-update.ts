@@ -2,7 +2,7 @@ import {
   IntakeDeskDto,
   IntakeDeskRole,
   UpdateIntakeDeskRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 /**
  * The desk as an update request, with the given changes. The update overwrites the whole desk, so a form

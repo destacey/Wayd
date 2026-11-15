@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { PlanReleaseRequest } from '@/src/services/wayd-api'
+import { PlanReleaseRequest } from '@/src/services/api/wayd.schemas'
 import { usePlanReleaseMutation } from '@/src/store/features/product-management/releases-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { ProductTreeSelect } from '../../_components'

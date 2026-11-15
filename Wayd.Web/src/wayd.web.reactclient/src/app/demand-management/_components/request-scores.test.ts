@@ -1,7 +1,7 @@
 import {
   IntakeRequestCurrentScoreDto,
   IntakeRequestSummaryDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { orderRequests, toRequestScores } from './request-scores'
 
 const request = (id: string, key: number): IntakeRequestSummaryDto =>

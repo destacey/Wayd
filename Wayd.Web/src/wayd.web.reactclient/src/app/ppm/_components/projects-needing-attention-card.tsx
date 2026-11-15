@@ -2,7 +2,7 @@
 
 import { WaydEmpty } from '@/src/components/common'
 import { ProjectCard } from '@/src/app/ppm/_components/projects-card-view'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
 import ProjectDrawer from '@/src/app/ppm/_components/project-drawer'
 import { Card, Col, Row, Segmented } from 'antd'
 import { useMemo, useState } from 'react'

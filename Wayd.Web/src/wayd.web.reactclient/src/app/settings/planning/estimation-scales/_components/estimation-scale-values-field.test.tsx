@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { Form } from 'antd'
-import { EstimationScaleValueRequest } from '@/src/services/wayd-api'
+import { EstimationScaleValueRequest } from '@/src/services/api/wayd.schemas'
 import EstimationScaleValuesField, {
   estimationScaleValueErrorFieldFor,
   validateEstimationScaleValues,

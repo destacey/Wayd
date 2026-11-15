@@ -1,6 +1,6 @@
 'use client'
 
-import { PokerRoundDto } from '@/src/services/wayd-api'
+import { PokerRoundDto } from '@/src/services/api/wayd.schemas'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useUpdatePokerRoundLabelMutation } from '@/src/store/features/planning/poker-sessions-api'
 import EntityLink from '@/src/components/common/entity-link'

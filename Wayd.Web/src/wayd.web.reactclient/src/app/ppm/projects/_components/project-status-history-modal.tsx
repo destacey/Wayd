@@ -4,7 +4,7 @@ import { Empty, Flex, Modal, Skeleton, Timeline, Typography } from 'antd'
 import dayjs from 'dayjs'
 import { LifecycleStatusTag } from '@/src/components/common'
 import { LifecycleCategory } from '@/src/components/types'
-import { ProjectStatusHistoryDto } from '@/src/services/wayd-api'
+import { ProjectStatusHistoryDto } from '@/src/services/api/wayd.schemas'
 import { getLifecycleCategoryTagColor } from '@/src/utils'
 import { useGetProjectStatusHistoryQuery } from '@/src/store/features/ppm/projects-api'
 

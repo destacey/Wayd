@@ -1,7 +1,10 @@
 'use client'
 
 import { createContext, useContext } from 'react'
-import { DiscussionDto, DiscussionMessageKind } from '@/src/services/wayd-api'
+import {
+  DiscussionDto,
+  DiscussionMessageKind,
+} from '@/src/services/api/wayd.schemas'
 import { DiscussionTarget } from '@/src/store/features/common/discussions-api'
 import { toApiError } from '@/src/utils/problem-details'
 import { MentionCandidate } from './discussion-mentions'

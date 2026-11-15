@@ -12,7 +12,7 @@ import {
   DependencyStrength,
   ProductDependenciesDto,
   ProductDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { toFileName } from '@/src/utils'
 import ViewAllLink from '@/src/components/common/view-all-link'
 import { Card, Col, Segmented, Skeleton, theme, Typography } from 'antd'

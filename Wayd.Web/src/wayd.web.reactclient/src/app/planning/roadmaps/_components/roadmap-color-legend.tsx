@@ -1,6 +1,6 @@
 'use client'
 
-import { RoadmapColorDto } from '@/src/services/wayd-api'
+import { RoadmapColorDto } from '@/src/services/api/wayd.schemas'
 import { contrastText } from '@/src/components/common/timeline/core/color'
 import { Space, Tag, Typography, theme } from 'antd'
 

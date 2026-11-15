@@ -1,7 +1,7 @@
 'use client'
 
 import type { ColumnConfig } from '@ant-design/charts'
-import { WorkItemForecastDto } from '@/src/services/wayd-api'
+import { WorkItemForecastDto } from '@/src/services/api/wayd.schemas'
 import { CalendarDate, compareCalendarDates } from '@/src/utils/calendar-date'
 import { FC } from 'react'
 import useTheme from '../../contexts/theme'
@@ -15,7 +15,7 @@ import { Column } from '@/src/components/common/charts'
 export interface CompletionForecastChartProps {
   forecast: WorkItemForecastDto
   /** The date the report measures against, when there is one. */
-  targetDate?: CalendarDate
+  targetDate?: CalendarDate | null
 }
 
 interface ChartDatum {

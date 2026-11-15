@@ -1,11 +1,19 @@
-import { getMyNotificationMutesClient } from '@/src/services/clients'
+import {
+  myNotificationMutesGetMutedRecords,
+  myNotificationMutesGetReasonMutes,
+  myNotificationMutesGetRecordMuteStatus,
+  myNotificationMutesMuteReason,
+  myNotificationMutesMuteRecord,
+  myNotificationMutesUnmuteReason,
+  myNotificationMutesUnmuteRecord,
+} from '@/src/services/api/my-notification-mutes'
 import {
   MuteRecordResponse,
   NotificationReason,
   PagedResponseOfMutedRecordDto,
   ReasonMuteDto,
   RecordMuteStatusDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
@@ -28,7 +36,7 @@ export const notificationMutesApi = apiSlice.injectEndpoints({
     getRecordMuteStatus: builder.query<RecordMuteStatusDto, MuteTarget>({
       queryFn: async ({ ownerType, ownerId }) => {
         try {
-          const data = await getMyNotificationMutesClient().getRecordMuteStatus(
+          const data = await myNotificationMutesGetRecordMuteStatus(
             ownerType,
             ownerId,
           )
@@ -53,10 +61,10 @@ export const notificationMutesApi = apiSlice.injectEndpoints({
       },
       queryFn: async ({ pageParam }) => {
         try {
-          const data = await getMyNotificationMutesClient().getMutedRecords(
-            pageParam,
-            MutedRecordsPageSize,
-          )
+          const data = await myNotificationMutesGetMutedRecords({
+            page: pageParam,
+            pageSize: MutedRecordsPageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -69,7 +77,7 @@ export const notificationMutesApi = apiSlice.injectEndpoints({
     getReasonMutes: builder.query<ReasonMuteDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getMyNotificationMutesClient().getReasonMutes()
+          const data = await myNotificationMutesGetReasonMutes()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -82,10 +90,7 @@ export const notificationMutesApi = apiSlice.injectEndpoints({
     muteRecord: builder.mutation<MuteRecordResponse, MuteTarget>({
       queryFn: async ({ ownerType, ownerId }) => {
         try {
-          const data = await getMyNotificationMutesClient().muteRecord(
-            ownerType,
-            ownerId,
-          )
+          const data = await myNotificationMutesMuteRecord(ownerType, ownerId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -125,7 +130,7 @@ export const notificationMutesApi = apiSlice.injectEndpoints({
     unmuteRecord: builder.mutation<null, MuteTarget>({
       queryFn: async ({ ownerType, ownerId }) => {
         try {
-          await getMyNotificationMutesClient().unmuteRecord(ownerType, ownerId)
+          await myNotificationMutesUnmuteRecord(ownerType, ownerId)
           return { data: null }
         } catch (error) {
           console.error('API Error:', error)
@@ -160,7 +165,7 @@ export const notificationMutesApi = apiSlice.injectEndpoints({
     muteReason: builder.mutation<null, NotificationReason>({
       queryFn: async (reason) => {
         try {
-          await getMyNotificationMutesClient().muteReason(reason)
+          await myNotificationMutesMuteReason(reason)
           return { data: null }
         } catch (error) {
           console.error('API Error:', error)
@@ -192,7 +197,7 @@ export const notificationMutesApi = apiSlice.injectEndpoints({
     unmuteReason: builder.mutation<null, NotificationReason>({
       queryFn: async (reason) => {
         try {
-          await getMyNotificationMutesClient().unmuteReason(reason)
+          await myNotificationMutesUnmuteReason(reason)
           return { data: null }
         } catch (error) {
           console.error('API Error:', error)

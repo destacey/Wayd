@@ -6,7 +6,7 @@ import {
   DeploymentDto,
   FailDeploymentRequest,
   SucceedDeploymentRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useFailDeploymentMutation,
   useSucceedDeploymentMutation,

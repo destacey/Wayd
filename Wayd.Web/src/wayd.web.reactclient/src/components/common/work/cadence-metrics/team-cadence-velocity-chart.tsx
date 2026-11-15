@@ -2,7 +2,7 @@
 
 import type { ColumnConfig } from '@ant-design/charts'
 import { FC } from 'react'
-import { TeamCadenceMetricsDto } from '@/src/services/wayd-api'
+import { TeamCadenceMetricsDto } from '@/src/services/api/wayd.schemas'
 import { formatCalendarDate } from '@/src/utils/calendar-date'
 import useTheme from '../../../contexts/theme'
 import {

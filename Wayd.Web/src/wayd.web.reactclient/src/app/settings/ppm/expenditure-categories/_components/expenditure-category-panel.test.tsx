@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { ExpenditureCategoryDetailsDto } from '@/src/services/wayd-api'
+import { ExpenditureCategoryDetailsDto } from '@/src/services/api/wayd.schemas'
 import ExpenditureCategoryPanel from './expenditure-category-panel'
 
 const category = (

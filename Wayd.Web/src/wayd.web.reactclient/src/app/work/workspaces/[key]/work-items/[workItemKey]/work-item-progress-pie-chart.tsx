@@ -1,6 +1,6 @@
 'use client'
 
-import { WorkItemProgressDailyRollupDto } from '@/src/services/wayd-api'
+import { WorkItemProgressDailyRollupDto } from '@/src/services/api/wayd.schemas'
 import useTheme from '@/src/components/contexts/theme'
 import {
   BREAKDOWN_CHART_HEIGHT,

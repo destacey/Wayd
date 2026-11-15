@@ -9,7 +9,7 @@ import {
   MinusSquareOutlined,
   PlusSquareOutlined,
 } from '@ant-design/icons'
-import { TeamDayOffDto } from '@/src/services/wayd-api'
+import { TeamDayOffDto } from '@/src/services/api/wayd.schemas'
 import {
   CalendarDate,
   formatCalendarDate,

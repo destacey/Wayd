@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { RiskDetailsDto } from '@/src/services/wayd-api'
+import { RiskDetailsDto } from '@/src/services/api/wayd.schemas'
 import DeleteRiskForm from './delete-risk-form'
 
 const mockMessageSuccess = vi.fn()

@@ -6,8 +6,8 @@ import {
   ProjectDetailsDto,
   ProjectLifecycleState,
   ProjectStageListDto,
-} from '@/src/services/wayd-api'
-import { getProjectsClient } from '@/src/services/clients'
+} from '@/src/services/api/wayd.schemas'
+import { projectsGetProjectStages } from '@/src/services/api/projects'
 import {
   useGetProjectLifecycleQuery,
   useGetProjectLifecyclesQuery,
@@ -52,8 +52,7 @@ const ChangeProjectLifecycleForm = ({
   // Load current project stages
   useEffect(() => {
     if (!project?.id) return
-    getProjectsClient()
-      .getProjectStages(project.id)
+    projectsGetProjectStages(project.id)
       .then((stages) => setCurrentStages(stages ?? []))
       .catch(() => setCurrentStages([]))
   }, [project?.id])
@@ -73,42 +72,42 @@ const ChangeProjectLifecycleForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<ChangeProjectLifecycleFormValues>({
       onSubmit: async (values: ChangeProjectLifecycleFormValues, form) => {
-          try {
-            // Build stageMapping from the form's mapping fields
-            const stageMapping: Record<string, string> = {}
-            for (const stage of currentStages) {
-              const targetId = values.stageMapping?.[stage.id]
-              if (targetId) {
-                stageMapping[stage.id] = targetId
-              }
+        try {
+          // Build stageMapping from the form's mapping fields
+          const stageMapping: Record<string, string> = {}
+          for (const stage of currentStages) {
+            const targetId = values.stageMapping?.[stage.id]
+            if (targetId) {
+              stageMapping[stage.id] = targetId
             }
-
-            const response = await changeProjectLifecycle({
-              projectId: project.id,
-              request: {
-                lifecycleId: values.lifecycleId,
-                stageMapping,
-              },
-            })
-            if (response.error) throw response.error
-
-            messageApi.success('Project lifecycle changed successfully.')
-            return true
-          } catch (error: any) {
-            if (error?.status === 422 && error?.errors) {
-              const formErrors = toFormErrors(error.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                error?.detail ??
-                  error?.data?.detail ??
-                  'An error occurred while changing the lifecycle. Please try again.',
-              )
-            }
-            return false
           }
-        },
+
+          const response = await changeProjectLifecycle({
+            projectId: project.id,
+            request: {
+              lifecycleId: values.lifecycleId,
+              stageMapping,
+            },
+          })
+          if (response.error) throw response.error
+
+          messageApi.success('Project lifecycle changed successfully.')
+          return true
+        } catch (error: any) {
+          if (error?.status === 422 && error?.errors) {
+            const formErrors = toFormErrors(error.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              error?.detail ??
+                error?.data?.detail ??
+                'An error occurred while changing the lifecycle. Please try again.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:

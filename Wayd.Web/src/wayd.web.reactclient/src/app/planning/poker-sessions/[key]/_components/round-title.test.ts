@@ -1,4 +1,7 @@
-import { PokerRoundDto, PokerRoundSubjectKind } from '@/src/services/wayd-api'
+import {
+  PokerRoundDto,
+  PokerRoundSubjectKind,
+} from '@/src/services/api/wayd.schemas'
 import { roundTitle, subjectHref } from './round-title'
 
 const aRound = (overrides: Partial<PokerRoundDto> = {}): PokerRoundDto => ({

@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { ProductTagSettingsDto } from '@/src/services/wayd-api'
+import { ProductTagSettingsDto } from '@/src/services/api/wayd.schemas'
 import ProductTagSettingsForm, {
   ProductTagSettingsFormProps,
 } from './product-tag-settings-form'

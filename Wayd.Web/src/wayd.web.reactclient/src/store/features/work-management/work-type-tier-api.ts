@@ -1,14 +1,14 @@
-import { getWorkTypeTiersClient } from '@/src/services/clients'
+import { workTypeTiersGetList } from '@/src/services/api/work-type-tiers'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
-import { WorkTypeTierDto } from '@/src/services/wayd-api'
+import { WorkTypeTierDto } from '@/src/services/api/wayd.schemas'
 
 export const workTypeTierApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getWorkTypeTiers: builder.query<WorkTypeTierDto[], null>({
       queryFn: async () => {
         try {
-          const data = await getWorkTypeTiersClient().getList()
+          const data = await workTypeTiersGetList()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -17,7 +17,8 @@ export const workTypeTierApi = apiSlice.injectEndpoints({
       },
       providesTags: (result) => [
         QueryTags.WorkTypeTier,
-        ...(result?.map(({ id }) => ({ type: QueryTags.WorkTypeTier, id })) ?? []),
+        ...(result?.map(({ id }) => ({ type: QueryTags.WorkTypeTier, id })) ??
+          []),
       ],
     }),
   }),

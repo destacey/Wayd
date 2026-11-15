@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { PokerRoundDto } from '@/src/services/wayd-api'
+import { PokerRoundDto } from '@/src/services/api/wayd.schemas'
 import SessionSummary from './session-summary'
 
 function makeRound(

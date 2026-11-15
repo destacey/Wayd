@@ -5,7 +5,7 @@ import {
   ScoringModelCriterionDto,
   ScoringModelCriterionRequest,
   ScoringScaleDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useUpdateScoringModelCriterionMutation } from '@/src/store/features/scoring/scoring-models-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, InputNumber, Modal, Select } from 'antd'
@@ -27,7 +27,7 @@ interface UpdateScoringModelCriterionFormValues {
   name: string
   token: string
   description?: string
-  weight?: number
+  weight?: number | null
   scaleId?: string
 }
 

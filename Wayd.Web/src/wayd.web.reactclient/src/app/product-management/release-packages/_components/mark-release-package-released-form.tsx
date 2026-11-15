@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   MarkReleasePackageReleasedRequest,
   ReleasePackageDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useMarkReleasePackageReleasedMutation } from '@/src/store/features/product-management/release-packages-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'

@@ -1,5 +1,5 @@
 import type { EmployeeAllocationDto } from '@/src/store/features/organization/employee-allocations-api'
-import { TimeAwayReason } from '@/src/services/wayd-api'
+import { TimeAwayReason } from '@/src/services/api/wayd.schemas'
 import {
   allocationTimelineData,
   TIME_AWAY_GROUP_ID,

@@ -4,7 +4,7 @@ import {
   ScopedDependencyDto,
   WorkItemDetailsDto,
   WorkItemDetailsNavigationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import type {
   DependencyNode,
   DependencyNodeData,

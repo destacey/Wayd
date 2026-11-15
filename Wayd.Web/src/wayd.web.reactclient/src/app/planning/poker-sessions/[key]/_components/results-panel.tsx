@@ -1,6 +1,6 @@
 'use client'
 
-import { PokerVoteDto } from '@/src/services/wayd-api'
+import { PokerVoteDto } from '@/src/services/api/wayd.schemas'
 import { Flex, Statistic, Tag, Typography } from 'antd'
 import { FC } from 'react'
 import styles from './poker-session.module.css'

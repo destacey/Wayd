@@ -1,5 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { IsoDayOfWeek, SchedulingSettingsDto } from '@/src/services/wayd-api'
+import {
+  IsoDayOfWeek,
+  SchedulingSettingsDto,
+} from '@/src/services/api/wayd.schemas'
 import SchedulingSettingsForm, {
   SchedulingSettingsFormProps,
 } from './scheduling-settings-form'

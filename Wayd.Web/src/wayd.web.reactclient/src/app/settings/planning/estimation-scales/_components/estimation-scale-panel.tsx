@@ -5,7 +5,7 @@ import {
   EstimationScaleDto,
   EstimationScaleValueDto,
   EstimationScaleVersionDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Flex, Space, Tag, Typography } from 'antd'
 import dayjs from 'dayjs'
 

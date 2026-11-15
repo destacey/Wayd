@@ -12,7 +12,7 @@ const { Item: FormItem } = Form
 interface Props {
   employeeId: string
   /** The hours of the person's own working day; absent when they have the system's. */
-  ownWorkingDayHours?: number
+  ownWorkingDayHours?: number | null
   systemWorkingDayHours: number
   onFormComplete: () => void
   onFormCancel: () => void
@@ -24,7 +24,7 @@ interface FormValues {
 
 /** How a person's working day reads: their own hours, or the system's. */
 export const workingDayLabel = (
-  ownWorkingDayHours: number | undefined,
+  ownWorkingDayHours: number | undefined | null,
   systemWorkingDayHours: number,
 ): string =>
   ownWorkingDayHours == null

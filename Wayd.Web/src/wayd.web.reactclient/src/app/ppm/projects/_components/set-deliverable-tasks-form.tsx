@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   ProjectDeliverableDto,
   ProjectPlanNodeDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useSetProjectDeliverableTasksMutation } from '@/src/store/features/ppm/project-deliverables-api'
 import { toApiError } from '@/src/utils'
 import { Alert, Form, Modal, TreeSelect, Typography } from 'antd'

@@ -5,7 +5,7 @@ import {
   renderSprintLink,
   renderTeamLink,
 } from '@/src/components/common/wayd-grid'
-import { SprintListDto } from '@/src/services/wayd-api'
+import { SprintListDto } from '@/src/services/api/wayd.schemas'
 import type { ColumnDef } from '../wayd-grid-core'
 import { FC } from 'react'
 import { sprintTypeLabels } from './sprint-type-labels'

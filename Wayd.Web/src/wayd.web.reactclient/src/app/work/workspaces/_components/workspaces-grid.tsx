@@ -1,7 +1,10 @@
 'use client'
 
-import { WaydGrid, renderWorkspaceLink } from '@/src/components/common/wayd-grid'
-import { WorkspaceListDto } from '@/src/services/wayd-api'
+import {
+  WaydGrid,
+  renderWorkspaceLink,
+} from '@/src/components/common/wayd-grid'
+import { WorkspaceListDto } from '@/src/services/api/wayd.schemas'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { ReactElement, useMemo } from 'react'
 

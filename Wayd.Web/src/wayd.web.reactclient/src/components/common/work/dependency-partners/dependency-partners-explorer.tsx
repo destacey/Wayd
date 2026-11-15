@@ -1,7 +1,7 @@
 'use client'
 
 import DependenciesGrid from '@/src/components/common/work/dependencies-grid'
-import { DependencyDto } from '@/src/services/wayd-api'
+import { DependencyDto } from '@/src/services/api/wayd.schemas'
 import { CloseOutlined } from '@ant-design/icons'
 import { Button, Card, Flex, Tag, Typography } from 'antd'
 import { FC, useState } from 'react'

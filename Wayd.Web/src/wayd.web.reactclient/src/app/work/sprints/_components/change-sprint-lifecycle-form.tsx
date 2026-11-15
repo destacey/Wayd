@@ -2,7 +2,10 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { InstantWindowDto, SprintDetailsDto } from '@/src/services/wayd-api'
+import {
+  InstantWindowDto,
+  SprintDetailsDto,
+} from '@/src/services/api/wayd.schemas'
 import {
   useCompleteSprintMutation,
   useReopenSprintMutation,

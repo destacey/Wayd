@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   AzdoConnectionTeamMappingsRequest,
   AzdoWorkspaceTeamMappingRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetAzdoConnectionTeamsQuery,
   useMapAzdoConnectionTeamsMutation,
@@ -75,34 +75,30 @@ const MapAzdoWorkspaceTeamsForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<MapAzdoWorkspaceTeamsFormValues>({
       onSubmit: async (values: MapAzdoWorkspaceTeamsFormValues, form) => {
-          try {
-            const request = mapToRequestValues(
-              connectionId,
-              workspaceId,
-              values,
-            )
-            const response = await mapConnectionTeamsMutation(request)
-            if (response.error) {
-              throw response.error
-            }
-            messageApi.success('Successfully updated workspace team mappings.')
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while update workspace team mappings.',
-              )
-              console.error(error)
-            }
-            return false
+        try {
+          const request = mapToRequestValues(connectionId, workspaceId, values)
+          const response = await mapConnectionTeamsMutation(request)
+          if (response.error) {
+            throw response.error
           }
-        },
+          messageApi.success('Successfully updated workspace team mappings.')
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while update workspace team mappings.',
+            )
+            console.error(error)
+          }
+          return false
+        }
+      },
       onComplete: onFormSave,
       onCancel: onFormCancel,
       errorMessage: 'An error occurred while updating workspace team mappings.',

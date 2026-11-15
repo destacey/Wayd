@@ -2,7 +2,7 @@
 
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { CreateWorkTypeLevelRequest } from '@/src/services/wayd-api'
+import { CreateWorkTypeLevelRequest } from '@/src/services/api/wayd.schemas'
 import { useCreateWorkTypeLevelMutation } from '@/src/store/features/work-management/work-type-level-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -41,29 +41,29 @@ const CreateWorkTypeLevelForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CreateWorkTypeLevelFormValues>({
       onSubmit: async (values: CreateWorkTypeLevelFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values)
-            const response = await createWorkTypeLevelMutation(request)
-            if (response.error) {
-              throw response.error
-            }
-            messageApi.success('Successfully created work type level.')
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                'An unexpected error occurred while creating the work type level.',
-              )
-              console.error(error)
-            }
-            return false
+        try {
+          const request = mapToRequestValues(values)
+          const response = await createWorkTypeLevelMutation(request)
+          if (response.error) {
+            throw response.error
           }
-        },
+          messageApi.success('Successfully created work type level.')
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              'An unexpected error occurred while creating the work type level.',
+            )
+            console.error(error)
+          }
+          return false
+        }
+      },
       onComplete: onFormSave,
       onCancel: onFormCancel,
       errorMessage:

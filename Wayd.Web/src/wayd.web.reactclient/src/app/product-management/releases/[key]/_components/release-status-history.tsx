@@ -4,7 +4,7 @@ import {
   RecordStatusHistory,
   type StatusHistoryView,
 } from '@/src/components/common/status-workflows'
-import { StatusTransitionDto } from '@/src/services/wayd-api'
+import { StatusTransitionDto } from '@/src/services/api/wayd.schemas'
 import { useGetReleaseStatusWorkflowQuery } from '@/src/store/features/product-management/releases-api'
 import { useState } from 'react'
 

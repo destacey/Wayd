@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import LifecycleStatusTag from './lifecycle-status-tag'
-import { LifecycleNavigationDto } from '@/src/services/wayd-api'
+import { LifecycleNavigationDto } from '@/src/services/api/wayd.schemas'
 
 describe('LifecycleStatusTag', () => {
   describe('NotStarted category', () => {

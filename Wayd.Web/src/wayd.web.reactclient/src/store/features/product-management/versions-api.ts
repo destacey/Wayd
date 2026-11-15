@@ -1,4 +1,20 @@
-import { getVersionsClient } from '@/src/services/clients'
+import {
+  versionsCorrectDates,
+  versionsCut,
+  versionsDelete,
+  versionsGetActivities,
+  versionsGetStatusHistory,
+  versionsGetStatusWorkflow,
+  versionsGetVersion,
+  versionsGetVersions,
+  versionsGetWorkflowActions,
+  versionsMarkReleased,
+  versionsMoveTargetDate,
+  versionsPlan,
+  versionsRevert,
+  versionsUpdate,
+  versionsWithdraw,
+} from '@/src/services/api/versions'
 import { apiSlice } from '../apiSlice'
 import {
   CorrectVersionDatesRequest,
@@ -16,7 +32,7 @@ import {
   WithdrawVersionRequest,
   PagedResponseOfActivityLogDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 
 export interface GetVersionsRequest {
@@ -69,10 +85,10 @@ export const versionsApi = apiSlice.injectEndpoints({
     getVersions: builder.query<VersionDto[], GetVersionsRequest | undefined>({
       queryFn: async (request = {}) => {
         try {
-          const data = await getVersionsClient().getVersions(
-            request.productId,
-            request.statusCategory,
-          )
+          const data = await versionsGetVersions({
+            productId: request.productId,
+            statusCategory: request.statusCategory,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -84,7 +100,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     getVersion: builder.query<VersionDto, string>({
       queryFn: async (id) => {
         try {
-          const data = await getVersionsClient().getVersion(id)
+          const data = await versionsGetVersion(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -98,7 +114,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     getVersionStatusHistory: builder.query<StatusTransitionDto[], string>({
       queryFn: async (id) => {
         try {
-          const data = await getVersionsClient().getStatusHistory(id)
+          const data = await versionsGetStatusHistory(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -116,7 +132,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     getVersionStatusWorkflow: builder.query<StatusWorkflowDetailsDto, string>({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getVersionsClient().getStatusWorkflow(idOrKey)
+          const data = await versionsGetStatusWorkflow(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -141,7 +157,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getVersionsClient().getWorkflowActions(idOrKey)
+          const data = await versionsGetWorkflowActions(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -156,7 +172,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     planVersion: builder.mutation<ObjectIdAndKey, PlanVersionRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getVersionsClient().plan(request)
+          const data = await versionsPlan(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -171,7 +187,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getVersionsClient().update(id, request)
+          const data = await versionsUpdate(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -187,7 +203,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getVersionsClient().moveTargetDate(id, request)
+          const data = await versionsMoveTargetDate(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -208,7 +224,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getVersionsClient().correctDates(id, request)
+          const data = await versionsCorrectDates(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -224,7 +240,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getVersionsClient().cut(id, request)
+          const data = await versionsCut(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -240,7 +256,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getVersionsClient().markReleased(id, request)
+          const data = await versionsMarkReleased(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -256,7 +272,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getVersionsClient().withdraw(id, request)
+          const data = await versionsWithdraw(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -274,7 +290,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     deleteVersion: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getVersionsClient().delete(id)
+          const data = await versionsDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -299,7 +315,7 @@ export const versionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getVersionsClient().revert(id, request)
+          const data = await versionsRevert(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -316,11 +332,10 @@ export const versionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getVersionsClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await versionsGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

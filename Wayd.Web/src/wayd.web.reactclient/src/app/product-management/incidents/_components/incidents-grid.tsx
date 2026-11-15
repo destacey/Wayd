@@ -14,7 +14,7 @@ import {
   statusCategoryDescription,
   WorkflowStatusTag,
 } from '@/src/components/common/status-workflows'
-import { IncidentSummaryDto } from '@/src/services/wayd-api'
+import { IncidentSummaryDto } from '@/src/services/api/wayd.schemas'
 import { ReactNode } from 'react'
 import { Tooltip } from 'antd'
 import Link from 'next/link'

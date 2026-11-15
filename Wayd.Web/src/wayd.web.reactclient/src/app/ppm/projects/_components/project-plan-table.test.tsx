@@ -112,7 +112,7 @@ vi.mock('./edit-project-stage-form', () => ({
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import dayjs from 'dayjs'
-import type { ProjectPlanNodeDto } from '@/src/services/wayd-api'
+import type { ProjectPlanNodeDto } from '@/src/services/api/wayd.schemas'
 import ProjectPlanTable from './project-plan-table'
 
 const task = (extra: Partial<ProjectPlanNodeDto>): ProjectPlanNodeDto => ({

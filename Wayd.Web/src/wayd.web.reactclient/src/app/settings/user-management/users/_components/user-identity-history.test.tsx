@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { UserIdentityDto } from '@/src/services/wayd-api'
+import { UserIdentityDto } from '@/src/services/api/wayd.schemas'
 import UserIdentityHistory from './user-identity-history'
 
 const mockHistoryQuery = vi.fn()

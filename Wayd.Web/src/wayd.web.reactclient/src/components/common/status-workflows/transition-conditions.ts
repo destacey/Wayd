@@ -1,4 +1,4 @@
-import { TransitionConditionKind } from '@/src/services/wayd-api'
+import { TransitionConditionKind } from '@/src/services/api/wayd.schemas'
 
 /** What each condition on a workflow transition asks of a move, as an editor names it. */
 export const transitionConditionLabels: Record<

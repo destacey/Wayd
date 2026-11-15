@@ -1,7 +1,7 @@
 'use client'
 
 import PlanningIntervalTeamSprintMappings from '@/src/app/planning/planning-intervals/_components/planning-interval-team-sprint-mappings'
-import { PlanningIntervalDetailsDto } from '@/src/services/wayd-api'
+import { PlanningIntervalDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Modal } from 'antd'
 
 export interface TeamSprintMappingsModalProps {

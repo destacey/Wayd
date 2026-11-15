@@ -6,7 +6,7 @@ import {
   StoryMapSwimLaneDto,
   StoryMapTaskDto,
   Visibility,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   applyMoveStep,
   applyMoveTask,

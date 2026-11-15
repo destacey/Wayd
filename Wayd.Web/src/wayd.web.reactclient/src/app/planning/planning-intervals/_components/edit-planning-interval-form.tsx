@@ -2,7 +2,7 @@
 
 import { Form, Input, Modal, Switch } from 'antd'
 import { useEffect } from 'react'
-import { UpdatePlanningIntervalRequest } from '@/src/services/wayd-api'
+import { UpdatePlanningIntervalRequest } from '@/src/services/api/wayd.schemas'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'

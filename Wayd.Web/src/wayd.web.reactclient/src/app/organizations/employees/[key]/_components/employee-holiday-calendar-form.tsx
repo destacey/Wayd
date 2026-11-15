@@ -4,7 +4,7 @@ import { Form, Modal } from 'antd'
 import { HolidayCalendarSelect } from '@/src/components/common/scheduling'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { NavigationDto } from '@/src/services/wayd-api'
+import { NavigationDto } from '@/src/services/api/wayd.schemas'
 import { toFormErrors, toApiError } from '@/src/utils'
 import { useChangeEmployeeHolidayCalendarMutation } from '@/src/store/features/organization/employee-time-away-api'
 
@@ -16,7 +16,7 @@ export const SYSTEM_DEFAULT_LABEL = 'System default'
 interface Props {
   employeeId: string
   /** The calendar the person follows now; absent when they follow the system default. */
-  holidayCalendar?: NavigationDto
+  holidayCalendar?: NavigationDto | null
   onFormComplete: () => void
   onFormCancel: () => void
 }

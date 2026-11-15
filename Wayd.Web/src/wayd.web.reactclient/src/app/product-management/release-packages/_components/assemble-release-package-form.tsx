@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   AssembleReleasePackageRequest,
   ManifestEntryRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useAssembleReleasePackageMutation } from '@/src/store/features/product-management/release-packages-api'
 import { useGetVersionsQuery } from '@/src/store/features/product-management/versions-api'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'

@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { RoadmapDetailsDto } from '@/src/services/wayd-api'
+import { RoadmapDetailsDto } from '@/src/services/api/wayd.schemas'
 import { useDeleteRoadmapMutation } from '@/src/store/features/planning/roadmaps-api'
 import { Modal } from 'antd'
 

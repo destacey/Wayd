@@ -17,7 +17,7 @@ export const TeamsConfigurationSection: React.FC<ConfigSectionProps> = ({
         <Alert
           type="error"
           showIcon
-          message="Connection verification failed"
+          title="Connection verification failed"
           description={teamsVerifyError}
           style={{ marginBottom: 16 }}
         />

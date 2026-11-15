@@ -131,8 +131,7 @@ const ScopeBar: FC<ScopeBarProps> = ({
               className={styles.scopePicker}
               size="small"
               allowClear
-              showSearch
-              filterOption={filterByLabel}
+              showSearch={{ filterOption: filterByLabel }}
               placeholder="Choose a portfolio"
               aria-label="Choose a portfolio"
               options={portfolioOptions ?? []}
@@ -147,8 +146,7 @@ const ScopeBar: FC<ScopeBarProps> = ({
               className={styles.scopePicker}
               size="small"
               allowClear
-              showSearch
-              filterOption={filterByLabel}
+              showSearch={{ filterOption: filterByLabel }}
               placeholder="Choose a program"
               aria-label="Choose a program"
               options={programOptions ?? []}

@@ -136,9 +136,12 @@ const AddProjectWorkItemsForm = ({
           <Select
             mode="multiple"
             maxCount={MAX_WORK_ITEMS}
-            // Keeps the typed term on screen after a pick, so it matches the results still listed.
-            autoClearSearchValue={false}
-            showSearch={{ filterOption: false, onSearch: setSearch }}
+            showSearch={{
+              // Keeps the typed term on screen after a pick, so it matches the results still listed.
+              autoClearSearchValue: false,
+              filterOption: false,
+              onSearch: setSearch,
+            }}
             placeholder="Search by key or title"
             loading={isSearching || typedTerm !== searchTerm}
             options={options}

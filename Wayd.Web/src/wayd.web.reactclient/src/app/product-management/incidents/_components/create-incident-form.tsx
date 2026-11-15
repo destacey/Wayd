@@ -168,15 +168,14 @@ export function CreateIncidentForm({
           label="Severity"
           rules={[{ required: true, message: 'Severity is required.' }]}
         >
-          <Select options={severityOptions} showSearch optionFilterProp="label" />
+          <Select options={severityOptions} showSearch={{ optionFilterProp: 'label' }} />
         </Item>
         <Item name="productIds" label="Products">
           <Select
             mode="multiple"
             options={productOptions}
             allowClear
-            showSearch
-            optionFilterProp="label"
+            showSearch={{ optionFilterProp: 'label' }}
           />
         </Item>
         <Item name="releaseIds" label="Releases">
@@ -184,8 +183,7 @@ export function CreateIncidentForm({
             mode="multiple"
             options={releaseOptions}
             allowClear
-            showSearch
-            optionFilterProp="label"
+            showSearch={{ optionFilterProp: 'label' }}
           />
         </Item>
         <Item name="noticedAt" label="Noticed at">

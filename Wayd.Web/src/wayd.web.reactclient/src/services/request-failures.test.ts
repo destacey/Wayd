@@ -38,6 +38,31 @@ describe('isNetworkError', () => {
     },
   )
 
+  it('is true when fetch cannot reach the server', () => {
+    // Arrange
+    const error = new TypeError('Failed to fetch')
+
+    // Act
+    const result = isNetworkError(error)
+
+    // Assert
+    expect(result).toBe(true)
+  })
+
+  it.each(['TimeoutError', 'AbortError'])(
+    'is true when the request signal fires (%s)',
+    (name) => {
+      // Arrange
+      const error = new DOMException('signal fired', name)
+
+      // Act
+      const result = isNetworkError(error)
+
+      // Assert
+      expect(result).toBe(true)
+    },
+  )
+
   it('is false once the server has answered', () => {
     // Arrange
     const error = { code: 'ERR_NETWORK', response: { status: 503 } }
@@ -69,11 +94,7 @@ describe('logFailedRequest', () => {
     'warns, not errors, for a %s the caller decides about',
     (status) => {
       // Arrange
-      const failure = {
-        message: 'failed',
-        response: { status },
-        config: { url },
-      }
+      const failure = { error: { message: 'failed' }, url, status }
 
       // Act
       logFailedRequest(failure)
@@ -86,7 +107,7 @@ describe('logFailedRequest', () => {
 
   it('warns for a request that never reached the server', () => {
     // Arrange
-    const failure = { message: 'Network Error', config: { url } }
+    const failure = { error: new TypeError('Failed to fetch'), url }
 
     // Act
     logFailedRequest(failure)
@@ -98,7 +119,7 @@ describe('logFailedRequest', () => {
 
   it.each([500, 503])('errors for a server error (%s)', (status) => {
     // Arrange
-    const failure = { message: 'failed', response: { status }, config: { url } }
+    const failure = { error: { message: 'failed' }, url, status }
 
     // Act
     logFailedRequest(failure)

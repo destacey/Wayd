@@ -71,7 +71,6 @@ import {
   PersonalAccessTokensClient,
   OAuthAuthorizationRequestsClient,
   SearchClient,
-  TokenResponse,
   IntakeChannelsClient,
   IntakeRequestTagCategoriesClient,
   IntakeRequestTagsClient,
@@ -85,117 +84,27 @@ import {
 } from '@/src/otel/browser-traceparent'
 import { storeReturnUrl } from '@/src/utils/return-url'
 import { navigateWithFullReload } from '@/src/utils/window-utils'
-import {
-  isTransientRefreshFailure,
-  logFailedRequest,
-  RateLimitPause,
-} from './request-failures'
+import { getFreshAuthToken, refreshOnce } from './api-fetch'
+import { clearAuth, getAuthToken } from './auth-storage'
+import { isTransientRefreshFailure, logFailedRequest } from './request-failures'
 
 const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL
 
-// Storage keys for the Wayd JWT session. The same keys are used for every
-// login provider — local JWT and Entra-exchanged sessions are indistinguishable
-// at the storage layer.
-export const AUTH_TOKEN_KEY = 'wayd.local.token'
-export const AUTH_REFRESH_TOKEN_KEY = 'wayd.local.refreshToken'
-export const AUTH_TOKEN_EXPIRY_KEY = 'wayd.local.tokenExpiry'
-export const AUTH_MUST_CHANGE_PASSWORD_KEY = 'wayd.local.mustChangePassword'
-const AUTH_REMEMBER_KEY = 'wayd.local.rememberMe'
-
-/**
- * Returns the storage backend for the auth session.
- * The routing flag in localStorage determines whether tokens live in
- * localStorage (remember me) or sessionStorage (ephemeral session).
- */
-export function getAuthStorage(): Storage {
-  if (typeof window === 'undefined') {
-    throw new Error('getAuthStorage() cannot be called during SSR')
-  }
-  return localStorage.getItem(AUTH_REMEMBER_KEY) === 'false'
-    ? sessionStorage
-    : localStorage
-}
-
-/** Sets the remember-me routing flag (always in localStorage). */
-export function setRememberMe(remember: boolean): void {
-  localStorage.setItem(AUTH_REMEMBER_KEY, remember ? 'true' : 'false')
-}
-
-export function getAuthToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return getAuthStorage().getItem(AUTH_TOKEN_KEY)
-}
-
-export function getAuthRefreshToken(): string | null {
-  if (typeof window === 'undefined') return null
-  return getAuthStorage().getItem(AUTH_REFRESH_TOKEN_KEY)
-}
-
-/**
- * Returns true when the stored token is expired or within the skew window of
- * expiring. Used by the request interceptor to refresh proactively rather than
- * letting every concurrent call 401 first. The skew also covers small clock
- * drift between client and server.
- *
- * Returns false (treat as fresh) when there's no expiry recorded — older
- * sessions that predate the expiry-stamp landing should fall through to the
- * reactive 401 path instead of being force-refreshed on every request.
- */
-const TOKEN_REFRESH_SKEW_MS = 30_000
-export function isAuthTokenExpiringSoon(): boolean {
-  if (typeof window === 'undefined') return false
-  const stamp = getAuthStorage().getItem(AUTH_TOKEN_EXPIRY_KEY)
-  if (!stamp) return false
-  const expiresAt = Date.parse(stamp)
-  if (Number.isNaN(expiresAt)) return false
-  return expiresAt - Date.now() <= TOKEN_REFRESH_SKEW_MS
-}
-
-export function isAuthActive(): boolean {
-  if (typeof window === 'undefined') return false
-  // Check both storages since we don't know which was used until we read the flag.
-  return !!(
-    localStorage.getItem(AUTH_TOKEN_KEY) ||
-    sessionStorage.getItem(AUTH_TOKEN_KEY)
-  )
-}
-
-export function clearAuth(): void {
-  // Clear from both storages to ensure clean state.
-  for (const storage of [localStorage, sessionStorage]) {
-    storage.removeItem(AUTH_TOKEN_KEY)
-    storage.removeItem(AUTH_REFRESH_TOKEN_KEY)
-    storage.removeItem(AUTH_TOKEN_EXPIRY_KEY)
-    storage.removeItem(AUTH_MUST_CHANGE_PASSWORD_KEY)
-    // oidc-client-ts's redirect state, such as the PKCE verifier of a sign-in
-    // that was started and never completed.
-    for (const key of Object.keys(storage)) {
-      if (key.startsWith('oidc.')) storage.removeItem(key)
-    }
-  }
-  localStorage.removeItem(AUTH_REMEMBER_KEY)
-}
-
-/** Persists a token response from /api/auth/login, /exchange, or /refresh-token. */
-export function storeAuth(tokenResponse: {
-  token: string
-  refreshToken: string
-  tokenExpiresAt: Date | string
-  mustChangePassword: boolean
-}): void {
-  const storage = getAuthStorage()
-  storage.setItem(AUTH_TOKEN_KEY, tokenResponse.token)
-  storage.setItem(AUTH_REFRESH_TOKEN_KEY, tokenResponse.refreshToken)
-  storage.setItem(
-    AUTH_TOKEN_EXPIRY_KEY,
-    new Date(tokenResponse.tokenExpiresAt).toISOString(),
-  )
-  if (tokenResponse.mustChangePassword) {
-    storage.setItem(AUTH_MUST_CHANGE_PASSWORD_KEY, 'true')
-  } else {
-    storage.removeItem(AUTH_MUST_CHANGE_PASSWORD_KEY)
-  }
-}
+export {
+  AUTH_MUST_CHANGE_PASSWORD_KEY,
+  AUTH_REFRESH_TOKEN_KEY,
+  AUTH_TOKEN_EXPIRY_KEY,
+  AUTH_TOKEN_KEY,
+  clearAuth,
+  getAuthRefreshToken,
+  getAuthStorage,
+  getAuthToken,
+  isAuthActive,
+  isAuthTokenExpiringSoon,
+  setRememberMe,
+  storeAuth,
+} from './auth-storage'
+export { getFreshAuthToken } from './api-fetch'
 
 // Unauthenticated axios client for login/refresh/exchange (no token interceptors).
 const unauthAxiosClient = axios.create({
@@ -218,85 +127,8 @@ function redirectToLoginWithReturnUrl(): void {
   navigateWithFullReload('/login')
 }
 
-// Single-flight guard for refresh. When multiple requests 401 concurrently
-// (typical after an idle period: every in-flight call fails at once), they all
-// share one refresh call instead of each minting a new refresh token and racing
-// the rotation. Without this, whichever response wrote to storage last wins and
-// the others' rotated refresh tokens are orphaned — which breaks as soon as the
-// backend adopts one-shot refresh semantics.
-//
-// Returns null when there are no tokens to refresh with. Callers distinguish
-// this from a refresh-attempt failure: no tokens means "not a session" (don't
-// wipe state, just reject), whereas a failure means "session invalidated by
-// the server" (clear it).
-//
-// After a refresh is refused with 429, no refresh is sent again until the
-// wait it named has passed: the refresh limit is shared by everyone behind one
-// address, and every request with an expired token would otherwise spend it
-// again. A refresh asked for in the meantime fails as a 429 too, which callers
-// already treat as transient.
-let inFlightRefresh: Promise<TokenResponse> | null = null
-const refreshPause = new RateLimitPause()
-
-function refreshOnce(): Promise<TokenResponse> | null {
-  if (inFlightRefresh) return inFlightRefresh
-
-  const currentToken = getAuthToken()
-  const refreshToken = getAuthRefreshToken()
-  if (!currentToken || !refreshToken) return null
-
-  if (refreshPause.isActive()) {
-    return Promise.reject({
-      status: 429,
-      message: 'Token refresh paused by a rate limit.',
-    })
-  }
-
-  inFlightRefresh = getAuthClient()
-    .refreshToken({ token: currentToken, refreshToken })
-    .then((tokenResponse) => {
-      storeAuth(tokenResponse)
-      return tokenResponse
-    })
-    .catch((error: unknown) => {
-      refreshPause.record(error)
-      throw error
-    })
-    .finally(() => {
-      inFlightRefresh = null
-    })
-
-  return inFlightRefresh
-}
-
-/**
- * Returns the current Wayd JWT, proactively refreshing first if it's expired or
- * within the refresh skew window. Shared by the axios request interceptor and
- * the SignalR accessTokenFactory so both paths use the same single-flight
- * refresh (inFlightRefresh) — important because a hub start/reconnect happens
- * outside the axios pipeline and would otherwise hand SignalR a stale token,
- * causing it to fall back to polling until the hook remounts.
- *
- * Refresh failure is non-fatal here: we still return whatever token is in
- * storage so the caller can attempt the request. The 401-recovery path in the
- * response interceptor handles cleanup if the stale token is rejected; for
- * SignalR, the hub's automatic-reconnect will try again once a fresh token
- * lands. Network failures inside refreshOnce() also fall through to send-as-is
- * — better to let the actual call decide than to fail eagerly here.
- */
-export async function getFreshAuthToken(): Promise<string | null> {
-  if (isAuthTokenExpiringSoon()) {
-    const refresh = refreshOnce()
-    if (refresh) {
-      try {
-        await refresh
-      } catch {
-        // Swallowed deliberately — see comment above.
-      }
-    }
-  }
-  return getAuthToken()
-}
+// Refresh goes through the fetch client's single-flight guard (api-fetch.ts),
+// so requests on either client never race each other's token rotation.
 
 // Response interceptor: automatic Wayd refresh-token retry on 401.
 // One path for every provider because every provider ends up with the same
@@ -361,7 +193,11 @@ axiosClient.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    logFailedRequest(error)
+    logFailedRequest({
+      error,
+      url: error.config?.url,
+      status: error.response?.status,
+    })
     return Promise.reject(error)
   },
 )

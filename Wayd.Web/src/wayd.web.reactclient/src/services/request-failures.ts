@@ -1,19 +1,26 @@
 import { toApiError } from '@/src/utils/problem-details'
 
 /**
- * True for axios failures where no response was received: offline, DNS failure,
+ * True for a failure where no response was received: offline, DNS failure,
  * server unreachable, request timed out, request aborted. We treat these as
  * "couldn't ask the server" rather than "server said no" — the distinction
  * matters when deciding whether a failed refresh proves the session is bad.
  *
+ * `fetch` rejects with a `TypeError` when it cannot reach the server and with
+ * a `DOMException` named `TimeoutError` or `AbortError` when its signal fires.
  * Axios sets `response` only when the server actually responded; for transport
- * failures it sets `code` to ERR_NETWORK / ECONNABORTED / ERR_CANCELED. We
- * accept both signals because some axios errors get reshaped by interceptors
- * before reaching us.
+ * failures it sets `code` to ERR_NETWORK / ECONNABORTED / ERR_CANCELED.
  */
 export function isNetworkError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
-  const e = error as { response?: unknown; code?: string; message?: string }
+  if (error instanceof TypeError) return true
+  const e = error as {
+    response?: unknown
+    code?: string
+    message?: string
+    name?: string
+  }
+  if (e.name === 'TimeoutError' || e.name === 'AbortError') return true
   if (e.response) return false
   if (
     e.code === 'ERR_NETWORK' ||
@@ -37,13 +44,16 @@ export function isNetworkError(error: unknown): boolean {
  * 429 passes once its wait does. Each endpoint's queryFn logs a real failure
  * with its own context.
  */
-export function logFailedRequest(error: {
-  message?: string
-  response?: { status?: number }
-  config?: { url?: string }
+export function logFailedRequest({
+  error,
+  url,
+  status,
+}: {
+  error: unknown
+  url?: string
+  /** The response's status; undefined when there was no response. */
+  status?: number
 }): void {
-  const url = error.config?.url
-  const status = error.response?.status
   if (isNetworkError(error)) {
     console.warn('API unreachable:', url)
   } else if (status === 429) {
@@ -51,7 +61,7 @@ export function logFailedRequest(error: {
   } else if (status !== undefined && status >= 400 && status < 500) {
     console.warn('API refused the request:', status, url)
   } else {
-    console.error('API Error:', error.message, url)
+    console.error('API Error:', (error as { message?: unknown })?.message, url)
   }
 }
 
@@ -70,10 +80,9 @@ const TRANSIENT_REFRESH_STATUSES = new Set([429, 502, 503, 504])
  * succeed, so keeping that session would leave the user stuck rather than
  * signed out.
  *
- * The generated client throws an `ApiException` for a status it does not
- * document and the response body for one it does, so the status is read from
- * either: both carry `status`, an `ApiException` as a field and problem details
- * as part of the body.
+ * Every client error that came with a response carries `status`: the fetch
+ * client's `ApiResponseError`, and the NSwag client's `ApiException` or
+ * the problem details it throws for a documented status.
  */
 export function isTransientRefreshFailure(error: unknown): boolean {
   if (isNetworkError(error)) return true
@@ -91,8 +100,8 @@ const MAX_RATE_LIMIT_WAIT_MS = 5 * 60_000
 
 /**
  * How long a 429 asks the caller to wait, in milliseconds, or `undefined` for
- * any other failure. Read from `Retry-After` (seconds) on the generated
- * client's `ApiException`, whose `headers` keeps the names Axios lowercased.
+ * any other failure. Read from `Retry-After` (seconds) on the error's
+ * `headers`, whose names are lowercased.
  */
 export function rateLimitWaitMs(error: unknown): number | undefined {
   if (!error || typeof error !== 'object') return undefined

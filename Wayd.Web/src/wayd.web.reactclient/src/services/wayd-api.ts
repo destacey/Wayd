@@ -9470,6 +9470,13 @@ export class UsersClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -9719,6 +9726,13 @@ export class UsersClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
         } else if (status === 404) {
             const _responseText = response.data;
             let result404: any = null;
@@ -9948,6 +9962,13 @@ export class UsersClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
         } else if (status === 422) {
             const _responseText = response.data;
             let result422: any = null;
@@ -10013,6 +10034,13 @@ export class UsersClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
 
         } else if (status === 422) {
             const _responseText = response.data;
@@ -10083,6 +10111,13 @@ export class UsersClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
         } else if (status === 404) {
             const _responseText = response.data;
             let result404: any = null;
@@ -10147,6 +10182,13 @@ export class UsersClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
 
         } else if (status === 404) {
             const _responseText = response.data;
@@ -10213,6 +10255,13 @@ export class UsersClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
         } else if (status === 404) {
             const _responseText = response.data;
             let result404: any = null;
@@ -10278,6 +10327,13 @@ export class UsersClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
         } else if (status === 404) {
             const _responseText = response.data;
             let result404: any = null;
@@ -10342,6 +10398,13 @@ export class UsersClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
 
         } else if (status === 404) {
             const _responseText = response.data;
@@ -10412,6 +10475,13 @@ export class UsersClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
         } else if (status === 404) {
             const _responseText = response.data;
             let result404: any = null;
@@ -10480,6 +10550,13 @@ export class UsersClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
 
         } else if (status === 404) {
             const _responseText = response.data;
@@ -10557,6 +10634,13 @@ export class UsersClient {
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
 
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
+
         } else if (status === 404) {
             const _responseText = response.data;
             let result404: any = null;
@@ -10628,6 +10712,13 @@ export class UsersClient {
             let resultData400  = _responseText;
             result400 = resultData400;
             return throwException("Bad Request", status, _responseText, _headers, result400);
+
+        } else if (status === 403) {
+            const _responseText = response.data;
+            let result403: any = null;
+            let resultData403  = _responseText;
+            result403 = resultData403;
+            return throwException("Forbidden", status, _responseText, _headers, result403);
 
         } else if (status === 404) {
             const _responseText = response.data;
@@ -64801,6 +64892,7 @@ export interface ApplicationPermission {
     resource: string;
     category: string;
     isRoot: boolean;
+    isPrivileged: boolean;
     name: string;
 }
 

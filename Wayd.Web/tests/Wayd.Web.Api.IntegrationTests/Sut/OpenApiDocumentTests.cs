@@ -31,7 +31,7 @@ public sealed class OpenApiDocumentTests(WaydApiFactory factory)
         // Assert
         Assert.True(
             JsonNode.DeepEquals(committed, served),
-            $"specification.json is out of date at {FirstDifference(committed, served, "$")}: rebuild Wayd.Web.Api in Debug and commit the regenerated specification.json and wayd-api.ts.");
+            $"specification.json is out of date at {FirstDifference(committed, served, "$")}: rebuild Wayd.Web.Api in Debug and commit the regenerated specification.json and the client's src/services/api.");
     }
 
     [Fact]

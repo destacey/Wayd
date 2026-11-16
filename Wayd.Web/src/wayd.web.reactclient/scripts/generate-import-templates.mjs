@@ -1,7 +1,7 @@
 /**
  * Regenerates src/components/common/import/import-templates.generated.ts from the API's OpenAPI document.
  *
- * Run after the API's Debug build has regenerated the document (and wayd-api.ts beside it):
+ * Run after the API's Debug build has regenerated the document (and the API client in src/services/api):
  *   npm run generate:import-templates
  */
 import * as fs from 'node:fs'

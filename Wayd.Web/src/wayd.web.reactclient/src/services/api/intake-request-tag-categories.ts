@@ -99,7 +99,7 @@ export const getIntakeRequestTagCategoriesUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-request-tag-categories/${id}`
+  return `/api/demand-management/intake-request-tag-categories/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -124,7 +124,7 @@ export const getIntakeRequestTagCategoriesDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-request-tag-categories/${id}`
+  return `/api/demand-management/intake-request-tag-categories/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -148,7 +148,7 @@ export const getIntakeRequestTagCategoriesSetActiveUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-request-tag-categories/${id}/active`
+  return `/api/demand-management/intake-request-tag-categories/${encodeURIComponent(String(id))}/active`
 }
 
 /**
@@ -197,7 +197,7 @@ export const getIntakeRequestTagCategoriesAddTagUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-request-tag-categories/${id}/tags`
+  return `/api/demand-management/intake-request-tag-categories/${encodeURIComponent(String(id))}/tags`
 }
 
 /**
@@ -223,7 +223,7 @@ export const getIntakeRequestTagCategoriesUpdateTagUrl = (id: string,
 
 
 
-  return `/api/demand-management/intake-request-tag-categories/${id}/tags/${tagId}`
+  return `/api/demand-management/intake-request-tag-categories/${encodeURIComponent(String(id))}/tags/${encodeURIComponent(String(tagId))}`
 }
 
 /**
@@ -250,7 +250,7 @@ export const getIntakeRequestTagCategoriesDeleteTagUrl = (id: string,
 
 
 
-  return `/api/demand-management/intake-request-tag-categories/${id}/tags/${tagId}`
+  return `/api/demand-management/intake-request-tag-categories/${encodeURIComponent(String(id))}/tags/${encodeURIComponent(String(tagId))}`
 }
 
 /**
@@ -276,7 +276,7 @@ export const getIntakeRequestTagCategoriesSetTagActiveUrl = (id: string,
 
 
 
-  return `/api/demand-management/intake-request-tag-categories/${id}/tags/${tagId}/active`
+  return `/api/demand-management/intake-request-tag-categories/${encodeURIComponent(String(id))}/tags/${encodeURIComponent(String(tagId))}/active`
 }
 
 /**

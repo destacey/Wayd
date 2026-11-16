@@ -127,7 +127,7 @@ export const getProgramsGetProgramUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/ppm/programs/${idOrKey}`
+  return `/api/ppm/programs/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -169,7 +169,7 @@ export const getProgramsGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/ppm/programs/${idOrKey}/activities?${stringifiedParams}` : `/api/ppm/programs/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/ppm/programs/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/ppm/programs/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -238,7 +238,7 @@ export const getProgramsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/programs/${id}`
+  return `/api/ppm/programs/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -263,7 +263,7 @@ export const getProgramsPatchProgramUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/programs/${id}`
+  return `/api/ppm/programs/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -288,7 +288,7 @@ export const getProgramsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/programs/${id}`
+  return `/api/ppm/programs/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -312,7 +312,7 @@ export const getProgramsActivateUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/programs/${id}/activate`
+  return `/api/ppm/programs/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -336,7 +336,7 @@ export const getProgramsCompleteUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/programs/${id}/complete`
+  return `/api/ppm/programs/${encodeURIComponent(String(id))}/complete`
 }
 
 /**
@@ -360,7 +360,7 @@ export const getProgramsCancelUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/programs/${id}/cancel`
+  return `/api/ppm/programs/${encodeURIComponent(String(id))}/cancel`
 }
 
 /**
@@ -421,7 +421,7 @@ export const getProgramsGetProjectsUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/ppm/programs/${idOrKey}/projects?${stringifiedParams}` : `/api/ppm/programs/${idOrKey}/projects`
+  return stringifiedParams.length > 0 ? `/api/ppm/programs/${encodeURIComponent(String(idOrKey))}/projects?${stringifiedParams}` : `/api/ppm/programs/${encodeURIComponent(String(idOrKey))}/projects`
 }
 
 /**

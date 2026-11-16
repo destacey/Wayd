@@ -104,7 +104,7 @@ export const getProductTagCategoriesUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/product-tag-categories/${id}`
+  return `/api/product-management/product-tag-categories/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -129,7 +129,7 @@ export const getProductTagCategoriesDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/product-tag-categories/${id}`
+  return `/api/product-management/product-tag-categories/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -153,7 +153,7 @@ export const getProductTagCategoriesSetActiveUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/product-tag-categories/${id}/active`
+  return `/api/product-management/product-tag-categories/${encodeURIComponent(String(id))}/active`
 }
 
 /**
@@ -204,7 +204,7 @@ export const getProductTagCategoriesAddTagUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/product-tag-categories/${id}/tags`
+  return `/api/product-management/product-tag-categories/${encodeURIComponent(String(id))}/tags`
 }
 
 /**
@@ -230,7 +230,7 @@ export const getProductTagCategoriesRenameTagUrl = (id: string,
 
 
 
-  return `/api/product-management/product-tag-categories/${id}/tags/${tagId}`
+  return `/api/product-management/product-tag-categories/${encodeURIComponent(String(id))}/tags/${encodeURIComponent(String(tagId))}`
 }
 
 /**
@@ -259,7 +259,7 @@ export const getProductTagCategoriesDeleteTagUrl = (id: string,
 
 
 
-  return `/api/product-management/product-tag-categories/${id}/tags/${tagId}`
+  return `/api/product-management/product-tag-categories/${encodeURIComponent(String(id))}/tags/${encodeURIComponent(String(tagId))}`
 }
 
 /**
@@ -285,7 +285,7 @@ export const getProductTagCategoriesSetTagActiveUrl = (id: string,
 
 
 
-  return `/api/product-management/product-tag-categories/${id}/tags/${tagId}/active`
+  return `/api/product-management/product-tag-categories/${encodeURIComponent(String(id))}/tags/${encodeURIComponent(String(tagId))}/active`
 }
 
 /**

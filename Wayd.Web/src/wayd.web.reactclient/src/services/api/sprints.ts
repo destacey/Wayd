@@ -123,7 +123,7 @@ export const getSprintsGetSprintUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/work/sprints/${idOrKey}`
+  return `/api/work/sprints/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -197,7 +197,7 @@ export const getSprintsGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/work/sprints/${idOrKey}/activities?${stringifiedParams}` : `/api/work/sprints/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/work/sprints/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/work/sprints/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -233,7 +233,7 @@ export const getSprintsGetSprintBacklogUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/work/sprints/${idOrKey}/backlog`
+  return `/api/work/sprints/${encodeURIComponent(String(idOrKey))}/backlog`
 }
 
 /**
@@ -272,7 +272,7 @@ export const getSprintsGetSprintMetricsUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/work/sprints/${idOrKey}/metrics`
+  return `/api/work/sprints/${encodeURIComponent(String(idOrKey))}/metrics`
 }
 
 /**
@@ -296,7 +296,7 @@ export const getSprintsGetSprintScopeUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/work/sprints/${idOrKey}/scope`
+  return `/api/work/sprints/${encodeURIComponent(String(idOrKey))}/scope`
 }
 
 /**
@@ -354,7 +354,7 @@ export const getSprintsGetSprintBurnUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/work/sprints/${idOrKey}/burn`
+  return `/api/work/sprints/${encodeURIComponent(String(idOrKey))}/burn`
 }
 
 /**
@@ -398,7 +398,7 @@ export const getSprintsGetSprintCapacityUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/work/sprints/${idOrKey}/capacity`
+  return `/api/work/sprints/${encodeURIComponent(String(idOrKey))}/capacity`
 }
 
 /**
@@ -429,7 +429,7 @@ export const getSprintsStartUrl = (id: string,) => {
 
 
 
-  return `/api/work/sprints/${id}/start`
+  return `/api/work/sprints/${encodeURIComponent(String(id))}/start`
 }
 
 /**
@@ -454,7 +454,7 @@ export const getSprintsCompleteUrl = (id: string,) => {
 
 
 
-  return `/api/work/sprints/${id}/complete`
+  return `/api/work/sprints/${encodeURIComponent(String(id))}/complete`
 }
 
 /**
@@ -479,7 +479,7 @@ export const getSprintsReopenUrl = (id: string,) => {
 
 
 
-  return `/api/work/sprints/${id}/reopen`
+  return `/api/work/sprints/${encodeURIComponent(String(id))}/reopen`
 }
 
 /**
@@ -503,7 +503,7 @@ export const getSprintsSetTeamDaysOffUrl = (id: string,) => {
 
 
 
-  return `/api/work/sprints/${id}/team-days-off`
+  return `/api/work/sprints/${encodeURIComponent(String(id))}/team-days-off`
 }
 
 /**
@@ -528,7 +528,7 @@ export const getSprintsSetSprintTypeUrl = (id: string,) => {
 
 
 
-  return `/api/work/sprints/${id}/type`
+  return `/api/work/sprints/${encodeURIComponent(String(id))}/type`
 }
 
 /**
@@ -577,7 +577,7 @@ export const getSprintsGetPlanningIntervalsUrl = (key: number,) => {
 
 
 
-  return `/api/work/sprints/${key}/planning-intervals`
+  return `/api/work/sprints/${encodeURIComponent(String(key))}/planning-intervals`
 }
 
 /**

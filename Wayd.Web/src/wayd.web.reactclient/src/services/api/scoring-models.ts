@@ -106,7 +106,7 @@ export const getScoringModelsGetScoringModelUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/scoring-models/${idOrKey}`
+  return `/api/scoring-models/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -138,7 +138,7 @@ export const getScoringModelsGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/scoring-models/${idOrKey}/activities?${stringifiedParams}` : `/api/scoring-models/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/scoring-models/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/scoring-models/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -173,7 +173,7 @@ export const getScoringModelsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/scoring-models/${id}`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -197,7 +197,7 @@ export const getScoringModelsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/scoring-models/${id}`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -220,7 +220,7 @@ export const getScoringModelsActivateUrl = (id: string,) => {
 
 
 
-  return `/api/scoring-models/${id}/activate`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -243,7 +243,7 @@ export const getScoringModelsArchiveUrl = (id: string,) => {
 
 
 
-  return `/api/scoring-models/${id}/archive`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/archive`
 }
 
 /**
@@ -266,7 +266,7 @@ export const getScoringModelsEvaluateUrl = (id: string,) => {
 
 
 
-  return `/api/scoring-models/${id}/evaluate`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/evaluate`
 }
 
 /**
@@ -290,7 +290,7 @@ export const getScoringModelsAddCriterionUrl = (id: string,) => {
 
 
 
-  return `/api/scoring-models/${id}/criteria`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/criteria`
 }
 
 /**
@@ -315,7 +315,7 @@ export const getScoringModelsUpdateCriterionUrl = (id: string,
 
 
 
-  return `/api/scoring-models/${id}/criteria/${criterionId}`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/criteria/${encodeURIComponent(String(criterionId))}`
 }
 
 /**
@@ -341,7 +341,7 @@ export const getScoringModelsRemoveCriterionUrl = (id: string,
 
 
 
-  return `/api/scoring-models/${id}/criteria/${criterionId}`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/criteria/${encodeURIComponent(String(criterionId))}`
 }
 
 /**
@@ -365,7 +365,7 @@ export const getScoringModelsReorderCriteriaUrl = (id: string,) => {
 
 
 
-  return `/api/scoring-models/${id}/criteria/reorder`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/criteria/reorder`
 }
 
 /**
@@ -389,7 +389,7 @@ export const getScoringModelsAddScaleUrl = (id: string,) => {
 
 
 
-  return `/api/scoring-models/${id}/scales`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/scales`
 }
 
 /**
@@ -414,7 +414,7 @@ export const getScoringModelsUpdateScaleUrl = (id: string,
 
 
 
-  return `/api/scoring-models/${id}/scales/${scaleId}`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/scales/${encodeURIComponent(String(scaleId))}`
 }
 
 /**
@@ -440,7 +440,7 @@ export const getScoringModelsRemoveScaleUrl = (id: string,
 
 
 
-  return `/api/scoring-models/${id}/scales/${scaleId}`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/scales/${encodeURIComponent(String(scaleId))}`
 }
 
 /**
@@ -464,7 +464,7 @@ export const getScoringModelsReorderScalesUrl = (id: string,) => {
 
 
 
-  return `/api/scoring-models/${id}/scales/reorder`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/scales/reorder`
 }
 
 /**
@@ -489,7 +489,7 @@ export const getScoringModelsAddScaleLevelUrl = (id: string,
 
 
 
-  return `/api/scoring-models/${id}/scales/${scaleId}/levels`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/scales/${encodeURIComponent(String(scaleId))}/levels`
 }
 
 /**
@@ -516,7 +516,7 @@ export const getScoringModelsUpdateScaleLevelUrl = (id: string,
 
 
 
-  return `/api/scoring-models/${id}/scales/${scaleId}/levels/${levelId}`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/scales/${encodeURIComponent(String(scaleId))}/levels/${encodeURIComponent(String(levelId))}`
 }
 
 /**
@@ -544,7 +544,7 @@ export const getScoringModelsRemoveScaleLevelUrl = (id: string,
 
 
 
-  return `/api/scoring-models/${id}/scales/${scaleId}/levels/${levelId}`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/scales/${encodeURIComponent(String(scaleId))}/levels/${encodeURIComponent(String(levelId))}`
 }
 
 /**
@@ -570,7 +570,7 @@ export const getScoringModelsReorderScaleLevelsUrl = (id: string,
 
 
 
-  return `/api/scoring-models/${id}/scales/${scaleId}/levels/reorder`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/scales/${encodeURIComponent(String(scaleId))}/levels/reorder`
 }
 
 /**
@@ -595,7 +595,7 @@ export const getScoringModelsAddOutputUrl = (id: string,) => {
 
 
 
-  return `/api/scoring-models/${id}/outputs`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/outputs`
 }
 
 /**
@@ -620,7 +620,7 @@ export const getScoringModelsUpdateOutputUrl = (id: string,
 
 
 
-  return `/api/scoring-models/${id}/outputs/${outputId}`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/outputs/${encodeURIComponent(String(outputId))}`
 }
 
 /**
@@ -646,7 +646,7 @@ export const getScoringModelsRemoveOutputUrl = (id: string,
 
 
 
-  return `/api/scoring-models/${id}/outputs/${outputId}`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/outputs/${encodeURIComponent(String(outputId))}`
 }
 
 /**
@@ -670,7 +670,7 @@ export const getScoringModelsReorderOutputsUrl = (id: string,) => {
 
 
 
-  return `/api/scoring-models/${id}/outputs/reorder`
+  return `/api/scoring-models/${encodeURIComponent(String(id))}/outputs/reorder`
 }
 
 /**

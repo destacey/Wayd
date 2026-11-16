@@ -64,7 +64,7 @@ export const getMyNotificationMutesGetRecordMuteStatusUrl = (ownerType: string,
 
 
 
-  return `/api/me/notification-mutes/records/${ownerType}/${ownerId}`
+  return `/api/me/notification-mutes/records/${encodeURIComponent(String(ownerType))}/${encodeURIComponent(String(ownerId))}`
 }
 
 /**
@@ -98,7 +98,7 @@ export const getMyNotificationMutesMuteRecordUrl = (ownerType: string,
 
 
 
-  return `/api/me/notification-mutes/records/${ownerType}/${ownerId}`
+  return `/api/me/notification-mutes/records/${encodeURIComponent(String(ownerType))}/${encodeURIComponent(String(ownerId))}`
 }
 
 /**
@@ -124,7 +124,7 @@ export const getMyNotificationMutesUnmuteRecordUrl = (ownerType: string,
 
 
 
-  return `/api/me/notification-mutes/records/${ownerType}/${ownerId}`
+  return `/api/me/notification-mutes/records/${encodeURIComponent(String(ownerType))}/${encodeURIComponent(String(ownerId))}`
 }
 
 /**
@@ -184,7 +184,7 @@ export const getMyNotificationMutesMuteReasonUrl = (reason: NotificationReason,)
 
 
 
-  return `/api/me/notification-mutes/reasons/${reason}`
+  return `/api/me/notification-mutes/reasons/${encodeURIComponent(String(reason))}`
 }
 
 /**
@@ -208,7 +208,7 @@ export const getMyNotificationMutesUnmuteReasonUrl = (reason: NotificationReason
 
 
 
-  return `/api/me/notification-mutes/reasons/${reason}`
+  return `/api/me/notification-mutes/reasons/${encodeURIComponent(String(reason))}`
 }
 
 /**

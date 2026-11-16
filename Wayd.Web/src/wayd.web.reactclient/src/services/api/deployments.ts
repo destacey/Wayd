@@ -118,7 +118,7 @@ export const getDeploymentsGetDeploymentUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/deployments/${idOrKey}`
+  return `/api/product-management/deployments/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -159,7 +159,7 @@ export const getDeploymentsGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/product-management/deployments/${idOrKey}/activities?${stringifiedParams}` : `/api/product-management/deployments/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/product-management/deployments/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/product-management/deployments/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -195,7 +195,7 @@ export const getDeploymentsGetStatusHistoryUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/deployments/${idOrKey}/status-history`
+  return `/api/product-management/deployments/${encodeURIComponent(String(idOrKey))}/status-history`
 }
 
 /**
@@ -228,7 +228,7 @@ export const getDeploymentsGetStatusWorkflowUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/deployments/${idOrKey}/status-workflow`
+  return `/api/product-management/deployments/${encodeURIComponent(String(idOrKey))}/status-workflow`
 }
 
 /**
@@ -286,7 +286,7 @@ export const getDeploymentsSucceedUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/deployments/${id}/succeed`
+  return `/api/product-management/deployments/${encodeURIComponent(String(id))}/succeed`
 }
 
 /**
@@ -311,7 +311,7 @@ export const getDeploymentsFailUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/deployments/${id}/fail`
+  return `/api/product-management/deployments/${encodeURIComponent(String(id))}/fail`
 }
 
 /**
@@ -336,7 +336,7 @@ export const getDeploymentsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/deployments/${id}`
+  return `/api/product-management/deployments/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -360,7 +360,7 @@ export const getDeploymentsRollBackUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/deployments/${id}/roll-back`
+  return `/api/product-management/deployments/${encodeURIComponent(String(id))}/roll-back`
 }
 
 /**

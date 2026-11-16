@@ -95,7 +95,7 @@ export const getIntakeChannelsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-channels/${id}`
+  return `/api/demand-management/intake-channels/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -120,7 +120,7 @@ export const getIntakeChannelsArchiveUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-channels/${id}/archive`
+  return `/api/demand-management/intake-channels/${encodeURIComponent(String(id))}/archive`
 }
 
 /**
@@ -144,7 +144,7 @@ export const getIntakeChannelsRestoreUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-channels/${id}/restore`
+  return `/api/demand-management/intake-channels/${encodeURIComponent(String(id))}/restore`
 }
 
 /**

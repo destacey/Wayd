@@ -110,7 +110,7 @@ export const getEmployeesGetEmployeeUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/organization/employees/${idOrKey}`
+  return `/api/organization/employees/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -175,7 +175,7 @@ export const getEmployeesUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/organization/employees/${id}`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -200,7 +200,7 @@ export const getEmployeesDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/organization/employees/${id}`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -224,7 +224,7 @@ export const getEmployeesGetDirectReportsUrl = (id: string,) => {
 
 
 
-  return `/api/organization/employees/${id}/direct-reports`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}/direct-reports`
 }
 
 /**
@@ -248,7 +248,7 @@ export const getEmployeesRemoveInvalidUrl = (id: string,) => {
 
 
 
-  return `/api/organization/employees/${id}/remove-invalid`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}/remove-invalid`
 }
 
 /**
@@ -272,7 +272,7 @@ export const getEmployeesGetTeamMembershipsUrl = (id: string,) => {
 
 
 
-  return `/api/organization/employees/${id}/team-memberships`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}/team-memberships`
 }
 
 /**
@@ -296,7 +296,7 @@ export const getEmployeesGetAllocationsUrl = (id: string,) => {
 
 
 
-  return `/api/organization/employees/${id}/allocations`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}/allocations`
 }
 
 /**
@@ -332,7 +332,7 @@ export const getEmployeesChangeAllocationsUrl = (id: string,) => {
 
 
 
-  return `/api/organization/employees/${id}/allocations`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}/allocations`
 }
 
 /**
@@ -357,7 +357,7 @@ export const getEmployeesMoveAllocationUrl = (id: string,) => {
 
 
 
-  return `/api/organization/employees/${id}/allocations/move`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}/allocations/move`
 }
 
 /**
@@ -406,7 +406,7 @@ export const getEmployeesGetTimeAwayUrl = (id: string,) => {
 
 
 
-  return `/api/organization/employees/${id}/time-away`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}/time-away`
 }
 
 /**
@@ -442,7 +442,7 @@ export const getEmployeesRecordTimeAwayUrl = (id: string,) => {
 
 
 
-  return `/api/organization/employees/${id}/time-away`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}/time-away`
 }
 
 /**
@@ -468,7 +468,7 @@ export const getEmployeesChangeTimeAwayUrl = (id: string,
 
 
 
-  return `/api/organization/employees/${id}/time-away/${timeAwayId}`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}/time-away/${encodeURIComponent(String(timeAwayId))}`
 }
 
 /**
@@ -495,7 +495,7 @@ export const getEmployeesRemoveTimeAwayUrl = (id: string,
 
 
 
-  return `/api/organization/employees/${id}/time-away/${timeAwayId}`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}/time-away/${encodeURIComponent(String(timeAwayId))}`
 }
 
 /**
@@ -520,7 +520,7 @@ export const getEmployeesChangeHolidayCalendarUrl = (id: string,) => {
 
 
 
-  return `/api/organization/employees/${id}/holiday-calendar`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}/holiday-calendar`
 }
 
 /**
@@ -545,7 +545,7 @@ export const getEmployeesChangeWorkingDayHoursUrl = (id: string,) => {
 
 
 
-  return `/api/organization/employees/${id}/working-day-hours`
+  return `/api/organization/employees/${encodeURIComponent(String(id))}/working-day-hours`
 }
 
 /**
@@ -586,7 +586,7 @@ export const getEmployeesGetEmployeeWorkItemsUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/employees/${id}/work-items?${stringifiedParams}` : `/api/organization/employees/${id}/work-items`
+  return stringifiedParams.length > 0 ? `/api/organization/employees/${encodeURIComponent(String(id))}/work-items?${stringifiedParams}` : `/api/organization/employees/${encodeURIComponent(String(id))}/work-items`
 }
 
 /**

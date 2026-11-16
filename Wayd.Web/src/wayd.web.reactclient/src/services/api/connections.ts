@@ -131,7 +131,7 @@ export const getConnectionsGetConnectionUrl = (id: string,) => {
 
 
 
-  return `/api/app-integrations/connections/${id}`
+  return `/api/app-integrations/connections/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -155,7 +155,7 @@ export const getConnectionsUpdateConnectionUrl = (id: string,) => {
 
 
 
-  return `/api/app-integrations/connections/${id}`
+  return `/api/app-integrations/connections/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -180,7 +180,7 @@ export const getConnectionsDeleteConnectionUrl = (id: string,) => {
 
 
 
-  return `/api/app-integrations/connections/${id}`
+  return `/api/app-integrations/connections/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -212,7 +212,7 @@ export const getConnectionsGetConnectionIdentitiesUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/app-integrations/connections/${id}/identities?${stringifiedParams}` : `/api/app-integrations/connections/${id}/identities`
+  return stringifiedParams.length > 0 ? `/api/app-integrations/connections/${encodeURIComponent(String(id))}/identities?${stringifiedParams}` : `/api/app-integrations/connections/${encodeURIComponent(String(id))}/identities`
 }
 
 /**
@@ -246,7 +246,7 @@ export const getConnectionsUpdateConnectionIdentityUrl = (id: string,) => {
 
 
 
-  return `/api/app-integrations/connections/${id}/identities`
+  return `/api/app-integrations/connections/${encodeURIComponent(String(id))}/identities`
 }
 
 /**
@@ -303,7 +303,7 @@ export const getConnectionsGetActivitiesUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/app-integrations/connections/${id}/activities?${stringifiedParams}` : `/api/app-integrations/connections/${id}/activities`
+  return stringifiedParams.length > 0 ? `/api/app-integrations/connections/${encodeURIComponent(String(id))}/activities?${stringifiedParams}` : `/api/app-integrations/connections/${encodeURIComponent(String(id))}/activities`
 }
 
 /**
@@ -338,7 +338,7 @@ export const getConnectionsActivateConnectionUrl = (id: string,) => {
 
 
 
-  return `/api/app-integrations/connections/${id}/activate`
+  return `/api/app-integrations/connections/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -362,7 +362,7 @@ export const getConnectionsDeactivateConnectionUrl = (id: string,) => {
 
 
 
-  return `/api/app-integrations/connections/${id}/deactivate`
+  return `/api/app-integrations/connections/${encodeURIComponent(String(id))}/deactivate`
 }
 
 /**
@@ -394,7 +394,7 @@ export const getConnectionsRunSyncUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/app-integrations/connections/${id}/run?${stringifiedParams}` : `/api/app-integrations/connections/${id}/run`
+  return stringifiedParams.length > 0 ? `/api/app-integrations/connections/${encodeURIComponent(String(id))}/run?${stringifiedParams}` : `/api/app-integrations/connections/${encodeURIComponent(String(id))}/run`
 }
 
 /**
@@ -419,7 +419,7 @@ export const getConnectionsInitConnectionUrl = (id: string,) => {
 
 
 
-  return `/api/app-integrations/connections/${id}/init`
+  return `/api/app-integrations/connections/${encodeURIComponent(String(id))}/init`
 }
 
 /**
@@ -443,7 +443,7 @@ export const getConnectionsTestCommunicationConnectionUrl = (id: string,) => {
 
 
 
-  return `/api/app-integrations/connections/${id}/communication-test`
+  return `/api/app-integrations/connections/${encodeURIComponent(String(id))}/communication-test`
 }
 
 /**
@@ -475,7 +475,7 @@ export const getConnectionsGetWorkdayOrgsByTypeUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/app-integrations/connections/${id}/workday/orgs?${stringifiedParams}` : `/api/app-integrations/connections/${id}/workday/orgs`
+  return stringifiedParams.length > 0 ? `/api/app-integrations/connections/${encodeURIComponent(String(id))}/workday/orgs?${stringifiedParams}` : `/api/app-integrations/connections/${encodeURIComponent(String(id))}/workday/orgs`
 }
 
 /**
@@ -508,7 +508,7 @@ export const getConnectionsGetSyncRunsUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/app-integrations/connections/${id}/sync-runs?${stringifiedParams}` : `/api/app-integrations/connections/${id}/sync-runs`
+  return stringifiedParams.length > 0 ? `/api/app-integrations/connections/${encodeURIComponent(String(id))}/sync-runs?${stringifiedParams}` : `/api/app-integrations/connections/${encodeURIComponent(String(id))}/sync-runs`
 }
 
 /**
@@ -545,7 +545,7 @@ export const getConnectionsGetSyncRunUrl = (syncRunId: string,) => {
 
 
 
-  return `/api/app-integrations/connections/sync-runs/${syncRunId}`
+  return `/api/app-integrations/connections/sync-runs/${encodeURIComponent(String(syncRunId))}`
 }
 
 /**

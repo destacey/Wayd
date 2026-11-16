@@ -263,7 +263,7 @@ export const getIntakeRequestsGetIntakeRequestUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${idOrKey}`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -328,7 +328,7 @@ export const getIntakeRequestsGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/demand-management/intake-requests/${idOrKey}/activities?${stringifiedParams}` : `/api/demand-management/intake-requests/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/demand-management/intake-requests/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/demand-management/intake-requests/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -431,7 +431,7 @@ export const getIntakeRequestsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -456,7 +456,7 @@ export const getIntakeRequestsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -480,7 +480,7 @@ export const getIntakeRequestsChangeAssigneeUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}/assignee`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/assignee`
 }
 
 /**
@@ -505,7 +505,7 @@ export const getIntakeRequestsChangeEstimateUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}/estimate`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/estimate`
 }
 
 /**
@@ -530,7 +530,7 @@ export const getIntakeRequestsRerouteUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}/reroute`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/reroute`
 }
 
 /**
@@ -563,7 +563,7 @@ export const getIntakeRequestsGetArrivalStatusesUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/demand-management/intake-requests/${id}/arrival-statuses?${stringifiedParams}` : `/api/demand-management/intake-requests/${id}/arrival-statuses`
+  return stringifiedParams.length > 0 ? `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/arrival-statuses?${stringifiedParams}` : `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/arrival-statuses`
 }
 
 /**
@@ -588,7 +588,7 @@ export const getIntakeRequestsChangeStatusUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}/status`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/status`
 }
 
 /**
@@ -613,7 +613,7 @@ export const getIntakeRequestsWithdrawUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}/withdraw`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/withdraw`
 }
 
 /**
@@ -638,7 +638,7 @@ export const getIntakeRequestsGetStatusOptionsUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}/status-options`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/status-options`
 }
 
 /**
@@ -662,7 +662,7 @@ export const getIntakeRequestsGetStatusHistoryUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${idOrKey}/status-history`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(idOrKey))}/status-history`
 }
 
 /**
@@ -695,7 +695,7 @@ export const getIntakeRequestsGetStatusWorkflowUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${idOrKey}/status-workflow`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(idOrKey))}/status-workflow`
 }
 
 /**
@@ -719,7 +719,7 @@ export const getIntakeRequestsAddParticipantUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}/participants`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/participants`
 }
 
 /**
@@ -745,7 +745,7 @@ export const getIntakeRequestsRemoveParticipantUrl = (id: string,
 
 
 
-  return `/api/demand-management/intake-requests/${id}/participants/${employeeId}`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/participants/${encodeURIComponent(String(employeeId))}`
 }
 
 /**
@@ -770,7 +770,7 @@ export const getIntakeRequestsAddOutcomeUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}/outcomes`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/outcomes`
 }
 
 /**
@@ -796,7 +796,7 @@ export const getIntakeRequestsRemoveOutcomeUrl = (id: string,
 
 
 
-  return `/api/demand-management/intake-requests/${id}/outcomes/${targetId}`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/outcomes/${encodeURIComponent(String(targetId))}`
 }
 
 /**
@@ -822,7 +822,7 @@ export const getIntakeRequestsSetOutcomeDeliverablesUrl = (id: string,
 
 
 
-  return `/api/demand-management/intake-requests/${id}/outcomes/${targetId}/deliverables`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/outcomes/${encodeURIComponent(String(targetId))}/deliverables`
 }
 
 /**
@@ -849,7 +849,7 @@ export const getIntakeRequestsGetProjectDeliverablesUrl = (id: string,
 
 
 
-  return `/api/demand-management/intake-requests/${id}/projects/${projectId}/deliverables`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/projects/${encodeURIComponent(String(projectId))}/deliverables`
 }
 
 /**
@@ -874,7 +874,7 @@ export const getIntakeRequestsGetProjectIntakeRequestsUrl = (projectId: string,)
 
 
 
-  return `/api/demand-management/intake-requests/projects/${projectId}`
+  return `/api/demand-management/intake-requests/projects/${encodeURIComponent(String(projectId))}`
 }
 
 /**
@@ -898,7 +898,7 @@ export const getIntakeRequestsGetWorkItemIntakeRequestsUrl = (workItemId: string
 
 
 
-  return `/api/demand-management/intake-requests/work-items/${workItemId}`
+  return `/api/demand-management/intake-requests/work-items/${encodeURIComponent(String(workItemId))}`
 }
 
 /**
@@ -923,7 +923,7 @@ export const getIntakeRequestsTagUrl = (id: string,
 
 
 
-  return `/api/demand-management/intake-requests/${id}/tags/${tagId}`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/tags/${encodeURIComponent(String(tagId))}`
 }
 
 /**
@@ -951,7 +951,7 @@ export const getIntakeRequestsUntagUrl = (id: string,
 
 
 
-  return `/api/demand-management/intake-requests/${id}/tags/${tagId}`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/tags/${encodeURIComponent(String(tagId))}`
 }
 
 /**
@@ -976,7 +976,7 @@ export const getIntakeRequestsTagByNameUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}/tags`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/tags`
 }
 
 /**
@@ -1049,7 +1049,7 @@ export const getIntakeRequestsGetScoringUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}/scoring`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/scoring`
 }
 
 /**
@@ -1084,7 +1084,7 @@ export const getIntakeRequestsScoreUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}/scores`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/scores`
 }
 
 /**
@@ -1109,7 +1109,7 @@ export const getIntakeRequestsPreviewScoreUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-requests/${id}/scores/preview`
+  return `/api/demand-management/intake-requests/${encodeURIComponent(String(id))}/scores/preview`
 }
 
 /**

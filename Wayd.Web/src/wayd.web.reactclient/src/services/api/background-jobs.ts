@@ -201,7 +201,7 @@ export const getBackgroundJobsGetJobDetailUrl = (jobId: string,) => {
 
 
 
-  return `/api/admin/background-jobs/jobs/${jobId}`
+  return `/api/admin/background-jobs/jobs/${encodeURIComponent(String(jobId))}`
 }
 
 /**
@@ -243,7 +243,7 @@ export const getBackgroundJobsDeleteJobUrl = (jobId: string,) => {
 
 
 
-  return `/api/admin/background-jobs/jobs/${jobId}`
+  return `/api/admin/background-jobs/jobs/${encodeURIComponent(String(jobId))}`
 }
 
 /**
@@ -363,7 +363,7 @@ export const getBackgroundJobsRemoveRecurringJobUrl = (recurringJobId: string,) 
 
 
 
-  return `/api/admin/background-jobs/recurring/${recurringJobId}`
+  return `/api/admin/background-jobs/recurring/${encodeURIComponent(String(recurringJobId))}`
 }
 
 /**
@@ -386,7 +386,7 @@ export const getBackgroundJobsRequeueJobUrl = (jobId: string,) => {
 
 
 
-  return `/api/admin/background-jobs/jobs/${jobId}/requeue`
+  return `/api/admin/background-jobs/jobs/${encodeURIComponent(String(jobId))}/requeue`
 }
 
 /**

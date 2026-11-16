@@ -44,7 +44,7 @@ export const getDiscussionsGetDiscussionUrl = (channelType: string,
 
 
 
-  return `/api/discussions/${channelType}/${ownerId}`
+  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}`
 }
 
 /**
@@ -78,7 +78,7 @@ export const getDiscussionsGetEntriesUrl = (channelType: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/discussions/${channelType}/${ownerId}/entries?${stringifiedParams}` : `/api/discussions/${channelType}/${ownerId}/entries`
+  return stringifiedParams.length > 0 ? `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/entries?${stringifiedParams}` : `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/entries`
 }
 
 /**
@@ -134,7 +134,7 @@ export const getDiscussionsPostMessageUrl = (channelType: string,
 
 
 
-  return `/api/discussions/${channelType}/${ownerId}/messages`
+  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/messages`
 }
 
 /**
@@ -162,7 +162,7 @@ export const getDiscussionsGetRepliesUrl = (channelType: string,
 
 
 
-  return `/api/discussions/${channelType}/${ownerId}/messages/${messageId}/replies`
+  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/messages/${encodeURIComponent(String(messageId))}/replies`
 }
 
 /**
@@ -211,7 +211,7 @@ export const getDiscussionsReplyUrl = (channelType: string,
 
 
 
-  return `/api/discussions/${channelType}/${ownerId}/messages/${messageId}/replies`
+  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/messages/${encodeURIComponent(String(messageId))}/replies`
 }
 
 /**
@@ -240,7 +240,7 @@ export const getDiscussionsEditMessageUrl = (channelType: string,
 
 
 
-  return `/api/discussions/${channelType}/${ownerId}/messages/${messageId}`
+  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/messages/${encodeURIComponent(String(messageId))}`
 }
 
 /**
@@ -269,7 +269,7 @@ export const getDiscussionsDeleteMessageUrl = (channelType: string,
 
 
 
-  return `/api/discussions/${channelType}/${ownerId}/messages/${messageId}`
+  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/messages/${encodeURIComponent(String(messageId))}`
 }
 
 /**
@@ -297,7 +297,7 @@ export const getDiscussionsGetRevisionsUrl = (channelType: string,
 
 
 
-  return `/api/discussions/${channelType}/${ownerId}/messages/${messageId}/revisions`
+  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/messages/${encodeURIComponent(String(messageId))}/revisions`
 }
 
 /**
@@ -333,7 +333,7 @@ export const getDiscussionsLockUrl = (channelType: string,
 
 
 
-  return `/api/discussions/${channelType}/${ownerId}/lock`
+  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/lock`
 }
 
 /**
@@ -359,7 +359,7 @@ export const getDiscussionsUnlockUrl = (channelType: string,
 
 
 
-  return `/api/discussions/${channelType}/${ownerId}/lock`
+  return `/api/discussions/${encodeURIComponent(String(channelType))}/${encodeURIComponent(String(ownerId))}/lock`
 }
 
 /**

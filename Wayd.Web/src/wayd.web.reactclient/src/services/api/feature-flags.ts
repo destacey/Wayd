@@ -109,7 +109,7 @@ export const getFeatureFlagsToggleUrl = (id: number,) => {
 
 
 
-  return `/api/admin/feature-flags/${id}/toggle`
+  return `/api/admin/feature-flags/${encodeURIComponent(String(id))}/toggle`
 }
 
 /**

@@ -91,7 +91,7 @@ export const getHolidayCalendarsGetUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/organization/holiday-calendars/${idOrKey}`
+  return `/api/organization/holiday-calendars/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -134,7 +134,7 @@ export const getHolidayCalendarsGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/holiday-calendars/${idOrKey}/activities?${stringifiedParams}` : `/api/organization/holiday-calendars/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/organization/holiday-calendars/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/organization/holiday-calendars/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -170,7 +170,7 @@ export const getHolidayCalendarsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/organization/holiday-calendars/${id}`
+  return `/api/organization/holiday-calendars/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -195,7 +195,7 @@ export const getHolidayCalendarsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/organization/holiday-calendars/${id}`
+  return `/api/organization/holiday-calendars/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -219,7 +219,7 @@ export const getHolidayCalendarsAddHolidayUrl = (id: string,) => {
 
 
 
-  return `/api/organization/holiday-calendars/${id}/holidays`
+  return `/api/organization/holiday-calendars/${encodeURIComponent(String(id))}/holidays`
 }
 
 /**
@@ -245,7 +245,7 @@ export const getHolidayCalendarsChangeHolidayUrl = (id: string,
 
 
 
-  return `/api/organization/holiday-calendars/${id}/holidays/${holidayId}`
+  return `/api/organization/holiday-calendars/${encodeURIComponent(String(id))}/holidays/${encodeURIComponent(String(holidayId))}`
 }
 
 /**
@@ -272,7 +272,7 @@ export const getHolidayCalendarsRemoveHolidayUrl = (id: string,
 
 
 
-  return `/api/organization/holiday-calendars/${id}/holidays/${holidayId}`
+  return `/api/organization/holiday-calendars/${encodeURIComponent(String(id))}/holidays/${encodeURIComponent(String(holidayId))}`
 }
 
 /**

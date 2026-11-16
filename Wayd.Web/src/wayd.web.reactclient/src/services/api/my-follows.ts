@@ -98,7 +98,7 @@ export const getMyFollowsGetFollowedRecordUrl = (ownerType: string,
 
 
 
-  return `/api/me/follows/${ownerType}/${ownerId}/record`
+  return `/api/me/follows/${encodeURIComponent(String(ownerType))}/${encodeURIComponent(String(ownerId))}/record`
 }
 
 /**
@@ -149,7 +149,7 @@ export const getMyFollowsGetFollowStatusUrl = (ownerType: string,
 
 
 
-  return `/api/me/follows/${ownerType}/${ownerId}`
+  return `/api/me/follows/${encodeURIComponent(String(ownerType))}/${encodeURIComponent(String(ownerId))}`
 }
 
 /**
@@ -183,7 +183,7 @@ export const getMyFollowsFollowUrl = (ownerType: string,
 
 
 
-  return `/api/me/follows/${ownerType}/${ownerId}`
+  return `/api/me/follows/${encodeURIComponent(String(ownerType))}/${encodeURIComponent(String(ownerId))}`
 }
 
 /**
@@ -209,7 +209,7 @@ export const getMyFollowsUnfollowUrl = (ownerType: string,
 
 
 
-  return `/api/me/follows/${ownerType}/${ownerId}`
+  return `/api/me/follows/${encodeURIComponent(String(ownerType))}/${encodeURIComponent(String(ownerId))}`
 }
 
 /**

@@ -39,7 +39,7 @@ export const getProjectScoresGetScoringContextUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/scoring-context`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/scoring-context`
 }
 
 /**
@@ -71,7 +71,7 @@ export const getProjectScoresGetScoresUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/scores`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/scores`
 }
 
 /**
@@ -104,7 +104,7 @@ export const getProjectScoresRecordScoreUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/scores`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/scores`
 }
 
 /**
@@ -130,7 +130,7 @@ export const getProjectScoresGetScoreUrl = (id: string,
 
 
 
-  return `/api/ppm/projects/${id}/scores/${scoreId}`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/scores/${encodeURIComponent(String(scoreId))}`
 }
 
 /**

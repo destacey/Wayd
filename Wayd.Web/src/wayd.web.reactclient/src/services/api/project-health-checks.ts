@@ -38,7 +38,7 @@ export const getProjectHealthChecksGetHealthChecksUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/health-checks`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/health-checks`
 }
 
 /**
@@ -71,7 +71,7 @@ export const getProjectHealthChecksCreateHealthCheckUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/health-checks`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/health-checks`
 }
 
 /**
@@ -97,7 +97,7 @@ export const getProjectHealthChecksGetHealthCheckUrl = (id: string,
 
 
 
-  return `/api/ppm/projects/${id}/health-checks/${healthCheckId}`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/health-checks/${encodeURIComponent(String(healthCheckId))}`
 }
 
 /**
@@ -129,7 +129,7 @@ export const getProjectHealthChecksUpdateHealthCheckUrl = (id: string,
 
 
 
-  return `/api/ppm/projects/${id}/health-checks/${healthCheckId}`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/health-checks/${encodeURIComponent(String(healthCheckId))}`
 }
 
 /**
@@ -163,7 +163,7 @@ export const getProjectHealthChecksDeleteHealthCheckUrl = (id: string,
 
 
 
-  return `/api/ppm/projects/${id}/health-checks/${healthCheckId}`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/health-checks/${encodeURIComponent(String(healthCheckId))}`
 }
 
 /**

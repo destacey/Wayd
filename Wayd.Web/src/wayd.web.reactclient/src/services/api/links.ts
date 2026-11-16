@@ -38,7 +38,7 @@ export const getLinksGetListUrl = (objectId: string,) => {
 
 
 
-  return `/api/links/${objectId}/list`
+  return `/api/links/${encodeURIComponent(String(objectId))}/list`
 }
 
 /**
@@ -61,7 +61,7 @@ export const getLinksGetByIdUrl = (id: string,) => {
 
 
 
-  return `/api/links/${id}`
+  return `/api/links/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -84,7 +84,7 @@ export const getLinksUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/links/${id}`
+  return `/api/links/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -108,7 +108,7 @@ export const getLinksDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/links/${id}`
+  return `/api/links/${encodeURIComponent(String(id))}`
 }
 
 /**

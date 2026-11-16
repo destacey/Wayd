@@ -94,7 +94,7 @@ export const getTeamMemberRolesGetByIdUrl = (id: string,) => {
 
 
 
-  return `/api/organization/team-member-roles/${id}`
+  return `/api/organization/team-member-roles/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -118,7 +118,7 @@ export const getTeamMemberRolesUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/organization/team-member-roles/${id}`
+  return `/api/organization/team-member-roles/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -143,7 +143,7 @@ export const getTeamMemberRolesDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/organization/team-member-roles/${id}`
+  return `/api/organization/team-member-roles/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -167,7 +167,7 @@ export const getTeamMemberRolesActivateUrl = (id: string,) => {
 
 
 
-  return `/api/organization/team-member-roles/${id}/activate`
+  return `/api/organization/team-member-roles/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -191,7 +191,7 @@ export const getTeamMemberRolesDeactivateUrl = (id: string,) => {
 
 
 
-  return `/api/organization/team-member-roles/${id}/deactivate`
+  return `/api/organization/team-member-roles/${encodeURIComponent(String(id))}/deactivate`
 }
 
 /**

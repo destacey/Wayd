@@ -129,7 +129,7 @@ export const getReleasePackagesGetReleasePackageUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/release-packages/${idOrKey}`
+  return `/api/product-management/release-packages/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -172,7 +172,7 @@ export const getReleasePackagesGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/product-management/release-packages/${idOrKey}/activities?${stringifiedParams}` : `/api/product-management/release-packages/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/product-management/release-packages/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/product-management/release-packages/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -208,7 +208,7 @@ export const getReleasePackagesGetStatusHistoryUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/release-packages/${idOrKey}/status-history`
+  return `/api/product-management/release-packages/${encodeURIComponent(String(idOrKey))}/status-history`
 }
 
 /**
@@ -241,7 +241,7 @@ export const getReleasePackagesGetStatusWorkflowUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/release-packages/${idOrKey}/status-workflow`
+  return `/api/product-management/release-packages/${encodeURIComponent(String(idOrKey))}/status-workflow`
 }
 
 /**
@@ -265,7 +265,7 @@ export const getReleasePackagesGetWorkflowActionsUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/release-packages/${idOrKey}/workflow-actions`
+  return `/api/product-management/release-packages/${encodeURIComponent(String(idOrKey))}/workflow-actions`
 }
 
 /**
@@ -324,7 +324,7 @@ export const getReleasePackagesSetManifestUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/release-packages/${id}/manifest`
+  return `/api/product-management/release-packages/${encodeURIComponent(String(id))}/manifest`
 }
 
 /**
@@ -349,7 +349,7 @@ export const getReleasePackagesPatchManifestUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/release-packages/${id}/manifest`
+  return `/api/product-management/release-packages/${encodeURIComponent(String(id))}/manifest`
 }
 
 /**
@@ -374,7 +374,7 @@ export const getReleasePackagesMarkReleasedUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/release-packages/${id}/release`
+  return `/api/product-management/release-packages/${encodeURIComponent(String(id))}/release`
 }
 
 /**
@@ -399,7 +399,7 @@ export const getReleasePackagesCorrectDatesUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/release-packages/${id}/dates`
+  return `/api/product-management/release-packages/${encodeURIComponent(String(id))}/dates`
 }
 
 /**
@@ -424,7 +424,7 @@ export const getReleasePackagesDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/release-packages/${id}`
+  return `/api/product-management/release-packages/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -448,7 +448,7 @@ export const getReleasePackagesWithdrawUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/release-packages/${id}/withdraw`
+  return `/api/product-management/release-packages/${encodeURIComponent(String(id))}/withdraw`
 }
 
 /**

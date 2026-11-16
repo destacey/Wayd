@@ -110,7 +110,7 @@ export const getEstimationScalesGetScaleUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/estimation-scales/${idOrKey}`
+  return `/api/planning/estimation-scales/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -150,7 +150,7 @@ export const getEstimationScalesUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/planning/estimation-scales/${id}`
+  return `/api/planning/estimation-scales/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -175,7 +175,7 @@ export const getEstimationScalesDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/planning/estimation-scales/${id}`
+  return `/api/planning/estimation-scales/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -199,7 +199,7 @@ export const getEstimationScalesSetActiveStatusUrl = (id: string,) => {
 
 
 
-  return `/api/planning/estimation-scales/${id}/active-status`
+  return `/api/planning/estimation-scales/${encodeURIComponent(String(id))}/active-status`
 }
 
 /**

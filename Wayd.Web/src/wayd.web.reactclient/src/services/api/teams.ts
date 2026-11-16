@@ -151,7 +151,7 @@ export const getTeamsGetByIdUrl = (id: number,) => {
 
 
 
-  return `/api/organization/teams/${id}`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -188,7 +188,7 @@ export const getTeamsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/organization/teams/${id}`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -221,7 +221,7 @@ export const getTeamsGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${idOrKey}/activities?${stringifiedParams}` : `/api/organization/teams/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -356,7 +356,7 @@ export const getTeamsDeactivateUrl = (id: string,) => {
 
 
 
-  return `/api/organization/teams/${id}/deactivate`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/deactivate`
 }
 
 /**
@@ -381,7 +381,7 @@ export const getTeamsGetTeamMembershipsUrl = (id: string,) => {
 
 
 
-  return `/api/organization/teams/${id}/team-memberships`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/team-memberships`
 }
 
 /**
@@ -417,7 +417,7 @@ export const getTeamsAddTeamMembershipUrl = (id: string,) => {
 
 
 
-  return `/api/organization/teams/${id}/team-memberships`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/team-memberships`
 }
 
 /**
@@ -443,7 +443,7 @@ export const getTeamsUpdateTeamMembershipUrl = (id: string,
 
 
 
-  return `/api/organization/teams/${id}/team-memberships/${teamMembershipId}`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/team-memberships/${encodeURIComponent(String(teamMembershipId))}`
 }
 
 /**
@@ -470,7 +470,7 @@ export const getTeamsRemoveTeamMembershipUrl = (id: string,
 
 
 
-  return `/api/organization/teams/${id}/team-memberships/${teamMembershipId}`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/team-memberships/${encodeURIComponent(String(teamMembershipId))}`
 }
 
 /**
@@ -495,7 +495,7 @@ export const getTeamsGetTeamBacklogUrl = (idOrCode: string,) => {
 
 
 
-  return `/api/organization/teams/${idOrCode}/backlog`
+  return `/api/organization/teams/${encodeURIComponent(String(idOrCode))}/backlog`
 }
 
 /**
@@ -536,7 +536,7 @@ export const getTeamsGetTeamBacklogHealthUrl = (idOrCode: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${idOrCode}/backlog-health?${stringifiedParams}` : `/api/organization/teams/${idOrCode}/backlog-health`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(idOrCode))}/backlog-health?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(idOrCode))}/backlog-health`
 }
 
 /**
@@ -586,7 +586,7 @@ export const getTeamsGetTeamWorkDistributionUrl = (idOrCode: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${idOrCode}/work-distribution?${stringifiedParams}` : `/api/organization/teams/${idOrCode}/work-distribution`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(idOrCode))}/work-distribution?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(idOrCode))}/work-distribution`
 }
 
 /**
@@ -633,7 +633,7 @@ export const getTeamsGetDependencyAnalysisUrl = (idOrCode: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${idOrCode}/dependency-analysis?${stringifiedParams}` : `/api/organization/teams/${idOrCode}/dependency-analysis`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(idOrCode))}/dependency-analysis?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(idOrCode))}/dependency-analysis`
 }
 
 /**
@@ -702,7 +702,7 @@ export const getTeamsGetCapacityUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${id}/capacity?${stringifiedParams}` : `/api/organization/teams/${id}/capacity`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(id))}/capacity?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(id))}/capacity`
 }
 
 /**
@@ -772,7 +772,7 @@ export const getTeamsGetCapacityReportUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${id}/capacity/report?${stringifiedParams}` : `/api/organization/teams/${id}/capacity/report`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(id))}/capacity/report?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(id))}/capacity/report`
 }
 
 /**
@@ -839,7 +839,7 @@ export const getTeamsGetCapacityPlanUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${id}/capacity/plan?${stringifiedParams}` : `/api/organization/teams/${id}/capacity/plan`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(id))}/capacity/plan?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(id))}/capacity/plan`
 }
 
 /**
@@ -948,7 +948,7 @@ export const getTeamsGetAllocationProposalUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${id}/capacity/proposal?${stringifiedParams}` : `/api/organization/teams/${id}/capacity/proposal`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(id))}/capacity/proposal?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(id))}/capacity/proposal`
 }
 
 /**
@@ -995,7 +995,7 @@ export const getTeamsGetTeamThroughputForecastUrl = (idOrCode: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${idOrCode}/throughput-forecast?${stringifiedParams}` : `/api/organization/teams/${idOrCode}/throughput-forecast`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(idOrCode))}/throughput-forecast?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(idOrCode))}/throughput-forecast`
 }
 
 /**
@@ -1047,7 +1047,7 @@ export const getTeamsGetTeamWorkItemsUrl = (idOrCode: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${idOrCode}/work-items?${stringifiedParams}` : `/api/organization/teams/${idOrCode}/work-items`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(idOrCode))}/work-items?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(idOrCode))}/work-items`
 }
 
 /**
@@ -1087,7 +1087,7 @@ export const getTeamsGetTeamDependenciesUrl = (id: string,) => {
 
 
 
-  return `/api/organization/teams/${id}/dependencies`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/dependencies`
 }
 
 /**
@@ -1144,7 +1144,7 @@ export const getTeamsGetRisksUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${id}/risks?${stringifiedParams}` : `/api/organization/teams/${id}/risks`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(id))}/risks?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(id))}/risks`
 }
 
 /**
@@ -1181,7 +1181,7 @@ export const getTeamsCreateRiskUrl = (id: string,) => {
 
 
 
-  return `/api/organization/teams/${id}/risks`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/risks`
 }
 
 /**
@@ -1207,7 +1207,7 @@ export const getTeamsGetRiskByIdUrl = (id: string,
 
 
 
-  return `/api/organization/teams/${id}/risks/${riskIdOrKey}`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/risks/${encodeURIComponent(String(riskIdOrKey))}`
 }
 
 /**
@@ -1245,7 +1245,7 @@ export const getTeamsUpdateRiskUrl = (id: string,
 
 
 
-  return `/api/organization/teams/${id}/risks/${riskId}`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/risks/${encodeURIComponent(String(riskId))}`
 }
 
 /**
@@ -1272,7 +1272,7 @@ export const getTeamsGetOperatingModelUrl = (id: string,
 
 
 
-  return `/api/organization/teams/${id}/operating-models/${operatingModelId}`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/operating-models/${encodeURIComponent(String(operatingModelId))}`
 }
 
 /**
@@ -1310,7 +1310,7 @@ export const getTeamsUpdateOperatingModelUrl = (id: string,
 
 
 
-  return `/api/organization/teams/${id}/operating-models/${operatingModelId}`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/operating-models/${encodeURIComponent(String(operatingModelId))}`
 }
 
 /**
@@ -1337,7 +1337,7 @@ export const getTeamsDeleteOperatingModelUrl = (id: string,
 
 
 
-  return `/api/organization/teams/${id}/operating-models/${operatingModelId}`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/operating-models/${encodeURIComponent(String(operatingModelId))}`
 }
 
 /**
@@ -1362,7 +1362,7 @@ export const getTeamsGetOperatingModelsUrl = (id: string,) => {
 
 
 
-  return `/api/organization/teams/${id}/operating-models`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/operating-models`
 }
 
 /**
@@ -1401,7 +1401,7 @@ export const getTeamsSetOperatingModelUrl = (id: string,) => {
 
 
 
-  return `/api/organization/teams/${id}/operating-models`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/operating-models`
 }
 
 /**
@@ -1434,7 +1434,7 @@ export const getTeamsGetOperatingModelAsOfUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${id}/operating-models/as-of?${stringifiedParams}` : `/api/organization/teams/${id}/operating-models/as-of`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(id))}/operating-models/as-of?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(id))}/operating-models/as-of`
 }
 
 /**
@@ -1533,7 +1533,7 @@ export const getTeamsGetOperatingModelDefaultsUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${id}/operating-models/defaults?${stringifiedParams}` : `/api/organization/teams/${id}/operating-models/defaults`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(id))}/operating-models/defaults?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(id))}/operating-models/defaults`
 }
 
 /**
@@ -1558,7 +1558,7 @@ export const getTeamsHasEverBeenScrumUrl = (id: string,) => {
 
 
 
-  return `/api/organization/teams/${id}/has-ever-been-scrum`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/has-ever-been-scrum`
 }
 
 /**
@@ -1582,7 +1582,7 @@ export const getTeamsGetSprintsUrl = (id: string,) => {
 
 
 
-  return `/api/organization/teams/${id}/sprints`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/sprints`
 }
 
 /**
@@ -1622,7 +1622,7 @@ export const getTeamsGetActiveSprintUrl = (id: string,) => {
 
 
 
-  return `/api/organization/teams/${id}/sprints/active`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/sprints/active`
 }
 
 /**
@@ -1696,7 +1696,7 @@ export const getTeamsGetSprintMetricsUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${id}/sprint-metrics?${stringifiedParams}` : `/api/organization/teams/${id}/sprint-metrics`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(id))}/sprint-metrics?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(id))}/sprint-metrics`
 }
 
 /**
@@ -1748,7 +1748,7 @@ export const getTeamsGetCadenceMetricsUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/organization/teams/${id}/cadence-metrics?${stringifiedParams}` : `/api/organization/teams/${id}/cadence-metrics`
+  return stringifiedParams.length > 0 ? `/api/organization/teams/${encodeURIComponent(String(id))}/cadence-metrics?${stringifiedParams}` : `/api/organization/teams/${encodeURIComponent(String(id))}/cadence-metrics`
 }
 
 /**
@@ -1822,7 +1822,7 @@ export const getTeamsGetMembersUrl = (id: string,) => {
 
 
 
-  return `/api/organization/teams/${id}/members`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/members`
 }
 
 /**
@@ -1846,7 +1846,7 @@ export const getTeamsAddMemberUrl = (id: string,) => {
 
 
 
-  return `/api/organization/teams/${id}/members`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/members`
 }
 
 /**
@@ -1872,7 +1872,7 @@ export const getTeamsUpdateMemberUrl = (id: string,
 
 
 
-  return `/api/organization/teams/${id}/members/${employeeId}`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/members/${encodeURIComponent(String(employeeId))}`
 }
 
 /**
@@ -1899,7 +1899,7 @@ export const getTeamsRemoveMemberUrl = (id: string,
 
 
 
-  return `/api/organization/teams/${id}/members/${employeeId}`
+  return `/api/organization/teams/${encodeURIComponent(String(id))}/members/${encodeURIComponent(String(employeeId))}`
 }
 
 /**

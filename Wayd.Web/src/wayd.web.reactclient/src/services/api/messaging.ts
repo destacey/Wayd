@@ -104,7 +104,7 @@ export const getMessagingGetDeadLetterByIdUrl = (id: string,) => {
 
 
 
-  return `/api/admin/messaging/dead-letters/${id}`
+  return `/api/admin/messaging/dead-letters/${encodeURIComponent(String(id))}`
 }
 
 /**

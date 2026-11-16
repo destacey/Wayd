@@ -184,7 +184,7 @@ export const getDeploymentEnvironmentsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/deployment-environments/${id}`
+  return `/api/product-management/deployment-environments/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -211,7 +211,7 @@ export const getDeploymentEnvironmentsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/deployment-environments/${id}`
+  return `/api/product-management/deployment-environments/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -235,7 +235,7 @@ export const getDeploymentEnvironmentsSetActiveUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/deployment-environments/${id}/active`
+  return `/api/product-management/deployment-environments/${encodeURIComponent(String(id))}/active`
 }
 
 /**

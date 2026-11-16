@@ -107,7 +107,7 @@ export const getPersonalAccessTokensGetByIdUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/personal-access-tokens/${id}`
+  return `/api/user-management/personal-access-tokens/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -142,7 +142,7 @@ export const getPersonalAccessTokensUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/personal-access-tokens/${id}`
+  return `/api/user-management/personal-access-tokens/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -167,7 +167,7 @@ export const getPersonalAccessTokensDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/personal-access-tokens/${id}`
+  return `/api/user-management/personal-access-tokens/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -191,7 +191,7 @@ export const getPersonalAccessTokensRevokeUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/personal-access-tokens/${id}/revoke`
+  return `/api/user-management/personal-access-tokens/${encodeURIComponent(String(id))}/revoke`
 }
 
 /**

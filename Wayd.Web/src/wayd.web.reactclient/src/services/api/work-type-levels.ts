@@ -87,7 +87,7 @@ export const getWorkTypeLevelsGetByIdUrl = (id: number,) => {
 
 
 
-  return `/api/work/work-type-levels/${id}`
+  return `/api/work/work-type-levels/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -110,7 +110,7 @@ export const getWorkTypeLevelsUpdateUrl = (id: number,) => {
 
 
 
-  return `/api/work/work-type-levels/${id}`
+  return `/api/work/work-type-levels/${encodeURIComponent(String(id))}`
 }
 
 /**

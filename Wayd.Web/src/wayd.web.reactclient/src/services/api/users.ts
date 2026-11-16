@@ -132,7 +132,7 @@ export const getUsersGetUserUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/users/${id}`
+  return `/api/user-management/users/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -166,7 +166,7 @@ export const getUsersUpdateUserUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/users/${id}`
+  return `/api/user-management/users/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -198,7 +198,7 @@ export const getUsersGetActivitiesUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/user-management/users/${id}/activities?${stringifiedParams}` : `/api/user-management/users/${id}/activities`
+  return stringifiedParams.length > 0 ? `/api/user-management/users/${encodeURIComponent(String(id))}/activities?${stringifiedParams}` : `/api/user-management/users/${encodeURIComponent(String(id))}/activities`
 }
 
 /**
@@ -241,7 +241,7 @@ export const getUsersGetRolesUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/user-management/users/${id}/roles?${stringifiedParams}` : `/api/user-management/users/${id}/roles`
+  return stringifiedParams.length > 0 ? `/api/user-management/users/${encodeURIComponent(String(id))}/roles?${stringifiedParams}` : `/api/user-management/users/${encodeURIComponent(String(id))}/roles`
 }
 
 /**
@@ -265,7 +265,7 @@ export const getUsersManageUserRolesUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/users/${id}/roles`
+  return `/api/user-management/users/${encodeURIComponent(String(id))}/roles`
 }
 
 /**
@@ -312,7 +312,7 @@ export const getUsersResetPasswordUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/users/${id}/reset-password`
+  return `/api/user-management/users/${encodeURIComponent(String(id))}/reset-password`
 }
 
 /**
@@ -336,7 +336,7 @@ export const getUsersUnlockUserUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/users/${id}/unlock`
+  return `/api/user-management/users/${encodeURIComponent(String(id))}/unlock`
 }
 
 /**
@@ -359,7 +359,7 @@ export const getUsersActivateUserUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/users/${id}/activate`
+  return `/api/user-management/users/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -382,7 +382,7 @@ export const getUsersDeactivateUserUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/users/${id}/deactivate`
+  return `/api/user-management/users/${encodeURIComponent(String(id))}/deactivate`
 }
 
 /**
@@ -405,7 +405,7 @@ export const getUsersCancelTenantMigrationUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/users/${id}/stage-migration`
+  return `/api/user-management/users/${encodeURIComponent(String(id))}/stage-migration`
 }
 
 /**
@@ -428,7 +428,7 @@ export const getUsersStageSignInTenantUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/users/${id}/sign-in-tenant`
+  return `/api/user-management/users/${encodeURIComponent(String(id))}/sign-in-tenant`
 }
 
 /**
@@ -452,7 +452,7 @@ export const getUsersConvertToLocalAccountUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/users/${id}/convert-to-local`
+  return `/api/user-management/users/${encodeURIComponent(String(id))}/convert-to-local`
 }
 
 /**
@@ -476,7 +476,7 @@ export const getUsersStageProviderMigrationUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/users/${id}/stage-provider-migration`
+  return `/api/user-management/users/${encodeURIComponent(String(id))}/stage-provider-migration`
 }
 
 /**
@@ -500,7 +500,7 @@ export const getUsersCancelProviderMigrationUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/users/${id}/stage-provider-migration`
+  return `/api/user-management/users/${encodeURIComponent(String(id))}/stage-provider-migration`
 }
 
 /**
@@ -523,7 +523,7 @@ export const getUsersGetIdentityHistoryUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/users/${id}/identity-history`
+  return `/api/user-management/users/${encodeURIComponent(String(id))}/identity-history`
 }
 
 /**

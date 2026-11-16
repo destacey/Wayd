@@ -41,7 +41,7 @@ export const getAzureDevOpsConnectionsSyncOrganizationConfigurationUrl = (id: st
 
 
 
-  return `/api/app-integrations/connections/azure-devops/${id}/sync-organization`
+  return `/api/app-integrations/connections/azure-devops/${encodeURIComponent(String(id))}/sync-organization`
 }
 
 /**
@@ -64,7 +64,7 @@ export const getAzureDevOpsConnectionsInitWorkspaceIntegrationUrl = (id: string,
 
 
 
-  return `/api/app-integrations/connections/azure-devops/${id}/init-workspace`
+  return `/api/app-integrations/connections/azure-devops/${encodeURIComponent(String(id))}/init-workspace`
 }
 
 /**
@@ -90,7 +90,7 @@ export const getAzureDevOpsConnectionsSetWorkspaceSyncUrl = (id: string,
 
 
 
-  return `/api/app-integrations/connections/azure-devops/${id}/workspaces/${workspaceExternalId}/sync`
+  return `/api/app-integrations/connections/azure-devops/${encodeURIComponent(String(id))}/workspaces/${encodeURIComponent(String(workspaceExternalId))}/sync`
 }
 
 /**
@@ -124,7 +124,7 @@ export const getAzureDevOpsConnectionsGetConnectionTeamsUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/app-integrations/connections/azure-devops/${id}/teams?${stringifiedParams}` : `/api/app-integrations/connections/azure-devops/${id}/teams`
+  return stringifiedParams.length > 0 ? `/api/app-integrations/connections/azure-devops/${encodeURIComponent(String(id))}/teams?${stringifiedParams}` : `/api/app-integrations/connections/azure-devops/${encodeURIComponent(String(id))}/teams`
 }
 
 /**
@@ -148,7 +148,7 @@ export const getAzureDevOpsConnectionsMapConnectionTeamsUrl = (id: string,) => {
 
 
 
-  return `/api/app-integrations/connections/azure-devops/${id}/teams`
+  return `/api/app-integrations/connections/azure-devops/${encodeURIComponent(String(id))}/teams`
 }
 
 /**

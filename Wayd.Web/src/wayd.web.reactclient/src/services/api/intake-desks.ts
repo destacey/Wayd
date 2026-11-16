@@ -120,7 +120,7 @@ export const getIntakeDesksGetIntakeDeskUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/demand-management/intake-desks/${idOrKey}`
+  return `/api/demand-management/intake-desks/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -153,7 +153,7 @@ export const getIntakeDesksUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-desks/${id}`
+  return `/api/demand-management/intake-desks/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -178,7 +178,7 @@ export const getIntakeDesksDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-desks/${id}`
+  return `/api/demand-management/intake-desks/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -225,7 +225,7 @@ export const getIntakeDesksGetWorkflowUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/demand-management/intake-desks/${idOrKey}/workflow`
+  return `/api/demand-management/intake-desks/${encodeURIComponent(String(idOrKey))}/workflow`
 }
 
 /**
@@ -257,7 +257,7 @@ export const getIntakeDesksPreviewWorkflowChangeUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/demand-management/intake-desks/${id}/workflow/change-preview?${stringifiedParams}` : `/api/demand-management/intake-desks/${id}/workflow/change-preview`
+  return stringifiedParams.length > 0 ? `/api/demand-management/intake-desks/${encodeURIComponent(String(id))}/workflow/change-preview?${stringifiedParams}` : `/api/demand-management/intake-desks/${encodeURIComponent(String(id))}/workflow/change-preview`
 }
 
 /**
@@ -282,7 +282,7 @@ export const getIntakeDesksChangeWorkflowUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-desks/${id}/workflow`
+  return `/api/demand-management/intake-desks/${encodeURIComponent(String(id))}/workflow`
 }
 
 /**
@@ -307,7 +307,7 @@ export const getIntakeDesksChangeScoringModelUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-desks/${id}/scoring-model`
+  return `/api/demand-management/intake-desks/${encodeURIComponent(String(id))}/scoring-model`
 }
 
 /**
@@ -356,7 +356,7 @@ export const getIntakeDesksChangeEstimationScaleUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-desks/${id}/estimation-scale`
+  return `/api/demand-management/intake-desks/${encodeURIComponent(String(id))}/estimation-scale`
 }
 
 /**
@@ -381,7 +381,7 @@ export const getIntakeDesksGetOpenEstimatesUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-desks/${id}/open-estimates`
+  return `/api/demand-management/intake-desks/${encodeURIComponent(String(id))}/open-estimates`
 }
 
 /**
@@ -429,7 +429,7 @@ export const getIntakeDesksStartPokerSessionUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-desks/${id}/poker-sessions`
+  return `/api/demand-management/intake-desks/${encodeURIComponent(String(id))}/poker-sessions`
 }
 
 /**
@@ -455,7 +455,7 @@ export const getIntakeDesksAddRequestsToPokerSessionUrl = (id: string,
 
 
 
-  return `/api/demand-management/intake-desks/${id}/poker-sessions/${sessionId}/rounds`
+  return `/api/demand-management/intake-desks/${encodeURIComponent(String(id))}/poker-sessions/${encodeURIComponent(String(sessionId))}/rounds`
 }
 
 /**

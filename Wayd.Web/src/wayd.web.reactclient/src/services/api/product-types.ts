@@ -100,7 +100,7 @@ export const getProductTypesUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/product-types/${id}`
+  return `/api/product-management/product-types/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -127,7 +127,7 @@ export const getProductTypesDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/product-types/${id}`
+  return `/api/product-management/product-types/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -151,7 +151,7 @@ export const getProductTypesSetActiveUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/product-types/${id}/active`
+  return `/api/product-management/product-types/${encodeURIComponent(String(id))}/active`
 }
 
 /**

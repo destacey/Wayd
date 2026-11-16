@@ -79,7 +79,7 @@ export const getWorkspacesGetUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/work/workspaces/${idOrKey}`
+  return `/api/work/workspaces/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -103,7 +103,7 @@ export const getWorkspacesSetExternalUrlTemplatesUrl = (id: string,) => {
 
 
 
-  return `/api/work/workspaces/${id}/external-url-templates`
+  return `/api/work/workspaces/${encodeURIComponent(String(id))}/external-url-templates`
 }
 
 /**
@@ -128,7 +128,7 @@ export const getWorkspacesGetWorkItemsUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/work/workspaces/${idOrKey}/work-items`
+  return `/api/work/workspaces/${encodeURIComponent(String(idOrKey))}/work-items`
 }
 
 /**
@@ -168,7 +168,7 @@ export const getWorkspacesGetWorkItemUrl = (idOrKey: string,
 
 
 
-  return `/api/work/workspaces/${idOrKey}/work-items/${workItemKey}`
+  return `/api/work/workspaces/${encodeURIComponent(String(idOrKey))}/work-items/${encodeURIComponent(String(workItemKey))}`
 }
 
 /**
@@ -207,7 +207,7 @@ export const getWorkspacesGetWorkItemProjectInfoUrl = (idOrKey: string,
 
 
 
-  return `/api/work/workspaces/${idOrKey}/work-items/${workItemKey}/project-info`
+  return `/api/work/workspaces/${encodeURIComponent(String(idOrKey))}/work-items/${encodeURIComponent(String(workItemKey))}/project-info`
 }
 
 /**
@@ -233,7 +233,7 @@ export const getWorkspacesUpdateWorkItemProjectUrl = (id: string,
 
 
 
-  return `/api/work/workspaces/${id}/work-items/${workItemId}/update-project`
+  return `/api/work/workspaces/${encodeURIComponent(String(id))}/work-items/${encodeURIComponent(String(workItemId))}/update-project`
 }
 
 /**
@@ -260,7 +260,7 @@ export const getWorkspacesGetChildWorkItemsUrl = (idOrKey: string,
 
 
 
-  return `/api/work/workspaces/${idOrKey}/work-items/${workItemKey}/children`
+  return `/api/work/workspaces/${encodeURIComponent(String(idOrKey))}/work-items/${encodeURIComponent(String(workItemKey))}/children`
 }
 
 /**
@@ -301,7 +301,7 @@ export const getWorkspacesGetWorkItemDependenciesUrl = (idOrKey: string,
 
 
 
-  return `/api/work/workspaces/${idOrKey}/work-items/${workItemKey}/dependencies`
+  return `/api/work/workspaces/${encodeURIComponent(String(idOrKey))}/work-items/${encodeURIComponent(String(workItemKey))}/dependencies`
 }
 
 /**
@@ -352,7 +352,7 @@ export const getWorkspacesGetWorkItemForecastUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/work/workspaces/${idOrKey}/work-items/${workItemKey}/forecast?${stringifiedParams}` : `/api/work/workspaces/${idOrKey}/work-items/${workItemKey}/forecast`
+  return stringifiedParams.length > 0 ? `/api/work/workspaces/${encodeURIComponent(String(idOrKey))}/work-items/${encodeURIComponent(String(workItemKey))}/forecast?${stringifiedParams}` : `/api/work/workspaces/${encodeURIComponent(String(idOrKey))}/work-items/${encodeURIComponent(String(workItemKey))}/forecast`
 }
 
 /**
@@ -409,7 +409,7 @@ export const getWorkspacesGetMetricsUrl = (idOrKey: string,
 
 
 
-  return `/api/work/workspaces/${idOrKey}/work-items/${workItemKey}/metrics`
+  return `/api/work/workspaces/${encodeURIComponent(String(idOrKey))}/work-items/${encodeURIComponent(String(workItemKey))}/metrics`
 }
 
 /**

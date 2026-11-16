@@ -127,7 +127,7 @@ export const getStatusWorkflowsGetStatusWorkflowUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/status-workflows/${idOrKey}`
+  return `/api/status-workflows/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -158,7 +158,7 @@ export const getStatusWorkflowsGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/status-workflows/${idOrKey}/activities?${stringifiedParams}` : `/api/status-workflows/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/status-workflows/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/status-workflows/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -193,7 +193,7 @@ export const getStatusWorkflowsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/status-workflows/${id}`
+  return `/api/status-workflows/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -217,7 +217,7 @@ export const getStatusWorkflowsCloneUrl = (id: string,) => {
 
 
 
-  return `/api/status-workflows/${id}/clone`
+  return `/api/status-workflows/${encodeURIComponent(String(id))}/clone`
 }
 
 /**
@@ -241,7 +241,7 @@ export const getStatusWorkflowsPublishUrl = (id: string,) => {
 
 
 
-  return `/api/status-workflows/${id}/publish`
+  return `/api/status-workflows/${encodeURIComponent(String(id))}/publish`
 }
 
 /**
@@ -264,7 +264,7 @@ export const getStatusWorkflowsArchiveUrl = (id: string,) => {
 
 
 
-  return `/api/status-workflows/${id}/archive`
+  return `/api/status-workflows/${encodeURIComponent(String(id))}/archive`
 }
 
 /**
@@ -287,7 +287,7 @@ export const getStatusWorkflowsAddStatusUrl = (id: string,) => {
 
 
 
-  return `/api/status-workflows/${id}/statuses`
+  return `/api/status-workflows/${encodeURIComponent(String(id))}/statuses`
 }
 
 /**
@@ -312,7 +312,7 @@ export const getStatusWorkflowsRenameStatusUrl = (id: string,
 
 
 
-  return `/api/status-workflows/${id}/statuses/${statusId}`
+  return `/api/status-workflows/${encodeURIComponent(String(id))}/statuses/${encodeURIComponent(String(statusId))}`
 }
 
 /**
@@ -338,7 +338,7 @@ export const getStatusWorkflowsRemoveStatusUrl = (id: string,
 
 
 
-  return `/api/status-workflows/${id}/statuses/${statusId}`
+  return `/api/status-workflows/${encodeURIComponent(String(id))}/statuses/${encodeURIComponent(String(statusId))}`
 }
 
 /**
@@ -363,7 +363,7 @@ export const getStatusWorkflowsDescribeStatusUrl = (id: string,
 
 
 
-  return `/api/status-workflows/${id}/statuses/${statusId}/description`
+  return `/api/status-workflows/${encodeURIComponent(String(id))}/statuses/${encodeURIComponent(String(statusId))}/description`
 }
 
 /**
@@ -390,7 +390,7 @@ export const getStatusWorkflowsReclassifyStatusUrl = (id: string,
 
 
 
-  return `/api/status-workflows/${id}/statuses/${statusId}/classification`
+  return `/api/status-workflows/${encodeURIComponent(String(id))}/statuses/${encodeURIComponent(String(statusId))}/classification`
 }
 
 /**
@@ -416,7 +416,7 @@ export const getStatusWorkflowsReorderStatusesUrl = (id: string,) => {
 
 
 
-  return `/api/status-workflows/${id}/statuses/reorder`
+  return `/api/status-workflows/${encodeURIComponent(String(id))}/statuses/reorder`
 }
 
 /**
@@ -440,7 +440,7 @@ export const getStatusWorkflowsSetTransitionModeUrl = (id: string,) => {
 
 
 
-  return `/api/status-workflows/${id}/transition-mode`
+  return `/api/status-workflows/${encodeURIComponent(String(id))}/transition-mode`
 }
 
 /**
@@ -464,7 +464,7 @@ export const getStatusWorkflowsSetTransitionsUrl = (id: string,) => {
 
 
 
-  return `/api/status-workflows/${id}/transitions`
+  return `/api/status-workflows/${encodeURIComponent(String(id))}/transitions`
 }
 
 /**

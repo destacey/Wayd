@@ -84,7 +84,7 @@ export const getMyNotificationsMarkReadUrl = (id: number,) => {
 
 
 
-  return `/api/me/notifications/${id}/read`
+  return `/api/me/notifications/${encodeURIComponent(String(id))}/read`
 }
 
 /**
@@ -109,7 +109,7 @@ export const getMyNotificationsMarkRecordReadUrl = (ownerType: string,
 
 
 
-  return `/api/me/notifications/${ownerType}/${ownerId}/read`
+  return `/api/me/notifications/${encodeURIComponent(String(ownerType))}/${encodeURIComponent(String(ownerId))}/read`
 }
 
 /**

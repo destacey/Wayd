@@ -81,7 +81,7 @@ export const getWorkflowAssignmentsPreviewRemapUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/workflow-assignments/${id}/remap-preview?${stringifiedParams}` : `/api/workflow-assignments/${id}/remap-preview`
+  return stringifiedParams.length > 0 ? `/api/workflow-assignments/${encodeURIComponent(String(id))}/remap-preview?${stringifiedParams}` : `/api/workflow-assignments/${encodeURIComponent(String(id))}/remap-preview`
 }
 
 /**
@@ -105,7 +105,7 @@ export const getWorkflowAssignmentsReassignUrl = (id: string,) => {
 
 
 
-  return `/api/workflow-assignments/${id}/reassign`
+  return `/api/workflow-assignments/${encodeURIComponent(String(id))}/reassign`
 }
 
 /**
@@ -129,7 +129,7 @@ export const getWorkflowAssignmentsAssignSchemeUrl = (id: string,) => {
 
 
 
-  return `/api/workflow-assignments/${id}/assign-scheme`
+  return `/api/workflow-assignments/${encodeURIComponent(String(id))}/assign-scheme`
 }
 
 /**
@@ -161,7 +161,7 @@ export const getWorkflowAssignmentsPreviewAssignSchemeUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/workflow-assignments/${id}/assign-scheme/preview?${stringifiedParams}` : `/api/workflow-assignments/${id}/assign-scheme/preview`
+  return stringifiedParams.length > 0 ? `/api/workflow-assignments/${encodeURIComponent(String(id))}/assign-scheme/preview?${stringifiedParams}` : `/api/workflow-assignments/${encodeURIComponent(String(id))}/assign-scheme/preview`
 }
 
 /**

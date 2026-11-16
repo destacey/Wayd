@@ -120,7 +120,7 @@ export const getPortfoliosGetPortfolioUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/ppm/portfolios/${idOrKey}`
+  return `/api/ppm/portfolios/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -151,7 +151,7 @@ export const getPortfoliosGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/ppm/portfolios/${idOrKey}/activities?${stringifiedParams}` : `/api/ppm/portfolios/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/ppm/portfolios/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/ppm/portfolios/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -254,7 +254,7 @@ export const getPortfoliosUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/portfolios/${id}`
+  return `/api/ppm/portfolios/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -279,7 +279,7 @@ export const getPortfoliosPatchPortfolioUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/portfolios/${id}`
+  return `/api/ppm/portfolios/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -304,7 +304,7 @@ export const getPortfoliosDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/portfolios/${id}`
+  return `/api/ppm/portfolios/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -328,7 +328,7 @@ export const getPortfoliosActivateUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/portfolios/${id}/activate`
+  return `/api/ppm/portfolios/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -352,7 +352,7 @@ export const getPortfoliosCloseUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/portfolios/${id}/close`
+  return `/api/ppm/portfolios/${encodeURIComponent(String(id))}/close`
 }
 
 /**
@@ -376,7 +376,7 @@ export const getPortfoliosArchiveUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/portfolios/${id}/archive`
+  return `/api/ppm/portfolios/${encodeURIComponent(String(id))}/archive`
 }
 
 /**
@@ -400,7 +400,7 @@ export const getPortfoliosAssignScoringModelUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/portfolios/${id}/scoring-model`
+  return `/api/ppm/portfolios/${encodeURIComponent(String(id))}/scoring-model`
 }
 
 /**
@@ -425,7 +425,7 @@ export const getPortfoliosClearScoringModelUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/portfolios/${id}/scoring-model`
+  return `/api/ppm/portfolios/${encodeURIComponent(String(id))}/scoring-model`
 }
 
 /**
@@ -449,7 +449,7 @@ export const getPortfoliosMoveProjectRanksUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/portfolios/${id}/project-ranks`
+  return `/api/ppm/portfolios/${encodeURIComponent(String(id))}/project-ranks`
 }
 
 /**
@@ -474,7 +474,7 @@ export const getPortfoliosRebalanceProjectRanksUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/portfolios/${id}/project-ranks/rebalance`
+  return `/api/ppm/portfolios/${encodeURIComponent(String(id))}/project-ranks/rebalance`
 }
 
 /**
@@ -498,7 +498,7 @@ export const getPortfoliosGetRankingScoreboardUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/portfolios/${id}/ranking-scoreboard`
+  return `/api/ppm/portfolios/${encodeURIComponent(String(id))}/ranking-scoreboard`
 }
 
 /**
@@ -536,7 +536,7 @@ export const getPortfoliosGetProgramsUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/ppm/portfolios/${idOrKey}/programs?${stringifiedParams}` : `/api/ppm/portfolios/${idOrKey}/programs`
+  return stringifiedParams.length > 0 ? `/api/ppm/portfolios/${encodeURIComponent(String(idOrKey))}/programs?${stringifiedParams}` : `/api/ppm/portfolios/${encodeURIComponent(String(idOrKey))}/programs`
 }
 
 /**
@@ -589,7 +589,7 @@ export const getPortfoliosGetProjectsUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/ppm/portfolios/${idOrKey}/projects?${stringifiedParams}` : `/api/ppm/portfolios/${idOrKey}/projects`
+  return stringifiedParams.length > 0 ? `/api/ppm/portfolios/${encodeURIComponent(String(idOrKey))}/projects?${stringifiedParams}` : `/api/ppm/portfolios/${encodeURIComponent(String(idOrKey))}/projects`
 }
 
 /**
@@ -659,7 +659,7 @@ export const getPortfoliosGetStrategicInitiativesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/ppm/portfolios/${idOrKey}/strategic-initiatives?${stringifiedParams}` : `/api/ppm/portfolios/${idOrKey}/strategic-initiatives`
+  return stringifiedParams.length > 0 ? `/api/ppm/portfolios/${encodeURIComponent(String(idOrKey))}/strategic-initiatives?${stringifiedParams}` : `/api/ppm/portfolios/${encodeURIComponent(String(idOrKey))}/strategic-initiatives`
 }
 
 /**

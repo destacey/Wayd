@@ -47,7 +47,7 @@ export const getDiscussionSettingsGetSettingsUrl = (channelType: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/discussion-settings/${channelType}?${stringifiedParams}` : `/api/discussion-settings/${channelType}`
+  return stringifiedParams.length > 0 ? `/api/discussion-settings/${encodeURIComponent(String(channelType))}?${stringifiedParams}` : `/api/discussion-settings/${encodeURIComponent(String(channelType))}`
 }
 
 /**
@@ -80,7 +80,7 @@ export const getDiscussionSettingsSaveSettingsUrl = (channelType: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/discussion-settings/${channelType}?${stringifiedParams}` : `/api/discussion-settings/${channelType}`
+  return stringifiedParams.length > 0 ? `/api/discussion-settings/${encodeURIComponent(String(channelType))}?${stringifiedParams}` : `/api/discussion-settings/${encodeURIComponent(String(channelType))}`
 }
 
 /**

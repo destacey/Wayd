@@ -108,7 +108,7 @@ export const getStrategicThemesGetStrategicThemeUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/strategic-management/strategic-themes/${idOrKey}`
+  return `/api/strategic-management/strategic-themes/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -139,7 +139,7 @@ export const getStrategicThemesGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/strategic-management/strategic-themes/${idOrKey}/activities?${stringifiedParams}` : `/api/strategic-management/strategic-themes/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/strategic-management/strategic-themes/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/strategic-management/strategic-themes/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -207,7 +207,7 @@ export const getStrategicThemesUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/strategic-management/strategic-themes/${id}`
+  return `/api/strategic-management/strategic-themes/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -231,7 +231,7 @@ export const getStrategicThemesDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/strategic-management/strategic-themes/${id}`
+  return `/api/strategic-management/strategic-themes/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -254,7 +254,7 @@ export const getStrategicThemesActivateUrl = (id: string,) => {
 
 
 
-  return `/api/strategic-management/strategic-themes/${id}/activate`
+  return `/api/strategic-management/strategic-themes/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -277,7 +277,7 @@ export const getStrategicThemesArchiveUrl = (id: string,) => {
 
 
 
-  return `/api/strategic-management/strategic-themes/${id}/archive`
+  return `/api/strategic-management/strategic-themes/${encodeURIComponent(String(id))}/archive`
 }
 
 /**

@@ -135,7 +135,7 @@ export const getProductsGetProductUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/products/${idOrKey}`
+  return `/api/product-management/products/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -167,7 +167,7 @@ export const getProductsGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/product-management/products/${idOrKey}/activities?${stringifiedParams}` : `/api/product-management/products/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/product-management/products/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/product-management/products/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -203,7 +203,7 @@ export const getProductsGetStatusHistoryUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/products/${idOrKey}/status-history`
+  return `/api/product-management/products/${encodeURIComponent(String(idOrKey))}/status-history`
 }
 
 /**
@@ -236,7 +236,7 @@ export const getProductsGetStatusWorkflowUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/products/${idOrKey}/status-workflow`
+  return `/api/product-management/products/${encodeURIComponent(String(idOrKey))}/status-workflow`
 }
 
 /**
@@ -359,7 +359,7 @@ export const getProductsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/products/${id}`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -386,7 +386,7 @@ export const getProductsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/products/${id}`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -414,7 +414,7 @@ export const getProductsLinkExternallyUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/products/${id}/external-link`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/external-link`
 }
 
 /**
@@ -441,7 +441,7 @@ export const getProductsReparentUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/products/${id}/parent`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/parent`
 }
 
 /**
@@ -470,7 +470,7 @@ export const getProductsRetypeUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/products/${id}/type`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/type`
 }
 
 /**
@@ -497,7 +497,7 @@ export const getProductsChangeStatusUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/products/${id}/status`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/status`
 }
 
 /**
@@ -525,7 +525,7 @@ export const getProductsTagUrl = (id: string,
 
 
 
-  return `/api/product-management/products/${id}/tags/${tagId}`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/tags/${encodeURIComponent(String(tagId))}`
 }
 
 /**
@@ -557,7 +557,7 @@ export const getProductsUntagUrl = (id: string,
 
 
 
-  return `/api/product-management/products/${id}/tags/${tagId}`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/tags/${encodeURIComponent(String(tagId))}`
 }
 
 /**
@@ -582,7 +582,7 @@ export const getProductsTagByNameUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/products/${id}/tags`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/tags`
 }
 
 /**
@@ -617,7 +617,7 @@ export const getProductsGetDependenciesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/product-management/products/${idOrKey}/dependencies?${stringifiedParams}` : `/api/product-management/products/${idOrKey}/dependencies`
+  return stringifiedParams.length > 0 ? `/api/product-management/products/${encodeURIComponent(String(idOrKey))}/dependencies?${stringifiedParams}` : `/api/product-management/products/${encodeURIComponent(String(idOrKey))}/dependencies`
 }
 
 /**
@@ -673,7 +673,7 @@ export const getProductsAddDependencyUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/products/${id}/dependencies`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/dependencies`
 }
 
 /**
@@ -707,7 +707,7 @@ export const getProductsUpdateDependencyUrl = (id: string,
 
 
 
-  return `/api/product-management/products/${id}/dependencies/${dependencyId}`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/dependencies/${encodeURIComponent(String(dependencyId))}`
 }
 
 /**
@@ -738,7 +738,7 @@ export const getProductsEndDependencyUrl = (id: string,
 
 
 
-  return `/api/product-management/products/${id}/dependencies/${dependencyId}/end`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/dependencies/${encodeURIComponent(String(dependencyId))}/end`
 }
 
 /**
@@ -767,7 +767,7 @@ export const getProductsChangeDependencyTermsUrl = (id: string,
 
 
 
-  return `/api/product-management/products/${id}/dependencies/${dependencyId}/terms`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/dependencies/${encodeURIComponent(String(dependencyId))}/terms`
 }
 
 /**
@@ -802,7 +802,7 @@ export const getProductsRemoveDependencyUrl = (id: string,
 
 
 
-  return `/api/product-management/products/${id}/dependencies/${dependencyId}/remove`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/dependencies/${encodeURIComponent(String(dependencyId))}/remove`
 }
 
 /**
@@ -828,7 +828,7 @@ export const getProductsGetTeamsUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/products/${idOrKey}/teams`
+  return `/api/product-management/products/${encodeURIComponent(String(idOrKey))}/teams`
 }
 
 /**
@@ -856,7 +856,7 @@ export const getProductsGetTeamProductsUrl = (teamId: string,) => {
 
 
 
-  return `/api/product-management/products/by-team/${teamId}`
+  return `/api/product-management/products/by-team/${encodeURIComponent(String(teamId))}`
 }
 
 /**
@@ -880,7 +880,7 @@ export const getProductsSetTeamProductsUrl = (teamId: string,) => {
 
 
 
-  return `/api/product-management/products/by-team/${teamId}`
+  return `/api/product-management/products/by-team/${encodeURIComponent(String(teamId))}`
 }
 
 /**
@@ -908,7 +908,7 @@ export const getProductsLinkTeamUrl = (id: string,
 
 
 
-  return `/api/product-management/products/${id}/teams/${teamId}`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/teams/${encodeURIComponent(String(teamId))}`
 }
 
 /**
@@ -936,7 +936,7 @@ export const getProductsUnlinkTeamUrl = (id: string,
 
 
 
-  return `/api/product-management/products/${id}/teams/${teamId}`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/teams/${encodeURIComponent(String(teamId))}`
 }
 
 /**
@@ -961,7 +961,7 @@ export const getProductsSetTeamsUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/products/${id}/teams`
+  return `/api/product-management/products/${encodeURIComponent(String(id))}/teams`
 }
 
 /**

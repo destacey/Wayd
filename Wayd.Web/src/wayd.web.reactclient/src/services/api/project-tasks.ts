@@ -55,7 +55,7 @@ export const getProjectTasksGetProjectTasksUrl = (projectIdOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/ppm/projects/${projectIdOrKey}/tasks?${stringifiedParams}` : `/api/ppm/projects/${projectIdOrKey}/tasks`
+  return stringifiedParams.length > 0 ? `/api/ppm/projects/${encodeURIComponent(String(projectIdOrKey))}/tasks?${stringifiedParams}` : `/api/ppm/projects/${encodeURIComponent(String(projectIdOrKey))}/tasks`
 }
 
 /**
@@ -96,7 +96,7 @@ export const getProjectTasksCreateProjectTaskUrl = (projectIdOrKey: string,) => 
 
 
 
-  return `/api/ppm/projects/${projectIdOrKey}/tasks`
+  return `/api/ppm/projects/${encodeURIComponent(String(projectIdOrKey))}/tasks`
 }
 
 /**
@@ -121,7 +121,7 @@ export const getProjectTasksGetProjectTaskUrl = (projectIdOrKey: string,
 
 
 
-  return `/api/ppm/projects/${projectIdOrKey}/tasks/${taskIdOrKey}`
+  return `/api/ppm/projects/${encodeURIComponent(String(projectIdOrKey))}/tasks/${encodeURIComponent(String(taskIdOrKey))}`
 }
 
 /**
@@ -160,7 +160,7 @@ export const getProjectTasksUpdateProjectTaskUrl = (projectIdOrKey: string,
 
 
 
-  return `/api/ppm/projects/${projectIdOrKey}/tasks/${id}`
+  return `/api/ppm/projects/${encodeURIComponent(String(projectIdOrKey))}/tasks/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -187,7 +187,7 @@ export const getProjectTasksPatchProjectTaskUrl = (projectIdOrKey: string,
 
 
 
-  return `/api/ppm/projects/${projectIdOrKey}/tasks/${id}`
+  return `/api/ppm/projects/${encodeURIComponent(String(projectIdOrKey))}/tasks/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -214,7 +214,7 @@ export const getProjectTasksDeleteProjectTaskUrl = (projectIdOrKey: string,
 
 
 
-  return `/api/ppm/projects/${projectIdOrKey}/tasks/${id}`
+  return `/api/ppm/projects/${encodeURIComponent(String(projectIdOrKey))}/tasks/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -239,7 +239,7 @@ export const getProjectTasksUpdateProjectTaskPlacementUrl = (projectIdOrKey: str
 
 
 
-  return `/api/ppm/projects/${projectIdOrKey}/tasks/${id}/placement`
+  return `/api/ppm/projects/${encodeURIComponent(String(projectIdOrKey))}/tasks/${encodeURIComponent(String(id))}/placement`
 }
 
 /**
@@ -265,7 +265,7 @@ export const getProjectTasksGetCriticalPathUrl = (projectIdOrKey: string,) => {
 
 
 
-  return `/api/ppm/projects/${projectIdOrKey}/tasks/critical-path`
+  return `/api/ppm/projects/${encodeURIComponent(String(projectIdOrKey))}/tasks/critical-path`
 }
 
 /**
@@ -290,7 +290,7 @@ export const getProjectTasksAddTaskDependencyUrl = (projectIdOrKey: string,
 
 
 
-  return `/api/ppm/projects/${projectIdOrKey}/tasks/${id}/dependencies`
+  return `/api/ppm/projects/${encodeURIComponent(String(projectIdOrKey))}/tasks/${encodeURIComponent(String(id))}/dependencies`
 }
 
 /**
@@ -318,7 +318,7 @@ export const getProjectTasksRemoveTaskDependencyUrl = (projectIdOrKey: string,
 
 
 
-  return `/api/ppm/projects/${projectIdOrKey}/tasks/${id}/dependencies/${successorId}`
+  return `/api/ppm/projects/${encodeURIComponent(String(projectIdOrKey))}/tasks/${encodeURIComponent(String(id))}/dependencies/${encodeURIComponent(String(successorId))}`
 }
 
 /**

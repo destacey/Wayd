@@ -170,7 +170,7 @@ export const getIncidentsGetIncidentUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/incidents/${idOrKey}`
+  return `/api/product-management/incidents/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -205,7 +205,7 @@ export const getIncidentsGetStatusWorkflowUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/incidents/${idOrKey}/status-workflow`
+  return `/api/product-management/incidents/${encodeURIComponent(String(idOrKey))}/status-workflow`
 }
 
 /**
@@ -229,7 +229,7 @@ export const getIncidentsUpdateDetailsUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/incidents/${id}`
+  return `/api/product-management/incidents/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -253,7 +253,7 @@ export const getIncidentsLinkTeamsChatUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/incidents/${id}/teams-chat`
+  return `/api/product-management/incidents/${encodeURIComponent(String(id))}/teams-chat`
 }
 
 /**
@@ -278,7 +278,7 @@ export const getIncidentsCreateTeamsChatUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/incidents/${id}/teams-chat`
+  return `/api/product-management/incidents/${encodeURIComponent(String(id))}/teams-chat`
 }
 
 /**
@@ -303,7 +303,7 @@ export const getIncidentsGetIncidentWorkItemsUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/incidents/${idOrKey}/work-items`
+  return `/api/product-management/incidents/${encodeURIComponent(String(idOrKey))}/work-items`
 }
 
 /**
@@ -343,7 +343,7 @@ export const getIncidentsManageIncidentWorkItemsUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/incidents/${id}/work-items`
+  return `/api/product-management/incidents/${encodeURIComponent(String(id))}/work-items`
 }
 
 /**
@@ -368,7 +368,7 @@ export const getIncidentsGetIncidentTimelineNotesUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/incidents/${idOrKey}/timeline-notes`
+  return `/api/product-management/incidents/${encodeURIComponent(String(idOrKey))}/timeline-notes`
 }
 
 /**
@@ -400,7 +400,7 @@ export const getIncidentsGetIncidentTimelineLinkEntriesUrl = (idOrKey: string,) 
 
 
 
-  return `/api/product-management/incidents/${idOrKey}/timeline-link-entries`
+  return `/api/product-management/incidents/${encodeURIComponent(String(idOrKey))}/timeline-link-entries`
 }
 
 /**
@@ -432,7 +432,7 @@ export const getIncidentsAddIncidentTimelineNoteUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/incidents/${id}/timeline-notes`
+  return `/api/product-management/incidents/${encodeURIComponent(String(id))}/timeline-notes`
 }
 
 /**
@@ -456,7 +456,7 @@ export const getIncidentsGetIncidentWorkflowActionsUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/incidents/${idOrKey}/workflow-actions`
+  return `/api/product-management/incidents/${encodeURIComponent(String(idOrKey))}/workflow-actions`
 }
 
 /**
@@ -479,7 +479,7 @@ export const getIncidentsApplyIncidentWorkflowActionUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/incidents/${id}/workflow-actions`
+  return `/api/product-management/incidents/${encodeURIComponent(String(id))}/workflow-actions`
 }
 
 /**

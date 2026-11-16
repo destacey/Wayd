@@ -108,7 +108,7 @@ export const getVisionsGetVisionUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/strategic-management/visions/${idOrKey}`
+  return `/api/strategic-management/visions/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -142,7 +142,7 @@ export const getVisionsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/strategic-management/visions/${id}`
+  return `/api/strategic-management/visions/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -166,7 +166,7 @@ export const getVisionsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/strategic-management/visions/${id}`
+  return `/api/strategic-management/visions/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -189,7 +189,7 @@ export const getVisionsActivateUrl = (id: string,) => {
 
 
 
-  return `/api/strategic-management/visions/${id}/activate`
+  return `/api/strategic-management/visions/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -212,7 +212,7 @@ export const getVisionsArchiveUrl = (id: string,) => {
 
 
 
-  return `/api/strategic-management/visions/${id}/archive`
+  return `/api/strategic-management/visions/${encodeURIComponent(String(id))}/archive`
 }
 
 /**

@@ -110,7 +110,7 @@ export const getPokerSessionsGetSessionUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/poker-sessions/${idOrKey}`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -169,7 +169,7 @@ export const getPokerSessionsGetInvitedTeamMembersUrl = (id: string,
 
 
 
-  return `/api/planning/poker-sessions/${id}/invited-teams/${teamId}/members`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/invited-teams/${encodeURIComponent(String(teamId))}/members`
 }
 
 /**
@@ -194,7 +194,7 @@ export const getPokerSessionsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/planning/poker-sessions/${id}`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -219,7 +219,7 @@ export const getPokerSessionsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/planning/poker-sessions/${id}`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -243,7 +243,7 @@ export const getPokerSessionsCompleteUrl = (id: string,) => {
 
 
 
-  return `/api/planning/poker-sessions/${id}/complete`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/complete`
 }
 
 /**
@@ -267,7 +267,7 @@ export const getPokerSessionsAddRoundUrl = (id: string,) => {
 
 
 
-  return `/api/planning/poker-sessions/${id}/rounds`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/rounds`
 }
 
 /**
@@ -307,7 +307,7 @@ export const getPokerSessionsRemoveRoundUrl = (id: string,
 
 
 
-  return `/api/planning/poker-sessions/${id}/rounds/${roundId}`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/rounds/${encodeURIComponent(String(roundId))}`
 }
 
 /**
@@ -332,7 +332,7 @@ export const getPokerSessionsFocusRoundUrl = (id: string,) => {
 
 
 
-  return `/api/planning/poker-sessions/${id}/focused-round`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/focused-round`
 }
 
 /**
@@ -358,7 +358,7 @@ export const getPokerSessionsRevealRoundUrl = (id: string,
 
 
 
-  return `/api/planning/poker-sessions/${id}/rounds/${roundId}/reveal`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/rounds/${encodeURIComponent(String(roundId))}/reveal`
 }
 
 /**
@@ -384,7 +384,7 @@ export const getPokerSessionsResetRoundUrl = (id: string,
 
 
 
-  return `/api/planning/poker-sessions/${id}/rounds/${roundId}/reset`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/rounds/${encodeURIComponent(String(roundId))}/reset`
 }
 
 /**
@@ -410,7 +410,7 @@ export const getPokerSessionsSetConsensusUrl = (id: string,
 
 
 
-  return `/api/planning/poker-sessions/${id}/rounds/${roundId}/consensus`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/rounds/${encodeURIComponent(String(roundId))}/consensus`
 }
 
 /**
@@ -437,7 +437,7 @@ export const getPokerSessionsPublishRoundUrl = (id: string,
 
 
 
-  return `/api/planning/poker-sessions/${id}/rounds/${roundId}/publish`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/rounds/${encodeURIComponent(String(roundId))}/publish`
 }
 
 /**
@@ -476,7 +476,7 @@ export const getPokerSessionsPublishRoundsUrl = (id: string,) => {
 
 
 
-  return `/api/planning/poker-sessions/${id}/publish`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/publish`
 }
 
 /**
@@ -518,7 +518,7 @@ export const getPokerSessionsUpdateRoundLabelUrl = (id: string,
 
 
 
-  return `/api/planning/poker-sessions/${id}/rounds/${roundId}/label`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/rounds/${encodeURIComponent(String(roundId))}/label`
 }
 
 /**
@@ -545,7 +545,7 @@ export const getPokerSessionsUpdateRoundDescriptionUrl = (id: string,
 
 
 
-  return `/api/planning/poker-sessions/${id}/rounds/${roundId}/description`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/rounds/${encodeURIComponent(String(roundId))}/description`
 }
 
 /**
@@ -572,7 +572,7 @@ export const getPokerSessionsSubmitVoteUrl = (id: string,
 
 
 
-  return `/api/planning/poker-sessions/${id}/rounds/${roundId}/vote`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/rounds/${encodeURIComponent(String(roundId))}/vote`
 }
 
 /**
@@ -599,7 +599,7 @@ export const getPokerSessionsWithdrawVoteUrl = (id: string,
 
 
 
-  return `/api/planning/poker-sessions/${id}/rounds/${roundId}/vote`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/rounds/${encodeURIComponent(String(roundId))}/vote`
 }
 
 /**
@@ -624,7 +624,7 @@ export const getPokerSessionsSetVisibilityUrl = (id: string,) => {
 
 
 
-  return `/api/planning/poker-sessions/${id}/visibility`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/visibility`
 }
 
 /**
@@ -649,7 +649,7 @@ export const getPokerSessionsSetFacilitatorsUrl = (id: string,) => {
 
 
 
-  return `/api/planning/poker-sessions/${id}/facilitators`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/facilitators`
 }
 
 /**
@@ -674,7 +674,7 @@ export const getPokerSessionsSetInviteesUrl = (id: string,) => {
 
 
 
-  return `/api/planning/poker-sessions/${id}/invitees`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/invitees`
 }
 
 /**
@@ -699,7 +699,7 @@ export const getPokerSessionsJoinUrl = (id: string,) => {
 
 
 
-  return `/api/planning/poker-sessions/${id}/join`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/join`
 }
 
 /**
@@ -730,7 +730,7 @@ export const getPokerSessionsSetVotingUrl = (id: string,) => {
 
 
 
-  return `/api/planning/poker-sessions/${id}/voting`
+  return `/api/planning/poker-sessions/${encodeURIComponent(String(id))}/voting`
 }
 
 /**

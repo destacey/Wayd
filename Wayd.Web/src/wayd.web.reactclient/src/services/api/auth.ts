@@ -183,7 +183,7 @@ export const getAuthRevokeSessionUrl = (sessionId: string,) => {
 
 
 
-  return `/api/auth/sessions/${sessionId}`
+  return `/api/auth/sessions/${encodeURIComponent(String(sessionId))}`
 }
 
 /**

@@ -116,7 +116,7 @@ export const getRisksGetRiskUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/risks/${idOrKey}`
+  return `/api/planning/risks/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -160,7 +160,7 @@ export const getRisksGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/planning/risks/${idOrKey}/activities?${stringifiedParams}` : `/api/planning/risks/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/planning/risks/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/planning/risks/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -232,7 +232,7 @@ export const getRisksUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/planning/risks/${id}`
+  return `/api/planning/risks/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -257,7 +257,7 @@ export const getRisksDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/planning/risks/${id}`
+  return `/api/planning/risks/${encodeURIComponent(String(id))}`
 }
 
 /**

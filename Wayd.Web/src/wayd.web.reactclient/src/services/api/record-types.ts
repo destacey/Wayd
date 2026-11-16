@@ -92,7 +92,7 @@ export const getRecordTypesRenameUrl = (id: string,) => {
 
 
 
-  return `/api/record-types/${id}`
+  return `/api/record-types/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -116,7 +116,7 @@ export const getRecordTypesActivateUrl = (id: string,) => {
 
 
 
-  return `/api/record-types/${id}/activate`
+  return `/api/record-types/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -139,7 +139,7 @@ export const getRecordTypesDeactivateUrl = (id: string,) => {
 
 
 
-  return `/api/record-types/${id}/deactivate`
+  return `/api/record-types/${encodeURIComponent(String(id))}/deactivate`
 }
 
 /**

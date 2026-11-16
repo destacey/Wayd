@@ -96,7 +96,7 @@ export const getProjectLifecyclesGetProjectLifecycleUrl = (idOrKey: string,) => 
 
 
 
-  return `/api/ppm/project-lifecycles/${idOrKey}`
+  return `/api/ppm/project-lifecycles/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -119,7 +119,7 @@ export const getProjectLifecyclesUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/project-lifecycles/${id}`
+  return `/api/ppm/project-lifecycles/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -144,7 +144,7 @@ export const getProjectLifecyclesDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/project-lifecycles/${id}`
+  return `/api/ppm/project-lifecycles/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -168,7 +168,7 @@ export const getProjectLifecyclesActivateUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/project-lifecycles/${id}/activate`
+  return `/api/ppm/project-lifecycles/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -192,7 +192,7 @@ export const getProjectLifecyclesArchiveUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/project-lifecycles/${id}/archive`
+  return `/api/ppm/project-lifecycles/${encodeURIComponent(String(id))}/archive`
 }
 
 /**
@@ -216,7 +216,7 @@ export const getProjectLifecyclesAddStageUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/project-lifecycles/${id}/stages`
+  return `/api/ppm/project-lifecycles/${encodeURIComponent(String(id))}/stages`
 }
 
 /**
@@ -242,7 +242,7 @@ export const getProjectLifecyclesUpdateStageUrl = (id: string,
 
 
 
-  return `/api/ppm/project-lifecycles/${id}/stages/${stageId}`
+  return `/api/ppm/project-lifecycles/${encodeURIComponent(String(id))}/stages/${encodeURIComponent(String(stageId))}`
 }
 
 /**
@@ -269,7 +269,7 @@ export const getProjectLifecyclesRemoveStageUrl = (id: string,
 
 
 
-  return `/api/ppm/project-lifecycles/${id}/stages/${stageId}`
+  return `/api/ppm/project-lifecycles/${encodeURIComponent(String(id))}/stages/${encodeURIComponent(String(stageId))}`
 }
 
 /**
@@ -294,7 +294,7 @@ export const getProjectLifecyclesReorderStagesUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/project-lifecycles/${id}/stages/reorder`
+  return `/api/ppm/project-lifecycles/${encodeURIComponent(String(id))}/stages/reorder`
 }
 
 /**

@@ -89,7 +89,7 @@ export const getExpenditureCategoriesGetExpenditureCategoryUrl = (id: number,) =
 
 
 
-  return `/api/ppm/expenditure-categories/${id}`
+  return `/api/ppm/expenditure-categories/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -113,7 +113,7 @@ export const getExpenditureCategoriesUpdateUrl = (id: number,) => {
 
 
 
-  return `/api/ppm/expenditure-categories/${id}`
+  return `/api/ppm/expenditure-categories/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -138,7 +138,7 @@ export const getExpenditureCategoriesDeleteUrl = (id: number,) => {
 
 
 
-  return `/api/ppm/expenditure-categories/${id}`
+  return `/api/ppm/expenditure-categories/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -162,7 +162,7 @@ export const getExpenditureCategoriesActivateUrl = (id: number,) => {
 
 
 
-  return `/api/ppm/expenditure-categories/${id}/activate`
+  return `/api/ppm/expenditure-categories/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -186,7 +186,7 @@ export const getExpenditureCategoriesArchiveUrl = (id: number,) => {
 
 
 
-  return `/api/ppm/expenditure-categories/${id}/archive`
+  return `/api/ppm/expenditure-categories/${encodeURIComponent(String(id))}/archive`
 }
 
 /**

@@ -142,7 +142,7 @@ export const getPlanningIntervalsGetPlanningIntervalUrl = (idOrKey: string,) => 
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -180,7 +180,7 @@ export const getPlanningIntervalsGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${idOrKey}/activities?${stringifiedParams}` : `/api/planning/planning-intervals/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -216,7 +216,7 @@ export const getPlanningIntervalsGetCalendarUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/calendar`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/calendar`
 }
 
 /**
@@ -253,7 +253,7 @@ export const getPlanningIntervalsGetPredictabilityUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/predictability`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/predictability`
 }
 
 /**
@@ -310,7 +310,7 @@ export const getPlanningIntervalsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/planning/planning-intervals/${id}`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -335,7 +335,7 @@ export const getPlanningIntervalsGetTeamsUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/teams`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/teams`
 }
 
 /**
@@ -359,7 +359,7 @@ export const getPlanningIntervalsGetTeamPredictabilityUrl = (idOrKey: string,
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/teams/${teamId}/predictability`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/teams/${encodeURIComponent(String(teamId))}/predictability`
 }
 
 /**
@@ -383,7 +383,7 @@ export const getPlanningIntervalsManageDatesUrl = (id: string,) => {
 
 
 
-  return `/api/planning/planning-intervals/${id}/dates`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}/dates`
 }
 
 /**
@@ -408,7 +408,7 @@ export const getPlanningIntervalsManageTeamsUrl = (id: string,) => {
 
 
 
-  return `/api/planning/planning-intervals/${id}/teams`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}/teams`
 }
 
 /**
@@ -433,7 +433,7 @@ export const getPlanningIntervalsGetIterationsUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/iterations`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/iterations`
 }
 
 /**
@@ -466,7 +466,7 @@ export const getPlanningIntervalsGetCapacityUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/capacity`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/capacity`
 }
 
 /**
@@ -516,7 +516,7 @@ export const getPlanningIntervalsGetIterationUrl = (idOrKey: string,
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/iterations/${iterationIdOrKey}`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/iterations/${encodeURIComponent(String(iterationIdOrKey))}`
 }
 
 /**
@@ -578,7 +578,7 @@ export const getPlanningIntervalsGetIterationSprintsUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${idOrKey}/iterations/sprints?${stringifiedParams}` : `/api/planning/planning-intervals/${idOrKey}/iterations/sprints`
+  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/iterations/sprints?${stringifiedParams}` : `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/iterations/sprints`
 }
 
 /**
@@ -627,7 +627,7 @@ export const getPlanningIntervalsMapTeamSprintsUrl = (id: string,
 
 
 
-  return `/api/planning/planning-intervals/${id}/teams/${teamId}/sprints`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}/teams/${encodeURIComponent(String(teamId))}/sprints`
 }
 
 /**
@@ -653,7 +653,7 @@ export const getPlanningIntervalsGetMetricsUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/metrics`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/metrics`
 }
 
 /**
@@ -678,7 +678,7 @@ export const getPlanningIntervalsGetIterationMetricsUrl = (idOrKey: string,
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/iterations/${iterationIdOrKey}/metrics`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/iterations/${encodeURIComponent(String(iterationIdOrKey))}/metrics`
 }
 
 /**
@@ -734,7 +734,7 @@ export const getPlanningIntervalsGetIterationBacklogUrl = (idOrKey: string,
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/iterations/${iterationIdOrKey}/backlog`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/iterations/${encodeURIComponent(String(iterationIdOrKey))}/backlog`
 }
 
 /**
@@ -773,7 +773,7 @@ export const getPlanningIntervalsGetBacklogUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/backlog`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/backlog`
 }
 
 /**
@@ -812,7 +812,7 @@ export const getPlanningIntervalsGetDependenciesUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/dependencies`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/dependencies`
 }
 
 /**
@@ -869,7 +869,7 @@ export const getPlanningIntervalsGetObjectivesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${idOrKey}/objectives?${stringifiedParams}` : `/api/planning/planning-intervals/${idOrKey}/objectives`
+  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/objectives?${stringifiedParams}` : `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/objectives`
 }
 
 /**
@@ -913,7 +913,7 @@ export const getPlanningIntervalsGetObjectiveUrl = (idOrKey: string,
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/objectives/${objectiveIdOrKey}`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/objectives/${encodeURIComponent(String(objectiveIdOrKey))}`
 }
 
 /**
@@ -964,7 +964,7 @@ export const getPlanningIntervalsGetObjectiveActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${idOrKey}/objectives/${objectiveIdOrKey}/activities?${stringifiedParams}` : `/api/planning/planning-intervals/${idOrKey}/objectives/${objectiveIdOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/objectives/${encodeURIComponent(String(objectiveIdOrKey))}/activities?${stringifiedParams}` : `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/objectives/${encodeURIComponent(String(objectiveIdOrKey))}/activities`
 }
 
 /**
@@ -1001,7 +1001,7 @@ export const getPlanningIntervalsCreateObjectiveUrl = (id: string,) => {
 
 
 
-  return `/api/planning/planning-intervals/${id}/objectives`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}/objectives`
 }
 
 /**
@@ -1027,7 +1027,7 @@ export const getPlanningIntervalsUpdateObjectiveUrl = (id: string,
 
 
 
-  return `/api/planning/planning-intervals/${id}/objectives/${objectiveId}`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}/objectives/${encodeURIComponent(String(objectiveId))}`
 }
 
 /**
@@ -1054,7 +1054,7 @@ export const getPlanningIntervalsDeleteObjectiveUrl = (id: string,
 
 
 
-  return `/api/planning/planning-intervals/${id}/objectives/${objectiveId}`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}/objectives/${encodeURIComponent(String(objectiveId))}`
 }
 
 /**
@@ -1079,7 +1079,7 @@ export const getPlanningIntervalsUpdateObjectivesOrderUrl = (id: string,) => {
 
 
 
-  return `/api/planning/planning-intervals/${id}/objectives/order`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}/objectives/order`
 }
 
 /**
@@ -1112,7 +1112,7 @@ export const getPlanningIntervalsGetObjectivesHealthReportUrl = (idOrKey: string
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${idOrKey}/objectives/health-report?${stringifiedParams}` : `/api/planning/planning-intervals/${idOrKey}/objectives/health-report`
+  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/objectives/health-report?${stringifiedParams}` : `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/objectives/health-report`
 }
 
 /**
@@ -1152,7 +1152,7 @@ export const getPlanningIntervalsGetObjectiveWorkItemsUrl = (idOrKey: string,
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/objectives/${objectiveIdOrKey}/work-items`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/objectives/${encodeURIComponent(String(objectiveIdOrKey))}/work-items`
 }
 
 /**
@@ -1202,7 +1202,7 @@ export const getPlanningIntervalsGetObjectiveForecastUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${idOrKey}/objectives/${objectiveIdOrKey}/forecast?${stringifiedParams}` : `/api/planning/planning-intervals/${idOrKey}/objectives/${objectiveIdOrKey}/forecast`
+  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/objectives/${encodeURIComponent(String(objectiveIdOrKey))}/forecast?${stringifiedParams}` : `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/objectives/${encodeURIComponent(String(objectiveIdOrKey))}/forecast`
 }
 
 /**
@@ -1259,7 +1259,7 @@ export const getPlanningIntervalsGetObjectiveWorkItemMetricsUrl = (idOrKey: stri
 
 
 
-  return `/api/planning/planning-intervals/${idOrKey}/objectives/${objectiveIdOrKey}/work-items/metrics`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/objectives/${encodeURIComponent(String(objectiveIdOrKey))}/work-items/metrics`
 }
 
 /**
@@ -1293,7 +1293,7 @@ export const getPlanningIntervalsManageObjectiveWorkItemsUrl = (id: string,
 
 
 
-  return `/api/planning/planning-intervals/${id}/objectives/${objectiveId}/work-items`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}/objectives/${encodeURIComponent(String(objectiveId))}/work-items`
 }
 
 /**
@@ -1385,7 +1385,7 @@ export const getPlanningIntervalsGetObjectiveHealthCheckEvidenceUrl = (idOrKey: 
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${idOrKey}/objectives/${objectiveIdOrKey}/health-check-evidence?${stringifiedParams}` : `/api/planning/planning-intervals/${idOrKey}/objectives/${objectiveIdOrKey}/health-check-evidence`
+  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/objectives/${encodeURIComponent(String(objectiveIdOrKey))}/health-check-evidence?${stringifiedParams}` : `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/objectives/${encodeURIComponent(String(objectiveIdOrKey))}/health-check-evidence`
 }
 
 /**
@@ -1525,7 +1525,7 @@ export const getPlanningIntervalsGetObjectiveHealthChecksUrl = (id: string,
 
 
 
-  return `/api/planning/planning-intervals/${id}/objectives/${objectiveId}/health-checks`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}/objectives/${encodeURIComponent(String(objectiveId))}/health-checks`
 }
 
 /**
@@ -1560,7 +1560,7 @@ export const getPlanningIntervalsCreateObjectiveHealthCheckUrl = (id: string,
 
 
 
-  return `/api/planning/planning-intervals/${id}/objectives/${objectiveId}/health-checks`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}/objectives/${encodeURIComponent(String(objectiveId))}/health-checks`
 }
 
 /**
@@ -1588,7 +1588,7 @@ export const getPlanningIntervalsGetObjectiveHealthCheckUrl = (id: string,
 
 
 
-  return `/api/planning/planning-intervals/${id}/objectives/${objectiveId}/health-checks/${healthCheckId}`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}/objectives/${encodeURIComponent(String(objectiveId))}/health-checks/${encodeURIComponent(String(healthCheckId))}`
 }
 
 /**
@@ -1622,7 +1622,7 @@ export const getPlanningIntervalsUpdateObjectiveHealthCheckUrl = (id: string,
 
 
 
-  return `/api/planning/planning-intervals/${id}/objectives/${objectiveId}/health-checks/${healthCheckId}`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}/objectives/${encodeURIComponent(String(objectiveId))}/health-checks/${encodeURIComponent(String(healthCheckId))}`
 }
 
 /**
@@ -1658,7 +1658,7 @@ export const getPlanningIntervalsDeleteObjectiveHealthCheckUrl = (id: string,
 
 
 
-  return `/api/planning/planning-intervals/${id}/objectives/${objectiveId}/health-checks/${healthCheckId}`
+  return `/api/planning/planning-intervals/${encodeURIComponent(String(id))}/objectives/${encodeURIComponent(String(objectiveId))}/health-checks/${encodeURIComponent(String(healthCheckId))}`
 }
 
 /**
@@ -1692,7 +1692,7 @@ export const getPlanningIntervalsGetRisksUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${idOrKey}/risks?${stringifiedParams}` : `/api/planning/planning-intervals/${idOrKey}/risks`
+  return stringifiedParams.length > 0 ? `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/risks?${stringifiedParams}` : `/api/planning/planning-intervals/${encodeURIComponent(String(idOrKey))}/risks`
 }
 
 /**

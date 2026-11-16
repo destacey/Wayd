@@ -109,7 +109,7 @@ export const getStrategiesGetStrategyUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/strategic-management/strategies/${idOrKey}`
+  return `/api/strategic-management/strategies/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -143,7 +143,7 @@ export const getStrategiesUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/strategic-management/strategies/${id}`
+  return `/api/strategic-management/strategies/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -167,7 +167,7 @@ export const getStrategiesDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/strategic-management/strategies/${id}`
+  return `/api/strategic-management/strategies/${encodeURIComponent(String(id))}`
 }
 
 /**

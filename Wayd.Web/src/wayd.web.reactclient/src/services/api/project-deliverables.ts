@@ -47,7 +47,7 @@ export const getProjectDeliverablesGetDeliverablesUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/ppm/projects/${idOrKey}/deliverables`
+  return `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/deliverables`
 }
 
 /**
@@ -86,7 +86,7 @@ export const getProjectDeliverablesGetDeliverableUrl = (idOrKey: string,
 
 
 
-  return `/api/ppm/projects/${idOrKey}/deliverables/${deliverableId}`
+  return `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/deliverables/${encodeURIComponent(String(deliverableId))}`
 }
 
 /**
@@ -121,7 +121,7 @@ export const getProjectDeliverablesCreateDeliverableUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/deliverables`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/deliverables`
 }
 
 /**
@@ -147,7 +147,7 @@ export const getProjectDeliverablesUpdateDeliverableUrl = (id: string,
 
 
 
-  return `/api/ppm/projects/${id}/deliverables/${deliverableId}`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/deliverables/${encodeURIComponent(String(deliverableId))}`
 }
 
 /**
@@ -182,7 +182,7 @@ export const getProjectDeliverablesDeleteDeliverableUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/ppm/projects/${id}/deliverables/${deliverableId}?${stringifiedParams}` : `/api/ppm/projects/${id}/deliverables/${deliverableId}`
+  return stringifiedParams.length > 0 ? `/api/ppm/projects/${encodeURIComponent(String(id))}/deliverables/${encodeURIComponent(String(deliverableId))}?${stringifiedParams}` : `/api/ppm/projects/${encodeURIComponent(String(id))}/deliverables/${encodeURIComponent(String(deliverableId))}`
 }
 
 /**
@@ -209,7 +209,7 @@ export const getProjectDeliverablesGetStatusOptionsUrl = (idOrKey: string,
 
 
 
-  return `/api/ppm/projects/${idOrKey}/deliverables/${deliverableId}/status-options`
+  return `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/deliverables/${encodeURIComponent(String(deliverableId))}/status-options`
 }
 
 /**
@@ -235,7 +235,7 @@ export const getProjectDeliverablesChangeStatusUrl = (id: string,
 
 
 
-  return `/api/ppm/projects/${id}/deliverables/${deliverableId}/status`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/deliverables/${encodeURIComponent(String(deliverableId))}/status`
 }
 
 /**
@@ -262,7 +262,7 @@ export const getProjectDeliverablesGetStatusHistoryUrl = (idOrKey: string,
 
 
 
-  return `/api/ppm/projects/${idOrKey}/deliverables/${deliverableId}/status-history`
+  return `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/deliverables/${encodeURIComponent(String(deliverableId))}/status-history`
 }
 
 /**
@@ -296,7 +296,7 @@ export const getProjectDeliverablesReorderDeliverablesUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/deliverables/order`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/deliverables/order`
 }
 
 /**
@@ -322,7 +322,7 @@ export const getProjectDeliverablesSetDeliverableTasksUrl = (id: string,
 
 
 
-  return `/api/ppm/projects/${id}/deliverables/${deliverableId}/tasks`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/deliverables/${encodeURIComponent(String(deliverableId))}/tasks`
 }
 
 /**

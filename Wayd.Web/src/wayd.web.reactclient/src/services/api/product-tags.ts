@@ -97,7 +97,7 @@ export const getProductTagsUpdateFreeTagUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/product-tags/${id}`
+  return `/api/product-management/product-tags/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -124,7 +124,7 @@ export const getProductTagsDeleteFreeTagUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/product-tags/${id}`
+  return `/api/product-management/product-tags/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -148,7 +148,7 @@ export const getProductTagsMergeUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/product-tags/${id}/merge`
+  return `/api/product-management/product-tags/${encodeURIComponent(String(id))}/merge`
 }
 
 /**

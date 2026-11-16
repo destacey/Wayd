@@ -126,7 +126,7 @@ export const getRoadmapsGetRoadmapUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/roadmaps/${idOrKey}`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -180,7 +180,7 @@ export const getRoadmapsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/planning/roadmaps/${id}`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -205,7 +205,7 @@ export const getRoadmapsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/planning/roadmaps/${id}`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -229,7 +229,7 @@ export const getRoadmapsUpdateColorsUrl = (id: string,) => {
 
 
 
-  return `/api/planning/roadmaps/${id}/colors`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(id))}/colors`
 }
 
 /**
@@ -254,7 +254,7 @@ export const getRoadmapsArchiveUrl = (id: string,) => {
 
 
 
-  return `/api/planning/roadmaps/${id}/archive`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(id))}/archive`
 }
 
 /**
@@ -278,7 +278,7 @@ export const getRoadmapsActivateUrl = (id: string,) => {
 
 
 
-  return `/api/planning/roadmaps/${id}/activate`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -302,7 +302,7 @@ export const getRoadmapsGetItemsUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/roadmaps/${idOrKey}/items`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(idOrKey))}/items`
 }
 
 /**
@@ -325,7 +325,7 @@ export const getRoadmapsGetActivitiesUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/roadmaps/${idOrKey}/items/activities`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(idOrKey))}/items/activities`
 }
 
 /**
@@ -359,7 +359,7 @@ export const getRoadmapsGetItemUrl = (roadmapIdOrKey: string,
 
 
 
-  return `/api/planning/roadmaps/${roadmapIdOrKey}/items/${itemId}`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(roadmapIdOrKey))}/items/${encodeURIComponent(String(itemId))}`
 }
 
 /**
@@ -383,7 +383,7 @@ export const getRoadmapsCreateItemUrl = (roadmapId: string,) => {
 
 
 
-  return `/api/planning/roadmaps/${roadmapId}/items`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(roadmapId))}/items`
 }
 
 /**
@@ -409,7 +409,7 @@ export const getRoadmapsUpdateItemUrl = (roadmapId: string,
 
 
 
-  return `/api/planning/roadmaps/${roadmapId}/items/${itemId}`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(roadmapId))}/items/${encodeURIComponent(String(itemId))}`
 }
 
 /**
@@ -436,7 +436,7 @@ export const getRoadmapsPatchRoadmapItemUrl = (roadmapId: string,
 
 
 
-  return `/api/planning/roadmaps/${roadmapId}/items/${itemId}`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(roadmapId))}/items/${encodeURIComponent(String(itemId))}`
 }
 
 /**
@@ -463,7 +463,7 @@ export const getRoadmapsDeleteItemUrl = (roadmapId: string,
 
 
 
-  return `/api/planning/roadmaps/${roadmapId}/items/${itemId}`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(roadmapId))}/items/${encodeURIComponent(String(itemId))}`
 }
 
 /**
@@ -489,7 +489,7 @@ export const getRoadmapsUpdateItemDatesUrl = (roadmapId: string,
 
 
 
-  return `/api/planning/roadmaps/${roadmapId}/items/${itemId}/dates`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(roadmapId))}/items/${encodeURIComponent(String(itemId))}/dates`
 }
 
 /**
@@ -516,7 +516,7 @@ export const getRoadmapsUpdateActivityPlacementUrl = (roadmapId: string,
 
 
 
-  return `/api/planning/roadmaps/${roadmapId}/items/${itemId}/placement`
+  return `/api/planning/roadmaps/${encodeURIComponent(String(roadmapId))}/items/${encodeURIComponent(String(itemId))}/placement`
 }
 
 /**

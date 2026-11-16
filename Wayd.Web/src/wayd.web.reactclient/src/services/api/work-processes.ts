@@ -52,7 +52,7 @@ export const getWorkProcessesGetUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/work/work-processes/${idOrKey}`
+  return `/api/work/work-processes/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -84,7 +84,7 @@ export const getWorkProcessesGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/work/work-processes/${idOrKey}/activities?${stringifiedParams}` : `/api/work/work-processes/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/work/work-processes/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/work/work-processes/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -120,7 +120,7 @@ export const getWorkProcessesActivateUrl = (id: string,) => {
 
 
 
-  return `/api/work/work-processes/${id}/activate`
+  return `/api/work/work-processes/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -144,7 +144,7 @@ export const getWorkProcessesDeactivateUrl = (id: string,) => {
 
 
 
-  return `/api/work/work-processes/${id}/deactivate`
+  return `/api/work/work-processes/${encodeURIComponent(String(id))}/deactivate`
 }
 
 /**
@@ -168,7 +168,7 @@ export const getWorkProcessesGetSchemesUrl = (id: string,) => {
 
 
 
-  return `/api/work/work-processes/${id}/schemes`
+  return `/api/work/work-processes/${encodeURIComponent(String(id))}/schemes`
 }
 
 /**

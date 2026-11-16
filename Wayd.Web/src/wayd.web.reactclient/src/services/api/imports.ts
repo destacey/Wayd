@@ -98,7 +98,7 @@ export const getImportsGetByIdUrl = (id: string,) => {
 
 
 
-  return `/api/imports/${id}`
+  return `/api/imports/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -145,7 +145,7 @@ export const getImportsGetRowsUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/imports/${id}/rows?${stringifiedParams}` : `/api/imports/${id}/rows`
+  return stringifiedParams.length > 0 ? `/api/imports/${encodeURIComponent(String(id))}/rows?${stringifiedParams}` : `/api/imports/${encodeURIComponent(String(id))}/rows`
 }
 
 /**
@@ -183,7 +183,7 @@ export const getImportsCancelUrl = (id: string,) => {
 
 
 
-  return `/api/imports/${id}/cancel`
+  return `/api/imports/${encodeURIComponent(String(id))}/cancel`
 }
 
 /**
@@ -207,7 +207,7 @@ export const getImportsResumeUrl = (id: string,) => {
 
 
 
-  return `/api/imports/${id}/resume`
+  return `/api/imports/${encodeURIComponent(String(id))}/resume`
 }
 
 /**
@@ -239,7 +239,7 @@ export const getImportsApplyUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/imports/${id}/apply?${stringifiedParams}` : `/api/imports/${id}/apply`
+  return stringifiedParams.length > 0 ? `/api/imports/${encodeURIComponent(String(id))}/apply?${stringifiedParams}` : `/api/imports/${encodeURIComponent(String(id))}/apply`
 }
 
 /**
@@ -264,7 +264,7 @@ export const getImportsRetryFailedUrl = (id: string,) => {
 
 
 
-  return `/api/imports/${id}/retry-failed`
+  return `/api/imports/${encodeURIComponent(String(id))}/retry-failed`
 }
 
 /**

@@ -135,7 +135,7 @@ export const getStoryMapsGetUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/planning/story-maps/${idOrKey}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -176,7 +176,7 @@ export const getStoryMapsGetEditorTeamMembersUrl = (id: string,
 
 
 
-  return `/api/planning/story-maps/${id}/editor-teams/${teamId}/members`
+  return `/api/planning/story-maps/${encodeURIComponent(String(id))}/editor-teams/${encodeURIComponent(String(teamId))}/members`
 }
 
 /**
@@ -201,7 +201,7 @@ export const getStoryMapsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/planning/story-maps/${id}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -226,7 +226,7 @@ export const getStoryMapsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/planning/story-maps/${id}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -250,7 +250,7 @@ export const getStoryMapsSetOwnersUrl = (id: string,) => {
 
 
 
-  return `/api/planning/story-maps/${id}/owners`
+  return `/api/planning/story-maps/${encodeURIComponent(String(id))}/owners`
 }
 
 /**
@@ -275,7 +275,7 @@ export const getStoryMapsSetEditorsUrl = (id: string,) => {
 
 
 
-  return `/api/planning/story-maps/${id}/editors`
+  return `/api/planning/story-maps/${encodeURIComponent(String(id))}/editors`
 }
 
 /**
@@ -300,7 +300,7 @@ export const getStoryMapsSetVisibilityUrl = (id: string,) => {
 
 
 
-  return `/api/planning/story-maps/${id}/visibility`
+  return `/api/planning/story-maps/${encodeURIComponent(String(id))}/visibility`
 }
 
 /**
@@ -325,7 +325,7 @@ export const getStoryMapsSetEditAccessUrl = (id: string,) => {
 
 
 
-  return `/api/planning/story-maps/${id}/edit-access`
+  return `/api/planning/story-maps/${encodeURIComponent(String(id))}/edit-access`
 }
 
 /**
@@ -350,7 +350,7 @@ export const getStoryMapsArchiveUrl = (id: string,) => {
 
 
 
-  return `/api/planning/story-maps/${id}/archive`
+  return `/api/planning/story-maps/${encodeURIComponent(String(id))}/archive`
 }
 
 /**
@@ -374,7 +374,7 @@ export const getStoryMapsAddGoalUrl = (storyMapId: string,) => {
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/goals`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/goals`
 }
 
 /**
@@ -400,7 +400,7 @@ export const getStoryMapsRenameGoalUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/goals/${goalId}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/goals/${encodeURIComponent(String(goalId))}`
 }
 
 /**
@@ -426,7 +426,7 @@ export const getStoryMapsDeleteGoalUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/goals/${goalId}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/goals/${encodeURIComponent(String(goalId))}`
 }
 
 /**
@@ -451,7 +451,7 @@ export const getStoryMapsReorderGoalUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/goals/${goalId}/order`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/goals/${encodeURIComponent(String(goalId))}/order`
 }
 
 /**
@@ -476,7 +476,7 @@ export const getStoryMapsAddStepUrl = (storyMapId: string,) => {
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/steps`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/steps`
 }
 
 /**
@@ -501,7 +501,7 @@ export const getStoryMapsRenameStepUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/steps/${stepId}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/steps/${encodeURIComponent(String(stepId))}`
 }
 
 /**
@@ -527,7 +527,7 @@ export const getStoryMapsDeleteStepUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/steps/${stepId}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/steps/${encodeURIComponent(String(stepId))}`
 }
 
 /**
@@ -552,7 +552,7 @@ export const getStoryMapsReorderStepUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/steps/${stepId}/order`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/steps/${encodeURIComponent(String(stepId))}/order`
 }
 
 /**
@@ -578,7 +578,7 @@ export const getStoryMapsMoveStepUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/steps/${stepId}/move`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/steps/${encodeURIComponent(String(stepId))}/move`
 }
 
 /**
@@ -603,7 +603,7 @@ export const getStoryMapsAddTaskUrl = (storyMapId: string,) => {
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks`
 }
 
 /**
@@ -629,7 +629,7 @@ export const getStoryMapsUpdateTaskUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}`
 }
 
 /**
@@ -655,7 +655,7 @@ export const getStoryMapsDeleteTaskUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}`
 }
 
 /**
@@ -680,7 +680,7 @@ export const getStoryMapsRenameTaskUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}/title`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}/title`
 }
 
 /**
@@ -707,7 +707,7 @@ export const getStoryMapsSetTaskDescriptionUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}/description`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}/description`
 }
 
 /**
@@ -734,7 +734,7 @@ export const getStoryMapsMoveTaskUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}/move`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}/move`
 }
 
 /**
@@ -760,7 +760,7 @@ export const getStoryMapsSetTaskPersonasUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}/personas`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}/personas`
 }
 
 /**
@@ -787,7 +787,7 @@ export const getStoryMapsPatchTaskPersonasUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}/personas`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}/personas`
 }
 
 /**
@@ -814,7 +814,7 @@ export const getStoryMapsAddChecklistItemUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}/checklist`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}/checklist`
 }
 
 /**
@@ -842,7 +842,7 @@ export const getStoryMapsRenameChecklistItemUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}/checklist/${itemId}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}/checklist/${encodeURIComponent(String(itemId))}`
 }
 
 /**
@@ -870,7 +870,7 @@ export const getStoryMapsRemoveChecklistItemUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}/checklist/${itemId}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}/checklist/${encodeURIComponent(String(itemId))}`
 }
 
 /**
@@ -897,7 +897,7 @@ export const getStoryMapsSetChecklistItemCheckedUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}/checklist/${itemId}/checked`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}/checklist/${encodeURIComponent(String(itemId))}/checked`
 }
 
 /**
@@ -925,7 +925,7 @@ export const getStoryMapsPromoteChecklistItemUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}/checklist/${itemId}/promote`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}/checklist/${encodeURIComponent(String(itemId))}/promote`
 }
 
 /**
@@ -952,7 +952,7 @@ export const getStoryMapsLinkWorkItemUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}/work-item-link`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}/work-item-link`
 }
 
 /**
@@ -978,7 +978,7 @@ export const getStoryMapsUnlinkWorkItemUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/tasks/${taskId}/work-item-link`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/tasks/${encodeURIComponent(String(taskId))}/work-item-link`
 }
 
 /**
@@ -1002,7 +1002,7 @@ export const getStoryMapsAddSwimLaneUrl = (storyMapId: string,) => {
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/swim-lanes`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/swim-lanes`
 }
 
 /**
@@ -1038,7 +1038,7 @@ export const getStoryMapsRenameSwimLaneUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/swim-lanes/${swimLaneId}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/swim-lanes/${encodeURIComponent(String(swimLaneId))}`
 }
 
 /**
@@ -1064,7 +1064,7 @@ export const getStoryMapsRemoveSwimLaneUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/swim-lanes/${swimLaneId}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/swim-lanes/${encodeURIComponent(String(swimLaneId))}`
 }
 
 /**
@@ -1090,7 +1090,7 @@ export const getStoryMapsSetSwimLaneDatesUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/swim-lanes/${swimLaneId}/dates`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/swim-lanes/${encodeURIComponent(String(swimLaneId))}/dates`
 }
 
 /**
@@ -1117,7 +1117,7 @@ export const getStoryMapsReorderSwimLaneUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/swim-lanes/${swimLaneId}/order`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/swim-lanes/${encodeURIComponent(String(swimLaneId))}/order`
 }
 
 /**
@@ -1142,7 +1142,7 @@ export const getStoryMapsAddPersonaUrl = (storyMapId: string,) => {
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/personas`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/personas`
 }
 
 /**
@@ -1167,7 +1167,7 @@ export const getStoryMapsUpdatePersonaUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/personas/${personaId}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/personas/${encodeURIComponent(String(personaId))}`
 }
 
 /**
@@ -1193,7 +1193,7 @@ export const getStoryMapsDeletePersonaUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/personas/${personaId}`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/personas/${encodeURIComponent(String(personaId))}`
 }
 
 /**
@@ -1219,7 +1219,7 @@ export const getStoryMapsReorderPersonaUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/personas/${personaId}/order`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/personas/${encodeURIComponent(String(personaId))}/order`
 }
 
 /**
@@ -1245,7 +1245,7 @@ export const getStoryMapsSetGoalPersonasUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/goals/${goalId}/personas`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/goals/${encodeURIComponent(String(goalId))}/personas`
 }
 
 /**
@@ -1272,7 +1272,7 @@ export const getStoryMapsPatchGoalPersonasUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/goals/${goalId}/personas`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/goals/${encodeURIComponent(String(goalId))}/personas`
 }
 
 /**
@@ -1299,7 +1299,7 @@ export const getStoryMapsSetStepPersonasUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/steps/${stepId}/personas`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/steps/${encodeURIComponent(String(stepId))}/personas`
 }
 
 /**
@@ -1326,7 +1326,7 @@ export const getStoryMapsPatchStepPersonasUrl = (storyMapId: string,
 
 
 
-  return `/api/planning/story-maps/${storyMapId}/steps/${stepId}/personas`
+  return `/api/planning/story-maps/${encodeURIComponent(String(storyMapId))}/steps/${encodeURIComponent(String(stepId))}/personas`
 }
 
 /**

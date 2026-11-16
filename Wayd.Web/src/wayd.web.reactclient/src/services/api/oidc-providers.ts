@@ -93,7 +93,7 @@ export const getOidcProvidersGetByIdUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/oidc-providers/${id}`
+  return `/api/user-management/oidc-providers/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -116,7 +116,7 @@ export const getOidcProvidersUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/oidc-providers/${id}`
+  return `/api/user-management/oidc-providers/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -140,7 +140,7 @@ export const getOidcProvidersDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/oidc-providers/${id}`
+  return `/api/user-management/oidc-providers/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -171,7 +171,7 @@ export const getOidcProvidersGetActivitiesUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/user-management/oidc-providers/${id}/activities?${stringifiedParams}` : `/api/user-management/oidc-providers/${id}/activities`
+  return stringifiedParams.length > 0 ? `/api/user-management/oidc-providers/${encodeURIComponent(String(id))}/activities?${stringifiedParams}` : `/api/user-management/oidc-providers/${encodeURIComponent(String(id))}/activities`
 }
 
 /**
@@ -206,7 +206,7 @@ export const getOidcProvidersTestDiscoveryUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/oidc-providers/${id}/test-discovery`
+  return `/api/user-management/oidc-providers/${encodeURIComponent(String(id))}/test-discovery`
 }
 
 /**
@@ -237,7 +237,7 @@ export const getOidcProvidersGetMigrationCandidatesUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/user-management/oidc-providers/${id}/migration-candidates?${stringifiedParams}` : `/api/user-management/oidc-providers/${id}/migration-candidates`
+  return stringifiedParams.length > 0 ? `/api/user-management/oidc-providers/${encodeURIComponent(String(id))}/migration-candidates?${stringifiedParams}` : `/api/user-management/oidc-providers/${encodeURIComponent(String(id))}/migration-candidates`
 }
 
 /**
@@ -261,7 +261,7 @@ export const getOidcProvidersGetPendingMigrationsUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/oidc-providers/${id}/pending-migrations`
+  return `/api/user-management/oidc-providers/${encodeURIComponent(String(id))}/pending-migrations`
 }
 
 /**
@@ -295,7 +295,7 @@ export const getOidcProvidersStageBulkTenantMigrationUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/oidc-providers/${id}/stage-tenant-migration`
+  return `/api/user-management/oidc-providers/${encodeURIComponent(String(id))}/stage-tenant-migration`
 }
 
 /**

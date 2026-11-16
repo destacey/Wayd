@@ -372,7 +372,7 @@ export const getProjectsGetProjectUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/ppm/projects/${idOrKey}`
+  return `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -424,7 +424,7 @@ export const getProjectsGetStatusHistoryUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/status-history`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/status-history`
 }
 
 /**
@@ -465,7 +465,7 @@ export const getProjectsGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/ppm/projects/${idOrKey}/activities?${stringifiedParams}` : `/api/ppm/projects/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -602,7 +602,7 @@ export const getProjectsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -627,7 +627,7 @@ export const getProjectsPatchProjectUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -652,7 +652,7 @@ export const getProjectsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -684,7 +684,7 @@ export const getProjectsGetHealthCheckEvidenceUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/ppm/projects/${idOrKey}/health-check-evidence?${stringifiedParams}` : `/api/ppm/projects/${idOrKey}/health-check-evidence`
+  return stringifiedParams.length > 0 ? `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/health-check-evidence?${stringifiedParams}` : `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/health-check-evidence`
 }
 
 /**
@@ -803,7 +803,7 @@ export const getProjectsChangeProgramUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/program`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/program`
 }
 
 /**
@@ -828,7 +828,7 @@ export const getProjectsChangeKeyUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/key`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/key`
 }
 
 /**
@@ -853,7 +853,7 @@ export const getProjectsApproveUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/approve`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/approve`
 }
 
 /**
@@ -877,7 +877,7 @@ export const getProjectsActivateUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/activate`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -901,7 +901,7 @@ export const getProjectsCompleteUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/complete`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/complete`
 }
 
 /**
@@ -925,7 +925,7 @@ export const getProjectsCancelUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/cancel`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/cancel`
 }
 
 /**
@@ -949,7 +949,7 @@ export const getProjectsRevertStatusUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/revert-status`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/revert-status`
 }
 
 /**
@@ -997,7 +997,7 @@ export const getProjectsGetProjectTeamUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/ppm/projects/${idOrKey}/team`
+  return `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/team`
 }
 
 /**
@@ -1020,7 +1020,7 @@ export const getProjectsGetProjectWorkItemsUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/work-items`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/work-items`
 }
 
 /**
@@ -1058,7 +1058,7 @@ export const getProjectsAddWorkItemsUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/work-items`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/work-items`
 }
 
 /**
@@ -1083,7 +1083,7 @@ export const getProjectsRemoveWorkItemsUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/work-items/remove`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/work-items/remove`
 }
 
 /**
@@ -1116,7 +1116,7 @@ export const getProjectsGetProjectForecastUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/ppm/projects/${idOrKey}/forecast?${stringifiedParams}` : `/api/ppm/projects/${idOrKey}/forecast`
+  return stringifiedParams.length > 0 ? `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/forecast?${stringifiedParams}` : `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/forecast`
 }
 
 /**
@@ -1171,7 +1171,7 @@ export const getProjectsAssignLifecycleUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/lifecycle`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/lifecycle`
 }
 
 /**
@@ -1196,7 +1196,7 @@ export const getProjectsChangeProjectLifecycleUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/lifecycle/change`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/lifecycle/change`
 }
 
 /**
@@ -1221,7 +1221,7 @@ export const getProjectsGetProjectStagesUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/projects/${id}/stages`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/stages`
 }
 
 /**
@@ -1258,7 +1258,7 @@ export const getProjectsGetProjectPlanTreeUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/ppm/projects/${idOrKey}/plan-tree`
+  return `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/plan-tree`
 }
 
 /**
@@ -1290,7 +1290,7 @@ export const getProjectsGetProjectPlanSummaryUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/ppm/projects/${idOrKey}/plan-summary?${stringifiedParams}` : `/api/ppm/projects/${idOrKey}/plan-summary`
+  return stringifiedParams.length > 0 ? `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/plan-summary?${stringifiedParams}` : `/api/ppm/projects/${encodeURIComponent(String(idOrKey))}/plan-summary`
 }
 
 /**
@@ -1355,7 +1355,7 @@ export const getProjectsGetProjectStageUrl = (id: string,
 
 
 
-  return `/api/ppm/projects/${id}/stages/${stageId}`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/stages/${encodeURIComponent(String(stageId))}`
 }
 
 /**
@@ -1391,7 +1391,7 @@ export const getProjectsUpdateProjectStageUrl = (id: string,
 
 
 
-  return `/api/ppm/projects/${id}/stages/${stageId}`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/stages/${encodeURIComponent(String(stageId))}`
 }
 
 /**
@@ -1418,7 +1418,7 @@ export const getProjectsPatchProjectStageUrl = (id: string,
 
 
 
-  return `/api/ppm/projects/${id}/stages/${stageId}`
+  return `/api/ppm/projects/${encodeURIComponent(String(id))}/stages/${encodeURIComponent(String(stageId))}`
 }
 
 /**

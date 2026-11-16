@@ -38,7 +38,7 @@ export const getOAuthAuthorizationRequestsGetUrl = (handle: string,) => {
 
 
 
-  return `/api/oauth/authorization-requests/${handle}`
+  return `/api/oauth/authorization-requests/${encodeURIComponent(String(handle))}`
 }
 
 /**
@@ -68,7 +68,7 @@ export const getOAuthAuthorizationRequestsApproveUrl = (handle: string,) => {
 
 
 
-  return `/api/oauth/authorization-requests/${handle}/approve`
+  return `/api/oauth/authorization-requests/${encodeURIComponent(String(handle))}/approve`
 }
 
 /**
@@ -93,7 +93,7 @@ export const getOAuthAuthorizationRequestsDenyUrl = (handle: string,) => {
 
 
 
-  return `/api/oauth/authorization-requests/${handle}/deny`
+  return `/api/oauth/authorization-requests/${encodeURIComponent(String(handle))}/deny`
 }
 
 /**

@@ -96,7 +96,7 @@ export const getIncidentSeveritySetsGetSetUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/incident-severity-sets/${id}`
+  return `/api/product-management/incident-severity-sets/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -119,7 +119,7 @@ export const getIncidentSeveritySetsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/incident-severity-sets/${id}`
+  return `/api/product-management/incident-severity-sets/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -144,7 +144,7 @@ export const getIncidentSeveritySetsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/incident-severity-sets/${id}`
+  return `/api/product-management/incident-severity-sets/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -168,7 +168,7 @@ export const getIncidentSeveritySetsSetActiveStatusUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/incident-severity-sets/${id}/active`
+  return `/api/product-management/incident-severity-sets/${encodeURIComponent(String(id))}/active`
 }
 
 /**

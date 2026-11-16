@@ -72,7 +72,7 @@ export const getIntakeRequestTagsUpdateFreeTagUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-request-tags/${id}`
+  return `/api/demand-management/intake-request-tags/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -97,7 +97,7 @@ export const getIntakeRequestTagsDeleteFreeTagUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-request-tags/${id}`
+  return `/api/demand-management/intake-request-tags/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -121,7 +121,7 @@ export const getIntakeRequestTagsMergeUrl = (id: string,) => {
 
 
 
-  return `/api/demand-management/intake-request-tags/${id}/merge`
+  return `/api/demand-management/intake-request-tags/${encodeURIComponent(String(id))}/merge`
 }
 
 /**

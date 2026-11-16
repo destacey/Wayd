@@ -99,7 +99,7 @@ export const getWorkflowSchemesGetWorkflowSchemeUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/workflow-schemes/${idOrKey}`
+  return `/api/workflow-schemes/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -122,7 +122,7 @@ export const getWorkflowSchemesUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/workflow-schemes/${id}`
+  return `/api/workflow-schemes/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -146,7 +146,7 @@ export const getWorkflowSchemesDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/workflow-schemes/${id}`
+  return `/api/workflow-schemes/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -169,7 +169,7 @@ export const getWorkflowSchemesCloneUrl = (id: string,) => {
 
 
 
-  return `/api/workflow-schemes/${id}/clone`
+  return `/api/workflow-schemes/${encodeURIComponent(String(id))}/clone`
 }
 
 /**
@@ -194,7 +194,7 @@ export const getWorkflowSchemesSetEntryUrl = (id: string,
 
 
 
-  return `/api/workflow-schemes/${id}/entries/${recordTypeId}`
+  return `/api/workflow-schemes/${encodeURIComponent(String(id))}/entries/${encodeURIComponent(String(recordTypeId))}`
 }
 
 /**
@@ -219,7 +219,7 @@ export const getWorkflowSchemesChangeDefaultUrl = (id: string,) => {
 
 
 
-  return `/api/workflow-schemes/${id}/default`
+  return `/api/workflow-schemes/${encodeURIComponent(String(id))}/default`
 }
 
 /**
@@ -252,7 +252,7 @@ export const getWorkflowSchemesPreviewEntryUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/workflow-schemes/${id}/entries/${recordTypeId}/preview?${stringifiedParams}` : `/api/workflow-schemes/${id}/entries/${recordTypeId}/preview`
+  return stringifiedParams.length > 0 ? `/api/workflow-schemes/${encodeURIComponent(String(id))}/entries/${encodeURIComponent(String(recordTypeId))}/preview?${stringifiedParams}` : `/api/workflow-schemes/${encodeURIComponent(String(id))}/entries/${encodeURIComponent(String(recordTypeId))}/preview`
 }
 
 /**
@@ -286,7 +286,7 @@ export const getWorkflowSchemesPreviewDefaultUrl = (id: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/workflow-schemes/${id}/default/preview?${stringifiedParams}` : `/api/workflow-schemes/${id}/default/preview`
+  return stringifiedParams.length > 0 ? `/api/workflow-schemes/${encodeURIComponent(String(id))}/default/preview?${stringifiedParams}` : `/api/workflow-schemes/${encodeURIComponent(String(id))}/default/preview`
 }
 
 /**

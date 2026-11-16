@@ -86,7 +86,7 @@ export const getRolesGetByIdUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/roles/${id}`
+  return `/api/user-management/roles/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -109,7 +109,7 @@ export const getRolesDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/roles/${id}`
+  return `/api/user-management/roles/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -132,7 +132,7 @@ export const getRolesGetByIdWithPermissionsUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/roles/${id}/permissions`
+  return `/api/user-management/roles/${encodeURIComponent(String(id))}/permissions`
 }
 
 /**
@@ -155,7 +155,7 @@ export const getRolesUpdatePermissionsUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/roles/${id}/permissions`
+  return `/api/user-management/roles/${encodeURIComponent(String(id))}/permissions`
 }
 
 /**
@@ -179,7 +179,7 @@ export const getRolesGetUsersUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/roles/${id}/users`
+  return `/api/user-management/roles/${encodeURIComponent(String(id))}/users`
 }
 
 /**
@@ -216,7 +216,7 @@ export const getRolesGetUsersCountUrl = (id: string,) => {
 
 
 
-  return `/api/user-management/roles/${id}/users-count`
+  return `/api/user-management/roles/${encodeURIComponent(String(id))}/users-count`
 }
 
 /**

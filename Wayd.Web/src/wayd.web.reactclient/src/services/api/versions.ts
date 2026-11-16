@@ -134,7 +134,7 @@ export const getVersionsGetVersionUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/versions/${idOrKey}`
+  return `/api/product-management/versions/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -180,7 +180,7 @@ export const getVersionsGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/product-management/versions/${idOrKey}/activities?${stringifiedParams}` : `/api/product-management/versions/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/product-management/versions/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/product-management/versions/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -216,7 +216,7 @@ export const getVersionsGetStatusHistoryUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/versions/${idOrKey}/status-history`
+  return `/api/product-management/versions/${encodeURIComponent(String(idOrKey))}/status-history`
 }
 
 /**
@@ -249,7 +249,7 @@ export const getVersionsGetStatusWorkflowUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/versions/${idOrKey}/status-workflow`
+  return `/api/product-management/versions/${encodeURIComponent(String(idOrKey))}/status-workflow`
 }
 
 /**
@@ -273,7 +273,7 @@ export const getVersionsGetWorkflowActionsUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/product-management/versions/${idOrKey}/workflow-actions`
+  return `/api/product-management/versions/${encodeURIComponent(String(idOrKey))}/workflow-actions`
 }
 
 /**
@@ -331,7 +331,7 @@ export const getVersionsUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/versions/${id}`
+  return `/api/product-management/versions/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -356,7 +356,7 @@ export const getVersionsDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/versions/${id}`
+  return `/api/product-management/versions/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -380,7 +380,7 @@ export const getVersionsMoveTargetDateUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/versions/${id}/target-date`
+  return `/api/product-management/versions/${encodeURIComponent(String(id))}/target-date`
 }
 
 /**
@@ -405,7 +405,7 @@ export const getVersionsCorrectDatesUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/versions/${id}/dates`
+  return `/api/product-management/versions/${encodeURIComponent(String(id))}/dates`
 }
 
 /**
@@ -430,7 +430,7 @@ export const getVersionsCutUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/versions/${id}/cut`
+  return `/api/product-management/versions/${encodeURIComponent(String(id))}/cut`
 }
 
 /**
@@ -455,7 +455,7 @@ export const getVersionsMarkReleasedUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/versions/${id}/release`
+  return `/api/product-management/versions/${encodeURIComponent(String(id))}/release`
 }
 
 /**
@@ -480,7 +480,7 @@ export const getVersionsWithdrawUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/versions/${id}/withdraw`
+  return `/api/product-management/versions/${encodeURIComponent(String(id))}/withdraw`
 }
 
 /**
@@ -505,7 +505,7 @@ export const getVersionsRevertUrl = (id: string,) => {
 
 
 
-  return `/api/product-management/versions/${id}/revert`
+  return `/api/product-management/versions/${encodeURIComponent(String(id))}/revert`
 }
 
 /**

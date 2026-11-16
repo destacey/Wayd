@@ -136,7 +136,7 @@ export const getStrategicInitiativesGetStrategicInitiativeUrl = (idOrKey: string
 
 
 
-  return `/api/ppm/strategic-initiatives/${idOrKey}`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(idOrKey))}`
 }
 
 /**
@@ -178,7 +178,7 @@ export const getStrategicInitiativesGetActivitiesUrl = (idOrKey: string,
 
   const stringifiedParams = normalizedParams.toString();
 
-  return stringifiedParams.length > 0 ? `/api/ppm/strategic-initiatives/${idOrKey}/activities?${stringifiedParams}` : `/api/ppm/strategic-initiatives/${idOrKey}/activities`
+  return stringifiedParams.length > 0 ? `/api/ppm/strategic-initiatives/${encodeURIComponent(String(idOrKey))}/activities?${stringifiedParams}` : `/api/ppm/strategic-initiatives/${encodeURIComponent(String(idOrKey))}/activities`
 }
 
 /**
@@ -251,7 +251,7 @@ export const getStrategicInitiativesUpdateUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -276,7 +276,7 @@ export const getStrategicInitiativesDeleteUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}`
 }
 
 /**
@@ -300,7 +300,7 @@ export const getStrategicInitiativesApproveUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/approve`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/approve`
 }
 
 /**
@@ -324,7 +324,7 @@ export const getStrategicInitiativesActivateUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/activate`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/activate`
 }
 
 /**
@@ -348,7 +348,7 @@ export const getStrategicInitiativesCompleteUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/complete`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/complete`
 }
 
 /**
@@ -372,7 +372,7 @@ export const getStrategicInitiativesCancelUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/cancel`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/cancel`
 }
 
 /**
@@ -420,7 +420,7 @@ export const getStrategicInitiativesGetKpisUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/kpis`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/kpis`
 }
 
 /**
@@ -444,7 +444,7 @@ export const getStrategicInitiativesCreateKpiUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/kpis`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/kpis`
 }
 
 /**
@@ -470,7 +470,7 @@ export const getStrategicInitiativesGetKpiUrl = (id: string,
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/kpis/${kpiId}`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/kpis/${encodeURIComponent(String(kpiId))}`
 }
 
 /**
@@ -495,7 +495,7 @@ export const getStrategicInitiativesUpdateKpiUrl = (id: string,
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/kpis/${kpiId}`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/kpis/${encodeURIComponent(String(kpiId))}`
 }
 
 /**
@@ -522,7 +522,7 @@ export const getStrategicInitiativesDeleteKpiUrl = (id: string,
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/kpis/${kpiId}`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/kpis/${encodeURIComponent(String(kpiId))}`
 }
 
 /**
@@ -547,7 +547,7 @@ export const getStrategicInitiativesReorderKpisUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/kpis/reorder`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/kpis/reorder`
 }
 
 /**
@@ -573,7 +573,7 @@ export const getStrategicInitiativesGetKpiCheckpointsUrl = (id: string,
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/kpis/${kpiId}/checkpoints`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/kpis/${encodeURIComponent(String(kpiId))}/checkpoints`
 }
 
 /**
@@ -608,7 +608,7 @@ export const getStrategicInitiativesGetKpiCheckpointPlanUrl = (id: string,
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/kpis/${kpiId}/checkpoints/plan`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/kpis/${encodeURIComponent(String(kpiId))}/checkpoints/plan`
 }
 
 /**
@@ -646,7 +646,7 @@ export const getStrategicInitiativesManageKpiCheckpointPlanUrl = (id: string,
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/kpis/${kpiId}/checkpoints/plan`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/kpis/${encodeURIComponent(String(kpiId))}/checkpoints/plan`
 }
 
 /**
@@ -673,7 +673,7 @@ export const getStrategicInitiativesGetKpiMeasurementsUrl = (id: string,
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/kpis/${kpiId}/measurements`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/kpis/${encodeURIComponent(String(kpiId))}/measurements`
 }
 
 /**
@@ -707,7 +707,7 @@ export const getStrategicInitiativesAddKpiMeasurementUrl = (id: string,
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/kpis/${kpiId}/measurements`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/kpis/${encodeURIComponent(String(kpiId))}/measurements`
 }
 
 /**
@@ -735,7 +735,7 @@ export const getStrategicInitiativesRemoveKpiMeasurementUrl = (id: string,
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/kpis/${kpiId}/measurements/${measurementId}`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/kpis/${encodeURIComponent(String(kpiId))}/measurements/${encodeURIComponent(String(measurementId))}`
 }
 
 /**
@@ -761,7 +761,7 @@ export const getStrategicInitiativesGetProjectsUrl = (idOrKey: string,) => {
 
 
 
-  return `/api/ppm/strategic-initiatives/${idOrKey}/projects`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(idOrKey))}/projects`
 }
 
 /**
@@ -815,7 +815,7 @@ export const getStrategicInitiativesManageProjectsUrl = (id: string,) => {
 
 
 
-  return `/api/ppm/strategic-initiatives/${id}/projects`
+  return `/api/ppm/strategic-initiatives/${encodeURIComponent(String(id))}/projects`
 }
 
 /**

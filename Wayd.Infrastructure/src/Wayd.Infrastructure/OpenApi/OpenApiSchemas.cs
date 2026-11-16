@@ -7,7 +7,7 @@ internal static class OpenApiSchemas
 {
     /// <summary>
     /// The schema, allowing null. A reference cannot carry <c>nullable</c> in OpenAPI 3.0, so it is wrapped
-    /// as <c>{ "nullable": true, "oneOf": [ { "$ref": … } ] }</c>, which NSwag's TypeScript generator reads as
+    /// as <c>{ "nullable": true, "oneOf": [ { "$ref": … } ] }</c>, which the client generators read as
     /// the referenced type or null.
     /// </summary>
     public static IOpenApiSchema Nullable(IOpenApiSchema? schema)

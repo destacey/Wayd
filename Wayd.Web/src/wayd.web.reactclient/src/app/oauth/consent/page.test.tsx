@@ -58,11 +58,10 @@ const appRedirect = {
   redirectPath: '/oauth/callback',
 }
 
-// The generated client throws the parsed problem details for a documented status.
+// The generated client throws a failed response as its problem details and status.
 const problem = (status: number) => ({ status, title: 'Problem' })
-// Axios rejects with no response when the server cannot be reached.
-const networkError = () =>
-  Object.assign(new Error('Network Error'), { code: 'ERR_NETWORK' })
+// fetch rejects with a TypeError when the server cannot be reached.
+const networkError = () => new TypeError('Failed to fetch')
 
 const withRequestParam = (handle: string | null) => {
   vi.mocked(useSearchParams).mockReturnValue(

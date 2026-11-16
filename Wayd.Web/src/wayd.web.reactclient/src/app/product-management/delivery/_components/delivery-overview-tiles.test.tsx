@@ -5,40 +5,25 @@ import {
 import { render, screen } from '@testing-library/react'
 import DeliveryOverviewTiles from './delivery-overview-tiles'
 
-/**
- * Overrides admit `null` where the generated DTO says `number | undefined`.
- *
- * NSwag maps a C# `double?` to an optional number, but the API sends JSON `null` for "no earlier
- * window" — so null is what the component actually receives and what these tests must supply.
- */
 const frequency = (
-  overrides: Partial<Omit<ReleaseFrequencyDto, 'previousPerWeek'>> & {
-    previousPerWeek?: number | null
-  } = {},
-): ReleaseFrequencyDto =>
-  ({
-    count: 14,
-    windowDays: 14,
-    perWeek: 7,
-    previousPerWeek: 8,
-    ...overrides,
-  }) as ReleaseFrequencyDto
+  overrides: Partial<ReleaseFrequencyDto> = {},
+): ReleaseFrequencyDto => ({
+  count: 14,
+  windowDays: 14,
+  perWeek: 7,
+  previousPerWeek: 8,
+  ...overrides,
+})
 
 const cutToReleased = (
-  overrides: Partial<
-    Omit<CutToReleasedDto, 'averageDays' | 'previousAverageDays'>
-  > & {
-    averageDays?: number | null
-    previousAverageDays?: number | null
-  } = {},
-): CutToReleasedDto =>
-  ({
-    averageDays: 3.79,
-    measuredCount: 14,
-    releasedCount: 14,
-    previousAverageDays: 4.2,
-    ...overrides,
-  }) as CutToReleasedDto
+  overrides: Partial<CutToReleasedDto> = {},
+): CutToReleasedDto => ({
+  averageDays: 3.79,
+  measuredCount: 14,
+  releasedCount: 14,
+  previousAverageDays: 4.2,
+  ...overrides,
+})
 
 const renderTiles = (
   f: Parameters<typeof frequency>[0] = {},

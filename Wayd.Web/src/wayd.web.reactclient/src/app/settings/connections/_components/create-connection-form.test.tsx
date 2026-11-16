@@ -252,9 +252,11 @@ describe('CreateConnectionForm Teams verification', () => {
     // Arrange
     mockCreate.mockResolvedValue({
       error: {
-        isApiException: true,
+        kind: 'api-response',
         status: 500,
-        response: { detail: 'The connection could not be saved.' },
+        detail: 'The connection could not be saved.',
+        url: '/api',
+        headers: {},
       },
     })
     await openVerifiedTeamsForm()

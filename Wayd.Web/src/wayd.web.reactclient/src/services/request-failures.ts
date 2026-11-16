@@ -8,28 +8,12 @@ import { toApiError } from '@/src/utils/problem-details'
  *
  * `fetch` rejects with a `TypeError` when it cannot reach the server and with
  * a `DOMException` named `TimeoutError` or `AbortError` when its signal fires.
- * Axios sets `response` only when the server actually responded; for transport
- * failures it sets `code` to ERR_NETWORK / ECONNABORTED / ERR_CANCELED.
  */
 export function isNetworkError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
   if (error instanceof TypeError) return true
-  const e = error as {
-    response?: unknown
-    code?: string
-    message?: string
-    name?: string
-  }
-  if (e.name === 'TimeoutError' || e.name === 'AbortError') return true
-  if (e.response) return false
-  if (
-    e.code === 'ERR_NETWORK' ||
-    e.code === 'ECONNABORTED' ||
-    e.code === 'ERR_CANCELED'
-  ) {
-    return true
-  }
-  return e.message === 'Network Error'
+  const { name } = error as { name?: unknown }
+  return name === 'TimeoutError' || name === 'AbortError'
 }
 
 /**
@@ -86,9 +70,7 @@ const TRANSIENT_REFRESH_STATUSES = new Set([429, 502, 503, 504])
  * succeed, so keeping that session would leave the user stuck rather than
  * signed out.
  *
- * Every client error that came with a response carries `status`: the fetch
- * client's `ApiResponseError`, and the NSwag client's `ApiException` or
- * the problem details it throws for a documented status.
+ * A failed response carries its `status` (an `ApiResponseError`).
  */
 export function isTransientRefreshFailure(error: unknown): boolean {
   if (isNetworkError(error)) return true

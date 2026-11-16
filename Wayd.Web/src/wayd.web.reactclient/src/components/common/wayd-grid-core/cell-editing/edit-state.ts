@@ -165,8 +165,8 @@ export interface MappedServerErrors {
 
 /**
  * A commit's rejection as problem details. An RTK Query mutation's `unwrap()`
- * rejects with `{ status, data }`, the response body in `data`; a client call
- * rejects with the body itself or an `ApiException`.
+ * rejects with `{ status, data }`, the response body in `data`; a generated
+ * client call rejects with the problem details and status themselves.
  */
 const responseError = (error: unknown): ApiError => {
   const apiError = toApiError(error)

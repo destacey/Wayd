@@ -281,11 +281,11 @@ describe('WaydGrid — server mode', () => {
     renderServerGrid({
       fetchPage: () =>
         Promise.reject({
-          isApiException: true,
+          kind: 'api-response',
           status: 422,
-          response: {
-            errors: { Filter: ["'filter' could not be read."] },
-          },
+          errors: { Filter: ["'filter' could not be read."] },
+          url: '/api',
+          headers: {},
         }),
     })
     await settle()

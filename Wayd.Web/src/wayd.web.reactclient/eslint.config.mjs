@@ -167,7 +167,7 @@ const eslintConfig = [
     linterOptions: { reportUnusedDisableDirectives: 'off' },
   },
   {
-    ignores: ['coverage/**', 'src/services/wayd-api.ts', 'src/services/api/**'],
+    ignores: ['coverage/**', 'src/services/api/**'],
   },
 ]
 

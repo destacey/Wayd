@@ -26,9 +26,7 @@ const preStyle: React.CSSProperties = {
   fontSize: 'var(--ant-font-size-sm)',
 }
 
-// The NSwag axios client doesn't revive date strings into Date instances, so
-// these are ISO strings at runtime despite the typed Date.
-const formatTimestamp = (value?: Date | Instant | null): string | undefined =>
+const formatTimestamp = (value?: Instant | null): string | undefined =>
   value ? new Date(value).toLocaleString() : undefined
 
 const JobDetailsDrawer: FC<JobDetailsDrawerProps> = ({
@@ -139,7 +137,8 @@ const JobDetailsDrawer: FC<JobDetailsDrawerProps> = ({
                   title: 'Changed',
                   dataIndex: 'changedAt',
                   key: 'changedAt',
-                  render: (value: Date | undefined) => formatTimestamp(value),
+                  render: (value: Instant | undefined) =>
+                    formatTimestamp(value),
                 },
                 {
                   title: 'Reason',

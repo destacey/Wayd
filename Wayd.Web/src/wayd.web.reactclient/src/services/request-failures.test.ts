@@ -8,36 +8,22 @@ import {
   signInRateLimitMessage,
   rateLimitWaitMs,
 } from './request-failures'
-import { ApiException } from './wayd-api'
+import type { ApiResponseError } from './api-fetch'
 
-const apiException = (
+/** What the generated client throws for a failed response. */
+const responseError = (
   status: number,
   headers: Record<string, string> = {},
-  response = '',
-) =>
-  new ApiException(
-    'An unexpected server error occurred.',
-    status,
-    response,
-    headers,
-    null,
-  )
+  problem: Record<string, unknown> = {},
+): ApiResponseError => ({
+  ...problem,
+  kind: 'api-response',
+  status,
+  url: '/api/auth/refresh-token',
+  headers,
+})
 
 describe('isNetworkError', () => {
-  it.each(['ERR_NETWORK', 'ECONNABORTED', 'ERR_CANCELED'])(
-    'is true for an axios transport failure (%s)',
-    (code) => {
-      // Arrange
-      const error = { code, message: 'whatever' }
-
-      // Act
-      const result = isNetworkError(error)
-
-      // Assert
-      expect(result).toBe(true)
-    },
-  )
-
   it('is true when fetch cannot reach the server', () => {
     // Arrange
     const error = new TypeError('Failed to fetch')
@@ -65,7 +51,7 @@ describe('isNetworkError', () => {
 
   it('is false once the server has answered', () => {
     // Arrange
-    const error = { code: 'ERR_NETWORK', response: { status: 503 } }
+    const error = responseError(503)
 
     // Act
     const result = isNetworkError(error)
@@ -155,7 +141,7 @@ describe('isTransientRefreshFailure', () => {
     'keeps the session when the refresh answers %i',
     (status) => {
       // Arrange
-      const error = apiException(status)
+      const error = responseError(status)
 
       // Act
       const result = isTransientRefreshFailure(error)
@@ -169,7 +155,7 @@ describe('isTransientRefreshFailure', () => {
     'treats a %i from the refresh as a rejected session',
     (status) => {
       // Arrange
-      const error = apiException(status)
+      const error = responseError(status)
 
       // Act
       const result = isTransientRefreshFailure(error)
@@ -179,9 +165,9 @@ describe('isTransientRefreshFailure', () => {
     },
   )
 
-  it('treats the documented 401, thrown as its problem details body, as a rejected session', () => {
-    // Arrange — the generated client throws a documented response's body, not an ApiException
-    const error = { status: 401, title: 'Unauthorized' }
+  it('treats a 401 as a rejected session', () => {
+    // Arrange
+    const error = responseError(401, {}, { title: 'Unauthorized' })
 
     // Act
     const result = isTransientRefreshFailure(error)
@@ -192,7 +178,7 @@ describe('isTransientRefreshFailure', () => {
 
   it('treats a 500 as a rejected session, because refresh answers it for a token it cannot validate', () => {
     // Arrange — a token signed with a rotated secret fails validation on every attempt
-    const error = apiException(500)
+    const error = responseError(500)
 
     // Act
     const result = isTransientRefreshFailure(error)
@@ -201,9 +187,9 @@ describe('isTransientRefreshFailure', () => {
     expect(result).toBe(false)
   })
 
-  it('keeps the session when a documented 429 is thrown as its problem details body', () => {
+  it('keeps the session when the refresh answers 429', () => {
     // Arrange
-    const error = { status: 429, title: 'Too Many Requests' }
+    const error = responseError(429, {}, { title: 'Too Many Requests' })
 
     // Act
     const result = isTransientRefreshFailure(error)
@@ -225,7 +211,7 @@ describe('isTransientRefreshFailure', () => {
 
   it('keeps the session when the server could not be reached', () => {
     // Arrange
-    const error = { code: 'ERR_NETWORK', message: 'Network Error' }
+    const error = new TypeError('Failed to fetch')
 
     // Act
     const result = isTransientRefreshFailure(error)
@@ -249,7 +235,7 @@ describe('isTransientRefreshFailure', () => {
 describe('rateLimitWaitMs', () => {
   it('reads the wait from Retry-After, in seconds', () => {
     // Arrange
-    const error = apiException(429, { 'retry-after': '12' })
+    const error = responseError(429, { 'retry-after': '12' })
 
     // Act
     const wait = rateLimitWaitMs(error)
@@ -266,7 +252,7 @@ describe('rateLimitWaitMs', () => {
     'holds off for the default when a 429 names no usable wait (%p)',
     (headers) => {
       // Arrange
-      const error = apiException(429, headers)
+      const error = responseError(429, headers)
 
       // Act
       const wait = rateLimitWaitMs(error)
@@ -278,7 +264,7 @@ describe('rateLimitWaitMs', () => {
 
   it('caps a long wait at five minutes', () => {
     // Arrange
-    const error = apiException(429, { 'retry-after': '86400' })
+    const error = responseError(429, { 'retry-after': '86400' })
 
     // Act
     const wait = rateLimitWaitMs(error)
@@ -289,7 +275,7 @@ describe('rateLimitWaitMs', () => {
 
   it.each([401, 500, 503])('is undefined for a %i', (status) => {
     // Arrange
-    const error = apiException(status, { 'retry-after': '12' })
+    const error = responseError(status, { 'retry-after': '12' })
 
     // Act
     const wait = rateLimitWaitMs(error)
@@ -302,13 +288,10 @@ describe('rateLimitWaitMs', () => {
 describe('signInRateLimitMessage', () => {
   it("uses the server's sentence, which says how long to wait", () => {
     // Arrange
-    const error = apiException(
+    const error = responseError(
       429,
       {},
-      JSON.stringify({
-        status: 429,
-        detail: 'Too many requests. Try again in 9 seconds.',
-      }),
+      { detail: 'Too many requests. Try again in 9 seconds.' },
     )
 
     // Act
@@ -320,7 +303,7 @@ describe('signInRateLimitMessage', () => {
 
   it('falls back to a general message for a 429 with no body', () => {
     // Arrange
-    const error = apiException(429)
+    const error = responseError(429)
 
     // Act
     const message = signInRateLimitMessage(error)
@@ -347,7 +330,7 @@ describe('RateLimitPause', () => {
     const pause = new RateLimitPause()
 
     // Act
-    pause.record(apiException(429, { 'retry-after': '10' }), 1_000)
+    pause.record(responseError(429, { 'retry-after': '10' }), 1_000)
 
     // Assert
     expect(pause.isActive(10_999)).toBe(true)
@@ -359,7 +342,7 @@ describe('RateLimitPause', () => {
     const pause = new RateLimitPause()
 
     // Act
-    pause.record(apiException(503, { 'retry-after': '10' }), 1_000)
+    pause.record(responseError(503, { 'retry-after': '10' }), 1_000)
 
     // Assert
     expect(pause.isActive(1_001)).toBe(false)

@@ -68,10 +68,8 @@ describe('projectTasksApi', () => {
 
     it('reports a network failure with a detail the grid can show', async () => {
       // Arrange
-      patchProjectTask.mockRejectedValue({
-        isAxiosError: true,
-        message: 'Network Error',
-      })
+      // fetch rejects with a TypeError when it cannot reach the server.
+      patchProjectTask.mockRejectedValue(new TypeError('Network Error'))
       vi.spyOn(console, 'error').mockImplementation(() => {})
       const store = createStore()
 

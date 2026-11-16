@@ -11,7 +11,7 @@ import {
   UserIdentityDto,
   UserRoleDto,
 } from '@/src/services/api/wayd.schemas'
-import { authenticatedFetch } from '@/src/services/clients'
+import { toHttpError } from '../http-error'
 import {
   usersCancelProviderMigration,
   usersCancelTenantMigration,
@@ -27,6 +27,11 @@ import {
   usersManageUserRoles,
   usersStageProviderMigration,
   usersStageSignInTenant,
+  usersActivateUser,
+  usersDeactivateUser,
+  usersResetPassword,
+  usersUnlockUser,
+  usersUpdateUser,
 } from '@/src/services/api/users'
 import { QueryTags } from '../query-tags'
 import type { BaseOptionType } from 'antd/es/select'
@@ -156,27 +161,11 @@ export const usersApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const response = await authenticatedFetch(
-            `/api/user-management/users/${request.id}`,
-            {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(request),
-            },
-          )
-          if (!response.ok) {
-            const errorData = await response.json()
-            return {
-              error: {
-                status: response.status,
-                data: errorData,
-              },
-            }
-          }
+          await usersUpdateUser(request.id, request)
           return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
-          return { error }
+          return { error: toHttpError(error) ?? error }
         }
       },
       invalidatesTags: (result, error, arg) => [
@@ -209,27 +198,11 @@ export const usersApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ userId, newPassword }) => {
         try {
-          const response = await authenticatedFetch(
-            `/api/user-management/users/${userId}/reset-password`,
-            {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ newPassword }),
-            },
-          )
-          if (!response.ok) {
-            const errorData = await response.json()
-            return {
-              error: {
-                status: response.status,
-                data: errorData,
-              },
-            }
-          }
+          await usersResetPassword(userId, { newPassword })
           return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
-          return { error }
+          return { error: toHttpError(error) ?? error }
         }
       },
       invalidatesTags: (result, error, arg) => [
@@ -242,23 +215,11 @@ export const usersApi = apiSlice.injectEndpoints({
     activateUser: builder.mutation<void, string>({
       queryFn: async (userId) => {
         try {
-          const response = await authenticatedFetch(
-            `/api/user-management/users/${userId}/activate`,
-            { method: 'PUT' },
-          )
-          if (!response.ok) {
-            const errorData = await response.json()
-            return {
-              error: {
-                status: response.status,
-                data: errorData,
-              },
-            }
-          }
+          await usersActivateUser(userId)
           return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
-          return { error }
+          return { error: toHttpError(error) ?? error }
         }
       },
       invalidatesTags: (result, error, arg) => [
@@ -272,23 +233,11 @@ export const usersApi = apiSlice.injectEndpoints({
     deactivateUser: builder.mutation<void, string>({
       queryFn: async (userId) => {
         try {
-          const response = await authenticatedFetch(
-            `/api/user-management/users/${userId}/deactivate`,
-            { method: 'PUT' },
-          )
-          if (!response.ok) {
-            const errorData = await response.json()
-            return {
-              error: {
-                status: response.status,
-                data: errorData,
-              },
-            }
-          }
+          await usersDeactivateUser(userId)
           return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
-          return { error }
+          return { error: toHttpError(error) ?? error }
         }
       },
       invalidatesTags: (result, error, arg) => [
@@ -302,25 +251,11 @@ export const usersApi = apiSlice.injectEndpoints({
     unlockUser: builder.mutation<void, string>({
       queryFn: async (userId) => {
         try {
-          const response = await authenticatedFetch(
-            `/api/user-management/users/${userId}/unlock`,
-            {
-              method: 'PUT',
-            },
-          )
-          if (!response.ok) {
-            const errorData = await response.json()
-            return {
-              error: {
-                status: response.status,
-                data: errorData,
-              },
-            }
-          }
+          await usersUnlockUser(userId)
           return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
-          return { error }
+          return { error: toHttpError(error) ?? error }
         }
       },
       invalidatesTags: (result, error, arg) => [

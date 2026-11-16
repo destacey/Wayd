@@ -76,7 +76,6 @@ export default defineConfig({
       // and the suites with their setup and helpers.
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
-        'src/services/wayd-api.ts',
         'src/services/api/**',
         'src/**/*.d.ts',
         'src/**/*.test.{ts,tsx}',

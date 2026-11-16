@@ -66,9 +66,11 @@ describe('Teams connection detail', () => {
     // Arrange
     mockTest.mockResolvedValue({
       error: {
-        isApiException: true,
+        kind: 'api-response',
         status: 400,
-        response: { detail: 'Admin consent has not been granted.' },
+        detail: 'Admin consent has not been granted.',
+        url: '/api',
+        headers: {},
       },
     })
     const setItems = renderActions()
@@ -88,7 +90,7 @@ describe('Teams connection detail', () => {
   it('uses the fallback message when the API error has no detail', async () => {
     // Arrange
     mockTest.mockResolvedValue({
-      error: { isApiException: true, status: 500, response: {} },
+      error: { kind: 'api-response', status: 500, url: '/api', headers: {} },
     })
     const setItems = renderActions()
 

@@ -132,9 +132,11 @@ describe('GeneralSettingsForm', () => {
     // Arrange
     mockUpdate.mockResolvedValue({
       error: {
-        isApiException: true,
+        kind: 'api-response',
         status: 403,
-        response: { detail: 'You do not have permission to do that.' },
+        detail: 'You do not have permission to do that.',
+        url: '/api',
+        headers: {},
       },
     })
     renderForm()

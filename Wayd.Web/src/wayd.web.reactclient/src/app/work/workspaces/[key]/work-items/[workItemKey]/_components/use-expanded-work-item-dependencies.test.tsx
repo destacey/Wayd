@@ -12,7 +12,7 @@ import { asInstant } from '@/src/utils/instant'
 
 const getWorkItemDependencies = vi.fn()
 
-vi.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/auth-storage', () => ({
   isAuthActive: () => false,
 }))
 

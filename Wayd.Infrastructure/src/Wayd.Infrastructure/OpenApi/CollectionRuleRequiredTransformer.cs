@@ -16,9 +16,10 @@ namespace Wayd.Infrastructure.OpenApi;
 /// The FluentValidation rules require a property that a <c>NotNull</c> or <c>NotEmpty</c> rule names, and they
 /// read <c>RuleForEach(d =&gt; d.Ids).NotEmpty()</c>, which checks each element, as naming the collection. A
 /// nullable collection the client may leave out (<c>UpdateIntakeDeskRequest.TriagerIds</c>, where leaving it out
-/// keeps the desk's triagers) would then be published as required. Runs straight after those rules, and
-/// keeps every property its declaration requires (<see cref="ObjectSchemaTransformer"/>) or an unconditional
-/// rule on the property itself requires.
+/// keeps the desk's triagers) would then be published as required. Runs straight after those rules and takes
+/// a property out only when a <c>RuleForEach</c> names it and neither its declaration
+/// (<see cref="ObjectSchemaTransformer"/>) nor an unconditional rule on the property itself requires it. A rule
+/// it cannot read, such as one in an <c>Include()</c>d validator, leaves the property as published.
 /// </remarks>
 public sealed class CollectionRuleRequiredTransformer(ObjectSchemaTransformer declarations) : IOpenApiSchemaTransformer
 {
@@ -43,7 +44,9 @@ public sealed class CollectionRuleRequiredTransformer(ObjectSchemaTransformer de
                 continue;
             }
 
-            if (!validators.Any(v => RequiresProperty(v, member.Name)))
+            // Only on evidence that a RuleForEach put it there: a rule this cannot read, such as one in an
+            // Include()d validator, may require it too, so anything else stays as published.
+            if (validators.Any(v => RequiresEachElement(v, member.Name)) && !validators.Any(v => RequiresProperty(v, member.Name)))
                 required.Remove(property.Name);
         }
 
@@ -75,8 +78,18 @@ public sealed class CollectionRuleRequiredTransformer(ObjectSchemaTransformer de
     /// a rule for the member, not one applied to each of its elements.
     /// </summary>
     private static bool RequiresProperty(IValidator validator, string member) =>
+        Requires(validator, member, collectionRules: false);
+
+    /// <summary>
+    /// Whether the validator has a <c>RuleForEach</c> on the member with a <c>NotNull</c> or <c>NotEmpty</c>,
+    /// the rule the FluentValidation rules misread as requiring the member.
+    /// </summary>
+    private static bool RequiresEachElement(IValidator validator, string member) =>
+        Requires(validator, member, collectionRules: true);
+
+    private static bool Requires(IValidator validator, string member, bool collectionRules) =>
         validator.CreateDescriptor().GetRulesForMember(member)
-            .Where(rule => !IsCollectionRule(rule))
+            .Where(rule => IsCollectionRule(rule) == collectionRules)
             .SelectMany(rule => rule.Components)
             .Any(component => !component.HasCondition
                 && !component.HasAsyncCondition

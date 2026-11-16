@@ -56,9 +56,9 @@ public sealed class CollectionRuleRequiredTransformerTests
     }
 
     [Fact]
-    public async Task TransformAsync_TakesOutAPropertyOnlyAConditionalRuleRequires()
+    public async Task TransformAsync_KeepsAPropertyNoRuleForEachNames()
     {
-        // Arrange
+        // Arrange — required by something this cannot read, such as an Include()d validator
         var schema = RequiringAll();
         var validator = new InlineValidator<Request>();
         validator.RuleFor(r => r.Note).NotEmpty().When(r => r.ChannelIds.Count > 0);
@@ -67,7 +67,23 @@ public sealed class CollectionRuleRequiredTransformerTests
         await Transform(schema, validator);
 
         // Assert
-        schema.Required.Should().NotContain("note");
+        schema.Required.Should().Contain("note");
+    }
+
+    [Fact]
+    public async Task TransformAsync_TakesOutACollectionWhoseOnlyOtherRuleIsConditional()
+    {
+        // Arrange
+        var schema = RequiringAll();
+        var validator = new InlineValidator<Request>();
+        validator.RuleForEach(r => r.TriagerIds).NotEmpty();
+        validator.RuleFor(r => r.TriagerIds).NotNull().When(r => r.ChannelIds.Count > 0);
+
+        // Act
+        await Transform(schema, validator);
+
+        // Assert
+        schema.Required.Should().NotContain("triagerIds");
     }
 
     [Fact]

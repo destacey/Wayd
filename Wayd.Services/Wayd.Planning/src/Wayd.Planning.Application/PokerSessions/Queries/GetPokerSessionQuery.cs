@@ -34,6 +34,8 @@ public sealed class GetPokerSessionQueryHandler(IPlanningDbContext planningDbCon
         var session = await _planningDbContext.PokerSessions
             .Where(request.IdOrKeyFilter)
             .Where(reader.Filter)
+            // One statement would return the product of the session's facilitators, invitees, members, rounds and votes.
+            .AsSplitQuery()
             .ProjectToType<PokerSessionDetailsDto>()
             .FirstOrDefaultAsync(cancellationToken);
 

@@ -108,7 +108,8 @@ public sealed class GetProjectsQueryHandler(IProjectPortfolioManagementDbContext
         var now = _dateTimeProvider.Now;
         var (hintEmployeeId, isPpmAdministrator) = await _currentPrincipal.ResolveManagementHint(cancellationToken);
         var config = ProjectListDto.CreateTypeAdapterConfig(now, hintEmployeeId, isPpmAdministrator);
-        var projects = await query.ProjectToType<ProjectListDto>(config).ToListAsync(cancellationToken);
+        // One statement would return, per project, the product of its role lists, themes and stages.
+        var projects = await query.AsSplitQuery().ProjectToType<ProjectListDto>(config).ToListAsync(cancellationToken);
 
         var ordered = projects
             .OrderBy(p => p.Portfolio.Id)

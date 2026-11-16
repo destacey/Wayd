@@ -4,7 +4,6 @@ import { navigateWithFullReload } from '@/src/utils/window-utils'
 import {
   anonymousApiFetch,
   apiFetch,
-  getFreshAuthToken,
   isApiResponseError,
   logoutApiFetch,
 } from './api-fetch'
@@ -210,6 +209,25 @@ describe('apiFetch', () => {
     expect(navigateWithFullReload).toHaveBeenCalledWith('/login')
   })
 
+  it('logs a network failure on the request it retries after a refresh', async () => {
+    // Arrange
+    storeSession()
+    fetchSpy
+      .mockResolvedValueOnce(new Response(null, { status: 401 }))
+      .mockResolvedValueOnce(json(refreshed))
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    // Act
+    const error = await caught(apiFetch('/api/ppm/projects', {}))
+
+    // Assert
+    expect(error).toBeInstanceOf(TypeError)
+    expect(console.warn).toHaveBeenCalledWith(
+      'API unreachable:',
+      '/api/ppm/projects',
+    )
+  })
+
   it('keeps the session and throws the original 401 when the refresh fails transiently', async () => {
     // Arrange
     storeSession()
@@ -331,7 +349,10 @@ describe('getFreshAuthToken after a rate-limited refresh', () => {
   const NOW = Date.parse('2030-01-01T00:00:00.000Z')
 
   it('sends no refresh until the wait a 429 named has passed', async () => {
-    // Arrange
+    // Arrange — a fresh copy of the module, so the pause it starts cannot
+    // reach any other test.
+    vi.resetModules()
+    const { getFreshAuthToken } = await import('./api-fetch')
     storeSession('2000-01-01T00:00:00.000Z')
     const now = vi.spyOn(Date, 'now').mockReturnValue(NOW)
     fetchSpy.mockImplementation(async () =>

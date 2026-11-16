@@ -125,8 +125,28 @@ describe('logFailedRequest', () => {
     logFailedRequest(failure)
 
     // Assert
-    expect(error).toHaveBeenCalledWith('API Error:', 'failed', url)
+    expect(error).toHaveBeenCalledWith('API Error:', status, 'failed', url)
     expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('logs a failed response by its status and detail, which it has instead of a message', () => {
+    // Arrange
+    const failure = {
+      error: { status: 500, detail: 'The database is unavailable.' },
+      url,
+      status: 500,
+    }
+
+    // Act
+    logFailedRequest(failure)
+
+    // Assert
+    expect(error).toHaveBeenCalledWith(
+      'API Error:',
+      500,
+      'The database is unavailable.',
+      url,
+    )
   })
 })
 

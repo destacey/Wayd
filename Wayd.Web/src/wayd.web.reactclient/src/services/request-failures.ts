@@ -61,7 +61,13 @@ export function logFailedRequest({
   } else if (status !== undefined && status >= 400 && status < 500) {
     console.warn('API refused the request:', status, url)
   } else {
-    console.error('API Error:', (error as { message?: unknown })?.message, url)
+    // A failed response carries its status and problem details rather than a
+    // message; a thrown Error carries a message.
+    const { message, detail } = (error ?? {}) as {
+      message?: unknown
+      detail?: unknown
+    }
+    console.error('API Error:', status ?? '', detail ?? message ?? '', url)
   }
 }
 

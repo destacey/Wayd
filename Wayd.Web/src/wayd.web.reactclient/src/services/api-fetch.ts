@@ -202,7 +202,12 @@ const recoverFromUnauthorized = async (
     throw refreshError
   }
 
-  return send(url, init, tokenResponse.token, true)
+  try {
+    return await send(url, init, tokenResponse.token, true)
+  } catch (error) {
+    logFailedRequest({ error, url })
+    throw error
+  }
 }
 
 function redirectToLoginWithReturnUrl(): void {

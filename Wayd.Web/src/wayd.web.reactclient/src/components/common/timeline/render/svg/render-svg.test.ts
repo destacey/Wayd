@@ -131,6 +131,17 @@ describe('svgColor', () => {
     // Assert
     expect(color).toBe('#000000')
   })
+
+  test.each([undefined, null])(
+    'falls back for an item with no colour (%s)',
+    (value) => {
+      // Act — the API sends null for a milestone or timebox without one
+      const color = svgColor(value, '#000000')
+
+      // Assert
+      expect(color).toBe('#000000')
+    },
+  )
 })
 
 describe('fitLabel', () => {

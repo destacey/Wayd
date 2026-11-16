@@ -31,8 +31,11 @@ The root [AGENTS.md](../../../AGENTS.md) covers the client's conventions (API ca
 
 ### API client
 
-- **Never set `transformResponse: (data) => data`** on the Axios instances in `src/services/clients.ts`. The NSwag client (14.7+) assigns `response.data` directly, so disabling Axios's JSON parsing makes every response a string.
-- **A form's 422 goes through `toFormErrors`**, marking the fields it names, never only a toast of `detail`. Read the error with `toApiError(error)`: an endpoint that does not document 422 throws an `ApiException`, where `isApiError` finds no `errors`. A field named differently from its request property — a date range picker, a list row, values held in state — needs a `fieldFor` mapping. See [Form Validation Errors](../../../docs/contributing/frontend.mdx#form-validation-errors).
+- **Never edit `src/services/api/`.** Orval writes it from the spec (`npm run generate:api`, or a Debug API build); fix the API or `orval.config.ts`. CI regenerates it and fails on any difference, including one from an Orval version bump.
+- **An endpoint called without a session needs an `operations` entry in `orval.config.ts`** naming `anonymousApiFetch`. Under the default `apiFetch` its 401 (a wrong password, say) triggers a refresh and a redirect to the sign-in page instead of reaching the caller. Builds and jsdom tests pass either way.
+- **`api-fetch.ts` imports only types from `src/services/api/`.** Every generated file imports the mutators from it, so a value import is a cycle.
+- **Never make an `Instant` or `CalendarDate` with `as`.** Use `toInstant`/`asInstant` (`src/utils/instant.ts`) or `toCalendarDate`/`asCalendarDate`; the `as` helpers throw on a bad string, a cast sends it. Sort instants with `instantTime`, never as strings. The brands in `orval.config.ts`'s `formatType` must stay identical to the two declarations, which nothing checks.
+- **A form's 422 goes through `toFormErrors`**, marking the fields it names, never only a toast of `detail`. Read the error with `toApiError(error)`, which holds a failed response's `status`, `detail` and `errors` whatever the endpoint documents. A field named differently from its request property — a date range picker, a list row, values held in state — needs a `fieldFor` mapping. See [Form Validation Errors](../../../docs/contributing/frontend.mdx#form-validation-errors).
 - **A polymorphic request body puts `$type` first** — `{ $type: 'entra', ...values }`, never `{ ...values, $type }`. System.Text.Json reads the discriminator only from the first property and otherwise fails with "must specify a type discriminator" (a 500).
 
 ### Content-Security-Policy

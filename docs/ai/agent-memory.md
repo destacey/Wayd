@@ -15,10 +15,10 @@ This file captures compact repo-specific lessons that future coding agents shoul
 
 ## Generated API Client
 
-- Do not hand-edit `Wayd.Web/src/wayd.web.reactclient/src/services/wayd-api.ts`.
-- A Debug build of the API project writes `Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json` (`Microsoft.AspNetCore.OpenApi`) and NSwag regenerates `wayd-api.ts` from it.
+- Do not hand-edit `Wayd.Web/src/wayd.web.reactclient/src/services/api/`; change `orval.config.ts` or the API and regenerate.
+- A Debug build of the API project writes `Wayd.Web/src/Wayd.Web.Api/wwwroot/api/v1/specification.json` (`Microsoft.AspNetCore.OpenApi`) and runs Orval (`npm run generate:api`) to regenerate `src/services/api/` from it; it needs the client's `node_modules`.
 - Useful command: `dotnet build "Wayd.Web/src/Wayd.Web.Api/Wayd.Web.Api.csproj"`.
-- Frontend RTK Query slices should call generated client methods from `src/services/clients.ts`; never use `authenticatedFetch()` directly.
+- Frontend RTK Query slices call the generated functions from `src/services/api/<tag>`; never `fetch` directly. An endpoint called without a session (sign-in, refresh) needs an `operations` entry in `orval.config.ts` naming the `anonymousApiFetch` mutator.
 
 ## Backend Patterns
 

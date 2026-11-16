@@ -83,9 +83,12 @@ Feature-gated endpoints use `[FeatureGate(FeatureFlags.Names.MyFlag)]`.
 ## OpenAPI
 
 `Microsoft.AspNetCore.OpenApi` describes the API. A Debug build writes the document to
-`Wayd.Web.Api/wwwroot/api/v1/specification.json` (the `GenerateOpenApiDocument` target), then NSwag
-generates the TypeScript client, `wayd-api.ts`, from that file (`nswag.json`). The data-generation tool's C#
-client and the client's import templates are generated from the same file, and the hosted MCP server builds its tools from the same document at runtime. The running API serves it at
+`Wayd.Web.Api/wwwroot/api/v1/specification.json` (the `GenerateOpenApiDocument` target), then runs
+[Orval](https://orval.dev) in the web client (the `GenerateApiClient` target, `npm run generate:api`), which
+generates the TypeScript client in `wayd.web.reactclient/src/services/api/` from that file. The target needs the
+client's `node_modules`; without them it warns and leaves the client as it was. NSwag generates the
+data-generation tool's C# client from the same file when that project builds, the client's import templates
+come from it too, and the hosted MCP server builds its tools from the same document at runtime. The running API serves it at
 `/openapi/v1.json`, with the Scalar API reference at `/scalar`, while `SwaggerSettings:Enable` is on. A tool
 that knows neither path finds both through the RFC 9727 API catalog at `/.well-known/api-catalog`, and
 `/openapi.json` redirects to the document.
@@ -94,31 +97,40 @@ An action's `[EndpointSummary]` and `[EndpointDescription]` are its published su
 the description of its MCP tool, so write them for an API consumer.
 
 `WaydOpenApiDocument` registers the transformers in `Wayd.Infrastructure/OpenApi/`, which shape the
-document for the TypeScript client. The client code depends on what they decide, so a change to one renames
+document for the generated clients. The client code depends on what they decide, so a change to one renames
 or retypes generated code:
 
-- **Operation ids** are `{Controller}_{Action}`, and the client is generated with
-  `MultipleClientsFromOperationId`, which names every client class and method from them.
+- **Operation ids** are `{Controller}_{Action}`. The TypeScript client names each function from one
+  (`Projects_GetProjects` is `projectsGetProjects`), and the C# client its classes and methods
+  (`MultipleClientsFromOperationId`). Renaming an action renames its function.
 - **Component names** are the types' own: a generic type is named for its arguments
   (`NavigationDtoOfGuidAndInteger`), a derived class is `allOf` its base, and a `[JsonPolymorphic]` hierarchy
   is a base with a `discriminator` and its derived types under their own names.
 - **A property is required when it cannot be null**, or when it is declared `required` or `[Required]`
   even if it can, so the client types it as present; nullability comes from the declaration.
-- **`x-position` and `x-name`** set the order of a client method's arguments and the name of its body
-  argument, and the client calls them positionally.
-- **NodaTime values** are strings: an `Instant` is `date-time`, a `LocalDate` `date`.
+- **`x-position` and `x-name`** set the order of a C# client method's arguments and the name of its body
+  argument, and the data-generation tool calls them positionally. The TypeScript client ignores them: its
+  functions take the path parameters in route order, then the query parameters as one object, then the body.
+- **NodaTime values** are strings: an `Instant` is `date-time`, a `LocalDate` `date`. The TypeScript client
+  types them as the branded `Instant` and `CalendarDate` — see [Dates and instants](./frontend.mdx#dates-and-instants).
 - **Request bodies are `application/json`**, except file uploads (`multipart/form-data`) and JSON Patch
   bodies: a `JsonPatchOperation[]` sent as `application/json-patch+json`, the only type a
   `JsonPatchDocument<T>` action accepts unless its `[Consumes]` adds another.
 
-After a change to a transformer or an API model, read the `wayd-api.ts` diff a rebuild produces, and commit
-it with `specification.json`: `OpenApiDocumentTests` fails while the committed document differs from the one
-the API serves.
+After a change to a transformer or an API model, read the `src/services/api/` diff a rebuild produces, and
+commit it with `specification.json`: `OpenApiDocumentTests` fails while the committed document differs from the
+one the API serves, and CI fails while the committed client differs from what the committed document generates.
 
-`NSwagTemplates/Interface.liquid` overrides the TypeScript interface template so that a `LocalDate`
-(`format: date`) is generated as `string` while an `Instant` (`format: date-time`) stays `Date` — see
-[Dates and instants](./frontend.mdx#dates-and-instants). Keep it in step with the stock template when NSwag is
-upgraded; it is a copy of it with that one change.
+`orval.config.ts` adapts the document on its way into Orval (`input.override.transformer`), for what the
+generator reads differently from the API:
+
+- It drops the empty `{ type: object, additionalProperties: false }` member a derived schema's `allOf`
+  carries, which Orval would render as an index signature no interface satisfies.
+- It explodes every array query parameter (`status=A&status=B`), which ASP.NET binds and Orval otherwise joins
+  with commas, and makes no query parameter nullable, since a query string has no null.
+
+It also encodes every path parameter (`urlEncodeParameters`), so a value holding `../` cannot move a request,
+and its token, to another endpoint.
 
 :::note[The document target boots the real API]
 

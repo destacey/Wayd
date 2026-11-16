@@ -875,7 +875,7 @@ Application layer organized by aggregate root: {Feature}/Commands/, {Feature}/Qu
 NodaTime types (Instant, LocalDate). Never DateTime.UtcNow — always inject IDateTimeProvider.
 
 ### Frontend Patterns
-- NSwag-generated typed client for API calls (never authenticatedFetch directly)
+- Orval-generated typed functions for API calls (src/services/api/; never a hand-written fetch)
 - Ant Design theme tokens (never hardcode colors)
 - Redux Toolkit + RTK Query for state/data
 - CSS Modules with antd CSS variables preferred over theme.useToken()

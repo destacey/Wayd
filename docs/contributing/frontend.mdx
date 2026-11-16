@@ -22,9 +22,10 @@ wayd.web.reactclient/
     config/theme/     # Theme presets and the theme registry
     hooks/            # Custom React hooks
     lib/              # Docs viewer plugins (remark/rehype)
-    services/         # API clients and services
-      wayd-api.ts     # NSwag-generated TypeScript client
-      clients.ts      # Client factory functions
+    services/         # API client and services
+      api/            # Orval-generated client: one file per tag, models in wayd.schemas.ts
+      api-fetch.ts    # The pipeline every generated call goes through
+      auth-storage.ts # Where the session's tokens are kept
     store/            # Redux Toolkit store and slices
     utils/            # Helpers (calendar dates, problem details, colors)
   styles/globals.css  # Global styles; components use CSS modules beside them
@@ -41,6 +42,7 @@ wayd.web.reactclient/
 | `npm run lint` | `eslint .` — the whole client, even when given paths |
 | `npm run lint:deprecations` | Uses of `@deprecated` APIs (type-aware, slower) |
 | `npm test` | Vitest, run once; `npm run test:watch` reruns on change, `npm run test:docs` runs the docs suite on its own config |
+| `npm run generate:api` | Regenerates the API client in `src/services/api/` from the API spec |
 | `npm run generate:import-templates` | Regenerates the CSV import templates from the API spec |
 
 `NEXT_PUBLIC_API_BASE_URL` is the API's address. Aspire sets it; for `npm run dev` on its own, put it in a gitignored `.env.local` (`NEXT_PUBLIC_API_BASE_URL='http://localhost:5150'`). It is inlined at build time, so a change needs `.next` cleared — `npm run dev` does that. The Docker image is built with the placeholder `APP_NEXT_PUBLIC_API_BASE_URL`, which `entrypoint.sh` replaces with the container's `NEXT_PUBLIC_API_BASE_URL` at start and refuses to start without.
@@ -49,16 +51,55 @@ wayd.web.reactclient/
 
 ## API Calls
 
-**Always use the NSwag-generated typed client:**
+**Always call the generated functions in `src/services/api/`**, from an RTK Query slice in `src/store/features/`:
 
 ```typescript
-import { getWorkItemsClient } from '@/src/services/clients'
+import { projectDeliverablesGetDeliverables } from '@/src/services/api/project-deliverables'
+import { ProjectDeliverableDto } from '@/src/services/api/wayd.schemas'
 
-const client = await getWorkItemsClient()
-const workItems = await client.getList(workspaceId)
+getProjectDeliverables: builder.query<ProjectDeliverableDto[], string>({
+  queryFn: async (projectId) => {
+    try {
+      return { data: await projectDeliverablesGetDeliverables(projectId) }
+    } catch (error) {
+      return { error }
+    }
+  },
+}),
 ```
 
-**Never use `authenticatedFetch()` directly** unless the generated client doesn't have the method yet. It takes an API path (`/api/...`) and refuses a full URL, so the bearer token only goes to the API.
+[Orval](https://orval.dev) generates the client from the API's OpenAPI document (`orval.config.ts`). Each
+controller tag is a file (`projects.ts`, `project-deliverables.ts`) and every model is in `wayd.schemas.ts`.
+There is no barrel: import from the tag file, so a page compiles only the endpoints it uses. A function is
+named for its operation id, `{Controller}_{Action}` in camel case (`projectDeliverablesGetDeliverables`). It
+takes the path parameters in route order, then the query parameters as one object, then the body:
+
+```typescript
+await importsGetRows(importId, { status, page, pageSize })
+await projectDeliverablesUpdateDeliverable(projectId, deliverableId, request)
+```
+
+The client is committed. Never edit it: change the API or `orval.config.ts`, then regenerate — a Debug build
+of `Wayd.Web.Api` does it, or `npm run generate:api` here after the spec has changed. CI fails when the
+committed client differs from what the committed spec generates.
+
+**Never call `fetch` directly.** Every generated function goes through `apiFetch` (`src/services/api-fetch.ts`), which:
+
+- sends the session's bearer token, refreshing it first when it is about to expire, with one refresh shared by
+  every call in flight;
+- signs the user out on a 401 the refresh cannot cure;
+- sends the browser's trace context and times a request out after 30 seconds;
+- throws a response outside 2xx as an `ApiResponseError`: its problem details with `status`, `url` and
+  `headers`, whatever the status and whether or not the endpoint documents it. A network failure throws what
+  `fetch` throws (a `TypeError`).
+
+The sign-in, refresh, setup and provider endpoints send no token, and logout sends the stored one untouched.
+`orval.config.ts` names them under `operations`, with the `anonymousApiFetch` or `logoutApiFetch` mutator. A
+new endpoint called without a session needs an entry there, or its 401 (a wrong password, say) triggers a refresh and a redirect to the sign-in page instead of reaching the caller.
+
+A slice returns what was thrown as its `error`. One whose callers read `error.data` wraps it first with
+`toHttpError(error)` (`src/store/features/http-error.ts`), which gives a thrown response the `{ status, data }`
+shape.
 
 ### Dates and instants
 
@@ -66,12 +107,28 @@ The generated types follow the two kinds of time the API publishes:
 
 | API type | OpenAPI | Generated type | Meaning |
 |---|---|---|---|
-| `LocalDate` | `format: date` | `string` (`"2026-09-28"`) | A day on the calendar — a sprint's planned start, a target date |
-| `Instant` | `format: date-time` | `Date` | A moment — when something was started, completed or released |
+| `LocalDate` | `format: date` | `CalendarDate` (`"2026-09-28"`) | A day on the calendar — a sprint's planned start, a target date |
+| `Instant` | `format: date-time` | `Instant` (`"2026-09-28T17:30:00Z"`) | A moment — when something was started, completed or released |
 
-The client generates interfaces only and never parses a response, so both arrive as strings at runtime. A
-`Date`-typed instant is safe to hand to `dayjs(...)`; a calendar date is not a moment and must never be
-treated as one. Use the helpers in `src/utils/calendar-date.ts` (exported from `@/src/utils`):
+Both are the strings the API sends, typed as branded strings: `string` with a type-only tag the compiler
+checks, so a calendar date cannot be passed where an instant is expected, and a plain `string` is neither.
+Nothing parses a response, so the store holds plain data: RTK Query's structural sharing (which keeps an
+unchanged result the same object across refetches) and CSV export depend on it. `orval.config.ts` writes the
+two types inline through `formatType`; they must stay identical to the declarations in `instant.ts` and
+`calendar-date.ts`.
+
+Never make one with a cast (`value as Instant`). Make one with a helper, which also checks a string that came
+from somewhere other than the generated client — a SignalR payload, a URL parameter, a test:
+
+| You have | Instant (`src/utils/instant.ts`) | Calendar date (`src/utils/calendar-date.ts`) |
+|---|---|---|
+| A `Date` or picker `Dayjs` | `toInstant(value)` | `toCalendarDate(value)` |
+| A string | `asInstant(value)` — throws unless it parses | `asCalendarDate(value)` — throws unless `YYYY-MM-DD` |
+
+An instant is safe to hand to `dayjs(...)`. **Order and compare instants with `instantTime(value)`**, never as
+strings: the fraction of a second has as many digits as it needs, so `"…:00.5Z"` sorts before `"…:00Z"`. A
+calendar date is not a moment and must never be treated as one. Use the helpers in `src/utils/calendar-date.ts`
+(most are exported from `@/src/utils`):
 
 - `formatCalendarDate(value, format?)` to show one, as written, with no zone conversion (`MMM D, YYYY` by default).
 - `parseCalendarDate(value)` for date math or a `DatePicker`; it is local midnight of that day.
@@ -86,11 +143,9 @@ treated as one. Use the helpers in `src/utils/calendar-date.ts` (exported from `
 which is the previous day anywhere west of UTC. Instants are shown in the viewer's zone; where a record also
 has a team time zone that can differ from the viewer's, label which zone a time is in.
 
-`wayd-api.ts` gets the `string` type from an override of the generator's interface template,
-`Wayd.Web.Api/NSwagTemplates/Interface.liquid`: NSwag's single `dateTimeType` setting covers both formats.
-An array of calendar dates (`List<LocalDate>`, such as a sprint's holidays) is typed `string[]` the
-same way. The template cannot see an array's item format, so an array of instants would be typed
-`string[]` too; the API publishes none, and its elements would arrive as strings regardless.
+An array of calendar dates (`List<LocalDate>`, such as a sprint's holidays) is a `CalendarDate[]`. A query
+parameter typed `Instant` is sent as written, so a day the API binds as a `DateTime` is sent as UTC midnight of
+that day (``toInstant(new Date(`${date}T00:00:00Z`))``), not the viewer's midnight.
 
 ## Form Validation Errors
 
@@ -114,10 +169,11 @@ domain rule, which belongs to no single field — shows its `detail` in the toas
 
 `useModalForm` passes the form instance to `onSubmit` as its second argument for this.
 
-**Read the error with `toApiError`, not `isApiError`.** The generated client returns the problem details
-only for a status the endpoint documents. Most endpoints do not document 422, so their validation
-failures arrive as an `ApiException` with the body in `response`, and `isApiError(error) ? error : {}`
-finds no `errors` — the form falls back to a toast and marks nothing. `toApiError` reads both.
+**Read the error with `toApiError`.** A failed response throws its problem details with its status, whether
+or not the endpoint documents that status, so `toApiError(error).errors` holds a 422's field errors. Anything
+that is not an error response, such as a network failure, reads as `{}`, so the form falls back to its own
+message. For an error from an RTK Query hook, which may be wrapped as `{ status, data }`, `errorDetail(error)`
+reads the `detail` either way.
 
 `toFormErrors` matches a key to a field of the same name, whatever its casing. When a field is named
 differently from the request property it sets, pass `fieldFor` to say where the error goes:

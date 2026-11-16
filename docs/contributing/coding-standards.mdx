@@ -156,7 +156,7 @@ Only use `theme.useToken()` when you need token values in JS logic.
 
 ### API Calls
 
-Always use the NSwag-generated typed client (e.g., `getProjectsClient()`). Never use `authenticatedFetch()` directly.
+Always call the generated functions in `src/services/api/` (e.g. `projectsGetProjects()`), never `fetch` directly; they send the session's token and throw a failed response as its problem details. See [API Calls](./frontend.mdx#api-calls).
 
 ### Component Patterns
 

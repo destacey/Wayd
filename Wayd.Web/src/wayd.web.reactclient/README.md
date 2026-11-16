@@ -30,4 +30,4 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - Ant Design (6.x)
 - RTK (2.x)
 - oidc-client-ts (3.x) - OIDC / PKCE authentication
-- Axios
+- Orval (8.x) - typed fetch client generated from the API's OpenAPI document

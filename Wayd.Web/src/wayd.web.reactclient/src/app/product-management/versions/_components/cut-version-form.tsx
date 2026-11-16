@@ -1,5 +1,6 @@
 'use client'
 
+import { toInstant } from '@/src/utils/instant'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { CutVersionRequest, VersionDto } from '@/src/services/api/wayd.schemas'
@@ -41,7 +42,7 @@ const CutVersionForm = ({
         try {
           const request = {
             id: version.id,
-            cutAt: values.cutAt.toDate(),
+            cutAt: toInstant(values.cutAt),
           } as CutVersionRequest
 
           const response = await cutVersion({

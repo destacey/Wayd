@@ -8,6 +8,7 @@ import {
   toCreateRoadmapItemRequest,
   toRoadmapItemPatch,
 } from './roadmap-items-grid.editors'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const day = (value: string) => {
   const [y, m, d] = value.split('-').map(Number)
@@ -22,9 +23,9 @@ const node = (
   name: `${type} 1`,
   type,
   $type: type.toLowerCase(),
-  start: type === 'Milestone' ? null : day('2026-03-01'),
-  end: type === 'Milestone' ? null : day('2026-03-31'),
-  date: type === 'Milestone' ? day('2026-04-15') : null,
+  start: type === 'Milestone' ? null : day(asCalendarDate('2026-03-01')),
+  end: type === 'Milestone' ? null : day(asCalendarDate('2026-03-31')),
+  date: type === 'Milestone' ? day(asCalendarDate('2026-04-15')) : null,
   color: null,
   children: [],
   ...extra,
@@ -91,12 +92,12 @@ describe('roadmap items grid editors', () => {
 
       // Act
       const start = roadmapStartEditor.get(row)
-      const moved = roadmapStartEditor.apply(row, '2026-03-05')
+      const moved = roadmapStartEditor.apply(row, asCalendarDate('2026-03-05'))
 
       // Assert
       expect(start).toBe('2026-03-01')
       expect(roadmapStartEditor.get(moved)).toBe('2026-03-05')
-      expect(moved.start).toEqual(day('2026-03-05'))
+      expect(moved.start).toEqual(day(asCalendarDate('2026-03-05')))
     })
 
     it("edits a milestone's date in the Start column", () => {
@@ -104,13 +105,13 @@ describe('roadmap items grid editors', () => {
       const row = node('Milestone')
 
       // Act
-      const moved = roadmapStartEditor.apply(row, '2026-04-20')
+      const moved = roadmapStartEditor.apply(row, asCalendarDate('2026-04-20'))
 
       // Assert
       expect(fieldOf(roadmapStartEditor, row)).toBe('date')
       expect(fieldOf(roadmapStartEditor, node('Activity'))).toBe('start')
       expect(roadmapStartEditor.get(row)).toBe('2026-04-15')
-      expect(moved.date).toEqual(day('2026-04-20'))
+      expect(moved.date).toEqual(day(asCalendarDate('2026-04-20')))
       expect(moved.start).toBeNull()
     })
 
@@ -148,7 +149,11 @@ describe('roadmap items grid editors', () => {
       const row = node('Activity')
 
       // Act
-      const errors = pairCheck(row, '2026-03-10', '2026-03-09')
+      const errors = pairCheck(
+        row,
+        asCalendarDate('2026-03-10'),
+        asCalendarDate('2026-03-09'),
+      )
 
       // Assert
       expect(errors).toEqual({ end: 'End must be on or after Start.' })
@@ -159,7 +164,11 @@ describe('roadmap items grid editors', () => {
       const row = node('Activity')
 
       // Act
-      const errors = pairCheck(row, '2026-03-10', '2026-03-10')
+      const errors = pairCheck(
+        row,
+        asCalendarDate('2026-03-10'),
+        asCalendarDate('2026-03-10'),
+      )
 
       // Assert
       expect(errors).toBeUndefined()
@@ -170,7 +179,7 @@ describe('roadmap items grid editors', () => {
       const row = node('Milestone')
 
       // Act
-      const errors = pairCheck(row, '2026-05-01', null)
+      const errors = pairCheck(row, asCalendarDate('2026-05-01'), null)
 
       // Assert
       expect(errors).toBeUndefined()
@@ -183,13 +192,13 @@ describe('roadmap items grid editors', () => {
             node('Activity', {
               id: 'child',
               name: 'Build',
-              start: day('2026-03-10'),
-              end: day('2026-03-20'),
+              start: day(asCalendarDate('2026-03-10')),
+              end: day(asCalendarDate('2026-03-20')),
             }),
             node('Milestone', {
               id: 'launch',
               name: 'Launch',
-              date: day('2026-03-25'),
+              date: day(asCalendarDate('2026-03-25')),
             }),
           ],
         })
@@ -199,7 +208,11 @@ describe('roadmap items grid editors', () => {
         const row = parent()
 
         // Act
-        const errors = pairCheck(row, '2026-03-16', '2026-04-15')
+        const errors = pairCheck(
+          row,
+          asCalendarDate('2026-03-16'),
+          asCalendarDate('2026-04-15'),
+        )
 
         // Assert
         expect(errors).toBeUndefined()
@@ -210,7 +223,11 @@ describe('roadmap items grid editors', () => {
         const row = parent()
 
         // Act
-        const errors = pairCheck(row, '2026-03-11', '2026-03-31')
+        const errors = pairCheck(
+          row,
+          asCalendarDate('2026-03-11'),
+          asCalendarDate('2026-03-31'),
+        )
 
         // Assert
         expect(errors).toEqual({
@@ -224,7 +241,11 @@ describe('roadmap items grid editors', () => {
         const row = parent()
 
         // Act
-        const errors = pairCheck(row, '2026-03-01', '2026-03-24')
+        const errors = pairCheck(
+          row,
+          asCalendarDate('2026-03-01'),
+          asCalendarDate('2026-03-24'),
+        )
 
         // Assert
         expect(errors).toEqual({
@@ -237,7 +258,11 @@ describe('roadmap items grid editors', () => {
         const row = parent()
 
         // Act
-        const errors = pairCheck(row, '2026-03-05', '2026-03-28')
+        const errors = pairCheck(
+          row,
+          asCalendarDate('2026-03-05'),
+          asCalendarDate('2026-03-28'),
+        )
 
         // Assert
         expect(errors).toBeUndefined()
@@ -297,7 +322,10 @@ describe('roadmap items grid editors', () => {
   describe('toRoadmapItemPatch', () => {
     it('replaces each field the grid sends, and only those', () => {
       // Arrange
-      const patch = { start: '2026-03-05', end: '2026-04-05' }
+      const patch = {
+        start: asCalendarDate('2026-03-05'),
+        end: asCalendarDate('2026-04-05'),
+      }
 
       // Act
       const operations = toRoadmapItemPatch(patch)
@@ -328,8 +356,8 @@ describe('roadmap items grid editors', () => {
       // Arrange
       const values = {
         name: 'Build',
-        start: '2026-03-01',
-        end: '2026-03-31',
+        start: asCalendarDate('2026-03-01'),
+        end: asCalendarDate('2026-03-31'),
         color: '#FF0000',
       }
 
@@ -353,8 +381,8 @@ describe('roadmap items grid editors', () => {
       const values = {
         type: 'timebox',
         name: 'Sprint',
-        start: '2026-03-01',
-        end: '2026-03-14',
+        start: asCalendarDate('2026-03-01'),
+        end: asCalendarDate('2026-03-14'),
         color: '#FF0000',
       }
 

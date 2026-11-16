@@ -2,6 +2,7 @@ import { render, screen, act } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import { ProjectStageListDto } from '@/src/services/api/wayd.schemas'
 import StageTimeline from './stage-timeline'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // --- ResizeObserver mock that allows triggering resize callbacks ---
 type ResizeCallback = (entries: { contentRect: { width: number } }[]) => void
@@ -214,8 +215,8 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        start: '2026-01-15',
-        end: '2026-03-15',
+        start: asCalendarDate('2026-01-15'),
+        end: asCalendarDate('2026-03-15'),
       }),
     ]
 
@@ -259,7 +260,7 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        start: '2026-02-01',
+        start: asCalendarDate('2026-02-01'),
       }),
     ]
 
@@ -274,7 +275,7 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        end: '2026-06-30',
+        end: asCalendarDate('2026-06-30'),
       }),
     ]
 
@@ -291,8 +292,8 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        start: '2026-01-15',
-        end: '2026-03-15',
+        start: asCalendarDate('2026-01-15'),
+        end: asCalendarDate('2026-03-15'),
         progress: 45,
       }),
     ]
@@ -309,8 +310,8 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        start: '2026-01-15',
-        end: '2026-03-15',
+        start: asCalendarDate('2026-01-15'),
+        end: asCalendarDate('2026-03-15'),
         progress: 45,
       }),
     ]
@@ -332,8 +333,8 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        start: '2026-01-15',
-        end: '2026-03-15',
+        start: asCalendarDate('2026-01-15'),
+        end: asCalendarDate('2026-03-15'),
         progress: 45,
       }),
     ]
@@ -362,8 +363,8 @@ describe('StageTimeline', () => {
         name: 'Discovery',
         order: 1,
         status: { id: 2, name: 'In Progress' },
-        start: '2026-01-15',
-        end: '2026-03-15',
+        start: asCalendarDate('2026-01-15'),
+        end: asCalendarDate('2026-03-15'),
         progress: 45,
       }),
     ]
@@ -417,8 +418,8 @@ describe('StageTimeline', () => {
         createStage({
           name: 'Plan',
           order: 1,
-          start: '2026-01-15',
-          end: '2026-03-15',
+          start: asCalendarDate('2026-01-15'),
+          end: asCalendarDate('2026-03-15'),
           progress: 50,
         }),
       ]

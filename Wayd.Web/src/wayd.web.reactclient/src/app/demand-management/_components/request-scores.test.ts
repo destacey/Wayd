@@ -3,6 +3,7 @@ import {
   IntakeRequestSummaryDto,
 } from '@/src/services/api/wayd.schemas'
 import { orderRequests, toRequestScores } from './request-scores'
+import { asInstant } from '@/src/utils/instant'
 
 const request = (id: string, key: number): IntakeRequestSummaryDto =>
   ({ id, key, title: id }) as IntakeRequestSummaryDto
@@ -19,7 +20,7 @@ const score = (
     requestId,
     value,
     isDeskModel,
-    scoredOn: new Date('2026-10-01T00:00:00Z'),
+    scoredOn: asInstant('2026-10-01T00:00:00Z'),
     scoringModel,
   }) as IntakeRequestCurrentScoreDto
 

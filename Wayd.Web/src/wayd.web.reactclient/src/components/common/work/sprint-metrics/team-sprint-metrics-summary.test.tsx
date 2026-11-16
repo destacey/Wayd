@@ -6,6 +6,7 @@ import {
 } from '@/src/services/api/wayd.schemas'
 import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations/team-api'
 import TeamSprintMetricsSummary from './team-sprint-metrics-summary'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('@/src/store/features/organizations/team-api', () => ({
   useGetTeamSprintMetricsQuery: vi.fn(),
@@ -23,8 +24,8 @@ const sprint = (key: number, inEstimateAverages = true) => ({
   id: `sprint-${key}`,
   key,
   name: `Sprint ${key}`,
-  start: '2026-06-01',
-  end: '2026-06-14',
+  start: asCalendarDate('2026-06-01'),
+  end: asCalendarDate('2026-06-14'),
   sizingMethod: SizingMethod.StoryPoints,
   inEstimateAverages,
   byCount: { velocity: 4, predictability: 0.8, sayDo: 0.6 },

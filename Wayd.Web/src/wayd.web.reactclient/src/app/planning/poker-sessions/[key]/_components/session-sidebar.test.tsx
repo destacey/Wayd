@@ -10,6 +10,7 @@ import {
 } from '@/src/services/api/wayd.schemas'
 import { usePublishPokerRoundsMutation } from '@/src/store/features/planning/poker-sessions-api'
 import SessionSidebar from './session-sidebar'
+import { asInstant } from '@/src/utils/instant'
 
 vi.mock('@/src/store/features/planning/poker-sessions-api', () => ({
   usePublishPokerRoundsMutation: vi.fn(),
@@ -57,7 +58,7 @@ const round = (
 
 const publication = (outcome: PokerRoundPublicationOutcome) => ({
   outcome,
-  at: new Date('2026-10-01T08:00:00Z'),
+  at: asInstant('2026-10-01T08:00:00Z'),
   byEmployeeId: 'e-1',
 })
 

@@ -48,6 +48,7 @@ vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
 
 import { useGetPlanningIntervalsQuery } from '@/src/store/features/planning/planning-interval-api'
 import PlanningIntervalSwitcher from './planning-interval-switcher'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const mockQuery = useGetPlanningIntervalsQuery as unknown as Mock
 
@@ -55,10 +56,15 @@ const twoPlanningIntervals = [
   {
     key: 1,
     name: '2025 PI 1',
-    start: '2025-01-01',
+    start: asCalendarDate('2025-01-01'),
     state: { name: 'Completed' },
   },
-  { key: 2, name: '2026 PI 1', start: '2026-01-01', state: { name: 'Active' } },
+  {
+    key: 2,
+    name: '2026 PI 1',
+    start: asCalendarDate('2026-01-01'),
+    state: { name: 'Active' },
+  },
 ]
 
 describe('PlanningIntervalSwitcher', () => {
@@ -112,7 +118,7 @@ describe('PlanningIntervalSwitcher', () => {
         {
           key: 3,
           name: '2025 PI 2',
-          start: '2025-06-01',
+          start: asCalendarDate('2025-06-01'),
           state: { name: 'Completed' },
         },
       ],

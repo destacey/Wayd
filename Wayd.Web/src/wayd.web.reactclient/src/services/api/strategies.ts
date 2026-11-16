@@ -64,22 +64,8 @@ export const strategiesGetStrategies = async (params?: StrategiesGetStrategiesPa
 
 
   }
-).then(deserializeStrategiesGetStrategiesResponse);}
+);}
 
-
-const deserializeStrategiesGetStrategiesResponse = (data: StrategyListDto[]): StrategyListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.start != null) {
-      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-    }
-    if (item0.end != null) {
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-  }
-  return data;
-};
 
 export const getStrategiesCreateUrl = () => {
 
@@ -124,19 +110,8 @@ export const strategiesGetStrategy = async (idOrKey: string, options?: Parameter
 
 
   }
-).then(deserializeStrategiesGetStrategyResponse);}
+);}
 
-
-const deserializeStrategiesGetStrategyResponse = (data: StrategyDetailsDto): StrategyDetailsDto => {
-  if (data == null) return data;
-  if (data.start != null) {
-    data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
-  }
-  if (data.end != null) {
-    data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
-  }
-  return data;
-};
 
 export const getStrategiesUpdateUrl = (id: string,) => {
 

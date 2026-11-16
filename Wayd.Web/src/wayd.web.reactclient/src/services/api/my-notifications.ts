@@ -41,19 +41,8 @@ export const myNotificationsGetNotifications = async (params?: MyNotificationsGe
 
 
   }
-).then(deserializeMyNotificationsGetNotificationsResponse);}
+);}
 
-
-const deserializeMyNotificationsGetNotificationsResponse = (data: CursorPageOfNotificationDto): CursorPageOfNotificationDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.occurredOn = new Date(item0.occurredOn);
-    }
-  }
-  return data;
-};
 
 export const getMyNotificationsGetUnreadCountUrl = () => {
 

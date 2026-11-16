@@ -4,6 +4,7 @@ import {
   ProductDependencyDto,
 } from '@/src/services/api/wayd.schemas'
 import useProductDependencyActions from './use-product-dependency-actions'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 let mockCanUpdate = true
 
@@ -33,7 +34,7 @@ const link = (
     product: { id: 'web', key: 2, name: 'Storefront Web' },
     dependsOnProduct: { id: 'identity', key: 3, name: 'Identity Service' },
     strength: DependencyStrength.Hard,
-    startsOn: '2026-03-01',
+    startsOn: asCalendarDate('2026-03-01'),
     ...overrides,
   }) as ProductDependencyDto
 
@@ -66,7 +67,9 @@ describe('useProductDependencyActions', () => {
     const { result } = renderHook(() => useProductDependencyActions())
 
     // Act
-    const items = result.current.getActionItems(link({ endsOn: '2026-04-01' }))
+    const items = result.current.getActionItems(
+      link({ endsOn: asCalendarDate('2026-04-01') }),
+    )
 
     // Assert
     expect(keys(items as { key?: unknown }[])).toEqual([

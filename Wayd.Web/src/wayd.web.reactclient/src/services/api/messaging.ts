@@ -59,12 +59,19 @@ export const messagingGetCounts = async ( options?: Parameters<typeof apiFetch>[
 
 
 export const getMessagingGetDeadLettersUrl = (params?: MessagingGetDeadLettersParams,) => {
+const encodedParams = { ...params };
+if (encodedParams.from != null) {
+  encodedParams.from = typeof encodedParams.from === 'string' ? encodedParams.from : (String(encodedParams.from) as unknown as typeof encodedParams.from);
+}
+if (encodedParams.to != null) {
+  encodedParams.to = typeof encodedParams.to === 'string' ? encodedParams.to : (String(encodedParams.to) as unknown as typeof encodedParams.to);
+}
   const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+  Object.entries(encodedParams).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
+      normalizedParams.append(key, value === null ? 'null' : String(value))
     }
   });
 
@@ -85,19 +92,8 @@ export const messagingGetDeadLetters = async (params?: MessagingGetDeadLettersPa
 
 
   }
-).then(deserializeMessagingGetDeadLettersResponse);}
+);}
 
-
-const deserializeMessagingGetDeadLettersResponse = (data: PagedResponseOfDeadLetterMessageResponse): PagedResponseOfDeadLetterMessageResponse => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.sentAt = new Date(item0.sentAt);
-    }
-  }
-  return data;
-};
 
 export const getMessagingGetDeadLetterByIdUrl = (id: string,) => {
 
@@ -119,17 +115,8 @@ export const messagingGetDeadLetterById = async (id: string, options?: Parameter
 
 
   }
-).then(deserializeMessagingGetDeadLetterByIdResponse);}
+);}
 
-
-const deserializeMessagingGetDeadLetterByIdResponse = (data: DeadLetterMessageDetailsResponse): DeadLetterMessageDetailsResponse => {
-  if (data == null) return data;
-  data.sentAt = new Date(data.sentAt);
-  if (data.executionTime != null) {
-    data.executionTime = new Date(data.executionTime);
-  }
-  return data;
-};
 
 export const getMessagingReplayDeadLettersUrl = () => {
 

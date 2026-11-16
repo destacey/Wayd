@@ -37,8 +37,9 @@ import { canWrite, errorText, useDiscussionContext } from './discussion-context'
 import { toComposerText, toDisplayMarkdown } from './discussion-mentions'
 import DiscussionRevisionsModal from './discussion-revisions-modal'
 import styles from './discussion.module.css'
+import { type Instant } from '@/src/utils/instant'
 
-const When = ({ instant }: { instant: Date }) => (
+const When = ({ instant }: { instant: Date | Instant }) => (
   <Tooltip title={new Date(instant).toLocaleString()}>
     <span>{formatTimeAgo(instant)}</span>
   </Tooltip>

@@ -29,6 +29,7 @@ import {
 } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useEffect, useRef } from 'react'
+import { toInstant } from '@/src/utils/instant'
 
 type InputNumberRef = { focus: () => void } | null
 
@@ -63,15 +64,13 @@ const mapToRequestValues = (
   return {
     strategicInitiativeId,
     kpiId,
-    checkpoints: values.checkpoints.map(
-      (c): KpiCheckpointPlanItemRequest => ({
-        checkpointId: c.checkpointId!,
-        targetValue: c.targetValue,
-        atRiskValue: c.atRiskValue ?? undefined,
-        checkpointDate: c.checkpointDate?.toDate(),
-        dateLabel: c.dateLabel,
-      }),
-    ),
+    checkpoints: values.checkpoints.map((c): KpiCheckpointPlanItemRequest => ({
+      checkpointId: c.checkpointId!,
+      targetValue: c.targetValue,
+      atRiskValue: c.atRiskValue ?? undefined,
+      checkpointDate: toInstant(c.checkpointDate),
+      dateLabel: c.dateLabel,
+    })),
   }
 }
 

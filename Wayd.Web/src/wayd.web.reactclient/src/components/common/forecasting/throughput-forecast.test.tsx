@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import { TeamThroughputForecastDto } from '@/src/services/api/wayd.schemas'
 import { ForecastOutcome } from './forecast-formatting'
 import ThroughputForecast from './throughput-forecast'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('next/dynamic', () => ({
   default: () => {
@@ -25,12 +26,12 @@ const createForecast = (
     outcome: { id: ForecastOutcome.Forecast, name: 'Forecast' },
     team: {
       team: { id: 't1', key: 7, name: 'Atlas', code: 'ATL', type: 'Team' },
-      from: '2026-06-24',
-      to: '2026-09-21',
+      from: asCalendarDate('2026-06-24'),
+      to: asCalendarDate('2026-09-21'),
       itemsCompleted: 45,
     },
-    forecastStart: '2026-09-22',
-    targetDate: '2026-10-05',
+    forecastStart: asCalendarDate('2026-09-22'),
+    targetDate: asCalendarDate('2026-10-05'),
     days: 14,
     backlogWorkItems: 8,
     lookbackDays: 90,

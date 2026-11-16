@@ -2,8 +2,13 @@ import { useState } from 'react'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import DateFilterPanel from './date-filter-panel'
 import type { ColumnFilterModel } from './filter-model'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
-const DAY_KEYS = ['2026-06-01', '2026-06-15', '2026-07-04']
+const DAY_KEYS = [
+  asCalendarDate('2026-06-01'),
+  asCalendarDate('2026-06-15'),
+  asCalendarDate('2026-07-04'),
+]
 
 const setup = (value?: ColumnFilterModel) => {
   const onChange = vi.fn()
@@ -87,7 +92,7 @@ describe('DateFilterPanel', () => {
     // toggle another via the tree. Simulate by starting all-but-one selected.
     const onChange = setup({
       type: 'dateSet',
-      values: ['2026-06-01', '2026-06-15'],
+      values: [asCalendarDate('2026-06-01'), asCalendarDate('2026-06-15')],
     })
 
     // The 2026-07-04 day lives under July; expand year → month to reach it.
@@ -130,7 +135,10 @@ describe('DateFilterPanel', () => {
 
   it('Reset clears the descriptor', () => {
     // Arrange — a set descriptor is active
-    const onChange = setup({ type: 'dateSet', values: ['2026-06-01'] })
+    const onChange = setup({
+      type: 'dateSet',
+      values: [asCalendarDate('2026-06-01')],
+    })
 
     // Act
     fireEvent.click(screen.getByText('Reset'))
@@ -143,7 +151,7 @@ describe('DateFilterPanel', () => {
     // Arrange — a date conditions descriptor is active
     setup({
       type: 'date',
-      conditions: [{ op: 'before', value: '2026-06-10' }],
+      conditions: [{ op: 'before', value: asCalendarDate('2026-06-10') }],
       join: 'AND',
     })
 

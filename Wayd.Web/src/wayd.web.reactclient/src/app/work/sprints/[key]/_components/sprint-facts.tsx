@@ -21,6 +21,7 @@ import {
 } from '@/src/app/organizations/_components/time-away/time-away-duration'
 import dayjs from 'dayjs'
 import Link from 'next/link'
+import { type Instant } from '@/src/utils/instant'
 
 const { Text } = Typography
 
@@ -34,7 +35,7 @@ const sprintTypeSourceNote: Record<SprintTypeSource, string | undefined> = {
 }
 
 // Only what the team recorded, as the time it entered in the viewer's zone.
-const formatActual = (recorded: Date | undefined | null) =>
+const formatActual = (recorded: Date | Instant | undefined | null) =>
   recorded ? dayjs(recorded).format(INSTANT_FORMAT) : '—'
 
 export interface SprintFactsProps {

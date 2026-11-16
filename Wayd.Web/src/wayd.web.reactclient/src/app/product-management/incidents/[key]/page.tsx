@@ -55,6 +55,7 @@ import {
   ApplyIncidentWorkflowActionRequest,
 } from '@/src/services/api/wayd.schemas'
 import { toApiError, toFormErrors } from '@/src/utils'
+import { toInstant } from '@/src/utils/instant'
 
 const { TextArea } = Input
 
@@ -191,12 +192,12 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
         remediation: values.remediation,
         rootCause: values.rootCause,
         severityLevelId: values.severityLevelId,
-        noticedAt: (values.noticedAt as Dayjs).toDate(),
+        noticedAt: toInstant(values.noticedAt as Dayjs),
         startedAt: values.startedAt
-          ? (values.startedAt as Dayjs).toDate()
+          ? toInstant(values.startedAt as Dayjs)
           : undefined,
         recoveredAt: values.recoveredAt
-          ? (values.recoveredAt as Dayjs).toDate()
+          ? toInstant(values.recoveredAt as Dayjs)
           : undefined,
         productIds: values.productIds ?? [],
         releaseIds: values.releaseIds ?? [],
@@ -284,7 +285,7 @@ const IncidentDetailsPage = (props: { params: Promise<{ key: string }> }) => {
       onOk: () => {
         const request: ApplyIncidentWorkflowActionRequest = { action }
         if (dateField) {
-          request.occurredAt = (chosen.current ?? dayjs()).toDate()
+          request.occurredAt = toInstant(chosen.current ?? dayjs())
         }
         return applyLifecycleAction(action, request, successMessage)
       },

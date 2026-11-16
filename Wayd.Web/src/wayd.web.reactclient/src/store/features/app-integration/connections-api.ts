@@ -1,3 +1,4 @@
+import { toInstant } from '@/src/utils/instant'
 import {
   ConnectionDetailsDto,
   ConnectionInitResult,
@@ -190,7 +191,7 @@ export const connectionsApi = apiSlice.injectEndpoints({
       queryFn: async ({ connectionId, sinceIso }) => {
         try {
           const data = await connectionsGetSyncRuns(connectionId, {
-            since: sinceIso ? new Date(sinceIso) : undefined,
+            since: sinceIso ? toInstant(new Date(sinceIso)) : undefined,
           })
           return { data }
         } catch (error) {

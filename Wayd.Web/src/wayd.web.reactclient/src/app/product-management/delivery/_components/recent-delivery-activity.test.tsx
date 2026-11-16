@@ -6,6 +6,7 @@ import {
 import { render, screen } from '@testing-library/react'
 import dayjs from 'dayjs'
 import RecentDeliveryActivity from './recent-delivery-activity'
+import { asInstant } from '@/src/utils/instant'
 
 const event = (
   overrides: Partial<RecentDeliveryEventDto> = {},
@@ -18,7 +19,7 @@ const event = (
     label: '4.8.2',
     statusName: 'Released',
     alias: ProductStatusAlias.Released,
-    changedOn: '2026-04-20T09:42:00Z',
+    changedOn: asInstant('2026-04-20T09:42:00Z'),
     ...overrides,
   }) as unknown as RecentDeliveryEventDto
 
@@ -88,7 +89,7 @@ describe('RecentDeliveryActivity', () => {
           event({
             statusName: 'Withdrawn',
             alias: ProductStatusAlias.Withdrawn,
-            releasedAt: '2026-04-19T12:00:00Z' as unknown as Date,
+            releasedAt: asInstant('2026-04-19T12:00:00Z'),
           }),
         ]}
       />,
@@ -113,7 +114,7 @@ describe('RecentDeliveryActivity', () => {
             componentCount: 15,
             statusName: 'Withdrawn',
             alias: ProductStatusAlias.Withdrawn,
-            releasedAt: '2026-04-19T12:00:00Z' as unknown as Date,
+            releasedAt: asInstant('2026-04-19T12:00:00Z'),
           }),
         ]}
       />,
@@ -160,7 +161,7 @@ describe('RecentDeliveryActivity', () => {
     // Act
     render(
       <RecentDeliveryActivity
-        events={[event({ changedOn: today.toISOString() as unknown as Date })]}
+        events={[event({ changedOn: asInstant(today.toISOString()) })]}
       />,
     )
 
@@ -180,9 +181,7 @@ describe('RecentDeliveryActivity', () => {
     // Act
     render(
       <RecentDeliveryActivity
-        events={[
-          event({ changedOn: lastYear.toISOString() as unknown as Date }),
-        ]}
+        events={[event({ changedOn: asInstant(lastYear.toISOString()) })]}
       />,
     )
 

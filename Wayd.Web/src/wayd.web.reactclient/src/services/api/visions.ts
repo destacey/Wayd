@@ -63,22 +63,8 @@ export const visionsGetVisions = async (params?: VisionsGetVisionsParams, option
 
 
   }
-).then(deserializeVisionsGetVisionsResponse);}
+);}
 
-
-const deserializeVisionsGetVisionsResponse = (data: VisionDto[]): VisionDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.start != null) {
-      item0.start = new Date(item0.start);
-    }
-    if (item0.end != null) {
-      item0.end = new Date(item0.end);
-    }
-  }
-  return data;
-};
 
 export const getVisionsCreateUrl = () => {
 
@@ -123,19 +109,8 @@ export const visionsGetVision = async (idOrKey: string, options?: Parameters<typ
 
 
   }
-).then(deserializeVisionsGetVisionResponse);}
+);}
 
-
-const deserializeVisionsGetVisionResponse = (data: VisionDto): VisionDto => {
-  if (data == null) return data;
-  if (data.start != null) {
-    data.start = new Date(data.start);
-  }
-  if (data.end != null) {
-    data.end = new Date(data.end);
-  }
-  return data;
-};
 
 export const getVisionsUpdateUrl = (id: string,) => {
 

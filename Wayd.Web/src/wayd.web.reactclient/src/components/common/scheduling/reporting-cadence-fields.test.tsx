@@ -6,6 +6,7 @@ import ReportingCadenceFields, {
   formatReportingCadence,
   toReportingCadenceRequest,
 } from './reporting-cadence-fields'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const renderInForm = (initialValues: Record<string, unknown>) =>
   render(
@@ -48,7 +49,7 @@ describe('toReportingCadenceRequest', () => {
     // Act
     const request = toReportingCadenceRequest(Methodology.Kanban, {
       cadenceWeeks: 2,
-      cadenceAnchor: dayjs('2026-10-05'),
+      cadenceAnchor: dayjs(asCalendarDate('2026-10-05')),
     })
 
     // Assert
@@ -59,7 +60,7 @@ describe('toReportingCadenceRequest', () => {
     // Act
     const request = toReportingCadenceRequest(Methodology.Scrum, {
       cadenceWeeks: 2,
-      cadenceAnchor: dayjs('2026-10-05'),
+      cadenceAnchor: dayjs(asCalendarDate('2026-10-05')),
     })
 
     // Assert
@@ -70,7 +71,7 @@ describe('toReportingCadenceRequest', () => {
     // Act
     const request = toReportingCadenceRequest(Methodology.Kanban, {
       cadenceWeeks: null,
-      cadenceAnchor: dayjs('2026-10-05'),
+      cadenceAnchor: dayjs(asCalendarDate('2026-10-05')),
     })
 
     // Assert

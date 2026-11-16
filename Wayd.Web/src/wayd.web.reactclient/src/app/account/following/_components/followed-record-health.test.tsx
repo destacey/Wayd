@@ -5,6 +5,7 @@ import {
   LifecycleCategory,
 } from '@/src/services/api/wayd.schemas'
 import FollowedRecordHealth from './followed-record-health'
+import { asInstant } from '@/src/utils/instant'
 
 const mockProjectHealthCheckQuery = vi.fn()
 vi.mock('@/src/store/features/ppm/project-health-checks-api', () => ({
@@ -27,7 +28,7 @@ const record = (overrides: Partial<FollowedRecordDto>): FollowedRecordDto => ({
   lifecycle: LifecycleCategory.Active,
   health: HealthStatus.AtRisk,
   healthCheck: { id: 'hc-1', status: { id: 2, name: 'At Risk' } },
-  followedOn: new Date('2026-10-24T09:00:00Z'),
+  followedOn: asInstant('2026-10-24T09:00:00Z'),
   isMuted: false,
   ...overrides,
 })

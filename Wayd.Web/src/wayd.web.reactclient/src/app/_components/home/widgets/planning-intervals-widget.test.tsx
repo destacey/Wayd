@@ -14,6 +14,7 @@ vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
 }))
 
 import { useGetPlanningIntervalsQuery } from '@/src/store/features/planning/planning-interval-api'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const mockPlanningIntervals = useGetPlanningIntervalsQuery as Mock
 
@@ -35,12 +36,32 @@ const pi = (
 describe('currentPlanningIntervals', () => {
   it('keeps active ones and future ones starting within two weeks, soonest first', () => {
     // Arrange
-    const today = '2026-11-08'
+    const today = asCalendarDate('2026-11-08')
     const all = [
-      pi(4, IterationState.Future, '2026-11-30', '2027-02-01'),
-      pi(3, IterationState.Future, '2026-11-22', '2027-01-31'),
-      pi(1, IterationState.Completed, '2026-05-01', '2026-08-01'),
-      pi(2, IterationState.Active, '2026-08-02', '2026-11-21'),
+      pi(
+        4,
+        IterationState.Future,
+        asCalendarDate('2026-11-30'),
+        asCalendarDate('2027-02-01'),
+      ),
+      pi(
+        3,
+        IterationState.Future,
+        asCalendarDate('2026-11-22'),
+        asCalendarDate('2027-01-31'),
+      ),
+      pi(
+        1,
+        IterationState.Completed,
+        asCalendarDate('2026-05-01'),
+        asCalendarDate('2026-08-01'),
+      ),
+      pi(
+        2,
+        IterationState.Active,
+        asCalendarDate('2026-08-02'),
+        asCalendarDate('2026-11-21'),
+      ),
     ]
 
     // Act
@@ -52,10 +73,20 @@ describe('currentPlanningIntervals', () => {
 
   it('keeps future ones starting within a longer window when given one', () => {
     // Arrange
-    const today = '2026-11-08'
+    const today = asCalendarDate('2026-11-08')
     const all = [
-      pi(4, IterationState.Future, '2026-12-08', '2027-02-01'),
-      pi(5, IterationState.Future, '2026-12-09', '2027-03-01'),
+      pi(
+        4,
+        IterationState.Future,
+        asCalendarDate('2026-12-08'),
+        asCalendarDate('2027-02-01'),
+      ),
+      pi(
+        5,
+        IterationState.Future,
+        asCalendarDate('2026-12-09'),
+        asCalendarDate('2027-03-01'),
+      ),
     ]
 
     // Act
@@ -68,16 +99,21 @@ describe('currentPlanningIntervals', () => {
 
 describe('countdownText', () => {
   it.each([
-    ['2026-11-21', '1 day left'],
-    ['2026-11-22', '2 days left'],
+    [asCalendarDate('2026-11-21'), '1 day left'],
+    [asCalendarDate('2026-11-22'), '2 days left'],
   ])(
     'counts today among the days left of an active one ending %s',
     (end, expected) => {
       // Arrange
-      const active = pi(2, IterationState.Active, '2026-08-02', end)
+      const active = pi(
+        2,
+        IterationState.Active,
+        asCalendarDate('2026-08-02'),
+        end,
+      )
 
       // Act
-      const text = countdownText(active, '2026-11-21')
+      const text = countdownText(active, asCalendarDate('2026-11-21'))
 
       // Assert
       expect(text).toBe(expected)
@@ -86,10 +122,15 @@ describe('countdownText', () => {
 
   it('says how long until a future one starts', () => {
     // Arrange
-    const future = pi(3, IterationState.Future, '2026-11-22', '2027-01-31')
+    const future = pi(
+      3,
+      IterationState.Future,
+      asCalendarDate('2026-11-22'),
+      asCalendarDate('2027-01-31'),
+    )
 
     // Act
-    const text = countdownText(future, '2026-11-08')
+    const text = countdownText(future, asCalendarDate('2026-11-08'))
 
     // Assert
     expect(text).toBe('starts in 14 days')
@@ -104,7 +145,14 @@ describe('PlanningIntervalsWidget', () => {
   it('says what it shows when no planning interval is current', () => {
     // Arrange
     mockPlanningIntervals.mockReturnValue({
-      data: [pi(1, IterationState.Completed, '2025-05-01', '2025-08-01')],
+      data: [
+        pi(
+          1,
+          IterationState.Completed,
+          asCalendarDate('2025-05-01'),
+          asCalendarDate('2025-08-01'),
+        ),
+      ],
       isLoading: false,
       isError: false,
     })
@@ -148,7 +196,14 @@ describe('PlanningIntervalsWidget', () => {
   it('links each current planning interval to its overview and plan review', () => {
     // Arrange
     mockPlanningIntervals.mockReturnValue({
-      data: [pi(7, IterationState.Active, '2020-01-01', '2099-01-01')],
+      data: [
+        pi(
+          7,
+          IterationState.Active,
+          asCalendarDate('2020-01-01'),
+          asCalendarDate('2099-01-01'),
+        ),
+      ],
       isLoading: false,
       isError: false,
     })
@@ -183,8 +238,18 @@ describe('PlanningIntervalsWidget', () => {
       'empty when only past and far-future planning intervals came back',
       {
         data: [
-          pi(1, IterationState.Completed, '2025-05-01', '2025-08-01'),
-          pi(2, IterationState.Future, '2099-01-01', '2099-04-01'),
+          pi(
+            1,
+            IterationState.Completed,
+            asCalendarDate('2025-05-01'),
+            asCalendarDate('2025-08-01'),
+          ),
+          pi(
+            2,
+            IterationState.Future,
+            asCalendarDate('2099-01-01'),
+            asCalendarDate('2099-04-01'),
+          ),
         ],
         isLoading: false,
         isError: false,
@@ -194,7 +259,14 @@ describe('PlanningIntervalsWidget', () => {
     [
       'rows when a planning interval is active',
       {
-        data: [pi(7, IterationState.Active, '2020-01-01', '2099-01-01')],
+        data: [
+          pi(
+            7,
+            IterationState.Active,
+            asCalendarDate('2020-01-01'),
+            asCalendarDate('2099-01-01'),
+          ),
+        ],
         isLoading: false,
         isError: false,
       },

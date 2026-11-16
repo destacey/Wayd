@@ -6,6 +6,7 @@ import {
   SprintTypeSource,
 } from '@/src/services/api/wayd.schemas'
 import SprintTypeForm from './sprint-type-form'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const setSprintType = vi.fn()
 const errorMessage = vi.fn()
@@ -30,8 +31,8 @@ const sprint: SprintDetailsDto = {
   key: 201,
   name: '26.3.2',
   state: { id: 1, name: 'Future' },
-  start: '2026-08-31',
-  end: '2026-09-11',
+  start: asCalendarDate('2026-08-31'),
+  end: asCalendarDate('2026-09-11'),
   team: { id: 't1', key: 14, name: 'Team Atlas', code: 'AT', type: 'Team' },
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,

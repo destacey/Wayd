@@ -1,3 +1,4 @@
+import { toInstant } from '@/src/utils/instant'
 import {
   sprintsComplete,
   sprintsCorrectActualDates,
@@ -189,7 +190,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
         try {
           const data = await sprintsStart(id, {
             completeOpenSprintId,
-            startedAt,
+            startedAt: startedAt ? toInstant(startedAt) : undefined,
           })
           return { data }
         } catch (error) {
@@ -211,7 +212,9 @@ export const sprintsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, completedAt }) => {
         try {
-          const data = await sprintsComplete(id, { completedAt })
+          const data = await sprintsComplete(id, {
+            completedAt: completedAt ? toInstant(completedAt) : undefined,
+          })
           return { data }
         } catch (error) {
           logUnlessRefused(error)
@@ -252,8 +255,8 @@ export const sprintsApi = apiSlice.injectEndpoints({
           const data = await sprintsCorrectActualDates({
             sprints: sprints.map(({ id, started, completed }) => ({
               sprintId: id,
-              started,
-              completed,
+              started: started ? toInstant(started) : undefined,
+              completed: completed ? toInstant(completed) : undefined,
             })),
           })
           return { data }

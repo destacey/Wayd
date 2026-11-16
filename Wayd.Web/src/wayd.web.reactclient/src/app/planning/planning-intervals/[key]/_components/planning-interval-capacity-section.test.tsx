@@ -8,6 +8,7 @@ import PlanningIntervalCapacitySection, {
   capacityText,
   teamHref,
 } from './planning-interval-capacity-section'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // The antd Table measures its scrollbar with a pseudo-element, which jsdom does
 // not implement and reports as an error.
@@ -57,7 +58,7 @@ const team: PlanningIntervalTeamCapacityDto = {
   hasAllocations: true,
   total: figures(60),
   iterations: [figures(25.5), figures(34.5)],
-  teamDaysOff: [{ date: '2026-01-07', percentOff: 50 }],
+  teamDaysOff: [{ date: asCalendarDate('2026-01-07'), percentOff: 50 }],
 }
 
 const group: PlanningIntervalTeamCapacityDto = {
@@ -76,24 +77,24 @@ const group: PlanningIntervalTeamCapacityDto = {
 }
 
 const capacity: PlanningIntervalCapacityDto = {
-  start: '2026-01-05',
-  end: '2026-03-01',
+  start: asCalendarDate('2026-01-05'),
+  end: asCalendarDate('2026-03-01'),
   iterations: [
     {
       id: 'i1',
       key: 1,
       name: 'Iteration 1',
       category: { id: 1, name: 'Development' },
-      start: '2026-01-05',
-      end: '2026-02-01',
+      start: asCalendarDate('2026-01-05'),
+      end: asCalendarDate('2026-02-01'),
     },
     {
       id: 'i2',
       key: 2,
       name: 'Iteration 2',
       category: { id: 2, name: 'IP' },
-      start: '2026-02-02',
-      end: '2026-03-01',
+      start: asCalendarDate('2026-02-02'),
+      end: asCalendarDate('2026-03-01'),
     },
   ],
   teams: [team, group],

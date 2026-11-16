@@ -168,19 +168,8 @@ export const portfoliosGetActivities = async (idOrKey: string,
 
 
   }
-).then(deserializePortfoliosGetActivitiesResponse);}
+);}
 
-
-const deserializePortfoliosGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.timestamp = new Date(item0.timestamp);
-    }
-  }
-  return data;
-};
 
 export const getPortfoliosImportUrl = (params?: PortfoliosImportParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -553,22 +542,8 @@ export const portfoliosGetPrograms = async (idOrKey: string,
 
 
   }
-).then(deserializePortfoliosGetProgramsResponse);}
+);}
 
-
-const deserializePortfoliosGetProgramsResponse = (data: ProgramListDto[]): ProgramListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.start != null) {
-      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-    }
-    if (item0.end != null) {
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-  }
-  return data;
-};
 
 export const getPortfoliosGetProjectsUrl = (idOrKey: string,
     params?: PortfoliosGetProjectsParams,) => {
@@ -606,39 +581,8 @@ export const portfoliosGetProjects = async (idOrKey: string,
 
 
   }
-).then(deserializePortfoliosGetProjectsResponse);}
+);}
 
-
-const deserializePortfoliosGetProjectsResponse = (data: ProjectListDto[]): ProjectListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.start != null) {
-      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-    }
-    if (item0.end != null) {
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-    if (item0.stages != null) {
-      for (let i1 = 0; i1 < item0.stages.length; i1++) {
-        const item1 = item0.stages[i1]!;
-        if (item1.start != null) {
-          item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
-        }
-        if (item1.end != null) {
-          item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
-        }
-      }
-    }
-    if (item0.healthCheck != null) {
-      item0.healthCheck.expiration = new Date(item0.healthCheck.expiration);
-    }
-    if (item0.currentScore != null) {
-      item0.currentScore.scoredOn = new Date(item0.currentScore.scoredOn);
-    }
-  }
-  return data;
-};
 
 export const getPortfoliosGetStrategicInitiativesUrl = (idOrKey: string,
     params?: PortfoliosGetStrategicInitiativesParams,) => {
@@ -676,22 +620,8 @@ export const portfoliosGetStrategicInitiatives = async (idOrKey: string,
 
 
   }
-).then(deserializePortfoliosGetStrategicInitiativesResponse);}
+);}
 
-
-const deserializePortfoliosGetStrategicInitiativesResponse = (data: StrategicInitiativeListDto[]): StrategicInitiativeListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.start != null) {
-      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-    }
-    if (item0.end != null) {
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-  }
-  return data;
-};
 
 export const getPortfoliosGetPortfolioStatusesUrl = () => {
 

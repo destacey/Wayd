@@ -13,6 +13,7 @@ import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Descriptions, Form, InputNumber, Modal } from 'antd'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useEffect } from 'react'
+import { toInstant } from '@/src/utils/instant'
 
 const { Item: DescriptionItem } = Descriptions
 
@@ -41,7 +42,7 @@ const mapToRequestValues = (
     strategicInitiativeId: strategicInitiativeId,
     kpiId: kpiId,
     actualValue: values.actualValue,
-    measurementDate: values.measurementDate?.toDate(),
+    measurementDate: toInstant(values.measurementDate),
     note: values.note,
   }
 }

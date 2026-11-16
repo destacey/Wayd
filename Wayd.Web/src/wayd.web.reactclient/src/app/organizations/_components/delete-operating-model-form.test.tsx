@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import DeleteOperatingModelForm, {
   findReinstatedModel,
 } from './delete-operating-model-form'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // Mock window.getComputedStyle for Ant Design Modal
 Object.defineProperty(window, 'getComputedStyle', {
@@ -27,17 +28,17 @@ vi.mock('@/src/components/contexts/auth', () => ({
 }))
 
 const current = {
-  start: '2025-07-01',
+  start: asCalendarDate('2025-07-01'),
   timeZone: 'America/Chicago',
   isCurrent: true,
 }
 const previous = {
-  start: '2025-01-01',
+  start: asCalendarDate('2025-01-01'),
   timeZone: 'UTC',
   isCurrent: false,
 }
 const oldest = {
-  start: '2024-01-01',
+  start: asCalendarDate('2024-01-01'),
   timeZone: 'Europe/London',
   isCurrent: false,
 }

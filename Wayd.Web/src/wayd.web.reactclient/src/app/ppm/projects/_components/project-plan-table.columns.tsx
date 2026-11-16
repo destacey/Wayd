@@ -9,7 +9,10 @@ import {
   PlusOutlined,
 } from '@ant-design/icons'
 import { Button, Dropdown, Flex, Tag } from 'antd'
-import { formatCalendarDate } from '@/src/utils/calendar-date'
+import {
+  formatCalendarDate,
+  type CalendarDate,
+} from '@/src/utils/calendar-date'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import styles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
 import {
@@ -52,7 +55,7 @@ const statusTagColors: Record<string, string> = {
 }
 
 const DATE_FORMAT = 'MMM D, YYYY'
-const formatDate = (value: string | undefined | null) =>
+const formatDate = (value: CalendarDate | undefined | null) =>
   formatCalendarDate(value, DATE_FORMAT)
 
 const NAME_TEXT_STYLE = {

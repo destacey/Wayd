@@ -4,6 +4,7 @@ import {
   ImportProcessStatus,
 } from '@/src/services/api/wayd.schemas'
 import { isRunning } from './import-status-tag'
+import { type Instant, instantTime } from '@/src/utils/instant'
 
 /**
  * A row of the imports list: a run, or the rollup of the runs submitted together under one group.
@@ -43,14 +44,14 @@ const rollupStatus = (runs: ImportProcessDto[]): ImportProcessStatus => {
     : ImportProcessStatus.Failed
 }
 
-const byTime = (a: Date, b: Date) => a.getTime() - b.getTime()
+const byTime = (a: Instant, b: Instant) => instantTime(a) - instantTime(b)
 
-const earliest = (values: (Date | null | undefined)[]) =>
-  values.filter((v): v is Date => !!v).sort(byTime)[0]
+const earliest = (values: (Instant | null | undefined)[]) =>
+  values.filter((v): v is Instant => !!v).sort(byTime)[0]
 
-const latest = (values: (Date | null | undefined)[]) =>
+const latest = (values: (Instant | null | undefined)[]) =>
   values
-    .filter((v): v is Date => !!v)
+    .filter((v): v is Instant => !!v)
     .sort(byTime)
     .at(-1)
 

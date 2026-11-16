@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { IntakeDeskDto } from '@/src/services/api/wayd.schemas'
 import { UnownedDeskAlert, describeWaiting, deskPhrase } from './desk-status'
+import { toInstant } from '@/src/utils/instant'
 
 describe('deskPhrase', () => {
   it.each([
@@ -36,7 +37,9 @@ describe('describeWaiting', () => {
 
   it('names the count and how long the oldest has waited', () => {
     // Arrange
-    const twoWeeksAgo = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
+    const twoWeeksAgo = toInstant(
+      new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+    )
 
     // Act
     const text = describeWaiting({

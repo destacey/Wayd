@@ -8,6 +8,7 @@ import { useCreatePersonalAccessTokenMutation } from '@/src/store/features/user-
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useModalForm } from '@/src/hooks'
 import { TokenScope } from '@/src/services/api/wayd.schemas'
+import { toInstant } from '@/src/utils/instant'
 
 const { Item } = Form
 
@@ -36,7 +37,7 @@ const CreatePersonalAccessTokenForm = ({
         try {
           const response = await createToken({
             name: values.name,
-            expiresAt: values.expiresAt.toDate(),
+            expiresAt: toInstant(values.expiresAt),
             scope: values.scope,
           })
 

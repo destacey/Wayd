@@ -6,6 +6,7 @@ import {
   ImportRowStatus,
 } from '@/src/services/api/wayd.schemas'
 import ImportDetails from './import-details'
+import { asInstant } from '@/src/utils/instant'
 
 const mockGetRows = vi.fn()
 
@@ -22,7 +23,7 @@ const run = (overrides: Partial<ImportProcessDto> = {}): ImportProcessDto => ({
   status: ImportProcessStatus.Processing,
   isPreflight: false,
   submittedByUserId: 'user-1',
-  submittedOn: new Date('2026-10-01T09:00:00Z'),
+  submittedOn: asInstant('2026-10-01T09:00:00Z'),
   totalRowCount: 400,
   succeededRowCount: 120,
   failedRowCount: 0,

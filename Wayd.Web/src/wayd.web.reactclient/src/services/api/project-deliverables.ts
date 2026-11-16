@@ -63,22 +63,8 @@ export const projectDeliverablesGetDeliverables = async (idOrKey: string, option
 
 
   }
-).then(deserializeProjectDeliverablesGetDeliverablesResponse);}
+);}
 
-
-const deserializeProjectDeliverablesGetDeliverablesResponse = (data: ProjectDeliverableDto[]): ProjectDeliverableDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.targetDate != null) {
-      item0.targetDate = typeof item0.targetDate === 'string' ? String(item0.targetDate as unknown as string) : item0.targetDate;
-    }
-    if (item0.acceptedOn != null) {
-      item0.acceptedOn = new Date(item0.acceptedOn);
-    }
-  }
-  return data;
-};
 
 export const getProjectDeliverablesGetDeliverableUrl = (idOrKey: string,
     deliverableId: string,) => {
@@ -102,19 +88,8 @@ export const projectDeliverablesGetDeliverable = async (idOrKey: string,
 
 
   }
-).then(deserializeProjectDeliverablesGetDeliverableResponse);}
+);}
 
-
-const deserializeProjectDeliverablesGetDeliverableResponse = (data: ProjectDeliverableDto): ProjectDeliverableDto => {
-  if (data == null) return data;
-  if (data.targetDate != null) {
-    data.targetDate = typeof data.targetDate === 'string' ? String(data.targetDate as unknown as string) : data.targetDate;
-  }
-  if (data.acceptedOn != null) {
-    data.acceptedOn = new Date(data.acceptedOn);
-  }
-  return data;
-};
 
 export const getProjectDeliverablesCreateDeliverableUrl = (id: string,) => {
 
@@ -279,17 +254,8 @@ export const projectDeliverablesGetStatusHistory = async (idOrKey: string,
 
 
   }
-).then(deserializeProjectDeliverablesGetStatusHistoryResponse);}
+);}
 
-
-const deserializeProjectDeliverablesGetStatusHistoryResponse = (data: StatusTransitionDto[]): StatusTransitionDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.changedOn = new Date(item0.changedOn);
-  }
-  return data;
-};
 
 export const getProjectDeliverablesReorderDeliverablesUrl = (id: string,) => {
 

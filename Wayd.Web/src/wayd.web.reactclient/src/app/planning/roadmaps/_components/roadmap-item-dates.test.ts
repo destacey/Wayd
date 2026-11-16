@@ -1,4 +1,5 @@
 import { itemDatesRequest } from './roadmap-item-dates'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const ids = { roadmapId: 'roadmap-1', itemId: 'item-1' }
 
@@ -8,8 +9,8 @@ describe('itemDatesRequest', () => {
     const request = itemDatesRequest({
       ...ids,
       $type: 'milestone',
-      start: '2026-05-01',
-      end: '2026-05-01',
+      start: asCalendarDate('2026-05-01'),
+      end: asCalendarDate('2026-05-01'),
     })
 
     // Assert — a range would leave the milestone without a date
@@ -21,8 +22,8 @@ describe('itemDatesRequest', () => {
     const request = itemDatesRequest({
       ...ids,
       $type,
-      start: '2026-05-01',
-      end: '2026-05-29',
+      start: asCalendarDate('2026-05-01'),
+      end: asCalendarDate('2026-05-29'),
     })
 
     // Assert

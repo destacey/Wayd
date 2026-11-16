@@ -1,5 +1,6 @@
 'use client'
 
+import { instantTime } from '@/src/utils/instant'
 import { CycleTimeMetric, MetricCard } from '@/src/components/common/metrics'
 import { WaydTooltip } from '@/src/components/common'
 import useTheme from '@/src/components/contexts/theme'
@@ -30,10 +31,9 @@ const KanbanTeamCard: FC<KanbanTeamCardProps> = ({ team, byCount }) => {
   // The window is counted in the team's own time zone, so whether it has begun
   // or ended can differ from the iteration's state near its boundaries.
   const isFuture = !team.inProgressAsOf
-  // Instants reach the store as ISO strings, though typed as Date.
   const isPast =
     !!team.inProgressAsOf &&
-    new Date(team.inProgressAsOf).getTime() === new Date(team.until).getTime()
+    instantTime(team.inProgressAsOf) === instantTime(team.until)
   const { token } = useTheme()
   const sizingMethod = byCount ? SizingMethod.Count : team.sizingMethod
   const measure = sizingMethodMeasure(sizingMethod)

@@ -10,6 +10,7 @@ import RecordStatusHistory, {
   RecordStatusHistoryProps,
 } from './record-status-history'
 import type { WaydWorkflowDiagramProps } from './wayd-workflow-diagram'
+import { toInstant } from '@/src/utils/instant'
 
 // The canvas is React Flow's; what matters here is what it is handed.
 vi.mock('./wayd-workflow-diagram', () => ({
@@ -94,7 +95,7 @@ const entry = (
   workflowId,
   actorKind: { id: 0, name: 'User' },
   changedBySystem: false,
-  changedOn: new Date(Date.UTC(2026, 4, sequence + 1, 10)),
+  changedOn: toInstant(new Date(Date.UTC(2026, 4, sequence + 1, 10))),
 })
 
 // Newest first, as the API returns it: one change under an earlier workflow, the switch onto this one,

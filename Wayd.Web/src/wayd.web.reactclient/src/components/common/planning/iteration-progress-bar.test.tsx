@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import IterationProgressBar from './iteration-progress-bar'
 import * as iterationHealthUtils from '../../../utils/iteration-health'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // Mock the iteration health utility
 vi.mock('../../../utils/iteration-health', () => ({
@@ -28,8 +29,8 @@ vi.mock('../../contexts/theme', () => ({
 
 describe('IterationProgressBar', () => {
   const baseProps = {
-    startDate: '2026-01-01',
-    endDate: '2026-01-15',
+    startDate: asCalendarDate('2026-01-01'),
+    endDate: asCalendarDate('2026-01-15'),
     total: 100,
     completed: 50,
   }

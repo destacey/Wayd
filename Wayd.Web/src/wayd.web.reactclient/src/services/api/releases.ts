@@ -86,38 +86,8 @@ export const releasesGetReleases = async (params?: ReleasesGetReleasesParams, op
 
 
   }
-).then(deserializeReleasesGetReleasesResponse);}
+);}
 
-
-const deserializeReleasesGetReleasesResponse = (data: ReleaseDto[]): ReleaseDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.targetDate != null) {
-      item0.targetDate = typeof item0.targetDate === 'string' ? String(item0.targetDate as unknown as string) : item0.targetDate;
-    }
-    if (item0.releasedDate != null) {
-      item0.releasedDate = typeof item0.releasedDate === 'string' ? String(item0.releasedDate as unknown as string) : item0.releasedDate;
-    }
-    if (item0.versions != null) {
-      for (let i1 = 0; i1 < item0.versions.length; i1++) {
-        const item1 = item0.versions[i1]!;
-        if (item1.releasedAt != null) {
-          item1.releasedAt = new Date(item1.releasedAt);
-        }
-      }
-    }
-    if (item0.packages != null) {
-      for (let i1 = 0; i1 < item0.packages.length; i1++) {
-        const item1 = item0.packages[i1]!;
-        if (item1.releasedAt != null) {
-          item1.releasedAt = new Date(item1.releasedAt);
-        }
-      }
-    }
-  }
-  return data;
-};
 
 export const getReleasesPlanUrl = () => {
 
@@ -164,35 +134,8 @@ export const releasesGetRelease = async (idOrKey: string, options?: Parameters<t
 
 
   }
-).then(deserializeReleasesGetReleaseResponse);}
+);}
 
-
-const deserializeReleasesGetReleaseResponse = (data: ReleaseDto): ReleaseDto => {
-  if (data == null) return data;
-  if (data.targetDate != null) {
-    data.targetDate = typeof data.targetDate === 'string' ? String(data.targetDate as unknown as string) : data.targetDate;
-  }
-  if (data.releasedDate != null) {
-    data.releasedDate = typeof data.releasedDate === 'string' ? String(data.releasedDate as unknown as string) : data.releasedDate;
-  }
-  if (data.versions != null) {
-    for (let i0 = 0; i0 < data.versions.length; i0++) {
-      const item0 = data.versions[i0]!;
-      if (item0.releasedAt != null) {
-        item0.releasedAt = new Date(item0.releasedAt);
-      }
-    }
-  }
-  if (data.packages != null) {
-    for (let i0 = 0; i0 < data.packages.length; i0++) {
-      const item0 = data.packages[i0]!;
-      if (item0.releasedAt != null) {
-        item0.releasedAt = new Date(item0.releasedAt);
-      }
-    }
-  }
-  return data;
-};
 
 export const getReleasesGetActivitiesUrl = (idOrKey: string,
     params?: ReleasesGetActivitiesParams,) => {
@@ -224,19 +167,8 @@ export const releasesGetActivities = async (idOrKey: string,
 
 
   }
-).then(deserializeReleasesGetActivitiesResponse);}
+);}
 
-
-const deserializeReleasesGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.timestamp = new Date(item0.timestamp);
-    }
-  }
-  return data;
-};
 
 export const getReleasesGetStatusHistoryUrl = (idOrKey: string,) => {
 
@@ -259,17 +191,8 @@ export const releasesGetStatusHistory = async (idOrKey: string, options?: Parame
 
 
   }
-).then(deserializeReleasesGetStatusHistoryResponse);}
+);}
 
-
-const deserializeReleasesGetStatusHistoryResponse = (data: StatusTransitionDto[]): StatusTransitionDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.changedOn = new Date(item0.changedOn);
-  }
-  return data;
-};
 
 export const getReleasesGetStatusWorkflowUrl = (idOrKey: string,) => {
 

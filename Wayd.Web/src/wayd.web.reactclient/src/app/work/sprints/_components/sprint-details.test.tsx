@@ -5,6 +5,7 @@ import {
   SprintTypeSource,
 } from '@/src/services/api/wayd.schemas'
 import SprintDetails, { sprintOverlapWarning } from './sprint-details'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('@/src/components/common/planning/timeline-progress', () => {
   const TimelineProgress = () => <div>Timeline</div>
@@ -26,8 +27,8 @@ const sprint: SprintDetailsDto = {
   key: 201,
   name: '26.3.2',
   state: { id: 1, name: 'Future' },
-  start: '2026-08-17',
-  end: '2026-08-30',
+  start: asCalendarDate('2026-08-17'),
+  end: asCalendarDate('2026-08-30'),
   team: { id: 't1', key: 14, name: 'Team Atlas', code: 'AT', type: 'Team' },
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,

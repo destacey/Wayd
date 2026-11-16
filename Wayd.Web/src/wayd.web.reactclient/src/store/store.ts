@@ -1,4 +1,4 @@
-import { configureStore, isPlain } from '@reduxjs/toolkit'
+import { configureStore } from '@reduxjs/toolkit'
 import { setupListeners } from '@reduxjs/toolkit/query'
 import teamReducer from './features/organizations/team-slice'
 import roadmapTimelineSettingsReducer from './features/planning/roadmap-timeline-settings-slice'
@@ -17,14 +17,7 @@ export const store = configureStore({
     [apiSlice.reducerPath]: apiSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      // The generated API client turns every instant into a `Date`, so cached
-      // responses hold them.
-      serializableCheck: {
-        isSerializable: (value: unknown) =>
-          isPlain(value) || value instanceof Date,
-      },
-    }).concat(apiSlice.middleware),
+    getDefaultMiddleware().concat(apiSlice.middleware),
 })
 
 // Tracks window focus and connectivity, without which a query's

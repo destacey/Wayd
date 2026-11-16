@@ -1,7 +1,8 @@
 import { IncidentWorkflowAction } from '@/src/services/api/wayd.schemas'
 import { incidentTransitionDate } from './incident-transition-date'
+import { asInstant } from '@/src/utils/instant'
 
-const at = new Date('2026-11-12T16:00:00Z')
+const at = asInstant('2026-11-12T16:00:00Z')
 
 describe('incidentTransitionDate', () => {
   it('asks for response start when begin responding would write it', () => {

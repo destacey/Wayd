@@ -267,8 +267,8 @@ export const toCreateRoadmapItemRequest = (
     roadmapId,
     parentId: parentId ?? undefined,
     name: String(values.name ?? ''),
-    start: values.start as string,
-    end: values.end as string,
+    start: values.start as CalendarDate,
+    end: values.end as CalendarDate,
     ...(color ? { color } : {}),
   }
 }

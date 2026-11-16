@@ -16,10 +16,12 @@ import {
 } from '@/src/utils'
 import dayjs from 'dayjs'
 import Link from 'next/link'
+import { type Instant } from '@/src/utils/instant'
 
 const { Text } = Typography
 
-const formatInstantDate = (value: Date) => dayjs(value).format('MMM D, YYYY')
+const formatInstantDate = (value: Date | Instant) =>
+  dayjs(value).format('MMM D, YYYY')
 
 export interface RiskFactsProps {
   risk: RiskDetailsDto
@@ -37,7 +39,10 @@ export interface RiskFactsProps {
  * A raw reported date makes the reader do this arithmetic, and "open 94 days"
  * is the part that says whether a risk is being sat on.
  */
-const ageOf = (reportedOn: Date, closedDate?: Date | null) => {
+const ageOf = (
+  reportedOn: Date | Instant,
+  closedDate?: Date | Instant | null,
+) => {
   const days = calendarDaysBetween(reportedOn, closedDate ?? new Date())
   if (days < 0) return null
 
@@ -63,7 +68,7 @@ const ageOf = (reportedOn: Date, closedDate?: Date | null) => {
  */
 const followUpStatus = (
   followUpDate: CalendarDate,
-  closedDate?: Date | null,
+  closedDate?: Date | Instant | null,
 ) => {
   // A closed risk is not chased, so its follow-up date is just history.
   if (closedDate) return null

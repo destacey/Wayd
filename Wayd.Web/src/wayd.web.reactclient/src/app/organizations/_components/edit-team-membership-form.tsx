@@ -1,5 +1,6 @@
 'use client'
 
+import { toCalendarDate } from '@/src/utils/calendar-date'
 import { DatePicker, Descriptions, Form, Modal } from 'antd'
 import { useEffect } from 'react'
 import {
@@ -38,14 +39,12 @@ const mapToRequestValues = (
   originalMembership: TeamMembershipDto,
   teamType: TeamTypeName,
 ) => {
-  // The generated client types start/end as Date, but the API expects
-  // date-only strings; cast through unknown to bridge the NSwag mismatch.
-  const membership = {
+  const membership: UpdateTeamMembershipRequest = {
     teamMembershipId: originalMembership.id,
     teamId: originalMembership.child.id,
-    start: values.start?.format('YYYY-MM-DD'),
-    end: values.end?.format('YYYY-MM-DD'),
-  } as UpdateTeamMembershipRequest
+    start: toCalendarDate(values.start),
+    end: values.end ? toCalendarDate(values.end) : undefined,
+  }
   return {
     membership,
     parentTeamId: originalMembership.parent.id,

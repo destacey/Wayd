@@ -16,6 +16,7 @@ import {
   withCompletionProgress,
   asMilestoneDate,
 } from './project-plan-table.editors'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const MILESTONE_TYPE_ID = 2
 
@@ -29,8 +30,8 @@ const node = (extra: Partial<ProjectPlanNodeDto> = {}): ProjectPlanNodeDto => ({
   status: { id: 1, name: 'Not Started' },
   priority: { id: 2, name: 'Medium' },
   order: 1,
-  start: '2026-03-01',
-  end: '2026-03-31',
+  start: asCalendarDate('2026-03-01'),
+  end: asCalendarDate('2026-03-31'),
   progress: 10,
   assignees: [],
   children: [],
@@ -54,7 +55,7 @@ const milestone = (extra: Partial<ProjectPlanNodeDto> = {}) =>
     type: { id: MILESTONE_TYPE_ID, name: 'Milestone' },
     start: undefined,
     end: undefined,
-    plannedDate: '2026-04-15',
+    plannedDate: asCalendarDate('2026-04-15'),
     ...extra,
   })
 
@@ -323,7 +324,7 @@ describe('project plan editors', () => {
       const row = milestone()
 
       // Act
-      const moved = planStartEditor.apply(row, '2026-04-20')
+      const moved = planStartEditor.apply(row, asCalendarDate('2026-04-20'))
 
       // Assert
       expect(planStartEditor.field).toBeInstanceOf(Function)
@@ -340,16 +341,18 @@ describe('project plan editors', () => {
       const row = node()
 
       // Act
-      const moved = planStartEditor.apply(row, '2026-03-05')
+      const moved = planStartEditor.apply(row, asCalendarDate('2026-03-05'))
 
       // Assert
       expect((planStartEditor.field as (r: unknown) => string)(row)).toBe(
         'plannedStart',
       )
       expect(moved.start).toBe('2026-03-05')
-      expect(planEndEditor.get(planEndEditor.apply(row, '2026-04-01'))).toBe(
-        '2026-04-01',
-      )
+      expect(
+        planEndEditor.get(
+          planEndEditor.apply(row, asCalendarDate('2026-04-01')),
+        ),
+      ).toBe('2026-04-01')
     })
 
     it('require a milestone’s date', () => {
@@ -378,7 +381,9 @@ describe('project plan editors', () => {
         'Planned Start and Planned End must both have a value or both be empty.'
 
       // Act / Assert
-      expect(check({ start: '2026-03-01', end: null }, node())).toStrictEqual({
+      expect(
+        check({ start: asCalendarDate('2026-03-01'), end: null }, node()),
+      ).toStrictEqual({
         start: message,
         end: message,
       })
@@ -387,7 +392,13 @@ describe('project plan editors', () => {
 
     it('do not let the end come before the start', () => {
       // Arrange / Act
-      const errors = check({ start: '2026-03-10', end: '2026-03-09' }, node())
+      const errors = check(
+        {
+          start: asCalendarDate('2026-03-10'),
+          end: asCalendarDate('2026-03-09'),
+        },
+        node(),
+      )
 
       // Assert
       expect(errors).toStrictEqual({
@@ -397,7 +408,10 @@ describe('project plan editors', () => {
 
     it('leave a milestone’s date to its own check', () => {
       // Arrange / Act — a milestone has a date and never an End
-      const errors = check({ start: '2026-04-15', end: null }, milestone())
+      const errors = check(
+        { start: asCalendarDate('2026-04-15'), end: null },
+        milestone(),
+      )
 
       // Assert
       expect(errors).toBeUndefined()
@@ -406,21 +420,27 @@ describe('project plan editors', () => {
     describe('of a parent', () => {
       // A stage from Mar 1 to Mar 31 whose task runs Mar 10 to Mar 20.
       const parent = stage({
-        start: '2026-03-01',
-        end: '2026-03-31',
+        start: asCalendarDate('2026-03-01'),
+        end: asCalendarDate('2026-03-31'),
         children: [
           node({
             id: 'c1',
             name: 'Child',
-            start: '2026-03-10',
-            end: '2026-03-20',
+            start: asCalendarDate('2026-03-10'),
+            end: asCalendarDate('2026-03-20'),
           }),
         ],
       })
 
       it('allow a shift that carries the children along', () => {
         // Arrange / Act — both ends move 15 days, past the child
-        const errors = check({ start: '2026-03-16', end: '2026-04-15' }, parent)
+        const errors = check(
+          {
+            start: asCalendarDate('2026-03-16'),
+            end: asCalendarDate('2026-04-15'),
+          },
+          parent,
+        )
 
         // Assert
         expect(errors).toBeUndefined()
@@ -428,7 +448,13 @@ describe('project plan editors', () => {
 
       it('mark the start when a resize cuts a child off at the start', () => {
         // Arrange / Act
-        const errors = check({ start: '2026-03-12', end: '2026-03-31' }, parent)
+        const errors = check(
+          {
+            start: asCalendarDate('2026-03-12'),
+            end: asCalendarDate('2026-03-31'),
+          },
+          parent,
+        )
 
         // Assert
         expect(Object.keys(errors ?? {})).toStrictEqual(['start'])
@@ -437,7 +463,13 @@ describe('project plan editors', () => {
 
       it('mark the end when a resize cuts a child off at the end', () => {
         // Arrange / Act
-        const errors = check({ start: '2026-03-01', end: '2026-03-15' }, parent)
+        const errors = check(
+          {
+            start: asCalendarDate('2026-03-01'),
+            end: asCalendarDate('2026-03-15'),
+          },
+          parent,
+        )
 
         // Assert
         expect(Object.keys(errors ?? {})).toStrictEqual(['end'])
@@ -445,7 +477,13 @@ describe('project plan editors', () => {
 
       it('allow a resize that still contains the children', () => {
         // Arrange / Act
-        const errors = check({ start: '2026-03-05', end: '2026-03-25' }, parent)
+        const errors = check(
+          {
+            start: asCalendarDate('2026-03-05'),
+            end: asCalendarDate('2026-03-25'),
+          },
+          parent,
+        )
 
         // Assert
         expect(errors).toBeUndefined()
@@ -466,14 +504,17 @@ describe('project plan editors', () => {
       it('count a milestone child by its date', () => {
         // Arrange
         const withMilestone = stage({
-          start: '2026-03-01',
-          end: '2026-03-31',
-          children: [milestone({ plannedDate: '2026-03-28' })],
+          start: asCalendarDate('2026-03-01'),
+          end: asCalendarDate('2026-03-31'),
+          children: [milestone({ plannedDate: asCalendarDate('2026-03-28') })],
         })
 
         // Act
         const errors = check(
-          { start: '2026-03-01', end: '2026-03-20' },
+          {
+            start: asCalendarDate('2026-03-01'),
+            end: asCalendarDate('2026-03-20'),
+          },
           withMilestone,
         )
 
@@ -508,8 +549,8 @@ describe('toProjectPlanPatch', () => {
   it('sends both dates of a pair in one patch', () => {
     // Arrange / Act
     const operations = toProjectPlanPatch(node(), {
-      plannedStart: '2026-03-05',
-      plannedEnd: '2026-04-04',
+      plannedStart: asCalendarDate('2026-03-05'),
+      plannedEnd: asCalendarDate('2026-04-04'),
     })
 
     // Assert
@@ -536,9 +577,9 @@ describe('toProjectPlanPatch', () => {
     ['statusId', 2],
     ['priorityId', 1],
     ['assigneeIds', ['e1']],
-    ['plannedStart', '2026-03-05'],
-    ['plannedEnd', '2026-03-06'],
-    ['plannedDate', '2026-03-07'],
+    ['plannedStart', asCalendarDate('2026-03-05')],
+    ['plannedEnd', asCalendarDate('2026-03-06')],
+    ['plannedDate', asCalendarDate('2026-03-07')],
     ['progress', 50],
     ['estimatedEffortHours', 4],
   ])('has a task path for the %s field', (field, value) => {
@@ -552,8 +593,8 @@ describe('toProjectPlanPatch', () => {
   it.each([
     ['statusId', 2],
     ['assigneeIds', ['e1']],
-    ['plannedStart', '2026-03-05'],
-    ['plannedEnd', '2026-03-06'],
+    ['plannedStart', asCalendarDate('2026-03-05')],
+    ['plannedEnd', asCalendarDate('2026-03-06')],
     ['progress', 50],
   ])('has a stage path for the %s field', (field, value) => {
     // Arrange / Act
@@ -598,8 +639,8 @@ describe('toCreateProjectTaskRequest', () => {
       's1',
       {
         name: 'Dated',
-        plannedStart: '2026-03-01',
-        plannedEnd: '2026-03-05',
+        plannedStart: asCalendarDate('2026-03-01'),
+        plannedEnd: asCalendarDate('2026-03-05'),
         progress: 20,
         estimatedEffortHours: 6,
       },
@@ -627,9 +668,9 @@ describe('toCreateProjectTaskRequest', () => {
       {
         name: 'Go live',
         typeId: MILESTONE_TYPE_ID,
-        plannedDate: '2026-04-15',
+        plannedDate: asCalendarDate('2026-04-15'),
         progress: 30,
-        plannedEnd: '2026-04-20',
+        plannedEnd: asCalendarDate('2026-04-20'),
       },
       MILESTONE_TYPE_ID,
     )
@@ -652,7 +693,7 @@ describe('toCreateProjectTaskRequest', () => {
       {
         name: 'Go live',
         typeId: MILESTONE_TYPE_ID,
-        plannedStart: '2026-04-15',
+        plannedStart: asCalendarDate('2026-04-15'),
       },
       MILESTONE_TYPE_ID,
     )
@@ -678,7 +719,7 @@ describe('a draft’s date', () => {
     const draft = node({ id: 'draft-1', start: undefined, end: undefined })
 
     // Act
-    const dated = planStartEditor.apply(draft, '2026-05-01')
+    const dated = planStartEditor.apply(draft, asCalendarDate('2026-05-01'))
     const asMilestone = planTypeEditor(TYPE_OPTIONS).apply(
       dated,
       MILESTONE_TYPE_ID,
@@ -694,8 +735,8 @@ describe('asMilestoneDate', () => {
   it('sends a milestone’s Start as its planned date', () => {
     // Arrange / Act
     const patch = asMilestoneDate(milestone(), {
-      plannedStart: '2026-05-01',
-      plannedEnd: '2026-05-02',
+      plannedStart: asCalendarDate('2026-05-01'),
+      plannedEnd: asCalendarDate('2026-05-02'),
       name: 'x',
     })
 
@@ -705,7 +746,9 @@ describe('asMilestoneDate', () => {
 
   it('leaves a task’s dates alone', () => {
     // Arrange / Act
-    const patch = asMilestoneDate(node(), { plannedStart: '2026-05-01' })
+    const patch = asMilestoneDate(node(), {
+      plannedStart: asCalendarDate('2026-05-01'),
+    })
 
     // Assert
     expect(patch).toStrictEqual({ plannedStart: '2026-05-01' })

@@ -44,19 +44,8 @@ export const myNotificationMutesGetMutedRecords = async (params?: MyNotification
 
 
   }
-).then(deserializeMyNotificationMutesGetMutedRecordsResponse);}
+);}
 
-
-const deserializeMyNotificationMutesGetMutedRecordsResponse = (data: PagedResponseOfMutedRecordDto): PagedResponseOfMutedRecordDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.mutedOn = new Date(item0.mutedOn);
-    }
-  }
-  return data;
-};
 
 export const getMyNotificationMutesGetRecordMuteStatusUrl = (ownerType: string,
     ownerId: string,) => {
@@ -81,16 +70,8 @@ export const myNotificationMutesGetRecordMuteStatus = async (ownerType: string,
 
 
   }
-).then(deserializeMyNotificationMutesGetRecordMuteStatusResponse);}
+);}
 
-
-const deserializeMyNotificationMutesGetRecordMuteStatusResponse = (data: RecordMuteStatusDto): RecordMuteStatusDto => {
-  if (data == null) return data;
-  if (data.mutedOn != null) {
-    data.mutedOn = new Date(data.mutedOn);
-  }
-  return data;
-};
 
 export const getMyNotificationMutesMuteRecordUrl = (ownerType: string,
     ownerId: string,) => {
@@ -165,19 +146,8 @@ export const myNotificationMutesGetReasonMutes = async ( options?: Parameters<ty
 
 
   }
-).then(deserializeMyNotificationMutesGetReasonMutesResponse);}
+);}
 
-
-const deserializeMyNotificationMutesGetReasonMutesResponse = (data: ReasonMuteDto[]): ReasonMuteDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.mutedOn != null) {
-      item0.mutedOn = new Date(item0.mutedOn);
-    }
-  }
-  return data;
-};
 
 export const getMyNotificationMutesMuteReasonUrl = (reason: NotificationReason,) => {
 

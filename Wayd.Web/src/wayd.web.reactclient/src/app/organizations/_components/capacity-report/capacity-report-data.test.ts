@@ -8,6 +8,7 @@ import {
   rowsByPerson,
   rowsByTeam,
 } from './capacity-report-data'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const measures = (available: number, delivery = available): Measures => ({
   allocatedPersonDays: available + 1,
@@ -37,11 +38,11 @@ const person = (id: string, key: number, name: string) => ({
 // which holds Loans. Ada has time on Payments itself and on Cards; Grace on
 // Cards and Loans.
 const report: TeamCapacityReportDto = {
-  from: '2027-02-01',
-  to: '2027-02-14',
+  from: asCalendarDate('2027-02-01'),
+  to: asCalendarDate('2027-02-14'),
   buckets: [
-    { start: '2027-02-01', end: '2027-02-07' },
-    { start: '2027-02-08', end: '2027-02-14' },
+    { start: asCalendarDate('2027-02-01'), end: asCalendarDate('2027-02-07') },
+    { start: asCalendarDate('2027-02-08'), end: asCalendarDate('2027-02-14') },
   ],
   workingDayHours: 8,
   total: measures(14, 12),
@@ -302,8 +303,16 @@ describe('formatCapacity', () => {
 
 describe('previousMonthOf', () => {
   it.each([
-    ['2027-03-15', '2027-02-01', '2027-02-28'],
-    ['2027-01-01', '2026-12-01', '2026-12-31'],
+    [
+      asCalendarDate('2027-03-15'),
+      asCalendarDate('2027-02-01'),
+      asCalendarDate('2027-02-28'),
+    ],
+    [
+      asCalendarDate('2027-01-01'),
+      asCalendarDate('2026-12-01'),
+      asCalendarDate('2026-12-31'),
+    ],
   ])('for %s is %s to %s', (today, from, to) => {
     // Act
     const range = previousMonthOf(today)
@@ -315,9 +324,24 @@ describe('previousMonthOf', () => {
 
 describe('quarterOf', () => {
   it.each([
-    ['2027-05-20', 0, '2027-04-01', '2027-06-30'],
-    ['2027-11-02', 0, '2027-10-01', '2027-12-31'],
-    ['2027-02-10', -1, '2026-10-01', '2026-12-31'],
+    [
+      asCalendarDate('2027-05-20'),
+      0,
+      asCalendarDate('2027-04-01'),
+      asCalendarDate('2027-06-30'),
+    ],
+    [
+      asCalendarDate('2027-11-02'),
+      0,
+      asCalendarDate('2027-10-01'),
+      asCalendarDate('2027-12-31'),
+    ],
+    [
+      asCalendarDate('2027-02-10'),
+      -1,
+      asCalendarDate('2026-10-01'),
+      asCalendarDate('2026-12-31'),
+    ],
   ])('for %s offset %d is %s to %s', (today, offset, from, to) => {
     // Act
     const range = quarterOf(today, offset)

@@ -6,6 +6,7 @@ import {
 import RemoveProductDependencyForm from './remove-product-dependency-form'
 import type { FormInstance } from 'antd'
 import type { UseModalFormOptions } from '@/src/hooks'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const removeDependency = vi.fn()
 
@@ -50,7 +51,7 @@ const dependency = {
   product: { id: 'web', key: 2, name: 'Storefront Web' },
   dependsOnProduct: { id: 'identity', key: 3, name: 'Identity Service' },
   strength: DependencyStrength.Soft,
-  startsOn: '2026-03-01',
+  startsOn: asCalendarDate('2026-03-01'),
 } as ProductDependencyDto
 
 const submit = async () => {

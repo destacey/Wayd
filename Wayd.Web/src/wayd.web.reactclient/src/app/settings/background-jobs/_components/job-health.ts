@@ -1,4 +1,5 @@
 import { JobServerResponse } from '@/src/services/api/wayd.schemas'
+import { type Instant, instantTime } from '@/src/utils/instant'
 
 /**
  * How long a server may go without a heartbeat before it reads as unresponsive.
@@ -13,8 +14,8 @@ export interface SchedulerHealth {
   status: SchedulerHealthStatus
   serverCount: number
   workerCount: number
-  /** The most recent heartbeat across all servers, as an ISO string or Date. */
-  latestHeartbeat?: Date | string
+  /** The most recent heartbeat across all servers. */
+  latestHeartbeat?: Instant
 }
 
 /**
@@ -32,12 +33,12 @@ export const summarizeSchedulerHealth = (
 
   const workerCount = servers.reduce((sum, s) => sum + (s.workerCount ?? 0), 0)
 
-  // The generated client types instants as Date, but they arrive as ISO strings.
   const latestHeartbeat = servers
     .map((s) => s.heartbeat)
-    .filter((h): h is Date => h != null)
-    .reduce<Date | undefined>(
-      (latest, h) => (!latest || new Date(h) > new Date(latest) ? h : latest),
+    .filter((h): h is Instant => h != null)
+    .reduce<Instant | undefined>(
+      (latest, h) =>
+        !latest || instantTime(h) > instantTime(latest) ? h : latest,
       undefined,
     )
 
@@ -47,7 +48,7 @@ export const summarizeSchedulerHealth = (
 
   const isStale =
     !latestHeartbeat ||
-    now.getTime() - new Date(latestHeartbeat).getTime() > STALE_HEARTBEAT_MS
+    now.getTime() - instantTime(latestHeartbeat) > STALE_HEARTBEAT_MS
 
   return {
     status: isStale ? 'stale' : 'healthy',

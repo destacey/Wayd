@@ -8,6 +8,7 @@ import {
 } from '@/src/services/api/wayd.schemas'
 import { usePublishPokerRoundsMutation } from '@/src/store/features/planning/poker-sessions-api'
 import RoundPublication, { canPublishRound } from './round-publication'
+import { asInstant } from '@/src/utils/instant'
 
 vi.mock('@/src/store/features/planning/poker-sessions-api', () => ({
   usePublishPokerRoundsMutation: vi.fn(),
@@ -40,7 +41,7 @@ const publication = (
   refusalReason?: string,
 ) => ({
   outcome,
-  at: new Date('2026-10-01T08:00:00Z'),
+  at: asInstant('2026-10-01T08:00:00Z'),
   byEmployeeId: 'e-1',
   by: { id: 'e-1', key: 1, name: 'Avery Agent' },
   refusalReason,

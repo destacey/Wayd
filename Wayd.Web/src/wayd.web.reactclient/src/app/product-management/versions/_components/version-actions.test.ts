@@ -4,6 +4,7 @@ import {
   StatusCategory,
 } from '@/src/services/api/wayd.schemas'
 import { versionActionAvailability } from './version-actions'
+import { asInstant } from '@/src/utils/instant'
 
 const version = (overrides: Partial<VersionDto> = {}): VersionDto =>
   ({
@@ -25,7 +26,7 @@ const planned = () => version()
 
 const cut = () =>
   version({
-    cutAt: '2026-04-01T12:00:00Z' as unknown as Date,
+    cutAt: asInstant('2026-04-01T12:00:00Z'),
     status: {
       id: 's',
       name: 'Ready',
@@ -37,8 +38,8 @@ const cut = () =>
 
 const released = () =>
   version({
-    cutAt: '2026-04-01T12:00:00Z' as unknown as Date,
-    releasedAt: '2026-04-02T12:00:00Z' as unknown as Date,
+    cutAt: asInstant('2026-04-01T12:00:00Z'),
+    releasedAt: asInstant('2026-04-02T12:00:00Z'),
     status: {
       id: 's',
       name: 'Released',
@@ -116,7 +117,7 @@ describe('versionActionAvailability', () => {
     // Arrange — a version can reach Done without Wayd holding a cut date, since cutting is not a
     // prerequisite for releasing.
     const doneWithoutCut = version({
-      releasedAt: '2026-04-02T12:00:00Z' as unknown as Date,
+      releasedAt: asInstant('2026-04-02T12:00:00Z'),
       status: {
         id: 's',
         name: 'Released',
@@ -154,8 +155,8 @@ describe('versionActionAvailability', () => {
   it('refuses correcting dates on a withdrawn version', () => {
     // Arrange -- withdrawn is the one terminal state the aggregate refuses a correction in.
     const withdrawnAfterRelease = version({
-      cutAt: '2026-04-01T12:00:00Z' as unknown as Date,
-      releasedAt: '2026-04-02T12:00:00Z' as unknown as Date,
+      cutAt: asInstant('2026-04-01T12:00:00Z'),
+      releasedAt: asInstant('2026-04-02T12:00:00Z'),
       status: {
         id: 's',
         name: 'Withdrawn',
@@ -192,8 +193,8 @@ describe('versionActionAvailability', () => {
     // Arrange — withdrawing is terminal. A version pulled after shipping is not the mistaken-record
     // case reverting exists for, and the aggregate refuses it.
     const withdrawnAfterRelease = version({
-      cutAt: '2026-04-01T12:00:00Z' as unknown as Date,
-      releasedAt: '2026-04-02T12:00:00Z' as unknown as Date,
+      cutAt: asInstant('2026-04-01T12:00:00Z'),
+      releasedAt: asInstant('2026-04-02T12:00:00Z'),
       status: {
         id: 's',
         name: 'Withdrawn',

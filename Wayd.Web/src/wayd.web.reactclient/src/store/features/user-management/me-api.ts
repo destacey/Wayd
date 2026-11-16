@@ -1,3 +1,4 @@
+import { toInstant } from '@/src/utils/instant'
 import {
   meGetHomeContext,
   meGetTeamsSummary,
@@ -66,7 +67,7 @@ export const meApi = apiSlice.injectEndpoints({
         try {
           const data = await meGetWorkItems({
             statusCategories: statusCategories,
-            doneFrom: doneFrom ? new Date(doneFrom) : undefined,
+            doneFrom: doneFrom ? toInstant(new Date(doneFrom)) : undefined,
           })
           return { data }
         } catch (error) {

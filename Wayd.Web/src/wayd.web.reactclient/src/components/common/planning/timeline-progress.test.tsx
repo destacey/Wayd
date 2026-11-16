@@ -1,6 +1,7 @@
 import type { MockedFunction } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import TimelineProgress from './timeline-progress'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // Mock Ant Design Grid useBreakpoint hook
 vi.mock(import('antd'), async (importOriginal) => {
@@ -38,8 +39,8 @@ describe('TimelineProgress', () => {
     vi.useRealTimers()
   })
 
-  const startDate = '2025-10-26'
-  const endDate = '2025-11-08'
+  const startDate = asCalendarDate('2025-10-26')
+  const endDate = asCalendarDate('2025-11-08')
 
   beforeEach(() => {
     // Set "now" to Nov 1, which is day 7 of 14 (50%)
@@ -104,7 +105,7 @@ describe('TimelineProgress', () => {
   })
 
   it('handles single day duration', () => {
-    const sameDate = '2025-11-01'
+    const sameDate = asCalendarDate('2025-11-01')
     render(<TimelineProgress start={sameDate} end={sameDate} />)
 
     expect(screen.getByText('Day 1 of 1 (100%)')).toBeInTheDocument()

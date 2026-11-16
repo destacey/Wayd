@@ -16,6 +16,7 @@ import { expansionStorageKey } from '@/src/components/common/dependency-map/use-
 import { DEPENDENCY_STRENGTH_FILTER_KEY } from '../../../_components/dependency-map/use-dependency-strength-filter'
 import { useExpandedProductDependencies } from '../../../_components/dependency-map/use-expanded-product-dependencies'
 import ProductDependencyMapCard from './product-dependency-map-card'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // The canvas measures itself and reads the theme provider, neither of which this test supplies. The stub
 // renders what the card hands it and exposes the map's buttons; the map's own tests cover drawing.
@@ -97,7 +98,7 @@ const link = (
   product: from,
   dependsOnProduct: to,
   strength,
-  startsOn: '2026-01-01',
+  startsOn: asCalendarDate('2026-01-01'),
   productPath: [],
   dependsOnProductPath: [],
 })

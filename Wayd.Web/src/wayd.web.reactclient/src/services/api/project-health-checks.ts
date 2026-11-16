@@ -53,18 +53,8 @@ export const projectHealthChecksGetHealthChecks = async (id: string, options?: P
 
 
   }
-).then(deserializeProjectHealthChecksGetHealthChecksResponse);}
+);}
 
-
-const deserializeProjectHealthChecksGetHealthChecksResponse = (data: ProjectHealthCheckDetailsDto[]): ProjectHealthCheckDetailsDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.reportedOn = new Date(item0.reportedOn);
-    item0.expiration = new Date(item0.expiration);
-  }
-  return data;
-};
 
 export const getProjectHealthChecksCreateHealthCheckUrl = (id: string,) => {
 
@@ -113,15 +103,8 @@ export const projectHealthChecksGetHealthCheck = async (id: string,
 
 
   }
-).then(deserializeProjectHealthChecksGetHealthCheckResponse);}
+);}
 
-
-const deserializeProjectHealthChecksGetHealthCheckResponse = (data: ProjectHealthCheckDetailsDto): ProjectHealthCheckDetailsDto => {
-  if (data == null) return data;
-  data.reportedOn = new Date(data.reportedOn);
-  data.expiration = new Date(data.expiration);
-  return data;
-};
 
 export const getProjectHealthChecksUpdateHealthCheckUrl = (id: string,
     healthCheckId: string,) => {
@@ -147,15 +130,8 @@ export const projectHealthChecksUpdateHealthCheck = async (id: string,
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(updateProjectHealthCheckRequest)
   }
-).then(deserializeProjectHealthChecksUpdateHealthCheckResponse);}
+);}
 
-
-const deserializeProjectHealthChecksUpdateHealthCheckResponse = (data: ProjectHealthCheckDetailsDto): ProjectHealthCheckDetailsDto => {
-  if (data == null) return data;
-  data.reportedOn = new Date(data.reportedOn);
-  data.expiration = new Date(data.expiration);
-  return data;
-};
 
 export const getProjectHealthChecksDeleteHealthCheckUrl = (id: string,
     healthCheckId: string,) => {

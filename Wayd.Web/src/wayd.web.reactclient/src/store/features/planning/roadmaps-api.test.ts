@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import { JsonPatchOperationType } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { roadmapApi } from './roadmaps-api'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const patchRoadmapItem = vi.fn()
 
@@ -17,7 +18,11 @@ const createStore = () =>
   })
 
 const operations = [
-  { op: JsonPatchOperationType.replace, path: '/end', value: '2026-06-30' },
+  {
+    op: JsonPatchOperationType.replace,
+    path: '/end',
+    value: asCalendarDate('2026-06-30'),
+  },
 ]
 
 const patch = () =>

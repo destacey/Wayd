@@ -4,6 +4,7 @@ import {
   scopeIsReadable,
   sprintOverviewFigures,
 } from './sprint-overview-figures'
+import { asInstant } from '@/src/utils/instant'
 
 const measure = (count: number, estimate: number) => ({ count, estimate })
 
@@ -21,11 +22,11 @@ const metrics: SprintMetricFigures = {
 const scope: SprintScopeDto = {
   sprintId: 's1',
   sizingMethod: SizingMethod.StoryPoints,
-  effectiveStart: '2026-09-15T05:00:00Z' as unknown as Date,
+  effectiveStart: asInstant('2026-09-15T05:00:00Z'),
   startIsActual: false,
-  effectiveEnd: '2026-09-26T05:00:00Z' as unknown as Date,
+  effectiveEnd: asInstant('2026-09-26T05:00:00Z'),
   endIsActual: false,
-  lastDay: '2026-09-25T05:00:00Z' as unknown as Date,
+  lastDay: asInstant('2026-09-25T05:00:00Z'),
   timeZone: 'America/Chicago',
   hasTeam: true,
   historyIncomplete: false,

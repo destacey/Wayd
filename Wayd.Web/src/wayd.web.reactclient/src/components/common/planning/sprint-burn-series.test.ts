@@ -1,32 +1,34 @@
 import { SizingMethod, SprintBurnDto } from '@/src/services/api/wayd.schemas'
 import { BurnSeries, sprintBurnSeries } from './sprint-burn-series'
+import { asInstant } from '@/src/utils/instant'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const measure = (count: number, estimate: number) => ({ count, estimate })
 
 const burn = {
   sprintId: 's1',
   sizingMethod: SizingMethod.StoryPoints,
-  effectiveStart: '2026-09-15T05:00:00Z',
-  effectiveEnd: '2026-09-26T05:00:00Z',
+  effectiveStart: asInstant('2026-09-15T05:00:00Z'),
+  effectiveEnd: asInstant('2026-09-26T05:00:00Z'),
   timeZone: 'America/Chicago',
   historyIncomplete: false,
   committed: measure(4, 20),
   ideal: [
-    { at: '2026-09-15T05:00:00Z', remaining: 1 },
-    { at: '2026-09-19T05:00:00Z', remaining: 0.5 },
-    { at: '2026-09-21T05:00:00Z', remaining: 0.5 },
-    { at: '2026-09-26T05:00:00Z', remaining: 0 },
+    { at: asInstant('2026-09-15T05:00:00Z'), remaining: 1 },
+    { at: asInstant('2026-09-19T05:00:00Z'), remaining: 0.5 },
+    { at: asInstant('2026-09-21T05:00:00Z'), remaining: 0.5 },
+    { at: asInstant('2026-09-26T05:00:00Z'), remaining: 0 },
   ],
   points: [
     {
-      at: '2026-09-15T05:00:00Z',
-      day: '2026-09-15',
+      at: asInstant('2026-09-15T05:00:00Z'),
+      day: asCalendarDate('2026-09-15'),
       scope: measure(4, 20),
       completed: measure(0, 0),
     },
     {
-      at: '2026-09-16T05:00:00Z',
-      day: '2026-09-15',
+      at: asInstant('2026-09-16T05:00:00Z'),
+      day: asCalendarDate('2026-09-15'),
       scope: measure(5, 23),
       completed: measure(1, 5),
     },

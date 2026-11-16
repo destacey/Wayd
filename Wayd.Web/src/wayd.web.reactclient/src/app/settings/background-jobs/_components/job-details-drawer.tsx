@@ -9,6 +9,7 @@ import { FC, useEffect, useState } from 'react'
 import { LabeledContent } from '@/src/components/common/content'
 import useBackgroundJobActions from './use-background-job-actions'
 import { isRequeueableState } from './job-health'
+import { type Instant } from '@/src/utils/instant'
 
 export interface JobDetailsDrawerProps {
   jobId: string
@@ -27,7 +28,7 @@ const preStyle: React.CSSProperties = {
 
 // The NSwag axios client doesn't revive date strings into Date instances, so
 // these are ISO strings at runtime despite the typed Date.
-const formatTimestamp = (value?: Date | null): string | undefined =>
+const formatTimestamp = (value?: Date | Instant | null): string | undefined =>
   value ? new Date(value).toLocaleString() : undefined
 
 const JobDetailsDrawer: FC<JobDetailsDrawerProps> = ({

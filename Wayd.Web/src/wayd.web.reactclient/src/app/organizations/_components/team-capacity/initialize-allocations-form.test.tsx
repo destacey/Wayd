@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import InitializeAllocationsForm from './initialize-allocations-form'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // Mock window.getComputedStyle for Ant Design Modal
 Object.defineProperty(window, 'getComputedStyle', {
@@ -26,7 +27,7 @@ vi.mock('@/src/store/features/organization/employee-allocations-api', () => ({
 let mockRows: unknown[] = []
 vi.mock('@/src/store/features/organization/team-capacity-api', () => ({
   useGetTeamAllocationProposalQuery: () => ({
-    data: { from: '2027-02-01', rows: mockRows },
+    data: { from: asCalendarDate('2027-02-01'), rows: mockRows },
     isFetching: false,
   }),
 }))
@@ -55,7 +56,7 @@ const renderForm = (onFormComplete = vi.fn(), onFormCancel = vi.fn()) =>
     <InitializeAllocationsForm
       teamId="team-1"
       teamType="Team"
-      from="2027-02-01"
+      from={asCalendarDate('2027-02-01')}
       onFormComplete={onFormComplete}
       onFormCancel={onFormCancel}
     />,
@@ -215,7 +216,9 @@ describe('InitializeAllocationsForm', () => {
   })
 
   it('ends a row the day before time the team already has, and says so', async () => {
-    mockRows = [{ ...row(grace, engineer, 80, 80), end: '2027-02-28' }]
+    mockRows = [
+      { ...row(grace, engineer, 80, 80), end: asCalendarDate('2027-02-28') },
+    ]
     renderForm()
 
     expect(await screen.findByText('Feb 28, 2027')).toBeInTheDocument()

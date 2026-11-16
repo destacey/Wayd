@@ -21,8 +21,10 @@ import {
   sortProjects,
   summarizeGroup,
 } from './dashboard-model'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
-const today = dayjs('2026-09-24')
+const today = dayjs(asCalendarDate('2026-09-24'))
 
 const employee = (id: string, name: string): EmployeeNavigationDto =>
   ({ id, key: 1, name }) as EmployeeNavigationDto
@@ -49,7 +51,7 @@ const project = (
 const health = (name: string) => ({
   id: 'hc',
   status: { id: 1, name },
-  expiration: new Date('2027-01-01T00:00:00Z'),
+  expiration: asInstant('2027-01-01T00:00:00Z'),
 })
 
 const summary = (overdue: number) => ({
@@ -115,8 +117,8 @@ describe('scope in the URL', () => {
 describe('isEndingSoon', () => {
   it('is true for an open project ending within 30 days, today included', () => {
     // Arrange
-    const soon = project({ key: 'A', end: '2026-10-24' })
-    const todayEnd = project({ key: 'B', end: '2026-09-24' })
+    const soon = project({ key: 'A', end: asCalendarDate('2026-10-24') })
+    const todayEnd = project({ key: 'B', end: asCalendarDate('2026-09-24') })
 
     // Act / Assert
     expect(isEndingSoon(soon, today)).toBe(true)
@@ -125,9 +127,9 @@ describe('isEndingSoon', () => {
 
   it('is false for a project already past its end, undated, or further out', () => {
     // Arrange
-    const past = project({ key: 'A', end: '2026-09-23' })
+    const past = project({ key: 'A', end: asCalendarDate('2026-09-23') })
     const undated = project({ key: 'B' })
-    const later = project({ key: 'C', end: '2026-10-25' })
+    const later = project({ key: 'C', end: asCalendarDate('2026-10-25') })
 
     // Act / Assert
     expect(isEndingSoon(past, today)).toBe(false)
@@ -139,7 +141,7 @@ describe('isEndingSoon', () => {
     // Arrange
     const completed = project({
       key: 'A',
-      end: '2026-10-01',
+      end: asCalendarDate('2026-10-01'),
       status: { id: 3, name: 'Completed', lifecycleCategory: 'Completed' },
     })
 
@@ -154,11 +156,11 @@ describe('computeAttention', () => {
     const projects = [
       project({ key: 'A', healthCheck: health('Unhealthy') }),
       project({ key: 'B', healthCheck: health('At Risk') }),
-      project({ key: 'C', end: '2026-10-10' }),
+      project({ key: 'C', end: asCalendarDate('2026-10-10') }),
       project({
         key: 'D',
         healthCheck: health('Healthy'),
-        end: '2027-01-01',
+        end: asCalendarDate('2027-01-01'),
       }),
     ]
     const summaries: PlanSummaries = {
@@ -262,9 +264,9 @@ describe('sortProjects', () => {
   it('sorts undated projects last by end date and unscored last by score', () => {
     // Arrange
     const projects = [
-      project({ key: 'A', end: '2026-12-01' }),
+      project({ key: 'A', end: asCalendarDate('2026-12-01') }),
       project({ key: 'B' }),
-      project({ key: 'C', end: '2026-10-01' }),
+      project({ key: 'C', end: asCalendarDate('2026-10-01') }),
     ]
     const scored = [
       project({ key: 'A' }),

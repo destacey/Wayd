@@ -8,6 +8,7 @@ import { useUpdatePersonalAccessTokenMutation } from '@/src/store/features/user-
 import { PersonalAccessTokenDto } from '@/src/services/api/wayd.schemas'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useModalForm } from '@/src/hooks'
+import { toInstant } from '@/src/utils/instant'
 
 const { Item } = Form
 
@@ -39,7 +40,7 @@ const EditPersonalAccessTokenForm = ({
             id: token.id!,
             request: {
               name: values.name,
-              expiresAt: values.expiresAt.toDate(),
+              expiresAt: toInstant(values.expiresAt),
             },
           })
 

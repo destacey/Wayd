@@ -10,6 +10,7 @@ import ActivityLogTimeline, {
   clientHost,
   isActivityMatchingQuery,
 } from './activity-log-timeline'
+import { asInstant } from '@/src/utils/instant'
 
 vi.mock('./export-activities-modal', () => {
   const MockExportModal = ({ open }: any) =>
@@ -38,7 +39,7 @@ const createActivity = (
   aggregateType: 'Team',
   aggregateId: '22222222-2222-2222-2222-222222222222',
   actorKind: EventActorKind.User,
-  timestamp: new Date('2026-04-01T09:00:00Z'),
+  timestamp: asInstant('2026-04-01T09:00:00Z'),
   eventVersion: '1.0',
   payload: JSON.stringify({
     name: 'Alpha Team',
@@ -168,21 +169,21 @@ describe('ActivityLogTimeline', () => {
             eventType: 'ProjectDetailsUpdatedEvent',
             summary: 'Project Details Updated',
             category: ActivityCategory.Updated,
-            timestamp: new Date('2026-09-14T09:00:00Z'),
+            timestamp: asInstant('2026-09-14T09:00:00Z'),
           }),
           createActivity({
             id: 3,
             eventType: 'ProjectBaselinedEvent',
             summary: 'Project Baselined',
             category: ActivityCategory.Baseline,
-            timestamp: new Date('2026-09-13T09:00:00Z'),
+            timestamp: asInstant('2026-09-13T09:00:00Z'),
           }),
           createActivity({
             id: 2,
             eventType: 'ProjectStatusChangedEvent',
             summary: 'Project Status Changed',
             category: ActivityCategory.StatusChanged,
-            timestamp: new Date('2025-01-10T09:00:00Z'),
+            timestamp: asInstant('2025-01-10T09:00:00Z'),
           }),
         ]}
         isLoading={false}
@@ -587,19 +588,19 @@ describe('ActivityLogTimeline', () => {
         id: 4,
         eventType: 'TeamDetailsUpdatedEvent',
         summary: 'Team Details Updated',
-        timestamp: new Date('2026-04-01T11:00:00Z'),
+        timestamp: asInstant('2026-04-01T11:00:00Z'),
       }),
       createActivity({
         id: 3,
         eventType: 'TeamDeactivatedEvent',
         summary: 'Team Deactivated',
-        timestamp: new Date('2026-04-01T10:00:00Z'),
+        timestamp: asInstant('2026-04-01T10:00:00Z'),
       }),
       createActivity({
         id: 2,
         eventType: 'TeamDetailsUpdatedEvent',
         summary: 'Team Details Updated',
-        timestamp: new Date('2026-04-01T09:00:00Z'),
+        timestamp: asInstant('2026-04-01T09:00:00Z'),
       }),
     ]
 
@@ -629,12 +630,12 @@ describe('ActivityLogTimeline', () => {
         id: 3,
         eventType: 'ProjectReparentedEventV2',
         eventVersion: '2.0',
-        timestamp: new Date('2026-04-01T10:00:00Z'),
+        timestamp: asInstant('2026-04-01T10:00:00Z'),
       }),
       createActivity({
         id: 2,
         eventType: 'ProjectReparentedEvent',
-        timestamp: new Date('2026-04-01T09:00:00Z'),
+        timestamp: asInstant('2026-04-01T09:00:00Z'),
       }),
     ]
 
@@ -659,13 +660,13 @@ describe('ActivityLogTimeline', () => {
         id: 3,
         eventType: 'TeamDetailsUpdatedEvent',
         summary: 'Team Details Updated',
-        timestamp: new Date('2026-04-01T10:00:00Z'),
+        timestamp: asInstant('2026-04-01T10:00:00Z'),
       }),
       createActivity({
         id: 2,
         eventType: 'TeamCreatedEvent',
         summary: 'Team Created',
-        timestamp: new Date('2026-04-01T09:00:00Z'),
+        timestamp: asInstant('2026-04-01T09:00:00Z'),
       }),
     ]
 
@@ -692,7 +693,7 @@ describe('ActivityLogTimeline', () => {
         aggregateType: 'Product',
         aggregateId: 'child-a',
         isRelated: true,
-        timestamp: new Date('2026-04-01T10:00:00Z'),
+        timestamp: asInstant('2026-04-01T10:00:00Z'),
       }),
       createActivity({
         id: 2,
@@ -700,7 +701,7 @@ describe('ActivityLogTimeline', () => {
         aggregateType: 'Product',
         aggregateId: 'child-b',
         isRelated: true,
-        timestamp: new Date('2026-04-01T09:00:00Z'),
+        timestamp: asInstant('2026-04-01T09:00:00Z'),
       }),
     ]
 

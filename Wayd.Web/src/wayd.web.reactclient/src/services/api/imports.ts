@@ -46,28 +46,8 @@ export const importsGetList = async (params?: ImportsGetListParams, options?: Pa
 
 
   }
-).then(deserializeImportsGetListResponse);}
+);}
 
-
-const deserializeImportsGetListResponse = (data: PagedResponseOfImportProcessDto): PagedResponseOfImportProcessDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.submittedOn = new Date(item0.submittedOn);
-      if (item0.startedOn != null) {
-        item0.startedOn = new Date(item0.startedOn);
-      }
-      if (item0.completedOn != null) {
-        item0.completedOn = new Date(item0.completedOn);
-      }
-      if (item0.lastProgressOn != null) {
-        item0.lastProgressOn = new Date(item0.lastProgressOn);
-      }
-    }
-  }
-  return data;
-};
 
 export const getImportsGetDefinitionsUrl = () => {
 
@@ -114,23 +94,8 @@ export const importsGetById = async (id: string, options?: Parameters<typeof api
 
 
   }
-).then(deserializeImportsGetByIdResponse);}
+);}
 
-
-const deserializeImportsGetByIdResponse = (data: ImportProcessDto): ImportProcessDto => {
-  if (data == null) return data;
-  data.submittedOn = new Date(data.submittedOn);
-  if (data.startedOn != null) {
-    data.startedOn = new Date(data.startedOn);
-  }
-  if (data.completedOn != null) {
-    data.completedOn = new Date(data.completedOn);
-  }
-  if (data.lastProgressOn != null) {
-    data.lastProgressOn = new Date(data.lastProgressOn);
-  }
-  return data;
-};
 
 export const getImportsGetRowsUrl = (id: string,
     params?: ImportsGetRowsParams,) => {
@@ -162,21 +127,8 @@ export const importsGetRows = async (id: string,
 
 
   }
-).then(deserializeImportsGetRowsResponse);}
+);}
 
-
-const deserializeImportsGetRowsResponse = (data: PagedResponseOfImportProcessRowDto): PagedResponseOfImportProcessRowDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      if (item0.attemptedOn != null) {
-        item0.attemptedOn = new Date(item0.attemptedOn);
-      }
-    }
-  }
-  return data;
-};
 
 export const getImportsCancelUrl = (id: string,) => {
 

@@ -131,7 +131,7 @@ describe('demandManagementApi', () => {
         openOnly: undefined,
         assignedToMe: true,
         participating: true,
-        closedSince: new Date('2026-10-11T00:00:00.000Z'),
+        closedSince: '2026-10-11T00:00:00.000Z',
       })
     })
   })

@@ -89,13 +89,15 @@ import {
   useGetSprintScopeQuery,
 } from '../../../store/features/work-management/sprints-api'
 import type { MetricCardProps } from '@/src/components/common/metrics/metric-card'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 describe('ActiveTeamSprint', () => {
   const mockSprint = {
     key: 'S1',
     name: 'Sprint 1',
-    start: '2023-01-01',
-    end: '2023-01-14',
+    start: asCalendarDate('2023-01-01'),
+    end: asCalendarDate('2023-01-14'),
     team: { id: 'team-1', key: 1, name: 'Team 1', code: 'T1' },
   }
 
@@ -194,7 +196,7 @@ describe('ActiveTeamSprint', () => {
     const measure = (count: number, estimate: number) => ({ count, estimate })
     ;(useGetSprintScopeQuery as Mock).mockReturnValue({
       data: {
-        effectiveStart: '2023-01-02T00:00:00Z',
+        effectiveStart: asInstant('2023-01-02T00:00:00Z'),
         historyIncomplete: false,
         totals: {
           total: measure(5, 48),

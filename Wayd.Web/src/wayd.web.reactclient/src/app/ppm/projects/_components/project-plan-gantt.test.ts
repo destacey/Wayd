@@ -5,10 +5,11 @@ import {
   isMilestoneNode,
   isStageNode,
 } from './project-plan-gantt'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const DAY = 86_400_000
 const PAD = 14 * DAY
-const at = (iso: string) => parseCalendarDate(iso).valueOf()
+const at = (iso: string) => parseCalendarDate(asCalendarDate(iso)).valueOf()
 
 const node = (over: Partial<ProjectPlanNodeDto>): ProjectPlanNodeDto =>
   ({
@@ -68,13 +69,13 @@ describe('computeProjectPlanGanttDomain', () => {
         children: [
           node({
             id: 'task-1',
-            start: '2026-03-01',
-            end: '2026-03-10',
+            start: asCalendarDate('2026-03-01'),
+            end: asCalendarDate('2026-03-10'),
           }),
           node({
             id: 'task-2',
-            start: '2026-03-05',
-            end: '2026-03-20',
+            start: asCalendarDate('2026-03-05'),
+            end: asCalendarDate('2026-03-20'),
           }),
         ],
       }),
@@ -82,8 +83,8 @@ describe('computeProjectPlanGanttDomain', () => {
     // Act
     const domain = computeProjectPlanGanttDomain(tree)
     // Assert
-    expect(domain.domainStart).toBe(at('2026-03-01') - PAD)
-    expect(domain.domainEnd).toBe(at('2026-03-20') + PAD)
+    expect(domain.domainStart).toBe(at(asCalendarDate('2026-03-01')) - PAD)
+    expect(domain.domainEnd).toBe(at(asCalendarDate('2026-03-20')) + PAD)
   })
 
   it('uses plannedDate for a milestone rather than start/end', () => {
@@ -92,31 +93,35 @@ describe('computeProjectPlanGanttDomain', () => {
       node({
         id: 'ms-1',
         type: { id: 2, name: 'Milestone' },
-        plannedDate: '2026-06-15',
+        plannedDate: asCalendarDate('2026-06-15'),
       }),
     ]
     // Act
     const domain = computeProjectPlanGanttDomain(tree)
     // Assert — the milestone anchors both ends of the domain.
-    expect(domain.domainStart).toBe(at('2026-06-15') - PAD)
-    expect(domain.domainEnd).toBe(at('2026-06-15') + PAD)
+    expect(domain.domainStart).toBe(at(asCalendarDate('2026-06-15')) - PAD)
+    expect(domain.domainEnd).toBe(at(asCalendarDate('2026-06-15')) + PAD)
   })
 
   it('ignores a task that is missing one endpoint', () => {
     // Arrange — a half-dated task must not drag the axis to epoch 0.
     const tree = [
-      node({ id: 'task-1', start: '2026-03-01', end: undefined }),
+      node({
+        id: 'task-1',
+        start: asCalendarDate('2026-03-01'),
+        end: undefined,
+      }),
       node({
         id: 'task-2',
-        start: '2026-04-01',
-        end: '2026-04-10',
+        start: asCalendarDate('2026-04-01'),
+        end: asCalendarDate('2026-04-10'),
       }),
     ]
     // Act
     const domain = computeProjectPlanGanttDomain(tree)
     // Assert — only the fully dated task contributes.
-    expect(domain.domainStart).toBe(at('2026-04-01') - PAD)
-    expect(domain.domainEnd).toBe(at('2026-04-10') + PAD)
+    expect(domain.domainStart).toBe(at(asCalendarDate('2026-04-01')) - PAD)
+    expect(domain.domainEnd).toBe(at(asCalendarDate('2026-04-10')) + PAD)
   })
 
   it('widens to the project window when it is supplied', () => {
@@ -124,18 +129,18 @@ describe('computeProjectPlanGanttDomain', () => {
     const tree = [
       node({
         id: 'task-1',
-        start: '2026-03-01',
-        end: '2026-03-10',
+        start: asCalendarDate('2026-03-01'),
+        end: asCalendarDate('2026-03-10'),
       }),
     ]
     // Act
     const domain = computeProjectPlanGanttDomain(
       tree,
-      '2026-01-01',
-      '2026-12-31',
+      asCalendarDate('2026-01-01'),
+      asCalendarDate('2026-12-31'),
     )
     // Assert
-    expect(domain.domainStart).toBe(at('2026-01-01') - PAD)
-    expect(domain.domainEnd).toBe(at('2026-12-31') + PAD)
+    expect(domain.domainStart).toBe(at(asCalendarDate('2026-01-01')) - PAD)
+    expect(domain.domainEnd).toBe(at(asCalendarDate('2026-12-31')) + PAD)
   })
 })

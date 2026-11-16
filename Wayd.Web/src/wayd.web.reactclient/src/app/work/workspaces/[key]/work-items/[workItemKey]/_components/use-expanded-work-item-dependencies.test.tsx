@@ -8,6 +8,7 @@ import {
 } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '@/src/store/features/apiSlice'
 import { useExpandedWorkItemDependencies } from './use-expanded-work-item-dependencies'
+import { asInstant } from '@/src/utils/instant'
 
 const getWorkItemDependencies = vi.fn()
 
@@ -41,7 +42,7 @@ const predecessor = (
   state: { id: 1, name: 'To Do' },
   health: { id: 1, name: 'Healthy' },
   scope: { id: 2, name: 'Cross-Team' },
-  createdOn: new Date('2026-01-01'),
+  createdOn: asInstant('2026-01-01'),
 })
 
 const auth = item('w-2', 'ID-7')

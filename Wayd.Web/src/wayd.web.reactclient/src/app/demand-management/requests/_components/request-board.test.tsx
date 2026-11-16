@@ -7,6 +7,8 @@ import {
   StatusNavigationDto,
 } from '@/src/services/api/wayd.schemas'
 import RequestBoard, { boardColumns } from './request-board'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { toInstant } from '@/src/utils/instant'
 
 const status = (
   id: string,
@@ -40,8 +42,8 @@ const request = (
     desk: { id: 'd-1', key: 1, name: 'Product' },
     requester: { id: 'e-1', key: 1, name: 'Avery Example' },
     channel: { id: 'c-1', name: 'Support' },
-    submittedOn: new Date(),
-    statusChangedOn: new Date(),
+    submittedOn: toInstant(new Date()),
+    statusChangedOn: toInstant(new Date()),
     ...overrides,
   }) as IntakeRequestSummaryDto
 
@@ -79,7 +81,7 @@ describe('RequestBoard', () => {
       [
         request(42, 's-review', {
           needBy: {
-            date: '2026-12-31',
+            date: asCalendarDate('2026-12-31'),
             basis: NeedByBasis.Regulatory,
             family: NeedByBasisFamily.FixedForUs,
             reference: 'PCI DSS 4.0',

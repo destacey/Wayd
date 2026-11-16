@@ -71,25 +71,8 @@ export const projectTasksGetProjectTasks = async (projectIdOrKey: string,
 
 
   }
-).then(deserializeProjectTasksGetProjectTasksResponse);}
+);}
 
-
-const deserializeProjectTasksGetProjectTasksResponse = (data: ProjectTaskListDto[]): ProjectTaskListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.plannedStart != null) {
-      item0.plannedStart = typeof item0.plannedStart === 'string' ? String(item0.plannedStart as unknown as string) : item0.plannedStart;
-    }
-    if (item0.plannedEnd != null) {
-      item0.plannedEnd = typeof item0.plannedEnd === 'string' ? String(item0.plannedEnd as unknown as string) : item0.plannedEnd;
-    }
-    if (item0.plannedDate != null) {
-      item0.plannedDate = typeof item0.plannedDate === 'string' ? String(item0.plannedDate as unknown as string) : item0.plannedDate;
-    }
-  }
-  return data;
-};
 
 export const getProjectTasksCreateProjectTaskUrl = (projectIdOrKey: string,) => {
 
@@ -137,22 +120,8 @@ export const projectTasksGetProjectTask = async (projectIdOrKey: string,
 
 
   }
-).then(deserializeProjectTasksGetProjectTaskResponse);}
+);}
 
-
-const deserializeProjectTasksGetProjectTaskResponse = (data: ProjectTaskDto): ProjectTaskDto => {
-  if (data == null) return data;
-  if (data.plannedStart != null) {
-    data.plannedStart = typeof data.plannedStart === 'string' ? String(data.plannedStart as unknown as string) : data.plannedStart;
-  }
-  if (data.plannedEnd != null) {
-    data.plannedEnd = typeof data.plannedEnd === 'string' ? String(data.plannedEnd as unknown as string) : data.plannedEnd;
-  }
-  if (data.plannedDate != null) {
-    data.plannedDate = typeof data.plannedDate === 'string' ? String(data.plannedDate as unknown as string) : data.plannedDate;
-  }
-  return data;
-};
 
 export const getProjectTasksUpdateProjectTaskUrl = (projectIdOrKey: string,
     id: string,) => {

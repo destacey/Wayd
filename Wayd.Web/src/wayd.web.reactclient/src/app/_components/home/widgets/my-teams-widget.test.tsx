@@ -44,6 +44,8 @@ vi.mock('@/src/components/common/planning/active-team-sprint', () => ({
 }))
 
 import { useGetMyTeamsSummaryQuery } from '@/src/store/features/user-management/me-api'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 const mockSummary = useGetMyTeamsSummaryQuery as Mock
 
@@ -75,8 +77,8 @@ describe('daysSince', () => {
     const now = new Date('2026-11-09T12:00:00Z')
 
     // Act / Assert
-    expect(daysSince(new Date('2026-11-06T13:00:00Z'), now)).toBe(2)
-    expect(daysSince(new Date('2026-11-10T00:00:00Z'), now)).toBe(0)
+    expect(daysSince(asInstant('2026-11-06T13:00:00Z'), now)).toBe(2)
+    expect(daysSince(asInstant('2026-11-10T00:00:00Z'), now)).toBe(0)
   })
 })
 
@@ -163,9 +165,12 @@ describe('MyTeamsWidget', () => {
           team('a', {
             methodology: Methodology.Kanban,
             flow: {
-              currentPeriod: { start: '2026-11-02', end: '2026-11-15' },
+              currentPeriod: {
+                start: asCalendarDate('2026-11-02'),
+                end: asCalendarDate('2026-11-15'),
+              },
               inProgressCount: 4,
-              completedSince: '2026-10-27',
+              completedSince: asCalendarDate('2026-10-27'),
               completedCount: 9,
               medianCycleTimeDays: 3.5,
               oldestInProgress: {
@@ -173,7 +178,7 @@ describe('MyTeamsWidget', () => {
                 key: 'WAYD-7',
                 workspaceKey: 'WAYD',
                 title: 'Long-running item',
-                activatedOn: new Date('2026-10-01T00:00:00Z'),
+                activatedOn: asInstant('2026-10-01T00:00:00Z'),
               },
             },
           }),

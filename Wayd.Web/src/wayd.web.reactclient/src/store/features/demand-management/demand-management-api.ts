@@ -1,3 +1,4 @@
+import { toInstant } from '@/src/utils/instant'
 import {
   intakeChannelsArchive,
   intakeChannelsCreate,
@@ -159,7 +160,7 @@ export interface IntakeRequestListArgs {
   closedSince?: string
 }
 
-/** The list's filters in the generated client's argument order. */
+/** The list's filters as the endpoints' query parameters. */
 const listFilters = (
   args: IntakeRequestListArgs | void,
 ): IntakeRequestsGetIntakeRequestsParams => ({
@@ -168,7 +169,9 @@ const listFilters = (
   openOnly: args?.openOnly,
   assignedToMe: args?.assignedToMe,
   participating: args?.participating,
-  closedSince: args?.closedSince ? new Date(args.closedSince) : undefined,
+  closedSince: args?.closedSince
+    ? toInstant(new Date(args.closedSince))
+    : undefined,
 })
 
 export interface IntakeRequestParticipantArgs {

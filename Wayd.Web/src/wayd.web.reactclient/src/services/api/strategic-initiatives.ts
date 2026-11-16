@@ -90,22 +90,8 @@ export const strategicInitiativesGetStrategicInitiatives = async (params?: Strat
 
 
   }
-).then(deserializeStrategicInitiativesGetStrategicInitiativesResponse);}
+);}
 
-
-const deserializeStrategicInitiativesGetStrategicInitiativesResponse = (data: StrategicInitiativeListDto[]): StrategicInitiativeListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.start != null) {
-      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-    }
-    if (item0.end != null) {
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-  }
-  return data;
-};
 
 export const getStrategicInitiativesCreateUrl = () => {
 
@@ -151,19 +137,8 @@ export const strategicInitiativesGetStrategicInitiative = async (idOrKey: string
 
 
   }
-).then(deserializeStrategicInitiativesGetStrategicInitiativeResponse);}
+);}
 
-
-const deserializeStrategicInitiativesGetStrategicInitiativeResponse = (data: StrategicInitiativeDetailsDto): StrategicInitiativeDetailsDto => {
-  if (data == null) return data;
-  if (data.start != null) {
-    data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
-  }
-  if (data.end != null) {
-    data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
-  }
-  return data;
-};
 
 export const getStrategicInitiativesGetActivitiesUrl = (idOrKey: string,
     params?: StrategicInitiativesGetActivitiesParams,) => {
@@ -195,19 +170,8 @@ export const strategicInitiativesGetActivities = async (idOrKey: string,
 
 
   }
-).then(deserializeStrategicInitiativesGetActivitiesResponse);}
+);}
 
-
-const deserializeStrategicInitiativesGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.timestamp = new Date(item0.timestamp);
-    }
-  }
-  return data;
-};
 
 export const getStrategicInitiativesImportUrl = (params?: StrategicInitiativesImportParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -590,17 +554,8 @@ export const strategicInitiativesGetKpiCheckpoints = async (id: string,
 
 
   }
-).then(deserializeStrategicInitiativesGetKpiCheckpointsResponse);}
+);}
 
-
-const deserializeStrategicInitiativesGetKpiCheckpointsResponse = (data: StrategicInitiativeKpiCheckpointDto[]): StrategicInitiativeKpiCheckpointDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.checkpointDate = new Date(item0.checkpointDate);
-  }
-  return data;
-};
 
 export const getStrategicInitiativesGetKpiCheckpointPlanUrl = (id: string,
     kpiId: string,) => {
@@ -625,20 +580,8 @@ export const strategicInitiativesGetKpiCheckpointPlan = async (id: string,
 
 
   }
-).then(deserializeStrategicInitiativesGetKpiCheckpointPlanResponse);}
+);}
 
-
-const deserializeStrategicInitiativesGetKpiCheckpointPlanResponse = (data: StrategicInitiativeKpiCheckpointDetailsDto[]): StrategicInitiativeKpiCheckpointDetailsDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.checkpointDate = new Date(item0.checkpointDate);
-    if (item0.measurement != null) {
-      item0.measurement.measurementDate = new Date(item0.measurement.measurementDate);
-    }
-  }
-  return data;
-};
 
 export const getStrategicInitiativesManageKpiCheckpointPlanUrl = (id: string,
     kpiId: string,) => {
@@ -689,17 +632,8 @@ export const strategicInitiativesGetKpiMeasurements = async (id: string,
 
 
   }
-).then(deserializeStrategicInitiativesGetKpiMeasurementsResponse);}
+);}
 
-
-const deserializeStrategicInitiativesGetKpiMeasurementsResponse = (data: StrategicInitiativeKpiMeasurementDto[]): StrategicInitiativeKpiMeasurementDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.measurementDate = new Date(item0.measurementDate);
-  }
-  return data;
-};
 
 export const getStrategicInitiativesAddKpiMeasurementUrl = (id: string,
     kpiId: string,) => {
@@ -776,39 +710,8 @@ export const strategicInitiativesGetProjects = async (idOrKey: string, options?:
 
 
   }
-).then(deserializeStrategicInitiativesGetProjectsResponse);}
+);}
 
-
-const deserializeStrategicInitiativesGetProjectsResponse = (data: ProjectListDto[]): ProjectListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.start != null) {
-      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-    }
-    if (item0.end != null) {
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-    if (item0.stages != null) {
-      for (let i1 = 0; i1 < item0.stages.length; i1++) {
-        const item1 = item0.stages[i1]!;
-        if (item1.start != null) {
-          item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
-        }
-        if (item1.end != null) {
-          item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
-        }
-      }
-    }
-    if (item0.healthCheck != null) {
-      item0.healthCheck.expiration = new Date(item0.healthCheck.expiration);
-    }
-    if (item0.currentScore != null) {
-      item0.currentScore.scoredOn = new Date(item0.currentScore.scoredOn);
-    }
-  }
-  return data;
-};
 
 export const getStrategicInitiativesManageProjectsUrl = (id: string,) => {
 

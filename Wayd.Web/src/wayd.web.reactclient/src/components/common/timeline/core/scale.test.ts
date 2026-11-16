@@ -1,8 +1,9 @@
 import { createTimeScale } from './scale'
 import dayjs from 'dayjs'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const DAY = 86_400_000
-const start = dayjs('2026-01-01').startOf('day').valueOf()
+const start = dayjs(asCalendarDate('2026-01-01')).startOf('day').valueOf()
 
 describe('createTimeScale — mapping', () => {
   it('maps domain start to x=0 and end to x=width', () => {
@@ -118,7 +119,9 @@ describe('createTimeScale — tiers', () => {
 
   it('clamps the first and last segments to the domain', () => {
     // Arrange — start mid-month so the first month cell is partial.
-    const midMonth = dayjs('2026-01-10').startOf('day').valueOf()
+    const midMonth = dayjs(asCalendarDate('2026-01-10'))
+      .startOf('day')
+      .valueOf()
     const scale = createTimeScale(midMonth, midMonth + 90 * DAY, 1000)
     // Act
     const { upper } = scale.tiers()
@@ -130,7 +133,7 @@ describe('createTimeScale — tiers', () => {
 
 describe('createTimeScale — weekends', () => {
   // 2026-01-05 is a Monday — gives a clean Mon–Sun week to test against.
-  const monday = dayjs('2026-01-05').startOf('day').valueOf()
+  const monday = dayjs(asCalendarDate('2026-01-05')).startOf('day').valueOf()
 
   it('returns Sat and Sun boxes when zoomed in (pxPerDay >= 6)', () => {
     // Arrange — 7-day domain, 70px total (10px/day >= 6 threshold).
@@ -155,7 +158,8 @@ describe('createTimeScale — weekends', () => {
   it('clamps weekend boxes to the domain boundaries', () => {
     // Arrange — domain starts mid-Saturday noon, ends mid-Sunday noon.
     const satNoon =
-      dayjs('2026-01-10').startOf('day').valueOf() + 12 * 3_600_000
+      dayjs(asCalendarDate('2026-01-10')).startOf('day').valueOf() +
+      12 * 3_600_000
     const sunNoon = satNoon + DAY
     const scale = createTimeScale(satNoon, sunNoon, 24 * 10) // 10px/hr
     // Act

@@ -96,37 +96,8 @@ export const discussionsGetEntries = async (channelType: string,
 
 
   }
-).then(deserializeDiscussionsGetEntriesResponse);}
+);}
 
-
-const deserializeDiscussionsGetEntriesResponse = (data: CursorPageOfDiscussionEntryDto): CursorPageOfDiscussionEntryDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.timestamp = new Date(item0.timestamp);
-      if (item0.message != null) {
-        item0.message.postedOn = new Date(item0.message.postedOn);
-        if (item0.message.editedOn != null) {
-          item0.message.editedOn = new Date(item0.message.editedOn);
-        }
-        if (item0.message.deletedOn != null) {
-          item0.message.deletedOn = new Date(item0.message.deletedOn);
-        }
-        if (item0.message.lastReplyOn != null) {
-          item0.message.lastReplyOn = new Date(item0.message.lastReplyOn);
-        }
-        if (item0.message.recordChange != null) {
-          item0.message.recordChange.timestamp = new Date(item0.message.recordChange.timestamp);
-        }
-      }
-      if (item0.activity != null) {
-        item0.activity.timestamp = new Date(item0.activity.timestamp);
-      }
-    }
-  }
-  return data;
-};
 
 export const getDiscussionsPostMessageUrl = (channelType: string,
     ownerId: string,) => {
@@ -180,29 +151,8 @@ export const discussionsGetReplies = async (channelType: string,
 
 
   }
-).then(deserializeDiscussionsGetRepliesResponse);}
+);}
 
-
-const deserializeDiscussionsGetRepliesResponse = (data: DiscussionMessageDto[]): DiscussionMessageDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.postedOn = new Date(item0.postedOn);
-    if (item0.editedOn != null) {
-      item0.editedOn = new Date(item0.editedOn);
-    }
-    if (item0.deletedOn != null) {
-      item0.deletedOn = new Date(item0.deletedOn);
-    }
-    if (item0.lastReplyOn != null) {
-      item0.lastReplyOn = new Date(item0.lastReplyOn);
-    }
-    if (item0.recordChange != null) {
-      item0.recordChange.timestamp = new Date(item0.recordChange.timestamp);
-    }
-  }
-  return data;
-};
 
 export const getDiscussionsReplyUrl = (channelType: string,
     ownerId: string,
@@ -315,17 +265,8 @@ export const discussionsGetRevisions = async (channelType: string,
 
 
   }
-).then(deserializeDiscussionsGetRevisionsResponse);}
+);}
 
-
-const deserializeDiscussionsGetRevisionsResponse = (data: DiscussionMessageRevisionDto[]): DiscussionMessageRevisionDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.replacedOn = new Date(item0.replacedOn);
-  }
-  return data;
-};
 
 export const getDiscussionsLockUrl = (channelType: string,
     ownerId: string,) => {

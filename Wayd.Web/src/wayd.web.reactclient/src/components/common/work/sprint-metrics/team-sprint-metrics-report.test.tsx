@@ -9,6 +9,7 @@ import {
   TeamSprintMetricsReportView,
   TeamSprintMetricsReportViewProps,
 } from './team-sprint-metrics-report'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('next/link', () => {
   const MockLink = ({ href, children }: any) => <a href={href}>{children}</a>
@@ -27,8 +28,8 @@ const sprint = (
   id: `sprint-${key}`,
   key,
   name: `Sprint ${key}`,
-  start: '2026-06-01',
-  end: '2026-06-14',
+  start: asCalendarDate('2026-06-01'),
+  end: asCalendarDate('2026-06-14'),
   sizingMethod: SizingMethod.StoryPoints,
   inEstimateAverages: true,
   byCount: { velocity: 4, predictability: 0.8, sayDo: 0.6 },
@@ -164,8 +165,8 @@ describe('TeamSprintMetricsReportView', () => {
             id: 'sprint-9',
             key: 9,
             name: 'IP Sprint',
-            start: '2026-06-15',
-            end: '2026-06-28',
+            start: asCalendarDate('2026-06-15'),
+            end: asCalendarDate('2026-06-28'),
             reason: SprintMetricsExclusion.NonStandard,
           },
         ],
@@ -267,8 +268,8 @@ describe('TeamSprintMetricsReportView', () => {
             id: 'sprint-1',
             key: 1,
             name: 'Sprint 1',
-            start: '2026-06-01',
-            end: '2026-06-14',
+            start: asCalendarDate('2026-06-01'),
+            end: asCalendarDate('2026-06-14'),
             reason: SprintMetricsExclusion.HistoryIncomplete,
           },
         ],

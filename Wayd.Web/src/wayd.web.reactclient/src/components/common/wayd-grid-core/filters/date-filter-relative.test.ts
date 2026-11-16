@@ -5,10 +5,11 @@ import {
   buildRelativeDateFilter,
 } from './date-filter-relative'
 import type { DateCondition } from './filter-model'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // Fixed reference: Wednesday, 2026-06-17. dayjs weeks start Sunday by default,
 // so "this week" is Sun 2026-06-14 … Sat 2026-06-20. Q2 is Apr 1 … Jun 30.
-const REF = dayjs('2026-06-17')
+const REF = dayjs(asCalendarDate('2026-06-17'))
 
 const conditionOf = (period: Parameters<typeof buildRelativeDateFilter>[0]) => {
   const model = buildRelativeDateFilter(period, REF)

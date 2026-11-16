@@ -1,4 +1,5 @@
 import { formatTimeAgo } from './time-ago'
+import { asInstant } from '@/src/utils/instant'
 
 const now = new Date('2026-10-24T12:00:00Z')
 const ago = (seconds: number) => new Date(now.getTime() - seconds * 1000)
@@ -21,6 +22,8 @@ describe('formatTimeAgo', () => {
 
   it('accepts the ISO string an API response actually carries', () => {
     // Act & Assert
-    expect(formatTimeAgo('2026-10-24T10:00:00Z', now)).toBe('2 hours ago')
+    expect(formatTimeAgo(asInstant('2026-10-24T10:00:00Z'), now)).toBe(
+      '2 hours ago',
+    )
   })
 })

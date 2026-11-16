@@ -14,13 +14,17 @@ import {
   WorkDistributionReportView,
   WorkDistributionSettings,
 } from './work-distribution-report'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('@/src/store/features/organizations/team-api', () => ({
   useGetTeamWorkDistributionQuery: vi.fn(),
 }))
 
 const settings: WorkDistributionSettings = {
-  range: [dayjs('2026-07-01'), dayjs('2026-09-28')],
+  range: [
+    dayjs(asCalendarDate('2026-07-01')),
+    dayjs(asCalendarDate('2026-09-28')),
+  ],
   dimension: WorkDistributionDimension.Portfolio,
   measure: WorkDistributionMeasure.Count,
   unestimated: UnestimatedHandling.Exclude,
@@ -92,8 +96,12 @@ const createWorkDistribution = (): TeamWorkDistributionDto =>
 
 describe('WorkDistributionReport', () => {
   it.each([
-    ['Pacific/Kiritimati', '2026-06-25', '2026-09-22'],
-    ['Etc/GMT+12', '2026-06-23', '2026-09-20'],
+    [
+      'Pacific/Kiritimati',
+      asCalendarDate('2026-06-25'),
+      asCalendarDate('2026-09-22'),
+    ],
+    ['Etc/GMT+12', asCalendarDate('2026-06-23'), asCalendarDate('2026-09-20')],
   ])(
     'ends the default range on yesterday in the team time zone %s',
     (timeZone, from, to) => {

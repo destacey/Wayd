@@ -31,6 +31,7 @@ import {
   useGetPlanningIntervalIterationMetricsQuery,
 } from '@/src/store/features/planning/planning-interval-api'
 import IterationsCards from './iteration-cards'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const mockQuery = useGetPlanningIntervalIterationsQuery as unknown as Mock
 const mockMetricsQuery =
@@ -104,22 +105,22 @@ describe('IterationCards', () => {
         mkIteration({
           key: 3,
           name: '24.2.3',
-          start: '2024-06-10',
-          end: '2024-06-23',
+          start: asCalendarDate('2024-06-10'),
+          end: asCalendarDate('2024-06-23'),
           state: 'Active',
         }),
         mkIteration({
           key: 1,
           name: '24.2.1',
-          start: '2024-05-13',
-          end: '2024-05-26',
+          start: asCalendarDate('2024-05-13'),
+          end: asCalendarDate('2024-05-26'),
           state: 'Completed',
         }),
         mkIteration({
           key: 2,
           name: '24.2.2',
-          start: '2024-05-27',
-          end: '2024-06-09',
+          start: asCalendarDate('2024-05-27'),
+          end: asCalendarDate('2024-06-09'),
           state: 'Completed',
         }),
       ],
@@ -137,15 +138,17 @@ describe('IterationCards', () => {
   })
 
   it('shows "Day X/Y" progress for the active iteration', () => {
-    vi.useFakeTimers().setSystemTime(localDate('2024-06-16').getTime())
+    vi.useFakeTimers().setSystemTime(
+      localDate(asCalendarDate('2024-06-16')).getTime(),
+    )
 
     mockQuery.mockReturnValue({
       data: [
         mkIteration({
           key: 3,
           name: '24.2.3',
-          start: '2024-06-10',
-          end: '2024-06-23',
+          start: asCalendarDate('2024-06-10'),
+          end: asCalendarDate('2024-06-23'),
           state: 'Active',
         }),
       ],
@@ -166,8 +169,8 @@ describe('IterationCards', () => {
         mkIteration({
           key: 1,
           name: '24.2.1',
-          start: '2024-05-13',
-          end: '2024-05-26',
+          start: asCalendarDate('2024-05-13'),
+          end: asCalendarDate('2024-05-26'),
           state: 'Completed',
         }),
       ],
@@ -180,15 +183,17 @@ describe('IterationCards', () => {
   })
 
   it('clamps the active day to the iteration bounds when the system clock is past the end', () => {
-    vi.useFakeTimers().setSystemTime(localDate('2025-01-01').getTime())
+    vi.useFakeTimers().setSystemTime(
+      localDate(asCalendarDate('2025-01-01')).getTime(),
+    )
 
     mockQuery.mockReturnValue({
       data: [
         mkIteration({
           key: 3,
           name: '24.2.3',
-          start: '2024-06-10',
-          end: '2024-06-23',
+          start: asCalendarDate('2024-06-10'),
+          end: asCalendarDate('2024-06-23'),
           state: 'Active',
         }),
       ],
@@ -208,8 +213,8 @@ describe('IterationCards', () => {
         mkIteration({
           key: 6,
           name: '24.2.6',
-          start: '2024-07-22',
-          end: '2024-08-04',
+          start: asCalendarDate('2024-07-22'),
+          end: asCalendarDate('2024-08-04'),
           state: 'Future',
           categoryName: 'Innovation & Planning',
         }),
@@ -233,8 +238,8 @@ describe('IterationCards', () => {
           mkIteration({
             key: 6,
             name: '24.2.6',
-            start: '2024-07-22',
-            end: '2024-08-04',
+            start: asCalendarDate('2024-07-22'),
+            end: asCalendarDate('2024-08-04'),
             state: 'Future',
             categoryName,
           }),
@@ -259,8 +264,8 @@ describe('IterationCards', () => {
         mkIteration({
           key: 1,
           name: '24.2.1',
-          start: '2024-05-13',
-          end: '2024-05-26',
+          start: asCalendarDate('2024-05-13'),
+          end: asCalendarDate('2024-05-26'),
           state: 'Future',
           categoryName: 'Development',
         }),
@@ -278,14 +283,16 @@ describe('IterationCards', () => {
 
   describe('health flag', () => {
     const setupActive = () => {
-      vi.useFakeTimers().setSystemTime(localDate('2024-06-16').getTime())
+      vi.useFakeTimers().setSystemTime(
+        localDate(asCalendarDate('2024-06-16')).getTime(),
+      )
       mockQuery.mockReturnValue({
         data: [
           mkIteration({
             key: 3,
             name: '24.2.3',
-            start: '2024-06-10',
-            end: '2024-06-23',
+            start: asCalendarDate('2024-06-10'),
+            end: asCalendarDate('2024-06-23'),
             state: 'Active',
           }),
         ],
@@ -308,8 +315,8 @@ describe('IterationCards', () => {
           mkIteration({
             key: 1,
             name: '24.2.1',
-            start: '2024-05-13',
-            end: '2024-05-26',
+            start: asCalendarDate('2024-05-13'),
+            end: asCalendarDate('2024-05-26'),
             state: 'Completed',
           }),
         ],

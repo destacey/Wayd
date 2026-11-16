@@ -7,6 +7,8 @@ import {
 import ComparePayloadModal, {
   computePayloadDiff,
 } from './compare-payload-modal'
+import { asInstant } from '@/src/utils/instant'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const mockSuccess = vi.fn()
 vi.mock(import('antd'), async (importOriginal) => {
@@ -46,7 +48,7 @@ const createActivity = (
   aggregateType: 'Team',
   aggregateId: '22222222-2222-2222-2222-222222222222',
   actorKind: EventActorKind.User,
-  timestamp: new Date('2026-04-01T10:00:00Z'),
+  timestamp: asInstant('2026-04-01T10:00:00Z'),
   eventVersion: '1.0',
   payload: JSON.stringify({
     name: 'New Core Team',
@@ -95,14 +97,14 @@ describe('computePayloadDiff helper', () => {
       id: 'uuid-1',
       eventId: 'evt-1',
       actor: { kind: 'user' },
-      timestamp: '2026-01-01',
+      timestamp: asCalendarDate('2026-01-01'),
     }
     const curr = {
       name: 'Team B',
       id: 'uuid-1',
       eventId: 'evt-2',
       actor: { kind: 'user' },
-      timestamp: '2026-01-02',
+      timestamp: asCalendarDate('2026-01-02'),
     }
 
     const diffNoMeta = computePayloadDiff(prev, curr, false)
@@ -118,7 +120,7 @@ describe('ComparePayloadModal component', () => {
     id: 2,
     eventType: 'TeamUpdatedEvent',
     summary: 'Team Updated',
-    timestamp: new Date('2026-04-01T09:00:00Z'),
+    timestamp: asInstant('2026-04-01T09:00:00Z'),
     payload: JSON.stringify({
       name: 'Old Core Team',
       code: 'CORE',
@@ -130,7 +132,7 @@ describe('ComparePayloadModal component', () => {
     id: 3,
     eventType: 'TeamUpdatedEvent',
     summary: 'Team Updated',
-    timestamp: new Date('2026-04-01T10:00:00Z'),
+    timestamp: asInstant('2026-04-01T10:00:00Z'),
     payload: JSON.stringify({
       name: 'New Core Team',
       code: 'CORE',
@@ -160,13 +162,13 @@ describe('ComparePayloadModal component', () => {
       id: 4,
       eventType: 'TeamDeactivatedEvent',
       summary: 'Team Deactivated',
-      timestamp: new Date('2026-04-01T09:30:00Z'),
+      timestamp: asInstant('2026-04-01T09:30:00Z'),
       payload: JSON.stringify({ name: 'Deactivated Payload' }),
     })
     const oldest = createActivity({
       id: 5,
       eventType: 'TeamUpdatedEvent',
-      timestamp: new Date('2026-04-01T08:00:00Z'),
+      timestamp: asInstant('2026-04-01T08:00:00Z'),
       payload: JSON.stringify({ name: 'Oldest Core Team' }),
     })
 
@@ -193,7 +195,7 @@ describe('ComparePayloadModal component', () => {
       eventType: 'TeamUpdatedEvent',
       aggregateId: '33333333-3333-3333-3333-333333333333',
       isRelated: true,
-      timestamp: new Date('2026-04-01T09:30:00Z'),
+      timestamp: asInstant('2026-04-01T09:30:00Z'),
       payload: JSON.stringify({ name: 'Another Record Payload' }),
     })
 
@@ -218,13 +220,13 @@ describe('ComparePayloadModal component', () => {
     const v1 = createActivity({
       id: 7,
       eventType: 'TeamReparentedEvent',
-      timestamp: new Date('2026-04-01T09:00:00Z'),
+      timestamp: asInstant('2026-04-01T09:00:00Z'),
     })
     const v2 = createActivity({
       id: 8,
       eventType: 'TeamReparentedEventV2',
       eventVersion: '2.0',
-      timestamp: new Date('2026-04-01T10:00:00Z'),
+      timestamp: asInstant('2026-04-01T10:00:00Z'),
     })
 
     render(

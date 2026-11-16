@@ -8,6 +8,7 @@ import {
   isApiResponseError,
   logoutApiFetch,
 } from './api-fetch'
+import { asInstant } from '@/src/utils/instant'
 
 vi.mock(import('@/src/utils/window-utils'), async (importOriginal) => ({
   ...(await importOriginal()),
@@ -23,7 +24,7 @@ const json = (body: unknown, status = 200, headers: HeadersInit = {}) =>
 const refreshed = {
   token: 'new-token',
   refreshToken: 'new-refresh-token',
-  tokenExpiresAt: '2099-01-01T00:00:00.000Z',
+  tokenExpiresAt: asInstant('2099-01-01T00:00:00.000Z'),
   mustChangePassword: false,
 }
 

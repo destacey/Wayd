@@ -2,6 +2,7 @@ import { deliveryMetricsGetDeliveryMetrics } from '@/src/services/api/delivery-m
 import { apiSlice } from '../apiSlice'
 import { DeliveryMetricsDto } from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
+import { toInstant } from '@/src/utils/instant'
 
 /**
  * ISO-8601 strings rather than `Date`s: query arguments end up in the Redux store as the cache key,
@@ -29,8 +30,8 @@ export const deliveryMetricsApi = apiSlice.injectEndpoints({
       queryFn: async (request) => {
         try {
           const data = await deliveryMetricsGetDeliveryMetrics({
-            from: new Date(request.from),
-            to: new Date(request.to),
+            from: toInstant(new Date(request.from)),
+            to: toInstant(new Date(request.to)),
             productId: request.productId,
           })
           return { data }

@@ -33,6 +33,7 @@ import {
   SprintType,
   SprintTypeSource,
 } from '@/src/services/api/wayd.schemas'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 describe('SprintsGrid', () => {
   const mockRefetch = vi.fn()
@@ -43,8 +44,8 @@ describe('SprintsGrid', () => {
       key: 101,
       name: 'Sprint 1',
       state: { id: 1, name: 'Active' },
-      start: '2025-01-01',
-      end: '2025-01-15',
+      start: asCalendarDate('2025-01-01'),
+      end: asCalendarDate('2025-01-15'),
       team: { id: '1', key: 1, name: 'Team Alpha', code: 'TA', type: 'Team' },
       sprintType: SprintType.Standard,
       sprintTypeSource: SprintTypeSource.Default,
@@ -54,8 +55,8 @@ describe('SprintsGrid', () => {
       key: 102,
       name: 'Sprint 2',
       state: { id: 2, name: 'Planned' },
-      start: '2025-01-16',
-      end: '2025-01-30',
+      start: asCalendarDate('2025-01-16'),
+      end: asCalendarDate('2025-01-30'),
       team: { id: '2', key: 2, name: 'Team Beta', code: 'TB', type: 'Team' },
       sprintType: SprintType.Standard,
       sprintTypeSource: SprintTypeSource.Default,

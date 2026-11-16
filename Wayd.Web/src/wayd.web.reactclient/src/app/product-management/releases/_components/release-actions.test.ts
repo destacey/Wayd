@@ -7,6 +7,8 @@ import {
   outstandingContents,
   releaseActionAvailability,
 } from './release-actions'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 const release = (overrides: Partial<ReleaseDto> = {}): ReleaseDto =>
   ({
@@ -29,7 +31,7 @@ const planned = () => release()
 
 const announced = () =>
   release({
-    releasedDate: '2026-07-31',
+    releasedDate: asCalendarDate('2026-07-31'),
     status: {
       id: 's',
       name: 'Released',
@@ -171,8 +173,8 @@ describe('outstandingContents', () => {
   it('finds nothing when every entry has shipped', () => {
     // Arrange
     const sut = release({
-      versions: [carriedVersion('2026-04-05T12:00:00Z')],
-      packages: [shippedPackage('2026-04-01T12:00:00Z')],
+      versions: [carriedVersion(asInstant('2026-04-05T12:00:00Z'))],
+      packages: [shippedPackage(asInstant('2026-04-01T12:00:00Z'))],
     } as Partial<ReleaseDto>)
 
     // Act
@@ -185,7 +187,10 @@ describe('outstandingContents', () => {
   it('names the entries that have not shipped, by route', () => {
     // Arrange
     const sut = release({
-      versions: [carriedVersion(), carriedVersion('2026-04-05T12:00:00Z')],
+      versions: [
+        carriedVersion(),
+        carriedVersion(asInstant('2026-04-05T12:00:00Z')),
+      ],
       packages: [shippedPackage()],
     } as Partial<ReleaseDto>)
 

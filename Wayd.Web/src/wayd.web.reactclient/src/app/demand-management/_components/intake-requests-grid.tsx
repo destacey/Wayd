@@ -1,5 +1,6 @@
 'use client'
 
+import { type CalendarDate } from '@/src/utils/calendar-date'
 import { NOT_RECORDED_CHANNEL_LABEL } from './channel'
 import { WaydGrid, createCsvColumn } from '@/src/components/common/wayd-grid'
 import type {
@@ -260,7 +261,9 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       meta: {
         filterType: 'date',
         exportFormatter: (value: unknown) =>
-          typeof value === 'string' ? formatCalendarDate(value) : '',
+          typeof value === 'string'
+            ? formatCalendarDate(value as CalendarDate)
+            : '',
       },
     },
     {

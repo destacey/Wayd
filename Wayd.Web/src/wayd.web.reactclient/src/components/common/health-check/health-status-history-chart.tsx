@@ -1,5 +1,6 @@
 'use client'
 
+import type { Instant } from '@/src/utils/instant'
 import { ChartCard } from '../metrics'
 import dayjs from 'dayjs'
 import useTheme from '../../contexts/theme'
@@ -7,7 +8,7 @@ import WaydEmpty from '../wayd-empty'
 import { Line } from '@/src/components/common/charts'
 
 export interface HealthStatusHistoryItem {
-  reportedOn: Date
+  reportedOn: Date | Instant
   status?: { name: string } | null
 }
 

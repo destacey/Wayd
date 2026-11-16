@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { UserDetailsDto } from '@/src/services/api/wayd.schemas'
 import UserOverview from './user-overview'
+import { toInstant } from '@/src/utils/instant'
 
 vi.mock('next/link', () => {
   const MockLink = ({ href, children }: any) => <a href={href}>{children}</a>
@@ -78,7 +79,7 @@ describe('UserOverview', () => {
       // Arrange — a locked account is the first thing an admin needs to see,
       // so it is an alert at the top of the card rather than a tag among the
       // fields.
-      const future = new Date(Date.now() + 60 * 60 * 1000)
+      const future = toInstant(new Date(Date.now() + 60 * 60 * 1000))
 
       // Act
       render(<UserOverview user={user({ lockoutEnd: future })} />)
@@ -89,7 +90,7 @@ describe('UserOverview', () => {
 
     it('ignores a lockout that has expired', () => {
       // Arrange — a past lockoutEnd means the account is no longer locked
-      const past = new Date(Date.now() - 60 * 60 * 1000)
+      const past = toInstant(new Date(Date.now() - 60 * 60 * 1000))
 
       // Act
       render(<UserOverview user={user({ lockoutEnd: past })} />)

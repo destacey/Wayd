@@ -5,6 +5,7 @@ import {
   StatusCategory,
 } from '@/src/services/api/wayd.schemas'
 import { deploymentActionAvailability } from './deployment-actions'
+import { asInstant } from '@/src/utils/instant'
 
 const deployment = (overrides: Partial<DeploymentDto> = {}): DeploymentDto =>
   ({
@@ -13,7 +14,7 @@ const deployment = (overrides: Partial<DeploymentDto> = {}): DeploymentDto =>
     release: { id: 'r', key: 2, name: '1.0' },
     environment: { id: 'e', key: 3, name: 'Production' },
     environmentCategory: EnvironmentCategory.Production,
-    startedAt: new Date('2026-04-01T10:00:00Z'),
+    startedAt: asInstant('2026-04-01T10:00:00Z'),
     status: {
       id: 's',
       name: 'In Progress',
@@ -31,7 +32,7 @@ const inFlight = () => deployment()
 
 const succeeded = () =>
   deployment({
-    completedAt: new Date('2026-04-01T10:30:00Z'),
+    completedAt: asInstant('2026-04-01T10:30:00Z'),
     status: {
       id: 's',
       name: 'Succeeded',
@@ -45,7 +46,7 @@ const succeeded = () =>
 
 const failed = () =>
   deployment({
-    completedAt: new Date('2026-04-01T10:30:00Z'),
+    completedAt: asInstant('2026-04-01T10:30:00Z'),
     status: {
       id: 's',
       name: 'Failed',
@@ -60,7 +61,7 @@ const failed = () =>
 
 const rolledBack = () =>
   deployment({
-    completedAt: new Date('2026-04-01T10:30:00Z'),
+    completedAt: asInstant('2026-04-01T10:30:00Z'),
     status: {
       id: 's',
       name: 'Rolled Back',
@@ -116,7 +117,7 @@ describe('deploymentActionAvailability', () => {
     // The DTO's isComplete is the server's own answer and is what the guard must read: deriving
     // completeness from the date here would let the UI and the aggregate disagree.
     const disagreeing = deployment({
-      completedAt: new Date('2026-04-01T10:30:00Z'),
+      completedAt: asInstant('2026-04-01T10:30:00Z'),
       isComplete: false,
     })
 

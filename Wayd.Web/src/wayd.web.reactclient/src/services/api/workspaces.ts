@@ -144,23 +144,8 @@ export const workspacesGetWorkItems = async (idOrKey: string, options?: Paramete
 
 
   }
-).then(deserializeWorkspacesGetWorkItemsResponse);}
+);}
 
-
-const deserializeWorkspacesGetWorkItemsResponse = (data: WorkItemListDto[]): WorkItemListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.created = new Date(item0.created);
-    if (item0.activated != null) {
-      item0.activated = new Date(item0.activated);
-    }
-    if (item0.done != null) {
-      item0.done = new Date(item0.done);
-    }
-  }
-  return data;
-};
 
 export const getWorkspacesGetWorkItemUrl = (idOrKey: string,
     workItemKey: string,) => {
@@ -185,21 +170,8 @@ export const workspacesGetWorkItem = async (idOrKey: string,
 
 
   }
-).then(deserializeWorkspacesGetWorkItemResponse);}
+);}
 
-
-const deserializeWorkspacesGetWorkItemResponse = (data: WorkItemDetailsDto): WorkItemDetailsDto => {
-  if (data == null) return data;
-  data.created = new Date(data.created);
-  data.lastModified = new Date(data.lastModified);
-  if (data.activatedTimestamp != null) {
-    data.activatedTimestamp = new Date(data.activatedTimestamp);
-  }
-  if (data.doneTimestamp != null) {
-    data.doneTimestamp = new Date(data.doneTimestamp);
-  }
-  return data;
-};
 
 export const getWorkspacesGetWorkItemProjectInfoUrl = (idOrKey: string,
     workItemKey: string,) => {
@@ -277,23 +249,8 @@ export const workspacesGetChildWorkItems = async (idOrKey: string,
 
 
   }
-).then(deserializeWorkspacesGetChildWorkItemsResponse);}
+);}
 
-
-const deserializeWorkspacesGetChildWorkItemsResponse = (data: WorkItemListDto[]): WorkItemListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.created = new Date(item0.created);
-    if (item0.activated != null) {
-      item0.activated = new Date(item0.activated);
-    }
-    if (item0.done != null) {
-      item0.done = new Date(item0.done);
-    }
-  }
-  return data;
-};
 
 export const getWorkspacesGetWorkItemDependenciesUrl = (idOrKey: string,
     workItemKey: string,) => {
@@ -318,25 +275,8 @@ export const workspacesGetWorkItemDependencies = async (idOrKey: string,
 
 
   }
-).then(deserializeWorkspacesGetWorkItemDependenciesResponse);}
+);}
 
-
-const deserializeWorkspacesGetWorkItemDependenciesResponse = (data: ScopedDependencyDto[]): ScopedDependencyDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.dependency != null) {
-      if (item0.dependency.activatedTimestamp != null) {
-        item0.dependency.activatedTimestamp = new Date(item0.dependency.activatedTimestamp);
-      }
-      if (item0.dependency.doneTimestamp != null) {
-        item0.dependency.doneTimestamp = new Date(item0.dependency.doneTimestamp);
-      }
-    }
-    item0.createdOn = new Date(item0.createdOn);
-  }
-  return data;
-};
 
 export const getWorkspacesGetWorkItemForecastUrl = (idOrKey: string,
     workItemKey: string,
@@ -370,38 +310,8 @@ export const workspacesGetWorkItemForecast = async (idOrKey: string,
 
 
   }
-).then(deserializeWorkspacesGetWorkItemForecastResponse);}
+);}
 
-
-const deserializeWorkspacesGetWorkItemForecastResponse = (data: WorkItemForecastDto): WorkItemForecastDto => {
-  if (data == null) return data;
-  data.forecastStart = typeof data.forecastStart === 'string' ? String(data.forecastStart as unknown as string) : data.forecastStart;
-  if (data.teams != null) {
-    for (let i0 = 0; i0 < data.teams.length; i0++) {
-      const item0 = data.teams[i0]!;
-      item0.from = typeof item0.from === 'string' ? String(item0.from as unknown as string) : item0.from;
-      item0.to = typeof item0.to === 'string' ? String(item0.to as unknown as string) : item0.to;
-    }
-  }
-  if (data.targetDate != null) {
-    data.targetDate = typeof data.targetDate === 'string' ? String(data.targetDate as unknown as string) : data.targetDate;
-  }
-  if (data.percentiles != null) {
-    for (let i0 = 0; i0 < data.percentiles.length; i0++) {
-      const item0 = data.percentiles[i0]!;
-      if (item0.date != null) {
-        item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
-      }
-    }
-  }
-  if (data.histogram != null) {
-    for (let i0 = 0; i0 < data.histogram.length; i0++) {
-      const item0 = data.histogram[i0]!;
-      item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
-    }
-  }
-  return data;
-};
 
 export const getWorkspacesGetMetricsUrl = (idOrKey: string,
     workItemKey: string,) => {
@@ -426,17 +336,8 @@ export const workspacesGetMetrics = async (idOrKey: string,
 
 
   }
-).then(deserializeWorkspacesGetMetricsResponse);}
+);}
 
-
-const deserializeWorkspacesGetMetricsResponse = (data: WorkItemProgressDailyRollupDto[]): WorkItemProgressDailyRollupDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
-  }
-  return data;
-};
 
 export const getWorkspacesSearchWorkItemsUrl = (params?: WorkspacesSearchWorkItemsParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -466,21 +367,6 @@ export const workspacesSearchWorkItems = async (params?: WorkspacesSearchWorkIte
 
 
   }
-).then(deserializeWorkspacesSearchWorkItemsResponse);}
+);}
 
-
-const deserializeWorkspacesSearchWorkItemsResponse = (data: WorkItemListDto[]): WorkItemListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.created = new Date(item0.created);
-    if (item0.activated != null) {
-      item0.activated = new Date(item0.activated);
-    }
-    if (item0.done != null) {
-      item0.done = new Date(item0.done);
-    }
-  }
-  return data;
-};
 

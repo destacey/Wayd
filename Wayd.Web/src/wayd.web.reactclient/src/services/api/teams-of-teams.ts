@@ -145,17 +145,8 @@ export const teamsOfTeamsGetById = async (id: number, options?: Parameters<typeo
 
 
   }
-).then(deserializeTeamsOfTeamsGetByIdResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetByIdResponse = (data: TeamOfTeamsDetailsDto): TeamOfTeamsDetailsDto => {
-  if (data == null) return data;
-  data.activeDate = typeof data.activeDate === 'string' ? String(data.activeDate as unknown as string) : data.activeDate;
-  if (data.inactiveDate != null) {
-    data.inactiveDate = typeof data.inactiveDate === 'string' ? String(data.inactiveDate as unknown as string) : data.inactiveDate;
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsUpdateUrl = (id: string,) => {
 
@@ -212,19 +203,8 @@ export const teamsOfTeamsGetActivities = async (idOrKey: string,
 
 
   }
-).then(deserializeTeamsOfTeamsGetActivitiesResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.timestamp = new Date(item0.timestamp);
-    }
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsGetWorkDistributionUrl = (idOrCode: string,
     params?: TeamsOfTeamsGetWorkDistributionParams,) => {
@@ -256,22 +236,8 @@ export const teamsOfTeamsGetWorkDistribution = async (idOrCode: string,
 
 
   }
-).then(deserializeTeamsOfTeamsGetWorkDistributionResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetWorkDistributionResponse = (data: TeamWorkDistributionDto): TeamWorkDistributionDto => {
-  if (data == null) return data;
-  data.from = typeof data.from === 'string' ? String(data.from as unknown as string) : data.from;
-  data.to = typeof data.to === 'string' ? String(data.to as unknown as string) : data.to;
-  if (data.periods != null) {
-    for (let i0 = 0; i0 < data.periods.length; i0++) {
-      const item0 = data.periods[i0]!;
-      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsGetDependencyAnalysisUrl = (idOrCode: string,
     params?: TeamsOfTeamsGetDependencyAnalysisParams,) => {
@@ -303,44 +269,8 @@ export const teamsOfTeamsGetDependencyAnalysis = async (idOrCode: string,
 
 
   }
-).then(deserializeTeamsOfTeamsGetDependencyAnalysisResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetDependencyAnalysisResponse = (data: TeamDependencyAnalysisDto): TeamDependencyAnalysisDto => {
-  if (data == null) return data;
-  data.from = typeof data.from === 'string' ? String(data.from as unknown as string) : data.from;
-  data.to = typeof data.to === 'string' ? String(data.to as unknown as string) : data.to;
-  if (data.periods != null) {
-    for (let i0 = 0; i0 < data.periods.length; i0++) {
-      const item0 = data.periods[i0]!;
-      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-  }
-  if (data.dependencies != null) {
-    for (let i0 = 0; i0 < data.dependencies.length; i0++) {
-      const item0 = data.dependencies[i0]!;
-      if (item0.source != null) {
-        if (item0.source.activatedTimestamp != null) {
-          item0.source.activatedTimestamp = new Date(item0.source.activatedTimestamp);
-        }
-        if (item0.source.doneTimestamp != null) {
-          item0.source.doneTimestamp = new Date(item0.source.doneTimestamp);
-        }
-      }
-      if (item0.target != null) {
-        if (item0.target.activatedTimestamp != null) {
-          item0.target.activatedTimestamp = new Date(item0.target.activatedTimestamp);
-        }
-        if (item0.target.doneTimestamp != null) {
-          item0.target.doneTimestamp = new Date(item0.target.doneTimestamp);
-        }
-      }
-      item0.createdOn = new Date(item0.createdOn);
-    }
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsGetDependenciesUrl = (id: string,) => {
 
@@ -363,33 +293,8 @@ export const teamsOfTeamsGetDependencies = async (id: string, options?: Paramete
 
 
   }
-).then(deserializeTeamsOfTeamsGetDependenciesResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetDependenciesResponse = (data: DependencyDto[]): DependencyDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.source != null) {
-      if (item0.source.activatedTimestamp != null) {
-        item0.source.activatedTimestamp = new Date(item0.source.activatedTimestamp);
-      }
-      if (item0.source.doneTimestamp != null) {
-        item0.source.doneTimestamp = new Date(item0.source.doneTimestamp);
-      }
-    }
-    if (item0.target != null) {
-      if (item0.target.activatedTimestamp != null) {
-        item0.target.activatedTimestamp = new Date(item0.target.activatedTimestamp);
-      }
-      if (item0.target.doneTimestamp != null) {
-        item0.target.doneTimestamp = new Date(item0.target.doneTimestamp);
-      }
-    }
-    item0.createdOn = new Date(item0.createdOn);
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsGetCapacityUrl = (id: string,
     params?: TeamsOfTeamsGetCapacityParams,) => {
@@ -421,45 +326,8 @@ export const teamsOfTeamsGetCapacity = async (id: string,
 
 
   }
-).then(deserializeTeamsOfTeamsGetCapacityResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetCapacityResponse = (data: TeamCapacityDto): TeamCapacityDto => {
-  if (data == null) return data;
-  data.from = typeof data.from === 'string' ? String(data.from as unknown as string) : data.from;
-  data.to = typeof data.to === 'string' ? String(data.to as unknown as string) : data.to;
-  if (data.people != null) {
-    for (let i0 = 0; i0 < data.people.length; i0++) {
-      const item0 = data.people[i0]!;
-      if (item0.timeAway != null) {
-        for (let i1 = 0; i1 < item0.timeAway.length; i1++) {
-          const item1 = item0.timeAway[i1]!;
-          item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
-          item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
-        }
-      }
-      if (item0.allocations != null) {
-        for (let i1 = 0; i1 < item0.allocations.length; i1++) {
-          const item1 = item0.allocations[i1]!;
-          item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
-          if (item1.end != null) {
-            item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
-          }
-        }
-      }
-      if (item0.elsewhereAllocations != null) {
-        for (let i1 = 0; i1 < item0.elsewhereAllocations.length; i1++) {
-          const item1 = item0.elsewhereAllocations[i1]!;
-          item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
-          if (item1.end != null) {
-            item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
-          }
-        }
-      }
-    }
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsGetCapacityRollupUrl = (id: string,
     params?: TeamsOfTeamsGetCapacityRollupParams,) => {
@@ -491,15 +359,8 @@ export const teamsOfTeamsGetCapacityRollup = async (id: string,
 
 
   }
-).then(deserializeTeamsOfTeamsGetCapacityRollupResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetCapacityRollupResponse = (data: TeamCapacityRollupDto): TeamCapacityRollupDto => {
-  if (data == null) return data;
-  data.from = typeof data.from === 'string' ? String(data.from as unknown as string) : data.from;
-  data.to = typeof data.to === 'string' ? String(data.to as unknown as string) : data.to;
-  return data;
-};
 
 export const getTeamsOfTeamsGetCapacityReportUrl = (id: string,
     params?: TeamsOfTeamsGetCapacityReportParams,) => {
@@ -531,34 +392,8 @@ export const teamsOfTeamsGetCapacityReport = async (id: string,
 
 
   }
-).then(deserializeTeamsOfTeamsGetCapacityReportResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetCapacityReportResponse = (data: TeamCapacityReportDto): TeamCapacityReportDto => {
-  if (data == null) return data;
-  data.from = typeof data.from === 'string' ? String(data.from as unknown as string) : data.from;
-  data.to = typeof data.to === 'string' ? String(data.to as unknown as string) : data.to;
-  if (data.buckets != null) {
-    for (let i0 = 0; i0 < data.buckets.length; i0++) {
-      const item0 = data.buckets[i0]!;
-      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-  }
-  if (data.teams != null) {
-    for (let i0 = 0; i0 < data.teams.length; i0++) {
-      const item0 = data.teams[i0]!;
-      if (item0.periods != null) {
-        for (let i1 = 0; i1 < item0.periods.length; i1++) {
-          const item1 = item0.periods[i1]!;
-          item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
-          item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
-        }
-      }
-    }
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsGetCapacityPlanUrl = (id: string,
     params?: TeamsOfTeamsGetCapacityPlanParams,) => {
@@ -590,84 +425,8 @@ export const teamsOfTeamsGetCapacityPlan = async (id: string,
 
 
   }
-).then(deserializeTeamsOfTeamsGetCapacityPlanResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetCapacityPlanResponse = (data: TeamCapacityPlanDto): TeamCapacityPlanDto => {
-  if (data == null) return data;
-  if (data.capacity != null) {
-    if ("from" in data.capacity && data.capacity.from != null) {
-      data.capacity.from = typeof data.capacity.from === 'string' ? String(data.capacity.from as unknown as string) : data.capacity.from;
-    }
-    if ("to" in data.capacity && data.capacity.to != null) {
-      data.capacity.to = typeof data.capacity.to === 'string' ? String(data.capacity.to as unknown as string) : data.capacity.to;
-    }
-    if ("people" in data.capacity && data.capacity.people != null) {
-      for (let i0 = 0; i0 < data.capacity.people.length; i0++) {
-        const item0 = data.capacity.people[i0]!;
-        if (item0.timeAway != null) {
-          for (let i1 = 0; i1 < item0.timeAway.length; i1++) {
-            const item1 = item0.timeAway[i1]!;
-            item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
-            item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
-          }
-        }
-        if (item0.allocations != null) {
-          for (let i1 = 0; i1 < item0.allocations.length; i1++) {
-            const item1 = item0.allocations[i1]!;
-            item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
-            if (item1.end != null) {
-              item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
-            }
-          }
-        }
-        if (item0.elsewhereAllocations != null) {
-          for (let i1 = 0; i1 < item0.elsewhereAllocations.length; i1++) {
-            const item1 = item0.elsewhereAllocations[i1]!;
-            item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
-            if (item1.end != null) {
-              item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
-            }
-          }
-        }
-      }
-    }
-  }
-  if (data.days != null) {
-    for (let i0 = 0; i0 < data.days.length; i0++) {
-      data.days[i0] = typeof data.days[i0]! === 'string' ? String(data.days[i0]! as unknown as string) : data.days[i0]!;
-    }
-  }
-  if (data.teamDaysOff != null) {
-    for (let i0 = 0; i0 < data.teamDaysOff.length; i0++) {
-      const item0 = data.teamDaysOff[i0]!;
-      item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
-    }
-  }
-  if (data.people != null) {
-    for (let i0 = 0; i0 < data.people.length; i0++) {
-      const item0 = data.people[i0]!;
-      if (item0.days != null) {
-        for (let i1 = 0; i1 < item0.days.length; i1++) {
-          const item1 = item0.days[i1]!;
-          item1.date = typeof item1.date === 'string' ? String(item1.date as unknown as string) : item1.date;
-        }
-      }
-      if (item0.rows != null) {
-        for (let i1 = 0; i1 < item0.rows.length; i1++) {
-          const item1 = item0.rows[i1]!;
-          if (item1.days != null) {
-            for (let i2 = 0; i2 < item1.days.length; i2++) {
-              const item2 = item1.days[i2]!;
-              item2.date = typeof item2.date === 'string' ? String(item2.date as unknown as string) : item2.date;
-            }
-          }
-        }
-      }
-    }
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsGetAllocationProposalUrl = (id: string,
     params?: TeamsOfTeamsGetAllocationProposalParams,) => {
@@ -699,22 +458,8 @@ export const teamsOfTeamsGetAllocationProposal = async (id: string,
 
 
   }
-).then(deserializeTeamsOfTeamsGetAllocationProposalResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetAllocationProposalResponse = (data: TeamAllocationProposalDto): TeamAllocationProposalDto => {
-  if (data == null) return data;
-  data.from = typeof data.from === 'string' ? String(data.from as unknown as string) : data.from;
-  if (data.rows != null) {
-    for (let i0 = 0; i0 < data.rows.length; i0++) {
-      const item0 = data.rows[i0]!;
-      if (item0.end != null) {
-        item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-      }
-    }
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsDeactivateUrl = (id: string,) => {
 
@@ -762,20 +507,8 @@ export const teamsOfTeamsGetTeamMemberships = async (id: string, options?: Param
 
 
   }
-).then(deserializeTeamsOfTeamsGetTeamMembershipsResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetTeamMembershipsResponse = (data: TeamMembershipDto[]): TeamMembershipDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-    if (item0.end != null) {
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsAddTeamMembershipUrl = (id: string,) => {
 
@@ -876,20 +609,8 @@ export const teamsOfTeamsGetOperatingModels = async (id: string, options?: Param
 
 
   }
-).then(deserializeTeamsOfTeamsGetOperatingModelsResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetOperatingModelsResponse = (data: TeamOfTeamsOperatingModelDetailsDto[]): TeamOfTeamsOperatingModelDetailsDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-    if (item0.end != null) {
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsSetOperatingModelUrl = (id: string,) => {
 
@@ -972,17 +693,8 @@ export const teamsOfTeamsGetOperatingModel = async (id: string,
 
 
   }
-).then(deserializeTeamsOfTeamsGetOperatingModelResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetOperatingModelResponse = (data: TeamOfTeamsOperatingModelDetailsDto): TeamOfTeamsOperatingModelDetailsDto => {
-  if (data == null) return data;
-  data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
-  if (data.end != null) {
-    data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsUpdateOperatingModelUrl = (id: string,
     operatingModelId: string,) => {
@@ -1067,20 +779,8 @@ export const teamsOfTeamsGetRisks = async (id: string,
 
 
   }
-).then(deserializeTeamsOfTeamsGetRisksResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetRisksResponse = (data: RiskListDto[]): RiskListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.reportedOn = new Date(item0.reportedOn);
-    if (item0.followUpDate != null) {
-      item0.followUpDate = typeof item0.followUpDate === 'string' ? String(item0.followUpDate as unknown as string) : item0.followUpDate;
-    }
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsCreateRiskUrl = (id: string,) => {
 
@@ -1130,20 +830,8 @@ export const teamsOfTeamsGetRiskById = async (id: string,
 
 
   }
-).then(deserializeTeamsOfTeamsGetRiskByIdResponse);}
+);}
 
-
-const deserializeTeamsOfTeamsGetRiskByIdResponse = (data: RiskDetailsDto): RiskDetailsDto => {
-  if (data == null) return data;
-  data.reportedOn = new Date(data.reportedOn);
-  if (data.followUpDate != null) {
-    data.followUpDate = typeof data.followUpDate === 'string' ? String(data.followUpDate as unknown as string) : data.followUpDate;
-  }
-  if (data.closedDate != null) {
-    data.closedDate = new Date(data.closedDate);
-  }
-  return data;
-};
 
 export const getTeamsOfTeamsUpdateRiskUrl = (id: string,
     riskId: string,) => {

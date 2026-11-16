@@ -151,24 +151,8 @@ export const storyMapsGet = async (idOrKey: string, options?: Parameters<typeof 
 
 
   }
-).then(deserializeStoryMapsGetResponse);}
+);}
 
-
-const deserializeStoryMapsGetResponse = (data: StoryMapDetailsDto): StoryMapDetailsDto => {
-  if (data == null) return data;
-  if (data.swimLanes != null) {
-    for (let i0 = 0; i0 < data.swimLanes.length; i0++) {
-      const item0 = data.swimLanes[i0]!;
-      if (item0.startDate != null) {
-        item0.startDate = typeof item0.startDate === 'string' ? String(item0.startDate as unknown as string) : item0.startDate;
-      }
-      if (item0.endDate != null) {
-        item0.endDate = typeof item0.endDate === 'string' ? String(item0.endDate as unknown as string) : item0.endDate;
-      }
-    }
-  }
-  return data;
-};
 
 export const getStoryMapsGetEditorTeamMembersUrl = (id: string,
     teamId: string,) => {
@@ -1018,19 +1002,8 @@ export const storyMapsAddSwimLane = async (storyMapId: string,
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(addSwimLaneRequest)
   }
-).then(deserializeStoryMapsAddSwimLaneResponse);}
+);}
 
-
-const deserializeStoryMapsAddSwimLaneResponse = (data: StoryMapSwimLaneDto): StoryMapSwimLaneDto => {
-  if (data == null) return data;
-  if (data.startDate != null) {
-    data.startDate = typeof data.startDate === 'string' ? String(data.startDate as unknown as string) : data.startDate;
-  }
-  if (data.endDate != null) {
-    data.endDate = typeof data.endDate === 'string' ? String(data.endDate as unknown as string) : data.endDate;
-  }
-  return data;
-};
 
 export const getStoryMapsRenameSwimLaneUrl = (storyMapId: string,
     swimLaneId: string,) => {

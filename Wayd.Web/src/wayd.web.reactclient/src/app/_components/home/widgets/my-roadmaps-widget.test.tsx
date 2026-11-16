@@ -17,18 +17,19 @@ vi.mock('@/src/store/features/planning/roadmaps-api', () => ({
 
 vi.mock(import('@/src/utils'), async (importOriginal) => ({
   ...(await importOriginal()),
-  todayCalendarDate: () => '2026-11-11',
+  todayCalendarDate: () => asCalendarDate('2026-11-11'),
 }))
 
 import { useGetRoadmapsQuery } from '@/src/store/features/planning/roadmaps-api'
+import { asCalendarDate, type CalendarDate } from '@/src/utils/calendar-date'
 
 const mockRoadmaps = useGetRoadmapsQuery as Mock
 
 const roadmap = (
   key: number,
   name: string,
-  start: string,
-  end: string,
+  start: CalendarDate,
+  end: CalendarDate,
 ): RoadmapListDto => ({
   id: `r-${key}`,
   key,
@@ -55,9 +56,24 @@ describe('sortRoadmaps', () => {
   it('orders by start date, ties by name ignoring case', () => {
     // Arrange
     const roadmaps = [
-      roadmap(1, 'Later', '2026-06-01', '2026-12-31'),
-      roadmap(2, 'beta', '2026-01-01', '2026-12-31'),
-      roadmap(3, 'Alpha', '2026-01-01', '2026-12-31'),
+      roadmap(
+        1,
+        'Later',
+        asCalendarDate('2026-06-01'),
+        asCalendarDate('2026-12-31'),
+      ),
+      roadmap(
+        2,
+        'beta',
+        asCalendarDate('2026-01-01'),
+        asCalendarDate('2026-12-31'),
+      ),
+      roadmap(
+        3,
+        'Alpha',
+        asCalendarDate('2026-01-01'),
+        asCalendarDate('2026-12-31'),
+      ),
     ]
 
     // Act
@@ -87,8 +103,18 @@ describe('MyRoadmapsWidget', () => {
     // Arrange
     mockRoadmaps.mockReturnValue(
       loaded([
-        roadmap(7, 'Platform 2026', '2026-01-01', '2026-12-31'),
-        roadmap(8, 'Mobile 2026', '2026-01-01', '2026-10-31'),
+        roadmap(
+          7,
+          'Platform 2026',
+          asCalendarDate('2026-01-01'),
+          asCalendarDate('2026-12-31'),
+        ),
+        roadmap(
+          8,
+          'Mobile 2026',
+          asCalendarDate('2026-01-01'),
+          asCalendarDate('2026-10-31'),
+        ),
       ]),
     )
 
@@ -106,7 +132,14 @@ describe('MyRoadmapsWidget', () => {
   it('shows each roadmap’s visibility', () => {
     // Arrange
     mockRoadmaps.mockReturnValue(
-      loaded([roadmap(7, 'Platform 2026', '2026-01-01', '2026-12-31')]),
+      loaded([
+        roadmap(
+          7,
+          'Platform 2026',
+          asCalendarDate('2026-01-01'),
+          asCalendarDate('2026-12-31'),
+        ),
+      ]),
     )
 
     // Act
@@ -122,8 +155,8 @@ describe('MyRoadmapsWidget', () => {
       roadmap(
         i + 1,
         `Roadmap ${i + 1}`,
-        `2026-0${MY_ROADMAPS_LIMIT + 2 - i}-01`,
-        '2026-12-31',
+        asCalendarDate(`2026-0${MY_ROADMAPS_LIMIT + 2 - i}-01`),
+        asCalendarDate('2026-12-31'),
       ),
     )
     mockRoadmaps.mockReturnValue(loaded(many))
@@ -185,7 +218,14 @@ describe('MyRoadmapsWidget', () => {
     ['empty when the caller owns no active roadmaps', loaded([]), 'empty'],
     [
       'rows when the caller owns a roadmap',
-      loaded([roadmap(7, 'Platform 2026', '2026-01-01', '2026-12-31')]),
+      loaded([
+        roadmap(
+          7,
+          'Platform 2026',
+          asCalendarDate('2026-01-01'),
+          asCalendarDate('2026-12-31'),
+        ),
+      ]),
       'rows',
     ],
   ])('reports %s to the page', (_name, query, expected) => {

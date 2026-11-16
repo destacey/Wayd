@@ -6,6 +6,8 @@ import {
   SprintTypeSource,
 } from '@/src/services/api/wayd.schemas'
 import dayjs from 'dayjs'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 vi.mock('@/src/components/common/links/links-card', () => {
   const LinksCard = () => <div>Links Card</div>
@@ -17,8 +19,8 @@ const sprint: SprintDetailsDto = {
   key: 21439,
   name: '26.3.2',
   state: { id: 2, name: 'Active' },
-  start: '2026-08-17',
-  end: '2026-08-30',
+  start: asCalendarDate('2026-08-17'),
+  end: asCalendarDate('2026-08-30'),
   team: { id: 't1', key: 14, name: 'Team Atlas', code: 'AT', type: 'Team' },
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,
@@ -36,7 +38,6 @@ const sprint: SprintDetailsDto = {
 }
 
 // Instants arrive from the API as ISO strings despite the generated type.
-const instant = (iso: string) => iso as unknown as Date
 
 describe('SprintFacts', () => {
   it('renders the boundaries as the calendar dates they are', () => {
@@ -61,7 +62,11 @@ describe('SprintFacts', () => {
     // Arrange / Act
     render(
       <SprintFacts
-        sprint={{ ...sprint, start: '2026-08-17', end: '2026-08-17' }}
+        sprint={{
+          ...sprint,
+          start: asCalendarDate('2026-08-17'),
+          end: asCalendarDate('2026-08-17'),
+        }}
       />,
     )
 
@@ -135,16 +140,16 @@ describe('SprintFacts', () => {
 
   it('shows a recorded start in the viewer zone and an unrecorded end as a dash', () => {
     // Arrange
-    const started = '2026-08-17T15:00:00Z'
+    const started = asInstant('2026-08-17T15:00:00Z')
 
     // Act
     render(
       <SprintFacts
         sprint={{
           ...sprint,
-          started: instant(started),
-          activeFrom: instant(started),
-          activeUntil: instant('2026-08-31T05:00:00Z'),
+          started: asInstant(started),
+          activeFrom: asInstant(started),
+          activeUntil: asInstant('2026-08-31T05:00:00Z'),
           timeZone: 'America/Chicago',
         }}
       />,
@@ -165,8 +170,8 @@ describe('SprintFacts', () => {
       <SprintFacts
         sprint={{
           ...sprint,
-          activeFrom: instant('2026-08-17T05:00:00Z'),
-          activeUntil: instant('2026-08-31T05:00:00Z'),
+          activeFrom: asInstant('2026-08-17T05:00:00Z'),
+          activeUntil: asInstant('2026-08-31T05:00:00Z'),
           timeZone: 'America/Chicago',
         }}
       />,
@@ -178,16 +183,16 @@ describe('SprintFacts', () => {
 
   it('counts the length over the days the sprint is active, after the actual rows', () => {
     // Arrange — started on Aug 19, runs to the end of its planned Aug 30
-    const started = '2026-08-19T15:00:00Z'
+    const started = asInstant('2026-08-19T15:00:00Z')
 
     // Act
     const { container } = render(
       <SprintFacts
         sprint={{
           ...sprint,
-          started: instant(started),
-          activeFrom: instant(started),
-          activeUntil: instant('2026-08-31T05:00:00Z'),
+          started: asInstant(started),
+          activeFrom: asInstant(started),
+          activeUntil: asInstant('2026-08-31T05:00:00Z'),
           timeZone: 'America/Chicago',
         }}
       />,

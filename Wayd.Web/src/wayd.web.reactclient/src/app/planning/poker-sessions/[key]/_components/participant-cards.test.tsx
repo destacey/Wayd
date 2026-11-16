@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { PokerVoteDto } from '@/src/services/api/wayd.schemas'
 import ParticipantCards from './participant-cards'
+import { toInstant } from '@/src/utils/instant'
 
 const participants = [
   { id: 'p1', name: 'Alice' },
@@ -13,7 +14,7 @@ function makeVote(participantId: string, value: string): PokerVoteDto {
     id: `vote-${participantId}`,
     participant: { id: participantId, userName: participantId, name: participantId },
     value,
-    submittedOn: new Date(),
+    submittedOn: toInstant(new Date()),
   }
 }
 

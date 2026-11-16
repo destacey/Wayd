@@ -107,19 +107,8 @@ export const holidayCalendarsGet = async (idOrKey: string, options?: Parameters<
 
 
   }
-).then(deserializeHolidayCalendarsGetResponse);}
+);}
 
-
-const deserializeHolidayCalendarsGetResponse = (data: HolidayCalendarDetailsDto): HolidayCalendarDetailsDto => {
-  if (data == null) return data;
-  if (data.holidays != null) {
-    for (let i0 = 0; i0 < data.holidays.length; i0++) {
-      const item0 = data.holidays[i0]!;
-      item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
-    }
-  }
-  return data;
-};
 
 export const getHolidayCalendarsGetActivitiesUrl = (idOrKey: string,
     params?: HolidayCalendarsGetActivitiesParams,) => {
@@ -151,19 +140,8 @@ export const holidayCalendarsGetActivities = async (idOrKey: string,
 
 
   }
-).then(deserializeHolidayCalendarsGetActivitiesResponse);}
+);}
 
-
-const deserializeHolidayCalendarsGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.timestamp = new Date(item0.timestamp);
-    }
-  }
-  return data;
-};
 
 export const getHolidayCalendarsUpdateUrl = (id: string,) => {
 

@@ -6,6 +6,7 @@ import {
   workStatusCategorySort,
 } from './grid-sorting'
 import type { Row } from './index'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 describe('grid-sorting', () => {
   describe('caseInsensitiveCompare', () => {
     it('interleaves capitalized and lowercase values alphabetically', () => {
@@ -38,14 +39,32 @@ describe('grid-sorting', () => {
     it('returns 0 for equal dates', () => {
       const sort = dateSortBy((r: any) => r.original.value)
 
-      expect(sort(row('2024-01-01'), row('2024-01-01'), 'x')).toBe(0)
+      expect(
+        sort(
+          row(asCalendarDate('2024-01-01')),
+          row(asCalendarDate('2024-01-01')),
+          'x',
+        ),
+      ).toBe(0)
     })
 
     it('sorts earlier dates before later dates', () => {
       const sort = dateSortBy((r: any) => r.original.value)
 
-      expect(sort(row('2024-01-01'), row('2024-01-02'), 'x')).toBeLessThan(0)
-      expect(sort(row('2024-01-02'), row('2024-01-01'), 'x')).toBeGreaterThan(0)
+      expect(
+        sort(
+          row(asCalendarDate('2024-01-01')),
+          row(asCalendarDate('2024-01-02')),
+          'x',
+        ),
+      ).toBeLessThan(0)
+      expect(
+        sort(
+          row(asCalendarDate('2024-01-02')),
+          row(asCalendarDate('2024-01-01')),
+          'x',
+        ),
+      ).toBeGreaterThan(0)
     })
 
     it('supports Date and numeric timestamps', () => {
@@ -63,8 +82,12 @@ describe('grid-sorting', () => {
     it('treats null/undefined as emptyValue (default: -Infinity), sorting empties first', () => {
       const sort = dateSortBy((r: any) => r.original.value)
 
-      expect(sort(row(null), row('2024-01-01'), 'x')).toBeLessThan(0)
-      expect(sort(row(undefined), row('2024-01-01'), 'x')).toBeLessThan(0)
+      expect(
+        sort(row(null), row(asCalendarDate('2024-01-01')), 'x'),
+      ).toBeLessThan(0)
+      expect(
+        sort(row(undefined), row(asCalendarDate('2024-01-01')), 'x'),
+      ).toBeLessThan(0)
       expect(sort(row(null), row(undefined), 'x')).toBe(0)
     })
 
@@ -73,8 +96,12 @@ describe('grid-sorting', () => {
         emptyValue: Infinity,
       })
 
-      expect(sort(row(null), row('2024-01-01'), 'x')).toBeGreaterThan(0)
-      expect(sort(row(undefined), row('2024-01-01'), 'x')).toBeGreaterThan(0)
+      expect(
+        sort(row(null), row(asCalendarDate('2024-01-01')), 'x'),
+      ).toBeGreaterThan(0)
+      expect(
+        sort(row(undefined), row(asCalendarDate('2024-01-01')), 'x'),
+      ).toBeGreaterThan(0)
       expect(sort(row(null), row(undefined), 'x')).toBe(0)
     })
   })

@@ -1,3 +1,4 @@
+import { toInstant } from '@/src/utils/instant'
 import type { BaseOptionType } from 'antd/es/select'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
@@ -99,8 +100,8 @@ export const employeeApi = apiSlice.injectEndpoints({
         try {
           const data = await employeesGetEmployeeWorkItems(employeeId, {
             statusCategories: statusCategories ?? undefined,
-            doneFrom: doneFrom ? new Date(doneFrom) : undefined,
-            doneTo: doneTo ? new Date(doneTo) : undefined,
+            doneFrom: doneFrom ? toInstant(new Date(doneFrom)) : undefined,
+            doneTo: doneTo ? toInstant(new Date(doneTo)) : undefined,
           })
           return { data }
         } catch (error) {

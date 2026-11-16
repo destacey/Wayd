@@ -13,12 +13,19 @@ import { apiFetch } from '../api-fetch';
 
 
 export const getDeliveryMetricsGetDeliveryMetricsUrl = (params?: DeliveryMetricsGetDeliveryMetricsParams,) => {
+const encodedParams = { ...params };
+if (encodedParams.from != null) {
+  encodedParams.from = typeof encodedParams.from === 'string' ? encodedParams.from : (String(encodedParams.from) as unknown as typeof encodedParams.from);
+}
+if (encodedParams.to != null) {
+  encodedParams.to = typeof encodedParams.to === 'string' ? encodedParams.to : (String(encodedParams.to) as unknown as typeof encodedParams.to);
+}
   const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+  Object.entries(encodedParams).forEach(([key, value]) => {
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
+      normalizedParams.append(key, value === null ? 'null' : String(value))
     }
   });
 
@@ -42,13 +49,6 @@ export const deliveryMetricsGetDeliveryMetrics = async (params?: DeliveryMetrics
 
 
   }
-).then(deserializeDeliveryMetricsGetDeliveryMetricsResponse);}
+);}
 
-
-const deserializeDeliveryMetricsGetDeliveryMetricsResponse = (data: DeliveryMetricsDto): DeliveryMetricsDto => {
-  if (data == null) return data;
-  data.from = new Date(data.from);
-  data.to = new Date(data.to);
-  return data;
-};
 

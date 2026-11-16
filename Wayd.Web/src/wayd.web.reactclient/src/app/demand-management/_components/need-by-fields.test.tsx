@@ -10,6 +10,7 @@ import {
 } from '@/src/services/api/wayd.schemas'
 import { useEffect } from 'react'
 import { NeedByFields } from './need-by-fields'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const BASES: NeedByBasisDto[] = [
   {
@@ -67,7 +68,11 @@ describe('NeedByFields', () => {
 
   it('asks what makes the date in two groups, fixed for us and we chose it', () => {
     // Arrange / Act
-    render(<Harness initial={{ needBy: { date: dayjs('2026-12-31') } }} />)
+    render(
+      <Harness
+        initial={{ needBy: { date: dayjs(asCalendarDate('2026-12-31')) } }}
+      />,
+    )
 
     // Assert
     expect(screen.getByText('What makes it that date?')).toBeInTheDocument()
@@ -83,7 +88,11 @@ describe('NeedByFields', () => {
 
   it('asks the one follow-up the chosen basis needs, and no commitment for a contract', async () => {
     // Arrange
-    render(<Harness initial={{ needBy: { date: dayjs('2026-12-31') } }} />)
+    render(
+      <Harness
+        initial={{ needBy: { date: dayjs(asCalendarDate('2026-12-31')) } }}
+      />,
+    )
 
     // Act
     await userEvent.click(screen.getByText('A contract names it'))
@@ -99,7 +108,11 @@ describe('NeedByFields', () => {
 
   it('asks who made a commitment and when only for a basis that records one', async () => {
     // Arrange
-    render(<Harness initial={{ needBy: { date: dayjs('2026-12-31') } }} />)
+    render(
+      <Harness
+        initial={{ needBy: { date: dayjs(asCalendarDate('2026-12-31')) } }}
+      />,
+    )
 
     // Act
     await act(async () =>
@@ -122,7 +135,7 @@ describe('NeedByFields', () => {
       <Harness
         initial={{
           needBy: {
-            date: dayjs('2026-12-31'),
+            date: dayjs(asCalendarDate('2026-12-31')),
             basis: NeedByBasis.Contractual,
             reference: 'MSA clause 12',
           },
@@ -144,7 +157,7 @@ describe('NeedByFields', () => {
       <Harness
         initial={{
           needBy: {
-            date: dayjs('2026-12-31'),
+            date: dayjs(asCalendarDate('2026-12-31')),
             basis: NeedByBasis.Contractual,
             reference: 'MSA clause 12',
           },
@@ -170,7 +183,7 @@ describe('NeedByFields', () => {
       <Harness
         initial={{
           needBy: {
-            date: dayjs('2026-12-31'),
+            date: dayjs(asCalendarDate('2026-12-31')),
             basis: NeedByBasis.Commitment,
             reference: 'Northwind Group',
             committedById: 'e-1',

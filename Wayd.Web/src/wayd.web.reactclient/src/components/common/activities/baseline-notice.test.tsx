@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import BaselineNotice from './baseline-notice'
+import { asInstant } from '@/src/utils/instant'
 
 const mockEmployee = vi.fn()
 
@@ -19,7 +20,7 @@ describe('BaselineNotice', () => {
     render(
       <BaselineNotice
         payload={JSON.stringify({
-          recordCreatedOn: '2024-03-04T15:30:00Z',
+          recordCreatedOn: asInstant('2024-03-04T15:30:00Z'),
           recordCreatedById: 'emp-1',
         })}
       />,
@@ -37,7 +38,9 @@ describe('BaselineNotice', () => {
   it('shows the creation date alone when the creator was not recorded', () => {
     render(
       <BaselineNotice
-        payload={JSON.stringify({ recordCreatedOn: '2024-03-04T15:30:00Z' })}
+        payload={JSON.stringify({
+          recordCreatedOn: asInstant('2024-03-04T15:30:00Z'),
+        })}
       />,
     )
 

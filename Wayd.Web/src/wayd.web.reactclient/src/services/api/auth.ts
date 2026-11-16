@@ -60,14 +60,8 @@ export const authLogin = async (loginCommand: LoginCommand, options?: Parameters
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(loginCommand)
   }
-).then(deserializeAuthLoginResponse);}
+);}
 
-
-const deserializeAuthLoginResponse = (data: TokenResponse): TokenResponse => {
-  if (data == null) return data;
-  data.tokenExpiresAt = new Date(data.tokenExpiresAt);
-  return data;
-};
 
 export const getAuthRefreshTokenUrl = () => {
 
@@ -89,14 +83,8 @@ export const authRefreshToken = async (refreshTokenCommand: RefreshTokenCommand,
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(refreshTokenCommand)
   }
-).then(deserializeAuthRefreshTokenResponse);}
+);}
 
-
-const deserializeAuthRefreshTokenResponse = (data: TokenResponse): TokenResponse => {
-  if (data == null) return data;
-  data.tokenExpiresAt = new Date(data.tokenExpiresAt);
-  return data;
-};
 
 export const getAuthLogoutUrl = () => {
 
@@ -164,19 +152,8 @@ export const authGetSessions = async (logoutRequest?: LogoutRequest, options?: P
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(logoutRequest)
   }
-).then(deserializeAuthGetSessionsResponse);}
+);}
 
-
-const deserializeAuthGetSessionsResponse = (data: UserSessionResponse[]): UserSessionResponse[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.createdAt = new Date(item0.createdAt);
-    item0.lastUsedAt = new Date(item0.lastUsedAt);
-    item0.expiresAt = new Date(item0.expiresAt);
-  }
-  return data;
-};
 
 export const getAuthRevokeSessionUrl = (sessionId: string,) => {
 
@@ -221,14 +198,8 @@ export const authExchange = async (exchangeTokenCommand: ExchangeTokenCommand, o
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(exchangeTokenCommand)
   }
-).then(deserializeAuthExchangeResponse);}
+);}
 
-
-const deserializeAuthExchangeResponse = (data: TokenResponse): TokenResponse => {
-  if (data == null) return data;
-  data.tokenExpiresAt = new Date(data.tokenExpiresAt);
-  return data;
-};
 
 export const getAuthGetProvidersUrl = () => {
 
@@ -273,12 +244,6 @@ export const authSetup = async (setupRequest: SetupRequest, options?: Parameters
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(setupRequest)
   }
-).then(deserializeAuthSetupResponse);}
+);}
 
-
-const deserializeAuthSetupResponse = (data: TokenResponse): TokenResponse => {
-  if (data == null) return data;
-  data.tokenExpiresAt = new Date(data.tokenExpiresAt);
-  return data;
-};
 

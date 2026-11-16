@@ -1,5 +1,6 @@
 'use client'
 
+import { instantTime } from '@/src/utils/instant'
 import {
   ProjectDeliverableDto,
   StatusCategory,
@@ -40,8 +41,8 @@ const byMostRecentlyAccepted = (
   a: ProjectDeliverableDto,
   b: ProjectDeliverableDto,
 ) =>
-  (b.acceptedOn?.getTime() ?? 0) - (a.acceptedOn?.getTime() ?? 0) ||
-  a.order - b.order
+  (b.acceptedOn ? instantTime(b.acceptedOn) : 0) -
+    (a.acceptedOn ? instantTime(a.acceptedOn) : 0) || a.order - b.order
 
 /** Rows after the first are ruled off from the one above. */
 const rowStyle = (index: number): React.CSSProperties => ({

@@ -3,6 +3,7 @@ import {
   LifecycleCategory,
 } from '@/src/services/api/wayd.schemas'
 import { recordHref } from './record-href'
+import { asInstant } from '@/src/utils/instant'
 
 const record = (overrides: Partial<FollowedRecordDto>): FollowedRecordDto => ({
   ownerType: 'ppm.project',
@@ -11,7 +12,7 @@ const record = (overrides: Partial<FollowedRecordDto>): FollowedRecordDto => ({
   name: 'Moon landing',
   statusName: 'Active',
   lifecycle: LifecycleCategory.Active,
-  followedOn: new Date('2026-10-23T09:30:00Z'),
+  followedOn: asInstant('2026-10-23T09:30:00Z'),
   isMuted: false,
   ...overrides,
 })

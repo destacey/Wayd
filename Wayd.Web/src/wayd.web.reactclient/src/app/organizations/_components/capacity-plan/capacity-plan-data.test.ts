@@ -13,24 +13,25 @@ import {
   weekIsEdited,
   withCellEdit,
 } from './capacity-plan-data'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const TEAM = 'team-1'
 
 // A two-week sprint, Wednesday to the Tuesday two weeks on, worked Monday to
 // Friday: ten working days.
-const FROM = '2027-02-03'
-const TO = '2027-02-16'
+const FROM = asCalendarDate('2027-02-03')
+const TO = asCalendarDate('2027-02-16')
 const WORKING_DAYS = [
-  '2027-02-03',
-  '2027-02-04',
-  '2027-02-05',
-  '2027-02-08',
-  '2027-02-09',
-  '2027-02-10',
-  '2027-02-11',
-  '2027-02-12',
-  '2027-02-15',
-  '2027-02-16',
+  asCalendarDate('2027-02-03'),
+  asCalendarDate('2027-02-04'),
+  asCalendarDate('2027-02-05'),
+  asCalendarDate('2027-02-08'),
+  asCalendarDate('2027-02-09'),
+  asCalendarDate('2027-02-10'),
+  asCalendarDate('2027-02-11'),
+  asCalendarDate('2027-02-12'),
+  asCalendarDate('2027-02-15'),
+  asCalendarDate('2027-02-16'),
 ]
 
 function plan(
@@ -69,13 +70,13 @@ function plan(
         canManageTimeAway: true,
         days: [
           {
-            date: '2027-02-04',
+            date: asCalendarDate('2027-02-04'),
             isHoliday: true,
             percentAway: 0,
             elsewherePercent: 0,
           },
           {
-            date: '2027-02-05',
+            date: asCalendarDate('2027-02-05'),
             isHoliday: false,
             percentAway: 50,
             elsewherePercent: 40,
@@ -87,14 +88,24 @@ function plan(
             countsTowardDeliveryCapacity: true,
             days: WORKING_DAYS.map((date) => ({
               date,
-              percent: date < '2027-02-08' ? 60 : 50,
+              percent: date < asCalendarDate('2027-02-08') ? 60 : 50,
               personDays:
-                date === '2027-02-04' ? 0 : date < '2027-02-08' ? 0.6 : 0.5,
+                date === asCalendarDate('2027-02-04')
+                  ? 0
+                  : date < asCalendarDate('2027-02-08')
+                    ? 0.6
+                    : 0.5,
             })),
           },
           {
             countsTowardDeliveryCapacity: true,
-            days: [{ date: '2027-02-03', percent: 20, personDays: 0.2 }],
+            days: [
+              {
+                date: asCalendarDate('2027-02-03'),
+                percent: 20,
+                personDays: 0.2,
+              },
+            ],
           },
         ],
       },
@@ -122,7 +133,7 @@ describe('planWeeks', () => {
   })
 
   it('ends a last part week on the plan’s last day', () => {
-    const weeks = planWeeks(FROM, '2027-02-11', WORKING_DAYS)
+    const weeks = planWeeks(FROM, asCalendarDate('2027-02-11'), WORKING_DAYS)
 
     expect(weeks.map((w) => [w.start, w.end])).toEqual([
       ['2027-02-03', '2027-02-09'],
@@ -146,10 +157,12 @@ describe('planRows', () => {
       ['ada|engineer', 'Ada Lovelace', 'Engineer'],
       ['ada|', 'Ada Lovelace', undefined],
     ])
-    expect(rows[0].percentByDate.get('2027-02-08')).toBe(50)
+    expect(rows[0].percentByDate.get(asCalendarDate('2027-02-08'))).toBe(50)
     expect(rows.map((r) => r.isFirstOfPerson)).toEqual([true, false])
     expect(rows.every((r) => r.canManageTimeAway)).toBe(true)
-    expect(rows[1].conditionsByDate.get('2027-02-04')?.isHoliday).toBe(true)
+    expect(
+      rows[1].conditionsByDate.get(asCalendarDate('2027-02-04'))?.isHoliday,
+    ).toBe(true)
   })
 
   it("carries the person's own working day on each of their rows", () => {
@@ -179,9 +192,15 @@ describe('planCell', () => {
   it('reads in hours of the working day, as one figure or a range', () => {
     const [row] = planRows(plan())
 
-    expect(hoursLabel(planCell(row, ['2027-02-10', '2027-02-11']), 8)).toBe(
-      '4 h/day',
-    )
+    expect(
+      hoursLabel(
+        planCell(row, [
+          asCalendarDate('2027-02-10'),
+          asCalendarDate('2027-02-11'),
+        ]),
+        8,
+      ),
+    ).toBe('4 h/day')
     expect(
       hoursLabel(planCell(row, planWeeks(FROM, TO, WORKING_DAYS)[0].days), 8),
     ).toBe('4–4.8 h/day')
@@ -190,7 +209,7 @@ describe('planCell', () => {
   it('reads a day with nothing allocated as 0%', () => {
     const [, noRole] = planRows(plan())
 
-    const cell = planCell(noRole, ['2027-02-08'])
+    const cell = planCell(noRole, [asCalendarDate('2027-02-08')])
 
     expect(percentLabel(cell)).toBe('0%')
     expect(cell.personDays).toBe(0)
@@ -199,9 +218,14 @@ describe('planCell', () => {
   it('shows one percent when every day has it', () => {
     const [row] = planRows(plan())
 
-    expect(percentLabel(planCell(row, ['2027-02-10', '2027-02-11']))).toBe(
-      '50%',
-    )
+    expect(
+      percentLabel(
+        planCell(row, [
+          asCalendarDate('2027-02-10'),
+          asCalendarDate('2027-02-11'),
+        ]),
+      ),
+    ).toBe('50%')
   })
 })
 
@@ -242,7 +266,10 @@ describe('rowChanges', () => {
     const changes = rowChanges(
       row,
       weeks,
-      { [dayEditKey('2027-02-11')]: 0, [weekEditKey(weeks[1])]: 80 },
+      {
+        [dayEditKey(asCalendarDate('2027-02-11'))]: 0,
+        [weekEditKey(weeks[1])]: 80,
+      },
       TEAM,
     )
 
@@ -270,7 +297,10 @@ describe('rowChanges', () => {
     const changes = rowChanges(
       row,
       weeks,
-      { [weekEditKey(weeks[1])]: 80, [dayEditKey('2027-02-11')]: 80 },
+      {
+        [weekEditKey(weeks[1])]: 80,
+        [dayEditKey(asCalendarDate('2027-02-11'))]: 80,
+      },
       TEAM,
     )
 
@@ -293,7 +323,7 @@ describe('rowChanges', () => {
       weeks,
       {
         [weekEditKey(weeks[1])]: 50,
-        [dayEditKey('2027-02-03')]: 60,
+        [dayEditKey(asCalendarDate('2027-02-03'))]: 60,
       },
       TEAM,
     )
@@ -325,7 +355,7 @@ describe('rowChanges', () => {
     const [change] = rowChanges(
       noRole,
       weeks,
-      { [dayEditKey('2027-02-08')]: 30 },
+      { [dayEditKey(asCalendarDate('2027-02-08'))]: 30 },
       TEAM,
     )
 
@@ -343,7 +373,7 @@ describe('planRequests', () => {
       weeks,
       {
         'ada|engineer': { [weekEditKey(weeks[0])]: 100 },
-        'ada|': { [dayEditKey('2027-02-03')]: 0 },
+        'ada|': { [dayEditKey(asCalendarDate('2027-02-03'))]: 0 },
       },
       TEAM,
     )
@@ -380,35 +410,45 @@ describe('pending edits', () => {
     const [row] = planRows(plan())
     const edits = {
       [weekEditKey(weeks[1])]: 80,
-      [dayEditKey('2027-02-11')]: 0,
+      [dayEditKey(asCalendarDate('2027-02-11'))]: 0,
     }
 
-    expect(pendingPercent(row, weeks[1], '2027-02-11', edits)).toBe(0)
-    expect(pendingPercent(row, weeks[1], '2027-02-10', edits)).toBe(80)
-    expect(pendingPercent(row, weeks[0], '2027-02-03', edits)).toBe(60)
-    expect(pendingPercent(row, weeks[0], '2027-02-03')).toBe(60)
+    expect(
+      pendingPercent(row, weeks[1], asCalendarDate('2027-02-11'), edits),
+    ).toBe(0)
+    expect(
+      pendingPercent(row, weeks[1], asCalendarDate('2027-02-10'), edits),
+    ).toBe(80)
+    expect(
+      pendingPercent(row, weeks[0], asCalendarDate('2027-02-03'), edits),
+    ).toBe(60)
+    expect(pendingPercent(row, weeks[0], asCalendarDate('2027-02-03'))).toBe(60)
   })
 
   it('reads a day nothing is allocated on and nothing edits as 0', () => {
     const [, noRole] = planRows(plan())
 
-    expect(pendingPercent(noRole, weeks[1], '2027-02-10', {})).toBe(0)
+    expect(
+      pendingPercent(noRole, weeks[1], asCalendarDate('2027-02-10'), {}),
+    ).toBe(0)
   })
 
   it('marks a week edited when it or any of its days is', () => {
     expect(weekIsEdited(weeks[1], { [weekEditKey(weeks[1])]: 0 })).toBe(true)
-    expect(weekIsEdited(weeks[1], { [dayEditKey('2027-02-12')]: 0 })).toBe(true)
-    expect(weekIsEdited(weeks[1], { [dayEditKey('2027-02-03')]: 0 })).toBe(
-      false,
-    )
+    expect(
+      weekIsEdited(weeks[1], { [dayEditKey(asCalendarDate('2027-02-12'))]: 0 }),
+    ).toBe(true)
+    expect(
+      weekIsEdited(weeks[1], { [dayEditKey(asCalendarDate('2027-02-03'))]: 0 }),
+    ).toBe(false)
     expect(weekIsEdited(weeks[1], {})).toBe(false)
   })
 
   it("replaces a week's day edits when the week is set, and keeps other weeks'", () => {
     const edits = withCellEdit(
       {
-        [dayEditKey('2027-02-11')]: 0,
-        [dayEditKey('2027-02-03')]: 10,
+        [dayEditKey(asCalendarDate('2027-02-11'))]: 0,
+        [dayEditKey(asCalendarDate('2027-02-03'))]: 10,
       },
       weeks[1],
       undefined,
@@ -417,7 +457,7 @@ describe('pending edits', () => {
 
     expect(edits).toEqual({
       [weekEditKey(weeks[1])]: 70,
-      [dayEditKey('2027-02-03')]: 10,
+      [dayEditKey(asCalendarDate('2027-02-03'))]: 10,
     })
   })
 
@@ -425,21 +465,24 @@ describe('pending edits', () => {
     const edits = withCellEdit(
       { [weekEditKey(weeks[1])]: 70 },
       weeks[1],
-      '2027-02-11',
+      asCalendarDate('2027-02-11'),
       0,
     )
 
     expect(edits).toEqual({
       [weekEditKey(weeks[1])]: 70,
-      [dayEditKey('2027-02-11')]: 0,
+      [dayEditKey(asCalendarDate('2027-02-11'))]: 0,
     })
   })
 
   it('clears a cell whose input is emptied', () => {
     const edits = withCellEdit(
-      { [dayEditKey('2027-02-11')]: 0, [weekEditKey(weeks[0])]: 50 },
+      {
+        [dayEditKey(asCalendarDate('2027-02-11'))]: 0,
+        [weekEditKey(weeks[0])]: 50,
+      },
       weeks[1],
-      '2027-02-11',
+      asCalendarDate('2027-02-11'),
       undefined,
     )
 

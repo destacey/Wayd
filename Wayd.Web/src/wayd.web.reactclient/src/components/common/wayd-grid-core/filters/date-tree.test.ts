@@ -1,9 +1,15 @@
 import { buildDateTree, dayKeysOf } from './date-tree'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 describe('buildDateTree', () => {
   it('groups day keys into ascending Year → Month → Day', () => {
     // Arrange — deliberately unsorted, spanning two years and months
-    const keys = ['2026-07-04', '2026-06-15', '2026-06-01', '2025-12-31']
+    const keys = [
+      asCalendarDate('2026-07-04'),
+      asCalendarDate('2026-06-15'),
+      asCalendarDate('2026-06-01'),
+      asCalendarDate('2025-12-31'),
+    ]
 
     // Act
     const tree = buildDateTree(keys)
@@ -23,7 +29,7 @@ describe('buildDateTree', () => {
 
   it('ignores invalid keys', () => {
     // Act
-    const tree = buildDateTree(['2026-06-15', 'not-a-date', ''])
+    const tree = buildDateTree([asCalendarDate('2026-06-15'), 'not-a-date', ''])
 
     // Assert
     expect(dayKeysOf(tree)).toEqual(['2026-06-15'])
@@ -31,7 +37,11 @@ describe('buildDateTree', () => {
 
   it('round-trips through dayKeysOf in tree order', () => {
     // Arrange
-    const keys = ['2026-01-02', '2026-01-01', '2025-11-30']
+    const keys = [
+      asCalendarDate('2026-01-02'),
+      asCalendarDate('2026-01-01'),
+      asCalendarDate('2025-11-30'),
+    ]
 
     // Act
     const flat = dayKeysOf(buildDateTree(keys))

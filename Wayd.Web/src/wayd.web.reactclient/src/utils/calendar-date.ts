@@ -1,4 +1,5 @@
 import dayjs, { Dayjs } from 'dayjs'
+import type { Instant } from './instant'
 
 /**
  * A day on the calendar as the API publishes it, `"YYYY-MM-DD"` (a NodaTime
@@ -7,13 +8,29 @@ import dayjs, { Dayjs } from 'dayjs'
  *
  * Never parse one with `new Date(value)`, which reads it as UTC midnight and
  * so lands on the previous day anywhere west of UTC.
+ *
+ * Branded so that it cannot be mixed up with an {@link Instant} or an arbitrary
+ * string: build one with the helpers here, or {@link asCalendarDate} for a
+ * value written out in full. The generated client's `format: date` fields have
+ * this exact type (see `orval.config.ts`).
  */
-export type CalendarDate = string
+export type CalendarDate = string & { readonly __brand: 'CalendarDate' }
 
 const ISO_FORMAT = 'YYYY-MM-DD'
 const DISPLAY_FORMAT = 'MMM D, YYYY'
 const MS_PER_DAY = 86_400_000
 const CALENDAR_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
+/**
+ * A `"YYYY-MM-DD"` string as a calendar date, for a day written out in full
+ * (a constant, a URL parameter, a test). Throws for anything else.
+ */
+export function asCalendarDate(value: string): CalendarDate {
+  if (!CALENDAR_DATE_PATTERN.test(value)) {
+    throw new RangeError(`"${value}" is not a YYYY-MM-DD calendar date.`)
+  }
+  return value as CalendarDate
+}
 
 /**
  * Local midnight of the day, for date math and date pickers. dayjs reads an
@@ -25,7 +42,7 @@ export function parseCalendarDate(value: CalendarDate): Dayjs {
 
 /** The day a picker value or local date falls on, in the viewer's calendar. */
 export function toCalendarDate(value: Dayjs | Date): CalendarDate {
-  return dayjs(value).format(ISO_FORMAT)
+  return dayjs(value).format(ISO_FORMAT) as CalendarDate
 }
 
 export function formatCalendarDate(
@@ -37,11 +54,10 @@ export function formatCalendarDate(
 
 /**
  * The day an instant falls on in `timeZone`, an IANA id such as a team's,
- * whatever the viewer's zone. Takes the ISO string a `Date`-typed field really
- * holds as well as a `Date`.
+ * whatever the viewer's zone.
  */
 export function calendarDateInZone(
-  instant: Date | string,
+  instant: Date | Instant,
   timeZone: string,
 ): CalendarDate {
   // en-CA formats a date as YYYY-MM-DD.
@@ -50,7 +66,7 @@ export function calendarDateInZone(
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
-  }).format(new Date(instant))
+  }).format(new Date(instant)) as CalendarDate
 }
 
 /** Today in the viewer's calendar. */
@@ -86,8 +102,8 @@ export function compareCalendarDates(
  * them cannot shift the result.
  */
 export function calendarDaysBetween(
-  from: CalendarDate | Date,
-  to: CalendarDate | Date,
+  from: CalendarDate | Instant | Date,
+  to: CalendarDate | Instant | Date,
 ): number {
   return dayNumber(to) - dayNumber(from)
 }
@@ -103,7 +119,7 @@ export function addCalendarDays(
   const [year, month, day] = value.split('-').map(Number)
   return new Date(Date.UTC(year, month - 1, day + days))
     .toISOString()
-    .slice(0, 10)
+    .slice(0, 10) as CalendarDate
 }
 
 /**
@@ -116,14 +132,13 @@ export function startOfCalendarDate(value: CalendarDate): number {
   return new Date(year, month - 1, day).getTime()
 }
 
-function dayNumber(value: CalendarDate | Date): number {
+function dayNumber(value: CalendarDate | Instant | Date): number {
   if (typeof value === 'string' && CALENDAR_DATE_PATTERN.test(value)) {
     const [year, month, day] = value.split('-').map(Number)
     return Date.UTC(year, month - 1, day) / MS_PER_DAY
   }
-  // Anything else is an instant. A `Date`-typed instant still arrives from
-  // the API as an ISO string, and its date prefix is the UTC day, not the
-  // viewer's.
+  // Anything else is an instant, whose day is the viewer's: an ISO string's
+  // date prefix is the UTC day instead.
   const instant = typeof value === 'string' ? new Date(value) : value
   return (
     Date.UTC(instant.getFullYear(), instant.getMonth(), instant.getDate()) /

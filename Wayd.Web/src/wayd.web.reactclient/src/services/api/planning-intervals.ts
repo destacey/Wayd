@@ -100,18 +100,8 @@ export const planningIntervalsGetList = async ( options?: Parameters<typeof apiF
 
 
   }
-).then(deserializePlanningIntervalsGetListResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetListResponse = (data: PlanningIntervalListDto[]): PlanningIntervalListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-    item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-  }
-  return data;
-};
 
 export const getPlanningIntervalsCreateUrl = () => {
 
@@ -157,15 +147,8 @@ export const planningIntervalsGetPlanningInterval = async (idOrKey: string, opti
 
 
   }
-).then(deserializePlanningIntervalsGetPlanningIntervalResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetPlanningIntervalResponse = (data: PlanningIntervalDetailsDto): PlanningIntervalDetailsDto => {
-  if (data == null) return data;
-  data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
-  data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
-  return data;
-};
 
 export const getPlanningIntervalsGetActivitiesUrl = (idOrKey: string,
     params?: PlanningIntervalsGetActivitiesParams,) => {
@@ -197,19 +180,8 @@ export const planningIntervalsGetActivities = async (idOrKey: string,
 
 
   }
-).then(deserializePlanningIntervalsGetActivitiesResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.timestamp = new Date(item0.timestamp);
-    }
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetCalendarUrl = (idOrKey: string,) => {
 
@@ -231,22 +203,8 @@ export const planningIntervalsGetCalendar = async (idOrKey: string, options?: Pa
 
 
   }
-).then(deserializePlanningIntervalsGetCalendarResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetCalendarResponse = (data: PlanningIntervalCalendarDto): PlanningIntervalCalendarDto => {
-  if (data == null) return data;
-  data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
-  data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
-  if (data.iterationSchedules != null) {
-    for (let i0 = 0; i0 < data.iterationSchedules.length; i0++) {
-      const item0 = data.iterationSchedules[i0]!;
-      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetPredictabilityUrl = (idOrKey: string,) => {
 
@@ -448,18 +406,8 @@ export const planningIntervalsGetIterations = async (idOrKey: string, options?: 
 
 
   }
-).then(deserializePlanningIntervalsGetIterationsResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetIterationsResponse = (data: PlanningIntervalIterationListDto[]): PlanningIntervalIterationListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-    item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetCapacityUrl = (idOrKey: string,) => {
 
@@ -482,33 +430,8 @@ export const planningIntervalsGetCapacity = async (idOrKey: string, options?: Pa
 
 
   }
-).then(deserializePlanningIntervalsGetCapacityResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetCapacityResponse = (data: PlanningIntervalCapacityDto): PlanningIntervalCapacityDto => {
-  if (data == null) return data;
-  data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
-  data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
-  if (data.iterations != null) {
-    for (let i0 = 0; i0 < data.iterations.length; i0++) {
-      const item0 = data.iterations[i0]!;
-      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-  }
-  if (data.teams != null) {
-    for (let i0 = 0; i0 < data.teams.length; i0++) {
-      const item0 = data.teams[i0]!;
-      if (item0.teamDaysOff != null) {
-        for (let i1 = 0; i1 < item0.teamDaysOff.length; i1++) {
-          const item1 = item0.teamDaysOff[i1]!;
-          item1.date = typeof item1.date === 'string' ? String(item1.date as unknown as string) : item1.date;
-        }
-      }
-    }
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetIterationUrl = (idOrKey: string,
     iterationIdOrKey: string,) => {
@@ -532,15 +455,8 @@ export const planningIntervalsGetIteration = async (idOrKey: string,
 
 
   }
-).then(deserializePlanningIntervalsGetIterationResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetIterationResponse = (data: PlanningIntervalIterationDetailsDto): PlanningIntervalIterationDetailsDto => {
-  if (data == null) return data;
-  data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
-  data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
-  return data;
-};
 
 export const getPlanningIntervalsGetIterationCategoriesUrl = () => {
 
@@ -595,31 +511,8 @@ export const planningIntervalsGetIterationSprints = async (idOrKey: string,
 
 
   }
-).then(deserializePlanningIntervalsGetIterationSprintsResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetIterationSprintsResponse = (data: PlanningIntervalIterationSprintsDto[]): PlanningIntervalIterationSprintsDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-    item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    if (item0.sprints != null) {
-      for (let i1 = 0; i1 < item0.sprints.length; i1++) {
-        const item1 = item0.sprints[i1]!;
-        item1.start = typeof item1.start === 'string' ? String(item1.start as unknown as string) : item1.start;
-        item1.end = typeof item1.end === 'string' ? String(item1.end as unknown as string) : item1.end;
-        if (item1.activeFrom != null) {
-          item1.activeFrom = new Date(item1.activeFrom);
-        }
-        if (item1.activeUntil != null) {
-          item1.activeUntil = new Date(item1.activeUntil);
-        }
-      }
-    }
-  }
-  return data;
-};
 
 export const getPlanningIntervalsMapTeamSprintsUrl = (id: string,
     teamId: string,) => {
@@ -695,38 +588,8 @@ export const planningIntervalsGetIterationMetrics = async (idOrKey: string,
 
 
   }
-).then(deserializePlanningIntervalsGetIterationMetricsResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetIterationMetricsResponse = (data: PlanningIntervalIterationMetricsResponse): PlanningIntervalIterationMetricsResponse => {
-  if (data == null) return data;
-  data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
-  data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
-  if (data.sprintMetrics != null) {
-    for (let i0 = 0; i0 < data.sprintMetrics.length; i0++) {
-      const item0 = data.sprintMetrics[i0]!;
-      item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-      if (item0.activeFrom != null) {
-        item0.activeFrom = new Date(item0.activeFrom);
-      }
-      if (item0.activeUntil != null) {
-        item0.activeUntil = new Date(item0.activeUntil);
-      }
-    }
-  }
-  if (data.dateMeasuredTeamMetrics != null) {
-    for (let i0 = 0; i0 < data.dateMeasuredTeamMetrics.length; i0++) {
-      const item0 = data.dateMeasuredTeamMetrics[i0]!;
-      item0.from = new Date(item0.from);
-      item0.until = new Date(item0.until);
-      if (item0.inProgressAsOf != null) {
-        item0.inProgressAsOf = new Date(item0.inProgressAsOf);
-      }
-    }
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetIterationBacklogUrl = (idOrKey: string,
     iterationIdOrKey: string,) => {
@@ -750,23 +613,8 @@ export const planningIntervalsGetIterationBacklog = async (idOrKey: string,
 
 
   }
-).then(deserializePlanningIntervalsGetIterationBacklogResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetIterationBacklogResponse = (data: SprintBacklogItemDto[]): SprintBacklogItemDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.created = new Date(item0.created);
-    if (item0.activated != null) {
-      item0.activated = new Date(item0.activated);
-    }
-    if (item0.done != null) {
-      item0.done = new Date(item0.done);
-    }
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetBacklogUrl = (idOrKey: string,) => {
 
@@ -789,23 +637,8 @@ export const planningIntervalsGetBacklog = async (idOrKey: string, options?: Par
 
 
   }
-).then(deserializePlanningIntervalsGetBacklogResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetBacklogResponse = (data: SprintBacklogItemDto[]): SprintBacklogItemDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.created = new Date(item0.created);
-    if (item0.activated != null) {
-      item0.activated = new Date(item0.activated);
-    }
-    if (item0.done != null) {
-      item0.done = new Date(item0.done);
-    }
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetDependenciesUrl = (idOrKey: string,) => {
 
@@ -828,33 +661,8 @@ export const planningIntervalsGetDependencies = async (idOrKey: string, options?
 
 
   }
-).then(deserializePlanningIntervalsGetDependenciesResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetDependenciesResponse = (data: DependencyDto[]): DependencyDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.source != null) {
-      if (item0.source.activatedTimestamp != null) {
-        item0.source.activatedTimestamp = new Date(item0.source.activatedTimestamp);
-      }
-      if (item0.source.doneTimestamp != null) {
-        item0.source.doneTimestamp = new Date(item0.source.doneTimestamp);
-      }
-    }
-    if (item0.target != null) {
-      if (item0.target.activatedTimestamp != null) {
-        item0.target.activatedTimestamp = new Date(item0.target.activatedTimestamp);
-      }
-      if (item0.target.doneTimestamp != null) {
-        item0.target.doneTimestamp = new Date(item0.target.doneTimestamp);
-      }
-    }
-    item0.createdOn = new Date(item0.createdOn);
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetObjectivesUrl = (idOrKey: string,
     params?: PlanningIntervalsGetObjectivesParams,) => {
@@ -886,26 +694,8 @@ export const planningIntervalsGetObjectives = async (idOrKey: string,
 
 
   }
-).then(deserializePlanningIntervalsGetObjectivesResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetObjectivesResponse = (data: PlanningIntervalObjectiveListDto[]): PlanningIntervalObjectiveListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.healthCheck != null) {
-      item0.healthCheck.reportedOn = new Date(item0.healthCheck.reportedOn);
-      item0.healthCheck.expiration = new Date(item0.healthCheck.expiration);
-    }
-    if (item0.startDate != null) {
-      item0.startDate = typeof item0.startDate === 'string' ? String(item0.startDate as unknown as string) : item0.startDate;
-    }
-    if (item0.targetDate != null) {
-      item0.targetDate = typeof item0.targetDate === 'string' ? String(item0.targetDate as unknown as string) : item0.targetDate;
-    }
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetObjectiveUrl = (idOrKey: string,
     objectiveIdOrKey: string,) => {
@@ -929,26 +719,8 @@ export const planningIntervalsGetObjective = async (idOrKey: string,
 
 
   }
-).then(deserializePlanningIntervalsGetObjectiveResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetObjectiveResponse = (data: PlanningIntervalObjectiveDetailsDto): PlanningIntervalObjectiveDetailsDto => {
-  if (data == null) return data;
-  if (data.healthCheck != null) {
-    data.healthCheck.reportedOn = new Date(data.healthCheck.reportedOn);
-    data.healthCheck.expiration = new Date(data.healthCheck.expiration);
-  }
-  if (data.startDate != null) {
-    data.startDate = typeof data.startDate === 'string' ? String(data.startDate as unknown as string) : data.startDate;
-  }
-  if (data.targetDate != null) {
-    data.targetDate = typeof data.targetDate === 'string' ? String(data.targetDate as unknown as string) : data.targetDate;
-  }
-  if (data.closedDate != null) {
-    data.closedDate = new Date(data.closedDate);
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetObjectiveActivitiesUrl = (idOrKey: string,
     objectiveIdOrKey: string,
@@ -982,19 +754,8 @@ export const planningIntervalsGetObjectiveActivities = async (idOrKey: string,
 
 
   }
-).then(deserializePlanningIntervalsGetObjectiveActivitiesResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetObjectiveActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.timestamp = new Date(item0.timestamp);
-    }
-  }
-  return data;
-};
 
 export const getPlanningIntervalsCreateObjectiveUrl = (id: string,) => {
 
@@ -1129,22 +890,8 @@ export const planningIntervalsGetObjectivesHealthReport = async (idOrKey: string
 
 
   }
-).then(deserializePlanningIntervalsGetObjectivesHealthReportResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetObjectivesHealthReportResponse = (data: PlanningIntervalObjectiveHealthCheckDto[]): PlanningIntervalObjectiveHealthCheckDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.reportedOn != null) {
-      item0.reportedOn = new Date(item0.reportedOn);
-    }
-    if (item0.expiration != null) {
-      item0.expiration = new Date(item0.expiration);
-    }
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetObjectiveWorkItemsUrl = (idOrKey: string,
     objectiveIdOrKey: string,) => {
@@ -1168,25 +915,8 @@ export const planningIntervalsGetObjectiveWorkItems = async (idOrKey: string,
 
 
   }
-).then(deserializePlanningIntervalsGetObjectiveWorkItemsResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetObjectiveWorkItemsResponse = (data: WorkItemsSummaryDto): WorkItemsSummaryDto => {
-  if (data == null) return data;
-  if (data.workItems != null) {
-    for (let i0 = 0; i0 < data.workItems.length; i0++) {
-      const item0 = data.workItems[i0]!;
-      item0.created = new Date(item0.created);
-      if (item0.activated != null) {
-        item0.activated = new Date(item0.activated);
-      }
-      if (item0.done != null) {
-        item0.done = new Date(item0.done);
-      }
-    }
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetObjectiveForecastUrl = (idOrKey: string,
     objectiveIdOrKey: string,
@@ -1220,38 +950,8 @@ export const planningIntervalsGetObjectiveForecast = async (idOrKey: string,
 
 
   }
-).then(deserializePlanningIntervalsGetObjectiveForecastResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetObjectiveForecastResponse = (data: WorkItemForecastDto): WorkItemForecastDto => {
-  if (data == null) return data;
-  data.forecastStart = typeof data.forecastStart === 'string' ? String(data.forecastStart as unknown as string) : data.forecastStart;
-  if (data.teams != null) {
-    for (let i0 = 0; i0 < data.teams.length; i0++) {
-      const item0 = data.teams[i0]!;
-      item0.from = typeof item0.from === 'string' ? String(item0.from as unknown as string) : item0.from;
-      item0.to = typeof item0.to === 'string' ? String(item0.to as unknown as string) : item0.to;
-    }
-  }
-  if (data.targetDate != null) {
-    data.targetDate = typeof data.targetDate === 'string' ? String(data.targetDate as unknown as string) : data.targetDate;
-  }
-  if (data.percentiles != null) {
-    for (let i0 = 0; i0 < data.percentiles.length; i0++) {
-      const item0 = data.percentiles[i0]!;
-      if (item0.date != null) {
-        item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
-      }
-    }
-  }
-  if (data.histogram != null) {
-    for (let i0 = 0; i0 < data.histogram.length; i0++) {
-      const item0 = data.histogram[i0]!;
-      item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
-    }
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetObjectiveWorkItemMetricsUrl = (idOrKey: string,
     objectiveIdOrKey: string,) => {
@@ -1275,17 +975,8 @@ export const planningIntervalsGetObjectiveWorkItemMetrics = async (idOrKey: stri
 
 
   }
-).then(deserializePlanningIntervalsGetObjectiveWorkItemMetricsResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetObjectiveWorkItemMetricsResponse = (data: WorkItemProgressDailyRollupDto[]): WorkItemProgressDailyRollupDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
-  }
-  return data;
-};
 
 export const getPlanningIntervalsManageObjectiveWorkItemsUrl = (id: string,
     objectiveId: string,) => {
@@ -1403,121 +1094,8 @@ export const planningIntervalsGetObjectiveHealthCheckEvidence = async (idOrKey: 
 
 
   }
-).then(deserializePlanningIntervalsGetObjectiveHealthCheckEvidenceResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetObjectiveHealthCheckEvidenceResponse = (data: ObjectiveHealthCheckEvidenceDto): ObjectiveHealthCheckEvidenceDto => {
-  if (data == null) return data;
-  if (data.planningInterval != null) {
-    if ("start" in data.planningInterval && data.planningInterval.start != null) {
-      data.planningInterval.start = typeof data.planningInterval.start === 'string' ? String(data.planningInterval.start as unknown as string) : data.planningInterval.start;
-    }
-    if ("end" in data.planningInterval && data.planningInterval.end != null) {
-      data.planningInterval.end = typeof data.planningInterval.end === 'string' ? String(data.planningInterval.end as unknown as string) : data.planningInterval.end;
-    }
-  }
-  if (data.objective != null) {
-    if ("healthCheck" in data.objective && data.objective.healthCheck != null) {
-      data.objective.healthCheck.reportedOn = new Date(data.objective.healthCheck.reportedOn);
-      data.objective.healthCheck.expiration = new Date(data.objective.healthCheck.expiration);
-    }
-    if ("startDate" in data.objective && data.objective.startDate != null) {
-      data.objective.startDate = typeof data.objective.startDate === 'string' ? String(data.objective.startDate as unknown as string) : data.objective.startDate;
-    }
-    if ("targetDate" in data.objective && data.objective.targetDate != null) {
-      data.objective.targetDate = typeof data.objective.targetDate === 'string' ? String(data.objective.targetDate as unknown as string) : data.objective.targetDate;
-    }
-    if ("closedDate" in data.objective && data.objective.closedDate != null) {
-      data.objective.closedDate = new Date(data.objective.closedDate);
-    }
-  }
-  if (data.schedule != null) {
-    if ("startDate" in data.schedule && data.schedule.startDate != null) {
-      data.schedule.startDate = typeof data.schedule.startDate === 'string' ? String(data.schedule.startDate as unknown as string) : data.schedule.startDate;
-    }
-    if ("targetDate" in data.schedule && data.schedule.targetDate != null) {
-      data.schedule.targetDate = typeof data.schedule.targetDate === 'string' ? String(data.schedule.targetDate as unknown as string) : data.schedule.targetDate;
-    }
-    if ("today" in data.schedule && data.schedule.today != null) {
-      data.schedule.today = typeof data.schedule.today === 'string' ? String(data.schedule.today as unknown as string) : data.schedule.today;
-    }
-  }
-  if (data.workItems != null) {
-    if (data.workItems.workItems != null) {
-      for (let i0 = 0; i0 < data.workItems.workItems.length; i0++) {
-        const item0 = data.workItems.workItems[i0]!;
-        item0.created = new Date(item0.created);
-        if (item0.activated != null) {
-          item0.activated = new Date(item0.activated);
-        }
-        if (item0.done != null) {
-          item0.done = new Date(item0.done);
-        }
-      }
-    }
-  }
-  if (data.workItemMetrics != null) {
-    for (let i0 = 0; i0 < data.workItemMetrics.length; i0++) {
-      const item0 = data.workItemMetrics[i0]!;
-      item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
-    }
-  }
-  if (data.forecast != null) {
-    data.forecast.forecastStart = typeof data.forecast.forecastStart === 'string' ? String(data.forecast.forecastStart as unknown as string) : data.forecast.forecastStart;
-    if (data.forecast.teams != null) {
-      for (let i0 = 0; i0 < data.forecast.teams.length; i0++) {
-        const item0 = data.forecast.teams[i0]!;
-        item0.from = typeof item0.from === 'string' ? String(item0.from as unknown as string) : item0.from;
-        item0.to = typeof item0.to === 'string' ? String(item0.to as unknown as string) : item0.to;
-      }
-    }
-    if (data.forecast.targetDate != null) {
-      data.forecast.targetDate = typeof data.forecast.targetDate === 'string' ? String(data.forecast.targetDate as unknown as string) : data.forecast.targetDate;
-    }
-    if (data.forecast.percentiles != null) {
-      for (let i0 = 0; i0 < data.forecast.percentiles.length; i0++) {
-        const item0 = data.forecast.percentiles[i0]!;
-        if (item0.date != null) {
-          item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
-        }
-      }
-    }
-    if (data.forecast.histogram != null) {
-      for (let i0 = 0; i0 < data.forecast.histogram.length; i0++) {
-        const item0 = data.forecast.histogram[i0]!;
-        item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
-      }
-    }
-  }
-  if (data.healthChecks != null) {
-    for (let i0 = 0; i0 < data.healthChecks.length; i0++) {
-      const item0 = data.healthChecks[i0]!;
-      item0.reportedOn = new Date(item0.reportedOn);
-      item0.expiration = new Date(item0.expiration);
-    }
-  }
-  if (data.sinceLastCheck != null) {
-    if ("lastCheckReportedOn" in data.sinceLastCheck && data.sinceLastCheck.lastCheckReportedOn != null) {
-      data.sinceLastCheck.lastCheckReportedOn = new Date(data.sinceLastCheck.lastCheckReportedOn);
-    }
-    if ("activity" in data.sinceLastCheck && data.sinceLastCheck.activity != null) {
-      for (let i0 = 0; i0 < data.sinceLastCheck.activity.length; i0++) {
-        const item0 = data.sinceLastCheck.activity[i0]!;
-        item0.timestamp = new Date(item0.timestamp);
-      }
-    }
-  }
-  if (data.teamRisks != null) {
-    for (let i0 = 0; i0 < data.teamRisks.length; i0++) {
-      const item0 = data.teamRisks[i0]!;
-      item0.reportedOn = new Date(item0.reportedOn);
-      if (item0.followUpDate != null) {
-        item0.followUpDate = typeof item0.followUpDate === 'string' ? String(item0.followUpDate as unknown as string) : item0.followUpDate;
-      }
-    }
-  }
-  return data;
-};
 
 export const getPlanningIntervalsGetObjectiveHealthChecksUrl = (id: string,
     objectiveId: string,) => {
@@ -1541,18 +1119,8 @@ export const planningIntervalsGetObjectiveHealthChecks = async (id: string,
 
 
   }
-).then(deserializePlanningIntervalsGetObjectiveHealthChecksResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetObjectiveHealthChecksResponse = (data: PlanningIntervalObjectiveHealthCheckDetailsDto[]): PlanningIntervalObjectiveHealthCheckDetailsDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.reportedOn = new Date(item0.reportedOn);
-    item0.expiration = new Date(item0.expiration);
-  }
-  return data;
-};
 
 export const getPlanningIntervalsCreateObjectiveHealthCheckUrl = (id: string,
     objectiveId: string,) => {
@@ -1605,15 +1173,8 @@ export const planningIntervalsGetObjectiveHealthCheck = async (id: string,
 
 
   }
-).then(deserializePlanningIntervalsGetObjectiveHealthCheckResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetObjectiveHealthCheckResponse = (data: PlanningIntervalObjectiveHealthCheckDetailsDto): PlanningIntervalObjectiveHealthCheckDetailsDto => {
-  if (data == null) return data;
-  data.reportedOn = new Date(data.reportedOn);
-  data.expiration = new Date(data.expiration);
-  return data;
-};
 
 export const getPlanningIntervalsUpdateObjectiveHealthCheckUrl = (id: string,
     objectiveId: string,
@@ -1641,15 +1202,8 @@ export const planningIntervalsUpdateObjectiveHealthCheck = async (id: string,
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
     body: JSON.stringify(updatePlanningIntervalObjectiveHealthCheckRequest)
   }
-).then(deserializePlanningIntervalsUpdateObjectiveHealthCheckResponse);}
+);}
 
-
-const deserializePlanningIntervalsUpdateObjectiveHealthCheckResponse = (data: PlanningIntervalObjectiveHealthCheckDetailsDto): PlanningIntervalObjectiveHealthCheckDetailsDto => {
-  if (data == null) return data;
-  data.reportedOn = new Date(data.reportedOn);
-  data.expiration = new Date(data.expiration);
-  return data;
-};
 
 export const getPlanningIntervalsDeleteObjectiveHealthCheckUrl = (id: string,
     objectiveId: string,
@@ -1709,18 +1263,6 @@ export const planningIntervalsGetRisks = async (idOrKey: string,
 
 
   }
-).then(deserializePlanningIntervalsGetRisksResponse);}
+);}
 
-
-const deserializePlanningIntervalsGetRisksResponse = (data: RiskListDto[]): RiskListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.reportedOn = new Date(item0.reportedOn);
-    if (item0.followUpDate != null) {
-      item0.followUpDate = typeof item0.followUpDate === 'string' ? String(item0.followUpDate as unknown as string) : item0.followUpDate;
-    }
-  }
-  return data;
-};
 

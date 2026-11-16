@@ -73,7 +73,7 @@ export interface ActivityLogDto {
      * @nullable
      */
   clientId?: string | null;
-  timestamp: Date;
+  timestamp: string & { readonly __brand: 'Instant' };
   /** @nullable */
   correlationId?: string | null;
   eventVersion: string;
@@ -127,7 +127,7 @@ export interface AddIncidentTimelineNoteRequest {
      * When the event occurred; defaults to now when omitted.
      * @nullable
      */
-  recordedAt?: Date | null;
+  recordedAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 export type IntakeRequestOutcomeKind = typeof IntakeRequestOutcomeKind[keyof typeof IntakeRequestOutcomeKind];
@@ -291,7 +291,7 @@ export interface AddProductDependencyRequest {
      * The day the dependency began. Defaults to today, may be backdated, and cannot be in the future.
      * @nullable
      */
-  startsOn?: string | null;
+  startsOn?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -339,7 +339,7 @@ export interface AddStrategicInitiativeKpiMeasurementRequest {
      */
   actualValue: number;
   /** The date and time (in UTC) when the measurement was taken. */
-  measurementDate: Date;
+  measurementDate: string & { readonly __brand: 'Instant' };
   /**
      * Optional note providing context for the measurement.
      * @maxLength 1024
@@ -391,9 +391,9 @@ export interface AddTeamMembershipRequest {
   teamId: string;
   /** @minLength 1 */
   parentTeamId: string;
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** @nullable */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export type StatusCategory = typeof StatusCategory[keyof typeof StatusCategory];
@@ -473,7 +473,7 @@ export interface ApplyIncidentWorkflowActionRequest {
      * Empty means now. Close and cancel ignore it.
      * @nullable
      */
-  occurredAt?: Date | null;
+  occurredAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 export type TokenScope = typeof TokenScope[keyof typeof TokenScope];
@@ -548,7 +548,7 @@ export interface AssembleReleasePackageRequest {
      * When the package is expected to ship.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * Every component version in this package. A component may appear only once.
      * @minItems 1
@@ -875,7 +875,7 @@ export interface BackgroundJobDto {
   action: string;
   inProcessingState: boolean;
   /** @nullable */
-  startedAt?: Date | null;
+  startedAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 export interface BackgroundJobTypeDto {
@@ -1045,10 +1045,10 @@ export interface BacklogHealthWorkItemDto {
      * @nullable
      */
   estimate?: number | null;
-  created: Date;
-  lastModified: Date;
+  created: string & { readonly __brand: 'Instant' };
+  lastModified: string & { readonly __brand: 'Instant' };
   /** @nullable */
-  activated?: Date | null;
+  activated?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
   externalViewWorkItemUrl?: string | null;
   /** The item's position in the team's backlog, 1 being the next to be worked. */
@@ -1123,12 +1123,12 @@ export interface EmployeeAllocationChangeRequest {
      */
   roleId?: string | null;
   /** The first day the change covers. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /**
      * The last day the change covers, or null for every day from the start on.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The share of the employee's time, from 0 to 100. Zero ends the allocation for the date range. */
   percent: number;
 }
@@ -1326,7 +1326,7 @@ export interface ChangeProductDependencyTermsRequest {
      * must be after the day the dependency started, and cannot be in the future.
      * @nullable
      */
-  changedOn?: string | null;
+  changedOn?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -1658,7 +1658,7 @@ export interface CompleteSprintRequest {
      * in the sprint's completion window, which the sprint details report.
      * @nullable
      */
-  completedAt?: Date | null;
+  completedAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -1742,9 +1742,9 @@ export interface CopyRoadmapRequest {
  */
 export interface CorrectReleaseDatesRequest {
   /** @nullable */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  releasedDate?: string | null;
+  releasedDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -1752,15 +1752,15 @@ export interface CorrectReleaseDatesRequest {
  */
 export interface CorrectReleasePackageDatesRequest {
   /** @nullable */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  releasedAt?: Date | null;
+  releasedAt?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The released day, read as 12:00 in the system time zone.
      * @deprecated
      * @nullable
      */
-  releasedDate?: string | null;
+  releasedDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -1772,12 +1772,12 @@ export interface SprintActualDatesRequest {
      * When the team actually started the sprint. Omit to follow the planned start.
      * @nullable
      */
-  started?: Date | null;
+  started?: string & { readonly __brand: 'Instant' } | null;
   /**
      * When the team actually completed the sprint. Omit to follow the planned end.
      * @nullable
      */
-  completed?: Date | null;
+  completed?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -1800,33 +1800,33 @@ export interface CorrectVersionDatesRequest {
      * written down; correcting or removing it changes no lifecycle state.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The corrected cut moment, or null to clear it. May be added to a version that was never cut: a
      * version can be marked released without being cut, so a cut moment discovered later is a
      * correction rather than a lifecycle step.
      * @nullable
      */
-  cutAt?: Date | null;
+  cutAt?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The corrected released moment. May be added or changed, but not cleared on a version that has
      * one — emptying it would leave the status contradicting the record. Use the revert action to
      * record that a version did not ship.
      * @nullable
      */
-  releasedAt?: Date | null;
+  releasedAt?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The cut day, read as 12:00 in the system time zone.
      * @deprecated
      * @nullable
      */
-  cutDate?: string | null;
+  cutDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The released day, read as 12:00 in the system time zone.
      * @deprecated
      * @nullable
      */
-  releasedDate?: string | null;
+  releasedDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export type CreateAzureDevOpsConnectionRequestType = typeof CreateAzureDevOpsConnectionRequestType[keyof typeof CreateAzureDevOpsConnectionRequestType];
@@ -1971,7 +1971,7 @@ export interface CreateEmployeeRequest {
      * Gets the hire date.
      * @nullable
      */
-  hireDate?: Date | null;
+  hireDate?: string & { readonly __brand: 'Instant' } | null;
   /**
      * Gets the email.
      * @minLength 1
@@ -2173,11 +2173,11 @@ export interface CreateIncidentRequest {
      */
   commanderEmployeeId?: string | null;
   /** @nullable */
-  noticedAt?: Date | null;
+  noticedAt?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  startedAt?: Date | null;
+  startedAt?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  recoveredAt?: Date | null;
+  recoveredAt?: string & { readonly __brand: 'Instant' } | null;
   productIds: string[];
   /** Releases this incident points at. One incident may point at several. */
   releaseIds: string[];
@@ -2294,7 +2294,7 @@ export interface CreateIntakeDeskRequest {
  */
 export interface IntakeRequestNeedByRequest {
   /** The date the request is needed by. */
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
   /** What makes it that date: a regulation, a contract, an external event, a commitment someone here made, or the requester's preference. */
   basis: NeedByBasis;
   /**
@@ -2312,7 +2312,7 @@ export interface IntakeRequestNeedByRequest {
      * For a commitment, the date it was made. Required for a commitment and refused for any other basis.
      * @nullable
      */
-  committedOn?: string | null;
+  committedOn?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -2461,7 +2461,7 @@ export interface CreatePersonalAccessTokenRequest {
      */
   name: string;
   /** The expiration date for the token. Must be in the future and within 2 years from now. */
-  expiresAt: Date;
+  expiresAt: string & { readonly __brand: 'Instant' };
   /**
      * How much of your access the token may use: `Read` for viewing, searching and exporting only, or `Write` for
      * everything you may do. Defaults to `Write`. A scope never grants a permission you do not have.
@@ -2477,7 +2477,7 @@ export interface CreatePersonalAccessTokenResult {
   id: string;
   name: string;
   token: string;
-  expiresAt: Date;
+  expiresAt: string & { readonly __brand: 'Instant' };
   scope: TokenScope;
 }
 
@@ -2485,7 +2485,7 @@ export interface CreatePlanningIntervalObjectiveHealthCheckRequest {
   /** @minLength 1 */
   planningIntervalObjectiveId: string;
   statusId: number;
-  expiration: Date;
+  expiration: string & { readonly __brand: 'Instant' };
   /**
      * @maxLength 1024
      * @nullable
@@ -2508,9 +2508,9 @@ export interface CreatePlanningIntervalObjectiveRequest {
      */
   description?: string | null;
   /** @nullable */
-  startDate?: string | null;
+  startDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   isStretch: boolean;
   /** @nullable */
   order?: number | null;
@@ -2530,9 +2530,9 @@ export interface CreatePlanningIntervalRequest {
      */
   description?: string | null;
   /** Gets or sets the start. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** Gets or sets the end. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /**
      * Gets or sets the length of iterations in weeks.
      * @exclusiveMinimum 0
@@ -2704,12 +2704,12 @@ export interface CreateProgramRequest {
      * The Program start date.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The Program end date.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The ID of the portfolio to which this program belongs.
      * @minLength 1
@@ -2768,7 +2768,7 @@ export interface CreateProjectDeliverableRequest {
      * When the deliverable is due.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The project's `revision` when the change was prepared. A project changed since answers 409.
      * @nullable
@@ -2787,7 +2787,7 @@ export const HealthStatus = {
 
 export interface CreateProjectHealthCheckRequest {
   status: HealthStatus;
-  expiration: Date;
+  expiration: string & { readonly __brand: 'Instant' };
   /**
      * @maxLength 1024
      * @nullable
@@ -2864,12 +2864,12 @@ export interface CreateProjectRequest {
      * The Project start date.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The Project end date.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The ID of the portfolio to which this project belongs.
      * @minLength 1
@@ -2951,17 +2951,17 @@ export interface CreateProjectTaskRequest {
      * The planned start date for the task (for tasks, not milestones).
      * @nullable
      */
-  plannedStart?: string | null;
+  plannedStart?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The planned end date for the task (for tasks, not milestones).
      * @nullable
      */
-  plannedEnd?: string | null;
+  plannedEnd?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The planned date for a milestone (for milestones only).
      * @nullable
      */
-  plannedDate?: string | null;
+  plannedDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The estimated effort in hours (optional).
      * @exclusiveMinimum 0
@@ -3024,7 +3024,7 @@ export interface CreateRiskRequest {
   /** @nullable */
   assigneeId?: string | null;
   /** @nullable */
-  followUpDate?: string | null;
+  followUpDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * @maxLength 1024
      * @nullable
@@ -3072,9 +3072,9 @@ export interface CreateRoadmapItemRequest {
 
 export type CreateRoadmapActivityRequest = Omit<CreateRoadmapItemRequest & ({
   /** The Activity start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Activity end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /**
      * The Activity's 1-based position among its parent's child Activities, or among the root Activities
      * (optional). Omit it to place the Activity last. Timeboxes and milestones are not counted: they always
@@ -3095,7 +3095,7 @@ export const CreateRoadmapMilestoneRequestType = {
 
 export type CreateRoadmapMilestoneRequest = Omit<CreateRoadmapItemRequest & {
   /** The Milestone date. */
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
 }, '$type'> & {
   $type: CreateRoadmapMilestoneRequestType;
 };
@@ -3114,9 +3114,9 @@ export interface CreateRoadmapRequest {
      */
   description?: string | null;
   /** The Roadmap start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Roadmap end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /**
      * The owners of the Roadmap: employee ids, which must include the caller's own.
      * @minItems 1
@@ -3136,9 +3136,9 @@ export const CreateRoadmapTimeboxRequestType = {
 
 export type CreateRoadmapTimeboxRequest = Omit<CreateRoadmapItemRequest & {
   /** The Timebox start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Timebox end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
 }, '$type'> & {
   $type: CreateRoadmapTimeboxRequestType;
 };
@@ -3352,9 +3352,9 @@ export interface CreateStrategicInitiativeRequest {
      */
   description: string;
   /** The start date of the strategic initiative. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The end date of the strategic initiative. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /**
      * The ID of the portfolio to which this strategic initiative belongs.
      * @minLength 1
@@ -3405,12 +3405,12 @@ export interface CreateStrategyRequest {
      * The start date of when the strategy became active.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The end date of when the strategy became archived.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export interface CreateTeamMemberRoleRequest {
@@ -3449,7 +3449,7 @@ export interface CreateTeamOfTeamsRequest {
      */
   description?: string | null;
   /** The active date for the team. */
-  activeDate: string;
+  activeDate: string & { readonly __brand: 'CalendarDate' };
 }
 
 export interface CreateTeamRequest {
@@ -3472,7 +3472,7 @@ export interface CreateTeamRequest {
      */
   description?: string | null;
   /** The active date for the team. */
-  activeDate: string;
+  activeDate: string & { readonly __brand: 'CalendarDate' };
 }
 
 export type CreateTeamsConnectionRequestType = typeof CreateTeamsConnectionRequestType[keyof typeof CreateTeamsConnectionRequestType];
@@ -3765,19 +3765,19 @@ export interface DiscussionMessageDto {
   /** Who wrote the message. */
   author: EmployeeNavigationDto;
   /** When the message was posted. */
-  postedOn: Date;
+  postedOn: string & { readonly __brand: 'Instant' };
   /**
      * When the message was last edited, or null if it never was.
      * @nullable
      */
-  editedOn?: Date | null;
+  editedOn?: string & { readonly __brand: 'Instant' } | null;
   /** Whether the message was deleted, leaving only who wrote it, who deleted it and when. */
   isDeleted: boolean;
   /**
      * When the message was deleted, or null while it stands.
      * @nullable
      */
-  deletedOn?: Date | null;
+  deletedOn?: string & { readonly __brand: 'Instant' } | null;
   /** Who deleted the message, or null while it stands. */
   deletedBy?: EmployeeNavigationDto | null;
   /** The people the message mentions, by their current names. */
@@ -3788,7 +3788,7 @@ export interface DiscussionMessageDto {
      * When the latest reply in the thread was posted, or null when there are none.
      * @nullable
      */
-  lastReplyOn?: Date | null;
+  lastReplyOn?: string & { readonly __brand: 'Instant' } | null;
   /** Up to three people who replied most recently in the thread, newest first. */
   recentRepliers: EmployeeNavigationDto[];
   /**
@@ -3810,7 +3810,7 @@ export interface DiscussionEntryDto {
   /** Which of DiscussionMessageDto? DiscussionEntryDto.Message and ActivityLogDto? DiscussionEntryDto.Activity is set. */
   type: DiscussionEntryType;
   /** When the message was posted or the change happened; the conversation's order. */
-  timestamp: Date;
+  timestamp: string & { readonly __brand: 'Instant' };
   /** The message, when DiscussionEntryType DiscussionEntryDto.Type is DiscussionEntryType.Message. */
   message?: DiscussionMessageDto | null;
   /**
@@ -3910,7 +3910,7 @@ export interface NotificationDto {
   /** The domain event behind the newest change: the id of its entry in the record's activity. */
   eventId: string;
   /** When the newest change happened. */
-  occurredOn: Date;
+  occurredOn: string & { readonly __brand: 'Instant' };
   /** How the newest change was made: a person directly, or the platform reacting for one. */
   actorKind: EventActorKind;
   /**
@@ -3971,13 +3971,13 @@ export interface CutVersionRequest {
      * `CutDate` is sent instead.
      * @nullable
      */
-  cutAt?: Date | null;
+  cutAt?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The day it was cut, read as 12:00 in the system time zone.
      * @deprecated
      * @nullable
      */
-  cutDate?: string | null;
+  cutDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -4011,7 +4011,7 @@ export interface CycleTimeSummary {
  * Releases on one day.
  */
 export interface DailyReleaseCountDto {
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
   released: number;
   /** How many of that day's versions have since been withdrawn. */
   withdrawn: number;
@@ -4037,12 +4037,12 @@ export interface DateMeasuredTeamMetricsSummary {
      * When the measured window begins: the start of the iteration's first day in the team's time zone that day,
      * or in its zone on the last day when it has no operating model on the first.
      */
-  from: Date;
+  from: string & { readonly __brand: 'Instant' };
   /**
      * When the measured window ends, exclusive: the start of the day after the iteration's last, in
      * `timeZone`.
      */
-  until: Date;
+  until: string & { readonly __brand: 'Instant' };
   /** The IANA time zone the team's operating model has on the iteration's last day. */
   timeZone: string;
   /**
@@ -4061,7 +4061,7 @@ export interface DateMeasuredTeamMetricsSummary {
      * future one.
      * @nullable
      */
-  inProgressAsOf?: Date | null;
+  inProgressAsOf?: string & { readonly __brand: 'Instant' } | null;
   /** Completed and in-progress items with no value in `sizingMethod`. */
   unestimatedWorkItems: number;
   /** Cycle-time rollup of the completed items. */
@@ -4076,13 +4076,13 @@ export interface DateMeasuredTeamMetricsSummary {
 export interface DeactivateTeamOfTeamsRequest {
   /** @minLength 1 */
   id: string;
-  inactiveDate: string;
+  inactiveDate: string & { readonly __brand: 'CalendarDate' };
 }
 
 export interface DeactivateTeamRequest {
   /** @minLength 1 */
   id: string;
-  inactiveDate: string;
+  inactiveDate: string & { readonly __brand: 'CalendarDate' };
 }
 
 /**
@@ -4105,7 +4105,7 @@ export interface DeadLetterMessageResponse {
   exceptionType?: string | null;
   /** @nullable */
   exceptionMessage?: string | null;
-  sentAt: Date;
+  sentAt: string & { readonly __brand: 'Instant' };
   /** Whether the durability agent is set to move this envelope back to incoming for another attempt. */
   replayable: boolean;
   attempts: number;
@@ -4125,7 +4125,7 @@ export type DeadLetterMessageDetailsResponse = DeadLetterMessageResponse & ({
   /** @nullable */
   destination?: string | null;
   /** @nullable */
-  executionTime?: Date | null;
+  executionTime?: string & { readonly __brand: 'Instant' } | null;
 });
 
 /**
@@ -4188,9 +4188,9 @@ export interface UnavailableMetricDto {
  */
 export interface DeliveryMetricsDto {
   /** The start of the window these measures cover, inclusive. */
-  from: Date;
+  from: string & { readonly __brand: 'Instant' };
   /** The end of the window these measures cover, inclusive. */
-  to: Date;
+  to: string & { readonly __brand: 'Instant' };
   deploymentFrequency: DeploymentFrequencyDto;
   changeFailureRate: ChangeFailureRateDto;
   /** The measures this module cannot compute yet, each with the reason. */
@@ -4320,9 +4320,9 @@ export interface DependencyAnalysisPairDto {
  */
 export interface DependencyAnalysisPeriodDto {
   /** The period's first day. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The period's last day, included. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** Dependencies created in the period. */
   created: number;
   /** Dependencies that closed in the period. */
@@ -4366,9 +4366,9 @@ export interface WorkItemDetailsNavigationDto {
   team?: WorkTeamNavigationDto | null;
   sprint?: WorkIterationNavigationDto | null;
   /** @nullable */
-  activatedTimestamp?: Date | null;
+  activatedTimestamp?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  doneTimestamp?: Date | null;
+  doneTimestamp?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
   externalViewWorkItemUrl?: string | null;
 }
@@ -4381,7 +4381,7 @@ export interface DependencyDto {
   state: SimpleNavigationDto;
   health: SimpleNavigationDto;
   scope: SimpleNavigationDto;
-  createdOn: Date;
+  createdOn: string & { readonly __brand: 'Instant' };
   createdBy?: EmployeeNavigationDto | null;
   /** @nullable */
   comment?: string | null;
@@ -4460,12 +4460,12 @@ export interface DeploymentDto {
      * @nullable
      */
   artifactId?: string | null;
-  startedAt: Date;
+  startedAt: string & { readonly __brand: 'Instant' };
   /**
      * When it reached a terminal outcome, or null while still in flight.
      * @nullable
      */
-  completedAt?: Date | null;
+  completedAt?: string & { readonly __brand: 'Instant' } | null;
   /**
      * Why it failed or was rolled back, where someone recorded a reason.
      * @nullable
@@ -4578,7 +4578,7 @@ export interface DiscussionMessageRevisionDto {
   /** The text before the edit, as markdown. */
   body: string;
   /** When the edit replaced this version. */
-  replacedOn: Date;
+  replacedOn: string & { readonly __brand: 'Instant' };
 }
 
 /**
@@ -4649,12 +4649,12 @@ export interface EmployeeAllocationDto {
   /** The team member role the time is spent in, or null when none was chosen. */
   role?: NavigationDto | null;
   /** The first day of the allocation. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /**
      * The last day of the allocation, or null when it has no end.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The share of the employee's time, from 1 to 100. */
   percent: number;
   /** Whether the caller may change this team's allocations. */
@@ -4711,7 +4711,7 @@ export interface EmployeeDetailsDto {
      * When the employee was hired, or null when unknown.
      * @nullable
      */
-  hireDate?: Date | null;
+  hireDate?: string & { readonly __brand: 'Instant' } | null;
   /** The employee's primary work email address. */
   email: string;
   /**
@@ -4823,9 +4823,9 @@ export interface EmployeeTimeAwayEntryDto {
   /** The id of the stretch, which the change and remove requests take. */
   id: string;
   /** The first day away. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The last day away. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The share of each day the employee is away, from 1 to 100. */
   percentAway: number;
   /**
@@ -4871,9 +4871,9 @@ export interface EmployeeTimeAwayDto {
  */
 export interface EmployeeTimeAwayRequest {
   /** The first day away. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The last day away. The same as the start for a single day. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /**
      * The share of each day the employee is away, from 1 to 100: 100 for whole days, 50 for half days.
      * @minimum 1
@@ -4897,7 +4897,7 @@ export interface EndProductDependencyRequest {
      * future.
      * @nullable
      */
-  endsOn?: string | null;
+  endsOn?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export interface EntraConnectionConfigurationDto {
@@ -4967,7 +4967,7 @@ export interface RolloutItemDto {
      */
   artifactId?: string | null;
   /** When it reached the environment. */
-  deployedAt: Date;
+  deployedAt: string & { readonly __brand: 'Instant' };
   /** Whether a later deployment touching this product failed or was rolled back here. */
   hasFailedAttemptSince: boolean;
 }
@@ -5009,7 +5009,7 @@ export interface EstimationScaleVersionDto {
   id: string;
   /** The version's number within its scale, starting at 1. */
   number: number;
-  publishedOn: Date;
+  publishedOn: string & { readonly __brand: 'Instant' };
   /** The values a participant can vote, in display order. */
   values: EstimationScaleValueDto[];
 }
@@ -5156,7 +5156,7 @@ export interface ExternalIdentityMappingDto {
   /** The mapping status: Unmapped, AutoMatched, ManuallyMapped, or Ignored. */
   status: string;
   /** When a sync last saw this identity on a work item. */
-  lastSeen: Date;
+  lastSeen: string & { readonly __brand: 'Instant' };
 }
 
 /**
@@ -5173,7 +5173,7 @@ export interface FailDeploymentRequest {
      * When it completed. Defaults to now.
      * @nullable
      */
-  completedAt?: Date | null;
+  completedAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -5317,13 +5317,13 @@ export interface FollowedRecordDto {
      */
   healthCheck?: FollowedHealthCheckDto | null;
   /** When the caller started following the record. */
-  followedOn: Date;
+  followedOn: string & { readonly __brand: 'Instant' };
   /**
      * When the record last changed: the newest entry its Activity section lists, its own or one naming it as
      * related. Null when it has no recorded activity.
      * @nullable
      */
-  lastChangedOn?: Date | null;
+  lastChangedOn?: string & { readonly __brand: 'Instant' } | null;
   /** Whether the caller has muted the record: they still follow it, but are told nothing about it. */
   isMuted: boolean;
 }
@@ -5364,12 +5364,12 @@ export interface FollowedRecordDetailDto {
      * When the record starts, or null.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * When the record ends or is due, or null.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The record's activity since the caller followed it, newest first, at most `ChangeLimit` entries. */
   changesSinceFollowed: ActivityLogDto[];
   /** Whether more activity since following exists than List&lt;ActivityLogDto&gt; FollowedRecordDetailDto.ChangesSinceFollowed holds. */
@@ -5397,7 +5397,7 @@ export interface FollowStatusDto {
      * When the caller started following the record; null when they do not follow it.
      * @nullable
      */
-  followedOn?: Date | null;
+  followedOn?: string & { readonly __brand: 'Instant' } | null;
 }
 
 export interface ForecastWorkItemDto {
@@ -5427,7 +5427,7 @@ export interface ForecastDependencyLinkDto {
 }
 
 export interface ForecastHistogramBucketDto {
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
   trials: number;
 }
 
@@ -5444,7 +5444,7 @@ export interface ForecastPercentileDto {
      * Null when that many trials did not finish within the forecast horizon.
      * @nullable
      */
-  date?: string | null;
+  date?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -5453,8 +5453,8 @@ export interface ForecastPercentileDto {
  */
 export interface ForecastTeamDto {
   team: WorkTeamNavigationDto;
-  from: string;
-  to: string;
+  from: string & { readonly __brand: 'CalendarDate' };
+  to: string & { readonly __brand: 'CalendarDate' };
   itemsCompleted: number;
 }
 
@@ -5490,7 +5490,7 @@ export interface OrganizationalUnitDto {
 }
 
 export interface FunctionalOrganizationChartDto {
-  asOfDate: string;
+  asOfDate: string & { readonly __brand: 'CalendarDate' };
   organization: OrganizationalUnitDto[];
   total: number;
   maxDepth: number;
@@ -5541,7 +5541,7 @@ export interface HealthStatusDto {
  */
 export interface HolidayDto {
   id: string;
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
   /** @minLength 1 */
   name: string;
 }
@@ -5584,7 +5584,7 @@ export interface HolidayCalendarListDto {
 
 export interface HolidayRequest {
   /** The day off. A calendar holds at most one holiday per date. */
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
   /**
      * What the day is, such as "New Year's Day".
      * @minLength 1
@@ -5928,7 +5928,7 @@ export interface ImportEmployeeRequest {
      * The date the employee was hired.
      * @nullable
      */
-  hireDate?: Date | null;
+  hireDate?: string & { readonly __brand: 'Instant' } | null;
   /**
      * @maxLength 256
      * @nullable
@@ -6082,7 +6082,7 @@ export interface ImportIntakeRequestRequest {
      * The date it is needed by. Needs a basis and a reference.
      * @nullable
      */
-  needByDate?: string | null;
+  needByDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * What makes it that date, case-insensitively. Required with a need-by date.
      * @nullable
@@ -6103,7 +6103,7 @@ export interface ImportIntakeRequestRequest {
      * For a Commitment, the date it was made. Required for a Commitment, and empty otherwise.
      * @nullable
      */
-  needByCommittedOn?: string | null;
+  needByCommittedOn?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The system the request was raised in. Required with an external id.
      * @nullable
@@ -6202,16 +6202,16 @@ export interface ImportPlanningIntervalObjectivesRequest {
      * Before TargetDate where both are given.
      * @nullable
      */
-  startDate?: string | null;
+  startDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** Whether the objective is a stretch goal. */
   isStretch: boolean;
   /**
      * When the objective closed, in UTC. Required when the status is Completed or Canceled, and empty otherwise.
      * @nullable
      */
-  closedDateUtc?: Date | null;
+  closedDateUtc?: string & { readonly __brand: 'Instant' } | null;
   /**
      * Display position within the team's objectives.
      * @nullable
@@ -6243,9 +6243,9 @@ export interface ImportPlanningIntervalRequest {
      */
   description?: string | null;
   /** The dates the interval ran over. Its iterations are generated inside this range. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The last date the interval ran over. On or after Start. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /**
      * The cadence the interval's iterations are generated from. There is no column for the iterations
      * themselves: an interval whose real history had irregular lengths or names is corrected afterwards
@@ -6303,13 +6303,13 @@ export interface ImportPortfolioRequest {
      * keeps no creation date beyond the audit stamp, which records when the file was uploaded — but the
      * column is required now so that no file has to change on the day one is kept.
      */
-  createdOn: string;
+  createdOn: string & { readonly __brand: 'CalendarDate' };
   /**
      * The date the portfolio was activated. Required unless the portfolio is Proposed. There is no
      * closing date here: an import cannot close a portfolio, so the finalize import carries that one.
      * @nullable
      */
-  activatedOn?: string | null;
+  activatedOn?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * Semicolon-separated employee numbers.
      * @nullable
@@ -6359,7 +6359,7 @@ export interface ImportPpmFinalizationRequest {
      * The portfolio's end date. Required for portfolio rows, ignored for program rows.
      * @nullable
      */
-  endDate?: string | null;
+  endDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export type ImportProcessStatus = typeof ImportProcessStatus[keyof typeof ImportProcessStatus];
@@ -6394,13 +6394,13 @@ export interface ImportProcessDto {
   submittedByUserId: string;
   /** @nullable */
   submittedByName?: string | null;
-  submittedOn: Date;
+  submittedOn: string & { readonly __brand: 'Instant' };
   /** @nullable */
-  startedOn?: Date | null;
+  startedOn?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  completedOn?: Date | null;
+  completedOn?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  lastProgressOn?: Date | null;
+  lastProgressOn?: string & { readonly __brand: 'Instant' } | null;
   totalRowCount: number;
   succeededRowCount: number;
   failedRowCount: number;
@@ -6486,7 +6486,7 @@ export interface ImportProcessRowDto {
   /** @nullable */
   warning?: string | null;
   /** @nullable */
-  attemptedOn?: Date | null;
+  attemptedOn?: string & { readonly __brand: 'Instant' } | null;
   /**
      * Where to see that record — or, for one with no page of its own, the record it belongs to. Null when the
      * row created nothing, when that record or the one the link opens has since been deleted, and for a
@@ -6543,12 +6543,12 @@ export interface ImportProductDependencyRequest {
      * The day it began. Blank means today, so an `EndsOn` before today is refused.
      * @nullable
      */
-  startsOn?: string | null;
+  startsOn?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The last day it held. Blank means it still holds.
      * @nullable
      */
-  endsOn?: string | null;
+  endsOn?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -6654,25 +6654,25 @@ export interface ImportProgramRequest {
      * The timeline the program plans to run over.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * On or after Start. Start and End are both empty or both set.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The date the program was proposed. Required on every row. Nothing stores it yet — a program keeps
      * no transition dates beyond the audit stamp, which records when the file was uploaded — but the
      * column is required now so that no file has to change on the day one is kept.
      */
-  createdOn: string;
+  createdOn: string & { readonly __brand: 'CalendarDate' };
   /**
      * The date the program became active. Required once the status is Active or Completed, optional on a
      * canceled program, and rejected on one that never got that far. There is no closing date here: an
      * import cannot complete or cancel a program, so the finalize import carries that one.
      * @nullable
      */
-  activatedOn?: string | null;
+  activatedOn?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * Semicolon-separated strategic theme ids.
      * @nullable
@@ -6739,7 +6739,7 @@ export interface ImportProjectDeliverableRequest {
      * When the deliverable is due.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * A status of the deliverable workflow, by name or by meaning; blank for Not Started. A completed or canceled
      * project takes only a closed status, such as Accepted or Descoped. The default workflow's statuses are
@@ -6831,30 +6831,30 @@ export interface ImportProjectRequest {
      * The timeline the project plans to run over.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * On or after Start. Start and End are both empty or both set.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The date the project was proposed. Required on every row, and what the project's opening status
      * history entry is dated — the audit stamp records when the file was uploaded, which is not the
      * same thing.
      */
-  createdOn: string;
+  createdOn: string & { readonly __brand: 'CalendarDate' };
   /**
      * The date the project became active. Required once the status is Active or Completed, optional on
      * a canceled project, and rejected on one that never got that far.
      * @nullable
      */
-  activatedOn?: string | null;
+  activatedOn?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The date the project was completed or canceled — the status says which. Required on those two
      * statuses and rejected on the rest.
      * @nullable
      */
-  closedOn?: string | null;
+  closedOn?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * Semicolon-separated strategic theme ids.
      * @nullable
@@ -6976,17 +6976,17 @@ export interface ImportProjectTaskRequest {
      * Planned start, for tasks. Milestones use PlannedDate instead.
      * @nullable
      */
-  plannedStart?: string | null;
+  plannedStart?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * Planned end, for tasks. On or after PlannedStart.
      * @nullable
      */
-  plannedEnd?: string | null;
+  plannedEnd?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The milestone's date. Only for milestones.
      * @nullable
      */
-  plannedDate?: string | null;
+  plannedDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * Estimated effort in hours. Greater than 0 when present.
      * @exclusiveMinimum 0
@@ -7087,7 +7087,7 @@ export interface ImportReleasePackageRequest {
      * When the package is expected to ship.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * When the package shipped, with its offset — copy the completion time of the pipeline run that
      * shipped it as-is. Supplying it makes the package Released.
@@ -7131,13 +7131,13 @@ export interface ImportReleaseRequest {
      * When the release is expected to be announced.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * When it was announced. Supplying it makes the release Released — and is refused while anything
      * it carries has not shipped.
      * @nullable
      */
-  releasedDate?: string | null;
+  releasedDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * A manual ordering override, for the rare case where chronology misleads.
      * @nullable
@@ -7177,7 +7177,7 @@ export interface ImportRiskRequest {
      * When the risk was reported, in UTC. Must be in the past.
      * @minLength 1
      */
-  reportedOnUtc: Date;
+  reportedOnUtc: string & { readonly __brand: 'Instant' };
   /**
      * The employee who reported it, by id.
      * @minLength 1
@@ -7197,7 +7197,7 @@ export interface ImportRiskRequest {
      */
   assigneeId?: string | null;
   /** @nullable */
-  followUpDate?: string | null;
+  followUpDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * @maxLength 1024
      * @nullable
@@ -7207,7 +7207,7 @@ export interface ImportRiskRequest {
      * When the risk closed, in UTC. Required when StatusId is 2 (Closed), and empty otherwise. After ReportedOnUtc and in the past.
      * @nullable
      */
-  closedDateUtc?: Date | null;
+  closedDateUtc?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -7298,12 +7298,12 @@ export interface ImportStrategicInitiativeRequest {
      * The initiative's start date.
      * @minLength 1
      */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /**
      * The initiative's end date. On or after Start.
      * @minLength 1
      */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /**
      * Semicolon-separated project keys the initiative delivers through.
      * @nullable
@@ -7411,12 +7411,12 @@ export interface ImportTeamMembershipRequest {
      * When the membership begins. On or after both teams' active dates.
      * @minLength 1
      */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /**
      * When the membership ends. On or after Start; blank for one still in place.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -7453,14 +7453,14 @@ export interface ImportTeamRequest {
      * The date the team became active.
      * @minLength 1
      */
-  activeDate: string;
+  activeDate: string & { readonly __brand: 'CalendarDate' };
   /** Whether the team is currently active. */
   isActive: boolean;
   /**
      * When the team was retired. Required when `IsActive` is `false`; must be after `ActiveDate`.
      * @nullable
      */
-  inactiveDate?: string | null;
+  inactiveDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -7503,7 +7503,7 @@ export interface ImportVersionRequest {
      * When the version is expected to ship.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * When scope froze — the build or tag — with its offset. Supplying it makes the version Ready.
      * @nullable
@@ -7589,11 +7589,11 @@ export interface IncidentDto {
   /** The employee commanding the response, when one is assigned. */
   commander?: NavigationDto | null;
   severityLevel: IncidentSeverityLevelNavigationDto;
-  noticedAt: Date;
+  noticedAt: string & { readonly __brand: 'Instant' };
   /** @nullable */
-  startedAt?: Date | null;
+  startedAt?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  recoveredAt?: Date | null;
+  recoveredAt?: string & { readonly __brand: 'Instant' } | null;
   products: NavigationDto[];
   /** Releases this incident points at. One incident may point at several. */
   releases: NavigationDto[];
@@ -7680,11 +7680,11 @@ export interface IncidentSummaryDto {
   id: string;
   key: number;
   title: string;
-  noticedAt: Date;
+  noticedAt: string & { readonly __brand: 'Instant' };
   /** @nullable */
-  startedAt?: Date | null;
+  startedAt?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  recoveredAt?: Date | null;
+  recoveredAt?: string & { readonly __brand: 'Instant' } | null;
   /** The employee who opened the incident. */
   submittedBy: NavigationDto;
   /** The employee who reported the incident. */
@@ -7724,7 +7724,7 @@ export interface IncidentTimelineLinkEntryDto {
   kind: IncidentTimelineLinkKind;
   action: IncidentTimelineLinkAction;
   label: string;
-  recordedAt: Date;
+  recordedAt: string & { readonly __brand: 'Instant' };
   actor: NavigationDto;
   /**
      * The work item or link this entry is about.
@@ -7744,7 +7744,7 @@ export interface IncidentTimelineLinkEntryDto {
 export interface IncidentTimelineNoteDto {
   id: string;
   body: string;
-  recordedAt: Date;
+  recordedAt: string & { readonly __brand: 'Instant' };
   author: NavigationDto;
 }
 
@@ -7800,7 +7800,7 @@ export interface InProgressWorkItemDto {
   /** The work item's title. */
   title: string;
   /** When the work item first entered an In Progress-category status. */
-  activatedOn: Date;
+  activatedOn: string & { readonly __brand: 'Instant' };
 }
 
 /**
@@ -7808,9 +7808,9 @@ export interface InProgressWorkItemDto {
  * `latest` means the window runs up to now, whenever the caller acts.
  */
 export interface InstantWindowDto {
-  earliest: Date;
+  earliest: string & { readonly __brand: 'Instant' };
   /** @nullable */
-  latest?: Date | null;
+  latest?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -7867,7 +7867,7 @@ export interface IntakeDeskWaitingDto {
      * When the oldest waiting request was submitted, or null when none is waiting.
      * @nullable
      */
-  oldestSubmittedOn?: Date | null;
+  oldestSubmittedOn?: string & { readonly __brand: 'Instant' } | null;
   /** How many of the waiting requests no one is assigned to: what still needs triage. */
   unassignedCount: number;
   /**
@@ -8120,7 +8120,7 @@ export interface IntakeRequestCurrentScoreDto {
   /** The value of the model's primary output. */
   value: number;
   /** When the request was last scored. */
-  scoredOn: Date;
+  scoredOn: string & { readonly __brand: 'Instant' };
   /** The scoring model the score came from, as it was named then. */
   scoringModel: NavigationDto;
   /**
@@ -8145,7 +8145,7 @@ export interface IntakeRequestDeskRankDto {
  */
 export interface IntakeRequestNeedByDto {
   /** The date the request is needed by. */
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
   /** What makes it that date. */
   basis: NeedByBasis;
   /** Whether something outside the company set the date or someone here chose it. Derived from the basis. */
@@ -8158,7 +8158,7 @@ export interface IntakeRequestNeedByDto {
      * For a commitment, the date it was made.
      * @nullable
      */
-  committedOn?: string | null;
+  committedOn?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -8212,9 +8212,9 @@ export interface IntakeRequestSummaryDto {
      */
   tags: IntakeRequestTagNavigationDto[];
   /** When the request was submitted, from which its age is read. */
-  submittedOn: Date;
+  submittedOn: string & { readonly __brand: 'Instant' };
   /** When the request entered its current status, from which its time in that status is read. */
-  statusChangedOn: Date;
+  statusChangedOn: string & { readonly __brand: 'Instant' };
 }
 
 /**
@@ -8226,7 +8226,7 @@ export interface IntakeRequestParticipantDto {
   /** The employee who added them, or null when the platform did. */
   addedBy?: EmployeeNavigationDto | null;
   /** When they were added. */
-  addedOn: Date;
+  addedOn: string & { readonly __brand: 'Instant' };
 }
 
 /**
@@ -8383,7 +8383,7 @@ export interface IntakeRequestOutcomeDto {
   /** The employee who recorded the outcome. */
   addedBy: EmployeeNavigationDto;
   /** When the outcome was recorded. */
-  addedOn: Date;
+  addedOn: string & { readonly __brand: 'Instant' };
 }
 
 /**
@@ -8575,7 +8575,7 @@ export interface IntakeRequestScoreDto {
   /** The value of the model's primary output, which requests are ranked on. */
   primaryValue: number;
   /** When the score was recorded. */
-  scoredOn: Date;
+  scoredOn: string & { readonly __brand: 'Instant' };
   /** The agent who rated the request. */
   scoredBy: EmployeeNavigationDto;
   /** The scoring model the request was rated with, as it was named then. */
@@ -8789,7 +8789,7 @@ export interface JobStateHistoryResponse {
   /** @nullable */
   reason?: string | null;
   /** @nullable */
-  changedAt?: Date | null;
+  changedAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -8802,9 +8802,9 @@ export interface JobDetailResponse {
   namespace: string;
   action: string;
   /** @nullable */
-  createdAt?: Date | null;
+  createdAt?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  expiresAt?: Date | null;
+  expiresAt?: string & { readonly __brand: 'Instant' } | null;
   arguments: string[];
   /** @nullable */
   exceptionType?: string | null;
@@ -8824,9 +8824,9 @@ export interface JobServerResponse {
   workerCount: number;
   queues: string[];
   /** @nullable */
-  startedAt?: Date | null;
+  startedAt?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  heartbeat?: Date | null;
+  heartbeat?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -8866,7 +8866,7 @@ export interface JobSummaryResponse {
      * The timestamp that matters for the requested state; `TimestampLabel` names it.
      * @nullable
      */
-  timestamp?: Date | null;
+  timestamp?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
   timestampLabel?: string | null;
   /** @nullable */
@@ -8883,7 +8883,7 @@ export interface JobSummaryResponse {
      * When the successful run began. Set for succeeded jobs only.
      * @nullable
      */
-  startedAt?: Date | null;
+  startedAt?: string & { readonly __brand: 'Instant' } | null;
   /**
      * How long the successful run took, in milliseconds, excluding time spent waiting in the queue.
      * Set for succeeded jobs only.
@@ -8970,7 +8970,7 @@ export interface KpiCheckpointPlanItemRequest {
      */
   atRiskValue?: number | null;
   /** The date and time of this checkpoint. */
-  checkpointDate: Date;
+  checkpointDate: string & { readonly __brand: 'Instant' };
   /**
      * A short label describing this checkpoint (e.g. "Q1 2025").
      * @minLength 1
@@ -9061,8 +9061,8 @@ export interface LocalScheduleDto {
   id: string;
   key: number;
   name: string;
-  start: string;
-  end: string;
+  start: string & { readonly __brand: 'CalendarDate' };
+  end: string & { readonly __brand: 'CalendarDate' };
 }
 
 export interface LoginCommand {
@@ -9102,18 +9102,18 @@ export interface PlanningIntervalIterationUpsertRequest {
   /** The category of iteration. */
   categoryId: number;
   /** Gets or sets the start. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** Gets or sets the end. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
 }
 
 export interface ManagePlanningIntervalDatesRequest {
   /** @minLength 1 */
   id: string;
   /** Gets or sets the start. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** Gets or sets the end. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The iterations for the Planning Interval. */
   iterations: PlanningIntervalIterationUpsertRequest[];
 }
@@ -9205,20 +9205,20 @@ export interface MarkReleasePackageReleasedRequest {
      * recorded after the fact. Required unless the deprecated `ReleasedDate` is sent instead.
      * @nullable
      */
-  releasedAt?: Date | null;
+  releasedAt?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The day it shipped, read as 12:00 in the system time zone.
      * @deprecated
      * @nullable
      */
-  releasedDate?: string | null;
+  releasedDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
  * Records that a release was announced to customers.
  */
 export interface MarkReleaseReleasedRequest {
-  releasedDate: string;
+  releasedDate: string & { readonly __brand: 'CalendarDate' };
 }
 
 /**
@@ -9230,13 +9230,13 @@ export interface MarkVersionReleasedRequest {
      * taken from the clock. Required unless the deprecated `ReleasedDate` is sent instead.
      * @nullable
      */
-  releasedAt?: Date | null;
+  releasedAt?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The day it shipped, read as 12:00 in the system time zone.
      * @deprecated
      * @nullable
      */
-  releasedDate?: string | null;
+  releasedDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -9345,12 +9345,12 @@ export interface MoveEmployeeAllocationRequest {
      */
   toRoleId?: string | null;
   /** The first day of the move. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /**
      * The last day of the move, or null for every day from the start on.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The share of the employee's time to move, from 1 to 100.
      * @minimum 1
@@ -9385,7 +9385,7 @@ export interface MoveProjectRanksRequest {
  */
 export interface MoveReleaseTargetDateRequest {
   /** @nullable */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export interface MoveStepRequest {
@@ -9410,7 +9410,7 @@ export interface MoveVersionTargetDateRequest {
      * The new target date, or null to clear it.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -9443,7 +9443,7 @@ export interface MutedRecordDto {
   /** Whether the caller also follows the record. Muting a record never stops following it. */
   isFollowing: boolean;
   /** When the caller muted the record. */
-  mutedOn: Date;
+  mutedOn: string & { readonly __brand: 'Instant' };
 }
 
 /**
@@ -9481,7 +9481,7 @@ export interface MyProjectDeliverableDto {
      * When the deliverable is due, if a date has been committed to.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** A status in the Proposed or Active category: the list holds open deliverables only. */
   status: StatusNavigationDto;
   /** The project the deliverable belongs to. */
@@ -9508,7 +9508,7 @@ export interface MyProjectTaskDto {
      * When the task is due: a task's planned end, or a milestone's planned date. Null when none is planned.
      * @nullable
      */
-  dueDate?: string | null;
+  dueDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The project the task belongs to. */
   project: ProjectNavigationDto;
 }
@@ -9518,9 +9518,9 @@ export interface MyProjectTaskDto {
  */
 export interface MyTeamReportingPeriodResponse {
   /** The period's first day. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The period's last day, included in it. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
 }
 
 /**
@@ -9535,7 +9535,7 @@ export interface MyTeamFlowSummaryResponse {
      * The first day `completedCount` counts from, in the team's time zone: 13 days before today, or
      * the day the team became Kanban when that is later.
      */
-  completedSince: string;
+  completedSince: string & { readonly __brand: 'CalendarDate' };
   /** Requirement-tier work items finished from `completedSince` through today. */
   completedCount: number;
   /**
@@ -9569,7 +9569,7 @@ export interface MyTeamOfTeamsFlowResponse {
      * When the item in progress longest started; null when nothing in progress has a start time.
      * @nullable
      */
-  oldestInProgressSince?: Date | null;
+  oldestInProgressSince?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The team's median cycle time in days over the last 14 days, which the oldest item's age is weighed against;
      * null when it finished nothing in that time.
@@ -9861,7 +9861,7 @@ export interface OAuthAuthorizationRequestResponse {
      */
   scope: TokenScope;
   /** When the request stops waiting for a decision. */
-  expiresAt: Date;
+  expiresAt: string & { readonly __brand: 'Instant' };
 }
 
 export interface ObjectIdAndKey {
@@ -9877,7 +9877,7 @@ export interface ObjectiveChangesSinceLastCheckDto {
      * When the last check was reported. Null when the objective has never been checked.
      * @nullable
      */
-  lastCheckReportedOn?: Date | null;
+  lastCheckReportedOn?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The objective's progress (0 to 100) when it was last checked. Null when it has never been
      * checked or the history read did not reach back that far.
@@ -9915,9 +9915,9 @@ export interface PlanningIntervalDetailsDto {
      */
   description?: string | null;
   /** The planning interval's first day. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The planning interval's last day, included in it. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The current state of the Planning Interval. */
   state: SimpleNavigationDto;
   /**
@@ -9938,9 +9938,9 @@ export interface PlanningHealthCheckDto {
   /** The employee who reported the health check. */
   reportedBy: NavigationDto;
   /** The timestamp of when the health check was reported. */
-  reportedOn: Date;
+  reportedOn: string & { readonly __brand: 'Instant' };
   /** When the health check expires; from then on it is no longer the current health check. */
-  expiration: Date;
+  expiration: string & { readonly __brand: 'Instant' };
   /**
      * The note for the health check.
      * @nullable
@@ -9978,17 +9978,17 @@ export interface PlanningIntervalObjectiveDetailsDto {
      * The day work on the objective is planned to start; null when not set.
      * @nullable
      */
-  startDate?: string | null;
+  startDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The day the objective is targeted to be done by; null when not set.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * When the objective moved to a closed status; null while it is open.
      * @nullable
      */
-  closedDate?: Date | null;
+  closedDate?: string & { readonly __brand: 'Instant' } | null;
   /** Whether the objective is a stretch objective rather than a committed one. */
   isStretch: boolean;
 }
@@ -9998,15 +9998,15 @@ export interface PlanningIntervalObjectiveDetailsDto {
  */
 export interface ObjectiveScheduleEvidenceDto {
   /** The objective's start date, or the interval's start when it has none. */
-  startDate: string;
+  startDate: string & { readonly __brand: 'CalendarDate' };
   /** True when `startDate` is the interval's start because the objective has none. */
   startDateDefaulted: boolean;
   /** The objective's target date, or the interval's end when it has none. */
-  targetDate: string;
+  targetDate: string & { readonly __brand: 'CalendarDate' };
   /** True when `targetDate` is the interval's end because the objective has none. */
   targetDateDefaulted: boolean;
   /** Today's date, against which `elapsedShare` is measured. */
-  today: string;
+  today: string & { readonly __brand: 'CalendarDate' };
   /**
      * How much of the window from `startDate` to `targetDate` has passed,
      * from 0 (not started) to 1 (target reached or passed).
@@ -10062,11 +10062,11 @@ export interface WorkItemListDto {
   project?: WorkProjectNavigationDto | null;
   /** @nullable */
   externalViewWorkItemUrl?: string | null;
-  created: Date;
+  created: string & { readonly __brand: 'Instant' };
   /** @nullable */
-  activated?: Date | null;
+  activated?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  done?: Date | null;
+  done?: string & { readonly __brand: 'Instant' } | null;
   tags: string[];
   /** @nullable */
   cycleTime?: number | null;
@@ -10078,7 +10078,7 @@ export interface WorkItemsSummaryDto {
 }
 
 export type WorkItemProgressDailyRollupDto = WorkItemProgressRollupDto & {
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
 };
 
 export interface WorkItemForecastDto {
@@ -10088,7 +10088,7 @@ export interface WorkItemForecastDto {
      */
   outcome: SimpleNavigationDto;
   /** The first simulated day (UTC): a trial that finishes on its first day finishes on this date. */
-  forecastStart: string;
+  forecastStart: string & { readonly __brand: 'CalendarDate' };
   /** Days of history the teams' throughput was sampled from. */
   lookbackDays: number;
   /** Whether the forecast ignored dependencies, as a what-if. */
@@ -10118,7 +10118,7 @@ export interface WorkItemForecastDto {
      * interval's end, or a project's planned end.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The share of trials (0 to 1) that finished on or before `targetDate`. Null
      * without a target date or a forecast.
@@ -10149,9 +10149,9 @@ export interface PlanningIntervalObjectiveHealthCheckDetailsDto {
   /** The employee who reported the health check. */
   reportedBy: NavigationDto;
   /** The timestamp of when the health check was reported. */
-  reportedOn: Date;
+  reportedOn: string & { readonly __brand: 'Instant' };
   /** When the health check expires; from then on it is no longer the objective's current health check. */
-  expiration: Date;
+  expiration: string & { readonly __brand: 'Instant' };
   /**
      * The note for the health check.
      * @nullable
@@ -10164,13 +10164,13 @@ export interface RiskListDto {
   key: number;
   summary: string;
   team?: PlanningTeamNavigationDto | null;
-  reportedOn: Date;
+  reportedOn: string & { readonly __brand: 'Instant' };
   status: string;
   category: string;
   exposure: string;
   assignee?: EmployeeNavigationDto | null;
   /** @nullable */
-  followUpDate?: string | null;
+  followUpDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -10404,7 +10404,7 @@ export interface PendingTenantMigrationDto {
   sourceTenantId?: string | null;
   targetTenantId: string;
   /** @nullable */
-  stagedAt?: Date | null;
+  stagedAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -10414,11 +10414,11 @@ export interface PendingTenantMigrationDto {
 export interface PersonalAccessTokenDto {
   id: string;
   name: string;
-  expiresAt: Date;
+  expiresAt: string & { readonly __brand: 'Instant' };
   /** @nullable */
-  lastUsedAt?: Date | null;
+  lastUsedAt?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  revokedAt?: Date | null;
+  revokedAt?: string & { readonly __brand: 'Instant' } | null;
   isActive: boolean;
   isExpired: boolean;
   isRevoked: boolean;
@@ -10434,9 +10434,9 @@ export interface PlanningIntervalCalendarDto {
   /** The Planning Interval Name. */
   name: string;
   /** The planning interval's first day. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The planning interval's last day, included in it. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The planning interval's iterations, each with its dates. */
   iterationSchedules: LocalScheduleDto[];
 }
@@ -10452,9 +10452,9 @@ export interface PlanningIntervalCapacityIterationDto {
   /** The iteration's category, such as Development or Innovation and Planning. */
   category: SimpleNavigationDto;
   /** The iteration's first day. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The iteration's last day. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
 }
 
 /**
@@ -10475,7 +10475,7 @@ export interface PlanningIntervalCapacityFiguresDto {
  */
 export interface TeamDayOffDto {
   /** The day the team is off. */
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
   /** The share of the working day the team is off, from 1 to 100: 100 is a full day off. */
   percentOff: number;
 }
@@ -10511,9 +10511,9 @@ export interface PlanningIntervalTeamCapacityDto {
  */
 export interface PlanningIntervalCapacityDto {
   /** The planning interval's first day. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The planning interval's last day. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The planning interval's iterations, in date order: the columns each team's capacity is read over. */
   iterations: PlanningIntervalCapacityIterationDto[];
   /**
@@ -10539,9 +10539,9 @@ export interface PlanningIntervalIterationDetailsDto {
   /** The name of the PI iteration. */
   name: string;
   /** The PI iteration start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The PI iteration end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The PI iteration state. */
   state: string;
   /** The PI iteration category. */
@@ -10557,9 +10557,9 @@ export interface PlanningIntervalIterationListDto {
   /** The name of the PI iteration. */
   name: string;
   /** The PI iteration start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The PI iteration end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The PI iteration state. */
   state: string;
   /** The PI iteration category. */
@@ -10574,20 +10574,20 @@ export interface SprintMetricsSummary {
   sprintKey: number;
   sprintName: string;
   state: SimpleNavigationDto;
-  start: string;
-  end: string;
+  start: string & { readonly __brand: 'CalendarDate' };
+  end: string & { readonly __brand: 'CalendarDate' };
   /**
      * When the sprint became Active: when the team started it, or else the start of its first planned day in
      * `TimeZone`. Null for a sprint whose team is not mapped.
      * @nullable
      */
-  activeFrom?: Date | null;
+  activeFrom?: string & { readonly __brand: 'Instant' } | null;
   /**
      * When the sprint stops being Active, exclusive: a sprint that runs to the end of a day ends at the next
      * midnight, so its last day is the one before.
      * @nullable
      */
-  activeUntil?: Date | null;
+  activeUntil?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The IANA time zone the sprint's days are counted in: its team's.
      * @nullable
@@ -10621,8 +10621,8 @@ export interface PlanningIntervalIterationMetricsResponse {
   iterationId: string;
   iterationKey: number;
   iterationName: string;
-  start: string;
-  end: string;
+  start: string & { readonly __brand: 'CalendarDate' };
+  end: string & { readonly __brand: 'CalendarDate' };
   category: SimpleNavigationDto;
   /** Teams measured in the iteration: those with a sprint mapped to it, and its Kanban teams. */
   teamCount: number;
@@ -10685,19 +10685,19 @@ export interface PlanningSprintListDto {
   /** The sprint's current state. */
   state: SimpleNavigationDto;
   /** The first planned day of the sprint. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The last planned day of the sprint, included in it. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /**
      * When the sprint became Active. Null for a sprint whose team is not mapped.
      * @nullable
      */
-  activeFrom?: Date | null;
+  activeFrom?: string & { readonly __brand: 'Instant' } | null;
   /**
      * When the sprint stops being Active, exclusive.
      * @nullable
      */
-  activeUntil?: Date | null;
+  activeUntil?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The IANA time zone the sprint's days are counted in: its team's.
      * @nullable
@@ -10717,9 +10717,9 @@ export interface PlanningIntervalIterationSprintsDto {
   /** The name of the PI iteration. */
   name: string;
   /** The PI iteration start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The PI iteration end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The PI iteration category. */
   category: SimpleNavigationDto;
   /** The sprints mapped to this iteration; empty when none are mapped. */
@@ -10734,9 +10734,9 @@ export interface PlanningIntervalListDto {
   /** The name of the planning interval. */
   name: string;
   /** The planning interval's first day. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The planning interval's last day, included in it. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The current state of the Planning Interval. */
   state: SimpleNavigationDto;
 }
@@ -10803,12 +10803,12 @@ export interface PlanningIntervalObjectiveHealthCheckDto {
      * The timestamp of when the health check was reported.
      * @nullable
      */
-  reportedOn?: Date | null;
+  reportedOn?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The expiration of the health check.
      * @nullable
      */
-  expiration?: Date | null;
+  expiration?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The note for the health check.
      * @nullable
@@ -10836,12 +10836,12 @@ export interface PlanningIntervalObjectiveListDto {
      * The day work on the objective is planned to start; null when not set.
      * @nullable
      */
-  startDate?: string | null;
+  startDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The day the objective is targeted to be done by; null when not set.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** Whether the objective is a stretch objective rather than a committed one. */
   isStretch: boolean;
   /**
@@ -10918,7 +10918,7 @@ export interface PlanReleaseRequest {
      * When the release is expected to be announced.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * A manual ordering override, for the rare case where chronology misleads.
      * @nullable
@@ -10949,7 +10949,7 @@ export interface PlanVersionRequest {
      * When the version is expected to ship.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * A manual ordering override, for the rare case where chronology misleads.
      * @nullable
@@ -10995,7 +10995,7 @@ export interface PokerRoundPublicationDto {
      */
   outcome: PokerRoundPublicationOutcome;
   /** When the facilitator published, or tried to. */
-  at: Date;
+  at: string & { readonly __brand: 'Instant' };
   /** The id of the employee who published, or tried to. */
   byEmployeeId: string;
   /**
@@ -11021,7 +11021,7 @@ export interface PokerVoteDto {
   id: string;
   participant?: UserNavigationDto | null;
   value: string;
-  submittedOn: Date;
+  submittedOn: string & { readonly __brand: 'Instant' };
 }
 
 export interface PokerRoundDto {
@@ -11089,7 +11089,7 @@ export interface PokerSessionMemberDto {
      */
   isVoting: boolean;
   /** When the member first joined. */
-  joinedOn: Date;
+  joinedOn: string & { readonly __brand: 'Instant' };
 }
 
 export interface PokerSessionDetailsDto {
@@ -11121,9 +11121,9 @@ export interface PokerSessionDetailsDto {
   /** The scale version the session votes on, which stays put when the scale publishes a newer one. */
   estimationScaleVersion?: EstimationScaleVersionDto | null;
   /** @nullable */
-  activatedOn?: Date | null;
+  activatedOn?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  completedOn?: Date | null;
+  completedOn?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The round a facilitator last pointed the session at, which everyone following the facilitator is shown.
      * Null when no round is pointed at, where followers see the round in play.
@@ -11243,12 +11243,12 @@ export interface ProductDependencyDto {
   /** @nullable */
   description?: string | null;
   /** The day the dependency began. */
-  startsOn: string;
+  startsOn: string & { readonly __brand: 'CalendarDate' };
   /**
      * The last day the dependency held, or `null` while it still holds.
      * @nullable
      */
-  endsOn?: string | null;
+  endsOn?: string & { readonly __brand: 'CalendarDate' } | null;
   /** Everything `product` sits inside, from its root down to its parent. */
   productPath: NavigationDto[];
   /** Everything `dependsOnProduct` sits inside, from its root down to its parent. */
@@ -11444,12 +11444,12 @@ export interface ProgramDetailsDto {
      * The program start date.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The program end date.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The portfolio associated with this program. */
   portfolio: NavigationDto;
   /** The sponsors of the program. */
@@ -11481,12 +11481,12 @@ export interface ProgramListDto {
      * The program start date.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The program end date.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The portfolio associated with this program. */
   portfolio: NavigationDto;
   /** The sponsors of the program. */
@@ -11547,7 +11547,7 @@ export interface ProjectDeliverableDto {
      * When the deliverable is due, if a date has been committed to.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   status: StatusNavigationDto;
   /**
      * Why the deliverable is in its status, when the move needed or was given a reason.
@@ -11560,7 +11560,7 @@ export interface ProjectDeliverableDto {
      * When the deliverable was accepted. Null unless its status means Accepted.
      * @nullable
      */
-  acceptedOn?: Date | null;
+  acceptedOn?: string & { readonly __brand: 'Instant' } | null;
   /** Who accepted it. Null unless its status means Accepted, or when an import did. */
   acceptedBy?: EmployeeNavigationDto | null;
   /**
@@ -11580,9 +11580,9 @@ export interface ProjectStageListDto {
   status: SimpleNavigationDto;
   order: number;
   /** @nullable */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   progress: number;
 }
 
@@ -11590,8 +11590,8 @@ export interface ProjectHealthCheckDto {
   id: string;
   status: SimpleNavigationDto;
   reportedBy: NavigationDto;
-  reportedOn: Date;
-  expiration: Date;
+  reportedOn: string & { readonly __brand: 'Instant' };
+  expiration: string & { readonly __brand: 'Instant' };
   /** @nullable */
   note?: string | null;
 }
@@ -11602,7 +11602,7 @@ export interface ProjectHealthCheckDto {
  */
 export interface ScoreSummaryDto {
   value: number;
-  scoredOn: Date;
+  scoredOn: string & { readonly __brand: 'Instant' };
   scoringModelId: string;
   /** The employee who recorded the score. May be null if the scorer is not found. */
   scoredBy?: EmployeeNavigationDto | null;
@@ -11637,12 +11637,12 @@ export interface ProjectDetailsDto {
      * The project start date.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The project end date.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The portfolio associated with this project. */
   portfolio: NavigationDto;
   /** The program associated with this project. */
@@ -11701,8 +11701,8 @@ export interface ProjectHealthCheckDetailsDto {
   projectId: string;
   status: SimpleNavigationDto;
   reportedBy: NavigationDto;
-  reportedOn: Date;
-  expiration: Date;
+  reportedOn: string & { readonly __brand: 'Instant' };
+  expiration: string & { readonly __brand: 'Instant' };
   /** @nullable */
   note?: string | null;
 }
@@ -11750,11 +11750,11 @@ export interface ProjectTaskListDto {
   parentId?: string | null;
   parent?: ProjectTaskNavigationDto | null;
   /** @nullable */
-  plannedStart?: string | null;
+  plannedStart?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  plannedEnd?: string | null;
+  plannedEnd?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  plannedDate?: string | null;
+  plannedDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
   estimatedEffortHours?: number | null;
   /** The project deliverables this task serves, by id. */
@@ -11777,12 +11777,12 @@ export interface ProjectHealthCheckEvidenceStageDto {
      * The stage's planned start.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The stage's planned end.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The stage's progress, 0 to 100. */
   progress: number;
   /** True when the stage's end is before `asOf` and it is neither completed nor canceled. */
@@ -11795,7 +11795,7 @@ export interface ProjectHealthCheckEvidenceStageDto {
  */
 export interface ProjectHealthCheckEvidenceDto {
   /** The date the evidence was gathered on, which overdue and past-end are measured against. */
-  asOf: string;
+  asOf: string & { readonly __brand: 'CalendarDate' };
   /** The project: status, committed start and end, current health check and role lists. */
   project: ProjectDetailsDto;
   /** Overdue, due this week, upcoming and total leaf task counts across the whole plan. */
@@ -11841,7 +11841,7 @@ export interface ProjectHealthCheckSummaryDto {
   id: string;
   status: SimpleNavigationDto;
   /** When the health check stops being current, after which the project has none until another is reported. */
-  expiration: Date;
+  expiration: string & { readonly __brand: 'Instant' };
 }
 
 /**
@@ -11927,12 +11927,12 @@ export interface ProjectListDto {
      * The project start date.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The project end date.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The portfolio associated with this project. */
   portfolio: NavigationDto;
   /** The program associated with this project. */
@@ -12000,9 +12000,9 @@ export interface ProjectPlanNodeDto {
   /** The Work Breakdown Structure code (e.g., "1" for stages, "1.1.2" for tasks). */
   wbs: string;
   /** @nullable */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   progress: number;
   assignees: EmployeeNavigationDto[];
   /** The child nodes (tasks under a stage, or sub-tasks under a task). */
@@ -12030,7 +12030,7 @@ export interface ProjectPlanNodeDto {
      * The milestone planned date. Null for non-milestone tasks and stage nodes.
      * @nullable
      */
-  plannedDate?: string | null;
+  plannedDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The estimated effort in hours. Null for stage nodes.
      * @nullable
@@ -12127,7 +12127,7 @@ export interface ProjectScoreDetailsDto {
   scoringModelKey: number;
   scoringModelName: string;
   primaryValue: number;
-  scoredOn: Date;
+  scoredOn: string & { readonly __brand: 'Instant' };
   scoredBy?: EmployeeNavigationDto | null;
   ratings: ProjectScoreRatingDto[];
   outputs: ProjectScoreOutputDto[];
@@ -12144,7 +12144,7 @@ export interface ProjectScoreSummaryDto {
   scoringModelKey: number;
   scoringModelName: string;
   primaryValue: number;
-  scoredOn: Date;
+  scoredOn: string & { readonly __brand: 'Instant' };
   scoredBy?: EmployeeNavigationDto | null;
   outputs: ProjectScoreOutputDto[];
 }
@@ -12175,9 +12175,9 @@ export interface ProjectStageDetailsDto {
   status: SimpleNavigationDto;
   order: number;
   /** @nullable */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   progress: number;
   assignees: EmployeeNavigationDto[];
 }
@@ -12236,7 +12236,7 @@ export interface ProjectStatusHistoryDto {
      * `changedBy`.
      */
   changedBySystem: boolean;
-  changedOn: Date;
+  changedOn: string & { readonly __brand: 'Instant' };
   /** Whether the row was recorded as the transition happened or reconstructed from the audit trail. */
   source: SimpleNavigationDto;
   /** @nullable */
@@ -12285,17 +12285,17 @@ export interface ProjectTaskDto {
      * The planned start date for regular tasks.
      * @nullable
      */
-  plannedStart?: string | null;
+  plannedStart?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The planned end date for regular tasks.
      * @nullable
      */
-  plannedEnd?: string | null;
+  plannedEnd?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The planned date for milestones.
      * @nullable
      */
-  plannedDate?: string | null;
+  plannedDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The estimated effort in hours.
      * @nullable
@@ -12359,7 +12359,7 @@ export interface ReasonMuteDto {
      * When the caller muted it; null when it is not muted.
      * @nullable
      */
-  mutedOn?: Date | null;
+  mutedOn?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -12395,12 +12395,12 @@ export interface RecentDeliveryEventDto {
   /** The well-known meaning of that status. */
   alias: ProductStatusAlias;
   /** When the record moved into this status. */
-  changedOn: Date;
+  changedOn: string & { readonly __brand: 'Instant' };
   /**
      * When the record shipped, where it has shipped.
      * @nullable
      */
-  releasedAt?: Date | null;
+  releasedAt?: string & { readonly __brand: 'Instant' } | null;
   /**
      * How many components the package shipped. Null for a version.
      * @nullable
@@ -12428,7 +12428,7 @@ export interface RecordMuteStatusDto {
      * When the caller muted the record; null when it is not muted.
      * @nullable
      */
-  mutedOn?: Date | null;
+  mutedOn?: string & { readonly __brand: 'Instant' } | null;
 }
 
 export interface RecordProjectScoreRequest {
@@ -12498,9 +12498,9 @@ export interface RecurringJobResponse {
   /** @nullable */
   action?: string | null;
   /** @nullable */
-  lastExecution?: Date | null;
+  lastExecution?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  nextExecution?: Date | null;
+  nextExecution?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
   lastJobId?: string | null;
   /** @nullable */
@@ -12526,7 +12526,7 @@ export interface ReleaseVersionDto {
      * When that version shipped, or `null` while it has not.
      * @nullable
      */
-  releasedAt?: Date | null;
+  releasedAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -12539,7 +12539,7 @@ export interface ReleasePackageSummaryDto {
      * When that package shipped, or `null` while it has not.
      * @nullable
      */
-  releasedAt?: Date | null;
+  releasedAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -12565,9 +12565,9 @@ export interface ReleaseDto {
      */
   sequence?: number | null;
   /** @nullable */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  releasedDate?: string | null;
+  releasedDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The release's current status: the organization's name for it, its category and its well-known alias. */
   status: StatusNavigationDto;
   /** The versions this release announces directly, outside any package. */
@@ -12613,9 +12613,9 @@ export interface ReleasePackageDto {
   /** @nullable */
   name?: string | null;
   /** @nullable */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  releasedAt?: Date | null;
+  releasedAt?: string & { readonly __brand: 'Instant' } | null;
   /** The package's current status: the organization's name for it, its category and its well-known alias. */
   status: StatusNavigationDto;
   components: ReleasePackageComponentDto[];
@@ -12965,7 +12965,7 @@ export interface RiskDetailsDto {
   /** @nullable */
   description?: string | null;
   team?: PlanningTeamNavigationDto | null;
-  reportedOn: Date;
+  reportedOn: string & { readonly __brand: 'Instant' };
   reportedBy: NavigationDto;
   status: SimpleNavigationDto;
   category: SimpleNavigationDto;
@@ -12974,11 +12974,11 @@ export interface RiskDetailsDto {
   exposure: SimpleNavigationDto;
   assignee?: NavigationDto | null;
   /** @nullable */
-  followUpDate?: string | null;
+  followUpDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
   response?: string | null;
   /** @nullable */
-  closedDate?: Date | null;
+  closedDate?: string & { readonly __brand: 'Instant' } | null;
 }
 
 export interface RiskGradeDto {
@@ -13035,9 +13035,9 @@ export interface RoadmapItemDetailsDto {
 
 export type RoadmapActivityDetailsDto = Omit<RoadmapItemDetailsDto & {
   /** The Roadmap Activity start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Roadmap Activity end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The order of the Roadmap Activity within its parent. */
   order: number;
   children: RoadmapItemDetailsDto[];
@@ -13073,9 +13073,9 @@ export interface RoadmapItemListDto {
 
 export type RoadmapActivityListDto = Omit<RoadmapItemListDto & {
   /** The Roadmap Activity start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Roadmap Activity end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The order of the Roadmap Activity within its parent. */
   order: number;
   children: RoadmapItemListDto[];
@@ -13107,9 +13107,9 @@ export interface RoadmapDetailsDto {
      */
   description?: string | null;
   /** The Roadmap start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Roadmap end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it. */
   visibility: SimpleNavigationDto;
   /** The state of the Roadmap. */
@@ -13133,9 +13133,9 @@ export interface RoadmapListDto {
   /** The name of the Roadmap. */
   name: string;
   /** The Roadmap start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Roadmap end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The visibility of the Roadmap. If the Roadmap is public, all users can see the Roadmap. Otherwise, only its owners and Roadmaps administrators can see it. */
   visibility: SimpleNavigationDto;
   /** The state of the Roadmap. */
@@ -13163,7 +13163,7 @@ export const RoadmapMilestoneDetailsDtoType = {
 
 export type RoadmapMilestoneDetailsDto = Omit<RoadmapItemDetailsDto & {
   /** The Roadmap Milestone date. */
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
 }, '$type'> & {
   $type: RoadmapMilestoneDetailsDtoType;
 };
@@ -13177,7 +13177,7 @@ export const RoadmapMilestoneListDtoType = {
 
 export type RoadmapMilestoneListDto = Omit<RoadmapItemListDto & {
   /** The Roadmap Milestone date. */
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
 }, '$type'> & {
   $type: RoadmapMilestoneListDtoType;
 };
@@ -13193,9 +13193,9 @@ export const RoadmapTimeboxDetailsDtoType = {
 
 export type RoadmapTimeboxDetailsDto = Omit<RoadmapItemDetailsDto & {
   /** The Roadmap Timebox start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Roadmap Timebox end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
 }, '$type'> & {
   $type: RoadmapTimeboxDetailsDtoType;
 };
@@ -13209,9 +13209,9 @@ export const RoadmapTimeboxListDtoType = {
 
 export type RoadmapTimeboxListDto = Omit<RoadmapItemListDto & {
   /** The Roadmap Timebox start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Roadmap Timebox end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
 }, '$type'> & {
   $type: RoadmapTimeboxListDtoType;
 };
@@ -13246,7 +13246,7 @@ export interface RollBackDeploymentRequest {
      * When it was reverted. Defaults to now, and cannot be before the deployment completed.
      * @nullable
      */
-  rolledBackAt?: Date | null;
+  rolledBackAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -13285,7 +13285,7 @@ export interface ScopedDependencyDto {
   state: SimpleNavigationDto;
   health: SimpleNavigationDto;
   scope: SimpleNavigationDto;
-  createdOn: Date;
+  createdOn: string & { readonly __brand: 'Instant' };
   createdBy?: EmployeeNavigationDto | null;
   /** @nullable */
   comment?: string | null;
@@ -13714,7 +13714,7 @@ export interface SetReleasePackageManifestRequest {
  */
 export interface SprintTeamDayOffRequest {
   /** The day, within the sprint's planned dates. */
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
   /**
      * The share of the working day the team is off, from 1 to 100; 100, a full day, when left out. A half-day
      * offsite is 50: it takes half of everyone's capacity that day, and the ideal burn-down drops by half a day.
@@ -13796,9 +13796,9 @@ export interface SetStoryMapVisibilityRequest {
 
 export interface SetSwimLaneDatesRequest {
   /** @nullable */
-  startDate?: string | null;
+  startDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  endDate?: string | null;
+  endDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export interface SetTaskDescriptionRequest {
@@ -13816,7 +13816,7 @@ export interface SetTaskPersonasRequest {
 
 export interface SetTeamOfTeamsOperatingModelRequest {
   /** The start date for this operating model. */
-  startDate: string;
+  startDate: string & { readonly __brand: 'CalendarDate' };
   /**
      * The IANA id of the time zone the team of teams' own rollups count days in.
      * @minLength 1
@@ -13826,7 +13826,7 @@ export interface SetTeamOfTeamsOperatingModelRequest {
 
 export interface SetTeamOperatingModelRequest {
   /** The start date for this operating model. */
-  startDate: string;
+  startDate: string & { readonly __brand: 'CalendarDate' };
   /** The methodology the team uses (e.g., Scrum, Kanban). */
   methodology: Methodology;
   /** The sizing method the team uses (e.g., StoryPoints, Count). */
@@ -13863,7 +13863,7 @@ export interface SetTeamOperatingModelRequest {
      * int? SetTeamOperatingModelRequest.CadenceWeeks, and omitted without it.
      * @nullable
      */
-  cadenceAnchor?: string | null;
+  cadenceAnchor?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 /**
@@ -13970,11 +13970,11 @@ export interface SprintBacklogItemDto {
   team?: WorkTeamNavigationDto | null;
   sprint: WorkIterationNavigationDto;
   assignedTo?: EmployeeNavigationDto | null;
-  created: Date;
+  created: string & { readonly __brand: 'Instant' };
   /** @nullable */
-  activated?: Date | null;
+  activated?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  done?: Date | null;
+  done?: string & { readonly __brand: 'Instant' } | null;
   rank: number;
   /** @nullable */
   parentRank?: number | null;
@@ -14014,9 +14014,9 @@ export interface SprintScopeMeasureDto {
  */
 export interface SprintBurnPointDto {
   /** When the reading was taken. */
-  at: Date;
+  at: string & { readonly __brand: 'Instant' };
   /** The team's calendar day the reading closes. */
-  day: string;
+  day: string & { readonly __brand: 'CalendarDate' };
   /** The work in scope at the reading. */
   scope: SprintScopeMeasureDto;
   /** The part of the scope in a Done- or Removed-category status at the reading. */
@@ -14028,7 +14028,7 @@ export interface SprintBurnPointDto {
  */
 export interface SprintIdealPointDto {
   /** When the point falls. */
-  at: Date;
+  at: string & { readonly __brand: 'Instant' };
   /**
      * The share of the committed work still expected to remain: 1 at the commitment point, 0 at the effective
      * end. Multiply by the committed work in either unit.
@@ -14050,9 +14050,9 @@ export interface SprintBurnDto {
      */
   sizingMethod: SizingMethod;
   /** The commitment point, where the burn and its ideal line start. */
-  effectiveStart: Date;
+  effectiveStart: string & { readonly __brand: 'Instant' };
   /** The effective end, where the ideal line reaches zero. */
-  effectiveEnd: Date;
+  effectiveEnd: string & { readonly __brand: 'Instant' };
   /** The IANA zone the sprint's days are counted in. */
   timeZone: string;
   /**
@@ -14097,9 +14097,9 @@ export const SprintCapacityOutcome = {
 export interface SprintCapacityDto {
   sprintId: string;
   /** The first planned day of the sprint, which the capacity is counted from. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The last planned day of the sprint, which the capacity is counted to. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The time allocated to the team over the sprint's planned dates in every role, in person-days, after holidays and time away. */
   allocatedPersonDays: number;
   /** The part of it in roles that count toward delivery capacity, in person-days. What the scope is set against. */
@@ -14150,9 +14150,9 @@ export interface SprintDetailsDto {
   /** The sprint's state now, worked out from its actual and default dates when read. */
   state: SimpleNavigationDto;
   /** The first planned day of the sprint. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The last planned day of the sprint, included in it. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   team: WorkTeamNavigationDto;
   /**
      * Whether the sprint's team is active. An inactive team's allocations can no longer be added to, so its
@@ -14163,26 +14163,26 @@ export interface SprintDetailsDto {
      * When the team started the sprint, if it did.
      * @nullable
      */
-  started?: Date | null;
+  started?: string & { readonly __brand: 'Instant' } | null;
   /**
      * When the team completed the sprint, if it did.
      * @nullable
      */
-  completed?: Date | null;
+  completed?: string & { readonly __brand: 'Instant' } | null;
   /**
      * When the sprint became Active: `started`, or by default the start of its first planned day
      * in `timeZone`, never before the previous sprint ended. `state` is Future before
      * it. Null for a sprint whose team is not mapped or that has no planned dates.
      * @nullable
      */
-  activeFrom?: Date | null;
+  activeFrom?: string & { readonly __brand: 'Instant' } | null;
   /**
      * When the sprint stops being Active, exclusive: `completed`, or by default the end of its last
      * planned day, cut to the next sprint's start where the two overlap. A sprint that runs to the end of a day
      * ends at the next midnight, so its last day is the one before.
      * @nullable
      */
-  activeUntil?: Date | null;
+  activeUntil?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The IANA time zone the sprint's planned days are counted in: its team's on the planned start.
      * @nullable
@@ -14203,7 +14203,7 @@ export interface SprintDetailsDto {
      * The holidays in the team's calendar during the sprint's planned dates, or the system default calendar's when
      * the team names none: days the team is already off, so never a team day off. Empty without a team or dates.
      */
-  holidays: string[];
+  holidays: (string & { readonly __brand: 'CalendarDate' })[];
   /**
      * The days of the week the team works during the sprint, from its operating model on the sprint's planned
      * start. Empty without a team or dates.
@@ -14251,20 +14251,20 @@ export interface SprintListDto {
   /** The sprint's state now, worked out from its actual and default dates when read. */
   state: SimpleNavigationDto;
   /** The first planned day of the sprint. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The last planned day of the sprint, included in it. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   team: WorkTeamNavigationDto;
   /**
      * When the team started the sprint, if it did.
      * @nullable
      */
-  started?: Date | null;
+  started?: string & { readonly __brand: 'Instant' } | null;
   /**
      * When the team completed the sprint, if it did.
      * @nullable
      */
-  completed?: Date | null;
+  completed?: string & { readonly __brand: 'Instant' } | null;
   /**
      * Whether the sprint is comparable with the team's other sprints. A non-standard sprint is left out of
      * the team's sprint metrics. Worked out when read: see `sprintTypeSource`.
@@ -14431,14 +14431,14 @@ export interface SprintScopeItemDto {
      * When the item was added to the sprint: during the sprint for an added item, or before its commitment
      * point for a committed one.
      */
-  addedAt: Date;
+  addedAt: string & { readonly __brand: 'Instant' };
   /**
      * When the item was last removed from the sprint — moved to another iteration or out of the requirement
      * tier; not when it reached a Removed status. Null if it was still in at the effective end, or is still
      * in a sprint that has not ended.
      * @nullable
      */
-  removedAt?: Date | null;
+  removedAt?: string & { readonly __brand: 'Instant' } | null;
   /**
      * The item's estimate when it was committed or added.
      * @nullable
@@ -14465,18 +14465,18 @@ export interface SprintScopeDto {
      */
   sizingMethod: SizingMethod;
   /** The commitment point: what was in the sprint here is committed. */
-  effectiveStart: Date;
+  effectiveStart: string & { readonly __brand: 'Instant' };
   /** Whether the effective start is the team's recorded start rather than the default. */
   startIsActual: boolean;
   /** The effective end: what is in the sprint here is completed or carried over. */
-  effectiveEnd: Date;
+  effectiveEnd: string & { readonly __brand: 'Instant' };
   /** Whether the effective end is the team's recorded completion rather than the default. */
   endIsActual: boolean;
   /**
      * The start of the sprint's last day. Unfinished work moved to the team's next sprint from here on is
      * carried over; before it, descoped.
      */
-  lastDay: Date;
+  lastDay: string & { readonly __brand: 'Instant' };
   /** The IANA zone the sprint's days are counted in. */
   timeZone: string;
   /**
@@ -14594,7 +14594,7 @@ export interface StartDeploymentRequest {
      * When it began. Defaults to now, so a pipeline reporting in real time can omit it.
      * @nullable
      */
-  startedAt?: Date | null;
+  startedAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -14637,7 +14637,7 @@ export interface StartSprintRequest {
      * the sprint's start window, which the sprint details report.
      * @nullable
      */
-  startedAt?: Date | null;
+  startedAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 /**
@@ -14683,7 +14683,7 @@ export interface StatusTransitionDto {
   changedByUser?: UserNavigationDto | null;
   /** Whether the platform made the change on its own behalf. */
   changedBySystem: boolean;
-  changedOn: Date;
+  changedOn: string & { readonly __brand: 'Instant' };
   /**
      * Why the change was made, where a reason was recorded.
      * @nullable
@@ -14894,9 +14894,9 @@ export interface StoryMapSwimLaneDto {
   order: number;
   isDefault: boolean;
   /** @nullable */
-  startDate?: string | null;
+  startDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  endDate?: string | null;
+  endDate?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export interface StoryMapPersonaDto {
@@ -14988,12 +14988,12 @@ export interface StrategicInitiativeDetailsDto {
      * The strategic initiative start date.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The strategic initiative end date.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The portfolio associated with this strategic initiative. */
   portfolio: NavigationDto;
   /** The sponsors of the strategic initiative. */
@@ -15005,7 +15005,7 @@ export interface StrategicInitiativeDetailsDto {
 export interface StrategicInitiativeKpiMeasurementDto {
   id: string;
   actualValue: number;
-  measurementDate: Date;
+  measurementDate: string & { readonly __brand: 'Instant' };
   measuredBy: EmployeeNavigationDto;
   /** @nullable */
   note?: string | null;
@@ -15016,7 +15016,7 @@ export interface StrategicInitiativeKpiCheckpointDetailsDto {
   targetValue: number;
   /** @nullable */
   atRiskValue?: number | null;
-  checkpointDate: Date;
+  checkpointDate: string & { readonly __brand: 'Instant' };
   dateLabel: string;
   measurement?: StrategicInitiativeKpiMeasurementDto | null;
   health?: KpiHealth | null;
@@ -15028,7 +15028,7 @@ export interface StrategicInitiativeKpiCheckpointDto {
   targetValue: number;
   /** @nullable */
   atRiskValue?: number | null;
-  checkpointDate: Date;
+  checkpointDate: string & { readonly __brand: 'Instant' };
   dateLabel: string;
 }
 
@@ -15127,12 +15127,12 @@ export interface StrategicInitiativeListDto {
      * The strategic initiative start date.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The strategic initiative end date.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The portfolio associated with this strategic initiative. */
   portfolio: NavigationDto;
   /** The sponsors of the strategic initiative. */
@@ -15216,12 +15216,12 @@ export interface StrategyDetailsDto {
      * The date when the strategy was initiated or became active.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The date when the strategy was completed, archived, or ended.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export interface StrategyListDto {
@@ -15237,12 +15237,12 @@ export interface StrategyListDto {
      * The date when the strategy was initiated or became active.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The date when the strategy was completed, archived, or ended.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export type StrategyStatusDto = CommonEnumDtoOfStrategyStatus;
@@ -15263,7 +15263,7 @@ export interface SucceedDeploymentRequest {
      * When it completed. Defaults to now.
      * @nullable
      */
-  completedAt?: Date | null;
+  completedAt?: string & { readonly __brand: 'Instant' } | null;
 }
 
 export type SyncRunStatus = typeof SyncRunStatus[keyof typeof SyncRunStatus];
@@ -15297,9 +15297,9 @@ export interface SyncRunDetailsDto {
   id: string;
   connectionId: string;
   connectorType: Connector;
-  startedAt: Date;
+  startedAt: string & { readonly __brand: 'Instant' };
   /** @nullable */
-  finishedAt?: Date | null;
+  finishedAt?: string & { readonly __brand: 'Instant' } | null;
   status: SyncRunStatus;
   triggerSource: SyncTriggerSource;
   syncType: SyncType;
@@ -15323,9 +15323,9 @@ export interface SyncRunListDto {
   id: string;
   connectionId: string;
   connectorType: Connector;
-  startedAt: Date;
+  startedAt: string & { readonly __brand: 'Instant' };
   /** @nullable */
-  finishedAt?: Date | null;
+  finishedAt?: string & { readonly __brand: 'Instant' } | null;
   status: SyncRunStatus;
   triggerSource: SyncTriggerSource;
   syncType: SyncType;
@@ -15405,7 +15405,7 @@ export interface TeamAllocationProposalRowDto {
      * team, so that one is left as it is. Null, for no end, when they have none.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * What is left of the member's time across all teams, from 0 to 100: 100 less their most allocated day
      * from the proposal's `from` to this row's `end`. Zero means they have none to give.
@@ -15424,7 +15424,7 @@ export interface TeamAllocationProposalRowDto {
  */
 export interface TeamAllocationProposalDto {
   /** The first day the proposed allocations would cover. */
-  from: string;
+  from: string & { readonly __brand: 'CalendarDate' };
   /**
      * One row per member and role, by member name and then role name. A member who already has time on the
      * team on `from` has no rows.
@@ -15445,9 +15445,9 @@ export interface TeamBacklogHealthDto {
      */
   lookbackDays: number;
   /** The first day of the history. */
-  from: string;
+  from: string & { readonly __brand: 'CalendarDate' };
   /** The last day of the history, included: yesterday in `timeZone`. */
-  to: string;
+  to: string & { readonly __brand: 'CalendarDate' };
   /**
      * The IANA id of the time zone the history's days are counted in: that of the team's operating model in
      * effect today.
@@ -15497,9 +15497,9 @@ export interface TeamBacklogHealthDto {
  */
 export interface TeamCadencePeriodDto {
   /** The period's first day. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The period's last day, included in it. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The estimate the period's work is measured in: its operating model's sizing method. */
   sizingMethod: SizingMethod;
   /**
@@ -15568,12 +15568,12 @@ export interface TeamCapacityAllocationDto {
   /** Whether the allocation adds to the team's delivery capacity. True when it has no role. */
   countsTowardDeliveryCapacity: boolean;
   /** The first day of the allocation, which may be before the range. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /**
      * The last day of the allocation, or null when it has no end. It may be after the range.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The share of the person's time, from 1 to 100. */
   percent: number;
   /**
@@ -15601,9 +15601,9 @@ export interface TeamCapacityRoleDto {
  */
 export interface TeamCapacityTimeAwayDto {
   /** The first day away, which may be before the range. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The last day away, which may be after the range. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The share of each day the person is away, from 1 to 100. */
   percentAway: number;
 }
@@ -15647,9 +15647,9 @@ export interface TeamCapacityPersonDto {
  */
 export interface TeamCapacityDto {
   /** The first day of the range. */
-  from: string;
+  from: string & { readonly __brand: 'CalendarDate' };
   /** The last day of the range. */
-  to: string;
+  to: string & { readonly __brand: 'CalendarDate' };
   /**
      * The team's working days in the range: days in its working week that are not holidays in its calendar.
      * Each person's person-days follow the calendar assigned to them, or the system default, so they may be
@@ -15686,16 +15686,16 @@ export interface TeamCapacityDto {
  */
 export interface TeamCapacityPeriodDto {
   /** The first day of the run. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The last day of the run. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
 }
 
 /**
  * A person's time in one role on one of the team's working days.
  */
 export interface TeamCapacityPlanDayDto {
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
   /** The share of the person's time allocated, from 1 to 100. */
   percent: number;
   /**
@@ -15709,7 +15709,7 @@ export interface TeamCapacityPlanDayDto {
  * What else decides a person's time on one of the team's working days.
  */
 export interface TeamCapacityPlanPersonDayDto {
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
   /** Whether the day is a holiday in the calendar the person takes. */
   isHoliday: boolean;
   /** The share of the day the person is away, from 0 to 100. Never why. */
@@ -15761,7 +15761,7 @@ export interface TeamCapacityPlanDto {
      * The days of the team's working week in the range, in date order, holidays included. The person-days of
      * each day already leave out the holidays each person takes.
      */
-  days: string[];
+  days: (string & { readonly __brand: 'CalendarDate' })[];
   /**
      * The days of `days` the whole team is off for some or all of, as asked for, such as a sprint's team
      * days off, in date order. Each takes its `percentOff` of everyone's time that day, already left out of
@@ -15848,9 +15848,9 @@ export interface TeamCapacityReportLineDto {
  */
 export interface TeamCapacityReportDto {
   /** The first day of the range. */
-  from: string;
+  from: string & { readonly __brand: 'CalendarDate' };
   /** The last day of the range. */
-  to: string;
+  to: string & { readonly __brand: 'CalendarDate' };
   /** How the range is bucketed, or null when it is not. */
   interval?: CapacityReportInterval | null;
   /** The buckets of the range in date order, the first and last cut to it. Empty when it is not bucketed. */
@@ -15929,9 +15929,9 @@ export interface TeamCapacityRollupNodeDto {
  */
 export interface TeamCapacityRollupDto {
   /** The first day of the range. */
-  from: string;
+  from: string & { readonly __brand: 'CalendarDate' };
   /** The last day of the range. */
-  to: string;
+  to: string & { readonly __brand: 'CalendarDate' };
   /** The time allocated to the team of teams and to every team beneath it, in person-days. */
   allocatedPersonDays: number;
   /** The part of `allocatedPersonDays` in roles that count toward delivery capacity. */
@@ -15964,9 +15964,9 @@ export interface TeamDependencyAnalysisDto {
   /** The team or team of teams the report is for. */
   team: WorkTeamNavigationDto;
   /** The first day of the range. */
-  from: string;
+  from: string & { readonly __brand: 'CalendarDate' };
   /** The last day of the range, included. */
-  to: string;
+  to: string & { readonly __brand: 'CalendarDate' };
   /**
      * The IANA id of the time zone the range and periods are counted in: that of the team's, or the team of
      * teams', operating model in effect on `to`.
@@ -16013,7 +16013,7 @@ export interface TeamOperatingModelListDto {
      * int? TeamOperatingModelListDto.CadenceWeeks is.
      * @nullable
      */
-  cadenceAnchor?: string | null;
+  cadenceAnchor?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export interface TeamDetailsDto {
@@ -16042,12 +16042,12 @@ export interface TeamDetailsDto {
      */
   type: string;
   /** The date the team became active. */
-  activeDate: string;
+  activeDate: string & { readonly __brand: 'CalendarDate' };
   /**
      * The date the team became inactive, or null while it is active.
      * @nullable
      */
-  inactiveDate?: string | null;
+  inactiveDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** Whether the team is active. */
   isActive: boolean;
   /** The team of teams the team belongs to today, or null when it belongs to none. */
@@ -16112,9 +16112,9 @@ export interface TeamMembershipDto {
   id: string;
   child: TeamNavigationDto;
   parent: TeamNavigationDto;
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** @nullable */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   state: string;
 }
 
@@ -16144,12 +16144,12 @@ export interface TeamOfTeamsDetailsDto {
      */
   type: string;
   /** The date the team of teams became active. */
-  activeDate: string;
+  activeDate: string & { readonly __brand: 'CalendarDate' };
   /**
      * The date the team of teams became inactive, or null while it is active.
      * @nullable
      */
-  inactiveDate?: string | null;
+  inactiveDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** Whether the team of teams is active. */
   isActive: boolean;
   /** The team of teams this one belongs to today, or null when it belongs to none. */
@@ -16190,12 +16190,12 @@ export interface TeamOfTeamsOperatingModelDetailsDto {
   /** The identifier of the team of teams. */
   teamId: string;
   /** The start date of the operating model. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /**
      * The end date of the operating model. Null indicates the model is current.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The IANA id of the time zone the team of teams' own rollups count days in.
      * @minLength 1
@@ -16215,12 +16215,12 @@ export interface TeamOperatingModelDetailsDto {
   /** The identifier of the team. */
   teamId: string;
   /** The start date of the operating model. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /**
      * The end date of the operating model. Null indicates the model is current.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /** The methodology the team uses (e.g., Scrum, Kanban). */
   methodology: Methodology;
   /** The sizing method the team uses (e.g., StoryPoints, Count). */
@@ -16246,7 +16246,7 @@ export interface TeamOperatingModelDetailsDto {
      * int? TeamOperatingModelDetailsDto.CadenceWeeks is.
      * @nullable
      */
-  cadenceAnchor?: string | null;
+  cadenceAnchor?: string & { readonly __brand: 'CalendarDate' } | null;
   /** Indicates whether this operating model is current (has no end date). */
   isCurrent: boolean;
 }
@@ -16290,9 +16290,9 @@ export interface TeamSprintMetricsSprintDto {
   key: number;
   name: string;
   /** The first planned day of the sprint. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The last planned day of the sprint, included in it. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** The estimate the sprint was measured in: its team's sizing method on the sprint's planned start. */
   sizingMethod: SizingMethod;
   /**
@@ -16315,9 +16315,9 @@ export interface TeamSprintMetricsExcludedSprintDto {
   key: number;
   name: string;
   /** The first planned day of the sprint. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The last planned day of the sprint, included in it. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /** Why the sprint is left out: it is non-standard, its history is incomplete, or nothing was committed to it. */
   reason: SprintMetricsExclusion;
 }
@@ -16385,8 +16385,8 @@ export interface TeamThroughputForecastDto {
   outcome: SimpleNavigationDto;
   team: ForecastTeamDto;
   /** The first simulated day (UTC). */
-  forecastStart: string;
-  targetDate: string;
+  forecastStart: string & { readonly __brand: 'CalendarDate' };
+  targetDate: string & { readonly __brand: 'CalendarDate' };
   /** Days of history the team's throughput was sampled from. */
   lookbackDays: number;
   /** Whether active backlog items were counted ahead of proposed ones. */
@@ -16523,8 +16523,8 @@ export interface WorkDistributionTeamRowDto {
 }
 
 export interface WorkDistributionPeriodDto {
-  start: string;
-  end: string;
+  start: string & { readonly __brand: 'CalendarDate' };
+  end: string & { readonly __brand: 'CalendarDate' };
   items: number;
   value: number;
   values: number[];
@@ -16540,9 +16540,9 @@ export interface WorkDistributionPeriodDto {
 export interface TeamWorkDistributionDto {
   team: WorkTeamNavigationDto;
   /** The first day of the range. */
-  from: string;
+  from: string & { readonly __brand: 'CalendarDate' };
   /** The last day of the range, included. */
-  to: string;
+  to: string & { readonly __brand: 'CalendarDate' };
   /**
      * The IANA id of the time zone the range and periods are counted in: that of the team's, or the team of
      * teams', operating model in effect on `to`.
@@ -16632,7 +16632,7 @@ export interface ToggleFeatureFlagRequest {
 export interface TokenResponse {
   token: string;
   refreshToken: string;
-  tokenExpiresAt: Date;
+  tokenExpiresAt: string & { readonly __brand: 'Instant' };
   mustChangePassword: boolean;
 }
 
@@ -16819,7 +16819,7 @@ export interface UpdateEmployeeRequest {
      * Gets the hire date.
      * @nullable
      */
-  hireDate?: Date | null;
+  hireDate?: string & { readonly __brand: 'Instant' } | null;
   /**
      * Gets the email.
      * @minLength 1
@@ -17074,11 +17074,11 @@ export interface UpdateIncidentDetailsRequest {
      * @nullable
      */
   commanderEmployeeId?: string | null;
-  noticedAt: Date;
+  noticedAt: string & { readonly __brand: 'Instant' };
   /** @nullable */
-  startedAt?: Date | null;
+  startedAt?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  recoveredAt?: Date | null;
+  recoveredAt?: string & { readonly __brand: 'Instant' } | null;
   productIds: string[];
   /** Releases this incident points at. One incident may point at several. */
   releaseIds: string[];
@@ -17346,7 +17346,7 @@ export interface UpdatePersonalAccessTokenRequest {
      */
   name: string;
   /** The expiration date for the token. Must be in the future and within 2 years from now. */
-  expiresAt: Date;
+  expiresAt: string & { readonly __brand: 'Instant' };
 }
 
 export interface UpdatePersonaRequest {
@@ -17373,7 +17373,7 @@ export interface UpdatePlanningIntervalObjectiveHealthCheckRequest {
   /** @minLength 1 */
   id: string;
   statusId: number;
-  expiration: Date;
+  expiration: string & { readonly __brand: 'Instant' };
   /**
      * @maxLength 1024
      * @nullable
@@ -17401,9 +17401,9 @@ export interface UpdatePlanningIntervalObjectiveRequest {
      */
   progress: number;
   /** @nullable */
-  startDate?: string | null;
+  startDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   isStretch: boolean;
 }
 
@@ -17652,12 +17652,12 @@ export interface UpdateProgramRequest {
      * The Program start date.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The Program end date.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The sponsors of the program.
      * @nullable
@@ -17711,7 +17711,7 @@ export interface UpdateProjectDeliverableRequest {
      * When the deliverable is due, or null for no date.
      * @nullable
      */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The project's `revision` when the change was prepared. A project changed since answers 409.
      * @nullable
@@ -17721,7 +17721,7 @@ export interface UpdateProjectDeliverableRequest {
 
 export interface UpdateProjectHealthCheckRequest {
   status: HealthStatus;
-  expiration: Date;
+  expiration: string & { readonly __brand: 'Instant' };
   /**
      * @maxLength 1024
      * @nullable
@@ -17786,12 +17786,12 @@ export interface UpdateProjectRequest {
      * The Project start date.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The Project end date.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The sponsors of the project.
      * @nullable
@@ -17827,9 +17827,9 @@ export interface UpdateProjectStageRequest {
   description: string;
   status: number;
   /** @nullable */
-  plannedStart?: string | null;
+  plannedStart?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  plannedEnd?: string | null;
+  plannedEnd?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * @minimum 0
      * @maximum 100
@@ -17897,17 +17897,17 @@ export interface UpdateProjectTaskRequest {
      * The planned start date for the task.
      * @nullable
      */
-  plannedStart?: string | null;
+  plannedStart?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The planned end date for the task.
      * @nullable
      */
-  plannedEnd?: string | null;
+  plannedEnd?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The planned date for a milestone.
      * @nullable
      */
-  plannedDate?: string | null;
+  plannedDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The estimated effort in hours (optional).
      * @exclusiveMinimum 0
@@ -17982,7 +17982,7 @@ export interface UpdateRiskRequest {
   /** @nullable */
   assigneeId?: string | null;
   /** @nullable */
-  followUpDate?: string | null;
+  followUpDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * @maxLength 1024
      * @nullable
@@ -18013,9 +18013,9 @@ export interface UpdateRoadmapItemDatesRequest {
 
 export type UpdateRoadmapActivityDatesRequest = Omit<UpdateRoadmapItemDatesRequest & {
   /** The Roadmap Item start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Roadmap Item end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
 }, '$type'> & {
   $type: UpdateRoadmapActivityDatesRequestType;
 };
@@ -18076,9 +18076,9 @@ export interface UpdateRoadmapItemRequest {
 
 export type UpdateRoadmapActivityRequest = Omit<UpdateRoadmapItemRequest & {
   /** The Roadmap Item start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Roadmap Item end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
 }, '$type'> & {
   $type: UpdateRoadmapActivityRequestType;
 };
@@ -18113,7 +18113,7 @@ export const UpdateRoadmapMilestoneDatesRequestType = {
 
 export type UpdateRoadmapMilestoneDatesRequest = Omit<UpdateRoadmapItemDatesRequest & {
   /** The Milestone date. */
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
 }, '$type'> & {
   $type: UpdateRoadmapMilestoneDatesRequestType;
 };
@@ -18127,7 +18127,7 @@ export const UpdateRoadmapMilestoneRequestType = {
 
 export type UpdateRoadmapMilestoneRequest = Omit<UpdateRoadmapItemRequest & {
   /** The Milestone date. */
-  date: string;
+  date: string & { readonly __brand: 'CalendarDate' };
 }, '$type'> & {
   $type: UpdateRoadmapMilestoneRequestType;
 };
@@ -18151,9 +18151,9 @@ export interface UpdateRoadmapRequest {
      */
   description?: string | null;
   /** The Roadmap start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Roadmap end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /**
      * The owners of the Roadmap: employee ids, which must include the caller's own unless they are a Roadmaps administrator.
      * @minItems 1
@@ -18173,9 +18173,9 @@ export const UpdateRoadmapTimeboxDatesRequestType = {
 
 export type UpdateRoadmapTimeboxDatesRequest = Omit<UpdateRoadmapItemDatesRequest & {
   /** The Roadmap Item start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Roadmap Item end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
 }, '$type'> & {
   $type: UpdateRoadmapTimeboxDatesRequestType;
 };
@@ -18189,9 +18189,9 @@ export const UpdateRoadmapTimeboxRequestType = {
 
 export type UpdateRoadmapTimeboxRequest = Omit<UpdateRoadmapItemRequest & {
   /** The Roadmap Item start date. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The Roadmap Item end date. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
 }, '$type'> & {
   $type: UpdateRoadmapTimeboxRequestType;
 };
@@ -18347,9 +18347,9 @@ export interface UpdateStrategicInitiativeRequest {
      */
   description: string;
   /** The start date of the strategic initiative. */
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** The end date of the strategic initiative. */
-  end: string;
+  end: string & { readonly __brand: 'CalendarDate' };
   /**
      * The sponsors of the strategic initiative.
      * @nullable
@@ -18405,12 +18405,12 @@ export interface UpdateStrategyRequest {
      * The start date of when the strategy became active.
      * @nullable
      */
-  start?: string | null;
+  start?: string & { readonly __brand: 'CalendarDate' } | null;
   /**
      * The end date of when the strategy became archived.
      * @nullable
      */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export interface UpdateTaskRequest {
@@ -18452,9 +18452,9 @@ export interface UpdateTeamMembershipRequest {
   teamId: string;
   /** @minLength 1 */
   teamMembershipId: string;
-  start: string;
+  start: string & { readonly __brand: 'CalendarDate' };
   /** @nullable */
-  end?: string | null;
+  end?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export interface UpdateTeamOfTeamsOperatingModelRequest {
@@ -18524,7 +18524,7 @@ export interface UpdateTeamOperatingModelRequest {
      * int? UpdateTeamOperatingModelRequest.CadenceWeeks, and omitted without it.
      * @nullable
      */
-  cadenceAnchor?: string | null;
+  cadenceAnchor?: string & { readonly __brand: 'CalendarDate' } | null;
 }
 
 export interface UpdateTeamRequest {
@@ -18778,7 +18778,7 @@ export interface UserDetailsDto {
   email?: string | null;
   isActive: boolean;
   /** @nullable */
-  lockoutEnd?: Date | null;
+  lockoutEnd?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
   phoneNumber?: string | null;
   loginProvider: string;
@@ -18792,7 +18792,7 @@ export interface UserDetailsDto {
      */
   hasActiveIdentity: boolean;
   /** @nullable */
-  lastActivityAt?: Date | null;
+  lastActivityAt?: string & { readonly __brand: 'Instant' } | null;
   employee?: NavigationDto | null;
   roles: RoleListDto[];
 }
@@ -18804,9 +18804,9 @@ export interface UserIdentityDto {
   providerTenantId?: string | null;
   providerSubject: string;
   isActive: boolean;
-  linkedAt: Date;
+  linkedAt: string & { readonly __brand: 'Instant' };
   /** @nullable */
-  unlinkedAt?: Date | null;
+  unlinkedAt?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
   unlinkReason?: string | null;
 }
@@ -18858,11 +18858,11 @@ export interface UserSessionResponse {
      */
   ipAddress?: string | null;
   /** When it was opened. */
-  createdAt: Date;
+  createdAt: string & { readonly __brand: 'Instant' };
   /** When it was last refreshed. */
-  lastUsedAt: Date;
+  lastUsedAt: string & { readonly __brand: 'Instant' };
   /** When it ends unless refreshed. */
-  expiresAt: Date;
+  expiresAt: string & { readonly __brand: 'Instant' };
   /** Whether it is the caller's own session. */
   isCurrent: boolean;
   /**
@@ -18916,11 +18916,11 @@ export interface VersionDto {
      */
   sequence?: number | null;
   /** @nullable */
-  targetDate?: string | null;
+  targetDate?: string & { readonly __brand: 'CalendarDate' } | null;
   /** @nullable */
-  cutAt?: Date | null;
+  cutAt?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  releasedAt?: Date | null;
+  releasedAt?: string & { readonly __brand: 'Instant' } | null;
   /** The version's current status: the organization's name for it, its category and its well-known alias. */
   status: StatusNavigationDto;
 }
@@ -18940,12 +18940,12 @@ export interface VisionDto {
      * When the vision became active and started guiding the organization; null while it is proposed.
      * @nullable
      */
-  start?: Date | null;
+  start?: string & { readonly __brand: 'Instant' } | null;
   /**
      * When the vision was archived; null until it is archived.
      * @nullable
      */
-  end?: Date | null;
+  end?: string & { readonly __brand: 'Instant' } | null;
 }
 
 export type VisionStateDto = CommonEnumDtoOfVisionState;
@@ -19071,7 +19071,7 @@ export interface WorkdayConnectionConfigurationDto {
      * UTC timestamp of the most recent init probe; null when no probe has run.
      * @nullable
      */
-  lastInitAt?: Date | null;
+  lastInitAt?: string & { readonly __brand: 'Instant' } | null;
   /** Whether the most recent init probe succeeded. */
   lastInitSucceeded: boolean;
   /**
@@ -19291,7 +19291,7 @@ export interface WorkItemBacklogItemDto {
   team?: WorkTeamNavigationDto | null;
   sprint?: WorkIterationNavigationDto | null;
   assignedTo?: EmployeeNavigationDto | null;
-  created: Date;
+  created: string & { readonly __brand: 'Instant' };
   rank: number;
   /** @nullable */
   parentRank?: number | null;
@@ -19330,14 +19330,14 @@ export interface WorkItemDetailsDto {
   team?: WorkTeamNavigationDto | null;
   sprint?: WorkIterationNavigationDto | null;
   assignedTo?: EmployeeNavigationDto | null;
-  created: Date;
+  created: string & { readonly __brand: 'Instant' };
   createdBy?: EmployeeNavigationDto | null;
-  lastModified: Date;
+  lastModified: string & { readonly __brand: 'Instant' };
   lastModifiedBy?: EmployeeNavigationDto | null;
   /** @nullable */
-  activatedTimestamp?: Date | null;
+  activatedTimestamp?: string & { readonly __brand: 'Instant' } | null;
   /** @nullable */
-  doneTimestamp?: Date | null;
+  doneTimestamp?: string & { readonly __brand: 'Instant' } | null;
   project?: WorkProjectNavigationDto | null;
   projectSource: string;
   /** @nullable */
@@ -19548,8 +19548,8 @@ export type DiscussionSettingsSaveSettingsParams = {
 
 export type MeGetWorkItemsParams = {
   statusCategories?: StatusCategory[];
-  doneFrom?: Date;
-  doneTo?: Date;
+  doneFrom?: string & { readonly __brand: 'Instant' };
+  doneTo?: string & { readonly __brand: 'Instant' };
 };
 
 export type MeGetTeamsSummaryParams = {
@@ -19671,8 +19671,8 @@ export type VisionsGetVisionsParams = {
 };
 
 export type DeliveryMetricsGetDeliveryMetricsParams = {
-  from?: Date;
-  to?: Date;
+  from?: string & { readonly __brand: 'Instant' };
+  to?: string & { readonly __brand: 'Instant' };
   productId?: string;
 };
 
@@ -19683,9 +19683,9 @@ export type DeliveryOverviewGetDeliveryOverviewParams = {
    * `Date` and sends `toISOString()`, which no `LocalDate` binder accepts. The caller
    * sends the start of its local day, which lands on that day in its own zone.
    */
-  from?: Date;
+  from?: string & { readonly __brand: 'Instant' };
   /** Any instant on the window's last day, which is inclusive. */
-  to?: Date;
+  to?: string & { readonly __brand: 'Instant' };
   /** The ID of the product to scope the delivery overview to. Omit for the whole catalog. */
   productId?: string;
   /**
@@ -19723,7 +19723,7 @@ export type DeploymentsGetDeploymentsParams = {
   packageId?: string;
   environmentId?: string;
   environmentCategory?: EnvironmentCategory;
-  startedOnOrAfter?: Date;
+  startedOnOrAfter?: string & { readonly __brand: 'Instant' };
 };
 
 export type DeploymentsGetActivitiesParams = {
@@ -20178,8 +20178,8 @@ export type EmployeesImportBody = {
 
 export type EmployeesGetEmployeeWorkItemsParams = {
   statusCategories?: StatusCategory[];
-  doneFrom?: Date;
-  doneTo?: Date;
+  doneFrom?: string & { readonly __brand: 'Instant' };
+  doneTo?: string & { readonly __brand: 'Instant' };
 };
 
 export type HolidayCalendarsGetActivitiesParams = {
@@ -20313,8 +20313,8 @@ export type TeamsGetTeamThroughputForecastParams = {
 
 export type TeamsGetTeamWorkItemsParams = {
   statusCategories?: StatusCategory[];
-  doneFrom?: Date;
-  doneTo?: Date;
+  doneFrom?: string & { readonly __brand: 'Instant' };
+  doneTo?: string & { readonly __brand: 'Instant' };
 };
 
 export type TeamsGetRisksParams = {
@@ -20322,12 +20322,12 @@ export type TeamsGetRisksParams = {
 };
 
 export type TeamsGetOperatingModelAsOfParams = {
-  asOfDate?: Date;
+  asOfDate?: string & { readonly __brand: 'Instant' };
 };
 
 export type TeamsGetOperatingModelsForTeamsParams = {
   teamIds?: string[];
-  asOfDate?: Date;
+  asOfDate?: string & { readonly __brand: 'Instant' };
 };
 
 export type TeamsGetOperatingModelDefaultsParams = {
@@ -20343,7 +20343,7 @@ export type TeamsGetCadenceMetricsParams = {
 };
 
 export type TeamsGetFunctionalOrganizationChartParams = {
-  asOfDate?: Date;
+  asOfDate?: string & { readonly __brand: 'Instant' };
 };
 
 export type TeamsOfTeamsGetListParams = {
@@ -20450,7 +20450,7 @@ export type IntakeRequestsGetIntakeRequestsParams = {
   openOnly?: boolean;
   assignedToMe?: boolean;
   participating?: boolean;
-  closedSince?: Date;
+  closedSince?: string & { readonly __brand: 'Instant' };
 };
 
 export type IntakeRequestsGetIntakeRequestScoresParams = {
@@ -20459,7 +20459,7 @@ export type IntakeRequestsGetIntakeRequestScoresParams = {
   openOnly?: boolean;
   assignedToMe?: boolean;
   participating?: boolean;
-  closedSince?: Date;
+  closedSince?: string & { readonly __brand: 'Instant' };
 };
 
 export type IntakeRequestsGetIntakeRequestEstimatesParams = {
@@ -20468,7 +20468,7 @@ export type IntakeRequestsGetIntakeRequestEstimatesParams = {
   openOnly?: boolean;
   assignedToMe?: boolean;
   participating?: boolean;
-  closedSince?: Date;
+  closedSince?: string & { readonly __brand: 'Instant' };
 };
 
 export type IntakeRequestsGetIntakeRequestOutcomesParams = {
@@ -20477,7 +20477,7 @@ export type IntakeRequestsGetIntakeRequestOutcomesParams = {
   openOnly?: boolean;
   assignedToMe?: boolean;
   participating?: boolean;
-  closedSince?: Date;
+  closedSince?: string & { readonly __brand: 'Instant' };
 };
 
 export type IntakeRequestsGetActivitiesParams = {
@@ -20544,7 +20544,7 @@ export type ConnectionsGetWorkdayOrgsByTypeParams = {
 };
 
 export type ConnectionsGetSyncRunsParams = {
-  since?: Date;
+  since?: string & { readonly __brand: 'Instant' };
 };
 
 export type BackgroundJobsRunParams = {
@@ -20560,8 +20560,8 @@ export type BackgroundJobsGetJobsParams = {
 export type MessagingGetDeadLettersParams = {
   messageType?: string;
   exceptionType?: string;
-  from?: Date;
-  to?: Date;
+  from?: string & { readonly __brand: 'Instant' };
+  to?: string & { readonly __brand: 'Instant' };
   page?: number;
   pageSize?: number;
 };

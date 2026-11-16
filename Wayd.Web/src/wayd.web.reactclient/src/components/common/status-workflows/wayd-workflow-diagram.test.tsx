@@ -8,6 +8,7 @@ import {
 } from '@/src/services/api/wayd.schemas'
 import WaydWorkflowDiagram from './wayd-workflow-diagram'
 import { buildRecordPath } from './workflow-diagram-layout'
+import { asInstant } from '@/src/utils/instant'
 
 vi.mock('@/src/components/contexts/theme/use-theme', () => ({
   default: () => ({ currentMode: 'light' }),
@@ -145,7 +146,7 @@ describe('WaydWorkflowDiagram', () => {
         workflowId: 'wf-1',
         actorKind: { id: 0, name: 'User' },
         changedBySystem: false,
-        changedOn: new Date('2026-05-01T10:00:00Z'),
+        changedOn: asInstant('2026-05-01T10:00:00Z'),
       },
       {
         id: 'h2',
@@ -166,7 +167,7 @@ describe('WaydWorkflowDiagram', () => {
         workflowId: 'wf-1',
         actorKind: { id: 0, name: 'User' },
         changedBySystem: false,
-        changedOn: new Date('2026-05-02T10:00:00Z'),
+        changedOn: asInstant('2026-05-02T10:00:00Z'),
       },
     ])
 

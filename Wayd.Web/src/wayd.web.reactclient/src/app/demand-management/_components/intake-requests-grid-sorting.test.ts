@@ -4,6 +4,7 @@ import {
   NeedByBasisFamily,
 } from '@/src/services/api/wayd.schemas'
 import { compareNeedBy } from './intake-requests-grid'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const withNeedBy = (
   id: string,
@@ -30,9 +31,13 @@ describe('compareNeedBy', () => {
     // Arrange
     const requests = [
       withNeedBy('none'),
-      withNeedBy('later', '2027-03-31'),
-      withNeedBy('chosen', '2026-12-31'),
-      withNeedBy('fixed', '2026-12-31', NeedByBasisFamily.FixedForUs),
+      withNeedBy('later', asCalendarDate('2027-03-31')),
+      withNeedBy('chosen', asCalendarDate('2026-12-31')),
+      withNeedBy(
+        'fixed',
+        asCalendarDate('2026-12-31'),
+        NeedByBasisFamily.FixedForUs,
+      ),
     ]
 
     // Act

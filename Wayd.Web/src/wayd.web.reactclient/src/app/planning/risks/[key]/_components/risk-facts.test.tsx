@@ -1,5 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import RiskFacts from './risk-facts'
+import { asInstant } from '@/src/utils/instant'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('@/src/components/common/links/links-card', () => {
   const LinksCard = () => <div>Links Card</div>
@@ -102,7 +104,7 @@ describe('RiskFacts', () => {
     // Arrange / Act
     render(
       <RiskFacts
-        risk={{ ...risk, closedDate: new Date('2026-05-20T12:00:00Z') }}
+        risk={{ ...risk, closedDate: asInstant('2026-05-20T12:00:00Z') }}
       />,
     )
 
@@ -130,7 +132,7 @@ describe('RiskFacts', () => {
       // today would keep growing forever.
       render(
         <RiskFacts
-          risk={{ ...risk, closedDate: new Date('2026-03-18T12:00:00Z') }}
+          risk={{ ...risk, closedDate: asInstant('2026-03-18T12:00:00Z') }}
         />,
       )
 
@@ -142,7 +144,7 @@ describe('RiskFacts', () => {
       // Arrange / Act
       render(
         <RiskFacts
-          risk={{ ...risk, reportedOn: new Date('2026-06-06T12:00:00Z') }}
+          risk={{ ...risk, reportedOn: asInstant('2026-06-06T12:00:00Z') }}
         />,
       )
 
@@ -158,7 +160,11 @@ describe('RiskFacts', () => {
 
     it('counts down to a follow-up still ahead', () => {
       // Arrange / Act
-      render(<RiskFacts risk={{ ...risk, followUpDate: '2026-06-16' }} />)
+      render(
+        <RiskFacts
+          risk={{ ...risk, followUpDate: asCalendarDate('2026-06-16') }}
+        />,
+      )
 
       // Assert
       expect(screen.getByText('Due in 10 days')).toBeInTheDocument()
@@ -166,7 +172,11 @@ describe('RiskFacts', () => {
 
     it('calls out an overdue follow-up, which is the actionable state', () => {
       // Arrange / Act
-      render(<RiskFacts risk={{ ...risk, followUpDate: '2026-05-27' }} />)
+      render(
+        <RiskFacts
+          risk={{ ...risk, followUpDate: asCalendarDate('2026-05-27') }}
+        />,
+      )
 
       // Assert
       expect(screen.getByText('Overdue by 10 days')).toBeInTheDocument()
@@ -174,7 +184,11 @@ describe('RiskFacts', () => {
 
     it('says due today rather than "in 0 days"', () => {
       // Arrange / Act
-      render(<RiskFacts risk={{ ...risk, followUpDate: '2026-06-06' }} />)
+      render(
+        <RiskFacts
+          risk={{ ...risk, followUpDate: asCalendarDate('2026-06-06') }}
+        />,
+      )
 
       // Assert
       expect(screen.getByText('Due today')).toBeInTheDocument()
@@ -187,8 +201,8 @@ describe('RiskFacts', () => {
         <RiskFacts
           risk={{
             ...risk,
-            followUpDate: '2026-05-27',
-            closedDate: new Date('2026-06-01T12:00:00Z'),
+            followUpDate: asCalendarDate('2026-05-27'),
+            closedDate: asInstant('2026-06-01T12:00:00Z'),
           }}
         />,
       )

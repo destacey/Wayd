@@ -1,12 +1,13 @@
 import { SizingMethod, SprintScopeDto } from '@/src/services/api/wayd.schemas'
 import { sprintScopeWindowText } from './sprint-scope-window-text'
+import { asInstant } from '@/src/utils/instant'
 
 // Started at noon in Chicago, ending at the end of its last planned day there.
 const scope = {
   sizingMethod: SizingMethod.StoryPoints,
-  effectiveStart: '2026-09-28T17:00:00Z',
+  effectiveStart: asInstant('2026-09-28T17:00:00Z'),
   startIsActual: true,
-  effectiveEnd: '2026-10-12T05:00:00Z',
+  effectiveEnd: asInstant('2026-10-12T05:00:00Z'),
   endIsActual: false,
   timeZone: 'America/Chicago',
   hasTeam: true,
@@ -41,7 +42,7 @@ describe('sprintScopeWindowText', () => {
       {
         ...scope,
         startIsActual: false,
-        effectiveStart: '2026-09-29T05:00:00Z' as unknown as Date,
+        effectiveStart: asInstant('2026-09-29T05:00:00Z'),
       },
       'America/Los_Angeles',
       during,
@@ -59,7 +60,7 @@ describe('sprintScopeWindowText', () => {
       {
         ...scope,
         endIsActual: true,
-        effectiveEnd: '2026-10-09T20:30:00Z' as unknown as Date,
+        effectiveEnd: asInstant('2026-10-09T20:30:00Z'),
       },
       'America/Los_Angeles',
       new Date('2026-10-10T00:00:00Z'),

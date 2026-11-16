@@ -1,3 +1,4 @@
+import { toInstant } from '@/src/utils/instant'
 import {
   DeadLetterMessageDetailsResponse,
   MessagingCountsResponse,
@@ -46,8 +47,8 @@ export const messagingApi = apiSlice.injectEndpoints({
           const data = await messagingGetDeadLetters({
             messageType: request.messageType,
             exceptionType: request.exceptionType,
-            from: request.from,
-            to: request.to,
+            from: request.from ? toInstant(request.from) : undefined,
+            to: request.to ? toInstant(request.to) : undefined,
             page: request.page,
             pageSize: request.pageSize,
           })

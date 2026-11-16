@@ -3,6 +3,7 @@ import dayjs from 'dayjs'
 import CreatePersonalAccessTokenForm from './create-personal-access-token-form'
 import type { FormInstance } from 'antd'
 import type { UseModalFormOptions } from '@/src/hooks'
+import { asInstant } from '@/src/utils/instant'
 
 const createToken = vi.fn()
 
@@ -79,7 +80,7 @@ describe('CreatePersonalAccessTokenForm', () => {
     act(() =>
       formInstance!.setFieldsValue({
         name: 'Reports',
-        expiresAt: dayjs('2027-01-01T00:00:00Z'),
+        expiresAt: dayjs(asInstant('2027-01-01T00:00:00Z')),
       }),
     )
     fireEvent.click(screen.getByRole('radio', { name: /Read-only access/ }))
@@ -90,7 +91,7 @@ describe('CreatePersonalAccessTokenForm', () => {
     // Assert
     expect(createToken).toHaveBeenCalledWith({
       name: 'Reports',
-      expiresAt: dayjs('2027-01-01T00:00:00Z').toDate(),
+      expiresAt: '2027-01-01T00:00:00.000Z',
       scope: 'Read',
     })
   })

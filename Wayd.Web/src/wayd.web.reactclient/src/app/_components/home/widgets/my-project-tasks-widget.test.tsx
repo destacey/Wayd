@@ -33,7 +33,7 @@ vi.mock('@/src/store/features/ppm/projects-api', () => ({
 }))
 
 // A Wednesday: the week ends on Saturday 2026-11-14.
-const TODAY = '2026-11-11'
+const TODAY = asCalendarDate('2026-11-11')
 
 vi.mock(import('@/src/utils'), async (importOriginal) => ({
   ...(await importOriginal()),
@@ -41,13 +41,14 @@ vi.mock(import('@/src/utils'), async (importOriginal) => ({
 }))
 
 import { useGetMyProjectTasksQuery } from '@/src/store/features/ppm/projects-api'
+import { asCalendarDate, type CalendarDate } from '@/src/utils/calendar-date'
 
 const mockTasks = useGetMyProjectTasksQuery as Mock
 
 const task = (
   number: number,
   name: string,
-  dueDate?: string,
+  dueDate?: CalendarDate,
   projectKey = 'APOLLO',
 ): MyProjectTaskDto => ({
   id: `task-${projectKey}-${number}`,
@@ -73,9 +74,9 @@ beforeEach(() => {
 
 describe('endOfWeek', () => {
   it.each([
-    ['a Wednesday', '2026-11-11', '2026-11-14'],
-    ['a Saturday', '2026-11-14', '2026-11-14'],
-    ['a Sunday', '2026-11-15', '2026-11-21'],
+    ['a Wednesday', asCalendarDate('2026-11-11'), asCalendarDate('2026-11-14')],
+    ['a Saturday', asCalendarDate('2026-11-14'), asCalendarDate('2026-11-14')],
+    ['a Sunday', asCalendarDate('2026-11-15'), asCalendarDate('2026-11-21')],
   ])('ends the week of %s on its Saturday', (_, today, saturday) => {
     // Arrange / Act
     const end = endOfWeek(today)
@@ -87,10 +88,10 @@ describe('endOfWeek', () => {
 
 describe('taskDue', () => {
   it.each([
-    ['2026-11-10', 'overdue'],
-    ['2026-11-11', 'this-week'],
-    ['2026-11-14', 'this-week'],
-    ['2026-11-15', 'later'],
+    [asCalendarDate('2026-11-10'), 'overdue'],
+    [asCalendarDate('2026-11-11'), 'this-week'],
+    [asCalendarDate('2026-11-14'), 'this-week'],
+    [asCalendarDate('2026-11-15'), 'later'],
     [undefined, 'none'],
   ])('places a task due %s as %s', (dueDate, expected) => {
     // Arrange
@@ -108,9 +109,9 @@ describe('tasksDueSoon', () => {
   it('keeps overdue tasks and those due by the end of next week, counting the rest', () => {
     // Arrange
     const tasks = [
-      task(1, 'Late', '2026-10-01'),
-      task(2, 'Saturday next week', '2026-11-21'),
-      task(3, 'Sunday after', '2026-11-22'),
+      task(1, 'Late', asCalendarDate('2026-10-01')),
+      task(2, 'Saturday next week', asCalendarDate('2026-11-21')),
+      task(3, 'Sunday after', asCalendarDate('2026-11-22')),
       task(4, 'Undated'),
     ]
 
@@ -131,10 +132,10 @@ describe('tasksDueSoon', () => {
     (dueWindow, listed) => {
       // Arrange
       const tasks = [
-        task(1, 'Late', '2026-11-10'),
-        task(2, 'Saturday', '2026-11-14'),
-        task(3, 'Saturday next week', '2026-11-21'),
-        task(4, 'Sunday after', '2026-11-22'),
+        task(1, 'Late', asCalendarDate('2026-11-10')),
+        task(2, 'Saturday', asCalendarDate('2026-11-14')),
+        task(3, 'Saturday next week', asCalendarDate('2026-11-21')),
+        task(4, 'Sunday after', asCalendarDate('2026-11-22')),
       ]
 
       // Act
@@ -151,10 +152,10 @@ describe('countTasksDue', () => {
   it('counts overdue and due-this-week tasks apart, leaving later and undated ones out', () => {
     // Arrange
     const tasks = [
-      task(1, 'Late', '2026-11-01'),
-      task(2, 'Late too', '2026-11-10'),
-      task(3, 'Today', '2026-11-11'),
-      task(4, 'Next week', '2026-11-16'),
+      task(1, 'Late', asCalendarDate('2026-11-01')),
+      task(2, 'Late too', asCalendarDate('2026-11-10')),
+      task(3, 'Today', asCalendarDate('2026-11-11')),
+      task(4, 'Next week', asCalendarDate('2026-11-16')),
       task(5, 'Undated'),
     ]
 
@@ -204,9 +205,9 @@ describe('MyProjectTasksWidget', () => {
     // Arrange
     mockTasks.mockReturnValue(
       loaded([
-        task(3, 'Design', '2026-11-09'),
-        task(7, 'Build', '2026-11-13'),
-        task(8, 'Rollout', '2026-12-01'),
+        task(3, 'Design', asCalendarDate('2026-11-09')),
+        task(7, 'Build', asCalendarDate('2026-11-13')),
+        task(8, 'Rollout', asCalendarDate('2026-12-01')),
         task(9, 'Release'),
       ]),
     )
@@ -232,7 +233,9 @@ describe('MyProjectTasksWidget', () => {
 
   it('says nothing is due soon, and how many are due later, when every task is later', () => {
     // Arrange
-    mockTasks.mockReturnValue(loaded([task(1, 'Rollout', '2026-12-01')]))
+    mockTasks.mockReturnValue(
+      loaded([task(1, 'Rollout', asCalendarDate('2026-12-01'))]),
+    )
 
     // Act
     render(<MyProjectTasksWidget title="My project tasks" />)
@@ -250,9 +253,9 @@ describe('MyProjectTasksWidget', () => {
     // Arrange
     mockTasks.mockReturnValue(
       loaded([
-        task(3, 'Design', '2026-11-09'),
-        task(4, 'Review', '2026-11-10'),
-        task(7, 'Build', '2026-11-13'),
+        task(3, 'Design', asCalendarDate('2026-11-09')),
+        task(4, 'Review', asCalendarDate('2026-11-10')),
+        task(7, 'Build', asCalendarDate('2026-11-13')),
       ]),
     )
 
@@ -274,7 +277,9 @@ describe('MyProjectTasksWidget', () => {
 
   it('says nothing is due this week when set to Due this week and only later work remains', () => {
     // Arrange
-    mockTasks.mockReturnValue(loaded([task(1, 'Rollout', '2026-11-20')]))
+    mockTasks.mockReturnValue(
+      loaded([task(1, 'Rollout', asCalendarDate('2026-11-20'))]),
+    )
 
     // Act
     render(
@@ -296,13 +301,13 @@ describe('MyProjectTasksWidget', () => {
     // Arrange
     mockTasks.mockReturnValue(
       loaded([
-        task(3, 'Design', '2026-11-12'),
+        task(3, 'Design', asCalendarDate('2026-11-12')),
         {
-          ...task(4, 'Go live', '2026-11-12'),
+          ...task(4, 'Go live', asCalendarDate('2026-11-12')),
           type: { id: 2, name: 'Milestone' },
         },
         {
-          ...task(5, 'Launch', '2026-12-12'),
+          ...task(5, 'Launch', asCalendarDate('2026-12-12')),
           type: { id: 2, name: 'Milestone' },
         },
       ]),
@@ -327,7 +332,7 @@ describe('MyProjectTasksWidget', () => {
     mockTasks.mockReturnValue(
       loaded([
         {
-          ...task(4, 'Go live', '2026-11-12'),
+          ...task(4, 'Go live', asCalendarDate('2026-11-12')),
           type: { id: 2, name: 'Milestone' },
         },
       ]),
@@ -353,7 +358,7 @@ describe('MyProjectTasksWidget', () => {
   it('lists the first tasks and counts the rest', () => {
     // Arrange
     const tasks = Array.from({ length: MY_PROJECT_TASKS_LIMIT + 3 }, (_, i) =>
-      task(i + 1, `Task ${i + 1}`, '2026-11-20'),
+      task(i + 1, `Task ${i + 1}`, asCalendarDate('2026-11-20')),
     )
     mockTasks.mockReturnValue(loaded(tasks))
 
@@ -371,7 +376,7 @@ describe('MyProjectTasksWidget', () => {
   it('lists as many tasks as its rows setting says', () => {
     // Arrange
     const tasks = Array.from({ length: 5 }, (_, i) =>
-      task(i + 1, `Task ${i + 1}`, '2026-11-20'),
+      task(i + 1, `Task ${i + 1}`, asCalendarDate('2026-11-20')),
     )
     mockTasks.mockReturnValue(loaded(tasks))
 
@@ -477,7 +482,9 @@ describe('MyProjectTasksWidget', () => {
 
     it('reports rows when a task is due soon', () => {
       // Arrange
-      mockTasks.mockReturnValue(loaded([task(1, 'Build', '2026-11-13')]))
+      mockTasks.mockReturnValue(
+        loaded([task(1, 'Build', asCalendarDate('2026-11-13'))]),
+      )
 
       // Act
       const { reportedState } = renderReportingWidget(
@@ -490,7 +497,9 @@ describe('MyProjectTasksWidget', () => {
 
     it('reports rows, not empty, when every task is due later than next week', () => {
       // Arrange
-      mockTasks.mockReturnValue(loaded([task(1, 'Rollout', '2026-12-01')]))
+      mockTasks.mockReturnValue(
+        loaded([task(1, 'Rollout', asCalendarDate('2026-12-01'))]),
+      )
 
       // Act
       const { reportedState } = renderReportingWidget(
@@ -507,7 +516,10 @@ describe('OverdueTasksTile', () => {
   it('counts overdue tasks in the error colour, linking to the widget', () => {
     // Arrange
     mockTasks.mockReturnValue(
-      loaded([task(1, 'Late', '2026-11-01'), task(2, 'Today', '2026-11-11')]),
+      loaded([
+        task(1, 'Late', asCalendarDate('2026-11-01')),
+        task(2, 'Today', asCalendarDate('2026-11-11')),
+      ]),
     )
 
     // Act
@@ -542,7 +554,9 @@ describe('OverdueTasksTile', () => {
 
   it('shows a dash, not the last good count, after a failed refetch', () => {
     // Arrange
-    mockTasks.mockReturnValue(loaded([task(1, 'Late', '2026-11-01')], true))
+    mockTasks.mockReturnValue(
+      loaded([task(1, 'Late', asCalendarDate('2026-11-01'))], true),
+    )
 
     // Act
     render(<OverdueTasksTile title="Overdue tasks" />)
@@ -561,10 +575,10 @@ describe('DueThisWeekTile', () => {
     // Arrange
     mockTasks.mockReturnValue(
       loaded([
-        task(1, 'Late', '2026-11-01'),
-        task(2, 'Today', '2026-11-11'),
-        task(3, 'Saturday', '2026-11-14'),
-        task(4, 'Sunday', '2026-11-15'),
+        task(1, 'Late', asCalendarDate('2026-11-01')),
+        task(2, 'Today', asCalendarDate('2026-11-11')),
+        task(3, 'Saturday', asCalendarDate('2026-11-14')),
+        task(4, 'Sunday', asCalendarDate('2026-11-15')),
       ]),
     )
 

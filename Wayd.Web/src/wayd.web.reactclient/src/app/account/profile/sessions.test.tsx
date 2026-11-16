@@ -40,14 +40,15 @@ import {
 } from '@testing-library/react'
 import { App } from 'antd'
 import Sessions from './sessions'
+import { asInstant } from '@/src/utils/instant'
 
 const session = (overrides: Record<string, unknown> = {}) => ({
   id: '11111111-1111-1111-1111-111111111111',
   deviceLabel: 'Chrome on Windows',
   ipAddress: '203.0.113.42',
-  createdAt: '2026-03-01T12:00:00Z',
-  lastUsedAt: '2026-03-01T12:30:00Z',
-  expiresAt: '2026-03-08T12:00:00Z',
+  createdAt: asInstant('2026-03-01T12:00:00Z'),
+  lastUsedAt: asInstant('2026-03-01T12:30:00Z'),
+  expiresAt: asInstant('2026-03-08T12:00:00Z'),
   isCurrent: false,
   ...overrides,
 })

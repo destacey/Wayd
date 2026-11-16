@@ -6,6 +6,7 @@ import {
   TeamCapacityReportTeamDto,
 } from '@/src/store/features/organization/team-capacity-api'
 import { CapacityRange } from '../team-capacity/team-capacity-data'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 /** How the report's rows are grouped. */
 export type CapacityReportGrouping = 'team' | 'person'
@@ -257,8 +258,14 @@ export function formatCapacity(
 
 /** The first to the last day of the month before the one `today` falls in. */
 export function previousMonthOf(today: CalendarDate): CapacityRange {
-  const lastOfPrevious = addCalendarDays(`${today.slice(0, 7)}-01`, -1)
-  return { from: `${lastOfPrevious.slice(0, 7)}-01`, to: lastOfPrevious }
+  const lastOfPrevious = addCalendarDays(
+    asCalendarDate(`${today.slice(0, 7)}-01`),
+    -1,
+  )
+  return {
+    from: asCalendarDate(`${lastOfPrevious.slice(0, 7)}-01`),
+    to: lastOfPrevious,
+  }
 }
 
 /** The calendar quarter `today` falls in, or the one `offset` quarters from it. */
@@ -267,11 +274,14 @@ export function quarterOf(today: CalendarDate, offset = 0): CapacityRange {
   const quarter = Math.floor((Number(today.slice(5, 7)) - 1) / 3) + offset
   const startYear = year + Math.floor(quarter / 4)
   const startMonth = (((quarter % 4) + 4) % 4) * 3 + 1
-  const from = `${startYear}-${String(startMonth).padStart(2, '0')}-01`
+  const from = asCalendarDate(
+    `${startYear}-${String(startMonth).padStart(2, '0')}-01`,
+  )
   const nextStartMonth = startMonth + 3
-  const next =
+  const next = asCalendarDate(
     nextStartMonth > 12
       ? `${startYear + 1}-01-01`
-      : `${startYear}-${String(nextStartMonth).padStart(2, '0')}-01`
+      : `${startYear}-${String(nextStartMonth).padStart(2, '0')}-01`,
+  )
   return { from, to: addCalendarDays(next, -1) }
 }

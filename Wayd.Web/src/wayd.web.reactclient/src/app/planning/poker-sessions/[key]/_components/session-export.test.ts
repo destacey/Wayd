@@ -1,12 +1,13 @@
 import { PokerRoundDto, PokerVoteDto } from '@/src/services/api/wayd.schemas'
 import { buildExportRows, EXPORT_HEADERS } from './session-export'
+import { toInstant } from '@/src/utils/instant'
 
 const vote = (name: string, value: string): PokerVoteDto =>
   ({
     id: `${name}-${value}`,
     participant: { id: name, userName: name.toLowerCase(), name },
     value,
-    submittedOn: new Date(),
+    submittedOn: toInstant(new Date()),
   }) as PokerVoteDto
 
 const round = (overrides: Partial<PokerRoundDto>): PokerRoundDto =>

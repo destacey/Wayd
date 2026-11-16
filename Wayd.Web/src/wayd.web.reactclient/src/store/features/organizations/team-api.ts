@@ -1,3 +1,4 @@
+import { type Instant, toInstant } from '@/src/utils/instant'
 import {
   DeactivateTeamOfTeamsRequest,
   DeactivateTeamRequest,
@@ -138,8 +139,8 @@ export interface GetTeamDependencyAnalysisRequest {
  * as its UTC date, and the client sends `toISOString()`. UTC midnight of the
  * day is the only instant that names the same day in every viewer's zone.
  */
-const asOfDateParam = (asOfDate?: CalendarDate): Date | undefined =>
-  asOfDate ? new Date(`${asOfDate}T00:00:00Z`) : undefined
+const asOfDateParam = (asOfDate?: CalendarDate): Instant | undefined =>
+  asOfDate ? toInstant(new Date(`${asOfDate}T00:00:00Z`)) : undefined
 
 /**
  * What a team's operating model changes besides itself: the team's details
@@ -380,8 +381,8 @@ export const teamApi = apiSlice.injectEndpoints({
         try {
           const data = await teamsGetTeamWorkItems(idOrCode, {
             statusCategories: statusCategories ?? undefined,
-            doneFrom: doneFrom ? new Date(doneFrom) : undefined,
-            doneTo: doneTo ? new Date(doneTo) : undefined,
+            doneFrom: doneFrom ? toInstant(new Date(doneFrom)) : undefined,
+            doneTo: doneTo ? toInstant(new Date(doneTo)) : undefined,
           })
           return { data }
         } catch (error) {
@@ -533,7 +534,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (asOfDate: string) => {
         try {
-          const date = asOfDate ? new Date(asOfDate) : undefined
+          const date = asOfDate ? toInstant(new Date(asOfDate)) : undefined
           const data = await teamsGetFunctionalOrganizationChart({
             asOfDate: date,
           })

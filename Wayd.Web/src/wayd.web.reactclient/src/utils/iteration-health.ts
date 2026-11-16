@@ -1,3 +1,4 @@
+import type { Instant } from '@/src/utils/instant'
 import {
   calendarDateInZone,
   calendarDaysBetween,
@@ -46,8 +47,8 @@ export interface IterationHealthParams {
 export interface SprintDays {
   start: CalendarDate
   end: CalendarDate
-  activeFrom?: Date | null
-  activeUntil?: Date | null
+  activeFrom?: Date | Instant | null
+  activeUntil?: Date | Instant | null
   timeZone?: string | null
 }
 

@@ -1,3 +1,4 @@
+import { toInstant } from '@/src/utils/instant'
 import {
   deploymentsDelete,
   deploymentsFail,
@@ -67,7 +68,7 @@ export const deploymentsApi = apiSlice.injectEndpoints({
             environmentId: request.environmentId,
             environmentCategory: request.environmentCategory,
             startedOnOrAfter: request.startedOnOrAfter
-              ? new Date(request.startedOnOrAfter)
+              ? toInstant(new Date(request.startedOnOrAfter))
               : undefined,
           })
           return { data }

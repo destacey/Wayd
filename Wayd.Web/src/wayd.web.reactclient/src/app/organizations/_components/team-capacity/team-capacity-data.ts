@@ -16,6 +16,7 @@ import {
   TeamCapacityRollupNodeDto,
   TeamCapacityTimeAwayDto,
 } from '@/src/store/features/organization/team-capacity-api'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 /** An inclusive range of calendar dates. */
 export interface CapacityRange {
@@ -27,13 +28,14 @@ export interface CapacityRange {
 export function monthOf(today: CalendarDate): CapacityRange {
   const year = Number(today.slice(0, 4))
   const month = Number(today.slice(5, 7))
-  const firstOfNext =
+  const firstOfNext = asCalendarDate(
     month === 12
       ? `${year + 1}-01-01`
-      : `${year}-${String(month + 1).padStart(2, '0')}-01`
+      : `${year}-${String(month + 1).padStart(2, '0')}-01`,
+  )
 
   return {
-    from: `${today.slice(0, 7)}-01`,
+    from: asCalendarDate(`${today.slice(0, 7)}-01`),
     to: addCalendarDays(firstOfNext, -1),
   }
 }

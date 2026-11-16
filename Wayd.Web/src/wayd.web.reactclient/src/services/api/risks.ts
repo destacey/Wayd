@@ -72,20 +72,8 @@ export const risksGetList = async (params?: RisksGetListParams, options?: Parame
 
 
   }
-).then(deserializeRisksGetListResponse);}
+);}
 
-
-const deserializeRisksGetListResponse = (data: RiskListDto[]): RiskListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.reportedOn = new Date(item0.reportedOn);
-    if (item0.followUpDate != null) {
-      item0.followUpDate = typeof item0.followUpDate === 'string' ? String(item0.followUpDate as unknown as string) : item0.followUpDate;
-    }
-  }
-  return data;
-};
 
 export const getRisksCreateUrl = () => {
 
@@ -132,20 +120,8 @@ export const risksGetRisk = async (idOrKey: string, options?: Parameters<typeof 
 
 
   }
-).then(deserializeRisksGetRiskResponse);}
+);}
 
-
-const deserializeRisksGetRiskResponse = (data: RiskDetailsDto): RiskDetailsDto => {
-  if (data == null) return data;
-  data.reportedOn = new Date(data.reportedOn);
-  if (data.followUpDate != null) {
-    data.followUpDate = typeof data.followUpDate === 'string' ? String(data.followUpDate as unknown as string) : data.followUpDate;
-  }
-  if (data.closedDate != null) {
-    data.closedDate = new Date(data.closedDate);
-  }
-  return data;
-};
 
 export const getRisksGetActivitiesUrl = (idOrKey: string,
     params?: RisksGetActivitiesParams,) => {
@@ -177,19 +153,8 @@ export const risksGetActivities = async (idOrKey: string,
 
 
   }
-).then(deserializeRisksGetActivitiesResponse);}
+);}
 
-
-const deserializeRisksGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.timestamp = new Date(item0.timestamp);
-    }
-  }
-  return data;
-};
 
 export const getRisksGetMyRisksUrl = () => {
 
@@ -212,20 +177,8 @@ export const risksGetMyRisks = async ( options?: Parameters<typeof apiFetch>[1])
 
 
   }
-).then(deserializeRisksGetMyRisksResponse);}
+);}
 
-
-const deserializeRisksGetMyRisksResponse = (data: RiskListDto[]): RiskListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.reportedOn = new Date(item0.reportedOn);
-    if (item0.followUpDate != null) {
-      item0.followUpDate = typeof item0.followUpDate === 'string' ? String(item0.followUpDate as unknown as string) : item0.followUpDate;
-    }
-  }
-  return data;
-};
 
 export const getRisksUpdateUrl = (id: string,) => {
 

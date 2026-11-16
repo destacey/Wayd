@@ -10,6 +10,8 @@ import {
   ProjectStageListDto,
 } from '@/src/services/api/wayd.schemas'
 import { CalendarDate } from '@/src/utils'
+import { asInstant } from '@/src/utils/instant'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const captured: { props: Record<string, unknown> | null } = { props: null }
 
@@ -98,13 +100,27 @@ const groups: ProjectGroup[] = [
         healthCheck: {
           id: 'hc',
           status: { id: 3, name: 'Unhealthy' },
-          expiration: new Date('2027-01-01T00:00:00Z'),
+          expiration: asInstant('2027-01-01T00:00:00Z'),
         },
-        start: '2026-05-01',
-        end: '2026-12-18',
+        start: asCalendarDate('2026-05-01'),
+        end: asCalendarDate('2026-12-18'),
         stages: [
-          stage('s1', 'Design', 'Completed', 1, '2026-05-01', '2026-07-01'),
-          stage('s2', 'Build', 'In Progress', 2, '2026-06-15', '2026-10-01'),
+          stage(
+            's1',
+            'Design',
+            'Completed',
+            1,
+            asCalendarDate('2026-05-01'),
+            asCalendarDate('2026-07-01'),
+          ),
+          stage(
+            's2',
+            'Build',
+            'In Progress',
+            2,
+            asCalendarDate('2026-06-15'),
+            asCalendarDate('2026-10-01'),
+          ),
           stage('s3', 'Close', 'Not Started', 3),
         ],
       }),

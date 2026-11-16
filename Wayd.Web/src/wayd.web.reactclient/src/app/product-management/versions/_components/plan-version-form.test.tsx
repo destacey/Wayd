@@ -101,7 +101,7 @@ describe('PlanVersionForm', () => {
     expect(markReleased).toHaveBeenCalledWith(
       expect.objectContaining({
         request: expect.objectContaining({
-          releasedAt: new Date(2026, 3, 20, 21, 30),
+          releasedAt: new Date(2026, 3, 20, 21, 30).toISOString(),
         }),
       }),
     )

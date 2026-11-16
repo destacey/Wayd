@@ -1,3 +1,4 @@
+import { toInstant } from './instant'
 import {
   calendarDateInZone,
   calendarDaysBetween,
@@ -8,11 +9,13 @@ import {
   todayCalendarDate,
   todayInZone,
 } from './calendar-date'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 describe('parseCalendarDate', () => {
   it('reads the date as local midnight of that day', () => {
     // Act
-    const result = parseCalendarDate('2026-09-28')
+    const result = parseCalendarDate(asCalendarDate('2026-09-28'))
 
     // Assert
     expect(result.year()).toBe(2026)
@@ -36,7 +39,9 @@ describe('toCalendarDate', () => {
 
   it('round-trips a parsed calendar date', () => {
     // Act
-    const result = toCalendarDate(parseCalendarDate('2024-02-29'))
+    const result = toCalendarDate(
+      parseCalendarDate(asCalendarDate('2024-02-29')),
+    )
 
     // Assert
     expect(result).toBe('2024-02-29')
@@ -46,7 +51,7 @@ describe('toCalendarDate', () => {
 describe('formatCalendarDate', () => {
   it('formats the day as written', () => {
     // Act
-    const result = formatCalendarDate('2026-09-28')
+    const result = formatCalendarDate(asCalendarDate('2026-09-28'))
 
     // Assert
     expect(result).toBe('Sep 28, 2026')
@@ -78,8 +83,8 @@ describe('todayInZone', () => {
   afterEach(() => vi.useRealTimers())
 
   it.each([
-    ['Pacific/Kiritimati', '2026-09-23'],
-    ['Etc/GMT+12', '2026-09-21'],
+    ['Pacific/Kiritimati', asCalendarDate('2026-09-23')],
+    ['Etc/GMT+12', asCalendarDate('2026-09-21')],
   ])('is today in %s', (timeZone, expected) => {
     // Arrange
     vi.useFakeTimers({ now: new Date('2026-09-22T11:00:00Z') })
@@ -103,7 +108,11 @@ describe('todayInZone', () => {
 describe('compareCalendarDates', () => {
   it('orders dates chronologically', () => {
     // Arrange
-    const dates = ['2026-10-01', '2025-12-31', '2026-09-28']
+    const dates = [
+      asCalendarDate('2026-10-01'),
+      asCalendarDate('2025-12-31'),
+      asCalendarDate('2026-09-28'),
+    ]
 
     // Act
     const result = [...dates].sort(compareCalendarDates)
@@ -114,7 +123,7 @@ describe('compareCalendarDates', () => {
 
   it('sorts a missing value first', () => {
     // Act
-    const result = compareCalendarDates(undefined, '2026-09-28')
+    const result = compareCalendarDates(undefined, asCalendarDate('2026-09-28'))
 
     // Assert
     expect(result).toBeLessThan(0)
@@ -124,7 +133,10 @@ describe('compareCalendarDates', () => {
 describe('calendarDaysBetween', () => {
   it('counts days between calendar dates', () => {
     // Act
-    const result = calendarDaysBetween('2026-09-28', '2026-10-09')
+    const result = calendarDaysBetween(
+      asCalendarDate('2026-09-28'),
+      asCalendarDate('2026-10-09'),
+    )
 
     // Assert
     expect(result).toBe(11)
@@ -132,7 +144,10 @@ describe('calendarDaysBetween', () => {
 
   it('crosses a leap day', () => {
     // Act
-    const result = calendarDaysBetween('2024-02-28', '2024-03-01')
+    const result = calendarDaysBetween(
+      asCalendarDate('2024-02-28'),
+      asCalendarDate('2024-03-01'),
+    )
 
     // Assert
     expect(result).toBe(2)
@@ -143,7 +158,10 @@ describe('calendarDaysBetween', () => {
     const lateOnTheStart = new Date(2026, 8, 28, 23, 59)
 
     // Act
-    const result = calendarDaysBetween(lateOnTheStart, '2026-09-29')
+    const result = calendarDaysBetween(
+      lateOnTheStart,
+      asCalendarDate('2026-09-29'),
+    )
 
     // Assert
     expect(result).toBe(1)
@@ -151,10 +169,13 @@ describe('calendarDaysBetween', () => {
 
   it('counts an ISO instant string by the viewer’s day, not its UTC date', () => {
     // Arrange
-    const lateOnTheStart = new Date(2026, 8, 28, 23, 30).toISOString()
+    const lateOnTheStart = toInstant(new Date(2026, 8, 28, 23, 30))
 
     // Act
-    const result = calendarDaysBetween(lateOnTheStart, '2026-09-29')
+    const result = calendarDaysBetween(
+      lateOnTheStart,
+      asCalendarDate('2026-09-29'),
+    )
 
     // Assert
     expect(result).toBe(1)
@@ -162,7 +183,10 @@ describe('calendarDaysBetween', () => {
 
   it('is negative when the end is earlier', () => {
     // Act
-    const result = calendarDaysBetween('2026-09-28', '2026-09-25')
+    const result = calendarDaysBetween(
+      asCalendarDate('2026-09-28'),
+      asCalendarDate('2026-09-25'),
+    )
 
     // Assert
     expect(result).toBe(-3)
@@ -185,7 +209,10 @@ describe('calendarDateInZone', () => {
 
   it('accepts the ISO string a Date-typed field holds', () => {
     // Act
-    const result = calendarDateInZone('2026-09-28T05:00:00Z', 'America/Chicago')
+    const result = calendarDateInZone(
+      asInstant('2026-09-28T05:00:00Z'),
+      'America/Chicago',
+    )
 
     // Assert
     expect(result).toBe('2026-09-28')

@@ -1,5 +1,6 @@
 'use client'
 
+import { toInstant } from '@/src/utils/instant'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import {
@@ -86,7 +87,7 @@ const PlanVersionForm = ({
               cacheKey: key,
               request: {
                 id,
-                cutAt: values.cutAt.toDate(),
+                cutAt: toInstant(values.cutAt),
               } as CutVersionRequest,
             })
             if (cut.error) {
@@ -103,7 +104,7 @@ const PlanVersionForm = ({
               cacheKey: key,
               request: {
                 id,
-                releasedAt: values.releasedAt.toDate(),
+                releasedAt: toInstant(values.releasedAt),
               } as MarkVersionReleasedRequest,
             })
             if (released.error) {

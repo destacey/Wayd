@@ -15,6 +15,7 @@ import {
   edgePath,
   initialStatusId,
 } from './workflow-diagram-layout'
+import { asInstant } from '@/src/utils/instant'
 
 const categoryIds: Record<StatusCategory, number> = {
   [StatusCategory.Proposed]: 0,
@@ -131,7 +132,7 @@ const history = (
   workflowId,
   actorKind: { id: 0, name: 'User' },
   changedBySystem: false,
-  changedOn: new Date('2026-05-01T10:00:00Z'),
+  changedOn: asInstant('2026-05-01T10:00:00Z'),
 })
 
 describe('buildWorkflowDiagram', () => {

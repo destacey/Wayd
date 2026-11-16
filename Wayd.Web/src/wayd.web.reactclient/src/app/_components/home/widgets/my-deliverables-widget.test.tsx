@@ -20,17 +20,18 @@ vi.mock('@/src/store/features/ppm/project-deliverables-api', () => ({
 
 vi.mock(import('@/src/utils'), async (importOriginal) => ({
   ...(await importOriginal()),
-  todayCalendarDate: () => '2026-11-11',
+  todayCalendarDate: () => asCalendarDate('2026-11-11'),
 }))
 
 import { useGetMyProjectDeliverablesQuery } from '@/src/store/features/ppm/project-deliverables-api'
+import { asCalendarDate, type CalendarDate } from '@/src/utils/calendar-date'
 
 const mockDeliverables = useGetMyProjectDeliverablesQuery as Mock
 
 const deliverable = (
   id: number,
   name: string,
-  targetDate?: string,
+  targetDate?: CalendarDate,
 ): MyProjectDeliverableDto => ({
   id: `d-${id}`,
   name,
@@ -59,14 +60,17 @@ describe('deliverablesDueSoon', () => {
   it('keeps past-target deliverables and those due within 14 days, counting the rest', () => {
     // Arrange
     const deliverables = [
-      deliverable(1, 'Late', '2026-10-01'),
-      deliverable(2, 'Day fourteen', '2026-11-25'),
-      deliverable(3, 'Day fifteen', '2026-11-26'),
+      deliverable(1, 'Late', asCalendarDate('2026-10-01')),
+      deliverable(2, 'Day fourteen', asCalendarDate('2026-11-25')),
+      deliverable(3, 'Day fifteen', asCalendarDate('2026-11-26')),
       deliverable(4, 'Undated'),
     ]
 
     // Act
-    const { soon, laterCount } = deliverablesDueSoon(deliverables, '2026-11-11')
+    const { soon, laterCount } = deliverablesDueSoon(
+      deliverables,
+      asCalendarDate('2026-11-11'),
+    )
 
     // Assert
     expect(soon.map((d) => d.name)).toEqual(['Late', 'Day fourteen'])
@@ -79,8 +83,8 @@ describe('MyDeliverablesWidget with a longer window', () => {
     // Arrange
     mockDeliverables.mockReturnValue(
       loaded([
-        deliverable(1, 'Day thirty', '2026-12-11'),
-        deliverable(2, 'Day thirty-one', '2026-12-12'),
+        deliverable(1, 'Day thirty', asCalendarDate('2026-12-11')),
+        deliverable(2, 'Day thirty-one', asCalendarDate('2026-12-12')),
       ]),
     )
 
@@ -100,7 +104,7 @@ describe('MyDeliverablesWidget with a longer window', () => {
   it('names the window when nothing falls within it', () => {
     // Arrange
     mockDeliverables.mockReturnValue(
-      loaded([deliverable(1, 'Far off', '2027-03-01')]),
+      loaded([deliverable(1, 'Far off', asCalendarDate('2027-03-01'))]),
     )
 
     // Act
@@ -123,9 +127,9 @@ describe('MyDeliverablesWidget', () => {
     // Arrange
     mockDeliverables.mockReturnValue(
       loaded([
-        deliverable(1, 'Portal', '2026-11-04'),
-        deliverable(2, 'Reports', '2026-11-11'),
-        deliverable(3, 'Migration', '2026-12-31'),
+        deliverable(1, 'Portal', asCalendarDate('2026-11-04')),
+        deliverable(2, 'Reports', asCalendarDate('2026-11-11')),
+        deliverable(3, 'Migration', asCalendarDate('2026-12-31')),
         deliverable(4, 'Training'),
       ]),
     )
@@ -171,7 +175,7 @@ describe('MyDeliverablesWidget', () => {
     mockDeliverables.mockReturnValue(
       loaded(
         Array.from({ length: MY_DELIVERABLES_LIMIT + 2 }, (_, i) =>
-          deliverable(i, `Deliverable ${i}`, '2026-11-12'),
+          deliverable(i, `Deliverable ${i}`, asCalendarDate('2026-11-12')),
         ),
       ),
     )
@@ -266,7 +270,7 @@ describe('MyDeliverablesWidget', () => {
     it('reports rows when a deliverable is due soon', () => {
       // Arrange
       mockDeliverables.mockReturnValue(
-        loaded([deliverable(1, 'Portal', '2026-11-12')]),
+        loaded([deliverable(1, 'Portal', asCalendarDate('2026-11-12'))]),
       )
 
       // Act

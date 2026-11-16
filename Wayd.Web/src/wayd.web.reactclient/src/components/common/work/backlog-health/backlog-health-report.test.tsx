@@ -10,6 +10,7 @@ import {
   BacklogHealthOutcome,
 } from './backlog-health-formatting'
 import { BacklogHealthReportView } from './backlog-health-report'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // The grid is covered by its own suite; here only which rows reach it matters.
 vi.mock('./backlog-health-grid', () => ({
@@ -52,8 +53,8 @@ const createHealth = (): TeamBacklogHealthDto =>
     team: { id: 't1', key: 7, name: 'Atlas', code: 'ATL', type: 'Team' },
     thresholds: {},
     lookbackDays: 90,
-    from: '2026-06-24',
-    to: '2026-09-21',
+    from: asCalendarDate('2026-06-24'),
+    to: asCalendarDate('2026-09-21'),
     timeZone: 'America/Chicago',
     totalWorkItems: 2,
     sizingMethod: SizingMethod.StoryPoints,

@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import RemoveTeamMemberForm from './remove-team-member-form'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // Mock window.getComputedStyle for Ant Design Modal
 Object.defineProperty(window, 'getComputedStyle', {
@@ -49,7 +50,7 @@ const allocation = (overrides: Record<string, unknown> = {}) => ({
   id: 'allocation-1',
   team: { id: 'team-1', key: 1, name: 'Cards', code: 'CARDS', type: 'Team' },
   role: { id: 'role-1', key: 1, name: 'Engineer' },
-  start: '2020-01-01',
+  start: asCalendarDate('2020-01-01'),
   end: undefined,
   percent: 50,
   canManage: true,
@@ -173,7 +174,7 @@ describe('RemoveTeamMemberForm', () => {
 
   it('does not offer to end an allocation that has already ended or cannot be managed', () => {
     mockAllocations = [
-      allocation({ end: '2020-12-31' }),
+      allocation({ end: asCalendarDate('2020-12-31') }),
       allocation({ id: 'allocation-2', canManage: false }),
     ]
     renderForm()

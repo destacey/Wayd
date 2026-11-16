@@ -9,6 +9,8 @@ import {
 } from '@/src/services/api/wayd.schemas'
 import { useGetSprintScopeQuery } from '@/src/store/features/work-management/sprints-api'
 import type { MetricCardProps } from '@/src/components/common/metrics/metric-card'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 vi.mock('@/src/store/features/work-management/sprints-api', () => ({
   useGetSprintScopeQuery: vi.fn(),
@@ -95,8 +97,8 @@ describe('SprintCard', () => {
     sprintKey: 101,
     sprintName: 'Sprint 1',
     state: { id: IterationState.Active, name: 'Active' },
-    start: '2025-01-01',
-    end: '2025-01-14',
+    start: asCalendarDate('2025-01-01'),
+    end: asCalendarDate('2025-01-14'),
     team: {
       id: 'team-1',
       key: 1,
@@ -297,7 +299,7 @@ describe('SprintCard', () => {
   describe('with scope', () => {
     const measure = (count: number, estimate: number) => ({ count, estimate })
     const scope = {
-      effectiveStart: '2025-01-02T00:00:00Z',
+      effectiveStart: asInstant('2025-01-02T00:00:00Z'),
       historyIncomplete: false,
       totals: {
         total: measure(12, 120),

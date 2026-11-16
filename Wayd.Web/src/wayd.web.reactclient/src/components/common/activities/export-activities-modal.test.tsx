@@ -8,6 +8,7 @@ import {
 import ExportActivitiesModal, {
   formatEventForExport,
 } from './export-activities-modal'
+import { asInstant } from '@/src/utils/instant'
 
 const mockDownloadJsonWithTimestamp = vi.fn()
 vi.mock('@/src/utils/json-utils', () => ({
@@ -44,7 +45,7 @@ const createActivity = (
   aggregateType: 'Team',
   aggregateId: '22222222-2222-2222-2222-222222222222',
   actorKind: EventActorKind.User,
-  timestamp: new Date('2026-04-01T09:00:00Z'),
+  timestamp: asInstant('2026-04-01T09:00:00Z'),
   eventVersion: '1.0',
   payload: JSON.stringify({
     name: 'Alpha Team',

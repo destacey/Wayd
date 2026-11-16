@@ -87,25 +87,20 @@ export const meGetAllocations = async ( options?: Parameters<typeof apiFetch>[1]
 
 
   }
-).then(deserializeMeGetAllocationsResponse);}
+);}
 
-
-const deserializeMeGetAllocationsResponse = (data: EmployeeAllocationDto[]): EmployeeAllocationDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-    if (item0.end != null) {
-      item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    }
-  }
-  return data;
-};
 
 export const getMeGetWorkItemsUrl = (params?: MeGetWorkItemsParams,) => {
+const encodedParams = { ...params };
+if (encodedParams.doneFrom != null) {
+  encodedParams.doneFrom = typeof encodedParams.doneFrom === 'string' ? encodedParams.doneFrom : (String(encodedParams.doneFrom) as unknown as typeof encodedParams.doneFrom);
+}
+if (encodedParams.doneTo != null) {
+  encodedParams.doneTo = typeof encodedParams.doneTo === 'string' ? encodedParams.doneTo : (String(encodedParams.doneTo) as unknown as typeof encodedParams.doneTo);
+}
   const normalizedParams = new URLSearchParams();
 
-  Object.entries(params || {}).forEach(([key, value]) => {
+  Object.entries(encodedParams).forEach(([key, value]) => {
     const explodeParameters = ["statusCategories"];
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
@@ -116,7 +111,7 @@ export const getMeGetWorkItemsUrl = (params?: MeGetWorkItemsParams,) => {
     }
 
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value instanceof Date ? value.toISOString() : String(value))
+      normalizedParams.append(key, value === null ? 'null' : String(value))
     }
   });
 
@@ -138,23 +133,8 @@ export const meGetWorkItems = async (params?: MeGetWorkItemsParams, options?: Pa
 
 
   }
-).then(deserializeMeGetWorkItemsResponse);}
+);}
 
-
-const deserializeMeGetWorkItemsResponse = (data: WorkItemListDto[]): WorkItemListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.created = new Date(item0.created);
-    if (item0.activated != null) {
-      item0.activated = new Date(item0.activated);
-    }
-    if (item0.done != null) {
-      item0.done = new Date(item0.done);
-    }
-  }
-  return data;
-};
 
 export const getMeGetHomeContextUrl = () => {
 
@@ -214,41 +194,6 @@ export const meGetTeamsSummary = async (params?: MeGetTeamsSummaryParams, option
 
 
   }
-).then(deserializeMeGetTeamsSummaryResponse);}
+);}
 
-
-const deserializeMeGetTeamsSummaryResponse = (data: MyTeamsSummaryResponse): MyTeamsSummaryResponse => {
-  if (data == null) return data;
-  if (data.teams != null) {
-    for (let i0 = 0; i0 < data.teams.length; i0++) {
-      const item0 = data.teams[i0]!;
-      if (item0.flow != null) {
-        if (item0.flow.currentPeriod != null) {
-          item0.flow.currentPeriod.start = typeof item0.flow.currentPeriod.start === 'string' ? String(item0.flow.currentPeriod.start as unknown as string) : item0.flow.currentPeriod.start;
-          item0.flow.currentPeriod.end = typeof item0.flow.currentPeriod.end === 'string' ? String(item0.flow.currentPeriod.end as unknown as string) : item0.flow.currentPeriod.end;
-        }
-        item0.flow.completedSince = typeof item0.flow.completedSince === 'string' ? String(item0.flow.completedSince as unknown as string) : item0.flow.completedSince;
-        if (item0.flow.oldestInProgress != null) {
-          item0.flow.oldestInProgress.activatedOn = new Date(item0.flow.oldestInProgress.activatedOn);
-        }
-      }
-    }
-  }
-  if (data.teamsOfTeams != null) {
-    for (let i0 = 0; i0 < data.teamsOfTeams.length; i0++) {
-      const item0 = data.teamsOfTeams[i0]!;
-      if (item0.rows != null) {
-        for (let i1 = 0; i1 < item0.rows.length; i1++) {
-          const item1 = item0.rows[i1]!;
-          if (item1.flow != null) {
-            if (item1.flow.oldestInProgressSince != null) {
-              item1.flow.oldestInProgressSince = new Date(item1.flow.oldestInProgressSince);
-            }
-          }
-        }
-      }
-    }
-  }
-  return data;
-};
 

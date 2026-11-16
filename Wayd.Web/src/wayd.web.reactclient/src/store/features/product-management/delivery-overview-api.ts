@@ -9,6 +9,7 @@ import {
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import dayjs from 'dayjs'
+import { toInstant } from '@/src/utils/instant'
 
 /**
  * `YYYY-MM-DD` strings rather than `Date`s: query arguments become the Redux cache key, and a `Date`
@@ -39,8 +40,10 @@ export const deliveryOverviewApi = apiSlice.injectEndpoints({
       queryFn: async (request) => {
         try {
           const data = await deliveryOverviewGetDeliveryOverview({
-            from: dayjs(request.from).toDate(),
-            to: dayjs(request.to).toDate(),
+            // Local midnight, not `new Date('YYYY-MM-DD')`, which is UTC midnight and so the previous
+            // day anywhere west of Greenwich.
+            from: toInstant(dayjs(request.from)),
+            to: toInstant(dayjs(request.to)),
             productId: request.productId,
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           })

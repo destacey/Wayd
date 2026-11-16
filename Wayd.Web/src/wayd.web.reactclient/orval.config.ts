@@ -94,16 +94,15 @@ export default defineConfig({
           // Return the body itself, as callers expect; a failed status throws.
           includeHttpResponseReturnType: false,
         },
-        // An instant (`format: date-time`) is turned into a `Date` as each
-        // response arrives. A calendar date (`format: date`, a NodaTime
-        // LocalDate) stays its `YYYY-MM-DD` string, the `CalendarDate` of
-        // src/utils/calendar-date.ts: `new Date` would read it as UTC midnight
-        // and show the day before west of UTC. Orval requires a decode for the
-        // transform, so `String` leaves it unchanged. (Orval drops a custom
-        // type's import from a single schemas file, so it is typed `string`.)
-        useDatesTransform: true,
+        // Dates stay the strings the API sends, so the store holds plain data
+        // (RTK Query's structural sharing and CSV export depend on it), but each
+        // kind gets its own branded type so the compiler keeps them apart. These
+        // must match `Instant` (src/utils/instant.ts) and `CalendarDate`
+        // (src/utils/calendar-date.ts) exactly; Orval writes them inline because
+        // it drops a custom type's import from a single schemas file.
         formatType: {
-          date: { type: 'string', decode: 'String' },
+          'date-time': { type: "string & { readonly __brand: 'Instant' }" },
+          date: { type: "string & { readonly __brand: 'CalendarDate' }" },
         },
         // The session pipeline's refresh and 401 sign-out must stay off these:
         // they send no token, or (logout) must send the stored one untouched.

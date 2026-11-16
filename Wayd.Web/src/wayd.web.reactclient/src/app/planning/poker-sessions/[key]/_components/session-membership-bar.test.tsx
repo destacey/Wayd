@@ -10,6 +10,7 @@ import {
   useJoinPokerSessionMutation,
   useSetPokerSessionVotingMutation,
 } from '@/src/store/features/planning/poker-sessions-api'
+import { asInstant } from '@/src/utils/instant'
 
 vi.mock('@/src/store/features/planning/poker-sessions-api', () => ({
   useJoinPokerSessionMutation: vi.fn(),
@@ -25,7 +26,7 @@ const session = { id: 'session-1', key: 7 } as PokerSessionDetailsDto
 const member = (isVoting: boolean): PokerSessionMemberDto => ({
   employee: { id: 'employee-1', key: 1, name: 'Avery Chen' },
   isVoting,
-  joinedOn: new Date('2026-01-15T10:00:00Z'),
+  joinedOn: asInstant('2026-01-15T10:00:00Z'),
 })
 
 describe('SessionMembershipBar', () => {

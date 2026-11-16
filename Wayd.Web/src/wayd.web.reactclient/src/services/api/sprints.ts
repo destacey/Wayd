@@ -75,24 +75,8 @@ export const sprintsGetSprints = async (params?: SprintsGetSprintsParams, option
 
 
   }
-).then(deserializeSprintsGetSprintsResponse);}
+);}
 
-
-const deserializeSprintsGetSprintsResponse = (data: SprintListDto[]): SprintListDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.start = typeof item0.start === 'string' ? String(item0.start as unknown as string) : item0.start;
-    item0.end = typeof item0.end === 'string' ? String(item0.end as unknown as string) : item0.end;
-    if (item0.started != null) {
-      item0.started = new Date(item0.started);
-    }
-    if (item0.completed != null) {
-      item0.completed = new Date(item0.completed);
-    }
-  }
-  return data;
-};
 
 export const getSprintsGetSprintTypesUrl = () => {
 
@@ -139,50 +123,8 @@ export const sprintsGetSprint = async (idOrKey: string, options?: Parameters<typ
 
 
   }
-).then(deserializeSprintsGetSprintResponse);}
+);}
 
-
-const deserializeSprintsGetSprintResponse = (data: SprintDetailsDto): SprintDetailsDto => {
-  if (data == null) return data;
-  data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
-  data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
-  if (data.started != null) {
-    data.started = new Date(data.started);
-  }
-  if (data.completed != null) {
-    data.completed = new Date(data.completed);
-  }
-  if (data.activeFrom != null) {
-    data.activeFrom = new Date(data.activeFrom);
-  }
-  if (data.activeUntil != null) {
-    data.activeUntil = new Date(data.activeUntil);
-  }
-  if (data.teamDaysOff != null) {
-    for (let i0 = 0; i0 < data.teamDaysOff.length; i0++) {
-      const item0 = data.teamDaysOff[i0]!;
-      item0.date = typeof item0.date === 'string' ? String(item0.date as unknown as string) : item0.date;
-    }
-  }
-  if (data.holidays != null) {
-    for (let i0 = 0; i0 < data.holidays.length; i0++) {
-      data.holidays[i0] = typeof data.holidays[i0]! === 'string' ? String(data.holidays[i0]! as unknown as string) : data.holidays[i0]!;
-    }
-  }
-  if (data.startWindow != null) {
-    data.startWindow.earliest = new Date(data.startWindow.earliest);
-    if (data.startWindow.latest != null) {
-      data.startWindow.latest = new Date(data.startWindow.latest);
-    }
-  }
-  if (data.completeWindow != null) {
-    data.completeWindow.earliest = new Date(data.completeWindow.earliest);
-    if (data.completeWindow.latest != null) {
-      data.completeWindow.latest = new Date(data.completeWindow.latest);
-    }
-  }
-  return data;
-};
 
 export const getSprintsGetActivitiesUrl = (idOrKey: string,
     params?: SprintsGetActivitiesParams,) => {
@@ -214,19 +156,8 @@ export const sprintsGetActivities = async (idOrKey: string,
 
 
   }
-).then(deserializeSprintsGetActivitiesResponse);}
+);}
 
-
-const deserializeSprintsGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.timestamp = new Date(item0.timestamp);
-    }
-  }
-  return data;
-};
 
 export const getSprintsGetSprintBacklogUrl = (idOrKey: string,) => {
 
@@ -249,23 +180,8 @@ export const sprintsGetSprintBacklog = async (idOrKey: string, options?: Paramet
 
 
   }
-).then(deserializeSprintsGetSprintBacklogResponse);}
+);}
 
-
-const deserializeSprintsGetSprintBacklogResponse = (data: SprintBacklogItemDto[]): SprintBacklogItemDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.created = new Date(item0.created);
-    if (item0.activated != null) {
-      item0.activated = new Date(item0.activated);
-    }
-    if (item0.done != null) {
-      item0.done = new Date(item0.done);
-    }
-  }
-  return data;
-};
 
 export const getSprintsGetSprintMetricsUrl = (idOrKey: string,) => {
 
@@ -312,42 +228,8 @@ export const sprintsGetSprintScope = async (idOrKey: string, options?: Parameter
 
 
   }
-).then(deserializeSprintsGetSprintScopeResponse);}
+);}
 
-
-const deserializeSprintsGetSprintScopeResponse = (data: SprintScopeDto): SprintScopeDto => {
-  if (data == null) return data;
-  data.effectiveStart = new Date(data.effectiveStart);
-  data.effectiveEnd = new Date(data.effectiveEnd);
-  data.lastDay = new Date(data.lastDay);
-  if (data.ideal != null) {
-    for (let i0 = 0; i0 < data.ideal.length; i0++) {
-      const item0 = data.ideal[i0]!;
-      item0.at = new Date(item0.at);
-    }
-  }
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      if (item0.workItem != null) {
-        if ("created" in item0.workItem && item0.workItem.created != null) {
-          item0.workItem.created = new Date(item0.workItem.created);
-        }
-        if ("activated" in item0.workItem && item0.workItem.activated != null) {
-          item0.workItem.activated = new Date(item0.workItem.activated);
-        }
-        if ("done" in item0.workItem && item0.workItem.done != null) {
-          item0.workItem.done = new Date(item0.workItem.done);
-        }
-      }
-      item0.addedAt = new Date(item0.addedAt);
-      if (item0.removedAt != null) {
-        item0.removedAt = new Date(item0.removedAt);
-      }
-    }
-  }
-  return data;
-};
 
 export const getSprintsGetSprintBurnUrl = (idOrKey: string,) => {
 
@@ -370,28 +252,8 @@ export const sprintsGetSprintBurn = async (idOrKey: string, options?: Parameters
 
 
   }
-).then(deserializeSprintsGetSprintBurnResponse);}
+);}
 
-
-const deserializeSprintsGetSprintBurnResponse = (data: SprintBurnDto): SprintBurnDto => {
-  if (data == null) return data;
-  data.effectiveStart = new Date(data.effectiveStart);
-  data.effectiveEnd = new Date(data.effectiveEnd);
-  if (data.points != null) {
-    for (let i0 = 0; i0 < data.points.length; i0++) {
-      const item0 = data.points[i0]!;
-      item0.at = new Date(item0.at);
-      item0.day = typeof item0.day === 'string' ? String(item0.day as unknown as string) : item0.day;
-    }
-  }
-  if (data.ideal != null) {
-    for (let i0 = 0; i0 < data.ideal.length; i0++) {
-      const item0 = data.ideal[i0]!;
-      item0.at = new Date(item0.at);
-    }
-  }
-  return data;
-};
 
 export const getSprintsGetSprintCapacityUrl = (idOrKey: string,) => {
 
@@ -414,15 +276,8 @@ export const sprintsGetSprintCapacity = async (idOrKey: string, options?: Parame
 
 
   }
-).then(deserializeSprintsGetSprintCapacityResponse);}
+);}
 
-
-const deserializeSprintsGetSprintCapacityResponse = (data: SprintCapacityDto): SprintCapacityDto => {
-  if (data == null) return data;
-  data.start = typeof data.start === 'string' ? String(data.start as unknown as string) : data.start;
-  data.end = typeof data.end === 'string' ? String(data.end as unknown as string) : data.end;
-  return data;
-};
 
 export const getSprintsStartUrl = (id: string,) => {
 

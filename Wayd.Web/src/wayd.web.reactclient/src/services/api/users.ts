@@ -87,22 +87,8 @@ export const usersGetUsers = async ( options?: Parameters<typeof apiFetch>[1]): 
 
 
   }
-).then(deserializeUsersGetUsersResponse);}
+);}
 
-
-const deserializeUsersGetUsersResponse = (data: UserDetailsDto[]): UserDetailsDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    if (item0.lockoutEnd != null) {
-      item0.lockoutEnd = new Date(item0.lockoutEnd);
-    }
-    if (item0.lastActivityAt != null) {
-      item0.lastActivityAt = new Date(item0.lastActivityAt);
-    }
-  }
-  return data;
-};
 
 export const getUsersGetEntraTenantIdsUrl = () => {
 
@@ -147,19 +133,8 @@ export const usersGetUser = async (id: string, options?: Parameters<typeof apiFe
 
 
   }
-).then(deserializeUsersGetUserResponse);}
+);}
 
-
-const deserializeUsersGetUserResponse = (data: UserDetailsDto): UserDetailsDto => {
-  if (data == null) return data;
-  if (data.lockoutEnd != null) {
-    data.lockoutEnd = new Date(data.lockoutEnd);
-  }
-  if (data.lastActivityAt != null) {
-    data.lastActivityAt = new Date(data.lastActivityAt);
-  }
-  return data;
-};
 
 export const getUsersUpdateUserUrl = (id: string,) => {
 
@@ -214,19 +189,8 @@ export const usersGetActivities = async (id: string,
 
 
   }
-).then(deserializeUsersGetActivitiesResponse);}
+);}
 
-
-const deserializeUsersGetActivitiesResponse = (data: PagedResponseOfActivityLogDto): PagedResponseOfActivityLogDto => {
-  if (data == null) return data;
-  if (data.items != null) {
-    for (let i0 = 0; i0 < data.items.length; i0++) {
-      const item0 = data.items[i0]!;
-      item0.timestamp = new Date(item0.timestamp);
-    }
-  }
-  return data;
-};
 
 export const getUsersGetRolesUrl = (id: string,
     params?: UsersGetRolesParams,) => {
@@ -538,18 +502,6 @@ export const usersGetIdentityHistory = async (id: string, options?: Parameters<t
 
 
   }
-).then(deserializeUsersGetIdentityHistoryResponse);}
+);}
 
-
-const deserializeUsersGetIdentityHistoryResponse = (data: UserIdentityDto[]): UserIdentityDto[] => {
-  if (data == null) return data;
-  for (let i0 = 0; i0 < data.length; i0++) {
-    const item0 = data[i0]!;
-    item0.linkedAt = new Date(item0.linkedAt);
-    if (item0.unlinkedAt != null) {
-      item0.unlinkedAt = new Date(item0.unlinkedAt);
-    }
-  }
-  return data;
-};
 

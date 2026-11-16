@@ -1,12 +1,13 @@
 import { render, screen } from '@testing-library/react'
 import RoadmapFacts from './roadmap-facts'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const roadmap = {
   id: 'roadmap-1',
   key: 8,
   name: 'Platform 2026',
-  start: '2026-01-05',
-  end: '2026-12-18',
+  start: asCalendarDate('2026-01-05'),
+  end: asCalendarDate('2026-12-18'),
   visibility: { id: '1', name: 'Public' },
   state: { id: '1', name: 'Active' },
   owners: [],

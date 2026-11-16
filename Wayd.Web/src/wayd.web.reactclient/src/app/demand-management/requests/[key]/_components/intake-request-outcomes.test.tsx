@@ -10,6 +10,7 @@ import {
   StatusCategory,
 } from '@/src/services/api/wayd.schemas'
 import IntakeRequestOutcomes from './intake-request-outcomes'
+import { asInstant } from '@/src/utils/instant'
 
 vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
@@ -42,7 +43,7 @@ const request = (
       deliverables: [],
       isScopeUndefined: false,
       addedBy: agent,
-      addedOn: new Date('2026-10-01T09:00:00Z'),
+      addedOn: asInstant('2026-10-01T09:00:00Z'),
     },
     {
       kind: IntakeRequestOutcomeKind.NewProject,
@@ -51,7 +52,7 @@ const request = (
       deliverables: [],
       isScopeUndefined: false,
       addedBy: agent,
-      addedOn: new Date('2026-10-02T09:00:00Z'),
+      addedOn: asInstant('2026-10-02T09:00:00Z'),
     },
   ],
 ) =>
@@ -102,7 +103,7 @@ describe('IntakeRequestOutcomes', () => {
             deliverables: [],
             isScopeUndefined: false,
             addedBy: agent,
-            addedOn: new Date('2026-10-01T09:00:00Z'),
+            addedOn: asInstant('2026-10-01T09:00:00Z'),
           },
           {
             kind: IntakeRequestOutcomeKind.WorkItem,
@@ -111,7 +112,7 @@ describe('IntakeRequestOutcomes', () => {
             deliverables: [],
             isScopeUndefined: false,
             addedBy: agent,
-            addedOn: new Date('2026-10-02T09:00:00Z'),
+            addedOn: asInstant('2026-10-02T09:00:00Z'),
           },
         ])}
       />,

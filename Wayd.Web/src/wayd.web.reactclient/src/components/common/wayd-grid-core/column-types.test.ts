@@ -8,6 +8,7 @@ import {
   YES_NO_COLUMN_SIZE,
 } from './column-types'
 import type { WaydGridColumnMeta } from './types'
+import { asInstant } from '@/src/utils/instant'
 
 interface Row {
   flag: boolean | null | undefined
@@ -108,7 +109,7 @@ describe('applyColumnType', () => {
 
     it('exposes the standard display formatters for custom cells', () => {
       // Arrange
-      const when = '2026-07-02T13:05:00Z'
+      const when = asInstant('2026-07-02T13:05:00Z')
 
       // Act / Assert — same formats the dateOnly/dateTime cells use
       expect(formatDateOnly(when)).toBe(formatDateOnly(new Date(when)))

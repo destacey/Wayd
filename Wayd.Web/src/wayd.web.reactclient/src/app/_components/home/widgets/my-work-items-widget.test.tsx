@@ -21,6 +21,7 @@ vi.mock('@/src/store/features/user-management/me-api', () => ({
 }))
 
 import { useGetMyWorkItemsQuery } from '@/src/store/features/user-management/me-api'
+import { asInstant } from '@/src/utils/instant'
 
 const mockWorkItems = useGetMyWorkItemsQuery as Mock
 
@@ -45,7 +46,7 @@ const workItem = (
     status: category === StatusCategoryId.Active ? 'In Progress' : 'New',
     statusCategory: { id: category, name: categoryNames[category] },
     stackRank: 1,
-    created: new Date('2026-10-01T00:00:00Z'),
+    created: asInstant('2026-10-01T00:00:00Z'),
     tags: [],
     ...overrides,
   }) as WorkItemListDto

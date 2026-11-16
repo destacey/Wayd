@@ -33,22 +33,24 @@ vi.mock('@/src/store/features/planning/risks-api', () => ({
 
 vi.mock(import('@/src/utils'), async (importOriginal) => ({
   ...(await importOriginal()),
-  todayCalendarDate: () => '2026-11-08',
+  todayCalendarDate: () => asCalendarDate('2026-11-08'),
 }))
 
 import { useGetMyRisksQuery } from '@/src/store/features/planning/risks-api'
+import { asInstant } from '@/src/utils/instant'
+import { asCalendarDate, type CalendarDate } from '@/src/utils/calendar-date'
 
 const mockRisks = useGetMyRisksQuery as Mock
 
 const risk = (
   key: number,
   summary: string,
-  followUpDate?: string,
+  followUpDate?: CalendarDate,
 ): RiskListDto => ({
   id: `risk-${key}`,
   key,
   summary,
-  reportedOn: new Date('2026-10-01T00:00:00Z'),
+  reportedOn: asInstant('2026-10-01T00:00:00Z'),
   status: 'Open',
   category: 'Delivery',
   exposure: 'High',
@@ -65,14 +67,14 @@ describe('countFollowUpsDue', () => {
   it('counts follow-ups due today or past, not future or undated ones', () => {
     // Arrange
     const risks = [
-      risk(1, 'Past', '2026-11-01'),
-      risk(2, 'Today', '2026-11-08'),
-      risk(3, 'Tomorrow', '2026-11-09'),
+      risk(1, 'Past', asCalendarDate('2026-11-01')),
+      risk(2, 'Today', asCalendarDate('2026-11-08')),
+      risk(3, 'Tomorrow', asCalendarDate('2026-11-09')),
       risk(4, 'Undated'),
     ]
 
     // Act
-    const count = countFollowUpsDue(risks, '2026-11-08')
+    const count = countFollowUpsDue(risks, asCalendarDate('2026-11-08'))
 
     // Assert
     expect(count).toBe(2)
@@ -84,9 +86,9 @@ describe('sortByFollowUp', () => {
     // Arrange
     const risks = [
       risk(1, 'zeta undated'),
-      risk(2, 'Late', '2026-12-01'),
+      risk(2, 'Late', asCalendarDate('2026-12-01')),
       risk(3, 'Alpha undated'),
-      risk(4, 'Soon', '2026-11-02'),
+      risk(4, 'Soon', asCalendarDate('2026-11-02')),
     ]
 
     // Act
@@ -155,9 +157,9 @@ describe('MyRisksWidget', () => {
     // Arrange — served latest first, so the widget has to sort
     mockRisks.mockReturnValue(
       loaded([
-        risk(14, 'Capacity', '2026-11-20'),
-        risk(13, 'Licensing', '2026-11-08'),
-        risk(12, 'Vendor slips', '2026-11-03'),
+        risk(14, 'Capacity', asCalendarDate('2026-11-20')),
+        risk(13, 'Licensing', asCalendarDate('2026-11-08')),
+        risk(12, 'Vendor slips', asCalendarDate('2026-11-03')),
       ]),
     )
 
@@ -281,9 +283,9 @@ describe('RiskFollowUpsTile', () => {
     // Arrange
     mockRisks.mockReturnValue(
       loaded([
-        risk(1, 'Past', '2026-11-01'),
-        risk(2, 'Today', '2026-11-08'),
-        risk(3, 'Later', '2026-12-01'),
+        risk(1, 'Past', asCalendarDate('2026-11-01')),
+        risk(2, 'Today', asCalendarDate('2026-11-08')),
+        risk(3, 'Later', asCalendarDate('2026-12-01')),
       ]),
     )
 
@@ -299,7 +301,9 @@ describe('RiskFollowUpsTile', () => {
 
   it('leaves no follow-ups due uncoloured', () => {
     // Arrange
-    mockRisks.mockReturnValue(loaded([risk(3, 'Later', '2026-12-01')]))
+    mockRisks.mockReturnValue(
+      loaded([risk(3, 'Later', asCalendarDate('2026-12-01'))]),
+    )
 
     // Act
     const { container } = render(<RiskFollowUpsTile title="Risk follow-ups" />)

@@ -5,6 +5,7 @@ import {
   TIME_AWAY_GROUP_ID,
   TOTAL_GROUP_ID,
 } from './allocation-timeline-data'
+import { asCalendarDate, type CalendarDate } from '@/src/utils/calendar-date'
 
 const colors = {
   allocation: 'blue',
@@ -19,8 +20,8 @@ const day = (year: number, month: number, date: number) =>
 const allocation = (
   id: string,
   team: { id: string; name: string },
-  start: string,
-  end: string | undefined,
+  start: CalendarDate,
+  end: CalendarDate | undefined,
   percent: number,
   role?: string,
 ): EmployeeAllocationDto => ({
@@ -40,11 +41,11 @@ describe('allocationTimelineData', () => {
   it('has a Total lane first, then a lane per team by name', () => {
     const data = allocationTimelineData(
       [
-        allocation('a', loans, '2027-01-01', undefined, 40),
-        allocation('b', cards, '2027-01-01', undefined, 60),
+        allocation('a', loans, asCalendarDate('2027-01-01'), undefined, 40),
+        allocation('b', cards, asCalendarDate('2027-01-01'), undefined, 60),
       ],
       [],
-      '2027-01-15',
+      asCalendarDate('2027-01-15'),
       colors,
     )
 
@@ -54,9 +55,18 @@ describe('allocationTimelineData', () => {
 
   it('draws an allocation on its team lane, ending the day after its last day', () => {
     const data = allocationTimelineData(
-      [allocation('a', cards, '2027-02-01', '2027-02-07', 50, 'Engineer')],
+      [
+        allocation(
+          'a',
+          cards,
+          asCalendarDate('2027-02-01'),
+          asCalendarDate('2027-02-07'),
+          50,
+          'Engineer',
+        ),
+      ],
       [],
-      '2027-01-15',
+      asCalendarDate('2027-01-15'),
       colors,
     )
 
@@ -70,9 +80,9 @@ describe('allocationTimelineData', () => {
 
   it('draws an allocation with no end to the edge of the timeline', () => {
     const data = allocationTimelineData(
-      [allocation('a', cards, '2027-01-01', undefined, 50)],
+      [allocation('a', cards, asCalendarDate('2027-01-01'), undefined, 50)],
       [],
-      '2027-01-15',
+      asCalendarDate('2027-01-15'),
       colors,
     )
 
@@ -82,11 +92,17 @@ describe('allocationTimelineData', () => {
   it('adds the teams up on the Total lane, marking stretches that are full', () => {
     const data = allocationTimelineData(
       [
-        allocation('a', cards, '2027-01-01', undefined, 60),
-        allocation('b', loans, '2027-02-01', '2027-02-07', 40),
+        allocation('a', cards, asCalendarDate('2027-01-01'), undefined, 60),
+        allocation(
+          'b',
+          loans,
+          asCalendarDate('2027-02-01'),
+          asCalendarDate('2027-02-07'),
+          40,
+        ),
       ],
       [],
-      '2027-01-15',
+      asCalendarDate('2027-01-15'),
       colors,
     )
 
@@ -102,9 +118,17 @@ describe('allocationTimelineData', () => {
 
   it('leaves unallocated stretches off the Total lane', () => {
     const data = allocationTimelineData(
-      [allocation('a', cards, '2027-02-01', '2027-02-07', 50)],
+      [
+        allocation(
+          'a',
+          cards,
+          asCalendarDate('2027-02-01'),
+          asCalendarDate('2027-02-07'),
+          50,
+        ),
+      ],
       [],
-      '2027-01-15',
+      asCalendarDate('2027-01-15'),
       colors,
     )
 
@@ -114,18 +138,27 @@ describe('allocationTimelineData', () => {
   })
 
   it('has a Time away lane after Total only when there is time away', () => {
-    const allocations = [allocation('a', cards, '2027-01-01', undefined, 60)]
+    const allocations = [
+      allocation('a', cards, asCalendarDate('2027-01-01'), undefined, 60),
+    ]
 
     const without = allocationTimelineData(
       allocations,
       [],
-      '2027-01-15',
+      asCalendarDate('2027-01-15'),
       colors,
     )
     const withTimeAway = allocationTimelineData(
       allocations,
-      [{ id: 't1', start: '2027-02-01', end: '2027-02-05', percentAway: 100 }],
-      '2027-01-15',
+      [
+        {
+          id: 't1',
+          start: asCalendarDate('2027-02-01'),
+          end: asCalendarDate('2027-02-05'),
+          percentAway: 100,
+        },
+      ],
+      asCalendarDate('2027-01-15'),
       colors,
     )
 
@@ -143,11 +176,26 @@ describe('allocationTimelineData', () => {
     const data = allocationTimelineData(
       [],
       [
-        { id: 't1', start: '2027-02-01', end: '2027-02-05', percentAway: 100 },
-        { id: 't2', start: '2027-02-10', end: '2027-02-10', percentAway: 50 },
-        { id: 't3', start: '2027-02-11', end: '2027-02-11', percentAway: 25 },
+        {
+          id: 't1',
+          start: asCalendarDate('2027-02-01'),
+          end: asCalendarDate('2027-02-05'),
+          percentAway: 100,
+        },
+        {
+          id: 't2',
+          start: asCalendarDate('2027-02-10'),
+          end: asCalendarDate('2027-02-10'),
+          percentAway: 50,
+        },
+        {
+          id: 't3',
+          start: asCalendarDate('2027-02-11'),
+          end: asCalendarDate('2027-02-11'),
+          percentAway: 25,
+        },
       ],
-      '2027-01-15',
+      asCalendarDate('2027-01-15'),
       colors,
       8,
     )
@@ -172,13 +220,13 @@ describe('allocationTimelineData', () => {
       [
         {
           id: 't1',
-          start: '2027-02-01',
-          end: '2027-02-05',
+          start: asCalendarDate('2027-02-01'),
+          end: asCalendarDate('2027-02-05'),
           percentAway: 100,
           reason: TimeAwayReason.BusinessTravel,
         },
       ],
-      '2027-01-15',
+      asCalendarDate('2027-01-15'),
       colors,
     )
 
@@ -187,9 +235,24 @@ describe('allocationTimelineData', () => {
 
   it('reaches out to time away beyond the allocations', () => {
     const data = allocationTimelineData(
-      [allocation('a', cards, '2027-01-01', '2027-03-31', 50)],
-      [{ id: 't1', start: '2026-06-01', end: '2028-06-30', percentAway: 100 }],
-      '2027-01-31',
+      [
+        allocation(
+          'a',
+          cards,
+          asCalendarDate('2027-01-01'),
+          asCalendarDate('2027-03-31'),
+          50,
+        ),
+      ],
+      [
+        {
+          id: 't1',
+          start: asCalendarDate('2026-06-01'),
+          end: asCalendarDate('2028-06-30'),
+          percentAway: 100,
+        },
+      ],
+      asCalendarDate('2027-01-31'),
       colors,
     )
 
@@ -199,9 +262,17 @@ describe('allocationTimelineData', () => {
 
   it('opens on a window around today and reaches back to the first allocation', () => {
     const data = allocationTimelineData(
-      [allocation('a', cards, '2025-06-01', '2025-12-31', 50)],
+      [
+        allocation(
+          'a',
+          cards,
+          asCalendarDate('2025-06-01'),
+          asCalendarDate('2025-12-31'),
+          50,
+        ),
+      ],
       [],
-      '2027-01-31',
+      asCalendarDate('2027-01-31'),
       colors,
     )
 

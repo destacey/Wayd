@@ -8,6 +8,8 @@ import {
 import ChangeSprintLifecycleForm, {
   SprintLifecycleAction,
 } from './change-sprint-lifecycle-form'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { toInstant, type Instant, instantTime } from '@/src/utils/instant'
 
 const startSprint = vi.fn()
 const completeSprint = vi.fn()
@@ -46,9 +48,11 @@ vi.mock('@/src/store/features/work-management/sprints-api', () => ({
 function window(fromHours: number, toHours?: number) {
   const now = Date.now()
   return {
-    earliest: new Date(now + fromHours * 3_600_000),
+    earliest: toInstant(new Date(now + fromHours * 3_600_000)),
     latest:
-      toHours === undefined ? undefined : new Date(now + toHours * 3_600_000),
+      toHours === undefined
+        ? undefined
+        : toInstant(new Date(now + toHours * 3_600_000)),
   }
 }
 
@@ -57,8 +61,8 @@ const sprint: SprintDetailsDto = {
   key: 202,
   name: '26.3.3',
   state: { id: 1, name: 'Future' },
-  start: '2026-08-31',
-  end: '2026-09-13',
+  start: asCalendarDate('2026-08-31'),
+  end: asCalendarDate('2026-09-13'),
   team: { id: 't1', key: 14, name: 'Team Atlas', code: 'AT', type: 'Team' },
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,
@@ -208,7 +212,7 @@ describe('ChangeSprintLifecycleForm', () => {
 
   it('defaults to the latest moment when the window closed before now', async () => {
     // Arrange — the planned end has passed, so only an earlier start can be recorded.
-    const closed = window(-72, -24) as { earliest: Date; latest: Date }
+    const closed = window(-72, -24) as { earliest: Instant; latest: Instant }
     renderForm(SprintLifecycleAction.Start, { startWindow: closed })
 
     // Act
@@ -216,9 +220,9 @@ describe('ChangeSprintLifecycleForm', () => {
 
     // Assert
     const { startedAt } = startSprint.mock.calls[0][0] as { startedAt: Date }
-    expect(startedAt.getTime()).toBeLessThanOrEqual(closed.latest.getTime())
+    expect(startedAt.getTime()).toBeLessThanOrEqual(instantTime(closed.latest))
     expect(startedAt.getTime()).toBeGreaterThan(
-      closed.latest.getTime() - 60_000,
+      instantTime(closed.latest) - 60_000,
     )
   })
 
@@ -239,7 +243,7 @@ describe('ChangeSprintLifecycleForm', () => {
     renderForm(SprintLifecycleAction.Complete, {
       canComplete: true,
       completeWindow: window(-24),
-      started: new Date(Date.now() - 48 * 3_600_000),
+      started: toInstant(new Date(Date.now() - 48 * 3_600_000)),
     })
 
     // Assert

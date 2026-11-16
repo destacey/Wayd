@@ -5,6 +5,7 @@ import ChangeAllocationForm, {
   changesFor,
   fieldForError,
 } from './change-allocation-form'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
@@ -73,7 +74,7 @@ const existing = {
   teamName: 'Cards',
   roleId: 'role-1',
   roleName: 'Engineer',
-  start: '2027-01-01',
+  start: asCalendarDate('2027-01-01'),
   end: undefined,
   percent: 50,
 }
@@ -83,8 +84,8 @@ describe('changesFor', () => {
     const changes = changesFor(undefined, {
       teamId: 'team-2',
       roleId: undefined,
-      start: dayjs('2027-02-01'),
-      end: dayjs('2027-02-07'),
+      start: dayjs(asCalendarDate('2027-02-01')),
+      end: dayjs(asCalendarDate('2027-02-07')),
       percent: 40,
     })
 
@@ -103,7 +104,7 @@ describe('changesFor', () => {
     const changes = changesFor(existing, {
       teamId: 'team-1',
       roleId: 'role-1',
-      start: dayjs('2027-03-01'),
+      start: dayjs(asCalendarDate('2027-03-01')),
       end: null,
       percent: 50,
     })
@@ -128,12 +129,12 @@ describe('changesFor', () => {
 
   it('clears the original range so an earlier end takes effect', () => {
     const changes = changesFor(
-      { ...existing, end: '2027-12-31' },
+      { ...existing, end: asCalendarDate('2027-12-31') },
       {
         teamId: 'team-1',
         roleId: 'role-1',
-        start: dayjs('2027-01-01'),
-        end: dayjs('2027-06-30'),
+        start: dayjs(asCalendarDate('2027-01-01')),
+        end: dayjs(asCalendarDate('2027-06-30')),
         percent: 50,
       },
     )
@@ -154,7 +155,7 @@ describe('changesFor', () => {
     const changes = changesFor(existing, {
       teamId: 'team-9',
       roleId: 'role-9',
-      start: dayjs('2027-01-01'),
+      start: dayjs(asCalendarDate('2027-01-01')),
       end: null,
       percent: 80,
     })
@@ -183,7 +184,10 @@ describe('ChangeAllocationForm', () => {
     renderForm(true)
 
     // Act
-    const errors = await endErrors({ start: dayjs('2027-02-01'), percent: 60 })
+    const errors = await endErrors({
+      start: dayjs(asCalendarDate('2027-02-01')),
+      percent: 60,
+    })
 
     // Assert
     expect(errors).toEqual([noEndError])
@@ -194,7 +198,10 @@ describe('ChangeAllocationForm', () => {
     renderForm(true)
 
     // Act
-    const errors = await endErrors({ start: dayjs('2027-02-01'), percent: 0 })
+    const errors = await endErrors({
+      start: dayjs(asCalendarDate('2027-02-01')),
+      percent: 0,
+    })
 
     // Assert
     expect(errors).toEqual([])
@@ -215,7 +222,10 @@ describe('ChangeAllocationForm', () => {
     try {
       renderForm(true)
       expect(
-        await endErrors({ start: dayjs('2027-02-01'), percent: 0 }),
+        await endErrors({
+          start: dayjs(asCalendarDate('2027-02-01')),
+          percent: 0,
+        }),
       ).toEqual([])
 
       // Act
@@ -237,7 +247,10 @@ describe('ChangeAllocationForm', () => {
     renderForm()
 
     // Act
-    const errors = await endErrors({ start: dayjs('2027-02-01'), percent: 60 })
+    const errors = await endErrors({
+      start: dayjs(asCalendarDate('2027-02-01')),
+      percent: 60,
+    })
 
     // Assert
     expect(errors).toEqual([])
@@ -249,8 +262,8 @@ describe('ChangeAllocationForm', () => {
 
     // Act
     const errors = await endErrors({
-      start: dayjs('2027-02-07'),
-      end: dayjs('2027-02-01'),
+      start: dayjs(asCalendarDate('2027-02-07')),
+      end: dayjs(asCalendarDate('2027-02-01')),
       percent: 60,
     })
 

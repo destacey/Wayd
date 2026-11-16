@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CapacityPlanGrid, { PlanUnit } from './capacity-plan-grid'
 import { PlanRow, PlanWeek, RowEdits } from './capacity-plan-data'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // The antd Table measures its scrollbar with a pseudo-element, which jsdom does
 // not implement and reports as an error.
@@ -16,11 +17,20 @@ Object.defineProperty(window, 'getComputedStyle', {
 const WEEKS: PlanWeek[] = [
   {
     index: 0,
-    start: '2027-02-03',
-    end: '2027-02-05',
-    days: ['2027-02-03', '2027-02-04', '2027-02-05'],
+    start: asCalendarDate('2027-02-03'),
+    end: asCalendarDate('2027-02-05'),
+    days: [
+      asCalendarDate('2027-02-03'),
+      asCalendarDate('2027-02-04'),
+      asCalendarDate('2027-02-05'),
+    ],
   },
-  { index: 1, start: '2027-02-06', end: '2027-02-07', days: [] },
+  {
+    index: 1,
+    start: asCalendarDate('2027-02-06'),
+    end: asCalendarDate('2027-02-07'),
+    days: [],
+  },
 ]
 
 const ROW: PlanRow = {
@@ -29,14 +39,14 @@ const ROW: PlanRow = {
   workingDayHours: 8,
   countsTowardDeliveryCapacity: true,
   percentByDate: new Map([
-    ['2027-02-03', 50],
-    ['2027-02-04', 50],
-    ['2027-02-05', 50],
+    [asCalendarDate('2027-02-03'), 50],
+    [asCalendarDate('2027-02-04'), 50],
+    [asCalendarDate('2027-02-05'), 50],
   ]),
   personDaysByDate: new Map([
-    ['2027-02-03', 0.5],
-    ['2027-02-04', 0.5],
-    ['2027-02-05', 0.5],
+    [asCalendarDate('2027-02-03'), 0.5],
+    [asCalendarDate('2027-02-04'), 0.5],
+    [asCalendarDate('2027-02-05'), 0.5],
   ]),
   conditionsByDate: new Map(),
   isFirstOfPerson: true,
@@ -164,18 +174,18 @@ describe('CapacityPlanGrid in view', () => {
     ...ROW,
     conditionsByDate: new Map([
       [
-        '2027-02-03',
+        asCalendarDate('2027-02-03'),
         {
-          date: '2027-02-03',
+          date: asCalendarDate('2027-02-03'),
           isHoliday: false,
           percentAway: 25,
           elsewherePercent: 0,
         },
       ],
       [
-        '2027-02-04',
+        asCalendarDate('2027-02-04'),
         {
-          date: '2027-02-04',
+          date: asCalendarDate('2027-02-04'),
           isHoliday: true,
           percentAway: 0,
           elsewherePercent: 0,
@@ -215,9 +225,9 @@ describe('CapacityPlanGrid in view', () => {
           ...AWAY_ROW,
           workingDayHours: 4,
           personDaysByDate: new Map([
-            ['2027-02-03', 0.1875],
-            ['2027-02-04', 0],
-            ['2027-02-05', 0.25],
+            [asCalendarDate('2027-02-03'), 0.1875],
+            [asCalendarDate('2027-02-04'), 0],
+            [asCalendarDate('2027-02-05'), 0.25],
           ]),
         },
       ],
@@ -290,7 +300,7 @@ describe('CapacityPlanGrid on a team day off', () => {
         editing={false}
         edits={{}}
         onEditRow={vi.fn()}
-        teamDaysOff={[{ date: '2027-02-04', percentOff: 100 }]}
+        teamDaysOff={[{ date: asCalendarDate('2027-02-04'), percentOff: 100 }]}
       />,
     )
 
@@ -316,8 +326,8 @@ describe('CapacityPlanGrid on a team day off', () => {
         onEditRow={vi.fn()}
         workingDayHours={8}
         teamDaysOff={[
-          { date: '2027-02-03', percentOff: 50 },
-          { date: '2027-02-04', percentOff: 25 },
+          { date: asCalendarDate('2027-02-03'), percentOff: 50 },
+          { date: asCalendarDate('2027-02-04'), percentOff: 25 },
         ]}
       />,
     )

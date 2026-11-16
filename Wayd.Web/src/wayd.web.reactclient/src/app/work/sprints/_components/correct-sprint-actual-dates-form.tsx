@@ -12,6 +12,7 @@ import { disabledTimeAfter } from './past-moment'
 import { DatePicker, Flex, Form, Modal, Space, Typography } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { useState } from 'react'
+import { type Instant } from '@/src/utils/instant'
 
 const { Text } = Typography
 
@@ -30,7 +31,8 @@ interface ActualDates {
   completed: Dayjs | null
 }
 
-const toDayjs = (instant?: Date | null) => (instant ? dayjs(instant) : null)
+const toDayjs = (instant?: Date | Instant | null) =>
+  instant ? dayjs(instant) : null
 
 const sameMoment = (a: Dayjs | null, b: Dayjs | null) =>
   a === null || b === null ? a === b : a.isSame(b)

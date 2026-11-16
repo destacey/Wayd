@@ -302,7 +302,7 @@ export const toCreateProjectTaskRequest = (
     values[field] !== undefined && values[field] !== null
   const assigneeIds = values.assigneeIds as string[] | undefined
   const plannedDate = (values.plannedDate ?? values.plannedStart) as
-    string | undefined
+    CalendarDate | undefined
   return {
     name: String(values.name ?? ''),
     parentId,
@@ -325,10 +325,10 @@ export const toCreateProjectTaskRequest = (
               : ((values.progress as number | null | undefined) ??
                 DRAFT_TASK_DEFAULTS.progress),
           ...(has('plannedStart')
-            ? { plannedStart: values.plannedStart as string }
+            ? { plannedStart: values.plannedStart as CalendarDate }
             : {}),
           ...(has('plannedEnd')
-            ? { plannedEnd: values.plannedEnd as string }
+            ? { plannedEnd: values.plannedEnd as CalendarDate }
             : {}),
           ...(has('estimatedEffortHours')
             ? { estimatedEffortHours: values.estimatedEffortHours as number }

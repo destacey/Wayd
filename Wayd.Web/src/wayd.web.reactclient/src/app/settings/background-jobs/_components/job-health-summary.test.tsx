@@ -5,6 +5,7 @@ import {
   JobStatisticsResponse,
 } from '@/src/services/api/wayd.schemas'
 import JobHealthSummary from './job-health-summary'
+import { asInstant } from '@/src/utils/instant'
 
 const statistics = {
   current: {
@@ -27,9 +28,7 @@ const server = (workerCount: number, heartbeatMsAgo: number) =>
     name: `server-${workerCount}`,
     workerCount,
     queues: ['default'],
-    heartbeat: new Date(
-      Date.now() - heartbeatMsAgo,
-    ).toISOString() as unknown as Date,
+    heartbeat: asInstant(new Date(Date.now() - heartbeatMsAgo).toISOString()),
   }) as JobServerResponse
 
 const renderSummary = (servers: JobServerResponse[] | undefined) => {

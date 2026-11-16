@@ -2,6 +2,7 @@ import {
   findOwnChildrenSpan,
   findParentPlanNodeRange,
 } from './project-parent-date-hint'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 describe('project-parent-date-hint', () => {
   describe('findParentPlanNodeRange case-insensitivity', () => {
@@ -9,10 +10,10 @@ describe('project-parent-date-hint', () => {
       {
         id: 'A1B2C3D4-E5F6-7A8B-9C0D-E1F2A3B4C5D6',
         name: 'Stage 1',
-        start: '2026-06-01',
-        end: '2026-06-30',
-        children: []
-      }
+        start: asCalendarDate('2026-06-01'),
+        end: asCalendarDate('2026-06-30'),
+        children: [],
+      },
     ]
 
     it('finds node with lowercase parentId', () => {
@@ -37,10 +38,19 @@ describe('project-parent-date-hint', () => {
           id: 'STAGE-1',
           name: 'Stage 1',
           children: [
-            { id: 't1', name: 'Task 1', start: '2026-06-05', end: '2026-06-10' },
-            { id: 'm1', name: 'Launch', plannedDate: '2026-06-20' },
-          ]
-        }
+            {
+              id: 't1',
+              name: 'Task 1',
+              start: asCalendarDate('2026-06-05'),
+              end: asCalendarDate('2026-06-10'),
+            },
+            {
+              id: 'm1',
+              name: 'Launch',
+              plannedDate: asCalendarDate('2026-06-20'),
+            },
+          ],
+        },
       ]
 
       // Act

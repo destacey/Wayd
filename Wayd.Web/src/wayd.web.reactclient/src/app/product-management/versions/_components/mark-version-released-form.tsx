@@ -1,5 +1,6 @@
 'use client'
 
+import { toInstant } from '@/src/utils/instant'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import {
@@ -45,7 +46,7 @@ const MarkVersionReleasedForm = ({
         try {
           const request = {
             id: version.id,
-            releasedAt: values.releasedAt.toDate(),
+            releasedAt: toInstant(values.releasedAt),
           } as MarkVersionReleasedRequest
 
           const response = await markReleased({

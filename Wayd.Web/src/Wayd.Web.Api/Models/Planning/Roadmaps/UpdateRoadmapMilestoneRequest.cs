@@ -45,6 +45,6 @@ public sealed class UpdateRoadmapMilestoneRequestValidator : CustomValidator<Upd
         Include(new UpdateRoadmapItemRequestValidator());
 
         RuleFor(t => t.Date)
-            .NotNull();
+            .NotEmpty();
     }
 }

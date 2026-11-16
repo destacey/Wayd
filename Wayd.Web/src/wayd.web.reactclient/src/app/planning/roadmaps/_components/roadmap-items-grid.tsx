@@ -46,6 +46,7 @@ import {
   computeGanttDomain,
   pxPerMsFor,
 } from './roadmap-gantt'
+import { itemDatesRequest } from './roadmap-item-dates'
 import {
   GanttToolbarActions,
   useBarDrag,
@@ -220,22 +221,14 @@ const RoadmapItemsGrid: FC<RoadmapItemsGridProps> = ({
       ) as RoadmapItemTreeNode | null
       if (!node) return
       try {
-        // A milestone is a single instant, so its request carries `date` rather
-        // than a start/end pair (both drag bounds hold the same value).
-        const item = { roadmapId, itemId: change.id }
         const response = await updateRoadmapItemDates(
-          node.type === 'Milestone'
-            ? {
-                ...item,
-                $type: 'milestone',
-                date: toCalendarDate(dayjs(change.start)),
-              }
-            : {
-                ...item,
-                $type: node.$type === 'timebox' ? 'timebox' : 'activity',
-                start: toCalendarDate(dayjs(change.start)),
-                end: toCalendarDate(dayjs(change.end)),
-              },
+          itemDatesRequest({
+            $type: node.$type,
+            roadmapId,
+            itemId: change.id,
+            start: toCalendarDate(dayjs(change.start)),
+            end: toCalendarDate(dayjs(change.end)),
+          }),
         )
         if ('error' in response && response.error) throw response.error
       } catch (error) {

@@ -9,6 +9,6 @@ public sealed class IUpsertRoadmapMilestoneDateValidator : CustomValidator<IUpse
         RuleLevelCascadeMode = CascadeMode.Stop;
 
         RuleFor(x => x.Date)
-            .NotNull();
+            .NotEmpty();
     }
 }

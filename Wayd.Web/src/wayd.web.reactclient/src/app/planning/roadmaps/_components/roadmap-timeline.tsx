@@ -33,6 +33,7 @@ import {
   type ApiError,
 } from '@/src/utils'
 import RoadmapColorLegend from './roadmap-color-legend'
+import { itemDatesRequest } from './roadmap-item-dates'
 
 export interface RoadmapTimelineProps {
   roadmap: RoadmapDetailsDto
@@ -227,23 +228,14 @@ const RoadmapTimeline: FC<RoadmapTimelineProps> = (props) => {
 
     setUpdatingId(change.id)
     try {
-      const item = { roadmapId: dto.roadmapId, itemId: change.id }
-      // A milestone is a single day, so its request carries `date` rather than
-      // a start/end pair.
       const response = await updateRoadmapItemDates(
-        dto.$type === RoadmapItemType.Milestone
-          ? {
-              ...item,
-              $type: 'milestone',
-              date: toCalendarDate(new Date(change.start)),
-            }
-          : {
-              ...item,
-              $type:
-                dto.$type === RoadmapItemType.Timebox ? 'timebox' : 'activity',
-              start: toCalendarDate(new Date(change.start)),
-              end: toCalendarDate(new Date(change.end)),
-            },
+        itemDatesRequest({
+          $type: dto.$type,
+          roadmapId: dto.roadmapId,
+          itemId: change.id,
+          start: toCalendarDate(new Date(change.start)),
+          end: toCalendarDate(new Date(change.end)),
+        }),
       )
       if ('error' in response && response.error) throw response.error
     } catch (error) {

@@ -48,7 +48,8 @@ export const caseInsensitiveCompare = (a: string, b: string): number =>
   a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true })
 
 /** True for values that should sort as "empty": null, undefined, or ''. */
-const isEmpty = (v: unknown): boolean => v === null || v === undefined || v === ''
+const isEmpty = (v: unknown): boolean =>
+  v === null || v === undefined || v === ''
 
 /**
  * Compares two non-empty values. Numbers (and numeric strings) compare
@@ -106,6 +107,33 @@ export const sortEmptyLast: SortingFn<any> = (
   }
 
   return compareNonEmpty(a, b)
+}
+
+/**
+ * The sort of a `dateOnly` or `dateTime` column: by the moment each value
+ * names, with empty values last as in {@link sortEmptyLast}. Comparing the
+ * API's text would misorder instants, whose fraction of a second has as many
+ * digits as it needs, so `…:00.5Z` would sort before `…:00Z`.
+ */
+export const sortDatesEmptyLast: SortingFn<any> = (
+  rowA: Row<any>,
+  rowB: Row<any>,
+  columnId: string,
+): number => {
+  const a = rowA.getValue(columnId)
+  const b = rowB.getValue(columnId)
+
+  const aEmpty = isEmpty(a)
+  const bEmpty = isEmpty(b)
+  if (aEmpty || bEmpty) {
+    if (aEmpty && bEmpty) return 0
+    return aEmpty ? 1 : -1
+  }
+
+  return compareNumbers(
+    dayjs(a as string | Date).valueOf(),
+    dayjs(b as string | Date).valueOf(),
+  )
 }
 
 /**

@@ -291,15 +291,17 @@ public sealed class OpenApiToolSchema
     private JsonObject Flatten(JsonObject source, HashSet<string> resolving, out string? referenced)
     {
         referenced = null;
-        var wrapped = (source["oneOf"] ?? source["allOf"]) as JsonArray;
-        var members = wrapped?.OfType<JsonObject>().Where(m => !IsNullOnly(m)).ToList();
-        if (members is not null && members.Count < wrapped!.Count)
+        var members = ((source["oneOf"] ?? source["allOf"]) as JsonArray)?.ToList();
+
+        // Only a oneOf offers alternatives: in an allOf a null member would mean the type and null at once.
+        if (source["oneOf"] is JsonArray alternatives && alternatives.Any(IsNullOnly))
         {
+            members = [.. alternatives.Where(m => !IsNullOnly(m))];
             source = source.DeepClone().AsObject();
             source["nullable"] = true;
         }
 
-        var inner = members is { Count: 1 } ? members[0] : null;
+        var inner = members is { Count: 1 } ? members[0] as JsonObject : null;
         var reference = (string?)(inner ?? source)["$ref"];
 
         if (reference is null)
@@ -317,8 +319,11 @@ public sealed class OpenApiToolSchema
     /// Whether a <c>oneOf</c> member says only that the value may be null, which is how the document pairs a
     /// reference with null: <c>{ "enum": [null], "nullable": true }</c> once written as OpenAPI 3.0.
     /// </summary>
-    private static bool IsNullOnly(JsonObject member) =>
-        member.Count == 2 && member["nullable"]?.GetValue<bool>() == true && member["enum"] is JsonArray { Count: 1 } values && values[0] is null;
+    private static bool IsNullOnly(JsonNode? member) =>
+        member is JsonObject { Count: 2 } schema
+        && schema["nullable"]?.GetValue<bool>() == true
+        && schema["enum"] is JsonArray { Count: 1 } values
+        && values[0] is null;
 
     private static JsonObject Merge(JsonObject baseSchema, JsonObject overrides)
     {

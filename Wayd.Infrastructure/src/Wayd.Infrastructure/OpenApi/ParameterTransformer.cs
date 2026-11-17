@@ -31,8 +31,8 @@ public sealed class ParameterTransformer : IOpenApiOperationTransformer
             if (IsNullable(description))
                 parameter.Schema = OpenApiSchemas.Nullable(parameter.Schema);
 
-            // The generator drops the default of a parameter whose type is a component, since OpenAPI 3.0, the
-            // version the MCP server reads the document as, ignores anything beside a $ref; a wrapper keeps it.
+            // A default beside a $ref is dropped when the document is written as OpenAPI 3.0, the version the MCP
+            // server reads it as; a wrapper keeps it for the tools.
             if (parameter.Schema is OpenApiSchemaReference reference && description.DefaultValue is { } defaultValue)
                 parameter.Schema = new OpenApiSchema { Default = JsonValue.Create(defaultValue.ToString()), OneOf = [reference] };
         }

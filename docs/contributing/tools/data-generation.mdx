@@ -944,8 +944,8 @@ row cap is read from the server and checked against the token up front.
 
 **Calling another endpoint** goes through `Seeding/WaydSeedClient.cs`, the one place the tool talks to the
 API. CSV imports are posted there by hand and need nothing else. Any other call uses `WaydApiClient`, which
-[Kiota](https://learn.microsoft.com/openapi/kiota/) generates into `Wayd.Tools.DataGeneration.Cli.Client/Generated/`
-from the committed `specification.json`, for only the operations listed as `KiotaIncludePath` items in that
+[Kiota](https://learn.microsoft.com/openapi/kiota/) generates into
+`Wayd.Tools.DataGeneration.Cli.Client/Generated/` from the committed `specification.json`, for only the operations listed as `KiotaIncludePath` items in that
 project's `.csproj`. Add the operation there (`/api/ppm/projects#GET`), build the project, and commit the
 regenerated folder; CI fails while it differs from what the committed document generates. The pinned Kiota is
 a local tool, so run `dotnet tool restore` once per clone. The generated models read every value as optional,

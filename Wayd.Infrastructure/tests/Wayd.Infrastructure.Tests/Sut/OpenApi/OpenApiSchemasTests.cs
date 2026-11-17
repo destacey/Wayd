@@ -25,18 +25,19 @@ public sealed class OpenApiSchemasTests
     }
 
     [Fact]
-    public void Nullable_KeepsADescribedWrappersDescription()
+    public void Nullable_KeepsWhatAWrapperSaysBesideItsReference()
     {
         // Arrange
-        var reference = new OpenApiSchemaReference("TeamDto", new OpenApiDocument());
-        var described = new OpenApiSchema { Description = "The owning team.", OneOf = [reference] };
+        var reference = new OpenApiSchemaReference("SortDirection", new OpenApiDocument());
+        var described = new OpenApiSchema { Description = "The order.", Default = JsonValue.Create("Descending"), OneOf = [reference] };
 
         // Act
         var schema = OpenApiSchemas.Nullable(described);
 
         // Assert
         var wrapper = schema.Should().BeOfType<OpenApiSchema>().Subject;
-        wrapper.Description.Should().Be("The owning team.");
+        wrapper.Description.Should().Be("The order.");
+        wrapper.Default!.GetValue<string>().Should().Be("Descending");
         OpenApiSchemas.NullableTarget(wrapper).Should().BeSameAs(reference);
     }
 

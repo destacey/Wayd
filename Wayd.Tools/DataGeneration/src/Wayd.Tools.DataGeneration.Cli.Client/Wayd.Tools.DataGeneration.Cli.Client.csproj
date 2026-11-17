@@ -63,9 +63,14 @@
     <Message Text="$(KiotaOutput)" Condition="'$(KiotaExitCode)' == '0'" Importance="low" />
     <Error Text="Kiota could not generate the client. Run 'dotnet tool restore' from the repository root if the tool is missing.%0A$(KiotaOutput)" Condition="'$(KiotaExitCode)' != '0'" />
 
-    <!-- Compile items were globbed before generation ran; pick up files it added and drop ones it removed. -->
+    <!--
+      Compile items were globbed before generation ran; pick up files it added and drop ones it removed. The
+      old items are removed by name: a wildcard Remove inside a target matches only files still on disk, so
+      it would leave the ones Kiota deleted for the compiler to miss.
+    -->
     <ItemGroup>
-      <Compile Remove="Generated/**/*.cs" />
+      <_WaydGeneratedCompile Include="@(Compile)" Condition="$([System.String]::Copy('%(Compile.Identity)').Replace('\', '/').StartsWith('Generated/'))" />
+      <Compile Remove="@(_WaydGeneratedCompile)" />
       <Compile Include="Generated/**/*.cs" />
     </ItemGroup>
   </Target>

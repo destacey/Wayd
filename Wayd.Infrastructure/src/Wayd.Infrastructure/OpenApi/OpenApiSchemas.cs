@@ -6,32 +6,36 @@ namespace Wayd.Infrastructure.OpenApi;
 internal static class OpenApiSchemas
 {
     /// <summary>
-    /// The schema, allowing null. A reference, or a wrapper around one, becomes
-    /// <see cref="NullableReference"/>; an inline schema adds <c>null</c> to its types.
+    /// The schema, allowing null. A reference becomes <see cref="OrNull"/>; a wrapper around one gains the null
+    /// alternative and keeps everything else it says; an inline schema adds <c>null</c> to its types.
     /// </summary>
     public static IOpenApiSchema Nullable(IOpenApiSchema? schema)
     {
         switch (schema)
         {
             case OpenApiSchemaReference reference:
-                return NullableReference(reference, description: null);
+                return OrNull(reference, description: null);
             case OpenApiSchema inline when inline.Type is { } type:
                 inline.Type = type | JsonSchemaType.Null;
                 return inline;
-            case OpenApiSchema { OneOf: [var target] } wrapper:
-                return NullableReference(target, wrapper.Description);
+            case OpenApiSchema { OneOf: [_] } wrapper:
+                wrapper.OneOf.Add(NullOnly());
+                return wrapper;
             default:
                 return schema ?? new OpenApiSchema();
         }
     }
 
     /// <summary>
-    /// The target or null, as <c>{ "oneOf": [ { "$ref": … }, { "type": "null" } ] }</c>: the target first, so
-    /// a TypeScript generator writes <c>Target | null</c>. A null type beside the <c>oneOf</c>, the
-    /// OpenAPI 3.0 way, would demand both at once in 3.1.
+    /// The target or null, as <c>{ "oneOf": [ target, { "type": "null" } ] }</c>: the target first, so a
+    /// TypeScript generator writes <c>Target | null</c>. Null is an alternative, never a type beside the
+    /// <c>oneOf</c>, which OpenAPI 3.1 reads as requiring both.
     /// </summary>
-    public static OpenApiSchema NullableReference(IOpenApiSchema target, string? description) =>
-        new() { Description = description, OneOf = [target, new OpenApiSchema { Type = JsonSchemaType.Null }] };
+    public static OpenApiSchema OrNull(IOpenApiSchema target, string? description) =>
+        new() { Description = description, OneOf = [target, NullOnly()] };
+
+    /// <summary>The <c>oneOf</c> member that allows null.</summary>
+    private static OpenApiSchema NullOnly() => new() { Type = JsonSchemaType.Null };
 
     /// <summary>The schema a nullable wrapper allows besides null, or null when the schema is not one.</summary>
     public static IOpenApiSchema? NullableTarget(IOpenApiSchema? schema) =>

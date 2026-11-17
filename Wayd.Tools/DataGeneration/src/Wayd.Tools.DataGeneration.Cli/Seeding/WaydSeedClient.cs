@@ -618,6 +618,7 @@ public sealed class WaydSeedClient : IDisposable
     private static T Created<T>(T? id, string what) where T : struct =>
         id ?? throw new SeedException($"Creating {what} answered without an id.");
 
+    /// <summary>The id a create answered with, for a resource whose id is a string; see the overload above.</summary>
     private static string Created(string? id, string what) =>
         string.IsNullOrEmpty(id) ? throw new SeedException($"Creating {what} answered without an id.") : id;
 

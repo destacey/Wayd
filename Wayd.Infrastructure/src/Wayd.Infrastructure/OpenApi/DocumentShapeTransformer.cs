@@ -138,7 +138,7 @@ public sealed class DocumentShapeTransformer(SwaggerSettings settings) : IOpenAp
                     ?? (second as OpenApiSchema)?.Description;
                 if (target is OpenApiSchemaReference targetReference)
                     target = new OpenApiSchemaReference(targetReference.Reference.Id!, document);
-                return OpenApiSchemas.NullableReference(Reshape(target, document), Normalize(wrappedDescription));
+                return OpenApiSchemas.OrNull(Reshape(target, document), Normalize(wrappedDescription));
 
             case OpenApiSchema inline:
                 inline.Description = Normalize(inline.Description);

@@ -87,8 +87,8 @@ Feature-gated endpoints use `[FeatureGate(FeatureFlags.Names.MyFlag)]`.
 [Orval](https://orval.dev) in the web client (the `GenerateApiClient` target, `npm run generate:api`), which
 generates the TypeScript client in `wayd.web.reactclient/src/services/api/` from that file. The target needs the
 client's `node_modules`; without them it warns and leaves the client as it was. Kiota generates the
-data-generation tool's C# client, for the operations it calls, from the same file when that project builds, the client's import templates
-come from it too, and the hosted MCP server builds its tools from the same document at runtime. The running API serves it at
+data-generation tool's C# client, for the operations it calls, from the same file when that project
+builds, the client's import templates come from it too, and the hosted MCP server builds its tools from the same document at runtime. The running API serves it at
 `/openapi/v1.json`, with the Scalar API reference at `/scalar`, while `SwaggerSettings:Enable` is on. A tool
 that knows neither path finds both through the RFC 9727 API catalog at `/.well-known/api-catalog`, and
 `/openapi.json` redirects to the document.
@@ -112,7 +112,8 @@ or retypes generated code:
 - **A property is required when it cannot be null**, or when it is declared `required` or `[Required]`
   even if it can, so the client types it as present; nullability comes from the declaration.
 - **A nullable reference is `oneOf` the reference, then `{ "type": "null" }`**, so the TypeScript client
-  writes `Target | null`. A null `type` beside the `oneOf`, the 3.0 way, would demand both at once in 3.1.
+  writes `Target | null`. Null is an alternative, never a `type` beside the `oneOf`, which 3.1 reads as
+  requiring both.
 - **NodaTime values** are strings: an `Instant` is `date-time`, a `LocalDate` `date`. The TypeScript client
   types them as the branded `Instant` and `CalendarDate` — see [Dates and instants](./frontend.mdx#dates-and-instants).
 - **Request bodies are `application/json`**, except file uploads (`multipart/form-data`) and JSON Patch

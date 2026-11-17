@@ -24,6 +24,7 @@ namespace Wayd.Web.Api.Controllers;
 [ApiController]
 [Authorize]
 [FeatureGate(FeatureFlags.Names.Kpis)]
+[McpTools(McpToolset.Kpis, "wayd-kpis")]
 public class KpisController(IDispatcher dispatcher) : ControllerBase
 {
     private const string SubjectDocs =
@@ -35,6 +36,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     private readonly IDispatcher _dispatcher = dispatcher;
 
     [HttpGet]
+    [McpTool("Kpis_GetScorecard", "Get a scorecard")]
     [EndpointSummary("Get a record's scorecard.")]
     [EndpointDescription(
         $"{SubjectDocs} Returns the record's name, whether you may manage its KPIs (`canManage`), and every active KPI ordered by category (uncategorized last), then position. Each KPI carries its `goal` as entered and resolved, its `reading` of the latest value — `changeFromBaseline`, `changeFromBaselinePercent`, `progressToTarget` (1 is the target reached), `health` and `trend` — and up to 12 `recentValues`, oldest first. `expressedAs` says which reading the KPI is shown as.")]
@@ -53,6 +55,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("closed")]
+    [McpTool("Kpis_GetClosed", "List closed KPIs")]
     [EndpointSummary("Get a record's closed KPIs.")]
     [EndpointDescription($"{SubjectDocs} Returns the KPIs taken off the scorecard, kept with their measurements as history, in scorecard order.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -70,6 +73,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpGet("{kpiId:guid}")]
+    [McpTool("Kpis_GetKpi", "Get a KPI and its measurements")]
     [EndpointSummary("Get a KPI with every measurement taken.")]
     [EndpointDescription($"{SubjectDocs} Returns the KPI as the scorecard shows it, open or closed, with every measurement, newest period first, and whether you may change it. Returns 404 too when the KPI is on another record.")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -193,6 +197,7 @@ public class KpisController(IDispatcher dispatcher) : ControllerBase
     }
 
     [HttpPost("{kpiId:guid}/measurements")]
+    [McpTool("Kpis_RecordMeasurement", "Record a KPI measurement", Destructive = false)]
     [EndpointSummary("Record a measurement against a KPI.")]
     [EndpointDescription(
         $"{SubjectDocs} Records the raw value for a period on an open KPI, taken by you, and returns its id. Periods on one KPI cannot overlap; record each period once. {ManageDocs} Requires your account to be linked to an employee.")]

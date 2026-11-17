@@ -180,6 +180,7 @@ Every tool's description is loaded into the conversation before any work starts,
 | `imports`      | Checking, applying and following CSV imports                                                              |
 | `intake`       | Intake requests and their review, desks, channels, tag categories, free tags; add `discussions` for their conversation |
 | `discussions`  | The conversation on an intake request or a project: threads, messages, replies, internal notes; a desk's conversation settings |
+| `kpis`         | A team's or team of teams' scorecard, a KPI's measurement history, and recording a measurement                |
 
 Choose them on the URL, or in headers if your client sends them:
 
@@ -221,7 +222,7 @@ The `@wayd/mcp` npm package is retired and receives no further updates; its last
 
 ## Agent Skills
 
-The endpoint serves fifteen pre-built skills that guide the assistant through common workflows, as prompts and through `Skills_Get`. In Claude Code you can also install them and run them as slash commands:
+The endpoint serves sixteen pre-built skills that guide the assistant through common workflows, as prompts and through `Skills_Get`. In Claude Code you can also install them and run them as slash commands:
 
 - **`/wayd-ppm`** — Portfolio, program, project, and strategic initiative operations, including scoring, health checks, status changes, and tasks
 - **`/wayd-pi`** — Planning intervals, iterations, objectives, and risks
@@ -238,6 +239,7 @@ The endpoint serves fifteen pre-built skills that guide the assistant through co
 - **`/wayd-incidents`** — Incident severity scales under Product Management — list seeded and custom sets, select which scale the organization uses, and manage custom sets (requires `product-management` and `incident-management` feature flags)
 - **`/wayd-intake`** — Raising intake requests, following what happened to them, reviewing them on a desk, and setting up desks, channels and tag categories
 - **`/wayd-discussions`** — Holding the conversation on an intake request or a project: reading its threads, posting and replying, internal notes on requests, mentions, and a desk's conversation settings
+- **`/wayd-kpis`** — Reading a team's scorecard and a KPI's history, and recording a measurement (requires the `kpis` feature flag)
 
 Install the skills:
 
@@ -581,6 +583,7 @@ The endpoint also covers these areas:
 | `Portfolios_*`, `Programs_*`, `Projects_*`, `Tasks_*`, `ProjectLifecycles_*`, `StrategicInitiatives_*`, `ExpenditureCategories_*`, `ScoringModels_*` | `ppm` | Delete portfolios, programs and projects; list scoring models, assign them to portfolios and move projects on the ranking board; assign and change project lifecycles and manage the lifecycles themselves; record project scores; create, update and delete strategic initiatives and their KPIs; manage expenditure categories |
 | `IntakeRequests_*`, `IntakeDesks_*`, `IntakeChannels_*`, `IntakeRequestTagCategories_*`, `IntakeRequestTags_*`, `IntakeEmployeeOptions_*` | `intake` | Submit, edit and withdraw intake requests and read where they stand and how far their delivery has got; ask the requester a question while moving the request to Waiting on Requester; review them on a desk — change status, assign, tag, score and rank, estimate, move to another desk, manage participants, record the projects and work items a request became, and the project deliverables that meet it; list the requests behind a project or work item, or what a list of requests became; set up desks, channels, tag categories and a desk's scoring model and estimation scale; start a planning poker session on a desk and add its requests to one (`planning-poker` feature flag too); move a desk and its requests onto another review workflow; rename, merge and delete free tags (`demand-management` feature flag) |
 | `Discussions_*` | `discussions` | Read the conversation on an intake request or a project — its threads and the record's changes between them — post a message with a subject, reply in a thread, write a request's internal notes, and read or change how an intake desk's conversations work |
+| `Kpis_*` | `kpis` | Read a team's or team of teams' scorecard — each KPI's goal, latest reading, health and trend — its closed KPIs, and one KPI's measurement history; record a measurement for a period (`kpis` feature flag) |
 
 The patch tools take a JSON Patch (RFC 6902) and leave alone anything it does not name, so they avoid the [whole-record overwrite](#changes-that-ask-first) of the matching update tools.
 

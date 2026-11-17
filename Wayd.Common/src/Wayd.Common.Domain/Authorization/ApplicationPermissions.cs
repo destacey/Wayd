@@ -88,6 +88,8 @@ public static class ApplicationResource
 
     public const string IntakeRequests = nameof(IntakeRequests);
 
+    public const string Kpis = nameof(Kpis);
+
     public const string Products = nameof(Products);
     public const string ProductTypes = nameof(ProductTypes);
     public const string ProductTagCategories = nameof(ProductTagCategories);
@@ -245,6 +247,15 @@ public static class ApplicationPermissions
         // The Demand Management Admin: creates and deletes desks, sets their visibility, names Desk Admins,
         // manages channels and tag categories, and acts as Desk Admin on every desk.
         new("Administer Demand Management", ApplicationAction.Administer, ApplicationResource.IntakeRequests, DemandManagementCategory),
+    ];
+
+    private const string KpisCategory = "KPIs";
+    private static readonly ApplicationPermission[] _kpis =
+    [
+        // Reading a record's KPIs needs only what reading the record needs, and changing them is granted by the
+        // record's own rule, such as membership of a team. Administer changes any record's KPIs and manages the
+        // organization's KPI categories.
+        new("Administer KPIs", ApplicationAction.Administer, ApplicationResource.Kpis, KpisCategory),
     ];
 
     private const string OrganizationCategory = "Organization";
@@ -491,6 +502,7 @@ public static class ApplicationPermissions
         .Union(_identity)
         .Union(_appIntegration)
         .Union(_demandManagement)
+        .Union(_kpis)
         .Union(_healthChecks)
         .Union(_links)
         .Union(_organization)

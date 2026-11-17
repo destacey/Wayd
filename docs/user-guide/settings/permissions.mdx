@@ -58,6 +58,7 @@ Every permission Wayd defines, as **Settings → Access → Roles** groups them.
 | Health | `HealthChecks` | `View`, `Create`, `Update` |
 | Links | `Links` | `View`, `Create`, `Update`, `Delete` |
 | Demand Management | `IntakeRequests` | `View`, `Administer` (see [Demand Management: desk roles](#demand-management-desk-roles)) |
+| KPIs | `Kpis` | `Administer` (see [KPIs: team membership](#kpis-team-membership)) |
 | Organization | `Employees` | `View`, `Create`, `Update`, `Delete`, `Import` |
 | Organization | `EmployeeTimeAway` | `Administer` (see [Time away](#time-away-the-person-and-their-managers)) |
 | Organization | `Teams` | `View`, `Create`, `Update`, `Administer`, `ManageTeamMemberships`, `Delete`, `Import` |
@@ -235,6 +236,14 @@ Changing [how much of a person's time a team has](../organizations/index.mdx#all
 `Permissions.Teams.Administer` waives the membership for every team's allocations. It never substitutes for the `Update` permission. The seeded **Admin** role includes both.
 
 Viewing a person's allocations needs only `Permissions.Employees.View`.
+
+## KPIs: team membership
+
+Adding, changing and removing a team's KPIs and their measurements needs membership of that team, in any role, or of **any** team of teams above it as the hierarchy stands today — not only its direct team of teams, so a leader can set KPIs anywhere in their part of the organization. The same goes for a team of teams' own KPIs. No permission claim is needed.
+
+Reading a team's KPIs needs only `Permissions.Teams.View`.
+
+`Permissions.Kpis.Administer` waives the membership for every record's KPIs and manages the organization's KPI categories. The seeded **Admin** role includes it. A read-only token changes nothing, whatever the person holds.
 
 ## Time away: the person and their managers
 

@@ -4,6 +4,7 @@ import HealthCheckTag, {
   HealthCheckDetailsData,
   HealthCheckStatusTagData,
 } from './health-check-tag'
+import { toInstant } from '@/src/utils/instant'
 
 vi.mock('@ant-design/icons', () => ({
   FlagFilled: ({
@@ -51,7 +52,7 @@ vi.mock(import('antd'), async (importOriginal) => {
 describe('HealthCheckTag', () => {
   const healthCheck: HealthCheckStatusTagData = {
     status: { name: 'Healthy' },
-    expiration: new Date(2026, 0, 15, 14, 30),
+    expiration: toInstant(new Date(2026, 0, 15, 14, 30)),
   }
 
   it('should return null when health check is not provided', () => {
@@ -82,7 +83,7 @@ describe('HealthCheckTag', () => {
     const details: HealthCheckDetailsData = {
       ...healthCheck,
       reportedBy: { name: 'Jane Smith' },
-      reportedOn: new Date(2026, 0, 10, 9, 0),
+      reportedOn: toInstant(new Date(2026, 0, 10, 9, 0)),
       note: 'Project remains on track',
     }
 
@@ -102,7 +103,7 @@ describe('HealthCheckTag', () => {
     const details: HealthCheckDetailsData = {
       ...healthCheck,
       reportedBy: { name: 'Jane Smith' },
-      reportedOn: new Date(2026, 0, 10, 9, 0),
+      reportedOn: toInstant(new Date(2026, 0, 10, 9, 0)),
       note: 'Project remains on track',
     }
 
@@ -125,7 +126,7 @@ describe('HealthCheckTag', () => {
 describe('HealthCheckTag variant=flag', () => {
   const healthCheck: HealthCheckStatusTagData = {
     status: { name: 'Healthy' },
-    expiration: new Date(2026, 0, 15, 14, 30),
+    expiration: toInstant(new Date(2026, 0, 15, 14, 30)),
   }
 
   it('should render a flag icon instead of a tag', () => {

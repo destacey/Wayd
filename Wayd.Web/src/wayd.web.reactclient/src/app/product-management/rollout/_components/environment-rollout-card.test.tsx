@@ -2,7 +2,7 @@ import {
   EnvironmentCategory,
   EnvironmentRolloutDto,
   RolloutItemDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { render, screen } from '@testing-library/react'
 import EnvironmentRolloutCard from './environment-rollout-card'
 

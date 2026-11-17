@@ -1,6 +1,6 @@
 'use client'
 
-import { TenantMigrationCandidateDto } from '@/src/services/wayd-api'
+import { TenantMigrationCandidateDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetTenantMigrationCandidatesQuery,
   useStageBulkTenantMigrationMutation,

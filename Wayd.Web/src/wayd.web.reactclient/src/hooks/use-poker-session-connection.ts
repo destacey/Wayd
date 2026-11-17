@@ -6,7 +6,7 @@ import {
   HubConnection,
   LogLevel,
 } from '@microsoft/signalr'
-import { getFreshAuthToken } from '@/src/services/clients'
+import { getFreshAuthToken } from '@/src/services/api-fetch'
 import { store } from '@/src/store/store'
 import {
   pokerSessionsApi,
@@ -83,7 +83,7 @@ export function usePokerSessionConnection(
             // SignalR calls this factory on every connect and reconnect, so we
             // must refresh-before-read to survive token expiry across long-
             // running sessions. getFreshAuthToken shares the single-flight
-            // refresh with the axios interceptor — no duplicate refresh calls.
+            // refresh with API requests — no duplicate refresh calls.
             accessTokenFactory: async () => (await getFreshAuthToken()) ?? '',
             // In prod the negotiate redirects the browser to Azure SignalR
             // Service, which does not support credentialed CORS — with the

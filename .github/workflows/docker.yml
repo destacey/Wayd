@@ -131,6 +131,17 @@ jobs:
             - name: npm ci
               run: npm ci
 
+            # The generated client is committed; fails when it no longer matches the committed
+            # specification.json, orval.config.ts, or the pinned Orval version.
+            - name: check generated API client
+              run: |
+                  npm run generate:api
+                  if [ -n "$(git status --porcelain -- src/services/api)" ]; then
+                      git status --porcelain -- src/services/api
+                      echo "::error::src/services/api is out of date. Run 'npm run generate:api' in Wayd.Web/src/wayd.web.reactclient and commit the result."
+                      exit 1
+                  fi
+
             - name: npm run lint
               run: npm run lint
 

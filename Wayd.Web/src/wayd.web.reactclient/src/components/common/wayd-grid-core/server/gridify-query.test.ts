@@ -6,6 +6,8 @@ import {
   toGridifyFilter,
   toGridifySort,
 } from './gridify-query'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 const text = (
   op: string,
@@ -107,19 +109,32 @@ describe('gridify-query', () => {
       }) as ColumnFilterModel
 
     it('compares calendar dates directly', () => {
-      expect(toGridifyColumnFilter('due', date('equals', '2026-03-01'))).toBe(
-        'due=2026-03-01',
-      )
-      expect(toGridifyColumnFilter('due', date('before', '2026-03-01'))).toBe(
-        'due<2026-03-01',
-      )
-      expect(toGridifyColumnFilter('due', date('after', '2026-03-01'))).toBe(
-        'due>2026-03-01',
-      )
       expect(
         toGridifyColumnFilter(
           'due',
-          date('inRange', '2026-03-09', '2026-03-01'),
+          date('equals', asCalendarDate('2026-03-01')),
+        ),
+      ).toBe('due=2026-03-01')
+      expect(
+        toGridifyColumnFilter(
+          'due',
+          date('before', asCalendarDate('2026-03-01')),
+        ),
+      ).toBe('due<2026-03-01')
+      expect(
+        toGridifyColumnFilter(
+          'due',
+          date('after', asCalendarDate('2026-03-01')),
+        ),
+      ).toBe('due>2026-03-01')
+      expect(
+        toGridifyColumnFilter(
+          'due',
+          date(
+            'inRange',
+            asCalendarDate('2026-03-09'),
+            asCalendarDate('2026-03-01'),
+          ),
         ),
       ).toBe('(due>=2026-03-01,due<=2026-03-09)')
     })
@@ -135,21 +150,31 @@ describe('gridify-query', () => {
 
     it('compares to the minute, as instants', () => {
       expect(
-        toGridifyColumnFilter('at', dateTime('equals', '2026-03-01T09:30:45Z')),
+        toGridifyColumnFilter(
+          'at',
+          dateTime('equals', asInstant('2026-03-01T09:30:45Z')),
+        ),
       ).toBe('(at>=2026-03-01T09:30:00.000Z,at<2026-03-01T09:31:00.000Z)')
       expect(
         toGridifyColumnFilter(
           'at',
-          dateTime('notEqual', '2026-03-01T09:30:00Z'),
+          dateTime('notEqual', asInstant('2026-03-01T09:30:00Z')),
         ),
       ).toBe('(at<2026-03-01T09:30:00.000Z|at>=2026-03-01T09:31:00.000Z)')
       expect(
-        toGridifyColumnFilter('at', dateTime('after', '2026-03-01T09:30:00Z')),
+        toGridifyColumnFilter(
+          'at',
+          dateTime('after', asInstant('2026-03-01T09:30:00Z')),
+        ),
       ).toBe('at>=2026-03-01T09:31:00.000Z')
       expect(
         toGridifyColumnFilter(
           'at',
-          dateTime('inRange', '2026-03-02T00:00:00Z', '2026-03-01T00:00:00Z'),
+          dateTime(
+            'inRange',
+            asInstant('2026-03-02T00:00:00Z'),
+            asInstant('2026-03-01T00:00:00Z'),
+          ),
         ),
       ).toBe('(at>=2026-03-01T00:00:00.000Z,at<2026-03-02T00:01:00.000Z)')
     })

@@ -8,8 +8,9 @@ import {
   DiscussionMessageDto,
   DiscussionMessageKind,
   EventActorKind,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import RecordDiscussion from './record-discussion'
+import { toInstant } from '@/src/utils/instant'
 
 const mockMessageError = vi.fn()
 const mockMessageInfo = vi.fn()
@@ -58,7 +59,7 @@ const message = (
   kind: DiscussionMessageKind.Public,
   body: 'Which fields does finance need?',
   author,
-  postedOn: new Date(),
+  postedOn: toInstant(new Date()),
   isDeleted: false,
   mentions: [],
   replyCount: 0,
@@ -76,7 +77,7 @@ const activity = (overrides: Partial<ActivityLogDto> = {}): ActivityLogDto => ({
   aggregateType: 'IntakeRequest',
   aggregateId: 'r-1',
   actorKind: EventActorKind.User,
-  timestamp: new Date(),
+  timestamp: toInstant(new Date()),
   eventVersion: '1.0',
   payload: '{}',
   isRelated: false,
@@ -174,12 +175,12 @@ describe('RecordDiscussion', () => {
     showEntries([
       {
         type: DiscussionEntryType.Activity,
-        timestamp: new Date(),
+        timestamp: toInstant(new Date()),
         activity: activity({ summary: 'Submitted the request', id: 6 }),
       },
       {
         type: DiscussionEntryType.Message,
-        timestamp: new Date(),
+        timestamp: toInstant(new Date()),
         message: message({
           kind: DiscussionMessageKind.InternalNote,
           subject: 'Overlap',
@@ -209,12 +210,12 @@ describe('RecordDiscussion', () => {
     showEntries([
       {
         type: DiscussionEntryType.Message,
-        timestamp: new Date(),
+        timestamp: toInstant(new Date()),
         message: message({
           isDeleted: true,
           body: undefined,
           deletedBy: { id: 'e-2', key: 2, name: 'Dana Ortiz' },
-          deletedOn: new Date(),
+          deletedOn: toInstant(new Date()),
         }),
       },
     ])
@@ -234,10 +235,10 @@ describe('RecordDiscussion', () => {
     showEntries([
       {
         type: DiscussionEntryType.Message,
-        timestamp: new Date(),
+        timestamp: toInstant(new Date()),
         message: message({
           replyCount: 2,
-          lastReplyOn: new Date(),
+          lastReplyOn: toInstant(new Date()),
           recentRepliers: [{ id: 'e-3', key: 3, name: 'Tom Becker' }],
         }),
       },
@@ -255,7 +256,7 @@ describe('RecordDiscussion', () => {
     showEntries([
       {
         type: DiscussionEntryType.Message,
-        timestamp: new Date(),
+        timestamp: toInstant(new Date()),
         message: message(),
       },
     ])
@@ -399,12 +400,12 @@ describe('RecordDiscussion', () => {
     showEntries([
       {
         type: DiscussionEntryType.Message,
-        timestamp: new Date(),
+        timestamp: toInstant(new Date()),
         message: message({ id: 'm-own', canEdit: true, canDelete: true }),
       },
       {
         type: DiscussionEntryType.Message,
-        timestamp: new Date(),
+        timestamp: toInstant(new Date()),
         message: message({ id: 'm-other', canEdit: false, canDelete: false }),
       },
     ])

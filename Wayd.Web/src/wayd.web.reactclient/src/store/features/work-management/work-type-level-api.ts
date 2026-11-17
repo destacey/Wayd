@@ -1,15 +1,19 @@
-import { UpdateWorkTypeLevelsOrderRequest } from './../../../services/wayd-api'
+import { UpdateWorkTypeLevelsOrderRequest } from '@/src/services/api/wayd.schemas'
 import {
-  getWorkTypeLevelsClient,
-  getWorkTypeTiersClient,
-} from '@/src/services/clients'
+  workTypeLevelsCreate,
+  workTypeLevelsGetById,
+  workTypeLevelsGetList,
+  workTypeLevelsUpdate,
+  workTypeLevelsUpdateOrder,
+} from '@/src/services/api/work-type-levels'
+import { workTypeTiersGetList } from '@/src/services/api/work-type-tiers'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
   CreateWorkTypeLevelRequest,
   UpdateWorkTypeLevelRequest,
   WorkTypeLevelDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import type { BaseOptionType } from 'antd/es/select'
 
 export const workTypeLevelApi = apiSlice.injectEndpoints({
@@ -17,7 +21,7 @@ export const workTypeLevelApi = apiSlice.injectEndpoints({
     getWorkTypeLevels: builder.query<WorkTypeLevelDto[], null>({
       queryFn: async () => {
         try {
-          const data = await getWorkTypeLevelsClient().getList()
+          const data = await workTypeLevelsGetList()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -26,15 +30,16 @@ export const workTypeLevelApi = apiSlice.injectEndpoints({
       },
       providesTags: (result) => [
         QueryTags.WorkTypeLevel,
-        ...(result?.map(({ id }) => ({ type: QueryTags.WorkTypeLevel, id })) ?? []),
+        ...(result?.map(({ id }) => ({ type: QueryTags.WorkTypeLevel, id })) ??
+          []),
       ],
     }),
     getWorkTypeLevelOptions: builder.query<BaseOptionType[], null>({
       queryFn: async () => {
         try {
           const [tiers, levels] = await Promise.all([
-            getWorkTypeTiersClient().getList(),
-            getWorkTypeLevelsClient().getList(),
+            workTypeTiersGetList(),
+            workTypeLevelsGetList(),
           ])
 
           const data: BaseOptionType[] = tiers
@@ -67,7 +72,7 @@ export const workTypeLevelApi = apiSlice.injectEndpoints({
     getWorkTypeLevel: builder.query<WorkTypeLevelDto, number>({
       queryFn: async (id: number) => {
         try {
-          const data = await getWorkTypeLevelsClient().getById(id)
+          const data = await workTypeLevelsGetById(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -81,7 +86,7 @@ export const workTypeLevelApi = apiSlice.injectEndpoints({
     createWorkTypeLevel: builder.mutation<number, CreateWorkTypeLevelRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getWorkTypeLevelsClient().create(request)
+          const data = await workTypeLevelsCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -96,7 +101,7 @@ export const workTypeLevelApi = apiSlice.injectEndpoints({
     updateWorkTypeLevel: builder.mutation<null, UpdateWorkTypeLevelRequest>({
       queryFn: async (request) => {
         try {
-          await getWorkTypeLevelsClient().update(request.id, request)
+          await workTypeLevelsUpdate(request.id, request)
           return { data: null }
         } catch (error) {
           console.error('API Error:', error)
@@ -114,7 +119,7 @@ export const workTypeLevelApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getWorkTypeLevelsClient().updateOrder(request)
+          const data = await workTypeLevelsUpdateOrder(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

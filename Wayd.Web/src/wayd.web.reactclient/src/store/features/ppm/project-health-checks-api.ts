@@ -1,10 +1,16 @@
-import { getProjectHealthChecksClient } from '@/src/services/clients'
+import {
+  projectHealthChecksCreateHealthCheck,
+  projectHealthChecksDeleteHealthCheck,
+  projectHealthChecksGetHealthCheck,
+  projectHealthChecksGetHealthChecks,
+  projectHealthChecksUpdateHealthCheck,
+} from '@/src/services/api/project-health-checks'
 import { apiSlice } from '../apiSlice'
 import {
   CreateProjectHealthCheckRequest,
   ProjectHealthCheckDetailsDto,
   UpdateProjectHealthCheckRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 import { projectActivityTags } from './ppm-activity-tags'
 
@@ -32,8 +38,7 @@ export const projectHealthChecksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId }) => {
         try {
-          const data =
-            await getProjectHealthChecksClient().getHealthChecks(projectId)
+          const data = await projectHealthChecksGetHealthChecks(projectId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -55,7 +60,7 @@ export const projectHealthChecksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId, healthCheckId }) => {
         try {
-          const data = await getProjectHealthChecksClient().getHealthCheck(
+          const data = await projectHealthChecksGetHealthCheck(
             projectId,
             healthCheckId,
           )
@@ -76,7 +81,7 @@ export const projectHealthChecksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId, request }) => {
         try {
-          const data = await getProjectHealthChecksClient().createHealthCheck(
+          const data = await projectHealthChecksCreateHealthCheck(
             projectId,
             request,
           )
@@ -102,7 +107,7 @@ export const projectHealthChecksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId, request }) => {
         try {
-          const data = await getProjectHealthChecksClient().updateHealthCheck(
+          const data = await projectHealthChecksUpdateHealthCheck(
             projectId,
             request.id,
             request,
@@ -127,10 +132,7 @@ export const projectHealthChecksApi = apiSlice.injectEndpoints({
     deleteProjectHealthCheck: builder.mutation<void, ProjectHealthCheckRef>({
       queryFn: async ({ projectId, healthCheckId }) => {
         try {
-          await getProjectHealthChecksClient().deleteHealthCheck(
-            projectId,
-            healthCheckId,
-          )
+          await projectHealthChecksDeleteHealthCheck(projectId, healthCheckId)
           return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)

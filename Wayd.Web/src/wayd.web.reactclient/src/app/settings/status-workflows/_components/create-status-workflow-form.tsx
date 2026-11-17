@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { CreateStatusWorkflowRequest } from '@/src/services/wayd-api'
+import { CreateStatusWorkflowRequest } from '@/src/services/api/wayd.schemas'
 import {
   useCreateStatusWorkflowMutation,
   useGetWorkflowOwnerTypesQuery,

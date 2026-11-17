@@ -3,8 +3,11 @@ import {
   SizingMethod,
   TeamCadenceMetricsDto,
   TeamCadencePeriodDto,
-} from '@/src/services/wayd-api'
-import { formatCalendarDate } from '@/src/utils/calendar-date'
+} from '@/src/services/api/wayd.schemas'
+import {
+  formatCalendarDate,
+  type CalendarDate,
+} from '@/src/utils/calendar-date'
 
 /** The bounds the API holds a period window to. */
 export const MIN_PERIOD_WINDOW = 3
@@ -17,8 +20,10 @@ export const VELOCITY_TOOLTIP =
   'Work completed in each period of the team’s cadence, by done date. A cadence is for reporting only, so there is no commitment, predictability or say/do.'
 
 /** "Oct 5, 2026 – Oct 18, 2026". */
-export const periodDates = (period: { start: string; end: string }) =>
-  `${formatCalendarDate(period.start)} – ${formatCalendarDate(period.end)}`
+export const periodDates = (period: {
+  start: CalendarDate
+  end: CalendarDate
+}) => `${formatCalendarDate(period.start)} – ${formatCalendarDate(period.end)}`
 
 /** "1 period", "5 periods". */
 export const periodCountText = (count: number): string =>

@@ -1,5 +1,30 @@
 import type { ThunkDispatch, UnknownAction } from '@reduxjs/toolkit'
-import { getPokerSessionsClient } from '@/src/services/clients'
+import {
+  pokerSessionsAddRound,
+  pokerSessionsComplete,
+  pokerSessionsCreate,
+  pokerSessionsDelete,
+  pokerSessionsFocusRound,
+  pokerSessionsGetInvitedTeamMembers,
+  pokerSessionsGetList,
+  pokerSessionsGetSession,
+  pokerSessionsJoin,
+  pokerSessionsPublishRound,
+  pokerSessionsPublishRounds,
+  pokerSessionsRemoveRound,
+  pokerSessionsResetRound,
+  pokerSessionsRevealRound,
+  pokerSessionsSetConsensus,
+  pokerSessionsSetFacilitators,
+  pokerSessionsSetInvitees,
+  pokerSessionsSetVisibility,
+  pokerSessionsSetVoting,
+  pokerSessionsSubmitVote,
+  pokerSessionsUpdate,
+  pokerSessionsUpdateRoundDescription,
+  pokerSessionsUpdateRoundLabel,
+  pokerSessionsWithdrawVote,
+} from '@/src/services/api/poker-sessions'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
@@ -18,7 +43,7 @@ import {
   UpdatePokerRoundDescriptionRequest,
   UpdatePokerRoundLabelRequest,
   Visibility,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 export interface UpdatePokerSessionRequest {
   name: string
@@ -33,7 +58,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (status) => {
         try {
-          const data = await getPokerSessionsClient().getList(status)
+          const data = await pokerSessionsGetList({ status: status })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -50,11 +75,10 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ hostKind, hostId }) => {
         try {
-          const data = await getPokerSessionsClient().getList(
-            undefined,
-            hostKind,
-            hostId,
-          )
+          const data = await pokerSessionsGetList({
+            hostKind: hostKind,
+            hostId: hostId,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -67,7 +91,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     getPokerSession: builder.query<PokerSessionDetailsDto, string>({
       queryFn: async (idOrKey: string) => {
         try {
-          const data = await getPokerSessionsClient().getSession(idOrKey)
+          const data = await pokerSessionsGetSession(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -86,7 +110,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getPokerSessionsClient().create(request)
+          const data = await pokerSessionsCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -102,7 +126,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getPokerSessionsClient().update(id, request)
+          const data = await pokerSessionsUpdate(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -119,7 +143,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     deletePokerSession: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getPokerSessionsClient().delete(id)
+          const data = await pokerSessionsDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -132,7 +156,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     completePokerSession: builder.mutation<void, { id: string; key: number }>({
       queryFn: async ({ id }) => {
         try {
-          const data = await getPokerSessionsClient().complete(id)
+          const data = await pokerSessionsComplete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -151,10 +175,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ sessionId, request }) => {
         try {
-          const data = await getPokerSessionsClient().addRound(
-            sessionId,
-            request,
-          )
+          const data = await pokerSessionsAddRound(sessionId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -173,10 +194,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ sessionId, roundId }) => {
         try {
-          const data = await getPokerSessionsClient().removeRound(
-            sessionId,
-            roundId,
-          )
+          const data = await pokerSessionsRemoveRound(sessionId, roundId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -195,10 +213,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ sessionId, roundId }) => {
         try {
-          const data = await getPokerSessionsClient().revealRound(
-            sessionId,
-            roundId,
-          )
+          const data = await pokerSessionsRevealRound(sessionId, roundId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -216,10 +231,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ sessionId, roundId }) => {
         try {
-          const data = await getPokerSessionsClient().resetRound(
-            sessionId,
-            roundId,
-          )
+          const data = await pokerSessionsResetRound(sessionId, roundId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -242,7 +254,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ sessionId, roundId, request }) => {
         try {
-          const data = await getPokerSessionsClient().setConsensus(
+          const data = await pokerSessionsSetConsensus(
             sessionId,
             roundId,
             request,
@@ -269,10 +281,9 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ sessionId, roundId }) => {
         try {
-          const client = getPokerSessionsClient()
           const data = roundId
-            ? [await client.publishRound(sessionId, roundId)]
-            : await client.publishRounds(sessionId)
+            ? [await pokerSessionsPublishRound(sessionId, roundId)]
+            : await pokerSessionsPublishRounds(sessionId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -300,7 +311,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ sessionId, roundId, request }) => {
         try {
-          const data = await getPokerSessionsClient().submitVote(
+          const data = await pokerSessionsSubmitVote(
             sessionId,
             roundId,
             request,
@@ -322,10 +333,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ sessionId, roundId }) => {
         try {
-          const data = await getPokerSessionsClient().withdrawVote(
-            sessionId,
-            roundId,
-          )
+          const data = await pokerSessionsWithdrawVote(sessionId, roundId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -348,7 +356,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ sessionId, roundId, request }) => {
         try {
-          const data = await getPokerSessionsClient().updateRoundLabel(
+          const data = await pokerSessionsUpdateRoundLabel(
             sessionId,
             roundId,
             request,
@@ -375,7 +383,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ sessionId, roundId, request }) => {
         try {
-          const data = await getPokerSessionsClient().updateRoundDescription(
+          const data = await pokerSessionsUpdateRoundDescription(
             sessionId,
             roundId,
             request,
@@ -402,7 +410,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ sessionId, roundId }) => {
         try {
-          const data = await getPokerSessionsClient().focusRound(sessionId, {
+          const data = await pokerSessionsFocusRound(sessionId, {
             roundId,
           })
           return { data }
@@ -441,7 +449,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ sessionId, teamId }) => {
         try {
-          const data = await getPokerSessionsClient().getInvitedTeamMembers(
+          const data = await pokerSessionsGetInvitedTeamMembers(
             sessionId,
             teamId,
           )
@@ -461,7 +469,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, visibility }) => {
         try {
-          const data = await getPokerSessionsClient().setVisibility(id, {
+          const data = await pokerSessionsSetVisibility(id, {
             visibility,
           })
           return { data }
@@ -482,7 +490,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, employeeIds }) => {
         try {
-          const data = await getPokerSessionsClient().setFacilitators(id, {
+          const data = await pokerSessionsSetFacilitators(id, {
             employeeIds,
           })
           return { data }
@@ -503,7 +511,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, employeeIds, teamIds }) => {
         try {
-          const data = await getPokerSessionsClient().setInvitees(id, {
+          const data = await pokerSessionsSetInvitees(id, {
             employeeIds,
             teamIds,
           })
@@ -525,7 +533,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, isVoting = true }) => {
         try {
-          const data = await getPokerSessionsClient().join(id, { isVoting })
+          const data = await pokerSessionsJoin(id, { isVoting })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -544,7 +552,7 @@ export const pokerSessionsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, isVoting }) => {
         try {
-          const data = await getPokerSessionsClient().setVoting(id, {
+          const data = await pokerSessionsSetVoting(id, {
             isVoting,
           })
           return { data }

@@ -1,11 +1,17 @@
-import { getLinksClient } from '@/src/services/clients'
+import {
+  linksCreate,
+  linksDelete,
+  linksGetById,
+  linksGetList,
+  linksUpdate,
+} from '@/src/services/api/links'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
   CreateLinkRequest,
   LinkDto,
   UpdateLinkRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 export interface StoreUpdateLinkRequest {
   request: UpdateLinkRequest
@@ -22,7 +28,7 @@ export const linksApi = apiSlice.injectEndpoints({
     getLinks: builder.query<any, string>({
       queryFn: async (objectId: string) => {
         try {
-          const data = await getLinksClient().getList(objectId)
+          const data = await linksGetList(objectId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -41,7 +47,7 @@ export const linksApi = apiSlice.injectEndpoints({
     getLink: builder.query<any, string>({
       queryFn: async (id: string) => {
         try {
-          const data = await getLinksClient().getById(id)
+          const data = await linksGetById(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -54,7 +60,7 @@ export const linksApi = apiSlice.injectEndpoints({
     createLink: builder.mutation<any, CreateLinkRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getLinksClient().create(request)
+          const data = await linksCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -71,7 +77,7 @@ export const linksApi = apiSlice.injectEndpoints({
     updateLink: builder.mutation<LinkDto, StoreUpdateLinkRequest>({
       queryFn: async ({ request }) => {
         try {
-          const data = await getLinksClient().update(request.id, request)
+          const data = await linksUpdate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -88,7 +94,7 @@ export const linksApi = apiSlice.injectEndpoints({
     deleteLink: builder.mutation<void, StoreDeleteLinkRequest>({
       queryFn: async ({ id }) => {
         try {
-          const data = await getLinksClient().delete(id)
+          const data = await linksDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

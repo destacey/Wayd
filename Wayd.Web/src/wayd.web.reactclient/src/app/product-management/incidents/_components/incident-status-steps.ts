@@ -1,4 +1,4 @@
-import { ProductStatusAlias } from '@/src/services/wayd-api'
+import { ProductStatusAlias } from '@/src/services/api/wayd.schemas'
 
 export interface IncidentStatusStepSource {
   id: string

@@ -6,7 +6,7 @@ import {
   TransitionMode,
   WorkflowOwnerTypeDto,
   WorkflowOwnership,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import PublishStatusWorkflowForm from './publish-status-workflow-form'
 
 const publishStatusWorkflow = vi.fn()

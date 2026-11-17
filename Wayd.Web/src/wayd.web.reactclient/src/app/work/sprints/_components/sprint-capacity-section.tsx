@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, Flex } from 'antd'
-import { SprintDetailsDto } from '@/src/services/wayd-api'
+import { SprintDetailsDto } from '@/src/services/api/wayd.schemas'
 import TeamCapacityPlan from '@/src/app/organizations/_components/capacity-plan/team-capacity-plan'
 import SprintCapacitySummary from './sprint-capacity-summary'
 

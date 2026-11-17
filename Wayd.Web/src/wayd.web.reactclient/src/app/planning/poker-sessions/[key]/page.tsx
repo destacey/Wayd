@@ -25,7 +25,7 @@ import {
   LockOutlined,
   TeamOutlined,
 } from '@ant-design/icons'
-import { Visibility } from '@/src/services/wayd-api'
+import { Visibility } from '@/src/services/api/wayd.schemas'
 import { downloadCsvWithTimestamp, generateCsv } from '@/src/utils/csv-utils'
 import { notFound, useParams } from 'next/navigation'
 import { CSSProperties, FC, useState } from 'react'

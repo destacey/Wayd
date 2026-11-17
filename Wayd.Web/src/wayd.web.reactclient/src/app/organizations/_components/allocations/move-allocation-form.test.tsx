@@ -2,6 +2,7 @@ import { act, render } from '@testing-library/react'
 import type { FormInstance } from 'antd'
 import dayjs from 'dayjs'
 import MoveAllocationForm, { fieldForError } from './move-allocation-form'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
@@ -81,7 +82,9 @@ describe('MoveAllocationForm', () => {
     renderForm(true)
 
     // Act
-    const errors = await endErrors({ start: dayjs('2027-02-01') })
+    const errors = await endErrors({
+      start: dayjs(asCalendarDate('2027-02-01')),
+    })
 
     // Assert
     expect(errors).toEqual([noEndError])
@@ -92,7 +95,9 @@ describe('MoveAllocationForm', () => {
     renderForm()
 
     // Act
-    const errors = await endErrors({ start: dayjs('2027-02-01') })
+    const errors = await endErrors({
+      start: dayjs(asCalendarDate('2027-02-01')),
+    })
 
     // Assert
     expect(errors).toEqual([])

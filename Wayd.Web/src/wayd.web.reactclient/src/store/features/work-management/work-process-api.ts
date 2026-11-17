@@ -1,10 +1,17 @@
-import { getWorkProcessesClient } from '@/src/services/clients'
+import { workProcessesGetList } from '@/src/services/api/work-processes'
+import {
+  workProcessesActivate,
+  workProcessesDeactivate,
+  workProcessesGet,
+  workProcessesGetActivities,
+  workProcessesGetSchemes,
+} from '@/src/services/api/work-processes'
 import {
   WorkProcessDto,
   WorkProcessListDto,
   WorkProcessSchemeDto,
   PagedResponseOfActivityLogDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
@@ -30,9 +37,7 @@ export const workProcessApi = apiSlice.injectEndpoints({
     getWorkProcesses: builder.query<WorkProcessListDto[], boolean>({
       queryFn: async (includeInactive) => {
         try {
-          const data = await (
-            await getWorkProcessesClient()
-          ).getList(includeInactive)
+          const data = await workProcessesGetList({ includeInactive })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -50,7 +55,7 @@ export const workProcessApi = apiSlice.injectEndpoints({
     getWorkProcess: builder.query<WorkProcessDto | null, string>({
       queryFn: async (idOrKey: string) => {
         try {
-          const data = await getWorkProcessesClient().get(idOrKey)
+          const data = await workProcessesGet(idOrKey)
           return { data }
         } catch (error: any) {
           // Return null for 404 so callers can render their own empty/not-found
@@ -74,9 +79,9 @@ export const workProcessApi = apiSlice.injectEndpoints({
       queryFn: async ({ id, isActive }) => {
         try {
           if (isActive) {
-            await getWorkProcessesClient().activate(id)
+            await workProcessesActivate(id)
           } else {
-            await getWorkProcessesClient().deactivate(id)
+            await workProcessesDeactivate(id)
           }
           return { data: null }
         } catch (error) {
@@ -91,7 +96,7 @@ export const workProcessApi = apiSlice.injectEndpoints({
     getWorkProcessSchemes: builder.query<WorkProcessSchemeDto[], string>({
       queryFn: async (workProcessId: string) => {
         try {
-          const data = await getWorkProcessesClient().getSchemes(workProcessId)
+          const data = await workProcessesGetSchemes(workProcessId)
 
           data.sort((a, b) => a.workType.name.localeCompare(b.workType.name))
 
@@ -116,11 +121,10 @@ export const workProcessApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getWorkProcessesClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await workProcessesGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

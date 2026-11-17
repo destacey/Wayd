@@ -1,5 +1,6 @@
-import { ProductStatusAlias } from '@/src/services/wayd-api'
+import { ProductStatusAlias } from '@/src/services/api/wayd.schemas'
 import { incidentStatusSteps } from './incident-status-steps'
+import { asInstant } from '@/src/utils/instant'
 
 const status = (
   id: string,
@@ -20,9 +21,9 @@ const workflow = [
   status('retired', 'Old', 0, null, true),
 ]
 
-const noticedAt = '2026-11-12T16:00:00Z'
-const startedAt = '2026-11-12T18:30:00Z'
-const recoveredAt = '2026-11-12T20:15:00Z'
+const noticedAt = asInstant('2026-11-12T16:00:00Z')
+const startedAt = asInstant('2026-11-12T18:30:00Z')
+const recoveredAt = asInstant('2026-11-12T20:15:00Z')
 
 describe('incidentStatusSteps', () => {
   it('marks earlier statuses complete and keeps each stored time on its status', () => {

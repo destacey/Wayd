@@ -2,7 +2,7 @@
 
 import { ManageTagsForm, TagChanges } from '@/src/components/common/tags'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ProductDto } from '@/src/services/wayd-api'
+import { ProductDto } from '@/src/services/api/wayd.schemas'
 import { useGetProductTagCategoriesQuery } from '@/src/store/features/product-management/product-tag-categories-api'
 import {
   useGetProductTagsSettingsQuery,

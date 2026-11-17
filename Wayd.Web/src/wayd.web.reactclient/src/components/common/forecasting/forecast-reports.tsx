@@ -1,5 +1,6 @@
 'use client'
 
+import { toCalendarDate } from '@/src/utils/calendar-date'
 import {
   ForecastOptionsRequest,
   useGetObjectiveForecastQuery,
@@ -62,7 +63,9 @@ export const WorkItemForecastReport: FC<{
         forecast={data}
         isLoading={isFetching}
         error={error}
-        targetDateOverride={settings.targetDate?.format('YYYY-MM-DD')}
+        targetDateOverride={
+          settings.targetDate ? toCalendarDate(settings.targetDate) : undefined
+        }
       />
     </ReportLayout>
   )
@@ -94,7 +97,9 @@ export const ObjectiveForecastReport: FC<{
         forecast={data}
         isLoading={isFetching}
         error={error}
-        targetDateOverride={settings.targetDate?.format('YYYY-MM-DD')}
+        targetDateOverride={
+          settings.targetDate ? toCalendarDate(settings.targetDate) : undefined
+        }
       />
     </ReportLayout>
   )
@@ -124,7 +129,9 @@ export const ProjectForecastReport: FC<{ projectKey: string }> = ({
         forecast={data}
         isLoading={isFetching}
         error={error}
-        targetDateOverride={settings.targetDate?.format('YYYY-MM-DD')}
+        targetDateOverride={
+          settings.targetDate ? toCalendarDate(settings.targetDate) : undefined
+        }
       />
     </ReportLayout>
   )

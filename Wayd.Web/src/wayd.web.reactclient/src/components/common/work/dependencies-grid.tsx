@@ -1,6 +1,6 @@
 'use client'
 
-import { DependencyDto } from '@/src/services/wayd-api'
+import { DependencyDto } from '@/src/services/api/wayd.schemas'
 import type { ColumnDef } from '../wayd-grid-core'
 import { FC, ReactNode, useMemo } from 'react'
 import {

@@ -18,7 +18,7 @@ import {
   SizingMethod,
   TeamCadenceMetricsDto,
   TeamCadencePeriodDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetTeamCadenceMetricsQuery } from '@/src/store/features/organizations/team-api'
 import { useLocalStorageState } from '@/src/hooks'
 import { sizingMethodLabel, sizingMethodMeasure } from '@/src/utils'

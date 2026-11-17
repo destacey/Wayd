@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { ProductDto } from '@/src/services/wayd-api'
+import { ProductDto } from '@/src/services/api/wayd.schemas'
 import { useGetTeamOptionsQuery } from '@/src/store/features/organizations/team-api'
 import { useSetProductTeamsMutation } from '@/src/store/features/product-management/products-api'
 import { toApiError, toFormErrors } from '@/src/utils'

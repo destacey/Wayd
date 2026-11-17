@@ -6,7 +6,7 @@ import {
   IntakeRequestScoreDto,
   ScoringModelDetailsDto,
   ScoringModelEvaluationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   usePreviewIntakeRequestScoreMutation,
   useScoreIntakeRequestMutation,
@@ -35,7 +35,7 @@ export interface ScoreIntakeRequestFormProps {
   scoringModel: ScoringModelDetailsDto
   modelArchived: boolean
   /** The request's need-by, shown beside the ratings: a person rates urgency, and no criterion reads the date. */
-  needBy: IntakeRequestNeedByDto | undefined
+  needBy: IntakeRequestNeedByDto | undefined | null
   /** The current score, whose ratings the form starts from. */
   currentScore: IntakeRequestScoreDto | undefined
   onFormComplete: () => void

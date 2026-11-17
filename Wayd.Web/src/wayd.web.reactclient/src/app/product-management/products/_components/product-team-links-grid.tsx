@@ -6,7 +6,7 @@ import {
   renderProductLink,
   type ColumnDef,
 } from '@/src/components/common/wayd-grid-core'
-import { ProductTeamLinkDto } from '@/src/services/wayd-api'
+import { ProductTeamLinkDto } from '@/src/services/api/wayd.schemas'
 import useProductTeamLinkActions from './use-product-team-link-actions'
 
 export interface ProductTeamLinksGridProps {

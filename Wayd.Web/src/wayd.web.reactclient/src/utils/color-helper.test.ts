@@ -8,7 +8,7 @@ import {
   softenChartColor,
 } from './color-helper'
 import { LifecycleCategory } from '../components/types'
-import { LifecycleNavigationDto } from '../services/wayd-api'
+import { LifecycleNavigationDto } from '@/src/services/api/wayd.schemas'
 
 describe('getLuminance', () => {
   test('should return 1 for a light color', () => {
@@ -157,23 +157,33 @@ describe('getLifecycleCategoryColorFromStatus', () => {
 
 describe('getLifecycleCategoryTagColor', () => {
   test('should return "processing" for Active category', () => {
-    expect(getLifecycleCategoryTagColor(LifecycleCategory.Active)).toBe('processing')
+    expect(getLifecycleCategoryTagColor(LifecycleCategory.Active)).toBe(
+      'processing',
+    )
   })
 
   test('should return "success" for Completed category', () => {
-    expect(getLifecycleCategoryTagColor(LifecycleCategory.Completed)).toBe('success')
+    expect(getLifecycleCategoryTagColor(LifecycleCategory.Completed)).toBe(
+      'success',
+    )
   })
 
   test('should return "error" for Canceled category', () => {
-    expect(getLifecycleCategoryTagColor(LifecycleCategory.Canceled)).toBe('error')
+    expect(getLifecycleCategoryTagColor(LifecycleCategory.Canceled)).toBe(
+      'error',
+    )
   })
 
   test('should return "default" for NotStarted category', () => {
-    expect(getLifecycleCategoryTagColor(LifecycleCategory.NotStarted)).toBe('default')
+    expect(getLifecycleCategoryTagColor(LifecycleCategory.NotStarted)).toBe(
+      'default',
+    )
   })
 
   test('should return "default" for invalid category', () => {
-    expect(getLifecycleCategoryTagColor(999 as LifecycleCategory)).toBe('default')
+    expect(getLifecycleCategoryTagColor(999 as LifecycleCategory)).toBe(
+      'default',
+    )
   })
 })
 

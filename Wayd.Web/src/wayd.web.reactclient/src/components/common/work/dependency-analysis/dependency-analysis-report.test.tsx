@@ -4,13 +4,18 @@ import dayjs from 'dayjs'
 import {
   DependencyDto,
   TeamDependencyAnalysisDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetTeamDependencyAnalysisQuery } from '@/src/store/features/organizations/team-api'
-import { addCalendarDays, calendarDateInZone } from '@/src/utils/calendar-date'
+import {
+  addCalendarDays,
+  calendarDateInZone,
+  asCalendarDate,
+} from '@/src/utils/calendar-date'
 import {
   DependencyAnalysisReport,
   DependencyAnalysisReportView,
 } from './dependency-analysis-report'
+import { toInstant } from '@/src/utils/instant'
 
 vi.mock('@/src/store/features/organizations/team-api', () => ({
   useGetTeamDependencyAnalysisQuery: vi.fn(),
@@ -63,8 +68,8 @@ const createAnalysis = (
 ): TeamDependencyAnalysisDto =>
   ({
     team: { ...team('root', 'Platform ART', 'ART'), type: 'Team of Teams' },
-    from: '2026-07-01',
-    to: '2026-09-28',
+    from: asCalendarDate('2026-07-01'),
+    to: asCalendarDate('2026-09-28'),
     timeZone: 'America/New_York',
     summary: {
       dependencies: 7,
@@ -89,8 +94,8 @@ const createAnalysis = (
     ],
     periods: [
       {
-        start: '2026-07-01',
-        end: '2026-07-14',
+        start: asCalendarDate('2026-07-01'),
+        end: asCalendarDate('2026-07-14'),
         created: 4,
         closed: 3,
         open: 5,
@@ -108,8 +113,8 @@ const createAnalysis = (
   }) as TeamDependencyAnalysisDto
 
 const julyToSeptember: [dayjs.Dayjs, dayjs.Dayjs] = [
-  dayjs('2026-07-01'),
-  dayjs('2026-09-28'),
+  dayjs(asCalendarDate('2026-07-01')),
+  dayjs(asCalendarDate('2026-09-28')),
 ]
 
 const view = (
@@ -287,8 +292,8 @@ describe('DependencyAnalysisReportView', () => {
     rerender(view(analysis))
     rerender(
       view(analysis, true, undefined, [
-        dayjs('2026-08-01'),
-        dayjs('2026-09-28'),
+        dayjs(asCalendarDate('2026-08-01')),
+        dayjs(asCalendarDate('2026-09-28')),
       ]),
     )
 
@@ -403,7 +408,7 @@ describe('DependencyAnalysisReportView', () => {
 describe('DependencyAnalysisReport', () => {
   it('asks for the last 90 days ending today in UTC without a zone, as the API counts it', () => {
     // Arrange
-    const today = calendarDateInZone(new Date(), 'UTC')
+    const today = calendarDateInZone(toInstant(new Date()), 'UTC')
     const query = vi.mocked(useGetTeamDependencyAnalysisQuery)
     query.mockReturnValue({
       data: undefined,
@@ -425,8 +430,12 @@ describe('DependencyAnalysisReport', () => {
   })
 
   it.each([
-    ['Pacific/Kiritimati', '2026-06-26', '2026-09-23'],
-    ['Etc/GMT+12', '2026-06-24', '2026-09-21'],
+    [
+      'Pacific/Kiritimati',
+      asCalendarDate('2026-06-26'),
+      asCalendarDate('2026-09-23'),
+    ],
+    ['Etc/GMT+12', asCalendarDate('2026-06-24'), asCalendarDate('2026-09-21')],
   ])(
     'ends the default range on today in the team time zone %s',
     (timeZone, from, to) => {

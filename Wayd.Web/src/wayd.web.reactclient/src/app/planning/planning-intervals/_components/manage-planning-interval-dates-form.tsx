@@ -11,7 +11,7 @@ import {
   Select,
 } from 'antd'
 import { useEffect } from 'react'
-import { ManagePlanningIntervalDatesRequest } from '@/src/services/wayd-api'
+import { ManagePlanningIntervalDatesRequest } from '@/src/services/api/wayd.schemas'
 import {
   parseCalendarDate,
   toCalendarDate,

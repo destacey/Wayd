@@ -8,11 +8,17 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mockReplace }),
 }))
 
-vi.mock('@/src/services/clients', () => ({
+vi.mock(import('@/src/services/auth-storage'), async (importOriginal) => ({
+  ...(await importOriginal()),
   isAuthActive: () => false,
-  getAuthClient: vi.fn(),
   setRememberMe: vi.fn(),
   storeAuth: vi.fn(),
+}))
+
+vi.mock(import('@/src/services/api/auth'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  authLogin: vi.fn(),
+  authExchange: vi.fn(),
 }))
 
 // Mocked beneath the real oidc-client-registry, so a test can tell whether the
@@ -51,8 +57,9 @@ vi.mock('@/src/store/features/common/auth-providers-api', () => ({
 // Imports after mocks
 import LoginPage from './page'
 import { UserManager } from 'oidc-client-ts'
-import { getAuthClient, storeAuth } from '@/src/services/clients'
-import { ApiException } from '@/src/services/wayd-api'
+import { storeAuth } from '@/src/services/auth-storage'
+import { authExchange, authLogin } from '@/src/services/api/auth'
+import type { ApiResponseError } from '@/src/services/api-fetch'
 
 const entraProvider = {
   name: 'MicrosoftEntraId',
@@ -209,9 +216,7 @@ describe('LoginPage return to the requested page', () => {
         data: { local: true, oidc: [] },
         isLoading: false,
       })
-      vi.mocked(getAuthClient).mockReturnValue({
-        login: vi.fn().mockResolvedValue({ token: 't' }),
-      } as never)
+      vi.mocked(authLogin).mockResolvedValue({ token: 't' } as never)
       mockTakeReturnUrl.mockReturnValue(stored)
       render(<LoginPage />)
 
@@ -246,9 +251,7 @@ describe('LoginPage return to the requested page', () => {
         removeUser: vi.fn().mockResolvedValue(undefined),
       } as never
     })
-    vi.mocked(getAuthClient).mockReturnValue({
-      exchange: vi.fn().mockResolvedValue({ token: 't' }),
-    } as never)
+    vi.mocked(authExchange).mockResolvedValue({ token: 't' } as never)
     mockTakeReturnUrl.mockReturnValue(RETURN_PATH)
 
     // Act
@@ -266,25 +269,20 @@ describe('LoginPage rate-limited sign-in', () => {
   })
 
   it('tells the user how long to wait, rather than reporting a server fault', async () => {
-    // Arrange — the shape the generated client throws for a 429 the endpoint does not document
+    // Arrange — what the generated client throws for a 429
     mockUseGetAuthProvidersQuery.mockReturnValue({
       data: { local: true, oidc: [] },
       isLoading: false,
     })
-    const refused = new ApiException(
-      'An unexpected server error occurred.',
-      429,
-      JSON.stringify({
-        status: 429,
-        title: 'Too Many Requests',
-        detail: 'Too many requests. Try again in 42 seconds.',
-      }),
-      { 'retry-after': '42' },
-      null,
-    )
-    vi.mocked(getAuthClient).mockReturnValue({
-      login: vi.fn().mockRejectedValue(refused),
-    } as never)
+    const refused: ApiResponseError = {
+      kind: 'api-response',
+      status: 429,
+      url: '/api/auth/login',
+      headers: { 'retry-after': '42' },
+      title: 'Too Many Requests',
+      detail: 'Too many requests. Try again in 42 seconds.',
+    }
+    vi.mocked(authLogin).mockRejectedValue(refused)
     render(<LoginPage />)
 
     // Act
@@ -332,19 +330,14 @@ describe('LoginPage rate-limited identity-provider sign-in', () => {
         removeUser: vi.fn().mockResolvedValue(undefined),
       } as never
     })
-    const refused = new ApiException(
-      'An unexpected server error occurred.',
-      429,
-      JSON.stringify({
-        status: 429,
-        detail: 'Too many requests. Try again in 17 seconds.',
-      }),
-      { 'retry-after': '17' },
-      null,
-    )
-    vi.mocked(getAuthClient).mockReturnValue({
-      exchange: vi.fn().mockRejectedValue(refused),
-    } as never)
+    const refused: ApiResponseError = {
+      kind: 'api-response',
+      status: 429,
+      url: '/api/auth/exchange',
+      headers: { 'retry-after': '17' },
+      detail: 'Too many requests. Try again in 17 seconds.',
+    }
+    vi.mocked(authExchange).mockRejectedValue(refused)
 
     // Act — in act, for the reason given on the password sign-in test
     await act(async () => {

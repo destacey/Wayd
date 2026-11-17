@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
-import { WorkItemForecastDto } from '@/src/services/wayd-api'
+import { WorkItemForecastDto } from '@/src/services/api/wayd.schemas'
 import CompletionForecastChart from './completion-forecast-chart'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('next/dynamic', () => ({
   default: () => {
@@ -28,9 +29,9 @@ describe('CompletionForecastChart', () => {
     const forecast = {
       trials: 10,
       histogram: [
-        { date: '2026-10-03', trials: 5 },
-        { date: '2026-10-01', trials: 2 },
-        { date: '2026-10-02', trials: 3 },
+        { date: asCalendarDate('2026-10-03'), trials: 5 },
+        { date: asCalendarDate('2026-10-01'), trials: 2 },
+        { date: asCalendarDate('2026-10-02'), trials: 3 },
       ],
     } as unknown as WorkItemForecastDto
 
@@ -46,13 +47,16 @@ describe('CompletionForecastChart', () => {
     const forecast = {
       trials: 2,
       histogram: [
-        { date: '2026-10-01', trials: 1 },
-        { date: '2026-10-02', trials: 1 },
+        { date: asCalendarDate('2026-10-01'), trials: 1 },
+        { date: asCalendarDate('2026-10-02'), trials: 1 },
       ],
     } as unknown as WorkItemForecastDto
 
     render(
-      <CompletionForecastChart forecast={forecast} targetDate="2026-10-01" />,
+      <CompletionForecastChart
+        forecast={forecast}
+        targetDate={asCalendarDate('2026-10-01')}
+      />,
     )
 
     expect(chartData().map((d: any) => d.byTargetDate)).toEqual([true, false])

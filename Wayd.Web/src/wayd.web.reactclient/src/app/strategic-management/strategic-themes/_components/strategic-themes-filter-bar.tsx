@@ -1,7 +1,7 @@
 'use client'
 
 import { useGetStateOptionsQuery } from '@/src/store/features/strategic-management/strategic-themes-api'
-import { StrategicThemeState } from '@/src/services/wayd-api'
+import { StrategicThemeState } from '@/src/services/api/wayd.schemas'
 import { FC } from 'react'
 import { PpmFilterBar } from '@/src/app/ppm/_components'
 

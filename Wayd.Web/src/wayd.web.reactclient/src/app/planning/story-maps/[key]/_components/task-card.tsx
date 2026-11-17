@@ -1,6 +1,6 @@
 'use client'
 
-import { StoryMapTaskDto } from '@/src/services/wayd-api'
+import { StoryMapTaskDto } from '@/src/services/api/wayd.schemas'
 import { DeleteOutlined } from '@ant-design/icons'
 import { Button, Popconfirm } from 'antd'
 import { FC, MouseEvent } from 'react'

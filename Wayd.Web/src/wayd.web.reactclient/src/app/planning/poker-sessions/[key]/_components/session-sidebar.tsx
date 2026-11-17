@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   PokerRoundPublicationOutcome,
   PokerSessionDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { usePublishPokerRoundsMutation } from '@/src/store/features/planning/poker-sessions-api'
 import { toApiError } from '@/src/utils'
 import { Button, Divider, Flex } from 'antd'

@@ -1,5 +1,6 @@
-import { WorkItemListDto } from '@/src/services/wayd-api'
+import { WorkItemListDto } from '@/src/services/api/wayd.schemas'
 import { buildWorkItemTree } from './work-item-tree-utils'
+import { toInstant } from '@/src/utils/instant'
 
 /** Creates a minimal WorkItemListDto for testing. */
 function createWorkItem(
@@ -17,7 +18,7 @@ function createWorkItem(
     status: 'Active',
     statusCategory: { id: 1, name: 'Active' },
     stackRank: 0,
-    created: new Date(),
+    created: toInstant(new Date()),
     ...(parentId && {
       parent: {
         id: parentId,

@@ -7,7 +7,7 @@ import {
   statusCategoryDescription,
   WorkflowStatusTag,
 } from '@/src/components/common/status-workflows'
-import { ReleaseDto } from '@/src/services/wayd-api'
+import { ReleaseDto } from '@/src/services/api/wayd.schemas'
 import { Tooltip, Typography } from 'antd'
 import Link from 'next/link'
 import { ReactElement } from 'react'

@@ -255,7 +255,7 @@ Permissions travel as `permission` claims inside the Wayd JWT — no separate `/
 
 #### Where the browser keeps tokens
 
-- **The Wayd JWT and refresh token** are in `localStorage`, or `sessionStorage` when the user clears **Remember me** (`getAuthStorage` in `src/services/clients.ts`).
+- **The Wayd JWT and refresh token** are in `localStorage`, or `sessionStorage` when the user clears **Remember me** (`getAuthStorage` in `src/services/auth-storage.ts`).
 - **The provider's tokens are never stored.** oidc-client-ts holds them in memory (`InMemoryWebStorage`) for the exchange, and `completeSignin` removes them right after. Its redirect state, including the PKCE verifier of an abandoned sign-in, is in `oidc.*` keys, which `clearAuth` removes.
 - **The authorization code comes back in the URL fragment** (`response_mode: 'fragment'`). The browser never sends a fragment to a server, so the code stays out of request logs and traces.
 - **Provider sign-out runs on `/login`.** It fetches the provider's discovery document from the browser, and `/login` is the only page whose Content-Security-Policy allows that (see [The web client](#the-web-client)). With no ID token kept, the end-session request sends `client_id` instead of `id_token_hint`, so some providers ask the user to confirm.

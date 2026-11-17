@@ -127,7 +127,7 @@ export const NO_HEALTH_LABEL = 'No health check'
 const HEALTH_ORDER = ['Unhealthy', 'At Risk', 'Healthy', NO_HEALTH_LABEL]
 
 interface HealthBearing {
-  healthCheck?: { status: { name: string } }
+  healthCheck?: { status: { name: string } } | null
   status: { lifecycleCategory: string }
 }
 

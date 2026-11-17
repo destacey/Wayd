@@ -812,8 +812,7 @@ public class TeamsController(
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TeamOperatingModelDetailsDto>> GetOperatingModelAsOf(Guid id, [FromQuery] DateTime? asOfDate, CancellationToken cancellationToken)
     {
-        // TODO: using LocalDate or DateOnly from NSWAG and axios doesn't working correctly.
-        // NSwag's TypeScript generator uses toISOString() for all Date types, regardless of whether the OpenAPI spec specifies format: date or format: date-time. This is a known NSwag limitation (Issue #2339).
+        // TODO: take a LocalDate. The web client still sends this date as an instant (UTC midnight of the day).
         LocalDate? localDate = asOfDate.HasValue
             ? LocalDate.FromDateTime(asOfDate.Value)
             : null;
@@ -838,8 +837,7 @@ public class TeamsController(
         [FromQuery] DateTime? asOfDate,
         CancellationToken cancellationToken)
     {
-        // TODO: using LocalDate or DateOnly from NSWAG and axios doesn't working correctly.
-        // NSwag's TypeScript generator uses toISOString() for all Date types, regardless of whether the OpenAPI spec specifies format: date or format: date-time. This is a known NSwag limitation (Issue #2339).
+        // TODO: take a LocalDate. The web client still sends this date as an instant (UTC midnight of the day).
         LocalDate? localDate = asOfDate.HasValue
             ? LocalDate.FromDateTime(asOfDate.Value)
             : null;
@@ -1027,8 +1025,7 @@ public class TeamsController(
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<FunctionalOrganizationChartDto>> GetFunctionalOrganizationChart([FromQuery] DateTime? asOfDate, CancellationToken cancellationToken)
     {
-        // TODO: using LocalDate or DateOnly from NSWAG and axios doesn't working correctly.
-        // NSwag's TypeScript generator uses toISOString() for all Date types, regardless of whether the OpenAPI spec specifies format: date or format: date-time. This is a known NSwag limitation (Issue #2339).
+        // TODO: take a LocalDate. The web client still sends this date as an instant (UTC midnight of the day).
         LocalDate? dateOnlyAsOfDate = asOfDate.HasValue
             ? LocalDate.FromDateTime(asOfDate.Value)
             : null;

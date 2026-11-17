@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useDocumentTitle } from '@/src/hooks'
 import { useGetRolesQuery } from '@/src/store/features/user-management/roles-api'
 import { CreateRoleForm } from './_components'
-import { RoleListDto } from '@/src/services/wayd-api'
+import { RoleListDto } from '@/src/services/api/wayd.schemas'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 const RoleListPage = () => {
   useDocumentTitle('Roles')

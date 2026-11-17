@@ -2,7 +2,7 @@ import { WorkflowStatusTag } from '@/src/components/common/status-workflows'
 import {
   ProjectDeliverableStatusAlias,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { FC } from 'react'
 
 const aliasLabel: Partial<Record<ProjectDeliverableStatusAlias, string>> = {

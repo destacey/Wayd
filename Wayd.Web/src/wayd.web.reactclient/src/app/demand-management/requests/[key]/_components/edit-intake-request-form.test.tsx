@@ -7,9 +7,10 @@ import {
   IntakeRequestSubstanceDto,
   NeedByBasis,
   NeedByBasisFamily,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import EditIntakeRequestForm from './edit-intake-request-form'
 import type { UseModalFormOptions } from '@/src/hooks'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // The markdown renderer and editor have their own suites; plain stand-ins keep this one on the form.
 vi.mock('@/src/components/common/markdown', () => ({
@@ -100,12 +101,12 @@ const request = {
     requester: { id: 'e-1', key: 1, name: 'Avery Example' },
     channel: { id: 'c-1', name: 'Security' },
     needBy: {
-      date: '2026-12-31',
+      date: asCalendarDate('2026-12-31'),
       basis: NeedByBasis.Commitment,
       family: NeedByBasisFamily.ChosenByUs,
       reference: 'Steering committee',
       committedBy: { id: 'e-9', key: 9, name: 'Morgan Former' },
-      committedOn: '2026-09-03',
+      committedOn: asCalendarDate('2026-09-03'),
     },
   },
   substance: null,

@@ -2,7 +2,7 @@
 
 import { compareTags, tagText } from '@/src/components/common/tags'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { IntakeRequestTagListItemDto } from '@/src/services/wayd-api'
+import { IntakeRequestTagListItemDto } from '@/src/services/api/wayd.schemas'
 import {
   useMergeIntakeRequestTagMutation,
   useSearchIntakeRequestTagsQuery,

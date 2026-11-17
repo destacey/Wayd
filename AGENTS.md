@@ -53,7 +53,7 @@ Some directories carry their own `AGENTS.md` with rules that apply only there. R
 Run what covers the change before calling it done, and report what you ran:
 
 - **.NET** — `dotnet build` on the projects you touched, then `dotnet test` on each affected test project. Changed a project reference? Run `Wayd.ArchitectureTests` too. Changed an entity configuration? Add a migration.
-- **API surface** — a changed endpoint or model: a Debug build of `Wayd.Web.Api` regenerates `specification.json` and `wayd-api.ts`, building `Wayd.Tools.DataGeneration.Cli.Client` regenerates `WaydApiClient.g.cs`; commit all three.
+- **API surface** — a changed endpoint or model: a Debug build of `Wayd.Web.Api` regenerates `specification.json` and the client's `src/services/api/`, building `Wayd.Tools.DataGeneration.Cli.Client` regenerates `WaydApiClient.g.cs`; commit all three.
 - **Imports** — a changed import (row class, endpoint, or what the handler accepts) also needs: `npm run generate:import-templates` in the client; the area's `docs/user-guide/*/bulk-import.mdx`; and `Wayd.Tools.DataGeneration.Cli.Tests`, because data generation seeds through these endpoints.
 - **Data generation** — a change to what an area generates, or to a domain rule seeding relies on, runs `Wayd.Tools.DataGeneration.Cli.Tests` and updates `docs/contributing/tools/data-generation.mdx`. A recipe-format change also refreshes `docs-site/static/schemas/wayd-data/recipe.schema.json` (`RecipeLibraryTests` fails until it matches).
 - **Client** — `npm run typecheck`, `npm run lint`, and `npm test` in `Wayd.Web/src/wayd.web.reactclient`.
@@ -194,7 +194,7 @@ Architecture tests in `Wayd.ArchitectureTests` enforce these dependency rules.
 - **Integrations**: `Wayd.Integrations/src/Wayd.Integrations.{SystemName}/`
 - **Persistence**: `WaydDbContext` and entity configs under `Wayd.Infrastructure/src/Wayd.Infrastructure/Persistence/`; migrations in `Wayd.Infrastructure.Migrators.MSSQL/`
 - **Feature flags**: `Wayd.Common/src/Wayd.Common.Domain/FeatureManagement/FeatureFlags.cs`
-- **Frontend pages**: `Wayd.Web/src/wayd.web.reactclient/src/app/`; API client factories in `src/services/clients.ts` (generated client: `wayd-api.ts`)
+- **Frontend pages**: `Wayd.Web/src/wayd.web.reactclient/src/app/`; generated API client in `src/services/api/`
 - **Tests**: Mirror the source structure in `tests/` folders; shared fakers in `Wayd.Common/tests/Wayd.Tests.Shared/`
 - **Package versions**: `Directory.Packages.props`
 
@@ -236,9 +236,9 @@ Every comment must be valuable, never narrative. Full rules and examples:
 
 ### Frontend (React/Next.js)
 
-- **API calls**: Always use NSwag-generated typed client (e.g., `getProjectsClient()`). Never use `authenticatedFetch()` directly. Clients in `wayd.web.reactclient/src/services/clients.ts`.
+- **API calls**: Always call the Orval-generated functions (`projectsGetProjects()` from `@/src/services/api/projects`), never `fetch` directly. See [API Calls](docs/contributing/frontend.mdx#api-calls).
 - **Theming**: Ant Design theme tokens only — never hardcode colors. Prefer CSS variables (`var(--ant-color-primary)`) in CSS modules over `theme.useToken()` in JS. Only use `theme.useToken()` when values are needed in JS logic.
-- **Dates**: a `LocalDate` is generated as `string` (`"YYYY-MM-DD"`), an `Instant` as `Date`. Handle calendar dates only through `src/utils/calendar-date.ts` — never `new Date(x)` or `dayjs.utc(x)`, which shift the day west of UTC. See [Dates and instants](docs/contributing/frontend.mdx#dates-and-instants).
+- **Dates**: branded strings: a `LocalDate` is a `CalendarDate` (`"YYYY-MM-DD"`), an `Instant` an `Instant`. Use the `to*`/`as*` helpers, never a cast. Never `new Date(calendarDate)` or `dayjs.utc(calendarDate)`, which shift the day west of UTC. See [Dates and instants](docs/contributing/frontend.mdx#dates-and-instants).
 - **State**: Redux Toolkit + RTK Query for API data. React Context for auth/theme. `useState` for local UI state.
 - **PWA**: Serwist builds the service worker, but nothing registers it. See [frontend.mdx](docs/contributing/frontend.mdx#pwa-progressive-web-app).
 - **Ant Design reference**: For component APIs, usage examples, and design tokens, fetch the machine-readable docs — per-component `https://ant.design/components/<name>.md` (e.g. `Table.md`), the full index at <https://ant.design/llms-full.txt>, and the design-token spec at <https://ant.design/design.md>. See <https://ant.design/docs/react/for-agents> for the full agent toolset (CLI + MCP server).
@@ -295,7 +295,7 @@ be renamed** (a rename silently reverts the stored value). Read through `ISettin
 
 ### OpenAPI Client Generation
 
-A Debug build of the API writes the OpenAPI document (`wwwroot/api/v1/specification.json`) with `Microsoft.AspNetCore.OpenApi`, then NSwag regenerates the TypeScript client (`wayd.web.reactclient/src/services/wayd-api.ts`) from it. That build **boots the API** — gate any new database-touching startup work behind `HostIntrospection.SkipsDatabaseInitialization`, or the build fails. After changing a CSV import row class, run `npm run generate:import-templates` in the client. Details: [Wayd.Web/src/Wayd.Web.Api/AGENTS.md](Wayd.Web/src/Wayd.Web.Api/AGENTS.md#openapi-client-generation).
+A Debug build of the API writes the OpenAPI document (`wwwroot/api/v1/specification.json`) with `Microsoft.AspNetCore.OpenApi`, then Orval regenerates the TypeScript client (`wayd.web.reactclient/src/services/api/`) from it. That build **boots the API** — gate any new database-touching startup work behind `HostIntrospection.SkipsDatabaseInitialization`, or the build fails. After changing a CSV import row class, run `npm run generate:import-templates` in the client. Details: [Wayd.Web/src/Wayd.Web.Api/AGENTS.md](Wayd.Web/src/Wayd.Web.Api/AGENTS.md#openapi-client-generation).
 
 ### Wolverine Handler Codegen (generated, not committed)
 

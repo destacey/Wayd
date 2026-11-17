@@ -1,5 +1,5 @@
 import { act, render } from '@testing-library/react'
-import { DependencyStrength, ProductDto } from '@/src/services/wayd-api'
+import { DependencyStrength, ProductDto } from '@/src/services/api/wayd.schemas'
 import AddProductDependencyForm from './add-product-dependency-form'
 import type { FormInstance } from 'antd'
 import type { UseModalFormOptions } from '@/src/hooks'

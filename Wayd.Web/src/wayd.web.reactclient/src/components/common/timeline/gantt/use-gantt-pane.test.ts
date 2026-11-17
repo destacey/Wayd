@@ -1,5 +1,6 @@
 import { computeGanttDomain, pxPerMsFor, toMs } from './use-gantt-pane'
 import type { GanttAccessors } from './types'
+import { asInstant } from '@/src/utils/instant'
 
 const DAY = 86_400_000
 const PAD = 14 * DAY
@@ -70,7 +71,7 @@ describe('computeGanttDomain', () => {
   it('falls back to a window around today when nothing is dated', () => {
     // Arrange — an undated tree and no hint (a plan with no scheduled work).
     const roots: Node[] = [{ id: 'p', children: [{ id: 'c' }] }]
-    const now = Date.parse('2026-08-20T12:00:00.000Z')
+    const now = Date.parse(asInstant('2026-08-20T12:00:00.000Z'))
     // Act
     const domain = computeGanttDomain(roots, accessors, undefined, now)
     // Assert — the axis opens near today (the chart is on by default, so an
@@ -85,7 +86,7 @@ describe('computeGanttDomain', () => {
   it('keeps a start-only hint inside the domain when nothing is dated', () => {
     // Arrange — an undated tree, hinted only with a window start.
     const roots: Node[] = [{ id: 'p', children: [{ id: 'c' }] }]
-    const now = Date.parse('2026-08-20T12:00:00.000Z')
+    const now = Date.parse(asInstant('2026-08-20T12:00:00.000Z'))
     // Act
     const domain = computeGanttDomain(roots, accessors, [day(100), undefined], now)
     // Assert — the axis starts at the hint and runs a year forward.
@@ -96,7 +97,7 @@ describe('computeGanttDomain', () => {
   it('keeps an end-only hint inside the domain when nothing is dated', () => {
     // Arrange — an undated tree, hinted only with a window end.
     const roots: Node[] = [{ id: 'p', children: [{ id: 'c' }] }]
-    const now = Date.parse('2026-08-20T12:00:00.000Z')
+    const now = Date.parse(asInstant('2026-08-20T12:00:00.000Z'))
     // Act
     const domain = computeGanttDomain(roots, accessors, [undefined, day(100)], now)
     // Assert — the axis ends at the hint, with the year running backwards from it,
@@ -109,7 +110,7 @@ describe('computeGanttDomain', () => {
     // Arrange — a past end date is the case that would flip end before start if
     // the start fell back to `now`.
     const roots: Node[] = [{ id: 'p', children: [{ id: 'c' }] }]
-    const now = Date.parse('2026-08-20T12:00:00.000Z')
+    const now = Date.parse(asInstant('2026-08-20T12:00:00.000Z'))
     const pastEnd = now - 500 * DAY
     // Act
     const domain = computeGanttDomain(roots, accessors, [undefined, pastEnd], now)
@@ -153,7 +154,7 @@ describe('toMs', () => {
 
   it('parses a Date and an ISO string to the same instant', () => {
     // Arrange
-    const iso = '2026-03-15T00:00:00.000Z'
+    const iso = asInstant('2026-03-15T00:00:00.000Z')
     // Act
     const fromString = toMs(iso)
     const fromDate = toMs(new Date(iso))

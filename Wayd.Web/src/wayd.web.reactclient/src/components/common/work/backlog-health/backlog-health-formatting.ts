@@ -2,7 +2,7 @@ import {
   BacklogHealthCheckDto,
   SizingMethod,
   TeamBacklogHealthDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { sizingMethodMeasure } from '@/src/utils'
 
 /** Mirrors the API's BacklogHealthCheck enum, which the DTOs carry as ids. */

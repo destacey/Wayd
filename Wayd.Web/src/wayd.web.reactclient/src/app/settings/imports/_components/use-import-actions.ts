@@ -2,7 +2,7 @@
 
 import { App } from 'antd'
 import { useRouter } from 'next/navigation'
-import { ResumedImport } from '@/src/services/wayd-api'
+import { ResumedImport } from '@/src/services/api/wayd.schemas'
 import {
   useApplyImportPreflightMutation,
   useCancelImportProcessMutation,
@@ -19,7 +19,7 @@ interface ImportInfo {
   failedRowCount: number
   unappliedRowCount: number
   isPreflight?: boolean
-  appliedImportProcessId?: string
+  appliedImportProcessId?: string | null
 }
 
 /**

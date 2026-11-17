@@ -4,11 +4,12 @@ import {
   SprintCapacityDto,
   SprintCapacityOutcome,
   SprintCapacityScopeBasis,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import SprintCapacitySummary, {
   lastSprints,
   overCapacityWarning,
 } from './sprint-capacity-summary'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 let mockCapacity: SprintCapacityDto | undefined
 // What RTK Query still holds from the previous sprint while this one loads.
@@ -30,8 +31,8 @@ const capacity = (
   overrides: Partial<SprintCapacityDto> = {},
 ): SprintCapacityDto => ({
   sprintId: 'sprint-1',
-  start: '2026-09-14',
-  end: '2026-09-25',
+  start: asCalendarDate('2026-09-14'),
+  end: asCalendarDate('2026-09-25'),
   allocatedPersonDays: 12,
   deliveryPersonDays: 10,
   awayPersonDays: 0.5,

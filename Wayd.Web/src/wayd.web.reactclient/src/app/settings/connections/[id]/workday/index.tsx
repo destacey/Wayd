@@ -6,7 +6,7 @@ import {
   EmployeeMatchProperty,
   WorkdayConnectionDetailsDto,
   WorkdayWorkerKey,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useInitConnectionMutation } from '@/src/store/features/app-integration/connections-api'
 import { Alert, Col, Descriptions, Row, Typography } from 'antd'
 import dayjs from 'dayjs'
@@ -54,7 +54,9 @@ const InitResultCallout = ({
         title="Connection is valid, but the probe noted some observations:"
         description={
           <ul style={{ marginBottom: 0 }}>
-            {config.lastInitWarnings?.map((w, i) => <li key={i}>{w}</li>)}
+            {config.lastInitWarnings?.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
           </ul>
         }
       />
@@ -78,7 +80,9 @@ const InitResultCallout = ({
                 in Workday:
               </p>
               <ul style={{ marginBottom: 0 }}>
-                {config.lastInitMissingFields?.map((f, i) => <li key={i}>{f}</li>)}
+                {config.lastInitMissingFields?.map((f, i) => (
+                  <li key={i}>{f}</li>
+                ))}
               </ul>
             </>
           )}
@@ -86,7 +90,9 @@ const InitResultCallout = ({
             <>
               <p>Additional warnings:</p>
               <ul style={{ marginBottom: 0 }}>
-                {config.lastInitWarnings?.map((w, i) => <li key={i}>{w}</li>)}
+                {config.lastInitWarnings?.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
               </ul>
             </>
           )}

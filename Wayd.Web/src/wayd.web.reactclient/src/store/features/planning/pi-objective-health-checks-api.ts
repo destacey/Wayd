@@ -1,10 +1,16 @@
-import { getPlanningIntervalsClient } from '@/src/services/clients'
+import {
+  planningIntervalsCreateObjectiveHealthCheck,
+  planningIntervalsDeleteObjectiveHealthCheck,
+  planningIntervalsGetObjectiveHealthCheck,
+  planningIntervalsGetObjectiveHealthChecks,
+  planningIntervalsUpdateObjectiveHealthCheck,
+} from '@/src/services/api/planning-intervals'
 import { apiSlice } from '../apiSlice'
 import {
   CreatePlanningIntervalObjectiveHealthCheckRequest,
   PlanningIntervalObjectiveHealthCheckDetailsDto,
   UpdatePlanningIntervalObjectiveHealthCheckRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 
 export interface PiObjectiveHealthCheckScope {
@@ -34,7 +40,7 @@ export const piObjectiveHealthChecksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ planningIntervalId, objectiveId }) => {
         try {
-          const data = await getPlanningIntervalsClient().getObjectiveHealthChecks(
+          const data = await planningIntervalsGetObjectiveHealthChecks(
             planningIntervalId,
             objectiveId,
           )
@@ -59,7 +65,7 @@ export const piObjectiveHealthChecksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ planningIntervalId, objectiveId, healthCheckId }) => {
         try {
-          const data = await getPlanningIntervalsClient().getObjectiveHealthCheck(
+          const data = await planningIntervalsGetObjectiveHealthCheck(
             planningIntervalId,
             objectiveId,
             healthCheckId,
@@ -81,7 +87,7 @@ export const piObjectiveHealthChecksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ planningIntervalId, objectiveId, request }) => {
         try {
-          const data = await getPlanningIntervalsClient().createObjectiveHealthCheck(
+          const data = await planningIntervalsCreateObjectiveHealthCheck(
             planningIntervalId,
             objectiveId,
             request,
@@ -106,7 +112,7 @@ export const piObjectiveHealthChecksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ planningIntervalId, objectiveId, request }) => {
         try {
-          const data = await getPlanningIntervalsClient().updateObjectiveHealthCheck(
+          const data = await planningIntervalsUpdateObjectiveHealthCheck(
             planningIntervalId,
             objectiveId,
             request.id,
@@ -133,7 +139,7 @@ export const piObjectiveHealthChecksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ planningIntervalId, objectiveId, healthCheckId }) => {
         try {
-          await getPlanningIntervalsClient().deleteObjectiveHealthCheck(
+          await planningIntervalsDeleteObjectiveHealthCheck(
             planningIntervalId,
             objectiveId,
             healthCheckId,

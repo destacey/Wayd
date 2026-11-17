@@ -11,7 +11,10 @@ import {
   Select,
 } from 'antd'
 import { useEffect } from 'react'
-import { RiskDetailsDto, UpdateRiskRequest } from '@/src/services/wayd-api'
+import {
+  RiskDetailsDto,
+  UpdateRiskRequest,
+} from '@/src/services/api/wayd.schemas'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import dayjs, { type Dayjs } from 'dayjs'
 import { MarkdownEditor } from '../markdown'
@@ -24,6 +27,7 @@ import {
 } from '@/src/store/features/planning/risks-api'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { useModalForm } from '@/src/hooks'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Descriptions
 const { Item: FormItem } = Form
@@ -61,7 +65,9 @@ const mapToRequestValues = (values: EditRiskFormValues) => {
     impactId: values.impactId,
     likelihoodId: values.likelihoodId,
     assigneeId: values.assigneeId,
-    followUpDate: values.followUpDate?.format('YYYY-MM-DD'),
+    followUpDate: values.followUpDate
+      ? toCalendarDate(values.followUpDate)
+      : undefined,
     response: values.response,
   } as unknown as UpdateRiskRequest
 }

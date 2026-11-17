@@ -14,7 +14,10 @@ import {
 import useTheme from '@/src/components/contexts/theme'
 import { useGetSprintScopeQuery } from '@/src/store/features/work-management/sprints-api'
 import { IterationState } from '@/src/components/types'
-import { SizingMethod, SprintMetricsSummary } from '@/src/services/wayd-api'
+import {
+  SizingMethod,
+  SprintMetricsSummary,
+} from '@/src/services/api/wayd.schemas'
 import { Card, Col, Flex, Grid, Row, Tag, Typography } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
 import {

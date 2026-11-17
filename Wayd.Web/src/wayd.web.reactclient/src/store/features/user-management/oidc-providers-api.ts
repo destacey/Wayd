@@ -1,4 +1,15 @@
-import { getOidcProvidersClient } from '@/src/services/clients'
+import {
+  oidcProvidersCreate,
+  oidcProvidersDelete,
+  oidcProvidersGetActivities,
+  oidcProvidersGetById,
+  oidcProvidersGetList,
+  oidcProvidersGetMigrationCandidates,
+  oidcProvidersGetPendingMigrations,
+  oidcProvidersStageBulkTenantMigration,
+  oidcProvidersTestDiscovery,
+  oidcProvidersUpdate,
+} from '@/src/services/api/oidc-providers'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
@@ -12,14 +23,14 @@ import {
   TenantMigrationCandidateDto,
   TestOidcProviderDiscoveryResult,
   UpdateOidcProviderRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 export const oidcProvidersApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getOidcProviders: builder.query<OidcProviderListItemDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getOidcProvidersClient().getList()
+          const data = await oidcProvidersGetList()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -32,7 +43,7 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
     getOidcProvider: builder.query<OidcProviderDto, string>({
       queryFn: async (id) => {
         try {
-          const data = await getOidcProvidersClient().getById(id)
+          const data = await oidcProvidersGetById(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -50,7 +61,7 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getOidcProvidersClient().create(request)
+          const data = await oidcProvidersCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -63,10 +74,7 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
     updateOidcProvider: builder.mutation<void, UpdateOidcProviderRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getOidcProvidersClient().update(
-            request.id,
-            request,
-          )
+          const data = await oidcProvidersUpdate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -83,7 +91,7 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
     deleteOidcProvider: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getOidcProvidersClient().delete(id)
+          const data = await oidcProvidersDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -102,11 +110,10 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getOidcProvidersClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await oidcProvidersGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -124,7 +131,7 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (id) => {
         try {
-          const data = await getOidcProvidersClient().testDiscovery(id)
+          const data = await oidcProvidersTestDiscovery(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -139,10 +146,9 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ providerId, sourceTenantId }) => {
         try {
-          const data = await getOidcProvidersClient().getMigrationCandidates(
-            providerId,
-            sourceTenantId,
-          )
+          const data = await oidcProvidersGetMigrationCandidates(providerId, {
+            sourceTenantId: sourceTenantId,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -160,8 +166,7 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (providerId) => {
         try {
-          const data =
-            await getOidcProvidersClient().getPendingMigrations(providerId)
+          const data = await oidcProvidersGetPendingMigrations(providerId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -179,7 +184,7 @@ export const oidcProvidersApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ providerId, request }) => {
         try {
-          const data = await getOidcProvidersClient().stageBulkTenantMigration(
+          const data = await oidcProvidersStageBulkTenantMigration(
             providerId,
             request,
           )

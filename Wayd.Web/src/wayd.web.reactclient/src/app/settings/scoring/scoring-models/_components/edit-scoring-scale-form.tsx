@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   ScoringScaleDto,
   ScoringScaleRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useUpdateScoringScaleMutation } from '@/src/store/features/scoring/scoring-models-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -42,7 +42,10 @@ const EditScoringScaleForm = ({
             scoringModelId,
             scaleId: scale.id,
             name: values.name,
-          } as { scoringModelId: string; scaleId: string } & ScoringScaleRequest)
+          } as {
+            scoringModelId: string
+            scaleId: string
+          } & ScoringScaleRequest)
           if (response.error) {
             throw response.error
           }

@@ -8,13 +8,14 @@ import {
   ScopedDependencyDto,
   WorkItemDetailsNavigationDto,
   WorkTeamNavigationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   buildWorkItemDependencyNeighbourhood,
   variantOf,
   type WorkItemDependencyExpansions,
   type WorkItemMapRef,
 } from './work-item-dependency-neighbourhood'
+import { asInstant } from '@/src/utils/instant'
 
 const subject: WorkItemMapRef = {
   id: 'w-1',
@@ -62,7 +63,7 @@ const dependency = (
   state: { id: 1, name: 'To Do' },
   health: { id: 1, name: 'Healthy' },
   scope: { id: 2, name: 'Cross-Team' },
-  createdOn: new Date('2026-01-01'),
+  createdOn: asInstant('2026-01-01'),
   ...overrides,
 })
 

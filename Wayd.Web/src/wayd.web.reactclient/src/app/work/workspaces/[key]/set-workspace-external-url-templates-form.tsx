@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   SetExternalUrlTemplatesRequest,
   WorkspaceDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   SetWorkspaceExternalUrlTemplatesRequest,
   useGetWorkspaceQuery,
@@ -25,7 +25,7 @@ export interface SetWorkspaceExternalUrlTemplatesFormProps {
 }
 
 interface SetWorkspaceExternalUrlTemplatesFormValues {
-  externalViewWorkItemUrlTemplate?: string | undefined
+  externalViewWorkItemUrlTemplate?: string | undefined | null
 }
 
 const mapToRequestValues = (
@@ -55,32 +55,35 @@ const SetWorkspaceExternalUrlTemplatesForm = (
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<SetWorkspaceExternalUrlTemplatesFormValues>({
-      onSubmit: async (values: SetWorkspaceExternalUrlTemplatesFormValues, form) => {
-          try {
-            const request = mapToRequestValues(props.workspaceId, values)
-            const response =
-              await setWorkspaceExternalUrlTemplatesMutation(request)
-            if (response.error) {
-              throw response.error
-            }
-            messageApi.success('Successfully set external URL templates')
-            refetch()
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                'An unexpected error occurred while updating external URL templates.',
-              )
-              console.error(error)
-            }
-            return false
+      onSubmit: async (
+        values: SetWorkspaceExternalUrlTemplatesFormValues,
+        form,
+      ) => {
+        try {
+          const request = mapToRequestValues(props.workspaceId, values)
+          const response =
+            await setWorkspaceExternalUrlTemplatesMutation(request)
+          if (response.error) {
+            throw response.error
           }
-        },
+          messageApi.success('Successfully set external URL templates')
+          refetch()
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              'An unexpected error occurred while updating external URL templates.',
+            )
+            console.error(error)
+          }
+          return false
+        }
+      },
       onComplete: props.onFormUpdate,
       onCancel: props.onFormCancel,
     })

@@ -1,7 +1,7 @@
 import {
   ProjectDeliverableStatusAlias,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { outcomeDeliverableStatusLabel } from './outcome-deliverable-status'
 
 describe('outcomeDeliverableStatusLabel', () => {

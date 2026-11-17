@@ -1,5 +1,5 @@
 import { MarkdownRenderer } from '@/src/components/common/markdown'
-import { RoadmapMilestoneDetailsDto } from '@/src/services/wayd-api'
+import { RoadmapMilestoneDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Descriptions, Flex } from 'antd'
 import dayjs from 'dayjs'
 import { FC } from 'react'

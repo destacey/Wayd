@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ProductTagOptionDto } from '@/src/services/wayd-api'
+import { ProductTagOptionDto } from '@/src/services/api/wayd.schemas'
 import { useSetProductTagActiveMutation } from '@/src/store/features/product-management/product-tag-categories-api'
 import { Modal } from 'antd'
 import { useConfirmModal } from '@/src/hooks'

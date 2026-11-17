@@ -10,7 +10,7 @@ import { MarkdownRenderer } from '@/src/components/common/markdown'
 import PiObjectiveHealthCheckTag from '@/src/app/planning/planning-intervals/_components/pi-objective-health-check-tag'
 import { Progress } from 'antd'
 import { useGetPlanningIntervalObjectivesHealthReportQuery } from '@/src/store/features/planning/planning-interval-api'
-import { PlanningIntervalObjectiveHealthCheckDto } from '@/src/services/wayd-api'
+import { PlanningIntervalObjectiveHealthCheckDto } from '@/src/services/api/wayd.schemas'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import styles from './objectives-health-report-section.module.css'
 

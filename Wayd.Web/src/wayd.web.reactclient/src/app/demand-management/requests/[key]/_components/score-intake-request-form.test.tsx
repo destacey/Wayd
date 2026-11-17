@@ -1,6 +1,7 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ScoreIntakeRequestForm from './score-intake-request-form'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('@/src/components/contexts/messaging', () => ({
   useMessage: () => ({ error: vi.fn(), success: vi.fn() }),
@@ -185,7 +186,7 @@ describe('ScoreIntakeRequestForm', () => {
           modelArchived={false}
           needBy={
             {
-              date: '2027-01-31',
+              date: asCalendarDate('2027-01-31'),
               basis: 'Commitment',
               family: 'ChosenByUs',
               reference: 'Acme renewal',

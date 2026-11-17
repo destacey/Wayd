@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import {
   IntakeRequestTagCategoryDto,
   IntakeRequestTagOptionDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import TagCategoryTagsList from './tag-category-tags-list'
 
 // The dialogs have their own tests; here they only need to be identifiable.

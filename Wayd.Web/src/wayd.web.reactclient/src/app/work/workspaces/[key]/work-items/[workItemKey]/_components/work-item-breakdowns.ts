@@ -1,7 +1,10 @@
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import type { BreakdownDatum } from '@/src/app/ppm/_components/breakdown-pie'
 import { DEPENDENCY_HEALTH_VALUES } from '@/src/components/common/work/dependency-health-colors'
-import { ScopedDependencyDto, WorkItemListDto } from '@/src/services/wayd-api'
+import {
+  ScopedDependencyDto,
+  WorkItemListDto,
+} from '@/src/services/api/wayd.schemas'
 
 /** Cross-team is the scope worth reporting: intra-team needs no coordination. */
 export const CROSS_TEAM_SCOPE = 'Cross-Team'

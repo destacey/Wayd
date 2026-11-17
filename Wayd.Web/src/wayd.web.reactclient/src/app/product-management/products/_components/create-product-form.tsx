@@ -3,10 +3,8 @@
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { CreateProductRequest } from '@/src/services/wayd-api'
-import {
-  useCreateProductMutation,
-} from '@/src/store/features/product-management/products-api'
+import { CreateProductRequest } from '@/src/services/api/wayd.schemas'
+import { useCreateProductMutation } from '@/src/store/features/product-management/products-api'
 import { useGetProductTypesQuery } from '@/src/store/features/product-management/product-types-api'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'

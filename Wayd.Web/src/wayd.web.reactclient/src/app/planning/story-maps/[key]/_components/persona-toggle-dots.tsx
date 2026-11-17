@@ -1,6 +1,6 @@
 'use client'
 
-import { StoryMapPersonaDto } from '@/src/services/wayd-api'
+import { StoryMapPersonaDto } from '@/src/services/api/wayd.schemas'
 import { WaydTooltip } from '@/src/components/common'
 import { FC, MouseEvent } from 'react'
 import styles from '@/src/app/planning/story-maps/_components/story-map.module.css'

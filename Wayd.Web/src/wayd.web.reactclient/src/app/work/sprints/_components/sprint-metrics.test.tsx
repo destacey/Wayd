@@ -16,13 +16,15 @@ import {
   SizingMethod,
   SprintType,
   SprintTypeSource,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetSprintMetricsQuery,
   useGetSprintScopeQuery,
 } from '@/src/store/features/work-management/sprints-api'
 import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations/team-api'
 import type { MetricCardProps } from '@/src/components/common/metrics/metric-card'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 // Mock dayjs
 vi.mock('dayjs', () => {
@@ -30,7 +32,7 @@ vi.mock('dayjs', () => {
     add: vi.fn().mockReturnThis(),
     endOf: vi.fn().mockReturnThis(),
     startOf: vi.fn().mockReturnThis(),
-    format: vi.fn(() => '2025-01-01'),
+    format: vi.fn(() => asCalendarDate('2025-01-01')),
     toDate: vi.fn(() => new Date()),
   })) as Mock & { extend: Mock }
   mockDayjs.extend = vi.fn()
@@ -125,8 +127,8 @@ describe('SprintMetrics', () => {
     id: 'sprint-1',
     key: 1,
     name: 'Sprint 1',
-    start: '2025-01-01',
-    end: '2025-01-14',
+    start: asCalendarDate('2025-01-01'),
+    end: asCalendarDate('2025-01-14'),
     state: { id: IterationState.Active, name: 'Active' },
     team: {
       id: 'team-1',
@@ -179,11 +181,11 @@ describe('SprintMetrics', () => {
   const scope: SprintScopeDto = {
     sprintId: 'sprint-1',
     sizingMethod: SizingMethod.Effort,
-    effectiveStart: '2025-01-02T00:00:00Z' as unknown as Date,
+    effectiveStart: asInstant('2025-01-02T00:00:00Z'),
     startIsActual: false,
-    effectiveEnd: '2025-01-15T00:00:00Z' as unknown as Date,
+    effectiveEnd: asInstant('2025-01-15T00:00:00Z'),
     endIsActual: false,
-    lastDay: '2025-01-14T00:00:00Z' as unknown as Date,
+    lastDay: asInstant('2025-01-14T00:00:00Z'),
     timeZone: 'UTC',
     hasTeam: true,
     historyIncomplete: false,

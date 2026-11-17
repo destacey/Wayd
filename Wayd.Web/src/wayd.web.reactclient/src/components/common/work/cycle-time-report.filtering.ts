@@ -1,4 +1,4 @@
-import { WorkItemListDto } from '@/src/services/wayd-api'
+import { WorkItemListDto } from '@/src/services/api/wayd.schemas'
 
 export type CycleTimeOutlierMethod = 'Balanced' | 'Forecasting'
 

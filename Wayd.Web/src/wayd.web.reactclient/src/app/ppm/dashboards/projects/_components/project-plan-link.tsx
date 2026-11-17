@@ -2,7 +2,7 @@
 
 import { ProjectOutlined } from '@ant-design/icons'
 import { WaydTooltip } from '@/src/components/common'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
 import Link from 'next/link'
 import { FC, SyntheticEvent } from 'react'
 import styles from '../projects-dashboard.module.css'

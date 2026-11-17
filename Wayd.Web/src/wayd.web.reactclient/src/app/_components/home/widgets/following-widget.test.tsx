@@ -1,7 +1,7 @@
 import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import FollowingWidget, { FOLLOWING_COUNT } from './following-widget'
-import { FollowSort, SortDirection } from '@/src/services/wayd-api'
+import { FollowSort, SortDirection } from '@/src/services/api/wayd.schemas'
 import { MAX_ROWS } from '../widget-settings'
 import { renderReportingWidget } from '../widget-display-test-utils'
 

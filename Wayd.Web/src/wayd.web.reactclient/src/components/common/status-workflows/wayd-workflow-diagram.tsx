@@ -6,7 +6,7 @@ import { isDarkMode } from '@/src/config/theme/theme-registry'
 import {
   StatusCategory,
   StatusWorkflowDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   AuditOutlined,
   FullscreenExitOutlined,

@@ -1,4 +1,4 @@
-import { FeatureFlagModule } from '@/src/services/wayd-api'
+import { FeatureFlagModule } from '@/src/services/api/wayd.schemas'
 import { groupFeatureFlags } from './group-feature-flags'
 import { flagDto, moduleDto } from './test-data'
 

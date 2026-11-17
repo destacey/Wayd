@@ -3,7 +3,7 @@
 import { LabeledContent } from '@/src/components/common/content'
 import { RecordPersonLink } from '@/src/components/common/record'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { UserDetailsDto } from '@/src/services/wayd-api'
+import { UserDetailsDto } from '@/src/services/api/wayd.schemas'
 import { InfoCircleOutlined } from '@ant-design/icons'
 import { Alert, Card, Divider, Flex, Typography } from 'antd'
 import dayjs from 'dayjs'

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { IntakeRequestTagListItemDto } from '@/src/services/wayd-api'
+import { IntakeRequestTagListItemDto } from '@/src/services/api/wayd.schemas'
 import { useUpdateFreeIntakeRequestTagMutation } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -19,7 +19,7 @@ export interface EditFreeTagFormProps {
 
 interface EditFreeTagFormValues {
   name: string
-  description?: string
+  description?: string | null
 }
 
 /** Renames and re-describes a free tag. */

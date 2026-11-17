@@ -9,7 +9,7 @@ import {
 import {
   ManifestEntryKind,
   ReleasePackageComponentDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Tag, Tooltip } from 'antd'
 
 export interface ReleasePackageManifestProps {

@@ -5,7 +5,10 @@ import EntityLink from '@/src/components/common/entity-link'
 import ExternalIconLink from '@/src/components/common/external-icon-link'
 import WorkStatusTag from '@/src/components/common/work/work-status-tag'
 import { StatusCategoryId } from '@/src/components/types'
-import { StatusCategory, WorkItemListDto } from '@/src/services/wayd-api'
+import {
+  StatusCategory,
+  WorkItemListDto,
+} from '@/src/services/api/wayd.schemas'
 import { useGetMyWorkItemsQuery } from '@/src/store/features/user-management/me-api'
 import { Typography } from 'antd'
 import { FC } from 'react'

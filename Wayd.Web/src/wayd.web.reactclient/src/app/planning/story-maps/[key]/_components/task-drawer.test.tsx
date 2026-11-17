@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { StoryMapDetailsDto, StoryMapTaskDto } from '@/src/services/wayd-api'
+import {
+  StoryMapDetailsDto,
+  StoryMapTaskDto,
+} from '@/src/services/api/wayd.schemas'
 import TaskDrawer from './task-drawer'
 
 /**

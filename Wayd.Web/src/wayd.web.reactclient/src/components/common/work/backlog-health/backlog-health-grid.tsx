@@ -11,7 +11,10 @@ import {
   workItemKeySort,
   workStatusCategorySort,
 } from '@/src/components/common/wayd-grid'
-import { BacklogHealthWorkItemDto, SizingMethod } from '@/src/services/wayd-api'
+import {
+  BacklogHealthWorkItemDto,
+  SizingMethod,
+} from '@/src/services/api/wayd.schemas'
 import { sizingMethodLabel } from '@/src/utils'
 import type { ColumnDef } from '../../wayd-grid-core'
 import { FC } from 'react'

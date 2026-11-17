@@ -1,5 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { JsonPatchOperationType, ProjectStatus } from '@/src/services/wayd-api'
+import {
+  JsonPatchOperationType,
+  ProjectStatus,
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { projectDeliverablesApi } from './project-deliverables-api'
 import { projectsApi } from './projects-api'
@@ -17,14 +20,19 @@ const lifecycle = {
   delete: vi.fn(),
 }
 
-vi.mock('@/src/services/clients', () => ({
-  getProjectsClient: () => ({
-    patchProjectStage,
-    getMyProjectTasks,
-    getMyProjectDeliverables,
-    ...lifecycle,
-  }),
-  getProjectDeliverablesClient: () => ({}),
+vi.mock(import('@/src/services/api/projects'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  projectsPatchProjectStage: (...args: unknown[]) => patchProjectStage(...args),
+  projectsGetMyProjectTasks: (...args: unknown[]) => getMyProjectTasks(...args),
+  projectsGetMyProjectDeliverables: (...args: unknown[]) =>
+    getMyProjectDeliverables(...args),
+  projectsApprove: (...args: unknown[]) => lifecycle.approve(...args),
+  projectsActivate: (...args: unknown[]) => lifecycle.activate(...args),
+  projectsComplete: (...args: unknown[]) => lifecycle.complete(...args),
+  projectsCancel: (...args: unknown[]) => lifecycle.cancel(...args),
+  projectsRevertStatus: (...args: unknown[]) => lifecycle.revertStatus(...args),
+  projectsChangeKey: (...args: unknown[]) => lifecycle.changeKey(...args),
+  projectsDelete: (...args: unknown[]) => lifecycle.delete(...args),
 }))
 
 const createStore = () =>
@@ -34,7 +42,7 @@ const createStore = () =>
   })
 
 const operations = [
-  { op: JsonPatchOperationType.Replace, path: '/Progress', value: 40 },
+  { op: JsonPatchOperationType.replace, path: '/Progress', value: 40 },
 ]
 
 describe('projectsApi', () => {

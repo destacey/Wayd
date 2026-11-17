@@ -3,7 +3,8 @@ import KanbanTeamCard from './kanban-team-card'
 import {
   DateMeasuredTeamMetricsSummary,
   SizingMethod,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
+import { asInstant } from '@/src/utils/instant'
 
 vi.mock('@/src/components/contexts/theme', () => ({
   default: () => ({ token: { colorSuccess: '#52c41a' } }),
@@ -37,14 +38,13 @@ vi.mock('next/link', () => ({
 }))
 
 // Instants reach components as ISO strings from the store, though typed as Date.
-const instant = (iso: string) => iso as unknown as Date
-const until = instant('2026-09-21T05:00:00Z')
+const until = asInstant('2026-09-21T05:00:00Z')
 
 const team = (
   overrides: Partial<DateMeasuredTeamMetricsSummary> = {},
 ): DateMeasuredTeamMetricsSummary => ({
   team: { id: 'team-1', key: 7, name: 'Flow Team' },
-  from: instant('2026-09-07T05:00:00Z'),
+  from: asInstant('2026-09-07T05:00:00Z'),
   until,
   timeZone: 'America/Chicago',
   sizingMethod: SizingMethod.StoryPoints,
@@ -114,7 +114,7 @@ describe('KanbanTeamCard', () => {
   it("takes a current window from the team's reading, not the iteration's state", () => {
     // Arrange — in progress was read before the window's end, so it is now
     const current = team({
-      inProgressAsOf: instant('2026-09-20T12:00:00Z'),
+      inProgressAsOf: asInstant('2026-09-20T12:00:00Z'),
       isHistoryIncomplete: true,
     })
 

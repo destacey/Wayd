@@ -15,9 +15,11 @@ namespace Wayd.Infrastructure.OpenApi;
 /// </summary>
 /// <remarks>
 /// <para>
-/// NSwag's TypeScript generator orders a client method's arguments by <c>x-position</c> and names the body
-/// argument from <c>x-name</c>. Without them the arguments of every method would be reordered and every body
-/// argument renamed <c>body</c>, and the client calls them positionally.
+/// NSwag's C# generator, which builds the data-generation tool's client, orders a client method's arguments by
+/// <c>x-position</c> and names the body argument from <c>x-name</c>. Without them the arguments of every
+/// method would be reordered and every body argument renamed <c>body</c>, and the tool calls them
+/// positionally. The TypeScript client ignores both: it takes path parameters in route order, then the query
+/// as one object, then the body.
 /// </para>
 /// <para>
 /// Form fields take no position: a file upload is a body field, not an argument of its own.

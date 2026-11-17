@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { ReleaseDto } from '@/src/services/wayd-api'
+import { ReleaseDto } from '@/src/services/api/wayd.schemas'
 import ReleasesGrid from './releases-grid'
 
 const release = (

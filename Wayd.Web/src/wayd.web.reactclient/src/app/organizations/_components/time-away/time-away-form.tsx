@@ -4,7 +4,7 @@ import { DatePicker, Form, InputNumber, Modal, Segmented, Select } from 'antd'
 import type { Dayjs } from 'dayjs'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { TimeAwayReason } from '@/src/services/wayd-api'
+import { TimeAwayReason } from '@/src/services/api/wayd.schemas'
 import {
   CalendarDate,
   parseCalendarDate,

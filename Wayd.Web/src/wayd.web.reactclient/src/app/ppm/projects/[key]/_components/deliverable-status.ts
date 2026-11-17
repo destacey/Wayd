@@ -1,4 +1,4 @@
-import { ProjectDeliverableDto } from '@/src/services/wayd-api'
+import { ProjectDeliverableDto } from '@/src/services/api/wayd.schemas'
 import {
   compareCalendarDates,
   todayCalendarDate,

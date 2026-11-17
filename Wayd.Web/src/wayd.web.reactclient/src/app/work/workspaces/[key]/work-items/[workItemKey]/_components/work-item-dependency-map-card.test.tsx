@@ -4,7 +4,7 @@ import {
   ScopedDependencyDto,
   WorkItemDetailsDto,
   WorkItemDetailsNavigationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import type {
   DependencyNode,
   DependencyNodeData,
@@ -13,6 +13,7 @@ import { expansionStorageKey } from '@/src/components/common/dependency-map/use-
 import { useExpandedWorkItemDependencies } from './use-expanded-work-item-dependencies'
 import { WORK_ITEM_DEPENDENCY_FILTER_KEY } from './use-work-item-dependency-filter'
 import WorkItemDependencyMapCard from './work-item-dependency-map-card'
+import { asInstant } from '@/src/utils/instant'
 
 // The canvas measures itself and reads the theme provider, neither of which this test supplies. The stub
 // renders what the card hands it and exposes the expand buttons; the map's own tests cover drawing.
@@ -119,7 +120,7 @@ const dependency = (
   state: { id: 1, name: state },
   health: { id: 1, name: health },
   scope: { id: 2, name: 'Cross-Team' },
-  createdOn: new Date('2026-01-01'),
+  createdOn: asInstant('2026-01-01'),
 })
 
 const renderCard = (dependencies: ScopedDependencyDto[], onViewAll = vi.fn()) =>

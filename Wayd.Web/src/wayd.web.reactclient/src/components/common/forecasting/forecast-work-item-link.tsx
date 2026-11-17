@@ -1,4 +1,4 @@
-import { ForecastWorkItemDto } from '@/src/services/wayd-api'
+import { ForecastWorkItemDto } from '@/src/services/api/wayd.schemas'
 import { Typography } from 'antd'
 import Link from 'next/link'
 import { FC } from 'react'

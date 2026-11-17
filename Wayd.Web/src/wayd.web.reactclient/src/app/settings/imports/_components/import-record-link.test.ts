@@ -1,4 +1,4 @@
-import { ImportRecordType } from '@/src/services/wayd-api'
+import { ImportRecordType } from '@/src/services/api/wayd.schemas'
 import {
   importRecordHref,
   importRecordLabel,

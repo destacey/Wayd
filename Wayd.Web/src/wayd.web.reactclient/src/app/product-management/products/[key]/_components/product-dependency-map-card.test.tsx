@@ -6,7 +6,7 @@ import {
   ProductDependenciesDto,
   ProductDependencyDto,
   ProductDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import type {
   DependencyNode,
   DependencyNodeData,
@@ -16,6 +16,7 @@ import { expansionStorageKey } from '@/src/components/common/dependency-map/use-
 import { DEPENDENCY_STRENGTH_FILTER_KEY } from '../../../_components/dependency-map/use-dependency-strength-filter'
 import { useExpandedProductDependencies } from '../../../_components/dependency-map/use-expanded-product-dependencies'
 import ProductDependencyMapCard from './product-dependency-map-card'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // The canvas measures itself and reads the theme provider, neither of which this test supplies. The stub
 // renders what the card hands it and exposes the map's buttons; the map's own tests cover drawing.
@@ -91,13 +92,13 @@ const link = (
   id: string,
   from: NavigationDto,
   to: NavigationDto,
-  strength = DependencyStrength.Hard,
+  strength: DependencyStrength = DependencyStrength.Hard,
 ): ProductDependencyDto => ({
   id,
   product: from,
   dependsOnProduct: to,
   strength,
-  startsOn: '2026-01-01',
+  startsOn: asCalendarDate('2026-01-01'),
   productPath: [],
   dependsOnProductPath: [],
 })

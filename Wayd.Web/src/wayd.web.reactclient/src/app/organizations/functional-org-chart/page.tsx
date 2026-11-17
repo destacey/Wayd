@@ -8,7 +8,7 @@ import { useGetFunctionalOrganizationChartQuery } from '@/src/store/features/org
 import {
   OrganizationalUnitDto,
   FunctionalOrganizationChartDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { DatePicker, Spin } from 'antd'
 import {
   WaydOrganizationChart,

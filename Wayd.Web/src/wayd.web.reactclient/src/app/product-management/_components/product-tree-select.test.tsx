@@ -1,4 +1,4 @@
-import { ProductDto } from '@/src/services/wayd-api'
+import { ProductDto } from '@/src/services/api/wayd.schemas'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ProductTreeSelect from './product-tree-select'

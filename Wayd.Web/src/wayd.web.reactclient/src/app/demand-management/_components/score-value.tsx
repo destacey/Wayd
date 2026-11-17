@@ -1,6 +1,6 @@
 'use client'
 
-import { IntakeRequestCurrentScoreDto } from '@/src/services/wayd-api'
+import { IntakeRequestCurrentScoreDto } from '@/src/services/api/wayd.schemas'
 import { Tooltip, Typography } from 'antd'
 import { FC } from 'react'
 

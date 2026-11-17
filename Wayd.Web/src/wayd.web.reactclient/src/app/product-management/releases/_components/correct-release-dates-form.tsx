@@ -2,7 +2,10 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { CorrectReleaseDatesRequest, ReleaseDto } from '@/src/services/wayd-api'
+import {
+  CorrectReleaseDatesRequest,
+  ReleaseDto,
+} from '@/src/services/api/wayd.schemas'
 import { useCorrectReleaseDatesMutation } from '@/src/store/features/product-management/releases-api'
 import {
   toFormErrors,
@@ -12,6 +15,7 @@ import {
 } from '@/src/utils'
 import { Alert, DatePicker, Flex, Form, Modal } from 'antd'
 import { Dayjs } from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 
@@ -53,8 +57,12 @@ const CorrectReleaseDatesForm = ({
         try {
           // Both dates are sent, so one left empty is cleared rather than left alone.
           const request = {
-            targetDate: values.targetDate?.format('YYYY-MM-DD'),
-            releasedDate: values.releasedDate?.format('YYYY-MM-DD'),
+            targetDate: values.targetDate
+              ? toCalendarDate(values.targetDate)
+              : undefined,
+            releasedDate: values.releasedDate
+              ? toCalendarDate(values.releasedDate)
+              : undefined,
           } as CorrectReleaseDatesRequest
 
           const response = await correctReleaseDates({

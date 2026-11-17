@@ -6,7 +6,7 @@ import {
   formatDateOnly,
   formatDateTime,
 } from '@/src/components/common/wayd-grid'
-import { VersionDto } from '@/src/services/wayd-api'
+import { VersionDto } from '@/src/services/api/wayd.schemas'
 import { Flex } from 'antd'
 import Link from 'next/link'
 

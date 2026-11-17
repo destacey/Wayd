@@ -1,7 +1,7 @@
 'use client'
 
 import { IterationState } from '@/src/components/types'
-import { SprintDetailsDto } from '@/src/services/wayd-api'
+import { SprintDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Alert, Flex } from 'antd'
 import SprintMetrics from './sprint-metrics'
 import SprintCapacitySummary from './sprint-capacity-summary'

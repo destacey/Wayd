@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { calendarDaysBetween, todayCalendarDate } from '@/src/utils'
 import TeamCapacity from './team-capacity'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 let mockPermissions: string[] = []
 vi.mock('@/src/components/contexts/auth', () => ({
@@ -92,15 +93,15 @@ const elsewhere = (canManage: boolean) => ({
   id: 'allocation-9',
   team: { id: 'team-2', key: 2, name: 'Loans', code: 'LOANS', type: 'Team' },
   role: undefined,
-  start: '2020-01-01',
+  start: asCalendarDate('2020-01-01'),
   end: undefined,
   percent: 50,
   canManage,
 })
 
 const capacity = (overrides: Record<string, unknown> = {}) => ({
-  from: '2027-02-01',
-  to: '2027-02-28',
+  from: asCalendarDate('2027-02-01'),
+  to: asCalendarDate('2027-02-28'),
   workingDays: 20,
   allocatedPersonDays: 10,
   deliveryPersonDays: 10,
@@ -131,7 +132,7 @@ const capacity = (overrides: Record<string, unknown> = {}) => ({
           id: 'allocation-1',
           role: { id: 'role-1', key: 1, name: 'Engineer' },
           countsTowardDeliveryCapacity: true,
-          start: '2020-01-01',
+          start: asCalendarDate('2020-01-01'),
           end: undefined,
           percent: 50,
           personDays: 10,
@@ -150,7 +151,9 @@ const renderSection = (overrides: Partial<typeof team> = {}) =>
 
 const cardsNode = {
   team: { id: 'team-2', key: 2, name: 'Cards', code: 'CARDS', type: 'Team' },
-  periods: [{ start: '2027-02-01', end: '2027-02-28' }],
+  periods: [
+    { start: asCalendarDate('2027-02-01'), end: asCalendarDate('2027-02-28') },
+  ],
   workingDays: 20,
   allocatedPersonDays: 30,
   deliveryPersonDays: 25,
@@ -161,8 +164,8 @@ const cardsNode = {
 }
 
 const rollupOf = (overrides: Record<string, unknown> = {}) => ({
-  from: '2027-02-01',
-  to: '2027-02-28',
+  from: asCalendarDate('2027-02-01'),
+  to: asCalendarDate('2027-02-28'),
   allocatedPersonDays: 40,
   deliveryPersonDays: 33,
   directAllocatedPersonDays: 10,
@@ -230,14 +233,14 @@ describe('TeamCapacity', () => {
       <TeamCapacity
         team={team}
         teamType="Team"
-        cadence={{ weeks: 2, anchor: '2026-10-05' }}
+        cadence={{ weeks: 2, anchor: asCalendarDate('2026-10-05') }}
       />,
     )
 
     // Assert
     const { from, to } = mockCapacityArgs.mock.calls[0][0]
     expect(calendarDaysBetween(from, to)).toBe(13)
-    expect(calendarDaysBetween('2026-10-05', from) % 14).toBe(0)
+    expect(calendarDaysBetween(asCalendarDate('2026-10-05'), from) % 14).toBe(0)
     expect(from <= today && today <= to).toBe(true)
   })
 
@@ -254,7 +257,7 @@ describe('TeamCapacity', () => {
           team={team}
           teamType="Team"
           timeZone="Pacific/Auckland"
-          cadence={{ weeks: 2, anchor: '2026-10-05' }}
+          cadence={{ weeks: 2, anchor: asCalendarDate('2026-10-05') }}
         />,
       )
 
@@ -467,7 +470,11 @@ describe('TeamCapacity', () => {
             ...base.people[0],
             awayPersonDays: 1.25,
             timeAway: [
-              { start: '2027-02-01', end: '2027-02-05', percentAway: 50 },
+              {
+                start: asCalendarDate('2027-02-01'),
+                end: asCalendarDate('2027-02-05'),
+                percentAway: 50,
+              },
             ],
           },
         ],

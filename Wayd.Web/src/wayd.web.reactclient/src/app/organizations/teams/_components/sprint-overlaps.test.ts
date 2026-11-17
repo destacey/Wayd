@@ -1,9 +1,11 @@
 import { findOverlappingSprints, summarizeSprintNames } from './sprint-overlaps'
+import { asCalendarDate, type CalendarDate } from '@/src/utils/calendar-date'
 
+// '' stands for a sprint without planned dates, which the code under test passes over.
 const sprint = (name: string, start: string, end: string) => ({
   name,
-  start,
-  end,
+  start: start as CalendarDate,
+  end: end as CalendarDate,
 })
 
 describe('findOverlappingSprints', () => {
@@ -12,7 +14,7 @@ describe('findOverlappingSprints', () => {
     const sprints = [
       sprint('Backlog A', '', ''),
       sprint('Backlog B', '', ''),
-      sprint('S1', '2026-08-03', '2026-08-16'),
+      sprint('S1', asCalendarDate('2026-08-03'), asCalendarDate('2026-08-16')),
     ]
 
     // Act
@@ -24,8 +26,8 @@ describe('findOverlappingSprints', () => {
   it('finds none when each sprint ends before the next starts', () => {
     // Arrange
     const sprints = [
-      sprint('S1', '2026-08-03', '2026-08-16'),
-      sprint('S2', '2026-08-17', '2026-08-30'),
+      sprint('S1', asCalendarDate('2026-08-03'), asCalendarDate('2026-08-16')),
+      sprint('S2', asCalendarDate('2026-08-17'), asCalendarDate('2026-08-30')),
     ]
 
     // Act
@@ -38,8 +40,8 @@ describe('findOverlappingSprints', () => {
   it('counts ending on the next start day as an overlap', () => {
     // Arrange — both ends are inclusive days, so the shared day is claimed twice.
     const sprints = [
-      sprint('S1', '2026-08-03', '2026-08-17'),
-      sprint('S2', '2026-08-17', '2026-08-30'),
+      sprint('S1', asCalendarDate('2026-08-03'), asCalendarDate('2026-08-17')),
+      sprint('S2', asCalendarDate('2026-08-17'), asCalendarDate('2026-08-30')),
     ]
 
     // Act
@@ -52,9 +54,9 @@ describe('findOverlappingSprints', () => {
   it('compares neighbours in start order, not list order', () => {
     // Arrange
     const sprints = [
-      sprint('S3', '2026-08-31', '2026-09-13'),
-      sprint('S1', '2026-08-03', '2026-08-16'),
-      sprint('S2', '2026-08-17', '2026-09-01'),
+      sprint('S3', asCalendarDate('2026-08-31'), asCalendarDate('2026-09-13')),
+      sprint('S1', asCalendarDate('2026-08-03'), asCalendarDate('2026-08-16')),
+      sprint('S2', asCalendarDate('2026-08-17'), asCalendarDate('2026-09-01')),
     ]
 
     // Act
@@ -67,9 +69,9 @@ describe('findOverlappingSprints', () => {
   it('lists a sprint overlapping both neighbours once', () => {
     // Arrange
     const sprints = [
-      sprint('S1', '2026-08-03', '2026-08-18'),
-      sprint('S2', '2026-08-17', '2026-09-01'),
-      sprint('S3', '2026-08-31', '2026-09-13'),
+      sprint('S1', asCalendarDate('2026-08-03'), asCalendarDate('2026-08-18')),
+      sprint('S2', asCalendarDate('2026-08-17'), asCalendarDate('2026-09-01')),
+      sprint('S3', asCalendarDate('2026-08-31'), asCalendarDate('2026-09-13')),
     ]
 
     // Act

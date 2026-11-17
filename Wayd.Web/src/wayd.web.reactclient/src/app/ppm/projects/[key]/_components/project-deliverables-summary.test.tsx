@@ -1,11 +1,16 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-import { ProjectDeliverableDto, StatusCategory } from '@/src/services/wayd-api'
+import {
+  ProjectDeliverableDto,
+  StatusCategory,
+} from '@/src/services/api/wayd.schemas'
 import ProjectDeliverablesSummary from './project-deliverables-summary'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 vi.mock(import('@/src/utils/calendar-date'), async (importOriginal) => ({
   ...(await importOriginal()),
-  todayCalendarDate: () => '2026-11-06',
+  todayCalendarDate: () => asCalendarDate('2026-11-06'),
 }))
 
 const mockQuery = vi.fn()
@@ -46,11 +51,15 @@ describe('ProjectDeliverablesSummary', () => {
     mockQuery.mockReturnValue({
       data: [
         deliverable('Pilot release', StatusCategory.Done),
-        deliverable('Data migration', StatusCategory.Active, '2026-11-03'),
+        deliverable(
+          'Data migration',
+          StatusCategory.Active,
+          asCalendarDate('2026-11-03'),
+        ),
         deliverable(
           'Production release',
           StatusCategory.Proposed,
-          '2027-01-15',
+          asCalendarDate('2027-01-15'),
         ),
         deliverable('Training', StatusCategory.Removed),
       ],
@@ -80,9 +89,21 @@ describe('ProjectDeliverablesSummary', () => {
     mockQuery.mockReturnValue({
       data: [
         deliverable('Undated', StatusCategory.Proposed),
-        deliverable('Latest', StatusCategory.Proposed, '2027-03-01'),
-        deliverable('Soonest', StatusCategory.Active, '2026-12-01'),
-        deliverable('Middle', StatusCategory.Proposed, '2027-01-15'),
+        deliverable(
+          'Latest',
+          StatusCategory.Proposed,
+          asCalendarDate('2027-03-01'),
+        ),
+        deliverable(
+          'Soonest',
+          StatusCategory.Active,
+          asCalendarDate('2026-12-01'),
+        ),
+        deliverable(
+          'Middle',
+          StatusCategory.Proposed,
+          asCalendarDate('2027-01-15'),
+        ),
       ],
     })
 
@@ -107,11 +128,19 @@ describe('ProjectDeliverablesSummary', () => {
     mockQuery.mockReturnValue({
       data: [
         {
-          ...deliverable('Data migration', StatusCategory.Active, '2026-12-01'),
+          ...deliverable(
+            'Data migration',
+            StatusCategory.Active,
+            asCalendarDate('2026-12-01'),
+          ),
           progress: 42,
           linkedTaskCount: 3,
         },
-        deliverable('Training', StatusCategory.Proposed, '2027-01-15'),
+        deliverable(
+          'Training',
+          StatusCategory.Proposed,
+          asCalendarDate('2027-01-15'),
+        ),
       ],
     })
 
@@ -127,17 +156,16 @@ describe('ProjectDeliverablesSummary', () => {
 
   it('lists the most recently accepted deliverables once none is open', () => {
     // Arrange
-    // The API sends an instant as an ISO string, whatever the DTO's type says.
     const accepted = (name: string, acceptedOn: string) => ({
       ...deliverable(name, StatusCategory.Done),
-      acceptedOn: acceptedOn as unknown as Date,
+      acceptedOn: asInstant(acceptedOn),
     })
     mockQuery.mockReturnValue({
       data: [
-        accepted('Pilot release', '2026-09-01T12:00:00Z'),
-        accepted('Data migration', '2026-10-15T12:00:00Z'),
-        accepted('Production release', '2026-11-02T12:00:00Z'),
-        accepted('Runbook', '2026-10-20T12:00:00Z'),
+        accepted('Pilot release', asInstant('2026-09-01T12:00:00Z')),
+        accepted('Data migration', asInstant('2026-10-15T12:00:00Z')),
+        accepted('Production release', asInstant('2026-11-02T12:00:00Z')),
+        accepted('Runbook', asInstant('2026-10-20T12:00:00Z')),
         deliverable('Training', StatusCategory.Removed),
       ],
     })

@@ -271,7 +271,7 @@ The page supplies one function that fetches a page; the grid owns everything els
 
 ```tsx
 const fetchRows = async ({ page, pageSize, filter, sort }: ServerPageRequest) => {
-  const result = await getImportsClient().getRows(importProcess.id, status, page, pageSize, filter, sort)
+  const result = await importsGetRows(importProcess.id, { status, page, pageSize, filter, sort })
   return { items: result.items, totalCount: result.totalCount }
 }
 

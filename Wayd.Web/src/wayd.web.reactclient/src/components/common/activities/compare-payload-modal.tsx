@@ -24,7 +24,7 @@ import {
 } from 'antd'
 import dayjs from 'dayjs'
 import { FC, useMemo, useState } from 'react'
-import { ActivityLogDto } from '@/src/services/wayd-api'
+import { ActivityLogDto } from '@/src/services/api/wayd.schemas'
 
 const { Text } = Typography
 
@@ -816,4 +816,3 @@ export const ComparePayloadModal: FC<ComparePayloadModalProps> = ({
 }
 
 export default ComparePayloadModal
-

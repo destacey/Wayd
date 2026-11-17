@@ -3,7 +3,7 @@ import {
   DeliverySignal,
   IntakeRequestDetailsDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import IntakeRequestFacts from './intake-request-facts'
 
 // Linking a person checks the reader's permissions, which these tests are not about.

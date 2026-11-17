@@ -4,7 +4,10 @@ import { Button, Form, InputNumber, Skeleton } from 'antd'
 import { useEffect, useState } from 'react'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { toApiError, toFormErrors } from '@/src/utils'
-import { IsoDayOfWeek, SchedulingSettingsDto } from '@/src/services/wayd-api'
+import {
+  IsoDayOfWeek,
+  SchedulingSettingsDto,
+} from '@/src/services/api/wayd.schemas'
 import { useUpdateSchedulingSettingsMutation } from '@/src/store/features/admin/system-settings-api'
 import {
   MAX_COMMITMENT_GRACE_DAYS,

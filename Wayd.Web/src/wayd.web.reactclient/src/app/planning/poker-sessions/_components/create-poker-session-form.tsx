@@ -6,7 +6,7 @@ import {
   CreatePokerSessionRequest,
   EstimationScaleDto,
   Visibility,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { useMessage } from '@/src/components/contexts/messaging'
 import useTheme from '@/src/components/contexts/theme'

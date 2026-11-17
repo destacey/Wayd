@@ -1,6 +1,6 @@
 'use client'
 
-import { UserPreferencesDto } from '@/src/services/wayd-api'
+import { UserPreferencesDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetUserPreferencesQuery,
   useUpdateUserPreferencesMutation,

@@ -1,13 +1,17 @@
 import dayjs from 'dayjs'
-import { TimeAwayReason } from '@/src/services/wayd-api'
+import { TimeAwayReason } from '@/src/services/api/wayd.schemas'
 import { toFormErrors } from '@/src/utils'
 import { fieldForError, timeAwayRequestFor } from './time-away-form'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 describe('timeAwayRequestFor', () => {
   it('sends the days as calendar dates with the share and the reason', () => {
     const request = timeAwayRequestFor(
       {
-        dates: [dayjs('2027-02-01'), dayjs('2027-02-05')],
+        dates: [
+          dayjs(asCalendarDate('2027-02-01')),
+          dayjs(asCalendarDate('2027-02-05')),
+        ],
         duration: 'half',
         reason: TimeAwayReason.Training,
       },
@@ -25,7 +29,10 @@ describe('timeAwayRequestFor', () => {
   it('sends hours away as the share of the working day they are', () => {
     const request = timeAwayRequestFor(
       {
-        dates: [dayjs('2027-02-01'), dayjs('2027-02-01')],
+        dates: [
+          dayjs(asCalendarDate('2027-02-01')),
+          dayjs(asCalendarDate('2027-02-01')),
+        ],
         duration: 'hours',
         hours: 2,
         reason: TimeAwayReason.Other,

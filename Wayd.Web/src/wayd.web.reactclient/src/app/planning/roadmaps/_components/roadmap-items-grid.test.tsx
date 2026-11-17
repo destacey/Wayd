@@ -14,7 +14,11 @@ const mockPlaceActivity = vi.fn()
 let mockRoadmapColors: unknown[] = []
 vi.mock('@/src/store/features/planning/roadmaps-api', () => ({
   useGetRoadmapQuery: () => ({
-    data: { colors: mockRoadmapColors, start: '2026-01-01', end: '2026-12-31' },
+    data: {
+      colors: mockRoadmapColors,
+      start: asCalendarDate('2026-01-01'),
+      end: asCalendarDate('2026-12-31'),
+    },
   }),
   usePatchRoadmapItemMutation: () => [mockPatch],
   useCreateRoadmapItemMutation: () => [mockCreate],
@@ -47,8 +51,9 @@ vi.mock(import('@/src/components/common/timeline'), async (importOriginal) => ({
 }))
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
-import type { RoadmapItemListDto } from '@/src/services/wayd-api'
+import type { RoadmapItemListDto } from '@/src/services/api/wayd.schemas'
 import RoadmapItemsGrid from './roadmap-items-grid'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const ITEMS = [
   {
@@ -56,8 +61,8 @@ const ITEMS = [
     name: 'Alpha',
     type: { name: 'Activity' },
     $type: 'activity',
-    start: '2026-03-01',
-    end: '2026-03-31',
+    start: asCalendarDate('2026-03-01'),
+    end: asCalendarDate('2026-03-31'),
     color: null,
     children: [],
   },
@@ -66,8 +71,8 @@ const ITEMS = [
     name: 'Sprint 1',
     type: { name: 'Timebox' },
     $type: 'timebox',
-    start: '2026-03-01',
-    end: '2026-03-14',
+    start: asCalendarDate('2026-03-01'),
+    end: asCalendarDate('2026-03-14'),
     color: null,
   },
   {
@@ -75,7 +80,7 @@ const ITEMS = [
     name: 'Launch',
     type: { name: 'Milestone' },
     $type: 'milestone',
-    date: '2026-04-15',
+    date: asCalendarDate('2026-04-15'),
     color: null,
   },
 ] as unknown as RoadmapItemListDto[]
@@ -183,7 +188,7 @@ describe('RoadmapItemsGrid cell editing', () => {
     renderGrid()
     focus(cellAt(2, 'start'))
     press('Enter')
-    typeDate('2026-04-20')
+    typeDate(asCalendarDate('2026-04-20'))
 
     // Act
     press('Enter')
@@ -451,9 +456,9 @@ describe('RoadmapItemsGrid cell editing', () => {
       const draftRow = addDraft()
       focus(cellAt(draftRow, 'start'))
       press('Enter')
-      typeDate('2026-05-01')
+      typeDate(asCalendarDate('2026-05-01'))
       press('Tab')
-      typeDate('2026-05-31')
+      typeDate(asCalendarDate('2026-05-31'))
       press('Enter')
       await flush()
       const callsBeforeName = mockCreate.mock.calls.length
@@ -551,8 +556,8 @@ describe('RoadmapItemsGrid cell editing', () => {
             type: { name: 'Activity' },
             $type: 'activity',
             parent: { id: 'a1' },
-            start: '2026-03-02',
-            end: '2026-03-10',
+            start: asCalendarDate('2026-03-02'),
+            end: asCalendarDate('2026-03-10'),
             color: null,
             children: [],
           },
@@ -563,8 +568,8 @@ describe('RoadmapItemsGrid cell editing', () => {
         name: 'Beta',
         type: { name: 'Activity' },
         $type: 'activity',
-        start: '2026-04-01',
-        end: '2026-04-30',
+        start: asCalendarDate('2026-04-01'),
+        end: asCalendarDate('2026-04-30'),
         color: null,
         children: [],
       },
@@ -584,9 +589,9 @@ describe('RoadmapItemsGrid cell editing', () => {
     const completeDraft = async (row: number, name: string) => {
       focus(cellAt(row, 'start'))
       press('Enter')
-      typeDate('2026-05-01')
+      typeDate(asCalendarDate('2026-05-01'))
       press('Tab')
-      typeDate('2026-05-31')
+      typeDate(asCalendarDate('2026-05-31'))
       press('Enter')
       await flush()
       editText(row, 'name', name)
@@ -666,8 +671,8 @@ describe('RoadmapItemsGrid cell editing', () => {
               name: 'Stray',
               type: { name: 'Activity' },
               $type: 'activity',
-              start: '2026-03-02',
-              end: '2026-03-05',
+              start: asCalendarDate('2026-03-02'),
+              end: asCalendarDate('2026-03-05'),
               color: null,
               children: [],
             },

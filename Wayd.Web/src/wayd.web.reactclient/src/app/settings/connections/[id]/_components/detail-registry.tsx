@@ -1,6 +1,6 @@
 'use client'
 
-import { ConnectionDetailsDto } from '@/src/services/wayd-api'
+import { ConnectionDetailsDto } from '@/src/services/api/wayd.schemas'
 import { ConnectorType } from '@/src/types/connectors'
 import type { ItemType } from 'antd/es/menu/interface'
 import { ComponentType, ReactNode } from 'react'

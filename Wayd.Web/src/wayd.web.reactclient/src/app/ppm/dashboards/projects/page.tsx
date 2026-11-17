@@ -41,7 +41,10 @@ import ProjectsDashboardTimeline from './_components/projects-dashboard-timeline
 import ScopeBar from './_components/scope-bar'
 import { useScopedProjects } from './_components/use-scoped-projects'
 import { keepValidCodes } from '../../_components/use-status-filter'
-import { ProjectMemberRole, ProjectStatus } from '@/src/services/wayd-api'
+import {
+  ProjectMemberRole,
+  ProjectStatus,
+} from '@/src/services/api/wayd.schemas'
 
 const { useBreakpoint } = Grid
 

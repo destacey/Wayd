@@ -2,7 +2,7 @@
 
 import { Flex, Typography } from 'antd'
 import { FC } from 'react'
-import { SizingMethod } from '@/src/services/wayd-api'
+import { SizingMethod } from '@/src/services/api/wayd.schemas'
 import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations/team-api'
 import { sizingMethodMeasure } from '@/src/utils'
 import { METRIC_CARD_FLEX, MetricCard } from '../../metrics'

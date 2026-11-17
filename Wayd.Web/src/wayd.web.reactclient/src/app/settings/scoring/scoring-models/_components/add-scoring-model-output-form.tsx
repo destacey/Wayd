@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ScoringModelOutputRequest } from '@/src/services/wayd-api'
+import { ScoringModelOutputRequest } from '@/src/services/api/wayd.schemas'
 import { useAddScoringModelOutputMutation } from '@/src/store/features/scoring/scoring-models-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Checkbox, Form, Input, Modal, Typography } from 'antd'

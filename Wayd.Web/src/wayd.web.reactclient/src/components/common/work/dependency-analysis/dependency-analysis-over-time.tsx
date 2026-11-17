@@ -5,7 +5,7 @@ import { theme, Typography } from 'antd'
 import { FC } from 'react'
 import useTheme from '@/src/components/contexts/theme'
 import { useChartRemountOnResize } from '@/src/hooks'
-import { DependencyAnalysisPeriodDto } from '@/src/services/wayd-api'
+import { DependencyAnalysisPeriodDto } from '@/src/services/api/wayd.schemas'
 import {
   buildFlowData,
   buildOpenData,

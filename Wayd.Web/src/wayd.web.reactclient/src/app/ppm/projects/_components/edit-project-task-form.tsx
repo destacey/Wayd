@@ -4,7 +4,7 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { UpdateProjectTaskRequest } from '@/src/services/wayd-api'
+import { UpdateProjectTaskRequest } from '@/src/services/api/wayd.schemas'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import {
   useGetProjectTaskQuery,
@@ -38,6 +38,7 @@ import {
   getChildrenContainmentError,
   isShiftOnlyChange,
 } from '@/src/utils/date-containment'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -55,7 +56,7 @@ export interface EditProjectTaskFormProps {
 
 interface EditProjectTaskFormValues {
   name: string
-  description?: string
+  description?: string | null
   status: number
   priority?: number
   assigneeIds: string[]
@@ -64,7 +65,7 @@ interface EditProjectTaskFormValues {
   parentId?: string
   plannedRange?: any[]
   plannedDate?: Dayjs
-  estimatedEffortHours?: number
+  estimatedEffortHours?: number | null
 }
 
 const mapToRequestValues = (
@@ -81,9 +82,15 @@ const mapToRequestValues = (
     deliverableIds: values.deliverableIds ?? [],
     progress: values.progress,
     parentId: values.parentId,
-    plannedStart: (values.plannedRange?.[0] as any)?.format('YYYY-MM-DD'),
-    plannedEnd: (values.plannedRange?.[1] as any)?.format('YYYY-MM-DD'),
-    plannedDate: values.plannedDate?.format('YYYY-MM-DD'),
+    plannedStart: values.plannedRange?.[0]
+      ? toCalendarDate(values.plannedRange[0])
+      : undefined,
+    plannedEnd: values.plannedRange?.[1]
+      ? toCalendarDate(values.plannedRange[1])
+      : undefined,
+    plannedDate: values.plannedDate
+      ? toCalendarDate(values.plannedDate)
+      : undefined,
     estimatedEffortHours: values.estimatedEffortHours,
   } as unknown as UpdateProjectTaskRequest
 }
@@ -99,10 +106,7 @@ const EditProjectTaskForm = ({
 
   const [updateProjectTask] = useUpdateProjectTaskMutation()
 
-  const {
-    data: taskData,
-    isLoading,
-  } = useGetProjectTaskQuery({
+  const { data: taskData, isLoading } = useGetProjectTaskQuery({
     projectIdOrKey,
     taskIdOrKey,
   })
@@ -110,11 +114,7 @@ const EditProjectTaskForm = ({
   const taskType = taskData?.type?.name
   const isMilestone = taskType === 'Milestone'
 
-
-
-  const {
-    data: employeeData,
-  } = useGetEmployeeOptionsQuery(true)
+  const { data: employeeData } = useGetEmployeeOptionsQuery(true)
 
   const { data: statusOptions = [] } = useGetTaskStatusOptionsQuery({
     forMilestone: isMilestone,
@@ -130,43 +130,43 @@ const EditProjectTaskForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditProjectTaskFormValues>({
       onSubmit: async (values: EditProjectTaskFormValues, form) => {
-          if (!taskData) {
-            messageApi.error('Task data is not loaded.')
-            return false
-          }
+        if (!taskData) {
+          messageApi.error('Task data is not loaded.')
+          return false
+        }
 
-          try {
-            const request = mapToRequestValues(values, taskData.id)
-            const response = await updateProjectTask({
-              projectIdOrKey,
-              request,
-              cacheKey: taskIdOrKey,
+        try {
+          const request = mapToRequestValues(values, taskData.id)
+          const response = await updateProjectTask({
+            projectIdOrKey,
+            request,
+            cacheKey: taskIdOrKey,
+          })
+          if (response.error) throw response.error
+
+          messageApi.success('Task updated successfully.')
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn(
+                'plannedRange',
+                'plannedStart',
+                'plannedEnd',
+              ),
             })
-            if (response.error) throw response.error
-
-            messageApi.success('Task updated successfully.')
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: rangeErrorsOn(
-                  'plannedRange',
-                  'plannedStart',
-                  'plannedEnd',
-                ),
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while update the project task. Please try again.',
-              )
-            }
-            return false
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while update the project task. Please try again.',
+            )
           }
-        },
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:
@@ -182,7 +182,11 @@ const EditProjectTaskForm = ({
   const parentRange = findParentPlanNodeRange(planTree, selectedParentId)
   const parentExpansionHint = isMilestone
     ? getMilestoneParentExpansionHint(parentRange, selectedDate)
-    : getParentExpansionHint(parentRange, selectedRange?.[0], selectedRange?.[1])
+    : getParentExpansionHint(
+        parentRange,
+        selectedRange?.[0],
+        selectedRange?.[1],
+      )
 
   // Initialize form values when data is loaded
   useEffect(() => {
@@ -317,29 +321,47 @@ const EditProjectTaskForm = ({
               rules={[
                 {
                   validator: (_, value) => {
-                    const childrenSpan = findOwnChildrenSpan(planTree, taskData?.id)
+                    const childrenSpan = findOwnChildrenSpan(
+                      planTree,
+                      taskData?.id,
+                    )
                     if (childrenSpan) {
                       if (!value || !value[0] || !value[1]) {
                         return Promise.reject(
-                          new Error('Planned dates cannot be cleared when child items have dates.')
+                          new Error(
+                            'Planned dates cannot be cleared when child items have dates.',
+                          ),
                         )
                       }
                       const start = value[0]
                       const end = value[1]
-                      const originalStart = taskData?.plannedStart ? dayjs(taskData.plannedStart) : null
-                      const originalEnd = taskData?.plannedEnd ? dayjs(taskData.plannedEnd) : null
-                      const isShift = isShiftOnlyChange(originalStart, originalEnd, start, end)
+                      const originalStart = taskData?.plannedStart
+                        ? dayjs(taskData.plannedStart)
+                        : null
+                      const originalEnd = taskData?.plannedEnd
+                        ? dayjs(taskData.plannedEnd)
+                        : null
+                      const isShift = isShiftOnlyChange(
+                        originalStart,
+                        originalEnd,
+                        start,
+                        end,
+                      )
 
                       if (!isShift) {
-                        const containmentError = getChildrenContainmentError(childrenSpan, start, end)
+                        const containmentError = getChildrenContainmentError(
+                          childrenSpan,
+                          start,
+                          end,
+                        )
                         if (containmentError) {
                           return Promise.reject(new Error(containmentError))
                         }
                       }
                     }
                     return Promise.resolve()
-                  }
-                }
+                  },
+                },
               ]}
             >
               <RangePicker style={{ width: '60%' }} format="MMM D, YYYY" />

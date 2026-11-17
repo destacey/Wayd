@@ -1,6 +1,6 @@
 'use client'
 
-import { RoadmapColorDto } from '@/src/services/wayd-api'
+import { RoadmapColorDto } from '@/src/services/api/wayd.schemas'
 import { Select, theme, type SelectProps } from 'antd'
 import { ReactNode } from 'react'
 

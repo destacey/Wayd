@@ -1,4 +1,22 @@
-import { getSprintsClient } from '@/src/services/clients'
+import { toInstant } from '@/src/utils/instant'
+import {
+  sprintsComplete,
+  sprintsCorrectActualDates,
+  sprintsGetActivities,
+  sprintsGetPlanningIntervals,
+  sprintsGetSprint,
+  sprintsGetSprintBacklog,
+  sprintsGetSprintBurn,
+  sprintsGetSprintCapacity,
+  sprintsGetSprintMetrics,
+  sprintsGetSprintScope,
+  sprintsGetSprintTypes,
+  sprintsGetSprints,
+  sprintsReopen,
+  sprintsSetSprintType,
+  sprintsSetTeamDaysOff,
+  sprintsStart,
+} from '@/src/services/api/sprints'
 import { isApiError } from '@/src/utils'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
@@ -15,14 +33,14 @@ import {
   SprintType,
   SprintTypeDto,
   PagedResponseOfActivityLogDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 export const sprintsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getSprints: builder.query<SprintListDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getSprintsClient().getSprints()
+          const data = await sprintsGetSprints()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -35,7 +53,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
     getSprint: builder.query<SprintDetailsDto, number>({
       queryFn: async (key: number) => {
         try {
-          const data = await getSprintsClient().getSprint(key.toString())
+          const data = await sprintsGetSprint(key.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -48,9 +66,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
     getSprintBacklog: builder.query<SprintBacklogItemDto[], number>({
       queryFn: async (sprintKey: number) => {
         try {
-          const data = await getSprintsClient().getSprintBacklog(
-            sprintKey.toString(),
-          )
+          const data = await sprintsGetSprintBacklog(sprintKey.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -65,9 +81,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
     getSprintMetrics: builder.query<SprintWorkItemMetricsDto, number>({
       queryFn: async (sprintKey: number) => {
         try {
-          const data = await getSprintsClient().getSprintMetrics(
-            sprintKey.toString(),
-          )
+          const data = await sprintsGetSprintMetrics(sprintKey.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -82,9 +96,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
     getSprintScope: builder.query<SprintScopeDto, number>({
       queryFn: async (sprintKey: number) => {
         try {
-          const data = await getSprintsClient().getSprintScope(
-            sprintKey.toString(),
-          )
+          const data = await sprintsGetSprintScope(sprintKey.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -99,9 +111,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
     getSprintBurn: builder.query<SprintBurnDto, number>({
       queryFn: async (sprintKey: number) => {
         try {
-          const data = await getSprintsClient().getSprintBurn(
-            sprintKey.toString(),
-          )
+          const data = await sprintsGetSprintBurn(sprintKey.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -116,9 +126,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
     getSprintCapacity: builder.query<SprintCapacityDto, number>({
       queryFn: async (sprintKey: number) => {
         try {
-          const data = await getSprintsClient().getSprintCapacity(
-            sprintKey.toString(),
-          )
+          const data = await sprintsGetSprintCapacity(sprintKey.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -135,7 +143,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
     getSprintPlanningIntervals: builder.query<NavigationDto[], number>({
       queryFn: async (sprintKey: number) => {
         try {
-          const data = await getSprintsClient().getPlanningIntervals(sprintKey)
+          const data = await sprintsGetPlanningIntervals(sprintKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -153,11 +161,10 @@ export const sprintsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getSprintsClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await sprintsGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -176,14 +183,14 @@ export const sprintsApi = apiSlice.injectEndpoints({
         key: number
         completeOpenSprintId?: string
         startedAt?: Date
-        openSprint?: NavigationDto
+        openSprint?: NavigationDto | null
       }
     >({
       queryFn: async ({ id, completeOpenSprintId, startedAt }) => {
         try {
-          const data = await getSprintsClient().start(id, {
+          const data = await sprintsStart(id, {
             completeOpenSprintId,
-            startedAt,
+            startedAt: startedAt ? toInstant(startedAt) : undefined,
           })
           return { data }
         } catch (error) {
@@ -205,7 +212,9 @@ export const sprintsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, completedAt }) => {
         try {
-          const data = await getSprintsClient().complete(id, { completedAt })
+          const data = await sprintsComplete(id, {
+            completedAt: completedAt ? toInstant(completedAt) : undefined,
+          })
           return { data }
         } catch (error) {
           logUnlessRefused(error)
@@ -219,7 +228,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
     reopenSprint: builder.mutation<void, { id: string; key: number }>({
       queryFn: async ({ id }) => {
         try {
-          const data = await getSprintsClient().reopen(id)
+          const data = await sprintsReopen(id)
           return { data }
         } catch (error) {
           logUnlessRefused(error)
@@ -243,11 +252,11 @@ export const sprintsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ sprints }) => {
         try {
-          const data = await getSprintsClient().correctActualDates({
+          const data = await sprintsCorrectActualDates({
             sprints: sprints.map(({ id, started, completed }) => ({
               sprintId: id,
-              started,
-              completed,
+              started: started ? toInstant(started) : undefined,
+              completed: completed ? toInstant(completed) : undefined,
             })),
           })
           return { data }
@@ -266,7 +275,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, teamDaysOff }) => {
         try {
-          const data = await getSprintsClient().setTeamDaysOff(id, {
+          const data = await sprintsSetTeamDaysOff(id, {
             teamDaysOff,
           })
           return { data }
@@ -291,7 +300,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
     getSprintTypes: builder.query<SprintTypeDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getSprintsClient().getSprintTypes()
+          const data = await sprintsGetSprintTypes()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -308,7 +317,7 @@ export const sprintsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, sprintType }) => {
         try {
-          const data = await getSprintsClient().setSprintType(id, {
+          const data = await sprintsSetSprintType(id, {
             sprintType,
           })
           return { data }

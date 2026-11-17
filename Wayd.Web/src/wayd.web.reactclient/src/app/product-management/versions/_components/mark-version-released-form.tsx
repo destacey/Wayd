@@ -1,8 +1,12 @@
 'use client'
 
+import { toInstant } from '@/src/utils/instant'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { MarkVersionReleasedRequest, VersionDto } from '@/src/services/wayd-api'
+import {
+  MarkVersionReleasedRequest,
+  VersionDto,
+} from '@/src/services/api/wayd.schemas'
 import { useMarkVersionReleasedMutation } from '@/src/store/features/product-management/versions-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'
@@ -42,7 +46,7 @@ const MarkVersionReleasedForm = ({
         try {
           const request = {
             id: version.id,
-            releasedAt: values.releasedAt.toDate(),
+            releasedAt: toInstant(values.releasedAt),
           } as MarkVersionReleasedRequest
 
           const response = await markReleased({

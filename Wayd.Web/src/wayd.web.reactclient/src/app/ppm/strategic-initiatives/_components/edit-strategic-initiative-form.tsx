@@ -4,7 +4,7 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { UpdateStrategicInitiativeRequest } from '@/src/services/wayd-api'
+import { UpdateStrategicInitiativeRequest } from '@/src/services/api/wayd.schemas'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import {
   useGetStrategicInitiativeQuery,
@@ -19,6 +19,7 @@ import {
 import { DatePicker, Form, Input, Modal } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect } from 'react'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { TextArea } = Input
 const { Item } = Form
@@ -46,8 +47,8 @@ const mapToRequestValues = (
     id: strategicInitiativeId,
     name: values.name,
     description: values.description,
-    start: (values.dateRange?.[0] as any)?.format('YYYY-MM-DD'),
-    end: (values.dateRange?.[1] as any)?.format('YYYY-MM-DD'),
+    start: toCalendarDate(values.dateRange[0]),
+    end: toCalendarDate(values.dateRange[1]),
     sponsorIds: values.sponsorIds,
     ownerIds: values.ownerIds,
   }
@@ -136,7 +137,9 @@ const EditStrategicInitiativeForm = ({
       console.error(error || employeeOptionsError)
       messageApi.error(
         toApiError(error).detail ||
-          (isApiError(employeeOptionsError) ? employeeOptionsError.detail : undefined) ||
+          (isApiError(employeeOptionsError)
+            ? employeeOptionsError.detail
+            : undefined) ||
           'An error occurred while loading form data.',
       )
     }

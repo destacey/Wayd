@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   DeploymentDto,
   RollBackDeploymentRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useRollBackDeploymentMutation } from '@/src/store/features/product-management/deployments-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Input, Modal } from 'antd'

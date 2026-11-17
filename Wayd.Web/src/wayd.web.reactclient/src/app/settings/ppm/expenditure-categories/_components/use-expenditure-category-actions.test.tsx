@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Dropdown } from 'antd'
-import { ExpenditureCategoryDetailsDto } from '@/src/services/wayd-api'
+import { ExpenditureCategoryDetailsDto } from '@/src/services/api/wayd.schemas'
 import useExpenditureCategoryActions from './use-expenditure-category-actions'
 
 const mockHasPermissionClaim = vi.fn()

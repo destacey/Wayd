@@ -1,12 +1,16 @@
-import { SprintScopeDto } from '@/src/services/wayd-api'
+import { SprintScopeDto } from '@/src/services/api/wayd.schemas'
 import { calendarDateInZone, formatInstantInZone } from '@/src/utils'
+import { type Instant } from '@/src/utils/instant'
 
 /**
  * The calendar day an instant closes, when it falls at midnight in `timeZone`:
  * a default commitment point or end is the end of a day, and "12:00 AM Oct 12"
  * reads as the wrong day where "the end of Oct 11" does not.
  */
-const dayEndedBy = (instant: Date, timeZone: string): string | null => {
+const dayEndedBy = (
+  instant: Date | Instant,
+  timeZone: string,
+): string | null => {
   const justBefore = new Date(new Date(instant).getTime() - 1)
   if (
     calendarDateInZone(justBefore, timeZone) ===
@@ -32,7 +36,7 @@ export const sprintScopeWindowText = (
   viewerZone: string = Intl.DateTimeFormat().resolvedOptions().timeZone,
   now: Date = new Date(),
 ): string[] => {
-  const when = (instant: Date) => {
+  const when = (instant: Date | Instant) => {
     const day = dayEndedBy(instant, scope.timeZone)
     return day ? `the end of ${day}` : formatInstantInZone(instant, viewerZone)
   }

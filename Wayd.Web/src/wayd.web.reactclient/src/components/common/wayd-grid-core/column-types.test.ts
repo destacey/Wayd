@@ -7,7 +7,9 @@ import {
   NO,
   YES_NO_COLUMN_SIZE,
 } from './column-types'
+import { sortDatesEmptyLast } from './grid-sorting'
 import type { WaydGridColumnMeta } from './types'
+import { asInstant } from '@/src/utils/instant'
 
 interface Row {
   flag: boolean | null | undefined
@@ -106,9 +108,31 @@ describe('applyColumnType', () => {
       expect((resolved.meta as WaydGridColumnMeta).filterType).toBe('dateTime')
     })
 
+    it.each(['dateOnly', 'dateTime'] as const)(
+      'sorts a %s column by date unless the column sets its own sort',
+      (columnType) => {
+        // Arrange
+        const ownSort = () => 0
+        const plain: ColumnDef<Row, unknown> = {
+          id: 'when',
+          accessorKey: 'when',
+          meta: { columnType },
+        }
+        const custom: ColumnDef<Row, unknown> = { ...plain, sortFn: ownSort }
+
+        // Act
+        const resolvedPlain = applyColumnType(plain)
+        const resolvedCustom = applyColumnType(custom)
+
+        // Assert
+        expect(resolvedPlain.sortFn).toBe(sortDatesEmptyLast)
+        expect(resolvedCustom.sortFn).toBe(ownSort)
+      },
+    )
+
     it('exposes the standard display formatters for custom cells', () => {
       // Arrange
-      const when = '2026-07-02T13:05:00Z'
+      const when = asInstant('2026-07-02T13:05:00Z')
 
       // Act / Assert — same formats the dateOnly/dateTime cells use
       expect(formatDateOnly(when)).toBe(formatDateOnly(new Date(when)))

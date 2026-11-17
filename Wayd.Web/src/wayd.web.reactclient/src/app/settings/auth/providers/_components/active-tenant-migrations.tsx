@@ -1,7 +1,7 @@
 'use client'
 
 import { WaydGrid, formatDateTime } from '@/src/components/common/wayd-grid'
-import { PendingTenantMigrationDto } from '@/src/services/wayd-api'
+import { PendingTenantMigrationDto } from '@/src/services/api/wayd.schemas'
 import { useGetPendingTenantMigrationsQuery } from '@/src/store/features/user-management/oidc-providers-api'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import Link from 'next/link'

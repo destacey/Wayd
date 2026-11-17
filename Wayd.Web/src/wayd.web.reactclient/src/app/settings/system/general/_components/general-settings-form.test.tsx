@@ -1,5 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { GeneralSettingsDto, TimeZoneDto } from '@/src/services/wayd-api'
+import {
+  GeneralSettingsDto,
+  TimeZoneDto,
+} from '@/src/services/api/wayd.schemas'
 import GeneralSettingsForm, {
   GeneralSettingsFormProps,
 } from './general-settings-form'
@@ -129,9 +132,11 @@ describe('GeneralSettingsForm', () => {
     // Arrange
     mockUpdate.mockResolvedValue({
       error: {
-        isApiException: true,
+        kind: 'api-response',
         status: 403,
-        response: { detail: 'You do not have permission to do that.' },
+        detail: 'You do not have permission to do that.',
+        url: '/api',
+        headers: {},
       },
     })
     renderForm()

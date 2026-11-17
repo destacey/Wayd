@@ -1,7 +1,7 @@
 'use client'
 
 import { useGetRoadmapStateOptionsQuery } from '@/src/store/features/planning/roadmaps-api'
-import { RoadmapState } from '@/src/services/wayd-api'
+import { RoadmapState } from '@/src/services/api/wayd.schemas'
 import { FC } from 'react'
 import { PpmFilterBar } from '@/src/app/ppm/_components'
 

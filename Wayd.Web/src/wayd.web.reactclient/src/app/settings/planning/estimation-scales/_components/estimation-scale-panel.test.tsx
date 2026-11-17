@@ -2,15 +2,16 @@ import { render, screen } from '@testing-library/react'
 import {
   EstimationScaleDto,
   EstimationScaleVersionDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import EstimationScalePanel from './estimation-scale-panel'
+import { asInstant } from '@/src/utils/instant'
 
 const version = (
   overrides: Partial<EstimationScaleVersionDto> = {},
 ): EstimationScaleVersionDto => ({
   id: 'version-2',
   number: 2,
-  publishedOn: new Date('2026-03-04T12:00:00Z'),
+  publishedOn: asInstant('2026-03-04T12:00:00Z'),
   values: [
     { value: '1', isEstimate: true },
     { value: '2', isEstimate: true },
@@ -82,7 +83,7 @@ describe('EstimationScalePanel', () => {
     const first = version({
       id: 'version-1',
       number: 1,
-      publishedOn: new Date('2026-01-10T12:00:00Z'),
+      publishedOn: asInstant('2026-01-10T12:00:00Z'),
       values: [
         { value: 'S', isEstimate: true },
         { value: 'L', isEstimate: true },

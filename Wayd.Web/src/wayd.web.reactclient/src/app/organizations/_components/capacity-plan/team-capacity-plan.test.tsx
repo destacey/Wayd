@@ -1,7 +1,8 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { TeamCapacityPlanDto } from '@/src/services/wayd-api'
+import { TeamCapacityPlanDto } from '@/src/services/api/wayd.schemas'
 import TeamCapacityPlan from './team-capacity-plan'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 // The antd Table measures its scrollbar with a pseudo-element, which jsdom does
 // not implement and reports as an error.
@@ -61,19 +62,19 @@ vi.mock('../allocations/change-allocation-form', () => ({
 }))
 
 // A two-week sprint, Monday to the Friday after.
-const FROM = '2027-02-01'
-const TO = '2027-02-12'
+const FROM = asCalendarDate('2027-02-01')
+const TO = asCalendarDate('2027-02-12')
 const DAYS = [
-  '2027-02-01',
-  '2027-02-02',
-  '2027-02-03',
-  '2027-02-04',
-  '2027-02-05',
-  '2027-02-08',
-  '2027-02-09',
-  '2027-02-10',
-  '2027-02-11',
-  '2027-02-12',
+  asCalendarDate('2027-02-01'),
+  asCalendarDate('2027-02-02'),
+  asCalendarDate('2027-02-03'),
+  asCalendarDate('2027-02-04'),
+  asCalendarDate('2027-02-05'),
+  asCalendarDate('2027-02-08'),
+  asCalendarDate('2027-02-09'),
+  asCalendarDate('2027-02-10'),
+  asCalendarDate('2027-02-11'),
+  asCalendarDate('2027-02-12'),
 ]
 
 function plan(canManage = true): TeamCapacityPlanDto {
@@ -110,7 +111,7 @@ function plan(canManage = true): TeamCapacityPlanDto {
         canManageTimeAway: true,
         days: [
           {
-            date: '2027-02-03',
+            date: asCalendarDate('2027-02-03'),
             isHoliday: true,
             percentAway: 0,
             elsewherePercent: 0,
@@ -122,7 +123,7 @@ function plan(canManage = true): TeamCapacityPlanDto {
             days: DAYS.map((date) => ({
               date,
               percent: 50,
-              personDays: date === '2027-02-03' ? 0 : 0.5,
+              personDays: date === asCalendarDate('2027-02-03') ? 0 : 0.5,
             })),
           },
         ],

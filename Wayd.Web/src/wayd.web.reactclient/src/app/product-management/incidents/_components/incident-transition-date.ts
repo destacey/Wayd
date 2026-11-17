@@ -1,4 +1,5 @@
-import { IncidentWorkflowAction } from '@/src/services/wayd-api'
+import type { Instant } from '@/src/utils/instant'
+import { IncidentWorkflowAction } from '@/src/services/api/wayd.schemas'
 
 /**
  * Which empty instant a lifecycle action will fill.
@@ -8,7 +9,7 @@ export type IncidentTransitionDate = 'startedAt' | 'recoveredAt' | 'both'
 
 export function incidentTransitionDate(
   action: IncidentWorkflowAction,
-  incident: { startedAt?: Date | null; recoveredAt?: Date | null },
+  incident: { startedAt?: Instant | null; recoveredAt?: Instant | null },
 ): IncidentTransitionDate | null {
   const started = incident.startedAt != null
   const recovered = incident.recoveredAt != null

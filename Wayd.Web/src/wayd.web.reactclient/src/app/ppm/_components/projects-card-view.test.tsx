@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
 import ProjectsCardView from './projects-card-view'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
 
 vi.mock('antd', () => ({
   Card: ({ children, onClick }: any) => <div onClick={onClick}>{children}</div>,

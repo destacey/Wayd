@@ -4,7 +4,7 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { CreateProjectTaskRequest } from '@/src/services/wayd-api'
+import { CreateProjectTaskRequest } from '@/src/services/api/wayd.schemas'
 import { type Dayjs } from 'dayjs'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import {
@@ -33,6 +33,7 @@ import {
   getMilestoneParentExpansionHint,
 } from './project-parent-date-hint'
 import ProjectDeliverableSelect from './project-deliverable-select'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -76,9 +77,15 @@ const mapToRequestValues = (
     deliverableIds: values.deliverableIds ?? [],
     progress: values.progress,
     parentId: values.parentId,
-    plannedStart: (values.plannedRange?.[0] as any)?.format('YYYY-MM-DD'),
-    plannedEnd: (values.plannedRange?.[1] as any)?.format('YYYY-MM-DD'),
-    plannedDate: values.plannedDate?.format('YYYY-MM-DD'),
+    plannedStart: values.plannedRange?.[0]
+      ? toCalendarDate(values.plannedRange[0])
+      : undefined,
+    plannedEnd: values.plannedRange?.[1]
+      ? toCalendarDate(values.plannedRange[1])
+      : undefined,
+    plannedDate: values.plannedDate
+      ? toCalendarDate(values.plannedDate)
+      : undefined,
     estimatedEffortHours: values.estimatedEffortHours,
   } as unknown as CreateProjectTaskRequest
 }
@@ -96,46 +103,44 @@ const CreateProjectTaskForm = ({
 
   const { data: typeOptions = [] } = useGetTaskTypeOptionsQuery()
 
-  const {
-    data: employeeData,
-  } = useGetEmployeeOptionsQuery(false)
+  const { data: employeeData } = useGetEmployeeOptionsQuery(false)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CreateProjectTaskFormValues>({
       onSubmit: async (values: CreateProjectTaskFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values)
-            const response = await createProjectTask({
-              projectIdOrKey,
-              request,
-            })
-            if (response.error) throw response.error
+        try {
+          const request = mapToRequestValues(values)
+          const response = await createProjectTask({
+            projectIdOrKey,
+            request,
+          })
+          if (response.error) throw response.error
 
-            messageApi.success(
-              'Task created successfully. Task key: ' + response.data!.key,
+          messageApi.success(
+            'Task created successfully. Task key: ' + response.data!.key,
+          )
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn(
+                'plannedRange',
+                'plannedStart',
+                'plannedEnd',
+              ),
+            })
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while creating the project task. Please try again.',
             )
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: rangeErrorsOn(
-                  'plannedRange',
-                  'plannedStart',
-                  'plannedEnd',
-                ),
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while creating the project task. Please try again.',
-              )
-            }
-            return false
           }
-        },
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:
@@ -158,7 +163,11 @@ const CreateProjectTaskForm = ({
   const parentRange = findParentPlanNodeRange(planTree, selectedParentId)
   const parentExpansionHint = isMilestone
     ? getMilestoneParentExpansionHint(parentRange, selectedDate)
-    : getParentExpansionHint(parentRange, selectedRange?.[0], selectedRange?.[1])
+    : getParentExpansionHint(
+        parentRange,
+        selectedRange?.[0],
+        selectedRange?.[1],
+      )
 
   const { data: statusOptions = [] } = useGetTaskStatusOptionsQuery({
     forMilestone: isMilestone,

@@ -2,7 +2,7 @@
 
 import { Spin } from 'antd'
 import { memo, useState } from 'react'
-import { ProgramListDto } from '@/src/services/wayd-api'
+import { ProgramListDto } from '@/src/services/api/wayd.schemas'
 import dynamic from 'next/dynamic'
 import { useMessage } from '@/src/components/contexts/messaging'
 import ProgramsGrid from './programs-grid'

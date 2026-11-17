@@ -8,7 +8,7 @@ import type { ColumnsType } from 'antd/es/table'
 import {
   PlanningIntervalDetailsDto,
   PlanningSprintListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetIterationSprintsQuery,
   useGetPlanningIntervalTeamsQuery,

@@ -8,7 +8,7 @@ import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { requireFeatureFlag } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
-import { IntakeDeskDto } from '@/src/services/wayd-api'
+import { IntakeDeskDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetIntakeDeskVisibilitiesQuery,
   useGetIntakeDesksQuery,

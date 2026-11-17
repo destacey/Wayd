@@ -3,7 +3,7 @@
 import {
   IntakeWorkflowStatusDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetIntakeDeskWorkflowQuery } from '@/src/store/features/demand-management/demand-management-api'
 import { Card, Flex, Skeleton, Timeline, Typography } from 'antd'
 import { FC } from 'react'

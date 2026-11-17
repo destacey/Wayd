@@ -1,4 +1,4 @@
-import { WorkIterationNavigationDto } from '@/src/services/wayd-api'
+import { WorkIterationNavigationDto } from '@/src/services/api/wayd.schemas'
 import Link from 'next/link'
 
 export interface SprintLinkProps {
@@ -19,4 +19,3 @@ const SprintLink = ({ sprint, showTeamCode = true }: SprintLinkProps) => {
 }
 
 export default SprintLink
-

@@ -2,7 +2,7 @@ import {
   DeliveryAction,
   VersionDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 /**
  * Which lifecycle moves a version will accept.

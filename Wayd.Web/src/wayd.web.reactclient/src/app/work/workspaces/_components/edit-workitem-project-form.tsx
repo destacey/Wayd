@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { UpdateWorkItemProjectRequest } from '@/src/services/wayd-api'
+import { UpdateWorkItemProjectRequest } from '@/src/services/api/wayd.schemas'
 import { useGetProjectOptionsQuery } from '@/src/store/features/ppm/projects-api'
 import {
   useGetWorkItemProjectInfoQuery,
@@ -169,9 +169,7 @@ const EditWorkItemProjectForm = (props: EditWorkItemProjectFormProps) => {
       >
         <Space vertical>
           {projectSourceText && <Text italic>{projectSourceText}</Text>}
-          {hasParent && (
-            <Text>Parent Project: {parentProjectName}</Text>
-          )}
+          {hasParent && <Text>Parent Project: {parentProjectName}</Text>}
           <Form
             form={form}
             size="small"

@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   CreateOidcProviderRequest,
   OidcProviderType,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useCreateOidcProviderMutation } from '@/src/store/features/user-management/oidc-providers-api'
 import { useGetRolesQuery } from '@/src/store/features/user-management/roles-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'

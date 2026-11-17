@@ -9,13 +9,14 @@ import {
   ChangeEmployeeAllocationsRequest,
   EmployeeAllocationChangeRequest,
   NavigationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   TeamCapacityPersonDto,
   TeamCapacityRoleDto,
   TeamCapacityRollupNodeDto,
   TeamCapacityTimeAwayDto,
 } from '@/src/store/features/organization/team-capacity-api'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 /** An inclusive range of calendar dates. */
 export interface CapacityRange {
@@ -27,13 +28,14 @@ export interface CapacityRange {
 export function monthOf(today: CalendarDate): CapacityRange {
   const year = Number(today.slice(0, 4))
   const month = Number(today.slice(5, 7))
-  const firstOfNext =
+  const firstOfNext = asCalendarDate(
     month === 12
       ? `${year + 1}-01-01`
-      : `${year}-${String(month + 1).padStart(2, '0')}-01`
+      : `${year}-${String(month + 1).padStart(2, '0')}-01`,
+  )
 
   return {
-    from: `${today.slice(0, 7)}-01`,
+    from: asCalendarDate(`${today.slice(0, 7)}-01`),
     to: addCalendarDays(firstOfNext, -1),
   }
 }
@@ -67,11 +69,11 @@ export interface CapacityRow {
   /** The allocation's id. */
   id: string
   person: TeamCapacityPersonDto
-  role?: NavigationDto
+  role?: NavigationDto | null
   countsTowardDeliveryCapacity: boolean
   start: CalendarDate
   /** Absent when the allocation has no end. */
-  end?: CalendarDate
+  end?: CalendarDate | null
   percent: number
   personDays: number
 }
@@ -154,7 +156,7 @@ export interface ProposedAllocation {
   employeeId: string
   roleId: string
   /** The last day, or absent for no end. */
-  end?: CalendarDate
+  end?: CalendarDate | null
   percent: number
 }
 

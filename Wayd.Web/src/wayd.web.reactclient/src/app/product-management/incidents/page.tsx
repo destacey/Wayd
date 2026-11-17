@@ -11,7 +11,7 @@ import {
   useGetIncidentsQuery,
 } from '@/src/store/features/product-management/incidents-api'
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
-import { ProductStatusAlias } from '@/src/services/wayd-api'
+import { ProductStatusAlias } from '@/src/services/api/wayd.schemas'
 import { Button } from 'antd'
 import { FC, useEffect, useState } from 'react'
 import { CreateIncidentForm } from './_components/create-incident-form'

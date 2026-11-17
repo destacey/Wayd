@@ -6,7 +6,7 @@ import { Flex } from 'antd'
 import { ChartSkeleton } from '@/src/components/common/metrics'
 import WaydEmpty from '../wayd-empty'
 import useTheme from '../../contexts/theme'
-import { WorkItemListDto } from '@/src/services/wayd-api'
+import { WorkItemListDto } from '@/src/services/api/wayd.schemas'
 import { Column } from '@/src/components/common/charts'
 
 export interface CycleTimeAnalysisChartProps {

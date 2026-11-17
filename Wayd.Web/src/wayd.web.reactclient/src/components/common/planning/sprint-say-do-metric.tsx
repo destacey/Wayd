@@ -2,7 +2,7 @@
 
 import { CSSProperties, FC } from 'react'
 import { MetricCard } from '../metrics'
-import { SprintScopeDto } from '@/src/services/wayd-api'
+import { SprintScopeDto } from '@/src/services/api/wayd.schemas'
 
 export interface SprintSayDoMetricProps {
   scope: SprintScopeDto

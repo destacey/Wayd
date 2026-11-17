@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { OidcProviderType } from '@/src/services/wayd-api'
+import { OidcProviderType } from '@/src/services/api/wayd.schemas'
 import CreateOidcProviderForm from './create-oidc-provider-form'
 import type { UseModalFormOptions } from '@/src/hooks'
 

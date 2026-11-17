@@ -12,7 +12,7 @@ import {
   FollowedRecordDto,
   FollowSort,
   SortDirection,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { findScrollParent } from '@/src/utils/scroll-parent'
 import styles from '../following.module.css'
 import FollowedRecordRow from './followed-record-row'

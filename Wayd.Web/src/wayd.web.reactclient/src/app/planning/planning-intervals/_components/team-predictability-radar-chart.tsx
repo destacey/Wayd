@@ -2,7 +2,7 @@
 
 import { ChartCard } from '@/src/components/common/metrics'
 import useTheme from '@/src/components/contexts/theme'
-import { PlanningIntervalTeamPredictabilityDto } from '@/src/services/wayd-api'
+import { PlanningIntervalTeamPredictabilityDto } from '@/src/services/api/wayd.schemas'
 import { useChartRemountOnResize } from '@/src/hooks'
 import { Radar } from '@/src/components/common/charts'
 

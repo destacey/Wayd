@@ -3,7 +3,7 @@
 import {
   EmployeeNavigationDto,
   PlanningTeamNavigationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { DownOutlined, RightOutlined, TeamOutlined } from '@ant-design/icons'
 import { Button, Flex, Spin, Typography } from 'antd'
 import { FC, ReactNode } from 'react'

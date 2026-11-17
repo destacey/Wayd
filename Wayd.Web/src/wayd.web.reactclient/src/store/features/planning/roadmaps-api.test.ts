@@ -1,12 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { JsonPatchOperationType } from '@/src/services/wayd-api'
+import { JsonPatchOperationType } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { roadmapApi } from './roadmaps-api'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const patchRoadmapItem = vi.fn()
 
-vi.mock('@/src/services/clients', () => ({
-  getRoadmapsClient: () => ({ patchRoadmapItem }),
+vi.mock(import('@/src/services/api/roadmaps'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  roadmapsPatchRoadmapItem: (...args: unknown[]) => patchRoadmapItem(...args),
 }))
 
 const createStore = () =>
@@ -16,7 +18,11 @@ const createStore = () =>
   })
 
 const operations = [
-  { op: JsonPatchOperationType.Replace, path: '/end', value: '2026-06-30' },
+  {
+    op: JsonPatchOperationType.replace,
+    path: '/end',
+    value: asCalendarDate('2026-06-30'),
+  },
 ]
 
 const patch = () =>

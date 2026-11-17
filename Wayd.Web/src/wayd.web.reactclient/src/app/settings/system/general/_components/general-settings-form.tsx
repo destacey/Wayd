@@ -4,7 +4,7 @@ import { Button, Form, Skeleton } from 'antd'
 import { useEffect, useState } from 'react'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { toApiError, toFormErrors } from '@/src/utils'
-import { GeneralSettingsDto } from '@/src/services/wayd-api'
+import { GeneralSettingsDto } from '@/src/services/api/wayd.schemas'
 import { useUpdateGeneralSettingsMutation } from '@/src/store/features/admin/system-settings-api'
 import { TimeZoneSelect } from '@/src/components/common/scheduling'
 

@@ -1,6 +1,6 @@
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { StatusCategory } from '@/src/services/wayd-api'
+import { StatusCategory } from '@/src/services/api/wayd.schemas'
 import ChangeIntakeRequestStatusForm from './change-intake-request-status-form'
 import type { UseModalFormOptions } from '@/src/hooks'
 

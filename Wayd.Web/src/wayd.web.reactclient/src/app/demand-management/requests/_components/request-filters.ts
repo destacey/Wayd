@@ -1,7 +1,7 @@
 import {
   IntakeRequestSummaryDto,
   NeedByBasisFamily,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { NOT_RECORDED_CHANNEL } from '../../_components/channel'
 import type { RequestEstimates } from '../../_components/request-estimates'
 

@@ -2,7 +2,10 @@
 
 import { WaydList } from '@/src/components/common'
 import EntityLink from '@/src/components/common/entity-link'
-import { MyProjectTaskDto, ProjectStatus } from '@/src/services/wayd-api'
+import {
+  MyProjectTaskDto,
+  ProjectStatus,
+} from '@/src/services/api/wayd.schemas'
 import { useGetMyProjectTasksQuery } from '@/src/store/features/ppm/projects-api'
 import {
   addCalendarDays,

@@ -1,7 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import dayjs from 'dayjs'
 import ProjectsDashboardGrid from './projects-dashboard-grid'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
+import { asInstant } from '@/src/utils/instant'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 global.ResizeObserver = class {
   observe() {}
@@ -62,7 +64,7 @@ const projects = [
     healthCheck: {
       id: 'hc',
       status: { id: 3, name: 'Unhealthy' },
-      expiration: new Date('2027-01-01T00:00:00Z'),
+      expiration: asInstant('2027-01-01T00:00:00Z'),
     },
     stages: [
       {
@@ -73,7 +75,7 @@ const projects = [
         progress: 40,
       },
     ],
-    end: '2026-10-05',
+    end: asCalendarDate('2026-10-05'),
   }),
   project({ key: 'P2', name: 'Beta' }),
   project({
@@ -83,7 +85,7 @@ const projects = [
     healthCheck: {
       id: 'hc2',
       status: { id: 1, name: 'Healthy' },
-      expiration: new Date('2027-01-01T00:00:00Z'),
+      expiration: asInstant('2027-01-01T00:00:00Z'),
     },
   }),
 ]

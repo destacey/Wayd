@@ -1,4 +1,4 @@
-import { HomeContextResponse } from '@/src/services/wayd-api'
+import { HomeContextResponse } from '@/src/services/api/wayd.schemas'
 import { lazy } from 'react'
 import { Involvement } from './home-involvement'
 import { HomeWidget } from './widget-registry'

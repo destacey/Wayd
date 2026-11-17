@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { TeamMemberRoleDto } from '@/src/services/wayd-api'
+import { TeamMemberRoleDto } from '@/src/services/api/wayd.schemas'
 import { useUpdateTeamMemberRoleMutation } from '@/src/store/features/organization/team-member-roles-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal, Switch } from 'antd'

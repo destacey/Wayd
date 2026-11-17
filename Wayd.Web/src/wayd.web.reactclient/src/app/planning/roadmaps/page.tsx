@@ -7,7 +7,7 @@ import useAuth from '@/src/components/contexts/auth'
 import { Alert, Button } from 'antd'
 import { authorizePage } from '@/src/components/hoc'
 import { useGetRoadmapsQuery } from '@/src/store/features/planning/roadmaps-api'
-import { RoadmapState } from '@/src/services/wayd-api'
+import { RoadmapState } from '@/src/services/api/wayd.schemas'
 import {
   CreateRoadmapForm,
   RoadmapsFilterBar,

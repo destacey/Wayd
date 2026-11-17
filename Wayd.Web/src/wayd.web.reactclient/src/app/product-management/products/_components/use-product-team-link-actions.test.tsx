@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react'
-import { ProductTeamLinkDto } from '@/src/services/wayd-api'
+import { ProductTeamLinkDto } from '@/src/services/api/wayd.schemas'
 import useProductTeamLinkActions from './use-product-team-link-actions'
 
 let mockCanUpdate = true

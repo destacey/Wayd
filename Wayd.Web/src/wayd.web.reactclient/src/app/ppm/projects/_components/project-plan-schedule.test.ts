@@ -2,6 +2,8 @@ import {
   getPlanScheduleLabel,
   isPlanItemOverdue,
 } from './project-plan-schedule'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 describe('isPlanItemOverdue', () => {
   const now = new Date(2026, 8, 4)
@@ -114,7 +116,7 @@ describe('isPlanItemOverdue with API date strings', () => {
   // Plan dates arrive as bare NodaTime LocalDate strings ("2026-09-04").
   it('does not treat a task due today as overdue', () => {
     // Arrange
-    const node: any = { status: inProgress, end: '2026-09-04' }
+    const node: any = { status: inProgress, end: asCalendarDate('2026-09-04') }
 
     // Act
     const result = isPlanItemOverdue(node, new Date(2026, 8, 4, 9, 30))
@@ -125,7 +127,7 @@ describe('isPlanItemOverdue with API date strings', () => {
 
   it('treats a task due yesterday as overdue', () => {
     // Arrange
-    const node: any = { status: inProgress, end: '2026-09-03' }
+    const node: any = { status: inProgress, end: asCalendarDate('2026-09-03') }
 
     // Act
     const result = isPlanItemOverdue(node, new Date(2026, 8, 4, 9, 30))
@@ -136,7 +138,7 @@ describe('isPlanItemOverdue with API date strings', () => {
 
   it('does not treat a task due tomorrow as overdue', () => {
     // Arrange
-    const node: any = { status: inProgress, end: '2026-09-05' }
+    const node: any = { status: inProgress, end: asCalendarDate('2026-09-05') }
 
     // Act
     const result = isPlanItemOverdue(node, new Date(2026, 8, 4, 9, 30))
@@ -147,7 +149,10 @@ describe('isPlanItemOverdue with API date strings', () => {
 
   it('does not treat a milestone due today as overdue', () => {
     // Arrange
-    const node: any = { status: inProgress, plannedDate: '2026-09-04' }
+    const node: any = {
+      status: inProgress,
+      plannedDate: asCalendarDate('2026-09-04'),
+    }
 
     // Act
     const result = isPlanItemOverdue(node, new Date(2026, 8, 4, 9, 30))
@@ -158,7 +163,10 @@ describe('isPlanItemOverdue with API date strings', () => {
 
   it('handles a full timestamp string without shifting the day', () => {
     // Arrange
-    const node: any = { status: inProgress, end: '2026-09-04T00:00:00Z' }
+    const node: any = {
+      status: inProgress,
+      end: asInstant('2026-09-04T00:00:00Z'),
+    }
 
     // Act
     const result = isPlanItemOverdue(node, new Date(2026, 8, 4, 9, 30))
@@ -188,7 +196,7 @@ describe('getPlanScheduleLabel', () => {
 
   it('labels a past date Overdue', () => {
     // Arrange
-    const node: any = { status: inProgress, end: '2026-09-01' }
+    const node: any = { status: inProgress, end: asCalendarDate('2026-09-01') }
 
     // Act
     const result = getPlanScheduleLabel(node, wednesday)
@@ -199,7 +207,7 @@ describe('getPlanScheduleLabel', () => {
 
   it('labels today Due This Week rather than a bucket of its own', () => {
     // Arrange
-    const node: any = { status: inProgress, end: '2026-09-02' }
+    const node: any = { status: inProgress, end: asCalendarDate('2026-09-02') }
 
     // Act
     const result = getPlanScheduleLabel(node, wednesday)
@@ -210,7 +218,7 @@ describe('getPlanScheduleLabel', () => {
 
   it('includes the closing Saturday in Due This Week', () => {
     // Arrange
-    const node: any = { status: inProgress, end: '2026-09-05' }
+    const node: any = { status: inProgress, end: asCalendarDate('2026-09-05') }
 
     // Act
     const result = getPlanScheduleLabel(node, wednesday)
@@ -221,7 +229,7 @@ describe('getPlanScheduleLabel', () => {
 
   it('labels the day after Saturday Upcoming', () => {
     // Arrange
-    const node: any = { status: inProgress, end: '2026-09-06' }
+    const node: any = { status: inProgress, end: asCalendarDate('2026-09-06') }
 
     // Act
     const result = getPlanScheduleLabel(node, wednesday)
@@ -232,7 +240,7 @@ describe('getPlanScheduleLabel', () => {
 
   it('includes the following Saturday in Upcoming', () => {
     // Arrange
-    const node: any = { status: inProgress, end: '2026-09-12' }
+    const node: any = { status: inProgress, end: asCalendarDate('2026-09-12') }
 
     // Act
     const result = getPlanScheduleLabel(node, wednesday)
@@ -243,7 +251,7 @@ describe('getPlanScheduleLabel', () => {
 
   it('leaves anything beyond next Saturday unlabelled', () => {
     // Arrange
-    const node: any = { status: inProgress, end: '2026-09-13' }
+    const node: any = { status: inProgress, end: asCalendarDate('2026-09-13') }
 
     // Act
     const result = getPlanScheduleLabel(node, wednesday)
@@ -254,7 +262,10 @@ describe('getPlanScheduleLabel', () => {
 
   it('leaves a completed task unlabelled even when overdue', () => {
     // Arrange
-    const node: any = { status: { name: 'Completed' }, end: '2026-08-01' }
+    const node: any = {
+      status: { name: 'Completed' },
+      end: asCalendarDate('2026-08-01'),
+    }
 
     // Act
     const result = getPlanScheduleLabel(node, wednesday)
@@ -265,7 +276,10 @@ describe('getPlanScheduleLabel', () => {
 
   it('leaves a canceled task unlabelled', () => {
     // Arrange
-    const node: any = { status: { name: 'Canceled' }, end: '2026-08-01' }
+    const node: any = {
+      status: { name: 'Canceled' },
+      end: asCalendarDate('2026-08-01'),
+    }
 
     // Act
     const result = getPlanScheduleLabel(node, wednesday)
@@ -287,7 +301,10 @@ describe('getPlanScheduleLabel', () => {
 
   it('uses a milestone plannedDate when there is no end date', () => {
     // Arrange
-    const node: any = { status: inProgress, plannedDate: '2026-09-03' }
+    const node: any = {
+      status: inProgress,
+      plannedDate: asCalendarDate('2026-09-03'),
+    }
 
     // Act
     const result = getPlanScheduleLabel(node, wednesday)
@@ -299,7 +316,7 @@ describe('getPlanScheduleLabel', () => {
   it('treats Saturday itself as a full week, not an empty one', () => {
     // Arrange
     const saturday = new Date(2026, 8, 5, 10, 0)
-    const node: any = { status: inProgress, end: '2026-09-05' }
+    const node: any = { status: inProgress, end: asCalendarDate('2026-09-05') }
 
     // Act
     const result = getPlanScheduleLabel(node, saturday)
@@ -311,7 +328,7 @@ describe('getPlanScheduleLabel', () => {
   it('rolls the week over on Sunday', () => {
     // Arrange
     const sunday = new Date(2026, 8, 6, 10, 0)
-    const node: any = { status: inProgress, end: '2026-09-12' }
+    const node: any = { status: inProgress, end: asCalendarDate('2026-09-12') }
 
     // Act
     const result = getPlanScheduleLabel(node, sunday)
@@ -323,7 +340,7 @@ describe('getPlanScheduleLabel', () => {
   it('crosses a month boundary without shifting the week', () => {
     // Arrange
     const tuesday = new Date(2026, 8, 29, 10, 0)
-    const node: any = { status: inProgress, end: '2026-10-03' }
+    const node: any = { status: inProgress, end: asCalendarDate('2026-10-03') }
 
     // Act
     const result = getPlanScheduleLabel(node, tuesday)
@@ -344,8 +361,14 @@ describe('schedule buckets shared with the dashboard badges', () => {
 
   it('puts today and later-this-week in the same bucket', () => {
     // Arrange
-    const dueToday: any = { status: inProgress, end: '2026-09-02' }
-    const dueThursday: any = { status: inProgress, end: '2026-09-03' }
+    const dueToday: any = {
+      status: inProgress,
+      end: asCalendarDate('2026-09-02'),
+    }
+    const dueThursday: any = {
+      status: inProgress,
+      end: asCalendarDate('2026-09-03'),
+    }
 
     // Act
     const todayLabel = getPlanScheduleLabel(dueToday, wednesday)
@@ -358,7 +381,12 @@ describe('schedule buckets shared with the dashboard badges', () => {
 
   it('never returns a Due Today bucket', () => {
     // Arrange
-    const days = ['2026-09-01', '2026-09-02', '2026-09-05', '2026-09-12']
+    const days = [
+      asCalendarDate('2026-09-01'),
+      asCalendarDate('2026-09-02'),
+      asCalendarDate('2026-09-05'),
+      asCalendarDate('2026-09-12'),
+    ]
 
     // Act
     const labels = days.map((end) =>

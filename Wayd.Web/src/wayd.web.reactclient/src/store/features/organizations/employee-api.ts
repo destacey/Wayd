@@ -1,20 +1,29 @@
+import { toInstant } from '@/src/utils/instant'
 import type { BaseOptionType } from 'antd/es/select'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
-import { getEmployeesClient } from '@/src/services/clients'
+import {
+  employeesDelete,
+  employeesGetDirectReports,
+  employeesGetEmployee,
+  employeesGetEmployeeWorkItems,
+  employeesGetList,
+} from '@/src/services/api/employees'
 import {
   EmployeeDetailsDto,
   EmployeeListDto,
   WorkItemListDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 export const employeeApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getEmployees: builder.query<EmployeeListDto[], boolean | undefined>({
       queryFn: async (includeInactive) => {
         try {
-          const employees = await getEmployeesClient().getList(includeInactive)
+          const employees = await employeesGetList({
+            includeInactive: includeInactive,
+          })
           const data = employees.sort((a, b) =>
             a.displayName.localeCompare(b.displayName),
           )
@@ -32,7 +41,7 @@ export const employeeApi = apiSlice.injectEndpoints({
     getEmployee: builder.query<EmployeeDetailsDto, number>({
       queryFn: async (key) => {
         try {
-          const data = await getEmployeesClient().getEmployee(key.toString())
+          const data = await employeesGetEmployee(key.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -49,7 +58,7 @@ export const employeeApi = apiSlice.injectEndpoints({
     getEmployeeById: builder.query<EmployeeDetailsDto, string>({
       queryFn: async (id) => {
         try {
-          const data = await getEmployeesClient().getEmployee(id)
+          const data = await employeesGetEmployee(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -63,7 +72,7 @@ export const employeeApi = apiSlice.injectEndpoints({
     getDirectReports: builder.query<EmployeeListDto[], string>({
       queryFn: async (employeeId) => {
         try {
-          const data = await getEmployeesClient().getDirectReports(employeeId)
+          const data = await employeesGetDirectReports(employeeId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -89,12 +98,11 @@ export const employeeApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ employeeId, statusCategories, doneFrom, doneTo }) => {
         try {
-          const data = await getEmployeesClient().getEmployeeWorkItems(
-            employeeId,
-            statusCategories,
-            doneFrom ? new Date(doneFrom) : null,
-            doneTo ? new Date(doneTo) : null,
-          )
+          const data = await employeesGetEmployeeWorkItems(employeeId, {
+            statusCategories: statusCategories ?? undefined,
+            doneFrom: doneFrom ? toInstant(new Date(doneFrom)) : undefined,
+            doneTo: doneTo ? toInstant(new Date(doneTo)) : undefined,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -112,7 +120,9 @@ export const employeeApi = apiSlice.injectEndpoints({
     getEmployeeOptions: builder.query<BaseOptionType[], boolean | undefined>({
       queryFn: async (includeInactive) => {
         try {
-          const employees = await getEmployeesClient().getList(includeInactive)
+          const employees = await employeesGetList({
+            includeInactive: includeInactive,
+          })
           const data: BaseOptionType[] = employees
             .sort((a, b) => a.displayName.localeCompare(b.displayName))
             .map((employee) => ({
@@ -132,7 +142,7 @@ export const employeeApi = apiSlice.injectEndpoints({
     deleteEmployee: builder.mutation<void, string>({
       queryFn: async (employeeId) => {
         try {
-          const data = await getEmployeesClient().delete(employeeId)
+          const data = await employeesDelete(employeeId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

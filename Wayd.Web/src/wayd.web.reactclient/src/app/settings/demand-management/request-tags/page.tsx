@@ -14,7 +14,7 @@ import {
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useDocumentTitle } from '@/src/hooks'
-import { IntakeRequestTagCategoryDto } from '@/src/services/wayd-api'
+import { IntakeRequestTagCategoryDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetIntakeRequestTagCategoriesQuery,
   useReorderIntakeRequestTagCategoriesMutation,

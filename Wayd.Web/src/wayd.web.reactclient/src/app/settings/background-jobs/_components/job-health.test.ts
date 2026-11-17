@@ -1,9 +1,10 @@
-import { JobServerResponse } from '@/src/services/wayd-api'
+import { JobServerResponse } from '@/src/services/api/wayd.schemas'
 import {
   findLongestRunningJobId,
   isRequeueableState,
   summarizeSchedulerHealth,
 } from './job-health'
+import { asInstant } from '@/src/utils/instant'
 
 const now = new Date('2026-11-07T12:00:00Z')
 
@@ -13,7 +14,7 @@ const server = (workerCount: number, heartbeat?: string): JobServerResponse =>
     name: `server-${workerCount}`,
     workerCount,
     queues: ['default'],
-    heartbeat: heartbeat as unknown as Date,
+    heartbeat: heartbeat ? asInstant(heartbeat) : undefined,
   }) as JobServerResponse
 
 describe('job-health', () => {
@@ -37,8 +38,8 @@ describe('job-health', () => {
     it('should report healthy with totals and the newest heartbeat', () => {
       // Arrange
       const servers = [
-        server(8, '2026-11-07T11:58:00Z'),
-        server(4, '2026-11-07T11:59:30Z'),
+        server(8, asInstant('2026-11-07T11:58:00Z')),
+        server(4, asInstant('2026-11-07T11:59:30Z')),
       ]
 
       // Act
@@ -56,8 +57,8 @@ describe('job-health', () => {
     it('should report stale when the newest heartbeat is over five minutes old', () => {
       // Arrange
       const servers = [
-        server(8, '2026-11-07T11:50:00Z'),
-        server(8, '2026-11-07T11:54:59Z'),
+        server(8, asInstant('2026-11-07T11:50:00Z')),
+        server(8, asInstant('2026-11-07T11:54:59Z')),
       ]
 
       // Act
@@ -70,7 +71,7 @@ describe('job-health', () => {
 
     it('should stay healthy at exactly five minutes since the heartbeat', () => {
       // Arrange
-      const servers = [server(8, '2026-11-07T11:55:00Z')]
+      const servers = [server(8, asInstant('2026-11-07T11:55:00Z'))]
 
       // Act
       const health = summarizeSchedulerHealth(servers, now)
@@ -111,9 +112,9 @@ describe('job-health', () => {
     it('should return the job that started earliest', () => {
       // Arrange
       const jobs = [
-        { id: 'a', timestamp: '2026-11-07T11:58:00Z' },
-        { id: 'b', timestamp: '2026-11-07T11:20:00Z' },
-        { id: 'c', timestamp: '2026-11-07T11:40:00Z' },
+        { id: 'a', timestamp: asInstant('2026-11-07T11:58:00Z') },
+        { id: 'b', timestamp: asInstant('2026-11-07T11:20:00Z') },
+        { id: 'c', timestamp: asInstant('2026-11-07T11:40:00Z') },
       ]
 
       // Act
@@ -125,7 +126,7 @@ describe('job-health', () => {
 
     it('should return nothing for a single job', () => {
       // Arrange
-      const jobs = [{ id: 'a', timestamp: '2026-11-07T11:58:00Z' }]
+      const jobs = [{ id: 'a', timestamp: asInstant('2026-11-07T11:58:00Z') }]
 
       // Act
       const result = findLongestRunningJobId(jobs)
@@ -138,8 +139,8 @@ describe('job-health', () => {
       // Arrange
       const jobs = [
         { id: 'a', timestamp: null },
-        { id: 'b', timestamp: '2026-11-07T11:58:00Z' },
-        { id: 'c', timestamp: '2026-11-07T11:59:00Z' },
+        { id: 'b', timestamp: asInstant('2026-11-07T11:58:00Z') },
+        { id: 'c', timestamp: asInstant('2026-11-07T11:59:00Z') },
       ]
 
       // Act

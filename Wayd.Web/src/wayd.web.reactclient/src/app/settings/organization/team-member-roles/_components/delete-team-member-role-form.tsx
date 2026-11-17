@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { TeamMemberRoleDto } from '@/src/services/wayd-api'
+import { TeamMemberRoleDto } from '@/src/services/api/wayd.schemas'
 import { useDeleteTeamMemberRoleMutation } from '@/src/store/features/organization/team-member-roles-api'
 import { isApiError, type ApiError } from '@/src/utils'
 import { Alert, Modal } from 'antd'

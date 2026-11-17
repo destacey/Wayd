@@ -3,11 +3,12 @@ import {
   DependencyStrength,
   InteractionStyle,
   ProductDependencyDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { todayCalendarDate } from '@/src/utils'
 import ChangeProductDependencyTermsForm from './change-product-dependency-terms-form'
 import type { FormInstance } from 'antd'
 import type { UseModalFormOptions } from '@/src/hooks'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const changeTerms = vi.fn()
 
@@ -52,7 +53,7 @@ const dependency = {
   product: { id: 'web', key: 2, name: 'Storefront Web' },
   dependsOnProduct: { id: 'identity', key: 3, name: 'Identity Service' },
   strength: DependencyStrength.Soft,
-  startsOn: '2026-03-01',
+  startsOn: asCalendarDate('2026-03-01'),
 } as ProductDependencyDto
 
 const submit = async () => {

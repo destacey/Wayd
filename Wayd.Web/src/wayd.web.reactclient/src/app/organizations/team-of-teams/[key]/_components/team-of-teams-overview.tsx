@@ -12,7 +12,7 @@ import {
   Methodology,
   TeamNavigationDto,
   TeamOfTeamsDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { teamUrl } from '@/src/utils'
 import {
   useGetTeamOfTeamsMembershipsQuery,

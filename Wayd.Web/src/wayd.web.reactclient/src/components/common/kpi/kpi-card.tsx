@@ -4,7 +4,7 @@ import {
   KpiHealth,
   KpiTargetDirection,
   KpiTrend,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import useTheme from '@/src/components/contexts/theme'
 import {
   ArrowDownOutlined,
@@ -28,13 +28,13 @@ export interface KpiCardData {
   id: string
   key: number
   name: string
-  startingValue?: number | undefined
+  startingValue?: number | undefined | null
   targetValue: number
-  actualValue?: number | undefined
-  prefix?: string | undefined
-  suffix?: string | undefined
+  actualValue?: number | undefined | null
+  prefix?: string | undefined | null
+  suffix?: string | undefined | null
   targetDirection: KpiTargetDirection
-  progress?: number | undefined
+  progress?: number | undefined | null
   health?: KpiHealth | undefined
   trend?: KpiTrend | undefined
 }
@@ -44,8 +44,8 @@ export interface KpiCardCheckpoint {
   date: string
   targetValue: number
   actualValue?: number | undefined
-  health?: KpiHealth | undefined
-  trend?: KpiTrend | undefined
+  health?: KpiHealth | undefined | null
+  trend?: KpiTrend | undefined | null
 }
 
 export interface KpiCardProps {
@@ -77,7 +77,10 @@ interface KpiCssVars extends CSSProperties {
 
 // ─── Color helpers ────────────────────────────────────────────────────────────
 
-function getHealthTokens(health: KpiHealth | undefined, token: GlobalToken) {
+function getHealthTokens(
+  health: KpiHealth | undefined | null,
+  token: GlobalToken,
+) {
   if (health === KpiHealth.Healthy)
     return {
       text: token.colorSuccess,
@@ -131,8 +134,8 @@ function isRegressed(data: KpiCardData): boolean {
 
 function formatValue(
   value: number,
-  prefix?: string,
-  suffix?: string,
+  prefix?: string | null,
+  suffix?: string | null,
 ): string {
   return `${prefix ?? ''}${value.toLocaleString()}${suffix ?? ''}`
 }
@@ -174,7 +177,7 @@ const DirectionBadge: FC<{ direction: KpiTargetDirection }> = ({
 )
 
 const HealthBadge: FC<{
-  health: KpiHealth | undefined
+  health: KpiHealth | undefined | null
   token: GlobalToken
 }> = ({ health, token }) => {
   if (health == null) return null
@@ -299,8 +302,8 @@ const ProgressSection: FC<{ data: KpiCardData; healthColor: string }> = ({
 
 const CheckpointStrip: FC<{
   checkpoint: KpiCardCheckpoint
-  prefix?: string
-  suffix?: string
+  prefix?: string | null
+  suffix?: string | null
   token: GlobalToken
 }> = ({ checkpoint, prefix, suffix, token }) => {
   const hasActual = checkpoint.actualValue != null
@@ -331,7 +334,8 @@ const CheckpointStrip: FC<{
           {checkpoint.label}
         </Text>
         {' · '}
-        {dateStr} · Target: {formatValue(checkpoint.targetValue, prefix, suffix)}
+        {dateStr} · Target:{' '}
+        {formatValue(checkpoint.targetValue, prefix, suffix)}
       </Text>
       <Text className={styles.checkpointResult} style={{ color: resultColor }}>
         {resultText}

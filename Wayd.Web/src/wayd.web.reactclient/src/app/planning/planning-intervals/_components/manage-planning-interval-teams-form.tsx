@@ -3,12 +3,12 @@
 import { useAppDispatch, useConfirmModal } from '@/src/hooks'
 import { apiSlice } from '@/src/store/features/apiSlice'
 import { QueryTags } from '@/src/store/features/query-tags'
-import { TeamListItem } from '@/src/app/organizations/types'
 import {
-  getPlanningIntervalsClient,
-  getTeamsClient,
-  getTeamsOfTeamsClient,
-} from '@/src/services/clients'
+  planningIntervalsGetTeams,
+  planningIntervalsManageTeams,
+} from '@/src/services/api/planning-intervals'
+import { teamsGetList } from '@/src/services/api/teams'
+import { teamsOfTeamsGetList } from '@/src/services/api/teams-of-teams'
 import { Alert, Modal, Spin } from 'antd'
 import { useCallback, useEffect, useState } from 'react'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
@@ -16,7 +16,7 @@ import WaydGridTransfer from '@/src/components/common/wayd-grid-transfer'
 import {
   ManagePlanningIntervalTeamsRequest,
   PlanningIntervalTeamResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useMessage } from '@/src/components/contexts/messaging'
 
 export interface ManagePlanningIntervalTeamsFormProps {
@@ -70,11 +70,11 @@ const ManagePlanningIntervalTeamsForm = ({
   // TODO: should this be in a custom hook? The teams index page has a similar call.
   const getTeams = useCallback(async () => {
     const [teamsDtos, teamOfTeamsDtos] = await Promise.all([
-      getTeamsClient().getList(false),
-      getTeamsOfTeamsClient().getList(false),
+      teamsGetList({ includeInactive: false }),
+      teamsOfTeamsGetList({ includeInactive: false }),
     ])
 
-    return [...teamsDtos, ...teamOfTeamsDtos].map((team: TeamListItem) => ({
+    return [...teamsDtos, ...teamOfTeamsDtos].map((team) => ({
       key: team.id,
       name: team.name,
       code: team.code ?? '',
@@ -83,7 +83,7 @@ const ManagePlanningIntervalTeamsForm = ({
   }, [])
 
   const getPlanningIntervalTeams = useCallback(async (id: string) => {
-    const piTeamsDtos = await getPlanningIntervalsClient().getTeams(id)
+    const piTeamsDtos = await planningIntervalsGetTeams(id)
 
     return piTeamsDtos.map((team: PlanningIntervalTeamResponse) => ({
       key: team.id,
@@ -100,7 +100,7 @@ const ManagePlanningIntervalTeamsForm = ({
           id: id,
           teamIds: targetKeys,
         }
-        await getPlanningIntervalsClient().manageTeams(id, request)
+        await planningIntervalsManageTeams(id, request)
         dispatch(
           apiSlice.util.invalidateTags([{ type: QueryTags.ActivityLog, id }]),
         )

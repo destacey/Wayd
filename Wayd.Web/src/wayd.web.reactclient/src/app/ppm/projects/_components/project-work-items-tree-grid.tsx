@@ -22,7 +22,7 @@ import {
   workStatusCategorySort,
 } from '@/src/components/common/wayd-grid'
 import type { WaydGridColumnMeta } from '@/src/components/common/wayd-grid'
-import { WorkItemListDto } from '@/src/services/wayd-api'
+import { WorkItemListDto } from '@/src/services/api/wayd.schemas'
 import {
   WorkItemTreeNode,
   buildWorkItemTree,

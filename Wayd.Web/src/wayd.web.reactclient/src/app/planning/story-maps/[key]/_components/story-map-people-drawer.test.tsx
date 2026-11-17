@@ -5,7 +5,7 @@ import {
   StoryMapDetailsDto,
   StoryMapEditAccess,
   Visibility,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import StoryMapPeopleDrawer, { accessSummary } from './story-map-people-drawer'
 import { useGetStoryMapEditorTeamMembersQuery } from '@/src/store/features/planning/story-maps-api'
 

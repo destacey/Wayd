@@ -6,7 +6,10 @@ import MyWorkItemsWidget, {
   recentlyDoneSince,
 } from './my-work-items-widget'
 import { StatusCategoryId } from '@/src/components/types'
-import { StatusCategory, WorkItemListDto } from '@/src/services/wayd-api'
+import {
+  StatusCategory,
+  WorkItemListDto,
+} from '@/src/services/api/wayd.schemas'
 import { renderReportingWidget } from '../widget-display-test-utils'
 
 vi.mock('next/navigation', () => ({
@@ -18,6 +21,7 @@ vi.mock('@/src/store/features/user-management/me-api', () => ({
 }))
 
 import { useGetMyWorkItemsQuery } from '@/src/store/features/user-management/me-api'
+import { asInstant } from '@/src/utils/instant'
 
 const mockWorkItems = useGetMyWorkItemsQuery as Mock
 
@@ -42,7 +46,7 @@ const workItem = (
     status: category === StatusCategoryId.Active ? 'In Progress' : 'New',
     statusCategory: { id: category, name: categoryNames[category] },
     stackRank: 1,
-    created: new Date('2026-10-01T00:00:00Z'),
+    created: asInstant('2026-10-01T00:00:00Z'),
     tags: [],
     ...overrides,
   }) as WorkItemListDto

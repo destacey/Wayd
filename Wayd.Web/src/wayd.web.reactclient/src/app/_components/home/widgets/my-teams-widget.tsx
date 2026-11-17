@@ -6,7 +6,7 @@ import {
   Methodology,
   MyTeamFlowSummaryResponse,
   MyTeamSummaryResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { formatCalendarDate, teamUrl } from '@/src/utils'
 import { Flex, Typography } from 'antd'
 import Link from 'next/link'

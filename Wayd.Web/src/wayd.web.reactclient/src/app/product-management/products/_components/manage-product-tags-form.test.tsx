@@ -1,6 +1,9 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { ProductDto, ProductTagCategoryDto } from '@/src/services/wayd-api'
+import {
+  ProductDto,
+  ProductTagCategoryDto,
+} from '@/src/services/api/wayd.schemas'
 import ManageProductTagsForm from './manage-product-tags-form'
 import type { UseModalFormOptions } from '@/src/hooks'
 

@@ -1,8 +1,13 @@
-import { getMyNotificationsClient } from '@/src/services/clients'
+import {
+  myNotificationsGetNotifications,
+  myNotificationsGetUnreadCount,
+  myNotificationsMarkAllRead,
+  myNotificationsMarkRecordRead,
+} from '@/src/services/api/my-notifications'
 import {
   CursorPageOfNotificationDto,
   UnreadNotificationCountDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
@@ -47,11 +52,11 @@ export const notificationsApi = apiSlice.injectEndpoints({
       },
       queryFn: async ({ queryArg, pageParam }) => {
         try {
-          const data = await getMyNotificationsClient().getNotifications(
-            queryArg.unreadOnly,
-            pageParam,
-            queryArg.pageSize,
-          )
+          const data = await myNotificationsGetNotifications({
+            unreadOnly: queryArg.unreadOnly,
+            before: pageParam ?? undefined,
+            pageSize: queryArg.pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -68,7 +73,7 @@ export const notificationsApi = apiSlice.injectEndpoints({
       {
         queryFn: async () => {
           try {
-            const data = await getMyNotificationsClient().getUnreadCount()
+            const data = await myNotificationsGetUnreadCount()
             return { data }
           } catch (error) {
             console.error('API Error:', error)
@@ -82,7 +87,7 @@ export const notificationsApi = apiSlice.injectEndpoints({
     markRecordNotificationsRead: builder.mutation<null, NotifiedRecordTarget>({
       queryFn: async ({ ownerType, ownerId }) => {
         try {
-          await getMyNotificationsClient().markRecordRead(ownerType, ownerId)
+          await myNotificationsMarkRecordRead(ownerType, ownerId)
           // The API answers 204 with no body; RTK Query rejects undefined as a result.
           return { data: null }
         } catch (error) {
@@ -96,7 +101,7 @@ export const notificationsApi = apiSlice.injectEndpoints({
     markAllNotificationsRead: builder.mutation<null, void>({
       queryFn: async () => {
         try {
-          await getMyNotificationsClient().markAllRead()
+          await myNotificationsMarkAllRead()
           return { data: null }
         } catch (error) {
           console.error('API Error:', error)

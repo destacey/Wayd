@@ -52,7 +52,7 @@ vi.mock('./plan-review/team-plan-review', () => ({
 }))
 
 import { useGetPlanningIntervalTeamsQuery } from '@/src/store/features/planning/planning-interval-api'
-import { PlanningIntervalDetailsDto } from '@/src/services/wayd-api'
+import { PlanningIntervalDetailsDto } from '@/src/services/api/wayd.schemas'
 import PlanningIntervalPlanReviewSection from './planning-interval-plan-review-section'
 
 const mockTeamsQuery = useGetPlanningIntervalTeamsQuery as unknown as Mock

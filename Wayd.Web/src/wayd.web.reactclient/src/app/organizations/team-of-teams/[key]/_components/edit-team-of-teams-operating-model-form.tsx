@@ -2,7 +2,7 @@
 
 import { Form, Modal, Spin } from 'antd'
 import { useEffect } from 'react'
-import { UpdateTeamOfTeamsOperatingModelRequest } from '@/src/services/wayd-api'
+import { UpdateTeamOfTeamsOperatingModelRequest } from '@/src/services/api/wayd.schemas'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import {
   useGetTeamOfTeamsOperatingModelQuery,

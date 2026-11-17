@@ -15,7 +15,7 @@ import {
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import treeGridStyles from '@/src/components/common/wayd-grid/wayd-grid.module.css'
 import { useDocumentTitle } from '@/src/hooks'
-import { ImportProcessStatus } from '@/src/services/wayd-api'
+import { ImportProcessStatus } from '@/src/services/api/wayd.schemas'
 import {
   useGetImportDefinitionsQuery,
   useGetImportProcessesQuery,

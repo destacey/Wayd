@@ -15,7 +15,7 @@ import {
   RoadmapItemListDto,
   RoadmapMilestoneListDto,
   RoadmapTimeboxListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { WaydTimeline } from '@/src/components/common/timeline'
 import type {
   TimelineItem,
@@ -33,6 +33,7 @@ import {
   type ApiError,
 } from '@/src/utils'
 import RoadmapColorLegend from './roadmap-color-legend'
+import { itemDatesRequest } from './roadmap-item-dates'
 
 export interface RoadmapTimelineProps {
   roadmap: RoadmapDetailsDto
@@ -61,7 +62,7 @@ const formatDateTooltip = (name: string | undefined, date: CalendarDate) =>
 
 interface RoadmapPayload {
   dto: RoadmapItemListDto
-  color?: string
+  color?: string | null
   openDrawer: (id: string) => void
 }
 
@@ -227,13 +228,15 @@ const RoadmapTimeline: FC<RoadmapTimelineProps> = (props) => {
 
     setUpdatingId(change.id)
     try {
-      const response = await updateRoadmapItemDates({
-        $type: dto.$type,
-        roadmapId: dto.roadmapId,
-        itemId: change.id,
-        start: toCalendarDate(new Date(change.start)),
-        end: toCalendarDate(new Date(change.end)),
-      })
+      const response = await updateRoadmapItemDates(
+        itemDatesRequest({
+          $type: dto.$type,
+          roadmapId: dto.roadmapId,
+          itemId: change.id,
+          start: toCalendarDate(new Date(change.start)),
+          end: toCalendarDate(new Date(change.end)),
+        }),
+      )
       if ('error' in response && response.error) throw response.error
     } catch (error) {
       const apiError: ApiError = isApiError(error) ? error : {}

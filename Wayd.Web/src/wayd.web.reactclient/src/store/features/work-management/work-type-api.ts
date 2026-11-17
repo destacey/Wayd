@@ -1,14 +1,23 @@
-import { getWorkTypesClient } from '@/src/services/clients'
+import {
+  workTypesGetById,
+  workTypesGetList,
+  workTypesUpdate,
+} from '@/src/services/api/work-types'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
-import { UpdateWorkTypeRequest, WorkTypeDto } from '@/src/services/wayd-api'
+import {
+  UpdateWorkTypeRequest,
+  WorkTypeDto,
+} from '@/src/services/api/wayd.schemas'
 
 export const workTypeApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getWorkTypes: builder.query<WorkTypeDto[], boolean>({
       queryFn: async (includeInactive) => {
         try {
-          const data = await getWorkTypesClient().getList(includeInactive)
+          const data = await workTypesGetList({
+            includeInactive: includeInactive,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -23,7 +32,7 @@ export const workTypeApi = apiSlice.injectEndpoints({
     getWorkType: builder.query<WorkTypeDto, number>({
       queryFn: async (id: number) => {
         try {
-          const data = await getWorkTypesClient().getById(id)
+          const data = await workTypesGetById(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -35,7 +44,7 @@ export const workTypeApi = apiSlice.injectEndpoints({
     updateWorkType: builder.mutation<void, UpdateWorkTypeRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getWorkTypesClient().update(request.id, request)
+          const data = await workTypesUpdate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

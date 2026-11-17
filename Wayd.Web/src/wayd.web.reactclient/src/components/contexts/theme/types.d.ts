@@ -1,14 +1,9 @@
 import { GlobalToken } from 'antd'
-import { UserThemeConfigDto } from '@/src/services/wayd-api'
+import { UserThemeConfigDto } from '@/src/services/api/wayd.schemas'
 
 /** A visual identity: shape language, typography, surface treatments. */
 export type ThemeId =
-  | 'wayd'
-  | 'cartoon'
-  | 'shadcn'
-  | 'glass'
-  | 'geek'
-  | 'illustration'
+  'wayd' | 'cartoon' | 'shadcn' | 'glass' | 'geek' | 'illustration'
 
 /**
  * A color-scheme variant of a theme. Every theme supports at least one mode;

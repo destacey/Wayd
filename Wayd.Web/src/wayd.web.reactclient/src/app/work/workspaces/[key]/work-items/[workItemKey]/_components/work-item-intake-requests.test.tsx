@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 import {
   StatusCategory,
   WorkItemIntakeRequestDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import WorkItemIntakeRequests from './work-item-intake-requests'
 
 const mockQuery = vi.fn()

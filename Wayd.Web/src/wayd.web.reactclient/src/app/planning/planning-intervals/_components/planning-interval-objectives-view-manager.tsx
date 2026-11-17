@@ -7,7 +7,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   PlanningIntervalCalendarDto,
   PlanningIntervalObjectiveListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 const Timeline = dynamic(
   () => import('./planning-interval-objectives-timeline'),

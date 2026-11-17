@@ -5,15 +5,21 @@ import {
   CreatePersonalAccessTokenResult,
   CreatePersonalAccessTokenRequest,
   UpdatePersonalAccessTokenRequest,
-} from '@/src/services/wayd-api'
-import { getPersonalAccessTokensClient } from '@/src/services/clients'
+} from '@/src/services/api/wayd.schemas'
+import {
+  personalAccessTokensCreate,
+  personalAccessTokensDelete,
+  personalAccessTokensGetMyTokens,
+  personalAccessTokensRevoke,
+  personalAccessTokensUpdate,
+} from '@/src/services/api/personal-access-tokens'
 
 export const personalAccessTokensApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getMyPersonalAccessTokens: builder.query<PersonalAccessTokenDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getPersonalAccessTokensClient().getMyTokens()
+          const data = await personalAccessTokensGetMyTokens()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -37,7 +43,7 @@ export const personalAccessTokensApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getPersonalAccessTokensClient().create(request)
+          const data = await personalAccessTokensCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -52,7 +58,7 @@ export const personalAccessTokensApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getPersonalAccessTokensClient().update(id, request)
+          const data = await personalAccessTokensUpdate(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -67,7 +73,7 @@ export const personalAccessTokensApi = apiSlice.injectEndpoints({
     revokePersonalAccessToken: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getPersonalAccessTokensClient().revoke(id)
+          const data = await personalAccessTokensRevoke(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -82,7 +88,7 @@ export const personalAccessTokensApi = apiSlice.injectEndpoints({
     deletePersonalAccessToken: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getPersonalAccessTokensClient().delete(id)
+          const data = await personalAccessTokensDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

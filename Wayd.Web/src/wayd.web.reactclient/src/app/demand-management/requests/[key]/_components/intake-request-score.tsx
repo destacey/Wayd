@@ -3,7 +3,7 @@
 import {
   IntakeRequestScoreDto,
   IntakeRequestScoringDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetIntakeRequestScoringQuery } from '@/src/store/features/demand-management/demand-management-api'
 import {
   Alert,

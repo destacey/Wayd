@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
-import { UserIdentityDto } from '@/src/services/wayd-api'
+import { UserIdentityDto } from '@/src/services/api/wayd.schemas'
 import UserIdentityHistory from './user-identity-history'
+import { asInstant } from '@/src/utils/instant'
 
 const mockHistoryQuery = vi.fn()
 
@@ -16,7 +17,7 @@ const identity = (overrides: Partial<UserIdentityDto> = {}): UserIdentityDto =>
     providerTenantId: '00000000-1111-2222-3333-444444444444',
     providerSubject: 'abcdefghijklmnop',
     isActive: true,
-    linkedAt: new Date('2026-01-15T09:30:00Z'),
+    linkedAt: asInstant('2026-01-15T09:30:00Z'),
     ...overrides,
   }) as UserIdentityDto
 

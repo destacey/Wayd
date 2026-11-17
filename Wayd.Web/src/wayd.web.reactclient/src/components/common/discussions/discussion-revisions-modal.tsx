@@ -2,7 +2,7 @@
 
 import { Modal, Spin, Typography } from 'antd'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
-import { DiscussionMessageDto } from '@/src/services/wayd-api'
+import { DiscussionMessageDto } from '@/src/services/api/wayd.schemas'
 import { useGetDiscussionRevisionsQuery } from '@/src/store/features/common/discussions-api'
 import { useDiscussionContext } from './discussion-context'
 import { toDisplayMarkdown } from './discussion-mentions'

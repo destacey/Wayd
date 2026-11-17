@@ -1,4 +1,4 @@
-import { GlobalSearchResultItemDto } from '@/src/services/wayd-api'
+import { GlobalSearchResultItemDto } from '@/src/services/api/wayd.schemas'
 
 export function getSearchResultUrl(item: GlobalSearchResultItemDto): string {
   const { entityType, key, auxKey } = item

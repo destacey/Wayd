@@ -1,7 +1,7 @@
 'use client'
 
 import { MarkdownEditor } from '@/src/components/common/markdown'
-import { IntakeChannelDto } from '@/src/services/wayd-api'
+import { IntakeChannelDto } from '@/src/services/api/wayd.schemas'
 import { Flex, Form, Input, Select, Typography } from 'antd'
 import { FC } from 'react'
 

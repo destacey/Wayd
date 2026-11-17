@@ -112,8 +112,9 @@ vi.mock('./edit-project-stage-form', () => ({
 
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import dayjs from 'dayjs'
-import type { ProjectPlanNodeDto } from '@/src/services/wayd-api'
+import type { ProjectPlanNodeDto } from '@/src/services/api/wayd.schemas'
 import ProjectPlanTable from './project-plan-table'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const task = (extra: Partial<ProjectPlanNodeDto>): ProjectPlanNodeDto => ({
   id: 'x',
@@ -145,16 +146,16 @@ const PLAN: ProjectPlanNodeDto[] = [
     name: 'Build',
     type: undefined,
     priority: undefined,
-    start: '2026-03-01',
-    end: '2026-03-31',
+    start: asCalendarDate('2026-03-01'),
+    end: asCalendarDate('2026-03-31'),
     children: [
       task({
         id: 't1',
         key: 'P-1',
         name: 'Design',
         order: 1,
-        start: '2026-03-10',
-        end: '2026-03-20',
+        start: asCalendarDate('2026-03-10'),
+        end: asCalendarDate('2026-03-20'),
       }),
       task({
         id: 'm1',
@@ -162,7 +163,7 @@ const PLAN: ProjectPlanNodeDto[] = [
         name: 'Go live',
         order: 2,
         type: { id: 2, name: 'Milestone' },
-        plannedDate: '2026-03-25',
+        plannedDate: asCalendarDate('2026-03-25'),
       }),
       task({ id: 't2', key: 'P-3', name: 'Wire up', order: 3 }),
     ],
@@ -484,9 +485,9 @@ describe('ProjectPlanTable cell editing', () => {
     it('sends Start and End together after Tab moves between them', async () => {
       // Arrange
       renderPlan()
-      editDate(ROW.t1, 'plannedStart', '2026-03-11')
+      editDate(ROW.t1, 'plannedStart', asCalendarDate('2026-03-11'))
       press('Tab')
-      typeDate('2026-03-22')
+      typeDate(asCalendarDate('2026-03-22'))
 
       // Act
       press('Enter')
@@ -503,7 +504,7 @@ describe('ProjectPlanTable cell editing', () => {
     it('sends a milestone’s Start as its planned date', async () => {
       // Arrange
       renderPlan()
-      editDate(ROW.m1, 'plannedStart', '2026-03-27')
+      editDate(ROW.m1, 'plannedStart', asCalendarDate('2026-03-27'))
 
       // Act
       press('Enter')
@@ -551,7 +552,7 @@ describe('ProjectPlanTable cell editing', () => {
     it('keeps a stage resize that cuts a task off on the cell, unsent', async () => {
       // Arrange — Design starts Mar 10
       renderPlan()
-      editDate(ROW.s1, 'plannedStart', '2026-03-12')
+      editDate(ROW.s1, 'plannedStart', asCalendarDate('2026-03-12'))
 
       // Act
       press('Enter')
@@ -571,9 +572,9 @@ describe('ProjectPlanTable cell editing', () => {
     it('sends a stage shift that carries its tasks along', async () => {
       // Arrange
       renderPlan()
-      editDate(ROW.s1, 'plannedStart', '2026-03-16')
+      editDate(ROW.s1, 'plannedStart', asCalendarDate('2026-03-16'))
       press('Tab')
-      typeDate('2026-04-15')
+      typeDate(asCalendarDate('2026-04-15'))
 
       // Act
       press('Enter')
@@ -596,8 +597,8 @@ describe('ProjectPlanTable cell editing', () => {
       act(() => {
         mockBarCommit!({
           id: 't1',
-          start: ms('2026-03-12'),
-          end: ms('2026-03-22'),
+          start: ms(asCalendarDate('2026-03-12')),
+          end: ms(asCalendarDate('2026-03-22')),
         })
       })
       await flush()
@@ -617,8 +618,8 @@ describe('ProjectPlanTable cell editing', () => {
       act(() => {
         mockBarCommit!({
           id: 'm1',
-          start: ms('2026-03-28'),
-          end: ms('2026-03-28'),
+          start: ms(asCalendarDate('2026-03-28')),
+          end: ms(asCalendarDate('2026-03-28')),
         })
       })
       await flush()
@@ -638,8 +639,8 @@ describe('ProjectPlanTable cell editing', () => {
       act(() => {
         mockBarCommit!({
           id: 't1',
-          start: ms('2026-03-12'),
-          end: ms('2026-03-22'),
+          start: ms(asCalendarDate('2026-03-12')),
+          end: ms(asCalendarDate('2026-03-22')),
         })
       })
       await flush()
@@ -658,7 +659,7 @@ describe('ProjectPlanTable cell editing', () => {
         rejected({ status: 400, data: { detail: 'Not saved.' } }),
       )
       renderPlan()
-      editDate(ROW.t1, 'plannedEnd', '2026-03-21')
+      editDate(ROW.t1, 'plannedEnd', asCalendarDate('2026-03-21'))
       press('Enter')
       await flush()
       const failed = cellAt(ROW.t1, 'plannedEnd').getAttribute(
@@ -669,8 +670,8 @@ describe('ProjectPlanTable cell editing', () => {
       act(() => {
         mockBarCommit!({
           id: 't1',
-          start: ms('2026-03-12'),
-          end: ms('2026-03-22'),
+          start: ms(asCalendarDate('2026-03-12')),
+          end: ms(asCalendarDate('2026-03-22')),
         })
       })
       await flush()
@@ -695,8 +696,8 @@ describe('ProjectPlanTable cell editing', () => {
       act(() => {
         mockBarCommit!({
           id: 's1',
-          start: ms('2026-03-01'),
-          end: ms('2026-03-15'),
+          start: ms(asCalendarDate('2026-03-01')),
+          end: ms(asCalendarDate('2026-03-15')),
         })
       })
       await flush()
@@ -725,8 +726,8 @@ describe('ProjectPlanTable cell editing', () => {
       act(() => {
         mockBarCommit!({
           id: 't1',
-          start: ms('2026-03-12'),
-          end: ms('2026-03-22'),
+          start: ms(asCalendarDate('2026-03-12')),
+          end: ms(asCalendarDate('2026-03-22')),
         })
       })
       await flush()
@@ -801,7 +802,7 @@ describe('ProjectPlanTable cell editing', () => {
       const dateOpened = cellAt(draftRow, 'plannedStart').contains(openEditor())
 
       // Act
-      typeDate('2026-05-01')
+      typeDate(asCalendarDate('2026-05-01'))
       press('Enter')
       await flush()
 
@@ -823,7 +824,7 @@ describe('ProjectPlanTable cell editing', () => {
       renderPlan()
       await addChild(ROW.s2, 'Add Task')
       const draftRow = bodyCells('name').length - 1
-      editDate(draftRow, 'plannedStart', '2026-05-01')
+      editDate(draftRow, 'plannedStart', asCalendarDate('2026-05-01'))
       press('Enter')
       focus(cellAt(draftRow, 'type'))
       press('Enter')

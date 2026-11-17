@@ -9,7 +9,10 @@ import {
 } from '@/src/components/common/timeline'
 import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-health-check-tag'
 import { LifecycleCategory } from '@/src/components/types'
-import { ProjectListDto, ProjectStageListDto } from '@/src/services/wayd-api'
+import {
+  ProjectListDto,
+  ProjectStageListDto,
+} from '@/src/services/api/wayd.schemas'
 import {
   CalendarDate,
   formatCalendarDate,

@@ -5,6 +5,7 @@ import { FlagFilled } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { MarkdownRenderer } from '../markdown'
 import { healthCheckTagColor } from './health-check-utils'
+import { type Instant } from '@/src/utils/instant'
 
 const { Item } = Descriptions
 
@@ -12,15 +13,15 @@ export type HealthCheckVariant = 'tag' | 'flag'
 
 export interface HealthCheckStatusTagData {
   status: { name: string }
-  expiration?: Date
-  reportedOn?: Date
-  note?: string
+  expiration?: Date | Instant | null
+  reportedOn?: Date | Instant | null
+  note?: string | null
 }
 
 export interface HealthCheckDetailsData extends HealthCheckStatusTagData {
   reportedBy: { name: string }
-  reportedOn: Date
-  note?: string
+  reportedOn: Date | Instant
+  note?: string | null
 }
 
 export interface HealthCheckTagProps {

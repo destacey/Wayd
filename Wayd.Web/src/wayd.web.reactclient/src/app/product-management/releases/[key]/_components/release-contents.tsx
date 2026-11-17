@@ -1,5 +1,6 @@
 'use client'
 
+import type { Instant } from '@/src/utils/instant'
 import { formatDateOnly, WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import {
@@ -7,7 +8,7 @@ import {
   renderProductLink,
   renderVersionLink,
 } from '@/src/components/common/wayd-grid-core'
-import { ReleaseDto } from '@/src/services/wayd-api'
+import { ReleaseDto } from '@/src/services/api/wayd.schemas'
 import { Tag, Tooltip, Typography } from 'antd'
 
 const { Text } = Typography
@@ -35,7 +36,7 @@ export interface ContentsEntry {
   product: string
   detail: React.ReactNode
   /** When it shipped, shown as the viewer's day. */
-  shipped?: Date
+  shipped?: Instant | null
 }
 
 export const toEntries = (release: ReleaseDto): ContentsEntry[] => [

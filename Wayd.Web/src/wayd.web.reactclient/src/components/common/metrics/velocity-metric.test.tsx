@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import VelocityMetric from './velocity-metric'
-import { SizingMethod } from '../../../services/wayd-api'
+import { SizingMethod } from '@/src/services/api/wayd.schemas'
 
 // Mock useTheme
 vi.mock('../../contexts/theme', () => ({

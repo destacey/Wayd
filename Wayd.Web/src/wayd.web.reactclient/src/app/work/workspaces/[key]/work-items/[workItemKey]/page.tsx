@@ -22,7 +22,7 @@ import WorkItemIntakeRequests from './_components/work-item-intake-requests'
 import useAuth from '@/src/components/contexts/auth'
 import type { ItemType } from 'antd/es/menu/interface'
 import EditWorkItemProjectForm from '@/src/app/work/workspaces/_components/edit-workitem-project-form'
-import { WorkItemDetailsDto } from '@/src/services/wayd-api'
+import { WorkItemDetailsDto } from '@/src/services/api/wayd.schemas'
 import { WorkTypeTier } from '@/src/components/types'
 
 enum WorkItemSections {

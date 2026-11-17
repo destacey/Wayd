@@ -4,7 +4,7 @@ import {
   IntakeDeskVisibility,
   IntakeRequestDetailsDto,
   IntakeRequestSubstanceDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import type { MentionCandidate } from '@/src/components/common/discussions'
 import IntakeRequestDiscussion from './intake-request-discussion'
 

@@ -2,7 +2,7 @@ import {
   StatusCategory,
   WorkflowAliasDto,
   WorkflowStatusDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   aliasFitsCategory,
   buildAliasOptions,

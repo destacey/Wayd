@@ -1,8 +1,12 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TeamCapacityRollup from './team-capacity-rollup'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
-const range = { from: '2027-02-01', to: '2027-02-28' }
+const range = {
+  from: asCalendarDate('2027-02-01'),
+  to: asCalendarDate('2027-02-28'),
+}
 
 const person = (id: string, key: number, name: string, allocated: number) => ({
   employee: { id, key, name },
@@ -14,7 +18,12 @@ const person = (id: string, key: number, name: string, allocated: number) => ({
 const nodes = [
   {
     team: { id: 't-1', key: 1, name: 'Cards', code: 'CARDS', type: 'Team' },
-    periods: [{ start: '2027-02-01', end: '2027-02-28' }],
+    periods: [
+      {
+        start: asCalendarDate('2027-02-01'),
+        end: asCalendarDate('2027-02-28'),
+      },
+    ],
     workingDays: 20,
     allocatedPersonDays: 0,
     deliveryPersonDays: 0,
@@ -31,7 +40,12 @@ const nodes = [
       code: 'LEND',
       type: 'Team of Teams',
     },
-    periods: [{ start: '2027-02-08', end: '2027-02-28' }],
+    periods: [
+      {
+        start: asCalendarDate('2027-02-08'),
+        end: asCalendarDate('2027-02-28'),
+      },
+    ],
     workingDays: 15,
     allocatedPersonDays: 13.5,
     deliveryPersonDays: 12,
@@ -41,7 +55,12 @@ const nodes = [
     children: [
       {
         team: { id: 't-3', key: 3, name: 'Loans', code: 'LOANS', type: 'Team' },
-        periods: [{ start: '2027-02-08', end: '2027-02-28' }],
+        periods: [
+          {
+            start: asCalendarDate('2027-02-08'),
+            end: asCalendarDate('2027-02-28'),
+          },
+        ],
         workingDays: 12,
         allocatedPersonDays: 12,
         deliveryPersonDays: 12,

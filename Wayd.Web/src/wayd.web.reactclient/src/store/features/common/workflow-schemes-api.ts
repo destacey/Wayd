@@ -10,11 +10,26 @@ import {
   WorkflowSchemeChangePreviewDto,
   WorkflowSchemeDetailsDto,
   WorkflowSchemeListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
-  getRecordTypesClient,
-  getWorkflowSchemesClient,
-} from '@/src/services/clients'
+  recordTypesActivate,
+  recordTypesCreate,
+  recordTypesDeactivate,
+  recordTypesGetRecordTypes,
+  recordTypesRename,
+} from '@/src/services/api/record-types'
+import {
+  workflowSchemesChangeDefault,
+  workflowSchemesClone,
+  workflowSchemesCreate,
+  workflowSchemesDelete,
+  workflowSchemesGetWorkflowScheme,
+  workflowSchemesGetWorkflowSchemes,
+  workflowSchemesPreviewDefault,
+  workflowSchemesPreviewEntry,
+  workflowSchemesSetEntry,
+  workflowSchemesUpdate,
+} from '@/src/services/api/workflow-schemes'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
@@ -39,7 +54,7 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
     getRecordTypes: builder.query<RecordTypeDto[], string | undefined>({
       queryFn: async (ownerType) => {
         try {
-          const data = await getRecordTypesClient().getRecordTypes(ownerType)
+          const data = await recordTypesGetRecordTypes({ ownerType: ownerType })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -52,7 +67,7 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
     createRecordType: builder.mutation<string, CreateRecordTypeRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getRecordTypesClient().create(request)
+          const data = await recordTypesCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -68,7 +83,7 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getRecordTypesClient().rename(id, request)
+          const data = await recordTypesRename(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -88,10 +103,9 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, isActive }) => {
         try {
-          const client = getRecordTypesClient()
           const data = isActive
-            ? await client.activate(id)
-            : await client.deactivate(id)
+            ? await recordTypesActivate(id)
+            : await recordTypesDeactivate(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -107,8 +121,9 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (ownerType) => {
         try {
-          const data =
-            await getWorkflowSchemesClient().getWorkflowSchemes(ownerType)
+          const data = await workflowSchemesGetWorkflowSchemes({
+            ownerType: ownerType,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -121,8 +136,7 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
     getWorkflowScheme: builder.query<WorkflowSchemeDetailsDto, string>({
       queryFn: async (idOrKey) => {
         try {
-          const data =
-            await getWorkflowSchemesClient().getWorkflowScheme(idOrKey)
+          const data = await workflowSchemesGetWorkflowScheme(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -140,7 +154,7 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
       {
         queryFn: async (request) => {
           try {
-            const data = await getWorkflowSchemesClient().create(request)
+            const data = await workflowSchemesCreate(request)
             return { data }
           } catch (error) {
             console.error('API Error:', error)
@@ -157,7 +171,7 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getWorkflowSchemesClient().update(id, request)
+          const data = await workflowSchemesUpdate(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -173,7 +187,7 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getWorkflowSchemesClient().clone(id, request)
+          const data = await workflowSchemesClone(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -186,7 +200,7 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
     deleteWorkflowScheme: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getWorkflowSchemesClient().delete(id)
+          const data = await workflowSchemesDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -204,10 +218,10 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ schemeId, recordTypeId, workflowId }) => {
         try {
-          const data = await getWorkflowSchemesClient().previewEntry(
+          const data = await workflowSchemesPreviewEntry(
             schemeId,
             recordTypeId,
-            workflowId,
+            { workflowId: workflowId },
           )
           return { data }
         } catch (error) {
@@ -225,10 +239,9 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ schemeId, workflowId }) => {
         try {
-          const data = await getWorkflowSchemesClient().previewDefault(
-            schemeId,
-            workflowId,
-          )
+          const data = await workflowSchemesPreviewDefault(schemeId, {
+            workflowId: workflowId,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -248,7 +261,7 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ schemeId, recordTypeId, request }) => {
         try {
-          const data = await getWorkflowSchemesClient().setEntry(
+          const data = await workflowSchemesSetEntry(
             schemeId,
             recordTypeId,
             request,
@@ -268,10 +281,7 @@ export const workflowSchemesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ schemeId, request }) => {
         try {
-          const data = await getWorkflowSchemesClient().changeDefault(
-            schemeId,
-            request,
-          )
+          const data = await workflowSchemesChangeDefault(schemeId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { UpdateWorkTypeRequest } from '@/src/services/wayd-api'
+import { UpdateWorkTypeRequest } from '@/src/services/api/wayd.schemas'
 import {
   useGetWorkTypeQuery,
   useUpdateWorkTypeMutation,
@@ -23,7 +23,7 @@ export interface EditWorkTypeFormProps {
 }
 
 interface EditWorkTypeFormValues {
-  description?: string
+  description?: string | null
   levelId: number
 }
 
@@ -53,29 +53,29 @@ const EditWorkTypeForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditWorkTypeFormValues>({
       onSubmit: async (values: EditWorkTypeFormValues, form) => {
-          try {
-            const request = mapToRequestValues(workTypeId, values)
-            const response = await updateWorkTypeMutation(request)
-            if (response.error) {
-              throw response.error
-            }
-            messageApi.success('Successfully updated work type.')
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                'An unexpected error occurred while creating the work type.',
-              )
-              console.error('handleSave error', error)
-            }
-            return false
+        try {
+          const request = mapToRequestValues(workTypeId, values)
+          const response = await updateWorkTypeMutation(request)
+          if (response.error) {
+            throw response.error
           }
-        },
+          messageApi.success('Successfully updated work type.')
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              'An unexpected error occurred while creating the work type.',
+            )
+            console.error('handleSave error', error)
+          }
+          return false
+        }
+      },
       onComplete: onFormSave,
       onCancel: onFormCancel,
       errorMessage:

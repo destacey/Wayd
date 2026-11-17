@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react'
 import { IterationState } from '../../types'
 import PlanningIntervalCard from './planning-interval-card'
 import { useGetPlanningIntervalIterationsQuery } from '@/src/store/features/planning/planning-interval-api'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('@/src/store/features/planning/planning-interval-api', () => ({
   useGetPlanningIntervalIterationsQuery: vi.fn(),
@@ -29,8 +30,8 @@ const createPlanningInterval = (overrides: Record<string, unknown> = {}) =>
     id: 'pi-1',
     key: 42,
     name: '23.4',
-    start: '2026-01-01',
-    end: '2026-03-31',
+    start: asCalendarDate('2026-01-01'),
+    end: asCalendarDate('2026-03-31'),
     state: { id: IterationState.Active, name: 'Active' },
     ...overrides,
   }) as any

@@ -5,9 +5,10 @@ import {
   ImportDefinitionDto,
   ImportProcessDto,
   ImportProcessStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import CsvImportForm from './csv-import-form'
 import { importTemplates } from './import-templates.generated'
+import { asInstant } from '@/src/utils/instant'
 
 const push = vi.fn()
 const successMessage = vi.fn()
@@ -84,7 +85,7 @@ const run = (
   status,
   isPreflight,
   submittedByUserId: 'user-1',
-  submittedOn: new Date('2026-09-10T09:00:00Z'),
+  submittedOn: asInstant('2026-09-10T09:00:00Z'),
   totalRowCount: 25,
   succeededRowCount: counts.succeeded ?? 0,
   failedRowCount: counts.failed ?? 0,

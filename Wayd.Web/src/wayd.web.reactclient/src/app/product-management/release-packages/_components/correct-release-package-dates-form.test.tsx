@@ -1,9 +1,11 @@
-import { ReleasePackageDto } from '@/src/services/wayd-api'
+import { ReleasePackageDto } from '@/src/services/api/wayd.schemas'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import dayjs from 'dayjs'
 import CorrectReleasePackageDatesForm from './correct-release-package-dates-form'
 import type { UseModalFormOptions } from '@/src/hooks'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 const correctDates = vi.fn()
 
@@ -48,12 +50,12 @@ const releasePackage = (
   }) as ReleasePackageDto
 
 // Late evening US Central: the 17th there, the 18th in UTC.
-const RELEASED_AT = '2026-09-18T02:30:00Z'
+const RELEASED_AT = asInstant('2026-09-18T02:30:00Z')
 
 const released = () =>
   releasePackage({
-    targetDate: '2026-09-16',
-    releasedAt: RELEASED_AT as unknown as Date,
+    targetDate: asCalendarDate('2026-09-16'),
+    releasedAt: asInstant(RELEASED_AT),
   })
 
 const renderForm = (dto: ReleasePackageDto) =>
@@ -85,7 +87,7 @@ describe('CorrectReleasePackageDatesForm', () => {
     // Arrange — the domain refuses adding one here: a released date closes the manifest, and
     // Mark Released is the action that records the first.
     // Act
-    renderForm(releasePackage({ targetDate: '2026-09-16' }))
+    renderForm(releasePackage({ targetDate: asCalendarDate('2026-09-16') }))
 
     // Assert
     expect(screen.getByLabelText('Target Date')).toBeInTheDocument()

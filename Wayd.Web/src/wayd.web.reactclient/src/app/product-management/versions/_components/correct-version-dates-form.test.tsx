@@ -1,9 +1,10 @@
-import { VersionDto } from '@/src/services/wayd-api'
+import { VersionDto } from '@/src/services/api/wayd.schemas'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import dayjs from 'dayjs'
 import CorrectVersionDatesForm from './correct-version-dates-form'
 import type { UseModalFormOptions } from '@/src/hooks'
+import { asInstant } from '@/src/utils/instant'
 
 const correctDates = vi.fn()
 
@@ -46,14 +47,14 @@ const version = (overrides: Partial<VersionDto> = {}): VersionDto =>
     ...overrides,
   }) as VersionDto
 
-const CUT_AT = '2026-04-01T15:00:00Z'
+const CUT_AT = asInstant('2026-04-01T15:00:00Z')
 // Late evening US Central: the 1st there, the 2nd in UTC.
-const RELEASED_AT = '2026-04-02T02:30:00Z'
+const RELEASED_AT = asInstant('2026-04-02T02:30:00Z')
 
 const released = () =>
   version({
-    cutAt: CUT_AT as unknown as Date,
-    releasedAt: RELEASED_AT as unknown as Date,
+    cutAt: asInstant(CUT_AT),
+    releasedAt: asInstant(RELEASED_AT),
   })
 
 const renderForm = (dto: VersionDto) =>
@@ -88,7 +89,7 @@ describe('CorrectVersionDatesForm', () => {
     // released without ever being cut, so the cut moment is commonly filled in afterwards; hiding the
     // field left no route to it at all.
     // Act
-    renderForm(version({ cutAt: CUT_AT as unknown as Date }))
+    renderForm(version({ cutAt: asInstant(CUT_AT) }))
 
     // Assert
     expect(screen.getByLabelText('Target Date')).toBeInTheDocument()

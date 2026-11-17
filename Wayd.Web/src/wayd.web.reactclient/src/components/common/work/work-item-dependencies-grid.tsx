@@ -3,7 +3,7 @@
 import {
   ScopedDependencyDto,
   WorkItemDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import type { ColumnDef } from '../wayd-grid-core'
 import { FC, useMemo } from 'react'
 import { WaydTooltip } from '@/src/components/common'

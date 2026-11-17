@@ -1,4 +1,4 @@
-import { HomeLayoutColumn } from '@/src/services/wayd-api'
+import { HomeLayoutColumn } from '@/src/services/api/wayd.schemas'
 import {
   arrangeFromLayout,
   fromSavedWidgets,

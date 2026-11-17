@@ -13,7 +13,7 @@ import {
   SizingMethod,
   SprintScopeDto,
   SprintScopeItemDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { formatInstantInZone, sizingMethodLabel } from '@/src/utils'
 import { Select } from 'antd'
 import { useState } from 'react'
@@ -24,6 +24,7 @@ import {
   sprintScopeEntryLabels,
   sprintScopeOutcomeLabels,
 } from './sprint-scope-categories'
+import { type Instant } from '@/src/utils/instant'
 
 export interface SprintScopeGridProps {
   scope: SprintScopeDto | undefined
@@ -54,7 +55,7 @@ const SprintScopeGrid = ({
 
   // On the viewer's clock, as the sprint's details and the overview show recorded moments.
   const viewerZone = Intl.DateTimeFormat().resolvedOptions().timeZone
-  const formatInstant = (instant: Date | undefined) =>
+  const formatInstant = (instant: Date | Instant | undefined | null) =>
     instant ? formatInstantInZone(instant, viewerZone) : null
 
   const columns: ColumnDef<SprintScopeItemDto, any>[] = [

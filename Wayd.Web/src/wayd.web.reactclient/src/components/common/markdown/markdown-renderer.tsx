@@ -19,7 +19,7 @@ const rehypePlugins: Options['rehypePlugins'] = [
 ]
 
 interface MarkdownRendererProps {
-  markdown?: string
+  markdown?: string | null
 }
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ markdown }) => {

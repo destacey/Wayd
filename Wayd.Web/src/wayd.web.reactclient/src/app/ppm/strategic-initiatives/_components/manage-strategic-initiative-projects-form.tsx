@@ -6,7 +6,7 @@ import { useConfirmModal } from '@/src/hooks'
 import {
   ManageStrategicInitiativeProjectsRequest,
   ProjectListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetPortfolioProjectsQuery } from '@/src/store/features/ppm/portfolios-api'
 import { useGetProjectsQuery } from '@/src/store/features/ppm/projects-api'
 import {

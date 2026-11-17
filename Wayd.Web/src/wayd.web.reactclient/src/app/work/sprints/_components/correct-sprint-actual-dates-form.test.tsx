@@ -5,8 +5,10 @@ import {
   SprintListDto,
   SprintType,
   SprintTypeSource,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import CorrectSprintActualDatesForm from './correct-sprint-actual-dates-form'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant, toInstant } from '@/src/utils/instant'
 
 const correctActualDates = vi.fn()
 const errorMessage = vi.fn()
@@ -45,16 +47,16 @@ const team = {
   type: 'Team',
 }
 
-const sprintStarted = new Date('2026-08-31T14:00:00Z')
-const sprintCompleted = new Date('2026-09-11T20:00:00Z')
+const sprintStarted = asInstant('2026-08-31T14:00:00Z')
+const sprintCompleted = asInstant('2026-09-11T20:00:00Z')
 
 const sprint: SprintDetailsDto = {
   id: 'sprint-2',
   key: 202,
   name: '26.3.3',
   state: { id: 1, name: 'Completed' },
-  start: '2026-08-31',
-  end: '2026-09-13',
+  start: asCalendarDate('2026-08-31'),
+  end: asCalendarDate('2026-09-13'),
   team,
   started: sprintStarted,
   completed: sprintCompleted,
@@ -78,11 +80,11 @@ const nextSprint: SprintListDto = {
   key: 203,
   name: '26.3.4',
   state: { id: 1, name: 'Completed' },
-  start: '2026-09-14',
-  end: '2026-09-27',
+  start: asCalendarDate('2026-09-14'),
+  end: asCalendarDate('2026-09-27'),
   team,
-  started: new Date('2026-09-11T20:00:00Z'),
-  completed: new Date('2026-09-25T20:00:00Z'),
+  started: asInstant('2026-09-11T20:00:00Z'),
+  completed: asInstant('2026-09-25T20:00:00Z'),
   sprintType: SprintType.Standard,
   sprintTypeSource: SprintTypeSource.Default,
 }
@@ -152,7 +154,7 @@ describe('CorrectSprintActualDatesForm', () => {
         {
           id: 'sprint-2',
           key: 202,
-          started: sprintStarted,
+          started: new Date(sprintStarted),
           completed: undefined,
         },
       ],
@@ -181,7 +183,7 @@ describe('CorrectSprintActualDatesForm', () => {
 
   it('refuses a completion that is not after the start', () => {
     // Arrange / Act
-    renderForm({ completed: new Date('2026-08-31T13:00:00Z') })
+    renderForm({ completed: asInstant('2026-08-31T13:00:00Z') })
 
     // Assert
     expect(screen.getByText('Must be after the start.')).toBeInTheDocument()
@@ -191,8 +193,8 @@ describe('CorrectSprintActualDatesForm', () => {
   it('refuses a moment in the future', () => {
     // Arrange / Act
     renderForm({
-      started: new Date(Date.now() - 3_600_000),
-      completed: new Date(Date.now() + 3_600_000),
+      started: toInstant(new Date(Date.now() - 3_600_000)),
+      completed: toInstant(new Date(Date.now() + 3_600_000)),
     })
 
     // Assert

@@ -2,7 +2,10 @@
 
 import { Tag } from 'antd'
 import { SyncOutlined } from '@ant-design/icons'
-import { ImportProcessStatus, ImportRowStatus } from '@/src/services/wayd-api'
+import {
+  ImportProcessStatus,
+  ImportRowStatus,
+} from '@/src/services/api/wayd.schemas'
 
 const PROCESS_COLOR: Record<ImportProcessStatus, string> = {
   [ImportProcessStatus.Queued]: 'default',

@@ -1,4 +1,4 @@
-import { GlobalSearchResultItemDto } from '@/src/services/wayd-api'
+import { GlobalSearchResultItemDto } from '@/src/services/api/wayd.schemas'
 import { getSearchResultUrl } from './search-result-url'
 
 const item = (
@@ -6,7 +6,7 @@ const item = (
   key: string,
   auxKey?: string,
 ): GlobalSearchResultItemDto =>
-  ({ entityType, key, auxKey } as GlobalSearchResultItemDto)
+  ({ entityType, key, auxKey }) as GlobalSearchResultItemDto
 
 describe('getSearchResultUrl', () => {
   describe('Work', () => {

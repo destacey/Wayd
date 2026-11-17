@@ -16,7 +16,7 @@ import {
   WorkdayConnectionDetailsDto,
   WorkdayOrgExclusionRequest,
   WorkdayWorkerKey,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useUpdateConnectionMutation } from '@/src/store/features/app-integration/connections-api'
 import { ConnectorType } from '@/src/types/connectors'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'

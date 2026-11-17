@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { ReleasePackageDto } from '@/src/services/wayd-api'
+import { ReleasePackageDto } from '@/src/services/api/wayd.schemas'
 import { useDeleteReleasePackageMutation } from '@/src/store/features/product-management/release-packages-api'
 import { isApiError, type ApiError } from '@/src/utils'
 import { Alert, Modal, Typography } from 'antd'

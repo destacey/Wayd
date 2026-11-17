@@ -1,5 +1,5 @@
 import type { Dayjs } from 'dayjs'
-import { TeamNavigationDto } from '@/src/services/wayd-api'
+import { TeamNavigationDto } from '@/src/services/api/wayd.schemas'
 
 export interface TeamListItem extends TeamNavigationDto {
   code?: string

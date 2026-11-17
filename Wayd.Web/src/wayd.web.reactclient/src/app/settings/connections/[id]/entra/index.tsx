@@ -4,7 +4,7 @@ import {
   ConnectionDetailsDto,
   EmployeeMatchProperty,
   EntraConnectionDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { DetailEntry } from '../_components/detail-registry'
 import GenericConnectionDetails from '../_components/generic-connection-details'
 import SyncHistoryTab from '../_components/sync-history-tab'

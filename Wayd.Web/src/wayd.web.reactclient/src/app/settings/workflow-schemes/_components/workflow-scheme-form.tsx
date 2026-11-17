@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   StatusWorkflowState,
   WorkflowSchemeListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetStatusWorkflowsQuery,
   useGetWorkflowOwnerTypesQuery,
@@ -40,7 +40,7 @@ interface WorkflowSchemeFormValues {
   ownerType?: string
   defaultWorkflowId?: string
   name: string
-  description?: string
+  description?: string | null
 }
 
 const titles = {

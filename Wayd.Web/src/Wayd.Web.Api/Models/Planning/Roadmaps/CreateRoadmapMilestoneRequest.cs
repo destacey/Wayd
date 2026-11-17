@@ -42,6 +42,6 @@ public sealed class CreateRoadmapMilestoneRequestValidator : CustomValidator<Cre
         Include(new CreateRoadmapItemRequestValidator());
 
         RuleFor(t => t.Date)
-            .NotNull();
+            .NotEmpty();
     }
 }

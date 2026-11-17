@@ -1,7 +1,19 @@
 import {
-  getProjectTasksClient,
-  getProjectsClient,
-} from '@/src/services/clients'
+  projectTasksAddTaskDependency,
+  projectTasksCreateProjectTask,
+  projectTasksDeleteProjectTask,
+  projectTasksGetCriticalPath,
+  projectTasksGetProjectTask,
+  projectTasksGetProjectTasks,
+  projectTasksGetTaskPriorities,
+  projectTasksGetTaskStatuses,
+  projectTasksGetTaskTypes,
+  projectTasksPatchProjectTask,
+  projectTasksRemoveTaskDependency,
+  projectTasksUpdateProjectTask,
+  projectTasksUpdateProjectTaskPlacement,
+} from '@/src/services/api/project-tasks'
+import { projectsGetProjectPlanTree } from '@/src/services/api/projects'
 import { apiSlice } from '../apiSlice'
 import { toHttpError } from '../http-error'
 import {
@@ -14,7 +26,7 @@ import {
   ProjectTaskIdAndKey,
   UpdateProjectTaskPlacementRequest,
   TaskStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 import { OptionModel } from '@/src/components/types'
 
@@ -55,11 +67,10 @@ export const projectTasksApi = apiSlice.injectEndpoints({
       {
         queryFn: async ({ projectIdOrKey, status, parentId }) => {
           try {
-            const data = await getProjectTasksClient().getProjectTasks(
-              projectIdOrKey,
-              status,
-              parentId,
-            )
+            const data = await projectTasksGetProjectTasks(projectIdOrKey, {
+              status: status,
+              parentId: parentId,
+            })
             return { data }
           } catch (error) {
             console.error('API Error:', error)
@@ -78,7 +89,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectIdOrKey, taskIdOrKey }) => {
         try {
-          const data = await getProjectTasksClient().getProjectTask(
+          const data = await projectTasksGetProjectTask(
             projectIdOrKey,
             taskIdOrKey,
           )
@@ -99,7 +110,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectIdOrKey, request }) => {
         try {
-          const data = await getProjectTasksClient().createProjectTask(
+          const data = await projectTasksCreateProjectTask(
             projectIdOrKey,
             request,
           )
@@ -123,7 +134,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectIdOrKey, request }) => {
         try {
-          const data = await getProjectTasksClient().updateProjectTask(
+          const data = await projectTasksUpdateProjectTask(
             projectIdOrKey,
             request.id,
             request,
@@ -151,7 +162,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectIdOrKey, taskId, patchOperations }) => {
         try {
-          const data = await getProjectTasksClient().patchProjectTask(
+          const data = await projectTasksPatchProjectTask(
             projectIdOrKey,
             taskId,
             patchOperations,
@@ -185,10 +196,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectIdOrKey, id }) => {
         try {
-          const data = await getProjectTasksClient().deleteProjectTask(
-            projectIdOrKey,
-            id,
-          )
+          const data = await projectTasksDeleteProjectTask(projectIdOrKey, id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -209,7 +217,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectIdOrKey, id, request }) => {
         try {
-          const data = await getProjectTasksClient().updateProjectTaskPlacement(
+          const data = await projectTasksUpdateProjectTaskPlacement(
             projectIdOrKey,
             id,
             request,
@@ -227,8 +235,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
     getCriticalPath: builder.query<string[], { projectIdOrKey: string }>({
       queryFn: async ({ projectIdOrKey }) => {
         try {
-          const data =
-            await getProjectTasksClient().getCriticalPath(projectIdOrKey)
+          const data = await projectTasksGetCriticalPath(projectIdOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -250,7 +257,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectIdOrKey, id, request }) => {
         try {
-          const data = await getProjectTasksClient().addTaskDependency(
+          const data = await projectTasksAddTaskDependency(
             projectIdOrKey,
             id,
             request,
@@ -280,7 +287,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectIdOrKey, id, successorId }) => {
         try {
-          const data = await getProjectTasksClient().removeTaskDependency(
+          const data = await projectTasksRemoveTaskDependency(
             projectIdOrKey,
             id,
             successorId,
@@ -308,7 +315,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
         try {
           const forMilestone =
             arg && typeof arg === 'object' ? arg.forMilestone : false
-          const data = await getProjectTasksClient().getTaskStatuses()
+          const data = await projectTasksGetTaskStatuses()
           let options = data
             .sort((a, b) => a.order - b.order)
             .map((s) => ({
@@ -342,7 +349,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
     getTaskPriorityOptions: builder.query<OptionModel<number>[], void>({
       queryFn: async () => {
         try {
-          const data = await getProjectTasksClient().getTaskPriorities()
+          const data = await projectTasksGetTaskPriorities()
           return {
             data: data
               .sort((a, b) => a.order - b.order)
@@ -362,7 +369,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
     getTaskTypeOptions: builder.query<OptionModel<number>[], void>({
       queryFn: async () => {
         try {
-          const data = await getProjectTasksClient().getTaskTypes()
+          const data = await projectTasksGetTaskTypes()
           return {
             data: data
               .sort((a, b) => a.order - b.order)
@@ -394,8 +401,7 @@ export const projectTasksApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectIdOrKey, excludeTaskId }) => {
         try {
-          const planData =
-            await getProjectsClient().getProjectPlanTree(projectIdOrKey)
+          const planData = await projectsGetProjectPlanTree(projectIdOrKey)
 
           // Convert task nodes to TreeSelect format, excluding milestones and a specific task
           const convertTasksToTreeSelect = (

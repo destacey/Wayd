@@ -1,6 +1,6 @@
 'use client'
 
-import { InteractionStyle } from '@/src/services/wayd-api'
+import { InteractionStyle } from '@/src/services/api/wayd.schemas'
 import { Checkbox, Space, Tag, Tooltip, Typography } from 'antd'
 
 const { Text } = Typography
@@ -32,7 +32,7 @@ const allStyles = [
 export const InteractionStyleTags = ({
   styles,
 }: {
-  styles?: InteractionStyle[]
+  styles?: InteractionStyle[] | null
 }) => {
   if (!styles?.length) {
     return (

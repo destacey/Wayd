@@ -5,7 +5,7 @@ import {
   StoryMapStepDto,
   StoryMapTaskDto,
   Visibility,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { countBoard, countTasksByLane } from './board-counts'
 
 /**

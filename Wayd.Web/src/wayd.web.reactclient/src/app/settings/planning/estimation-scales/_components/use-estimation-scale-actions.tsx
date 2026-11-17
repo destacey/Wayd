@@ -2,7 +2,7 @@
 
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { EstimationScaleDto } from '@/src/services/wayd-api'
+import { EstimationScaleDto } from '@/src/services/api/wayd.schemas'
 import { useSetEstimationScaleActiveStatusMutation } from '@/src/store/features/planning/estimation-scales-api'
 import type { ItemType } from 'antd/es/menu/interface'
 import { ReactNode, useState } from 'react'

@@ -1,6 +1,6 @@
 'use client'
 
-import { WorkItemProgressRollupDto } from '@/src/services/wayd-api'
+import { WorkItemProgressRollupDto } from '@/src/services/api/wayd.schemas'
 import { Progress } from 'antd'
 import WaydTooltip from '@/src/components/common/wayd-tooltip'
 import { memo } from 'react'

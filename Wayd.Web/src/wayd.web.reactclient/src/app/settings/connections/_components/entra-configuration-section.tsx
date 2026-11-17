@@ -1,4 +1,4 @@
-import { EmployeeMatchProperty } from '@/src/services/wayd-api'
+import { EmployeeMatchProperty } from '@/src/services/api/wayd.schemas'
 import { Form, FormInstance, Input, Radio, Switch } from 'antd'
 import { SecretFormItem } from './secret-form-item'
 

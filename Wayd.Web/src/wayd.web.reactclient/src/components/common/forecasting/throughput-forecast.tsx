@@ -1,6 +1,6 @@
 'use client'
 
-import { TeamThroughputForecastDto } from '@/src/services/wayd-api'
+import { TeamThroughputForecastDto } from '@/src/services/api/wayd.schemas'
 import { Alert, Flex, Skeleton, Typography } from 'antd'
 import { FC } from 'react'
 import { ChartCard, METRIC_CARD_FLEX, MetricCard } from '../metrics'

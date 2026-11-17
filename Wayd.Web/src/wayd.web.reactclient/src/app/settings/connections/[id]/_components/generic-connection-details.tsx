@@ -1,6 +1,6 @@
 'use client'
 
-import { ConnectionDetailsDto } from '@/src/services/wayd-api'
+import { ConnectionDetailsDto } from '@/src/services/api/wayd.schemas'
 import { getCapabilityNames } from '@/src/types/connectors'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { ResponsiveFlex } from '@/src/components/common'

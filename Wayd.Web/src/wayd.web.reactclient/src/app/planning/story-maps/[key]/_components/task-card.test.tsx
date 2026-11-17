@@ -1,7 +1,7 @@
 import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { StoryMapTaskDto } from '@/src/services/wayd-api'
+import { StoryMapTaskDto } from '@/src/services/api/wayd.schemas'
 import TaskCard from './task-card'
 import { BoardActions } from './board-actions'
 import { useBoardSortable } from './use-board-sortable'

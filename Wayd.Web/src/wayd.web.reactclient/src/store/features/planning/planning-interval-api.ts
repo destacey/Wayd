@@ -29,9 +29,44 @@ import {
   WorkItemProgressDailyRollupDto,
   WorkItemsSummaryDto,
   PlanningIntervalCapacityDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
-import { getPlanningIntervalsClient } from '@/src/services/clients'
+import {
+  planningIntervalsCreate,
+  planningIntervalsCreateObjective,
+  planningIntervalsDeleteObjective,
+  planningIntervalsGetActivities,
+  planningIntervalsGetBacklog,
+  planningIntervalsGetCalendar,
+  planningIntervalsGetCapacity,
+  planningIntervalsGetDependencies,
+  planningIntervalsGetIteration,
+  planningIntervalsGetIterationBacklog,
+  planningIntervalsGetIterationCategories,
+  planningIntervalsGetIterationMetrics,
+  planningIntervalsGetIterationSprints,
+  planningIntervalsGetIterations,
+  planningIntervalsGetList,
+  planningIntervalsGetMetrics,
+  planningIntervalsGetObjective,
+  planningIntervalsGetObjectiveActivities,
+  planningIntervalsGetObjectiveStatuses,
+  planningIntervalsGetObjectiveWorkItemMetrics,
+  planningIntervalsGetObjectiveWorkItems,
+  planningIntervalsGetObjectives,
+  planningIntervalsGetObjectivesHealthReport,
+  planningIntervalsGetPlanningInterval,
+  planningIntervalsGetPredictability,
+  planningIntervalsGetRisks,
+  planningIntervalsGetTeamPredictability,
+  planningIntervalsGetTeams,
+  planningIntervalsManageDates,
+  planningIntervalsManageObjectiveWorkItems,
+  planningIntervalsMapTeamSprints,
+  planningIntervalsUpdate,
+  planningIntervalsUpdateObjective,
+  planningIntervalsUpdateObjectivesOrder,
+} from '@/src/services/api/planning-intervals'
 import { QueryTags } from '../query-tags'
 import { OptionModel } from '@/src/components/types'
 
@@ -48,7 +83,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     getPlanningIntervals: builder.query<PlanningIntervalListDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getPlanningIntervalsClient().getList()
+          const data = await planningIntervalsGetList()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -60,7 +95,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     getPlanningInterval: builder.query<PlanningIntervalDetailsDto, number>({
       queryFn: async (idOrKey) => {
         try {
-          const data = await getPlanningIntervalsClient().getPlanningInterval(
+          const data = await planningIntervalsGetPlanningInterval(
             idOrKey.toString(),
           )
           return { data }
@@ -79,7 +114,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getPlanningIntervalsClient().create(request)
+          const data = await planningIntervalsCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -96,10 +131,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ request }) => {
         try {
-          const data = await getPlanningIntervalsClient().update(
-            request.id,
-            request,
-          )
+          const data = await planningIntervalsUpdate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -120,10 +152,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ request }) => {
         try {
-          const data = await getPlanningIntervalsClient().manageDates(
-            request.id,
-            request,
-          )
+          const data = await planningIntervalsManageDates(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -149,9 +178,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (key) => {
         try {
-          const data = await getPlanningIntervalsClient().getCalendar(
-            key.toString(),
-          )
+          const data = await planningIntervalsGetCalendar(key.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -168,9 +195,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (key) => {
         try {
-          const data = await getPlanningIntervalsClient().getPredictability(
-            key.toString(),
-          )
+          const data = await planningIntervalsGetPredictability(key.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -187,9 +212,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (key) => {
         try {
-          const data = await getPlanningIntervalsClient().getCapacity(
-            key.toString(),
-          )
+          const data = await planningIntervalsGetCapacity(key.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -211,9 +234,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (key) => {
         try {
-          const data = await getPlanningIntervalsClient().getMetrics(
-            key.toString(),
-          )
+          const data = await planningIntervalsGetMetrics(key.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -230,9 +251,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (key) => {
         try {
-          const data = await getPlanningIntervalsClient().getIterations(
-            key.toString(),
-          )
+          const data = await planningIntervalsGetIterations(key.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -249,7 +268,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ planningIntervalKey, iterationKey }) => {
         try {
-          const data = await getPlanningIntervalsClient().getIteration(
+          const data = await planningIntervalsGetIteration(
             planningIntervalKey.toString(),
             iterationKey.toString(),
           )
@@ -272,10 +291,9 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, iterationId }) => {
         try {
-          const data = await getPlanningIntervalsClient().getIterationSprints(
-            idOrKey,
-            iterationId,
-          )
+          const data = await planningIntervalsGetIterationSprints(idOrKey, {
+            iterationId: iterationId,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -297,7 +315,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ planningIntervalKey, iterationKey }) => {
         try {
-          const data = await getPlanningIntervalsClient().getIterationMetrics(
+          const data = await planningIntervalsGetIterationMetrics(
             planningIntervalKey.toString(),
             iterationKey.toString(),
           )
@@ -317,7 +335,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     getPlanningIntervalBacklog: builder.query<SprintBacklogItemDto[], number>({
       queryFn: async (planningIntervalKey) => {
         try {
-          const data = await getPlanningIntervalsClient().getBacklog(
+          const data = await planningIntervalsGetBacklog(
             planningIntervalKey.toString(),
           )
           return { data }
@@ -333,7 +351,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     getPlanningIntervalDependencies: builder.query<DependencyDto[], number>({
       queryFn: async (planningIntervalKey) => {
         try {
-          const data = await getPlanningIntervalsClient().getDependencies(
+          const data = await planningIntervalsGetDependencies(
             planningIntervalKey.toString(),
           )
           return { data }
@@ -353,7 +371,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ planningIntervalKey, iterationKey }) => {
         try {
-          const data = await getPlanningIntervalsClient().getIterationBacklog(
+          const data = await planningIntervalsGetIterationBacklog(
             planningIntervalKey.toString(),
             iterationKey.toString(),
           )
@@ -376,8 +394,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async () => {
         try {
-          const categories =
-            await getPlanningIntervalsClient().getIterationCategories()
+          const categories = await planningIntervalsGetIterationCategories()
 
           const data: OptionModel<number>[] = categories
             .sort((a, b) => a.order - b.order)
@@ -403,9 +420,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (key) => {
         try {
-          const data = await getPlanningIntervalsClient().getTeams(
-            key.toString(),
-          )
+          const data = await planningIntervalsGetTeams(key.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -422,7 +437,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ planningIntervalKey, teamId }) => {
         try {
-          const data = await getPlanningIntervalsClient().getTeamPredictability(
+          const data = await planningIntervalsGetTeamPredictability(
             planningIntervalKey.toString(),
             teamId,
           )
@@ -450,7 +465,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ planningIntervalId, teamId, request }) => {
         try {
-          const data = await getPlanningIntervalsClient().mapTeamSprints(
+          const data = await planningIntervalsMapTeamSprints(
             planningIntervalId,
             teamId,
             request,
@@ -480,9 +495,9 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getPlanningIntervalsClient().getObjectives(
+          const data = await planningIntervalsGetObjectives(
             request.planningIntervalKey.toString(),
-            request.teamId,
+            { teamId: request.teamId },
           )
           return { data }
         } catch (error) {
@@ -504,7 +519,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getPlanningIntervalsClient().getObjective(
+          const data = await planningIntervalsGetObjective(
             request.planningIntervalKey,
             request.objectiveKey,
           )
@@ -527,7 +542,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ request }) => {
         try {
-          const data = await getPlanningIntervalsClient().createObjective(
+          const data = await planningIntervalsCreateObjective(
             request.planningIntervalId,
             request,
           )
@@ -563,7 +578,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ request }) => {
         try {
-          const data = await getPlanningIntervalsClient().updateObjective(
+          const data = await planningIntervalsUpdateObjective(
             request.planningIntervalId,
             request.objectiveId,
             request,
@@ -596,7 +611,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getPlanningIntervalsClient().updateObjectivesOrder(
+          const data = await planningIntervalsUpdateObjectivesOrder(
             request.planningIntervalId,
             request,
           )
@@ -628,7 +643,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ planningIntervalId, objectiveId }) => {
         try {
-          const data = await getPlanningIntervalsClient().deleteObjective(
+          const data = await planningIntervalsDeleteObjective(
             planningIntervalId,
             objectiveId,
           )
@@ -663,7 +678,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getPlanningIntervalsClient().getObjectiveWorkItems(
+          const data = await planningIntervalsGetObjectiveWorkItems(
             request.planningIntervalKey,
             request.objectiveKey,
           )
@@ -689,11 +704,10 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data =
-            await getPlanningIntervalsClient().getObjectiveWorkItemMetrics(
-              request.planningIntervalKey,
-              request.objectiveKey,
-            )
+          const data = await planningIntervalsGetObjectiveWorkItemMetrics(
+            request.planningIntervalKey,
+            request.objectiveKey,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -716,12 +730,11 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ request }) => {
         try {
-          const data =
-            await getPlanningIntervalsClient().manageObjectiveWorkItems(
-              request.planningIntervalId,
-              request.objectiveId,
-              request,
-            )
+          const data = await planningIntervalsManageObjectiveWorkItems(
+            request.planningIntervalId,
+            request.objectiveId,
+            request,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -743,11 +756,10 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data =
-            await getPlanningIntervalsClient().getObjectivesHealthReport(
-              request.planningIntervalKey.toString(),
-              request.teamId,
-            )
+          const data = await planningIntervalsGetObjectivesHealthReport(
+            request.planningIntervalKey.toString(),
+            { teamId: request.teamId },
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -761,7 +773,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async () => {
         try {
-          const data = await getPlanningIntervalsClient().getObjectiveStatuses()
+          const data = await planningIntervalsGetObjectiveStatuses()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -781,8 +793,7 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async () => {
         try {
-          const types =
-            await getPlanningIntervalsClient().getObjectiveStatuses()
+          const types = await planningIntervalsGetObjectiveStatuses()
 
           const data: OptionModel<number>[] = types
             .sort((a, b) => a.order - b.order)
@@ -812,10 +823,9 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getPlanningIntervalsClient().getRisks(
+          const data = await planningIntervalsGetRisks(
             request.planningIntervalKey.toString(),
-            request.includeClosed,
-            request.teamId,
+            { includeClosed: request.includeClosed, teamId: request.teamId },
           )
           return { data }
         } catch (error) {
@@ -838,11 +848,10 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getPlanningIntervalsClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await planningIntervalsGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -869,13 +878,11 @@ export const planningIntervalApi = apiSlice.injectEndpoints({
         pageSize,
       }) => {
         try {
-          const data =
-            await getPlanningIntervalsClient().getObjectiveActivities(
-              String(planningIntervalIdOrKey),
-              String(objectiveIdOrKey),
-              page,
-              pageSize,
-            )
+          const data = await planningIntervalsGetObjectiveActivities(
+            String(planningIntervalIdOrKey),
+            String(objectiveIdOrKey),
+            { page: page, pageSize: pageSize },
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)

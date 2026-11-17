@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import EmployeeTimeAway from './employee-time-away'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 let mockPermissions: string[] = []
 vi.mock('@/src/components/contexts/auth', () => ({
@@ -57,8 +58,8 @@ vi.mock(import('./employee-working-day-form'), async (importOriginal) => ({
 
 const entry = {
   id: 'away-1',
-  start: '2027-02-01',
-  end: '2027-02-05',
+  start: asCalendarDate('2027-02-01'),
+  end: asCalendarDate('2027-02-05'),
   percentAway: 50,
 }
 

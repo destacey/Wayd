@@ -7,7 +7,7 @@ import {
   IntakeDeskDto,
   PokerSessionHostKind,
   PokerSessionListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetHostedPokerSessionsQuery } from '@/src/store/features/planning/poker-sessions-api'
 import { Tag, Typography } from 'antd'
 import { FC } from 'react'

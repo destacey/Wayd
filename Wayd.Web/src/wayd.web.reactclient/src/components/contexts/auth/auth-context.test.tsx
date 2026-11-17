@@ -35,10 +35,8 @@ vi.mock('./../../contexts/theme/use-theme', () => ({
   }),
 }))
 
-// In-memory storage for the Wayd JWT. We replace the real services/clients
-// module entirely because clients.ts imports axios + NSwag-generated code,
-// which pulls in too much for a unit test and triggers side effects on module
-// load. The real behavior under test is AuthProvider's session-reading logic.
+// In-memory storage for the Wayd JWT, so each test sets the session it starts
+// from. The behavior under test is AuthProvider's session-reading logic.
 const mockStorage = {
   token: null as string | null,
   refreshToken: null as string | null,
@@ -49,7 +47,7 @@ const mockStorage = {
 const mockLogin = vi.fn()
 const mockLogout = vi.fn()
 
-vi.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/auth-storage', () => ({
   AUTH_TOKEN_KEY: 'wayd.token',
   AUTH_REFRESH_TOKEN_KEY: 'wayd.refreshToken',
   AUTH_TOKEN_EXPIRY_KEY: 'wayd.tokenExpiry',
@@ -89,12 +87,12 @@ vi.mock('@/src/services/clients', () => ({
     mockStorage.tokenExpiry = null
     mockStorage.mustChangePassword = null
   },
-  getAuthClient: () => ({
-    login: mockLogin,
-  }),
-  getAuthenticatedAuthClient: () => ({
-    logout: mockLogout,
-  }),
+}))
+
+vi.mock(import('@/src/services/api/auth'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  authLogin: (...args: unknown[]) => mockLogin(...args),
+  authLogout: (...args: unknown[]) => mockLogout(...args),
 }))
 
 // Imports after mocks.
@@ -104,7 +102,7 @@ import {
   clearAuth,
   getAuthRefreshToken,
   storeAuth,
-} from '@/src/services/clients'
+} from '@/src/services/auth-storage'
 
 // --- Test helpers ---
 

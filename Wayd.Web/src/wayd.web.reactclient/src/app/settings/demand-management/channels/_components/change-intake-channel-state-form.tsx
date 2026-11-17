@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { IntakeChannelDto } from '@/src/services/wayd-api'
+import { IntakeChannelDto } from '@/src/services/api/wayd.schemas'
 import {
   useArchiveIntakeChannelMutation,
   useRestoreIntakeChannelMutation,

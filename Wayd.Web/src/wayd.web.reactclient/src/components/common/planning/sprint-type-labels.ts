@@ -1,4 +1,4 @@
-import { SprintType } from '@/src/services/wayd-api'
+import { SprintType } from '@/src/services/api/wayd.schemas'
 
 /**
  * Display names for the sprint types, the same as the server's lookup. Held

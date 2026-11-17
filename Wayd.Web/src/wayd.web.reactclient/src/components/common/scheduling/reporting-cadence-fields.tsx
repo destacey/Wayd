@@ -2,8 +2,12 @@
 
 import { DatePicker, Form, InputNumber } from 'antd'
 import { type Dayjs } from 'dayjs'
-import { Methodology } from '@/src/services/wayd-api'
-import { formatCalendarDate, toCalendarDate } from '@/src/utils/calendar-date'
+import { Methodology } from '@/src/services/api/wayd.schemas'
+import {
+  formatCalendarDate,
+  toCalendarDate,
+  type CalendarDate,
+} from '@/src/utils/calendar-date'
 
 const { Item: FormItem } = Form
 
@@ -22,7 +26,7 @@ export interface ReportingCadenceFormValues {
  */
 export const formatReportingCadence = (
   weeks: number | undefined | null,
-  anchor?: string | null,
+  anchor?: CalendarDate | null,
 ): string => {
   if (!weeks) return ''
   const every = weeks === 1 ? 'Every week' : `Every ${weeks} weeks`

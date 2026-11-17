@@ -7,7 +7,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   CreateProjectRequest,
   ProjectLifecycleState,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetProjectLifecycleQuery,
   useGetProjectLifecyclesQuery,
@@ -39,6 +39,7 @@ import {
 } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect } from 'react'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { TextArea } = Input
 const { Item } = Form
@@ -78,8 +79,12 @@ const mapToRequestValues = (
     expectedBenefits: values.expectedBenefits || undefined,
     key: values.key,
     expenditureCategoryId: values.expenditureCategoryId,
-    start: (values.dateRange?.[0] as any)?.format('YYYY-MM-DD'),
-    end: (values.dateRange?.[1] as any)?.format('YYYY-MM-DD'),
+    start: values.dateRange?.[0]
+      ? toCalendarDate(values.dateRange[0])
+      : undefined,
+    end: values.dateRange?.[1]
+      ? toCalendarDate(values.dateRange[1])
+      : undefined,
     portfolioId: values.portfolioId,
     programId: values.programId,
     projectLifecycleId: values.lifecycleId,
@@ -104,12 +109,14 @@ const CreateProjectForm = ({
   const { data: lifecycleData, error: lifecycleOptionsError } =
     useGetProjectLifecyclesQuery(ProjectLifecycleState.Active)
 
-  const lifecycleOptions = !lifecycleData ? [] : [...lifecycleData]
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((lc) => ({
-        label: lc.name,
-        value: lc.id,
-      }))
+  const lifecycleOptions = !lifecycleData
+    ? []
+    : [...lifecycleData]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((lc) => ({
+          label: lc.name,
+          value: lc.id,
+        }))
 
   const { data: expenditureData, error: expenditureOptionsError } =
     useGetExpenditureCategoryOptionsQuery(false)
@@ -120,32 +127,32 @@ const CreateProjectForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CreateProjectFormValues>({
       onSubmit: async (values: CreateProjectFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values)
-            const response = await createProject(request)
-            if (response.error) throw response.error
+        try {
+          const request = mapToRequestValues(values)
+          const response = await createProject(request)
+          if (response.error) throw response.error
 
-            messageApi.success(
-              'Project created successfully. Project key: ' + response.data!.key,
+          messageApi.success(
+            'Project created successfully. Project key: ' + response.data!.key,
+          )
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn('dateRange'),
+            })
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              (isApiError(apiError) ? apiError.detail : undefined) ??
+                'An error occurred while creating the project. Please try again.',
             )
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: rangeErrorsOn('dateRange'),
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                (isApiError(apiError) ? apiError.detail : undefined) ??
-                  'An error occurred while creating the project. Please try again.',
-              )
-            }
-            return false
           }
-        },
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:
@@ -196,17 +203,19 @@ const CreateProjectForm = ({
     { skip: !selectedLifecycleId },
   )
 
-  const stageItems = !selectedLifecycle?.stages ? [] : [...selectedLifecycle.stages]
-      .sort((a, b) => a.order - b.order)
-      .map((stage) => ({
-        content: (
-          <>
-            <Text strong>{stage.name}</Text>
-            <br />
-            <Text type="secondary">{stage.description}</Text>
-          </>
-        ),
-      }))
+  const stageItems = !selectedLifecycle?.stages
+    ? []
+    : [...selectedLifecycle.stages]
+        .sort((a, b) => a.order - b.order)
+        .map((stage) => ({
+          content: (
+            <>
+              <Text strong>{stage.name}</Text>
+              <br />
+              <Text type="secondary">{stage.description}</Text>
+            </>
+          ),
+        }))
 
   return (
     <Modal
@@ -323,7 +332,9 @@ const CreateProjectForm = ({
             showSearch={{
               optionFilterProp: 'children',
               filterOption: (input, option) =>
-                (option?.label?.toLowerCase() ?? '').includes(input.toLowerCase()),
+                (option?.label?.toLowerCase() ?? '').includes(
+                  input.toLowerCase(),
+                ),
             }}
           />
         </Item>
@@ -367,7 +378,9 @@ const CreateProjectForm = ({
             showSearch={{
               optionFilterProp: 'label',
               filterOption: (input, option) =>
-                (option?.label?.toLowerCase() ?? '').includes(input.toLowerCase()),
+                (option?.label?.toLowerCase() ?? '').includes(
+                  input.toLowerCase(),
+                ),
             }}
           />
         </Item>

@@ -9,7 +9,7 @@ import {
   RecordLinkList,
 } from '@/src/components/common/record'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
-import { ProjectDetailsDto } from '@/src/services/wayd-api'
+import { ProjectDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Divider, Flex } from 'antd'
 import dayjs from 'dayjs'
 import Link from 'next/link'

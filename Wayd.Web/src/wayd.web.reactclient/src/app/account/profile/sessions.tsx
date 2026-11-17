@@ -2,7 +2,7 @@
 
 import { FC } from 'react'
 import { Alert, App, Button, Flex, Space, Tag, Typography } from 'antd'
-import { UserSessionResponse } from '@/src/services/wayd-api'
+import { UserSessionResponse } from '@/src/services/api/wayd.schemas'
 import {
   useGetMySessionsQuery,
   useRevokeSessionMutation,

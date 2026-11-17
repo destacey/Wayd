@@ -14,7 +14,7 @@ import {
 import { authorizePage, requireFeatureFlag } from '@/src/components/hoc'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useDocumentTitle } from '@/src/hooks'
-import { IntakeChannelDto } from '@/src/services/wayd-api'
+import { IntakeChannelDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetIntakeChannelsQuery,
   useReorderIntakeChannelsMutation,

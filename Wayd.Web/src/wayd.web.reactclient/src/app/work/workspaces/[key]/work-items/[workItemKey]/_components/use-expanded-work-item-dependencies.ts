@@ -1,7 +1,7 @@
 'use client'
 
 import { useAppDispatch, useAppSelector } from '@/src/hooks'
-import { ScopedDependencyDto } from '@/src/services/wayd-api'
+import { ScopedDependencyDto } from '@/src/services/api/wayd.schemas'
 import { workspaceApi } from '@/src/store/features/work-management/workspace-api'
 import { useEffect } from 'react'
 import { shallowEqual } from 'react-redux'

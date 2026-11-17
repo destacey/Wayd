@@ -3,7 +3,7 @@ import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { App } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
-import { WorkItemListDto } from '@/src/services/wayd-api'
+import { WorkItemListDto } from '@/src/services/api/wayd.schemas'
 import ProjectWorkItemsViewManager from './project-work-items-view-manager'
 
 const mockSuccess = vi.fn()

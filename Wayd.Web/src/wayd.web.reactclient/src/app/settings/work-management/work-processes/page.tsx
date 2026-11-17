@@ -8,7 +8,7 @@ import {
 } from '@/src/components/common/control-items-menu'
 import { authorizePage } from '@/src/components/hoc'
 import { useAppDispatch, useAppSelector, useDocumentTitle } from '@/src/hooks'
-import { WorkProcessListDto } from '@/src/services/wayd-api'
+import { WorkProcessListDto } from '@/src/services/api/wayd.schemas'
 import { useGetWorkProcessesQuery } from '@/src/store/features/work-management/work-process-api'
 import { setIncludeInactive } from '@/src/store/features/work-management/work-process-slice'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'

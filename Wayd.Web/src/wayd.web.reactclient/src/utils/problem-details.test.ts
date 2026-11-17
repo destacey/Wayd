@@ -1,4 +1,4 @@
-import { ApiException } from '@/src/services/wayd-api'
+import type { ApiResponseError } from '@/src/services/api-fetch'
 import toFormErrors, {
   errorDetail,
   errorsByField,
@@ -180,46 +180,24 @@ describe('errorsByField', () => {
 })
 
 describe('toApiError', () => {
-  it('reads the problem details an undocumented response leaves as a string', () => {
-    // Arrange
-    const exception = new ApiException(
-      'An unexpected server error occurred.',
-      422,
-      JSON.stringify({ errors: { End: ['End is required'] } }),
-      {},
-      null,
-    )
+  it('reads a failed response as its problem details with its status', () => {
+    // Arrange — what the generated client throws for any failed response
+    const failure: ApiResponseError = {
+      kind: 'api-response',
+      status: 422,
+      url: '/api/ppm/projects',
+      headers: {},
+      errors: { End: ['End is required'] },
+    }
 
     // Act
-    const result = toApiError(exception)
+    const result = toApiError(failure)
 
     // Assert
-    expect(result).toEqual({ status: 422, errors: { End: ['End is required'] } })
-  })
-
-  it('reads a body Axios has already parsed', () => {
-    // Arrange
-    const exception = new ApiException(
-      'An unexpected server error occurred.',
-      422,
-      { errors: { End: ['End is required'] } } as unknown as string,
-      {},
-      null,
-    )
-
-    // Act
-    const result = toApiError(exception)
-
-    // Assert
-    expect(result).toEqual({ status: 422, errors: { End: ['End is required'] } })
-  })
-
-  it('reads a plain-text body as the detail', () => {
-    // Arrange
-    const exception = new ApiException('Bad', 400, 'Not allowed.', {}, null)
-
-    // Act / Assert
-    expect(toApiError(exception)).toEqual({ status: 400, detail: 'Not allowed.' })
+    expect(result).toMatchObject({
+      status: 422,
+      errors: { End: ['End is required'] },
+    })
   })
 
   it('passes documented problem details through', () => {

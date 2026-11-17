@@ -5,7 +5,7 @@ import {
   createActionsColumn,
 } from '@/src/components/common/wayd-grid'
 import { ControlItemsMenu } from '@/src/components/common/control-items-menu'
-import { StoryMapListDto } from '@/src/services/wayd-api'
+import { StoryMapListDto } from '@/src/services/api/wayd.schemas'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import type { ItemType } from 'antd/es/menu/interface'
 import Link from 'next/link'

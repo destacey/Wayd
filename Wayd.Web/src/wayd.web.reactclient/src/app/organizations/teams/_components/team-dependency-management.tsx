@@ -1,7 +1,7 @@
 'use client'
 
 import { DependencyPartnersExplorer } from '@/src/components/common/work/dependency-partners'
-import { TeamDetailsDto } from '@/src/services/wayd-api'
+import { TeamDetailsDto } from '@/src/services/api/wayd.schemas'
 import { useGetTeamDependenciesQuery } from '@/src/store/features/organizations/team-api'
 import { FC } from 'react'
 

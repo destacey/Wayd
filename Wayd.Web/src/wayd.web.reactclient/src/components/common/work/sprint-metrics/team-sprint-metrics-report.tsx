@@ -20,11 +20,14 @@ import {
   TeamSprintMetricsDto,
   TeamSprintMetricsExcludedSprintDto,
   TeamSprintMetricsSprintDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetTeamSprintMetricsQuery } from '@/src/store/features/organizations/team-api'
 import { useLocalStorageState } from '@/src/hooks'
 import { sizingMethodLabel, sizingMethodMeasure } from '@/src/utils'
-import { formatCalendarDate } from '@/src/utils/calendar-date'
+import {
+  formatCalendarDate,
+  type CalendarDate,
+} from '@/src/utils/calendar-date'
 import { METRIC_CARD_FLEX, MetricCard } from '../../metrics'
 import WaydEmpty from '../../wayd-empty'
 import WaydTooltip from '../../wayd-tooltip'
@@ -59,7 +62,7 @@ const WINDOW_OPTIONS = Array.from(
   (_, i) => MIN_SPRINT_WINDOW + i,
 )
 
-const sprintDates = (sprint: { start: string; end: string }) =>
+const sprintDates = (sprint: { start: CalendarDate; end: CalendarDate }) =>
   `${formatCalendarDate(sprint.start)} – ${formatCalendarDate(sprint.end)}`
 
 export interface TeamSprintMetricsReportViewProps {

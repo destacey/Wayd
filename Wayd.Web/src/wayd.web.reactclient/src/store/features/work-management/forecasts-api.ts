@@ -1,13 +1,11 @@
-import {
-  getPlanningIntervalsClient,
-  getProjectsClient,
-  getTeamsClient,
-  getWorkspacesClient,
-} from '@/src/services/clients'
+import { planningIntervalsGetObjectiveForecast } from '@/src/services/api/planning-intervals'
+import { projectsGetProjectForecast } from '@/src/services/api/projects'
+import { teamsGetTeamThroughputForecast } from '@/src/services/api/teams'
+import { workspacesGetWorkItemForecast } from '@/src/services/api/workspaces'
 import {
   TeamThroughputForecastDto,
   WorkItemForecastDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
@@ -58,13 +56,15 @@ export const forecastsApi = apiSlice.injectEndpoints({
       keepUnusedDataFor: FORECAST_CACHE_SECONDS,
       queryFn: async (request) => {
         try {
-          const data = await getWorkspacesClient().getWorkItemForecast(
+          const data = await workspacesGetWorkItemForecast(
             request.workspaceIdOrKey,
             request.workItemKey,
-            request.targetDate,
-            request.lookbackDays,
-            request.ignoreDependencies,
-            request.startedWorkFirst,
+            {
+              targetDate: request.targetDate,
+              lookbackDays: request.lookbackDays,
+              ignoreDependencies: request.ignoreDependencies,
+              startedWorkFirst: request.startedWorkFirst,
+            },
           )
           return { data }
         } catch (error) {
@@ -86,13 +86,15 @@ export const forecastsApi = apiSlice.injectEndpoints({
       keepUnusedDataFor: FORECAST_CACHE_SECONDS,
       queryFn: async (request) => {
         try {
-          const data = await getPlanningIntervalsClient().getObjectiveForecast(
+          const data = await planningIntervalsGetObjectiveForecast(
             request.planningIntervalIdOrKey,
             request.objectiveIdOrKey,
-            request.targetDate,
-            request.lookbackDays,
-            request.ignoreDependencies,
-            request.startedWorkFirst,
+            {
+              targetDate: request.targetDate,
+              lookbackDays: request.lookbackDays,
+              ignoreDependencies: request.ignoreDependencies,
+              startedWorkFirst: request.startedWorkFirst,
+            },
           )
           return { data }
         } catch (error) {
@@ -114,12 +116,14 @@ export const forecastsApi = apiSlice.injectEndpoints({
       keepUnusedDataFor: FORECAST_CACHE_SECONDS,
       queryFn: async (request) => {
         try {
-          const data = await getProjectsClient().getProjectForecast(
+          const data = await projectsGetProjectForecast(
             request.projectIdOrKey,
-            request.targetDate,
-            request.lookbackDays,
-            request.ignoreDependencies,
-            request.startedWorkFirst,
+            {
+              targetDate: request.targetDate,
+              lookbackDays: request.lookbackDays,
+              ignoreDependencies: request.ignoreDependencies,
+              startedWorkFirst: request.startedWorkFirst,
+            },
           )
           return { data }
         } catch (error) {
@@ -146,12 +150,11 @@ export const forecastsApi = apiSlice.injectEndpoints({
         startedWorkFirst,
       }) => {
         try {
-          const data = await getTeamsClient().getTeamThroughputForecast(
-            teamIdOrCode,
-            targetDate,
-            lookbackDays,
-            startedWorkFirst,
-          )
+          const data = await teamsGetTeamThroughputForecast(teamIdOrCode, {
+            targetDate: targetDate,
+            lookbackDays: lookbackDays,
+            startedWorkFirst: startedWorkFirst,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

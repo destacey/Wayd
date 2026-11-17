@@ -1,7 +1,7 @@
 'use client'
 
 import { WaydGrid, createCsvColumn } from '@/src/components/common/wayd-grid'
-import { ProjectTeamMemberDto } from '@/src/services/wayd-api'
+import { ProjectTeamMemberDto } from '@/src/services/api/wayd.schemas'
 import { useGetProjectTeamQuery } from '@/src/store/features/ppm/projects-api'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import Link from 'next/link'

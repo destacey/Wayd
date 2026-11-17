@@ -1,6 +1,6 @@
 'use client'
 
-import { ProjectScoreDetailsDto } from '@/src/services/wayd-api'
+import { ProjectScoreDetailsDto } from '@/src/services/api/wayd.schemas'
 import {
   Descriptions,
   Space,
@@ -48,7 +48,9 @@ const ProjectScoreDetail: FC<ProjectScoreDetailProps> = ({ score }) => {
             title={
               <Space size="small">
                 {output.name}
-                {output.isPrimary && <Tag color={token.colorPrimary}>Score</Tag>}
+                {output.isPrimary && (
+                  <Tag color={token.colorPrimary}>Score</Tag>
+                )}
               </Space>
             }
             value={output.value}

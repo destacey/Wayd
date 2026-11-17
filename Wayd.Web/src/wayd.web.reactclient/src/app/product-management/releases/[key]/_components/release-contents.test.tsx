@@ -1,6 +1,7 @@
-import { ReleaseDto } from '@/src/services/wayd-api'
+import { ReleaseDto } from '@/src/services/api/wayd.schemas'
 import { buildContentsColumns, toEntries } from './release-contents'
 import type { ContentsEntry } from './release-contents'
+import { asInstant } from '@/src/utils/instant'
 
 const release = (overrides: Partial<ReleaseDto> = {}): ReleaseDto =>
   ({
@@ -18,7 +19,7 @@ const withContents = () =>
     packages: [
       {
         package: { id: 'pk1', key: 12, name: 'WAYD-2026.09.1' },
-        releasedAt: '2026-09-01T12:00:00Z' as unknown as Date,
+        releasedAt: asInstant('2026-09-01T12:00:00Z'),
       },
     ],
     versions: [

@@ -1,4 +1,7 @@
-import { StatusCategory, StatusCategoryLabelDto } from '@/src/services/wayd-api'
+import {
+  StatusCategory,
+  StatusCategoryLabelDto,
+} from '@/src/services/api/wayd.schemas'
 
 /** The categories in their numeric id order, as `SimpleNavigationDto` ids carry them. */
 const CATEGORIES_BY_ID: readonly StatusCategory[] = [

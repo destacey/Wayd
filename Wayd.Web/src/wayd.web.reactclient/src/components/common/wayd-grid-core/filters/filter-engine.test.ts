@@ -14,6 +14,8 @@ import type {
   SetFilterModel,
   TextFilterModel,
 } from './filter-model'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 describe('filter-engine', () => {
   describe('evaluateFilterModel — text', () => {
@@ -167,7 +169,7 @@ describe('filter-engine', () => {
 
     it('equals ignores time-of-day (same calendar day)', () => {
       // Arrange
-      const m = model([{ op: 'equals', value: '2024-03-15' }])
+      const m = model([{ op: 'equals', value: asCalendarDate('2024-03-15') }])
 
       // Act / Assert
       // Use local-time inputs (no Z) so day-boundary comparisons are not
@@ -180,29 +182,33 @@ describe('filter-engine', () => {
       // Arrange / Act / Assert
       expect(
         evaluateFilterModel(
-          model([{ op: 'before', value: '2024-03-15' }]),
-          '2024-03-14',
+          model([{ op: 'before', value: asCalendarDate('2024-03-15') }]),
+          asCalendarDate('2024-03-14'),
         ),
       ).toBe(true)
       expect(
         evaluateFilterModel(
-          model([{ op: 'after', value: '2024-03-15' }]),
-          '2024-03-16',
+          model([{ op: 'after', value: asCalendarDate('2024-03-15') }]),
+          asCalendarDate('2024-03-16'),
         ),
       ).toBe(true)
       expect(
         evaluateFilterModel(
           model([
-            { op: 'inRange', value: '2024-03-01', valueTo: '2024-03-31' },
+            {
+              op: 'inRange',
+              value: asCalendarDate('2024-03-01'),
+              valueTo: asCalendarDate('2024-03-31'),
+            },
           ]),
-          '2024-03-15',
+          asCalendarDate('2024-03-15'),
         ),
       ).toBe(true)
     })
 
     it('rejects invalid or missing cell dates', () => {
       // Arrange
-      const m = model([{ op: 'equals', value: '2024-03-15' }])
+      const m = model([{ op: 'equals', value: asCalendarDate('2024-03-15') }])
 
       // Act / Assert
       expect(evaluateFilterModel(m, null)).toBe(false)
@@ -218,25 +224,31 @@ describe('filter-engine', () => {
 
     it('distinguishes times within the same day (unlike date)', () => {
       // Arrange
-      const m = model([{ op: 'equals', value: '2024-03-15T09:30:00Z' }])
+      const m = model([
+        { op: 'equals', value: asInstant('2024-03-15T09:30:00Z') },
+      ])
 
       // Act / Assert
-      expect(evaluateFilterModel(m, '2024-03-15T09:30:30Z')).toBe(true) // same minute
-      expect(evaluateFilterModel(m, '2024-03-15T09:31:00Z')).toBe(false) // next minute
+      expect(evaluateFilterModel(m, asInstant('2024-03-15T09:30:30Z'))).toBe(
+        true,
+      ) // same minute
+      expect(evaluateFilterModel(m, asInstant('2024-03-15T09:31:00Z'))).toBe(
+        false,
+      ) // next minute
     })
 
     it('supports before / after at minute precision', () => {
       // Arrange / Act / Assert
       expect(
         evaluateFilterModel(
-          model([{ op: 'after', value: '2024-03-15T09:30:00Z' }]),
-          '2024-03-15T09:31:00Z',
+          model([{ op: 'after', value: asInstant('2024-03-15T09:30:00Z') }]),
+          asInstant('2024-03-15T09:31:00Z'),
         ),
       ).toBe(true)
       expect(
         evaluateFilterModel(
-          model([{ op: 'before', value: '2024-03-15T09:30:00Z' }]),
-          '2024-03-15T09:29:00Z',
+          model([{ op: 'before', value: asInstant('2024-03-15T09:30:00Z') }]),
+          asInstant('2024-03-15T09:29:00Z'),
         ),
       ).toBe(true)
     })
@@ -302,23 +314,28 @@ describe('filter-engine', () => {
 
     it('passes all rows when no days are selected', () => {
       // Arrange / Act / Assert
-      expect(evaluateFilterModel(model([]), '2026-06-17')).toBe(true)
+      expect(evaluateFilterModel(model([]), asCalendarDate('2026-06-17'))).toBe(
+        true,
+      )
     })
 
     it('matches a cell whose day is in the selected set (any raw shape)', () => {
       // Arrange
-      const m = model(['2026-06-17', '2026-06-20'])
+      const m = model([
+        asCalendarDate('2026-06-17'),
+        asCalendarDate('2026-06-20'),
+      ])
 
       // Act / Assert — plain date, ISO timestamp, and Date all normalize to day
-      expect(evaluateFilterModel(m, '2026-06-17')).toBe(true)
+      expect(evaluateFilterModel(m, asCalendarDate('2026-06-17'))).toBe(true)
       expect(evaluateFilterModel(m, '2026-06-17T14:05:00')).toBe(true)
       expect(evaluateFilterModel(m, new Date(2026, 5, 20))).toBe(true)
-      expect(evaluateFilterModel(m, '2026-06-18')).toBe(false)
+      expect(evaluateFilterModel(m, asCalendarDate('2026-06-18'))).toBe(false)
     })
 
     it('rejects null / invalid cells when a filter is active', () => {
       // Arrange
-      const m = model(['2026-06-17'])
+      const m = model([asCalendarDate('2026-06-17')])
 
       // Act / Assert
       expect(evaluateFilterModel(m, null)).toBe(false)
@@ -399,7 +416,7 @@ describe('filter-engine', () => {
   describe('toDayKey', () => {
     it('normalizes assorted date shapes to YYYY-MM-DD', () => {
       // Act / Assert
-      expect(toDayKey('2026-06-17')).toBe('2026-06-17')
+      expect(toDayKey(asCalendarDate('2026-06-17'))).toBe('2026-06-17')
       expect(toDayKey('2026-06-17T23:59:00')).toBe('2026-06-17')
       expect(toDayKey(new Date(2026, 5, 17))).toBe('2026-06-17')
     })

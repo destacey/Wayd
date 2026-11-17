@@ -3,7 +3,7 @@
 import { WaydEmpty } from '@/src/components/common'
 import StageTimeline from '@/src/app/ppm/_components/stage-timeline'
 import ProjectTaskMetrics from '@/src/app/ppm/projects/_components/project-task-metrics'
-import { ProjectDetailsDto } from '@/src/services/wayd-api'
+import { ProjectDetailsDto } from '@/src/services/api/wayd.schemas'
 import { useGetProjectPlanSummaryQuery } from '@/src/store/features/ppm/projects-api'
 import { Card, Flex } from 'antd'
 import Block from './overview-block'

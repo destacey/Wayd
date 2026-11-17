@@ -3,7 +3,10 @@
 import { Form, Input, Modal, Select } from 'antd'
 import { useState } from 'react'
 import { toFormErrors } from '@/src/utils'
-import { RoleListDto, UpdateRolePermissionsRequest } from '@/src/services/wayd-api'
+import {
+  RoleListDto,
+  UpdateRolePermissionsRequest,
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetRoleQuery,
   useUpdatePermissionsMutation,
@@ -52,39 +55,39 @@ const CreateRoleForm = ({
               description: values.description,
             })
 
+          if (response.error) {
+            throw response.error
+          }
+
+          if (roleIdToCopyPermissions && roleData?.permissions) {
+            const request: UpdateRolePermissionsRequest = {
+              roleId: response.data!,
+              permissions: roleData.permissions!,
+            }
+            const updatePermissionsResponse = await updatePermissions(request)
             if (response.error) {
-              throw response.error
-            }
-
-            if (roleIdToCopyPermissions && roleData?.permissions) {
-              const request: UpdateRolePermissionsRequest = {
-                roleId: response.data!,
-                permissions: roleData.permissions!,
-              }
-              const updatePermissionsResponse = await updatePermissions(request)
-              if (response.error) {
-                console.error(
-                  `Role created but an error was thrown while saving the permissions. Error: ${updatePermissionsResponse.error}`,
-                )
-              }
-            }
-
-            messageApi.success('Successfully created Role.')
-            onFormCreate(response.data!)
-            return false // Don't call onComplete — we already called onFormCreate
-          } catch (error: any) {
-            if (error.status === 422 && error.errors) {
-              const formErrors = toFormErrors(error.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                'An unexpected error occurred while creating the role.',
+              console.error(
+                `Role created but an error was thrown while saving the permissions. Error: ${updatePermissionsResponse.error}`,
               )
             }
-            return false
           }
-        },
+
+          messageApi.success('Successfully created Role.')
+          onFormCreate(response.data!)
+          return false // Don't call onComplete — we already called onFormCreate
+        } catch (error: any) {
+          if (error.status === 422 && error.errors) {
+            const formErrors = toFormErrors(error.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              'An unexpected error occurred while creating the role.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: () => {}, // handled in onSubmit via onFormCreate(id)
       onCancel: onFormCancel,
       errorMessage: 'An unexpected error occurred while creating the role.',

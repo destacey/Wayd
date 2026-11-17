@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { NotificationReason } from '@/src/services/wayd-api'
+import { NotificationReason } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { notificationMutesApi } from './notification-mutes-api'
 import { notificationsApi } from './notifications-api'
@@ -14,18 +14,35 @@ const unmuteReason = vi.fn()
 const getNotifications = vi.fn()
 const getUnreadCount = vi.fn()
 
-vi.mock('@/src/services/clients', () => ({
-  getMyNotificationMutesClient: () => ({
-    getRecordMuteStatus,
-    getMutedRecords,
-    getReasonMutes,
-    muteRecord,
-    unmuteRecord,
-    muteReason,
-    unmuteReason,
+vi.mock(
+  import('@/src/services/api/my-notification-mutes'),
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    myNotificationMutesGetRecordMuteStatus: (...args: unknown[]) =>
+      getRecordMuteStatus(...args),
+    myNotificationMutesGetMutedRecords: (...args: unknown[]) =>
+      getMutedRecords(...args),
+    myNotificationMutesGetReasonMutes: (...args: unknown[]) =>
+      getReasonMutes(...args),
+    myNotificationMutesMuteRecord: (...args: unknown[]) => muteRecord(...args),
+    myNotificationMutesUnmuteRecord: (...args: unknown[]) =>
+      unmuteRecord(...args),
+    myNotificationMutesMuteReason: (...args: unknown[]) => muteReason(...args),
+    myNotificationMutesUnmuteReason: (...args: unknown[]) =>
+      unmuteReason(...args),
   }),
-  getMyNotificationsClient: () => ({ getNotifications, getUnreadCount }),
-}))
+)
+
+vi.mock(
+  import('@/src/services/api/my-notifications'),
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    myNotificationsGetNotifications: (...args: unknown[]) =>
+      getNotifications(...args),
+    myNotificationsGetUnreadCount: (...args: unknown[]) =>
+      getUnreadCount(...args),
+  }),
+)
 
 const target = { ownerType: 'ppm.project', ownerId: 'p-1' }
 
@@ -91,7 +108,7 @@ describe('notificationMutesApi', () => {
     )
 
     // Assert
-    expect(getMutedRecords).toHaveBeenCalledWith(1, 25)
+    expect(getMutedRecords).toHaveBeenCalledWith({ page: 1, pageSize: 25 })
   })
 
   it('refetches the status, the mutes, the notifications and the count after muting a record', async () => {

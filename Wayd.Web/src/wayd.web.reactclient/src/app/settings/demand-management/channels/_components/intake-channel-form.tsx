@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { IntakeChannelDto } from '@/src/services/wayd-api'
+import { IntakeChannelDto } from '@/src/services/api/wayd.schemas'
 import {
   useCreateIntakeChannelMutation,
   useUpdateIntakeChannelMutation,
@@ -23,7 +23,7 @@ export interface IntakeChannelFormProps {
 
 interface IntakeChannelFormValues {
   name: string
-  description?: string
+  description?: string | null
 }
 
 /**

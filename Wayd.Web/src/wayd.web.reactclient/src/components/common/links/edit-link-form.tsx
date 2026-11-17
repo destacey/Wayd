@@ -1,6 +1,6 @@
 'use client'
 
-import { LinkDto, UpdateLinkRequest } from '@/src/services/wayd-api'
+import { LinkDto, UpdateLinkRequest } from '@/src/services/api/wayd.schemas'
 import { Form, Input, Modal } from 'antd'
 import { useEffect } from 'react'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'

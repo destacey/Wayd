@@ -6,7 +6,7 @@ import {
 } from '@/src/components/common/content'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
 import { projectHelpText } from '@/src/app/ppm/projects/_components/project-help-text'
-import { ProjectDetailsDto } from '@/src/services/wayd-api'
+import { ProjectDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Card, Flex, Typography } from 'antd'
 
 const { Text } = Typography

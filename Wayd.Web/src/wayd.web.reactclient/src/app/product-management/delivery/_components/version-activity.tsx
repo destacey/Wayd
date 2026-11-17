@@ -1,6 +1,6 @@
 'use client'
 
-import { ProductActivityDto } from '@/src/services/wayd-api'
+import { ProductActivityDto } from '@/src/services/api/wayd.schemas'
 import { Empty, Flex, Tooltip, Typography, theme } from 'antd'
 import type { GlobalToken } from 'antd'
 import dayjs from 'dayjs'

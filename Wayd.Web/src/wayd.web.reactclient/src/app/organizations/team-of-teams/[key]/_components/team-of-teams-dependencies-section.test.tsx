@@ -1,5 +1,5 @@
 import { DependencyHealth } from '@/src/components/types'
-import { DependencyDto } from '@/src/services/wayd-api'
+import { DependencyDto } from '@/src/services/api/wayd.schemas'
 import { render, screen } from '@testing-library/react'
 import TeamOfTeamsDependenciesSection from './team-of-teams-dependencies-section'
 

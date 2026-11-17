@@ -2,12 +2,13 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { PlanReleaseRequest } from '@/src/services/wayd-api'
+import { PlanReleaseRequest } from '@/src/services/api/wayd.schemas'
 import { usePlanReleaseMutation } from '@/src/store/features/product-management/releases-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { ProductTreeSelect } from '../../_components'
 import { DatePicker, Form, Input, Modal } from 'antd'
 import { Dayjs } from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 
@@ -52,7 +53,9 @@ const PlanReleaseForm = ({
             productId: values.productId,
             version: values.version,
             name: values.name,
-            targetDate: values.targetDate?.format('YYYY-MM-DD'),
+            targetDate: values.targetDate
+              ? toCalendarDate(values.targetDate)
+              : undefined,
           } as PlanReleaseRequest
 
           const response = await planRelease(request)

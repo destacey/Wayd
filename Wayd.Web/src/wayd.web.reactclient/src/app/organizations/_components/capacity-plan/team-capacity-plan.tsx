@@ -5,7 +5,7 @@ import { Alert, Button, Flex, Segmented, Statistic } from 'antd'
 import useAuth from '@/src/components/contexts/auth'
 import { useLocalStorageState } from '@/src/hooks'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { TeamDayOffDto } from '@/src/services/wayd-api'
+import { TeamDayOffDto } from '@/src/services/api/wayd.schemas'
 import { CalendarDate, isApiError, type ApiError } from '@/src/utils'
 import { useChangeEmployeeAllocationsMutation } from '@/src/store/features/organization/employee-allocations-api'
 import {

@@ -9,7 +9,7 @@ import {
   IntakeDeskDto,
   IntakeRequestSummaryDto,
   IntakeRequestTagCategoryDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { useSearchIntakeRequestTagsQuery } from '@/src/store/features/demand-management/demand-management-api'
 import { WaydTooltip } from '@/src/components/common'

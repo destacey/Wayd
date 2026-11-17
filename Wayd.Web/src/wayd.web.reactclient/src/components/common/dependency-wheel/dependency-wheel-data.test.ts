@@ -1,10 +1,11 @@
 import { DependencyHealth } from '@/src/components/types'
-import { DependencyDto } from '@/src/services/wayd-api'
+import { DependencyDto } from '@/src/services/api/wayd.schemas'
 import {
   buildDependencyWheelData,
   matchesDependencyWheelSelection,
   NO_TEAM_KEY,
 } from './dependency-wheel-data'
+import { toInstant } from '@/src/utils/instant'
 
 const team = (id: string, name: string, code: string) => ({
   id,
@@ -51,7 +52,7 @@ const dependency = (
     state: { id: 1, name: 'To Do' },
     health: { id: health, name: healthNames[health] },
     scope: { id: 2, name: 'Cross-Team' },
-    createdOn: new Date(),
+    createdOn: toInstant(new Date()),
   }
 }
 

@@ -49,14 +49,14 @@ Expose the feature through the API:
 2. Controllers should be thin - delegate to handlers via `IDispatcher` (Wolverine)
 3. Give each action `[MustHavePermission]`, `[EndpointSummary]` (and `[EndpointDescription]` where it helps), and its response types — see [API Development](./api.mdx#controller-pattern)
 4. Return appropriate HTTP status codes
-5. Rebuild `Wayd.Web.Api` in Debug to regenerate `specification.json` and `wayd-api.ts`, and commit both
+5. Rebuild `Wayd.Web.Api` in Debug to regenerate `specification.json` and the TypeScript client in `src/services/api/`, and commit both
 
 ## 5. Frontend
 
 Build the UI:
 
 1. Add pages in the appropriate route directory
-2. Use the NSwag-generated client for API calls
+2. Call the API through the generated functions in `src/services/api/`, from an RTK Query slice
 3. Follow Ant Design patterns and theme tokens
 4. Add to the sidebar navigation if needed
 

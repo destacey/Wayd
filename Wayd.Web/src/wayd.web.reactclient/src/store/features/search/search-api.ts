@@ -1,5 +1,5 @@
-import { getSearchClient } from '@/src/services/clients'
-import { GlobalSearchResultDto } from '@/src/services/wayd-api'
+import { searchSearch } from '@/src/services/api/search'
+import { GlobalSearchResultDto } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 
 export interface GlobalSearchRequest {
@@ -12,10 +12,10 @@ export const searchApi = apiSlice.injectEndpoints({
     globalSearch: builder.query<GlobalSearchResultDto, GlobalSearchRequest>({
       queryFn: async ({ query, maxResultsPerCategory }) => {
         try {
-          const data = await getSearchClient().search(
-            query,
-            maxResultsPerCategory,
-          )
+          const data = await searchSearch({
+            query: query,
+            maxResultsPerCategory: maxResultsPerCategory,
+          })
           return { data }
         } catch (error) {
           const message =

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { WaydGrid, createActionsColumn, renderTeamLink } from '../wayd-grid'
-import { RiskListDto } from '@/src/services/wayd-api'
+import { RiskListDto } from '@/src/services/api/wayd.schemas'
 import type { ItemType } from 'antd/es/menu/interface'
 import { Button } from 'antd'
 import useAuth from '../../contexts/auth'

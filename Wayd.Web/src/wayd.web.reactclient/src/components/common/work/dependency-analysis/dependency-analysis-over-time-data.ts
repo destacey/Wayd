@@ -1,4 +1,4 @@
-import { DependencyAnalysisPeriodDto } from '@/src/services/wayd-api'
+import { DependencyAnalysisPeriodDto } from '@/src/services/api/wayd.schemas'
 import {
   addCalendarDays,
   calendarDaysBetween,

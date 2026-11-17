@@ -3,7 +3,7 @@
 import { FC, ReactNode, useState } from 'react'
 import dayjs from 'dayjs'
 import { theme } from 'antd'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
 import { WaydTimeline } from '@/src/components/common/timeline'
 import type { TimelineItem, TimelineGroup } from '@/src/components/common/timeline'
 import { getLifecycleCategoryColorFromStatus } from '@/src/utils'

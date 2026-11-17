@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ProjectLifecycleDetailsDto } from '@/src/services/wayd-api'
+import { ProjectLifecycleDetailsDto } from '@/src/services/api/wayd.schemas'
 import { useDeleteProjectLifecycleMutation } from '@/src/store/features/ppm/project-lifecycles-api'
 import { Modal } from 'antd'
 import { useConfirmModal } from '@/src/hooks'

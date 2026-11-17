@@ -1,4 +1,4 @@
-import { StoryMapPersonaDto } from '@/src/services/wayd-api'
+import { StoryMapPersonaDto } from '@/src/services/api/wayd.schemas'
 import type { CalendarDate } from '@/src/utils/calendar-date'
 import { DropResult } from './board-drag'
 

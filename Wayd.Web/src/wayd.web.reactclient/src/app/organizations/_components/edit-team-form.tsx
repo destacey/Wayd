@@ -2,7 +2,10 @@
 
 import { Form, Input, Modal } from 'antd'
 import { useEffect, useState } from 'react'
-import { TeamDetailsDto, TeamOfTeamsDetailsDto } from '@/src/services/wayd-api'
+import {
+  TeamDetailsDto,
+  TeamOfTeamsDetailsDto,
+} from '@/src/services/api/wayd.schemas'
 import { EditTeamFormValues } from '../types'
 import { useUpdateTeamMutation } from '@/src/store/features/organizations/team-api'
 import { useMessage } from '@/src/components/contexts/messaging'

@@ -1,4 +1,4 @@
-import { IntakeRequestSummaryDto } from '@/src/services/wayd-api'
+import { IntakeRequestSummaryDto } from '@/src/services/api/wayd.schemas'
 import {
   BUILT_IN_VIEWS,
   DEFAULT_REQUEST_FILTERS,
@@ -12,7 +12,9 @@ import {
   toSearchParams,
 } from './request-filters'
 import { NOT_RECORDED_CHANNEL } from '../../_components/channel'
-import { NeedByBasis, NeedByBasisFamily } from '@/src/services/wayd-api'
+import { NeedByBasis, NeedByBasisFamily } from '@/src/services/api/wayd.schemas'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 const request = (
   id: string,
@@ -26,8 +28,8 @@ const request = (
     desk: { id: 'd-product', key: 1, name: 'Product' },
     requester: { id: 'e-r', key: 1, name: 'Requester' },
     channel: { id: 'c-support', name: 'Support' },
-    submittedOn: new Date('2026-10-01T00:00:00Z'),
-    statusChangedOn: new Date('2026-10-01T00:00:00Z'),
+    submittedOn: asInstant('2026-10-01T00:00:00Z'),
+    statusChangedOn: asInstant('2026-10-01T00:00:00Z'),
     tags: [],
     ...overrides,
   }) as IntakeRequestSummaryDto
@@ -42,7 +44,7 @@ const requests = [
     status: { id: 's-2', name: 'In Review', category: 'Proposed' } as any,
     channel: { id: 'c-sales', name: 'Sales' },
     needBy: {
-      date: '2026-12-31',
+      date: asCalendarDate('2026-12-31'),
       basis: NeedByBasis.Regulatory,
       family: NeedByBasisFamily.FixedForUs,
       reference: 'PCI DSS',

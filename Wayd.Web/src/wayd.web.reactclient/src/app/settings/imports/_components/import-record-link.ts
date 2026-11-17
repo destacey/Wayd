@@ -2,7 +2,7 @@ import {
   ImportProcessRowDto,
   ImportRecordLink,
   ImportRecordType,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 const segment = (value: string) => encodeURIComponent(value)
 

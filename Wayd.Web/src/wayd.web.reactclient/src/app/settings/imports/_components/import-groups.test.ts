@@ -2,8 +2,9 @@ import {
   ImportAtomicity,
   ImportProcessDto,
   ImportProcessStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { buildImportRows, groupLabel } from './import-groups'
+import { asInstant } from '@/src/utils/instant'
 
 const GROUP = '6cca310c-0d9e-4a29-a6ad-38f13c44481a'
 
@@ -20,8 +21,8 @@ const run = (overrides: Partial<ImportProcessDto> = {}): ImportProcessDto => {
     isPreflight: false,
     submittedByUserId: 'user-1',
     submittedByName: 'Dana Reyes',
-    submittedOn: new Date('2026-09-11T23:38:00Z'),
-    completedOn: new Date('2026-09-11T23:38:05Z'),
+    submittedOn: asInstant('2026-09-11T23:38:00Z'),
+    completedOn: asInstant('2026-09-11T23:38:05Z'),
     totalRowCount: 10,
     succeededRowCount: 10,
     failedRowCount: 0,
@@ -77,15 +78,15 @@ describe('buildImportRows', () => {
     // Arrange
     const first = run({
       submissionGroupId: GROUP,
-      submittedOn: new Date('2026-09-11T23:38:00Z'),
-      completedOn: new Date('2026-09-11T23:38:05Z'),
+      submittedOn: asInstant('2026-09-11T23:38:00Z'),
+      completedOn: asInstant('2026-09-11T23:38:05Z'),
       totalRowCount: 28,
       succeededRowCount: 28,
     })
     const second = run({
       submissionGroupId: GROUP,
-      submittedOn: new Date('2026-09-11T23:38:10Z'),
-      completedOn: new Date('2026-09-11T23:38:40Z'),
+      submittedOn: asInstant('2026-09-11T23:38:10Z'),
+      completedOn: asInstant('2026-09-11T23:38:40Z'),
       status: ImportProcessStatus.PartiallySucceeded,
       totalRowCount: 5,
       succeededRowCount: 3,
@@ -107,20 +108,19 @@ describe('buildImportRows', () => {
     expect(rollup.submittedByName).toBe('Dana Reyes')
   })
 
-  it('spans the timing when the dates arrive as strings, as the client delivers them', () => {
-    // Arrange — the DTO says Date, the wire says ISO string, and the page gets the latter
-    const asString = (value: string) => value as unknown as Date
+  it('starts the rollup at its earliest run and ends it at its latest', () => {
+    // Arrange
     const first = run({
       submissionGroupId: GROUP,
-      submittedOn: asString('2026-09-11T23:38:00Z'),
-      startedOn: asString('2026-09-11T23:38:01Z'),
-      completedOn: asString('2026-09-11T23:38:05Z'),
+      submittedOn: asInstant('2026-09-11T23:38:00Z'),
+      startedOn: asInstant('2026-09-11T23:38:01Z'),
+      completedOn: asInstant('2026-09-11T23:38:05Z'),
     })
     const second = run({
       submissionGroupId: GROUP,
-      submittedOn: asString('2026-09-11T23:38:10Z'),
-      startedOn: asString('2026-09-11T23:38:11Z'),
-      completedOn: asString('2026-09-11T23:38:40Z'),
+      submittedOn: asInstant('2026-09-11T23:38:10Z'),
+      startedOn: asInstant('2026-09-11T23:38:11Z'),
+      completedOn: asInstant('2026-09-11T23:38:40Z'),
     })
 
     // Act

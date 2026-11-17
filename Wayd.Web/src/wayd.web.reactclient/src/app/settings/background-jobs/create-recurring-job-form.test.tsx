@@ -1,4 +1,4 @@
-import { BackgroundJobTypeDto } from '@/src/services/wayd-api'
+import { BackgroundJobTypeDto } from '@/src/services/api/wayd.schemas'
 import { toSchedulableOptions } from './create-recurring-job-form'
 
 const jobType = (

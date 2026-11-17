@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react'
 import {
   StatusRemapEntryDto,
   WorkflowStatusDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import StatusRemapTable from './status-remap-table'
 
 const status = (id: string, name: string, order: number): WorkflowStatusDto =>

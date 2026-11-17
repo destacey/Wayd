@@ -1,4 +1,16 @@
-import { getProgramsClient } from '@/src/services/clients'
+import {
+  programsActivate,
+  programsCancel,
+  programsComplete,
+  programsCreate,
+  programsDelete,
+  programsGetActivities,
+  programsGetProgram,
+  programsGetProgramStatuses,
+  programsGetPrograms,
+  programsGetProjects,
+  programsUpdate,
+} from '@/src/services/api/programs'
 import { apiSlice } from '../apiSlice'
 import {
   CreateProgramRequest,
@@ -10,7 +22,7 @@ import {
   PagedResponseOfActivityLogDto,
   ProgramStatus,
   ProjectStatus,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 import { ppmActivityTag } from './ppm-activity-tags'
 import type { BaseOptionType } from 'antd/es/select'
@@ -24,10 +36,11 @@ export const programsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request = undefined) => {
         try {
-          const data = await getProgramsClient().getPrograms(
-            (request?.status?.length ?? 0) > 0 ? request!.status : undefined,
-            request?.portfolioId,
-          )
+          const data = await programsGetPrograms({
+            status:
+              (request?.status?.length ?? 0) > 0 ? request!.status : undefined,
+            portfolioId: request?.portfolioId,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -39,7 +52,7 @@ export const programsApi = apiSlice.injectEndpoints({
     getProgram: builder.query<ProgramDetailsDto, number>({
       queryFn: async (key) => {
         try {
-          const data = await getProgramsClient().getProgram(key.toString())
+          const data = await programsGetProgram(key.toString())
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -53,7 +66,7 @@ export const programsApi = apiSlice.injectEndpoints({
     createProgram: builder.mutation<ObjectIdAndKey, CreateProgramRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getProgramsClient().create(request)
+          const data = await programsCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -73,7 +86,7 @@ export const programsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ request }) => {
         try {
-          const data = await getProgramsClient().update(request.id, request)
+          const data = await programsUpdate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -92,7 +105,7 @@ export const programsApi = apiSlice.injectEndpoints({
     activateProgram: builder.mutation<void, { id: string; cacheKey: number }>({
       queryFn: async ({ id }) => {
         try {
-          const data = await getProgramsClient().activate(id)
+          const data = await programsActivate(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -111,7 +124,7 @@ export const programsApi = apiSlice.injectEndpoints({
     completeProgram: builder.mutation<void, { id: string; cacheKey: number }>({
       queryFn: async ({ id }) => {
         try {
-          const data = await getProgramsClient().complete(id)
+          const data = await programsComplete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -130,7 +143,7 @@ export const programsApi = apiSlice.injectEndpoints({
     cancelProgram: builder.mutation<void, { id: string; cacheKey: number }>({
       queryFn: async ({ id }) => {
         try {
-          const data = await getProgramsClient().cancel(id)
+          const data = await programsCancel(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -149,7 +162,7 @@ export const programsApi = apiSlice.injectEndpoints({
     deleteProgram: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getProgramsClient().delete(id)
+          const data = await programsDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -169,10 +182,9 @@ export const programsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ programIdOrKey, status }) => {
         try {
-          const data = await getProgramsClient().getProjects(
-            programIdOrKey,
-            (status?.length ?? 0) > 0 ? status : null,
-          )
+          const data = await programsGetProjects(programIdOrKey, {
+            status: (status?.length ?? 0) > 0 ? status : undefined,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -190,7 +202,7 @@ export const programsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async () => {
         try {
-          const statuses = await getProgramsClient().getProgramStatuses()
+          const statuses = await programsGetProgramStatuses()
 
           const data: StatusOptionModel<ProgramStatus>[] = statuses
             .sort((a, b) => a.order - b.order)
@@ -212,7 +224,7 @@ export const programsApi = apiSlice.injectEndpoints({
     getProgramOptions: builder.query<BaseOptionType[], void>({
       queryFn: async () => {
         try {
-          const programs = await getProgramsClient().getPrograms(undefined)
+          const programs = await programsGetPrograms()
 
           const data: BaseOptionType[] = programs
             .sort((a, b) => a.name.localeCompare(b.name))
@@ -235,11 +247,10 @@ export const programsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getProgramsClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await programsGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

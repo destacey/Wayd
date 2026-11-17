@@ -1,5 +1,5 @@
 import type { TreeNode } from '@/src/components/common/wayd-grid'
-import type { WorkItemListDto } from '@/src/services/wayd-api'
+import type { WorkItemListDto } from '@/src/services/api/wayd.schemas'
 
 /**
  * Extends WorkItemListDto to satisfy the TreeNode interface required by the

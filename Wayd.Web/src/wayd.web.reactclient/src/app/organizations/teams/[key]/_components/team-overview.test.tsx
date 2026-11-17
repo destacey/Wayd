@@ -3,7 +3,7 @@ import React from 'react'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TeamOverview from './team-overview'
-import { TeamDetailsDto } from '@/src/services/wayd-api'
+import { TeamDetailsDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetTeamBacklogQuery,
   useGetTeamDependenciesQuery,

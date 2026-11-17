@@ -17,11 +17,31 @@ import {
   WorkflowAssignmentDto,
   WorkflowOwnerTypeDto,
   PagedResponseOfActivityLogDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
-  getStatusWorkflowsClient,
-  getWorkflowAssignmentsClient,
-} from '@/src/services/clients'
+  statusWorkflowsAddStatus,
+  statusWorkflowsArchive,
+  statusWorkflowsClone,
+  statusWorkflowsCreate,
+  statusWorkflowsDescribeStatus,
+  statusWorkflowsGetActivities,
+  statusWorkflowsGetOwnerTypes,
+  statusWorkflowsGetStatusWorkflow,
+  statusWorkflowsGetStatusWorkflows,
+  statusWorkflowsPublish,
+  statusWorkflowsReclassifyStatus,
+  statusWorkflowsRemoveStatus,
+  statusWorkflowsRenameStatus,
+  statusWorkflowsReorderStatuses,
+  statusWorkflowsSetTransitionMode,
+  statusWorkflowsSetTransitions,
+  statusWorkflowsUpdate,
+} from '@/src/services/api/status-workflows'
+import {
+  workflowAssignmentsGetWorkflowAssignments,
+  workflowAssignmentsPreviewRemap,
+  workflowAssignmentsReassign,
+} from '@/src/services/api/workflow-assignments'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
@@ -33,10 +53,10 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (args) => {
         try {
-          const data = await getStatusWorkflowsClient().getStatusWorkflows(
-            args?.ownerType,
-            args?.state,
-          )
+          const data = await statusWorkflowsGetStatusWorkflows({
+            ownerType: args?.ownerType,
+            state: args?.state,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -49,8 +69,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     getStatusWorkflow: builder.query<StatusWorkflowDetailsDto, string>({
       queryFn: async (idOrKey) => {
         try {
-          const data =
-            await getStatusWorkflowsClient().getStatusWorkflow(idOrKey)
+          const data = await statusWorkflowsGetStatusWorkflow(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -69,7 +88,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     getWorkflowOwnerTypes: builder.query<WorkflowOwnerTypeDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getStatusWorkflowsClient().getOwnerTypes()
+          const data = await statusWorkflowsGetOwnerTypes()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -82,7 +101,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
       {
         queryFn: async (request) => {
           try {
-            const data = await getStatusWorkflowsClient().create(request)
+            const data = await statusWorkflowsCreate(request)
             return { data }
           } catch (error) {
             console.error('API Error:', error)
@@ -99,7 +118,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getStatusWorkflowsClient().update(id, request)
+          const data = await statusWorkflowsUpdate(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -119,7 +138,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getStatusWorkflowsClient().clone(id, request)
+          const data = await statusWorkflowsClone(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -132,7 +151,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     publishStatusWorkflow: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getStatusWorkflowsClient().publish(id)
+          const data = await statusWorkflowsPublish(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -149,7 +168,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     archiveStatusWorkflow: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getStatusWorkflowsClient().archive(id)
+          const data = await statusWorkflowsArchive(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -169,10 +188,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ workflowId, request }) => {
         try {
-          const data = await getStatusWorkflowsClient().addStatus(
-            workflowId,
-            request,
-          )
+          const data = await statusWorkflowsAddStatus(workflowId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -196,7 +212,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ workflowId, statusId, request }) => {
         try {
-          const data = await getStatusWorkflowsClient().renameStatus(
+          const data = await statusWorkflowsRenameStatus(
             workflowId,
             statusId,
             request,
@@ -223,7 +239,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ workflowId, statusId, request }) => {
         try {
-          const data = await getStatusWorkflowsClient().describeStatus(
+          const data = await statusWorkflowsDescribeStatus(
             workflowId,
             statusId,
             request,
@@ -250,7 +266,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ workflowId, statusId, request }) => {
         try {
-          const data = await getStatusWorkflowsClient().reclassifyStatus(
+          const data = await statusWorkflowsReclassifyStatus(
             workflowId,
             statusId,
             request,
@@ -273,10 +289,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ workflowId, statusId }) => {
         try {
-          const data = await getStatusWorkflowsClient().removeStatus(
-            workflowId,
-            statusId,
-          )
+          const data = await statusWorkflowsRemoveStatus(workflowId, statusId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -295,10 +308,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ workflowId, request }) => {
         try {
-          const data = await getStatusWorkflowsClient().reorderStatuses(
-            workflowId,
-            request,
-          )
+          const data = await statusWorkflowsReorderStatuses(workflowId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -317,7 +327,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ workflowId, request }) => {
         try {
-          const data = await getStatusWorkflowsClient().setTransitionMode(
+          const data = await statusWorkflowsSetTransitionMode(
             workflowId,
             request,
           )
@@ -339,10 +349,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ workflowId, request }) => {
         try {
-          const data = await getStatusWorkflowsClient().setTransitions(
-            workflowId,
-            request,
-          )
+          const data = await statusWorkflowsSetTransitions(workflowId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -361,10 +368,9 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (ownerType) => {
         try {
-          const data =
-            await getWorkflowAssignmentsClient().getWorkflowAssignments(
-              ownerType,
-            )
+          const data = await workflowAssignmentsGetWorkflowAssignments({
+            ownerType: ownerType,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -380,10 +386,9 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ assignmentId, targetWorkflowId }) => {
         try {
-          const data = await getWorkflowAssignmentsClient().previewRemap(
-            assignmentId,
-            targetWorkflowId,
-          )
+          const data = await workflowAssignmentsPreviewRemap(assignmentId, {
+            targetWorkflowId: targetWorkflowId,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -398,10 +403,7 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ assignmentId, request }) => {
         try {
-          const data = await getWorkflowAssignmentsClient().reassign(
-            assignmentId,
-            request,
-          )
+          const data = await workflowAssignmentsReassign(assignmentId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -427,11 +429,10 @@ export const statusWorkflowsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getStatusWorkflowsClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await statusWorkflowsGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

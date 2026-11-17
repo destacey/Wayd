@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import CapacityReport from './capacity-report'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const mockReportArgs = vi.fn()
 let mockReport: Record<string, unknown> | undefined
@@ -45,8 +46,8 @@ const measures = (available: number) => ({
 })
 
 const report = {
-  from: '2027-02-01',
-  to: '2027-02-28',
+  from: asCalendarDate('2027-02-01'),
+  to: asCalendarDate('2027-02-28'),
   buckets: [],
   workingDayHours: 8,
   total: measures(4.5),
@@ -166,7 +167,12 @@ describe('CapacityReport', () => {
   it('reports over a sprint picked from the team sprints', async () => {
     // Arrange
     mockSprints = [
-      { id: 's1', name: 'Sprint 1', start: '2027-01-04', end: '2027-01-17' },
+      {
+        id: 's1',
+        name: 'Sprint 1',
+        start: asCalendarDate('2027-01-04'),
+        end: asCalendarDate('2027-01-17'),
+      },
     ]
     render(<CapacityReport teamId="cards" teamType="Team" hasSprints />)
 

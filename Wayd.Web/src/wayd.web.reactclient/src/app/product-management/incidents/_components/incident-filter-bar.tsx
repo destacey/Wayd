@@ -1,7 +1,7 @@
 'use client'
 
 import { Button, Flex } from 'antd'
-import { ProductStatusAlias } from '@/src/services/wayd-api'
+import { ProductStatusAlias } from '@/src/services/api/wayd.schemas'
 import styles from './incident-filter-bar.module.css'
 
 export interface IncidentFilterOption<T extends string> {

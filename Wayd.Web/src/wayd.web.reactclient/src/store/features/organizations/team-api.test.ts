@@ -4,8 +4,9 @@ import { teamApi } from './team-api'
 
 const getActiveSprint = vi.fn()
 
-vi.mock('@/src/services/clients', () => ({
-  getTeamsClient: () => ({ getActiveSprint }),
+vi.mock(import('@/src/services/api/teams'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  teamsGetActiveSprint: (...args: unknown[]) => getActiveSprint(...args),
 }))
 
 const createStore = () =>

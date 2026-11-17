@@ -21,8 +21,8 @@ export interface StatusOptionModel<T = string> extends OptionModel<T> {
 }
 
 export interface DateRange {
-  start?: CalendarDate | Date
-  end?: CalendarDate | Date
+  start?: CalendarDate | Date | null
+  end?: CalendarDate | Date | null
 }
 
 // Iteration States from Wayd.Common.Domain.Enums.Work.IterationState

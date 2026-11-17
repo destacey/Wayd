@@ -1,7 +1,7 @@
 import React from 'react'
 import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
+import { IntakeRequestDetailsDto } from '@/src/services/api/wayd.schemas'
 import AddIntakeRequestParticipantForm from './add-intake-request-participant-form'
 import type { UseModalFormOptions } from '@/src/hooks'
 

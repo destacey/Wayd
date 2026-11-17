@@ -13,7 +13,7 @@ import { MessageProvider } from '../../components/contexts/messaging'
 import LoginPage from '../login/page'
 import LogoutPage from '../logout/page'
 import SetupPage from '../setup/page'
-import { isAuthActive } from '../../services/clients'
+import { isAuthActive } from '@/src/services/auth-storage'
 import { storeReturnUrl, takeReturnUrl } from '../../utils/return-url'
 
 const { Content } = Layout

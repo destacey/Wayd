@@ -4,7 +4,7 @@ import {
   RoadmapActivityListDto,
   RoadmapTimeboxDetailsDto,
   UpdateRoadmapTimeboxRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetRoadmapActivitiesQuery,
   useGetRoadmapItemQuery,
@@ -26,6 +26,7 @@ import {
   findParentActivityRange,
   getParentExpansionHint,
 } from './roadmap-parent-date-hint'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -43,7 +44,7 @@ interface EditRoadmapTimeboxFormValues {
   name: string
   description?: string
   range: any[]
-  color?: string
+  color?: string | null
 }
 
 const mapToRequestValues = (
@@ -58,8 +59,8 @@ const mapToRequestValues = (
     parentId: values.parentActivityId,
     name: values.name,
     description: values.description,
-    start: (values.range?.[0] as any)?.format('YYYY-MM-DD'),
-    end: (values.range?.[1] as any)?.format('YYYY-MM-DD'),
+    start: values.range?.[0] ? toCalendarDate(values.range[0]) : undefined,
+    end: values.range?.[1] ? toCalendarDate(values.range[1]) : undefined,
     color: values.color,
   } as UpdateRoadmapTimeboxRequest
 }

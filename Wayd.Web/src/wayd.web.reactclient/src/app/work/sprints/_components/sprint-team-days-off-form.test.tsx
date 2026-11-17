@@ -5,11 +5,12 @@ import {
   SprintDetailsDto,
   SprintType,
   SprintTypeSource,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import SprintTeamDaysOffForm, {
   alreadyOff,
   sprintPlannedDays,
 } from './sprint-team-days-off-form'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const setTeamDaysOff = vi.fn()
 const errorMessage = vi.fn()
@@ -28,12 +29,12 @@ const sprint: SprintDetailsDto = {
   key: 201,
   name: '26.3.2',
   state: { id: 1, name: 'Future' },
-  start: '2026-08-31',
-  end: '2026-09-04',
+  start: asCalendarDate('2026-08-31'),
+  end: asCalendarDate('2026-09-04'),
   team: { id: 't1', key: 14, name: 'Team Atlas', code: 'AT', type: 'Team' },
   overlapsPreviousSprint: false,
   overlapsNextSprint: false,
-  teamDaysOff: [{ date: '2026-09-02', percentOff: 100 }],
+  teamDaysOff: [{ date: asCalendarDate('2026-09-02'), percentOff: 100 }],
   workingDayHours: 8,
   teamIsActive: true,
   holidays: [],
@@ -105,7 +106,7 @@ describe('SprintTeamDaysOffForm', () => {
       <SprintTeamDaysOffForm
         sprint={{
           ...sprint,
-          teamDaysOff: [{ date: '2026-09-02', percentOff: 25 }],
+          teamDaysOff: [{ date: asCalendarDate('2026-09-02'), percentOff: 25 }],
         }}
         onFormComplete={vi.fn()}
         onFormCancel={vi.fn()}
@@ -133,7 +134,9 @@ describe('SprintTeamDaysOffForm', () => {
         <SprintTeamDaysOffForm
           sprint={{
             ...sprint,
-            teamDaysOff: [{ date: '2026-09-02', percentOff: 1 }],
+            teamDaysOff: [
+              { date: asCalendarDate('2026-09-02'), percentOff: 1 },
+            ],
           }}
           allowPartDays={allowPartDays}
           onFormComplete={vi.fn()}
@@ -233,7 +236,7 @@ describe('alreadyOff', () => {
   // Monday a holiday.
   const withCalendar: SprintDetailsDto = {
     ...sprint,
-    holidays: ['2026-08-31'],
+    holidays: [asCalendarDate('2026-08-31')],
     workingDays: [
       IsoDayOfWeek.Monday,
       IsoDayOfWeek.Tuesday,
@@ -243,9 +246,9 @@ describe('alreadyOff', () => {
   }
 
   it.each([
-    ['2026-08-31', 'Holiday'],
-    ['2026-09-04', 'Not a working day'],
-    ['2026-09-01', undefined],
+    [asCalendarDate('2026-08-31'), 'Holiday'],
+    [asCalendarDate('2026-09-04'), 'Not a working day'],
+    [asCalendarDate('2026-09-01'), undefined],
   ])('says %s is %p', (day, expected) => {
     // Act
     const reason = alreadyOff(withCalendar, day)

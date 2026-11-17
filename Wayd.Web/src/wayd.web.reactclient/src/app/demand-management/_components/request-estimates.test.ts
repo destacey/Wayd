@@ -1,4 +1,4 @@
-import { IntakeRequestSummaryDto } from '@/src/services/wayd-api'
+import { IntakeRequestSummaryDto } from '@/src/services/api/wayd.schemas'
 import {
   compareByEstimate,
   compareEstimates,

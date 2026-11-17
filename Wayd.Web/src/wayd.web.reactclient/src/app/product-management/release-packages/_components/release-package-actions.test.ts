@@ -3,8 +3,9 @@ import {
   ManifestEntryKind,
   ReleasePackageDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { releasePackageActionAvailability } from './release-package-actions'
+import { asInstant } from '@/src/utils/instant'
 
 const component = () => ({
   product: { id: 'p', key: 1, name: 'Checkout' },
@@ -34,7 +35,7 @@ const assembled = () => releasePackage()
 
 const released = () =>
   releasePackage({
-    releasedAt: '2026-04-02T12:00:00Z' as unknown as Date,
+    releasedAt: asInstant('2026-04-02T12:00:00Z'),
     status: {
       id: 's',
       name: 'Released',

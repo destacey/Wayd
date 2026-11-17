@@ -9,7 +9,8 @@ import { useCreateProjectHealthCheckMutation } from '@/src/store/features/ppm/pr
 import { toFormErrors } from '@/src/utils'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { MarkdownEditor } from '@/src/components/common/markdown'
-import { HealthStatus } from '@/src/services/wayd-api'
+import { HealthStatus } from '@/src/services/api/wayd.schemas'
+import { toInstant } from '@/src/utils/instant'
 const { Item } = Form
 const { Group: RadioGroup } = Radio
 
@@ -59,7 +60,7 @@ const CreateProjectHealthCheckForm = ({
           projectId,
           request: {
             status: values.status,
-            expiration: values.expiration?.toDate(),
+            expiration: toInstant(values.expiration),
             note: values.note,
           },
         })

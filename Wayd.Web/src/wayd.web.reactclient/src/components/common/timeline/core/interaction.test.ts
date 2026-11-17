@@ -1,9 +1,10 @@
 import { applyDrag, progressFromX, snapToDay } from './interaction'
 import dayjs from 'dayjs'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const DAY = 86_400_000
 const day = (n: number) =>
-  dayjs('2026-01-01').startOf('day').add(n, 'day').valueOf()
+  dayjs(asCalendarDate('2026-01-01')).startOf('day').add(n, 'day').valueOf()
 
 // 100px per day => pxPerMs.
 const pxPerMs = 100 / DAY
@@ -17,11 +18,16 @@ const item = (startDay: number, endDay: number) => ({
 describe('snapToDay', () => {
   it('snaps a mid-day timestamp to the start of that day', () => {
     // Arrange
-    const midday = dayjs('2026-03-10').startOf('day').add(13, 'hour').valueOf()
+    const midday = dayjs(asCalendarDate('2026-03-10'))
+      .startOf('day')
+      .add(13, 'hour')
+      .valueOf()
     // Act
     const snapped = snapToDay(midday)
     // Assert
-    expect(snapped).toBe(dayjs('2026-03-10').startOf('day').valueOf())
+    expect(snapped).toBe(
+      dayjs(asCalendarDate('2026-03-10')).startOf('day').valueOf(),
+    )
   })
 })
 

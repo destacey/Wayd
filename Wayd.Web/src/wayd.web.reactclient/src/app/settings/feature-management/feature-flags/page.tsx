@@ -8,7 +8,7 @@ import { authorizePage } from '@/src/components/hoc'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useDocumentTitle } from '@/src/hooks'
-import type { FeatureFlagDto } from '@/src/services/wayd-api'
+import type { FeatureFlagDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetFeatureFlagModulesQuery,
   useGetFeatureFlagsQuery,

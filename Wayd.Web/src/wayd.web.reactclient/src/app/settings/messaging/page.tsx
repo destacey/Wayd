@@ -15,7 +15,7 @@ import type { ItemType } from 'antd/es/menu/interface'
 import { authorizePage } from '@/src/components/hoc'
 import useAuth from '@/src/components/contexts/auth'
 import { useDocumentTitle } from '@/src/hooks'
-import { DeadLetterMessageResponse } from '@/src/services/wayd-api'
+import { DeadLetterMessageResponse } from '@/src/services/api/wayd.schemas'
 import {
   useGetDeadLettersQuery,
   useGetMessagingCountsQuery,

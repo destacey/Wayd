@@ -36,7 +36,7 @@ import {
   TeamOperatingModelsGrid,
   EditTeamOperatingModelForm,
 } from '@/src/app/organizations/teams/_components'
-import { Methodology } from '@/src/services/wayd-api'
+import { Methodology } from '@/src/services/api/wayd.schemas'
 import {
   CreateTeamMembershipForm,
   EditTeamForm,

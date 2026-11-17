@@ -1,11 +1,12 @@
 'use client'
 
+import { toInstant } from '@/src/utils/instant'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import {
   MarkReleasePackageReleasedRequest,
   ReleasePackageDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useMarkReleasePackageReleasedMutation } from '@/src/store/features/product-management/release-packages-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'
@@ -43,7 +44,7 @@ const MarkReleasePackageReleasedForm = ({
       onSubmit: async (values: MarkReleasePackageReleasedFormValues, form) => {
         try {
           const request = {
-            releasedAt: values.releasedAt.toDate(),
+            releasedAt: toInstant(values.releasedAt),
           } as MarkReleasePackageReleasedRequest
 
           const response = await markReleased({

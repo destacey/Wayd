@@ -14,13 +14,13 @@ namespace Wayd.Infrastructure.OpenApi;
 /// <remarks>
 /// <para>
 /// The generator reads NodaTime types through their serializers' converters, which it cannot see into, so it
-/// would otherwise describe <see cref="Instant"/> and <see cref="LocalDate"/> as objects. The client's
-/// <c>Interface.liquid</c> template relies on <c>format: date</c> to type a calendar date as a string rather
-/// than a <c>Date</c>.
+/// would otherwise describe <see cref="Instant"/> and <see cref="LocalDate"/> as objects. The TypeScript
+/// client tells the two apart by format (<c>orval.config.ts</c>): <c>date</c> is a <c>CalendarDate</c>,
+/// <c>date-time</c> an <c>Instant</c>.
 /// </para>
 /// <para>
 /// The API's serializer accepts numbers written as strings, which the generator publishes as
-/// <c>anyOf: [integer, string]</c> with a numeric <c>pattern</c>. Clients send numbers, and NSwag's TypeScript
+/// <c>anyOf: [integer, string]</c> with a numeric <c>pattern</c>. Clients send numbers, and a TypeScript
 /// generator would type every number as <c>number | string</c>.
 /// </para>
 /// </remarks>

@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { RecordTypeDto } from '@/src/services/wayd-api'
+import { RecordTypeDto } from '@/src/services/api/wayd.schemas'
 import { useGetWorkflowOwnerTypesQuery } from '@/src/store/features/common/status-workflows-api'
 import {
   useCreateRecordTypeMutation,

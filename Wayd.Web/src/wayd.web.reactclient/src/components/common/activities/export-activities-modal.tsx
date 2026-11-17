@@ -15,7 +15,7 @@ import {
 import type { TimeRangePickerProps } from 'antd'
 import dayjs, { Dayjs } from 'dayjs'
 import { FC, useMemo, useRef, useState } from 'react'
-import { ActivityLogDto } from '@/src/services/wayd-api'
+import { ActivityLogDto } from '@/src/services/api/wayd.schemas'
 import { downloadJsonWithTimestamp } from '@/src/utils/json-utils'
 
 const { Text, Paragraph } = Typography
@@ -344,4 +344,3 @@ export const ExportActivitiesModal: FC<ExportActivitiesModalProps> = ({
 }
 
 export default ExportActivitiesModal
-

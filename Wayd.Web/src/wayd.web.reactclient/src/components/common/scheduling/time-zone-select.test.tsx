@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react'
-import { TimeZoneDto } from '@/src/services/wayd-api'
+import { TimeZoneDto } from '@/src/services/api/wayd.schemas'
 import TimeZoneSelect, { timeZoneLabel } from './time-zone-select'
 
 const mockUseGetTimeZonesQuery = vi.fn()

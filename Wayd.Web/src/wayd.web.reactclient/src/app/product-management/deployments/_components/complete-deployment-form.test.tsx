@@ -3,9 +3,10 @@ import {
   DeploymentDto,
   ProductStatusAlias,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import CompleteDeploymentForm from './complete-deployment-form'
 import type { UseModalFormOptions } from '@/src/hooks'
+import { asInstant } from '@/src/utils/instant'
 
 const succeedDeployment = vi.fn()
 const failDeployment = vi.fn()
@@ -58,7 +59,7 @@ const deployment = (): DeploymentDto =>
     key: 1,
     version: { id: 'v', key: 2, name: '4.10.0' },
     environment: { id: 'e', key: 3, name: 'prod-eu' },
-    startedAt: new Date('2026-04-01T10:00:00Z'),
+    startedAt: asInstant('2026-04-01T10:00:00Z'),
     status: {
       id: 's',
       name: 'In Progress',

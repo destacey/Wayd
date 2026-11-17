@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { StrategicThemeDetailsDto } from '@/src/services/wayd-api'
+import { StrategicThemeDetailsDto } from '@/src/services/api/wayd.schemas'
 import { useDeleteStrategicThemeMutation } from '@/src/store/features/strategic-management/strategic-themes-api'
 import { Modal } from 'antd'
 import { isApiError, type ApiError } from '@/src/utils'

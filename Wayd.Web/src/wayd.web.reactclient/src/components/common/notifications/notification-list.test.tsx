@@ -4,13 +4,14 @@ import {
   NotificationDto,
   NotificationEvent,
   NotificationReason,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import NotificationList, { NoNotificationsMessage } from './notification-list'
 import {
   buildNotification,
   buildNotifiedRecord,
   buildReadNotification,
 } from './notification-test-data'
+import type { Instant } from '@/src/utils/instant'
 
 const mockMarkRecordRead = vi.fn()
 vi.mock('@/src/store/features/common/notifications-api', () => ({
@@ -380,7 +381,8 @@ describe('NotificationList', () => {
   it('leaves out the time of a change it cannot read', () => {
     // Act
     renderList([
-      buildReadNotification({ occurredOn: 'not a date' as unknown as Date }),
+      // Deliberately not an instant: the list must cope with one it cannot read.
+      buildReadNotification({ occurredOn: 'not a date' as Instant }),
     ])
 
     // Assert

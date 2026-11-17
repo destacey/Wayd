@@ -1,4 +1,4 @@
-import { EmployeeNavigationDto } from '@/src/services/wayd-api'
+import { EmployeeNavigationDto } from '@/src/services/api/wayd.schemas'
 
 /** Someone a message can mention: who the composer offers after an @. */
 export interface MentionCandidate {

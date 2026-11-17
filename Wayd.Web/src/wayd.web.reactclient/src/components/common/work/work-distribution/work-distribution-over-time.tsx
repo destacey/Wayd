@@ -8,7 +8,7 @@ import {
   WorkDistributionDimension,
   WorkDistributionGroupDto,
   TeamWorkDistributionDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import WaydEmpty from '../../wayd-empty'
 import { GroupName } from './work-distribution-breakdown'
 import {

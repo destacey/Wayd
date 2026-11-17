@@ -1,6 +1,6 @@
 'use client'
 
-import { PlanningIntervalObjectiveListDto } from '@/src/services/wayd-api'
+import { PlanningIntervalObjectiveListDto } from '@/src/services/api/wayd.schemas'
 import { PlusOutlined } from '@ant-design/icons'
 import { Badge, Button, Card, Space } from 'antd'
 import ObjectiveListItem from './objective-list-item'

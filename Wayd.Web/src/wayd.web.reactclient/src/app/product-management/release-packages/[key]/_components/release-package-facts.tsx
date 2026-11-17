@@ -6,7 +6,10 @@ import {
   formatDateOnly,
   formatDateTime,
 } from '@/src/components/common/wayd-grid'
-import { ManifestEntryKind, ReleasePackageDto } from '@/src/services/wayd-api'
+import {
+  ManifestEntryKind,
+  ReleasePackageDto,
+} from '@/src/services/api/wayd.schemas'
 import { Flex } from 'antd'
 
 export interface ReleasePackageFactsProps {

@@ -3,7 +3,7 @@ import {
   MoveTaskRequest,
   StoryMapDetailsDto,
   StoryMapTaskDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 /**
  * Optimistic cache edits for the story map board, applied to an RTK Query draft before the server

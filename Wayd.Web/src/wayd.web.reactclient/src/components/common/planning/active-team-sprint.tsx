@@ -5,7 +5,7 @@ import {
   useGetSprintMetricsQuery,
   useGetSprintScopeQuery,
 } from '@/src/store/features/work-management/sprints-api'
-import { SizingMethod } from '@/src/services/wayd-api'
+import { SizingMethod } from '@/src/services/api/wayd.schemas'
 import { Card, Flex, Skeleton, Typography } from 'antd'
 import Link from 'next/link'
 import { FC, ReactNode } from 'react'

@@ -1,6 +1,10 @@
 'use client'
 
-import { ProjectDeliverableDto, StatusCategory } from '@/src/services/wayd-api'
+import { instantTime } from '@/src/utils/instant'
+import {
+  ProjectDeliverableDto,
+  StatusCategory,
+} from '@/src/services/api/wayd.schemas'
 import { useGetProjectDeliverablesQuery } from '@/src/store/features/ppm/project-deliverables-api'
 import {
   compareCalendarDates,
@@ -32,10 +36,8 @@ const byTargetDate = (a: ProjectDeliverableDto, b: ProjectDeliverableDto) => {
   return a.order - b.order
 }
 
-// Through `new Date`: the API sends the instant as an ISO string, though the
-// DTO types it `Date`.
 const acceptedAt = (deliverable: ProjectDeliverableDto) =>
-  deliverable.acceptedOn ? new Date(deliverable.acceptedOn).getTime() : 0
+  deliverable.acceptedOn ? instantTime(deliverable.acceptedOn) : 0
 
 /** Latest acceptance first; ties and undated acceptances in their agreed order. */
 const byMostRecentlyAccepted = (

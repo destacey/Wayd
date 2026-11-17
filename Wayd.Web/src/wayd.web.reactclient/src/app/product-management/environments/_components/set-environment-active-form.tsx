@@ -5,7 +5,7 @@ import { useConfirmModal } from '@/src/hooks'
 import {
   DeploymentEnvironmentDto,
   SetDeploymentEnvironmentActiveRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useSetDeploymentEnvironmentActiveMutation } from '@/src/store/features/product-management/deployment-environments-api'
 import { isApiError, type ApiError } from '@/src/utils'
 import { Alert, Modal, Typography } from 'antd'

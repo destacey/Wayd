@@ -1,13 +1,14 @@
 import type { Mock } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { PokerRoundDto } from '@/src/services/wayd-api'
+import { PokerRoundDto } from '@/src/services/api/wayd.schemas'
 import VotingActions from './voting-actions'
 import {
   useRevealPokerRoundMutation,
   useResetPokerRoundMutation,
   useSetPokerRoundConsensusMutation,
 } from '@/src/store/features/planning/poker-sessions-api'
+import { toInstant } from '@/src/utils/instant'
 
 vi.mock('@/src/store/features/planning/poker-sessions-api', () => ({
   useRevealPokerRoundMutation: vi.fn(),
@@ -90,13 +91,13 @@ describe('VotingActions', () => {
           id: 'v1',
           participant: { id: 'p1', userName: 'p1', name: 'Alice' },
           value: '5',
-          submittedOn: new Date(),
+          submittedOn: toInstant(new Date()),
         },
         {
           id: 'v2',
           participant: { id: 'p2', userName: 'p2', name: 'Bob' },
           value: '5',
-          submittedOn: new Date(),
+          submittedOn: toInstant(new Date()),
         },
       ],
     })
@@ -130,7 +131,7 @@ describe('VotingActions', () => {
           id: 'v1',
           participant: { id: 'p1', userName: 'p1', name: 'Alice' },
           value: '5',
-          submittedOn: new Date(),
+          submittedOn: toInstant(new Date()),
         },
       ],
     })

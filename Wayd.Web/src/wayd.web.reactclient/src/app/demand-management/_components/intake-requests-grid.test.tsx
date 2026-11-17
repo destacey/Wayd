@@ -1,3 +1,4 @@
+import { toInstant } from '@/src/utils/instant'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { RowSelectionState } from '@tanstack/react-table'
@@ -8,8 +9,9 @@ import {
   NeedByBasisDto,
   NeedByBasisFamily,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import IntakeRequestsGrid from './intake-requests-grid'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 let mockClaims = new Set<string>()
 vi.mock('@/src/components/contexts/auth', () => ({
@@ -19,7 +21,8 @@ vi.mock('@/src/components/contexts/auth', () => ({
 }))
 
 const DAY_MS = 24 * 60 * 60 * 1000
-const daysAgo = (days: number) => new Date(Date.now() - days * DAY_MS - 1000)
+const daysAgo = (days: number) =>
+  toInstant(new Date(Date.now() - days * DAY_MS - 1000))
 
 const request = (
   key: number,
@@ -298,7 +301,7 @@ describe('IntakeRequestsGrid', () => {
     // Arrange / Act
     renderGrid([
       request(7, 'Renew the support contract', {
-        date: '2026-12-31',
+        date: asCalendarDate('2026-12-31'),
         basis: NeedByBasis.Contractual,
         family: NeedByBasisFamily.FixedForUs,
         reference: 'MSA clause 12',

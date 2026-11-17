@@ -76,7 +76,7 @@ export function allocationTimelineData(
   const maxDay = addCalendarDays(lastDay, MARGIN_DAYS)
 
   // A bar's end is exclusive, so it ends at the start of the day after.
-  const endOf = (end: CalendarDate | undefined): number =>
+  const endOf = (end: CalendarDate | undefined | null): number =>
     startOfDay(end ? addCalendarDays(end, 1) : maxDay)
 
   const teams = new Map<string, string>()

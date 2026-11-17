@@ -8,7 +8,7 @@ import useAuth from '@/src/components/contexts/auth'
 import {
   PlanningIntervalCapacityFiguresDto,
   PlanningIntervalTeamCapacityDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetPlanningIntervalCapacityQuery } from '@/src/store/features/planning/planning-interval-api'
 import { formatCalendarDate, isApiError } from '@/src/utils'
 import { formatPersonDays } from '@/src/app/organizations/_components/team-capacity/team-capacity-data'

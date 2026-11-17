@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import { NotificationDto } from '@/src/services/wayd-api'
+import { NotificationDto } from '@/src/services/api/wayd.schemas'
 import { NoNotificationsMessage } from '@/src/components/common/notifications/notification-list'
 import {
   buildNotification,

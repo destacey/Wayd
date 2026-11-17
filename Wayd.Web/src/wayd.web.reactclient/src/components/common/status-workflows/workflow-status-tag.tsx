@@ -2,7 +2,7 @@
 
 import { Tag } from 'antd'
 import { FC, memo } from 'react'
-import { StatusCategory } from '@/src/services/wayd-api'
+import { StatusCategory } from '@/src/services/api/wayd.schemas'
 
 export interface WorkflowStatusTagProps {
   name: string

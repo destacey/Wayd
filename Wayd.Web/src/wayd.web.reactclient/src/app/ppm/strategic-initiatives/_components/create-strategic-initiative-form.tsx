@@ -4,7 +4,7 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { CreateStrategicInitiativeRequest } from '@/src/services/wayd-api'
+import { CreateStrategicInitiativeRequest } from '@/src/services/api/wayd.schemas'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { useGetPortfolioOptionsQuery } from '@/src/store/features/ppm/portfolios-api'
 import { useCreateStrategicInitiativeMutation } from '@/src/store/features/ppm/strategic-initiatives-api'
@@ -17,6 +17,7 @@ import {
 import { DatePicker, Form, Input, Modal, Select } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect } from 'react'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { TextArea } = Input
 const { Item } = Form
@@ -42,8 +43,8 @@ const mapToRequestValues = (
   return {
     name: values.name,
     description: values.description,
-    start: (values.dateRange?.[0] as any)?.format('YYYY-MM-DD'),
-    end: (values.dateRange?.[1] as any)?.format('YYYY-MM-DD'),
+    start: toCalendarDate(values.dateRange[0]),
+    end: toCalendarDate(values.dateRange[1]),
     portfolioId: values.portfolioId,
     sponsorIds: values.sponsorIds,
     ownerIds: values.ownerIds,
@@ -56,18 +57,13 @@ const CreateStrategicInitiativeForm = ({
 }: CreateStrategicInitiativeFormProps) => {
   const messageApi = useMessage()
 
-  const [createStrategicInitiative] =
-    useCreateStrategicInitiativeMutation()
+  const [createStrategicInitiative] = useCreateStrategicInitiativeMutation()
 
-  const {
-    data: portfolioData,
-    error: portfolioOptionsError,
-  } = useGetPortfolioOptionsQuery()
+  const { data: portfolioData, error: portfolioOptionsError } =
+    useGetPortfolioOptionsQuery()
 
-  const {
-    data: employeeData,
-    error: employeeOptionsError,
-  } = useGetEmployeeOptionsQuery(false)
+  const { data: employeeData, error: employeeOptionsError } =
+    useGetEmployeeOptionsQuery(false)
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CreateStrategicInitiativeFormValues>({
@@ -110,8 +106,12 @@ const CreateStrategicInitiativeForm = ({
     if (portfolioOptionsError || employeeOptionsError) {
       console.error(portfolioOptionsError || employeeOptionsError)
       messageApi.error(
-        (isApiError(portfolioOptionsError) ? portfolioOptionsError.detail : undefined) ||
-          (isApiError(employeeOptionsError) ? employeeOptionsError.detail : undefined) ||
+        (isApiError(portfolioOptionsError)
+          ? portfolioOptionsError.detail
+          : undefined) ||
+          (isApiError(employeeOptionsError)
+            ? employeeOptionsError.detail
+            : undefined) ||
           'An error occurred while loading form data.',
       )
     }

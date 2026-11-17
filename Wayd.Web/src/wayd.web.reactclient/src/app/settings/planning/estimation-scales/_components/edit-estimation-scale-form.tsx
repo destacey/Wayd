@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   EstimationScaleValueRequest,
   UpdateEstimationScaleRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetEstimationScaleQuery,
   useUpdateEstimationScaleMutation,
@@ -28,7 +28,7 @@ export interface EditEstimationScaleFormProps {
 
 interface EditEstimationScaleFormValues {
   name: string
-  description?: string
+  description?: string | null
   values: EstimationScaleValueRequest[]
 }
 
@@ -46,36 +46,36 @@ const EditEstimationScaleForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditEstimationScaleFormValues>({
       onSubmit: async (values: EditEstimationScaleFormValues, form) => {
-          try {
-            const request: UpdateEstimationScaleRequest = {
-              id: estimationScaleId,
-              name: values.name,
-              description: values.description,
-              values: values.values,
-            }
-            const response = await updateEstimationScale(request)
-            if (response.error) {
-              throw response.error
-            }
-            messageApi.success('Estimation scale updated successfully.')
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: estimationScaleValueErrorFieldFor,
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while updating the estimation scale. Please try again.',
-              )
-            }
-            return false
+        try {
+          const request: UpdateEstimationScaleRequest = {
+            id: estimationScaleId,
+            name: values.name,
+            description: values.description,
+            values: values.values,
           }
-        },
+          const response = await updateEstimationScale(request)
+          if (response.error) {
+            throw response.error
+          }
+          messageApi.success('Estimation scale updated successfully.')
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: estimationScaleValueErrorFieldFor,
+            })
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while updating the estimation scale. Please try again.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:

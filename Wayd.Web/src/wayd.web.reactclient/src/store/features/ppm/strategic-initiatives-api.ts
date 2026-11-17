@@ -12,11 +12,37 @@ import {
   StrategicInitiativeKpiListDto,
   StrategicInitiativeKpiMeasurementDto,
   UpdateStrategicInitiativeKpiRequest,
-} from './../../../services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from './../apiSlice'
 import { QueryTags } from '../query-tags'
 import { ppmActivityTag } from './ppm-activity-tags'
-import { getStrategicInitiativesClient } from '@/src/services/clients'
+import {
+  strategicInitiativesActivate,
+  strategicInitiativesAddKpiMeasurement,
+  strategicInitiativesApprove,
+  strategicInitiativesCancel,
+  strategicInitiativesComplete,
+  strategicInitiativesCreate,
+  strategicInitiativesCreateKpi,
+  strategicInitiativesDelete,
+  strategicInitiativesDeleteKpi,
+  strategicInitiativesGetActivities,
+  strategicInitiativesGetKpi,
+  strategicInitiativesGetKpiCheckpointPlan,
+  strategicInitiativesGetKpiCheckpoints,
+  strategicInitiativesGetKpiMeasurements,
+  strategicInitiativesGetKpis,
+  strategicInitiativesGetProjects,
+  strategicInitiativesGetStrategicInitiative,
+  strategicInitiativesGetStrategicInitiativeStatuses,
+  strategicInitiativesGetStrategicInitiatives,
+  strategicInitiativesManageKpiCheckpointPlan,
+  strategicInitiativesManageProjects,
+  strategicInitiativesRemoveKpiMeasurement,
+  strategicInitiativesReorderKpis,
+  strategicInitiativesUpdate,
+  strategicInitiativesUpdateKpi,
+} from '@/src/services/api/strategic-initiatives'
 import {
   CreateStrategicInitiativeRequest,
   ObjectIdAndKey,
@@ -24,7 +50,7 @@ import {
   StrategicInitiativeListDto,
   StrategicInitiativeStatus,
   UpdateStrategicInitiativeRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { StatusOptionModel } from '@/src/components/types'
 
 export const strategicInitiativesApi = apiSlice.injectEndpoints({
@@ -35,11 +61,11 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request = undefined) => {
         try {
-          const data =
-            await getStrategicInitiativesClient().getStrategicInitiatives(
+          const data = await strategicInitiativesGetStrategicInitiatives({
+            status:
               (request?.status?.length ?? 0) > 0 ? request!.status : undefined,
-              request?.portfolioId,
-            )
+            portfolioId: request?.portfolioId,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -54,10 +80,9 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (key) => {
         try {
-          const data =
-            await getStrategicInitiativesClient().getStrategicInitiative(
-              key.toString(),
-            )
+          const data = await strategicInitiativesGetStrategicInitiative(
+            key.toString(),
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -74,7 +99,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getStrategicInitiativesClient().create(request)
+          const data = await strategicInitiativesCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -94,10 +119,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ request, cacheKey }) => {
         try {
-          const data = await getStrategicInitiativesClient().update(
-            request.id,
-            request,
-          )
+          const data = await strategicInitiativesUpdate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -119,7 +141,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id }) => {
         try {
-          const data = await getStrategicInitiativesClient().approve(id)
+          const data = await strategicInitiativesApprove(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -141,7 +163,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id }) => {
         try {
-          const data = await getStrategicInitiativesClient().activate(id)
+          const data = await strategicInitiativesActivate(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -163,7 +185,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id }) => {
         try {
-          const data = await getStrategicInitiativesClient().complete(id)
+          const data = await strategicInitiativesComplete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -185,7 +207,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id }) => {
         try {
-          const data = await getStrategicInitiativesClient().cancel(id)
+          const data = await strategicInitiativesCancel(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -204,7 +226,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     deleteStrategicInitiative: builder.mutation<void, { id: string }>({
       queryFn: async ({ id }) => {
         try {
-          const data = await getStrategicInitiativesClient().delete(id)
+          const data = await strategicInitiativesDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -225,7 +247,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
       queryFn: async () => {
         try {
           const statuses =
-            await getStrategicInitiativesClient().getStrategicInitiativeStatuses()
+            await strategicInitiativesGetStrategicInitiativeStatuses()
 
           const data: StatusOptionModel<StrategicInitiativeStatus>[] = statuses
             .sort((a, b) => a.order - b.order)
@@ -250,9 +272,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (strategicInitiativeId) => {
         try {
-          const data = await getStrategicInitiativesClient().getKpis(
-            strategicInitiativeId,
-          )
+          const data = await strategicInitiativesGetKpis(strategicInitiativeId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -269,7 +289,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getStrategicInitiativesClient().getKpi(
+          const data = await strategicInitiativesGetKpi(
             request.strategicInitiativeId,
             request.kpiId,
           )
@@ -289,7 +309,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getStrategicInitiativesClient().createKpi(
+          const data = await strategicInitiativesCreateKpi(
             request.strategicInitiativeId,
             request,
           )
@@ -315,7 +335,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getStrategicInitiativesClient().updateKpi(
+          const data = await strategicInitiativesUpdateKpi(
             request.strategicInitiativeId,
             request.kpiId,
             request,
@@ -343,7 +363,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getStrategicInitiativesClient().deleteKpi(
+          const data = await strategicInitiativesDeleteKpi(
             request.strategicInitiativeId,
             request.kpiId,
           )
@@ -372,7 +392,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ strategicInitiativeId, request }) => {
         try {
-          const data = await getStrategicInitiativesClient().reorderKpis(
+          const data = await strategicInitiativesReorderKpis(
             strategicInitiativeId,
             request,
           )
@@ -396,7 +416,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getStrategicInitiativesClient().addKpiMeasurement(
+          const data = await strategicInitiativesAddKpiMeasurement(
             request.strategicInitiativeId,
             request.kpiId,
             request,
@@ -429,8 +449,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     getStrategicInitiativeProjects: builder.query<ProjectListDto[], string>({
       queryFn: async (idOrKey) => {
         try {
-          const data =
-            await getStrategicInitiativesClient().getProjects(idOrKey)
+          const data = await strategicInitiativesGetProjects(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -448,7 +467,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getStrategicInitiativesClient().manageProjects(
+          const data = await strategicInitiativesManageProjects(
             request.id,
             request,
           )
@@ -470,7 +489,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getStrategicInitiativesClient().getKpiCheckpoints(
+          const data = await strategicInitiativesGetKpiCheckpoints(
             request.strategicInitiativeId,
             request.kpiId,
           )
@@ -490,11 +509,10 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data =
-            await getStrategicInitiativesClient().getKpiCheckpointPlan(
-              request.strategicInitiativeId,
-              request.kpiId,
-            )
+          const data = await strategicInitiativesGetKpiCheckpointPlan(
+            request.strategicInitiativeId,
+            request.kpiId,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -514,12 +532,11 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data =
-            await getStrategicInitiativesClient().manageKpiCheckpointPlan(
-              request.strategicInitiativeId,
-              request.kpiId,
-              request,
-            )
+          const data = await strategicInitiativesManageKpiCheckpointPlan(
+            request.strategicInitiativeId,
+            request.kpiId,
+            request,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -544,7 +561,7 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (arg) => {
         try {
-          const data = await getStrategicInitiativesClient().getKpiMeasurements(
+          const data = await strategicInitiativesGetKpiMeasurements(
             arg.strategicInitiativeId,
             arg.kpiId,
           )
@@ -564,12 +581,11 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data =
-            await getStrategicInitiativesClient().removeKpiMeasurement(
-              request.strategicInitiativeId,
-              request.kpiId,
-              request.measurementId,
-            )
+          const data = await strategicInitiativesRemoveKpiMeasurement(
+            request.strategicInitiativeId,
+            request.kpiId,
+            request.measurementId,
+          )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -598,10 +614,9 @@ export const strategicInitiativesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getStrategicInitiativesClient().getActivities(
+          const data = await strategicInitiativesGetActivities(
             String(idOrKey),
-            page,
-            pageSize,
+            { page: page, pageSize: pageSize },
           )
           return { data }
         } catch (error) {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { CreateProductTagCategoryRequest } from '@/src/services/wayd-api'
+import { CreateProductTagCategoryRequest } from '@/src/services/api/wayd.schemas'
 import { useCreateProductTagCategoryMutation } from '@/src/store/features/product-management/product-tag-categories-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal, Switch } from 'antd'

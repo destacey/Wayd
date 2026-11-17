@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
+import { IntakeRequestDetailsDto } from '@/src/services/api/wayd.schemas'
 import {
   useChangeIntakeRequestStatusMutation,
   useGetIntakeRequestStatusOptionsQuery,

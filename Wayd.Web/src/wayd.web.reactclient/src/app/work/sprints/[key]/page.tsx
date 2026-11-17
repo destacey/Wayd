@@ -40,7 +40,7 @@ import {
 import { IterationState } from '@/src/components/types'
 import { useGetTeamSprintsQuery } from '@/src/store/features/organizations/team-api'
 import { SwapOutlined } from '@ant-design/icons'
-import { SprintType } from '@/src/services/wayd-api'
+import { SprintType } from '@/src/services/api/wayd.schemas'
 import { Alert, Segmented, Space, Tag } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
 import { RecordLayout } from '@/src/components/common/record'

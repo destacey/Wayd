@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { ChangeProjectKeyRequest } from '@/src/services/wayd-api'
+import { ChangeProjectKeyRequest } from '@/src/services/api/wayd.schemas'
 import {
   useChangeProjectKeyMutation,
   useGetProjectQuery,
@@ -40,38 +40,38 @@ const ChangeProjectKeyForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<ChangeProjectKeyFormValues>({
       onSubmit: async (values: ChangeProjectKeyFormValues, form) => {
-          try {
-            const newKey = values.key.trim().toUpperCase()
-            const request: ChangeProjectKeyRequest = {
-              key: newKey,
-            }
-
-            const response = await changeProjectKey({
-              id: projectData!.id,
-              request,
-            })
-
-            if (response.error) throw response.error
-
-            messageApi.success('Project key changed successfully.')
-            // Pass the new key back to the parent via onFormComplete
-            onFormComplete(newKey)
-            return false // Don't call onComplete again from the hook
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while updating the project key. Please try again.',
-              )
-            }
-            return false
+        try {
+          const newKey = values.key.trim().toUpperCase()
+          const request: ChangeProjectKeyRequest = {
+            key: newKey,
           }
-        },
+
+          const response = await changeProjectKey({
+            id: projectData!.id,
+            request,
+          })
+
+          if (response.error) throw response.error
+
+          messageApi.success('Project key changed successfully.')
+          // Pass the new key back to the parent via onFormComplete
+          onFormComplete(newKey)
+          return false // Don't call onComplete again from the hook
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while updating the project key. Please try again.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: () => {}, // Handled inside onSubmit since we need to pass newKey
       onCancel: onFormCancel,
       errorMessage:

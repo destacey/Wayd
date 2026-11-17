@@ -4,7 +4,7 @@ import { useState } from 'react'
 import {
   ActivityLogDto,
   PagedResponseOfActivityLogDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { ActivityLogTimelineProps } from './activity-log-timeline'
 
 /** Page size for the first page and each "load more"; also what a record page should request. */

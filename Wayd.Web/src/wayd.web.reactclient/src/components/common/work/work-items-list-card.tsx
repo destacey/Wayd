@@ -1,4 +1,4 @@
-import { WorkItemListDto } from '@/src/services/wayd-api'
+import { WorkItemListDto } from '@/src/services/api/wayd.schemas'
 import WaydEmpty from '../wayd-empty'
 import WaydList from '../wayd-list'
 import WorkItemListItem from './work-item-list-item'

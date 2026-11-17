@@ -5,7 +5,7 @@ import {
   ManifestEntryKind,
   ProductDto,
   VersionDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { Button, Empty, Flex, Input, Select, Space, Typography } from 'antd'
 

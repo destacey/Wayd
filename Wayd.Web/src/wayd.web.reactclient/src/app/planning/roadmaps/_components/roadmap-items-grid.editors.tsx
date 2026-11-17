@@ -18,8 +18,9 @@ import {
   type CreateRoadmapTimeboxRequest,
   type JsonPatchOperation,
   type RoadmapColorDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
+  asCalendarDate,
   parseCalendarDate,
   toCalendarDate,
   type CalendarDate,
@@ -243,7 +244,7 @@ export const toRoadmapItemPatch = (
   patch: Record<string, unknown>,
 ): JsonPatchOperation[] =>
   Object.entries(patch).map(([field, value]) => ({
-    op: JsonPatchOperationType.Replace,
+    op: JsonPatchOperationType.replace,
     path: `/${field}`,
     value,
   }))
@@ -267,8 +268,8 @@ export const toCreateRoadmapItemRequest = (
     roadmapId,
     parentId: parentId ?? undefined,
     name: String(values.name ?? ''),
-    start: values.start as string,
-    end: values.end as string,
+    start: asCalendarDate(String(values.start)),
+    end: asCalendarDate(String(values.end)),
     ...(color ? { color } : {}),
   }
 }

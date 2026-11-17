@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { RoleDto } from '@/src/services/wayd-api'
+import { RoleDto } from '@/src/services/api/wayd.schemas'
 import {
   useDeleteRoleMutation,
   useGetRoleUsersCountQuery,

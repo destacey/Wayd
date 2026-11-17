@@ -2,7 +2,7 @@
 
 import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
-import { PlanningIntervalIterationDetailsDto } from '@/src/services/wayd-api'
+import { PlanningIntervalIterationDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Divider, Flex } from 'antd'
 import { calendarDaysBetween, formatCalendarDate } from '@/src/utils'
 import Link from 'next/link'

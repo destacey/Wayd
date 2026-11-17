@@ -8,7 +8,7 @@ import {
   UpdateEntraConnectionRequest,
   UpdateWorkdayConnectionRequest,
   WorkdayConnectionDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { buildRequest, seedFormValues } from './edit-connection-form'
 
 // The API returns a fixed-width placeholder in place of every stored secret.

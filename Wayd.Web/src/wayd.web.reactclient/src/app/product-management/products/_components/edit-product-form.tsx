@@ -3,7 +3,10 @@
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { ProductDto, UpdateProductRequest } from '@/src/services/wayd-api'
+import {
+  ProductDto,
+  UpdateProductRequest,
+} from '@/src/services/api/wayd.schemas'
 import { useUpdateProductMutation } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -20,7 +23,7 @@ export interface EditProductFormProps {
 
 interface EditProductFormValues {
   name: string
-  description?: string
+  description?: string | null
 }
 
 /**

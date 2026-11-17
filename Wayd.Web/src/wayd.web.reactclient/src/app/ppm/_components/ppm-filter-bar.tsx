@@ -5,7 +5,7 @@ import { Button, Card, Flex, Select, Skeleton, Space, theme } from 'antd'
 import { WaydTooltip } from '@/src/components/common'
 import type { BaseOptionType } from 'antd/es/select'
 import { StatusOptionModel } from '@/src/components/types'
-import { ProjectMemberRole } from '@/src/services/wayd-api'
+import { ProjectMemberRole } from '@/src/services/api/wayd.schemas'
 import {
   getLifecycleCategoryStatusSurface,
   type StatusSurface,

@@ -3,7 +3,10 @@
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { VersionDto, UpdateVersionRequest } from '@/src/services/wayd-api'
+import {
+  VersionDto,
+  UpdateVersionRequest,
+} from '@/src/services/api/wayd.schemas'
 import { useUpdateVersionMutation } from '@/src/store/features/product-management/versions-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'

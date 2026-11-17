@@ -2,7 +2,7 @@
 
 import { DatePicker, Form, Input, Modal, Select, Switch } from 'antd'
 import { useEffect } from 'react'
-import { CreatePlanningIntervalObjectiveRequest } from '@/src/services/wayd-api'
+import { CreatePlanningIntervalObjectiveRequest } from '@/src/services/api/wayd.schemas'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import dayjs, { type Dayjs } from 'dayjs'
 import type { RangePickerProps } from 'antd/es/date-picker'
@@ -15,6 +15,7 @@ import {
   useGetPlanningIntervalTeamsQuery,
 } from '@/src/store/features/planning/planning-interval-api'
 import { useModalForm } from '@/src/hooks'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item: FormItem } = Form
 const { TextArea } = Input
@@ -52,8 +53,10 @@ const mapToRequestValues = (
     name: values.name,
     description: values.description ?? undefined,
     isStretch: values.isStretch,
-    startDate: values.startDate?.format('YYYY-MM-DD'),
-    targetDate: values.targetDate?.format('YYYY-MM-DD'),
+    startDate: values.startDate ? toCalendarDate(values.startDate) : undefined,
+    targetDate: values.targetDate
+      ? toCalendarDate(values.targetDate)
+      : undefined,
     order: order,
   } as unknown as CreatePlanningIntervalObjectiveRequest
 }
@@ -77,7 +80,10 @@ const CreatePlanningIntervalObjectiveForm = ({
 
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<CreatePlanningIntervalObjectiveFormValues>({
-      onSubmit: async (values: CreatePlanningIntervalObjectiveFormValues, form) => {
+      onSubmit: async (
+        values: CreatePlanningIntervalObjectiveFormValues,
+        form,
+      ) => {
         try {
           const request = mapToRequestValues(values, order)
           const response = await createObjective({

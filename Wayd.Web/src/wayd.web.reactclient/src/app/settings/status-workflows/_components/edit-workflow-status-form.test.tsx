@@ -5,7 +5,7 @@ import {
   StatusCategoryLabelDto,
   WorkflowAliasDto,
   WorkflowStatusDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import EditWorkflowStatusForm, {
   type WorkflowStatusEditScope,
 } from './edit-workflow-status-form'

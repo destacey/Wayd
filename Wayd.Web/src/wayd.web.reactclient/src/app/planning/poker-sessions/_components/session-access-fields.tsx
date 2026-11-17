@@ -1,7 +1,7 @@
 'use client'
 
 import { EmployeeSelect } from '@/src/components/common/organizations'
-import { Visibility } from '@/src/services/wayd-api'
+import { Visibility } from '@/src/services/api/wayd.schemas'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { useGetTeamOptionsQuery } from '@/src/store/features/organizations/team-api'
 import { Form, Radio, Select } from 'antd'

@@ -3,8 +3,10 @@ import {
   FollowedRecordDetailDto,
   HealthStatus,
   LifecycleCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import FollowedRecordDetail from './followed-record-detail'
+import { asInstant, toInstant } from '@/src/utils/instant'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('@/src/store/features/ppm/project-health-checks-api', () => ({
   useGetProjectHealthCheckQuery: () => ({ data: undefined, isLoading: false }),
@@ -72,17 +74,17 @@ const detail = (
     lifecycle: LifecycleCategory.Active,
     health: HealthStatus.Healthy,
     healthCheck: { id: 'hc-1', status: { id: 1, name: 'Healthy' } },
-    followedOn: new Date('2026-10-24T09:00:00Z'),
+    followedOn: asInstant('2026-10-24T09:00:00Z'),
     isMuted: false,
-    lastChangedOn: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    lastChangedOn: toInstant(new Date(Date.now() - 24 * 60 * 60 * 1000)),
   },
   people: [
     { role: 'Project Owner', name: 'Sofia Marchetti', employeeId: 'e-1' },
     { role: 'Project Manager', name: 'Aaron Abbott', employeeId: 'e-2' },
     { role: 'Project Manager', name: 'Yusuf Young', employeeId: 'e-3' },
   ],
-  start: '2026-10-01',
-  end: '2027-01-30',
+  start: asCalendarDate('2026-10-01'),
+  end: asCalendarDate('2027-01-30'),
   changesSinceFollowed: [{} as never],
   hasMoreChanges: false,
   ...overrides,

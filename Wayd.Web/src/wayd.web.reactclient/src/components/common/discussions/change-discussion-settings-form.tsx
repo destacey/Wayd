@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { DiscussionSettingsDto } from '@/src/services/wayd-api'
+import { DiscussionSettingsDto } from '@/src/services/api/wayd.schemas'
 import {
   DiscussionChannelType,
   useSaveDiscussionSettingsMutation,

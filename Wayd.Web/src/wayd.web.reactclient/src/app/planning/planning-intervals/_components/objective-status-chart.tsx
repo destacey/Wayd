@@ -2,7 +2,7 @@
 
 import { ChartCard } from '@/src/components/common/metrics'
 import useTheme from '@/src/components/contexts/theme'
-import { PlanningIntervalObjectiveListDto } from '@/src/services/wayd-api'
+import { PlanningIntervalObjectiveListDto } from '@/src/services/api/wayd.schemas'
 import {
   getObjectiveStatusColor,
   getSemanticChartColor,

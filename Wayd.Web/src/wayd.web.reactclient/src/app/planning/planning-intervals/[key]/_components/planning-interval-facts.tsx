@@ -3,7 +3,7 @@
 import { LabeledContent } from '@/src/components/common/content'
 import LinksCard from '@/src/components/common/links/links-card'
 import { MarkdownRenderer } from '@/src/components/common/markdown'
-import { PlanningIntervalDetailsDto } from '@/src/services/wayd-api'
+import { PlanningIntervalDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Divider, Flex } from 'antd'
 import { calendarDaysBetween, formatCalendarDate } from '@/src/utils'
 

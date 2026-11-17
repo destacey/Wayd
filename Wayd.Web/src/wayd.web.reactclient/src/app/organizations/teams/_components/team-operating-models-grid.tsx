@@ -9,7 +9,7 @@ import {
   useDeleteTeamOperatingModelMutation,
   useGetTeamOperatingModelsQuery,
 } from '@/src/store/features/organizations/team-api'
-import { TeamOperatingModelDetailsDto } from '@/src/services/wayd-api'
+import { TeamOperatingModelDetailsDto } from '@/src/services/api/wayd.schemas'
 import { sizingMethodLabel } from '@/src/utils'
 import {
   formatReportingCadence,

@@ -3,11 +3,12 @@ import {
   SizingMethod,
   TeamCadenceMetricsDto,
   TeamCadencePeriodDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   TeamCadenceMetricsReportView,
   TeamCadenceMetricsReportViewProps,
 } from './team-cadence-metrics-report'
+import { asCalendarDate, type CalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('@/src/store/features/organizations/team-api', () => ({
   useGetTeamCadenceMetricsQuery: vi.fn(),
@@ -19,8 +20,8 @@ vi.mock('./team-cadence-velocity-chart', () => ({
 }))
 
 const period = (
-  start: string,
-  end: string,
+  start: CalendarDate,
+  end: CalendarDate,
   overrides: Partial<TeamCadencePeriodDto> = {},
 ): TeamCadencePeriodDto => ({
   start,
@@ -53,14 +54,14 @@ const createMetrics = (
     periods: 2,
   },
   periods: [
-    period('2026-10-12', '2026-10-25', {
+    period(asCalendarDate('2026-10-12'), asCalendarDate('2026-10-25'), {
       isCurrent: true,
       inAverages: false,
       inEstimateAverages: false,
       completedCount: 1,
       completedEstimate: 3,
     }),
-    period('2026-09-28', '2026-10-11'),
+    period(asCalendarDate('2026-09-28'), asCalendarDate('2026-10-11')),
   ],
   ...overrides,
 })
@@ -113,7 +114,7 @@ describe('TeamCadenceMetricsReportView', () => {
     // Arrange
     const metrics = createMetrics({
       periods: [
-        period('2026-09-28', '2026-10-11', {
+        period(asCalendarDate('2026-09-28'), asCalendarDate('2026-10-11'), {
           sizingMethod: SizingMethod.Effort,
           inEstimateAverages: false,
         }),

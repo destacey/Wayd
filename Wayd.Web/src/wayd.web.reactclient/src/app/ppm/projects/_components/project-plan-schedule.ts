@@ -1,4 +1,4 @@
-import { ProjectPlanNodeDto } from '@/src/services/wayd-api'
+import { ProjectPlanNodeDto } from '@/src/services/api/wayd.schemas'
 
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})/
 
@@ -6,8 +6,8 @@ const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})/
 export type PlanScheduleLabel = 'Overdue' | 'Due This Week' | 'Upcoming' | null
 
 type PlanScheduleNode = Pick<ProjectPlanNodeDto, 'status'> & {
-  end?: Date | string | undefined
-  plannedDate?: Date | string | undefined
+  end?: Date | string | undefined | null
+  plannedDate?: Date | string | undefined | null
 }
 
 /**
@@ -22,7 +22,9 @@ function toCalendarDay(value: Date | string): number | null {
   if (typeof value === 'string') {
     const match = DATE_ONLY.exec(value)
     if (match) {
-      return Number(match[1]) * 10000 + Number(match[2]) * 100 + Number(match[3])
+      return (
+        Number(match[1]) * 10000 + Number(match[2]) * 100 + Number(match[3])
+      )
     }
   }
 

@@ -6,7 +6,7 @@ import type { ReactElement } from 'react'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MessageProvider } from '@/src/components/contexts/messaging'
-import { IncidentDto } from '@/src/services/wayd-api'
+import { IncidentDto } from '@/src/services/api/wayd.schemas'
 import IncidentTeamsChat from './incident-teams-chat'
 import styles from './incident-teams-chat.module.css'
 
@@ -120,9 +120,13 @@ describe('IncidentTeamsChat', () => {
       display: 'block',
       width: '100%',
     })
-    expect(screen.getByText('People added here are not stored.')).toBeInTheDocument()
     expect(
-      screen.queryByText('Creating a Teams chat from Wayd is not available yet.'),
+      screen.getByText('People added here are not stored.'),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByText(
+        'Creating a Teams chat from Wayd is not available yet.',
+      ),
     ).not.toBeInTheDocument()
   })
 

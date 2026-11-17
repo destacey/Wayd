@@ -3,7 +3,10 @@
 import { Empty, Flex, Skeleton, Timeline, Typography } from 'antd'
 import dayjs from 'dayjs'
 import { FC } from 'react'
-import { StatusCategory, StatusTransitionDto } from '@/src/services/wayd-api'
+import {
+  StatusCategory,
+  StatusTransitionDto,
+} from '@/src/services/api/wayd.schemas'
 import WorkflowStatusTag from './workflow-status-tag'
 
 const { Text } = Typography

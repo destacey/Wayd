@@ -1,7 +1,7 @@
 import {
   JsonPatchOperation,
   JsonPatchOperationType,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 export type ProjectTaskUpdate = {
   name?: string
@@ -34,42 +34,42 @@ export const buildProjectStagePatchOperations = (
 
   if (updates.description !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/Description',
       value: updates.description,
     })
   }
   if (updates.statusId !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/Status',
       value: updates.statusId,
     })
   }
   if (updates.progress !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/Progress',
       value: updates.progress,
     })
   }
   if (updates.plannedStart !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/PlannedStart',
       value: updates.plannedStart,
     })
   }
   if (updates.plannedEnd !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/PlannedEnd',
       value: updates.plannedEnd,
     })
   }
   if (updates.assigneeIds !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/AssigneeIds',
       value: updates.assigneeIds,
     })
@@ -85,70 +85,70 @@ export const buildProjectTaskPatchOperations = (
 
   if (updates.name !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/Name',
       value: updates.name,
     })
   }
   if (updates.description !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/Description',
       value: updates.description,
     })
   }
   if (updates.statusId !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/StatusId',
       value: updates.statusId,
     })
   }
   if (updates.priorityId !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/PriorityId',
       value: updates.priorityId,
     })
   }
   if (updates.assigneeIds !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/AssigneeIds',
       value: updates.assigneeIds,
     })
   }
   if (updates.progress !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/Progress',
       value: updates.progress,
     })
   }
   if (updates.plannedStart !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/PlannedStart',
       value: updates.plannedStart,
     })
   }
   if (updates.plannedEnd !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/PlannedEnd',
       value: updates.plannedEnd,
     })
   }
   if (updates.plannedDate !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/PlannedDate',
       value: updates.plannedDate,
     })
   }
   if (updates.estimatedEffortHours !== undefined) {
     patchOperations.push({
-      op: JsonPatchOperationType.Replace,
+      op: JsonPatchOperationType.replace,
       path: '/EstimatedEffortHours',
       value: updates.estimatedEffortHours,
     })

@@ -1,6 +1,6 @@
 import React from 'react'
 import { render } from '@testing-library/react'
-import { ProjectDetailsDto } from '@/src/services/wayd-api'
+import { ProjectDetailsDto } from '@/src/services/api/wayd.schemas'
 import type { MentionCandidate } from '@/src/components/common/discussions'
 import ProjectDiscussion from './project-discussion'
 

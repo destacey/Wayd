@@ -1,6 +1,9 @@
 'use client'
 
-import { IntakeDeskDto, IntakeRequestSummaryDto } from '@/src/services/wayd-api'
+import {
+  IntakeDeskDto,
+  IntakeRequestSummaryDto,
+} from '@/src/services/api/wayd.schemas'
 import { Button, Tooltip } from 'antd'
 import { useRouter } from 'next/navigation'
 import { FC, useState } from 'react'

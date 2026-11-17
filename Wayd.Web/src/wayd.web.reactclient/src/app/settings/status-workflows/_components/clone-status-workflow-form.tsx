@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   CloneStatusWorkflowRequest,
   StatusWorkflowDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useCloneStatusWorkflowMutation } from '@/src/store/features/common/status-workflows-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -22,7 +22,7 @@ export interface CloneStatusWorkflowFormProps {
 
 interface CloneStatusWorkflowFormValues {
   name: string
-  description?: string
+  description?: string | null
 }
 
 const mapToRequestValues = (

@@ -4,7 +4,7 @@ import {
   WorkflowSchemeChangePreviewDto,
   WorkflowSchemeDetailsDto,
   WorkflowOwnership,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import ChangeSchemeWorkflowModal, {
   type SchemeWorkflowChange,
 } from './change-scheme-workflow-modal'

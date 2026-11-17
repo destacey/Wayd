@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { ScoringScaleLevelRequest } from '@/src/services/wayd-api'
+import { ScoringScaleLevelRequest } from '@/src/services/api/wayd.schemas'
 import { useAddScoringScaleLevelMutation } from '@/src/store/features/scoring/scoring-models-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, InputNumber, Modal } from 'antd'

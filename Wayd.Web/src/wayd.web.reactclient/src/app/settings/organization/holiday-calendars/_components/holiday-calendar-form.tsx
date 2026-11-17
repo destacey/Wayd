@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { ObjectIdAndKey } from '@/src/services/wayd-api'
+import { ObjectIdAndKey } from '@/src/services/api/wayd.schemas'
 import {
   useCreateHolidayCalendarMutation,
   useUpdateHolidayCalendarMutation,
@@ -18,7 +18,7 @@ const { TextArea } = Input
 export interface EditedHolidayCalendar {
   id: string
   name: string
-  description?: string
+  description?: string | null
 }
 
 export interface HolidayCalendarFormProps {
@@ -29,7 +29,7 @@ export interface HolidayCalendarFormProps {
 
 interface FormValues {
   name: string
-  description?: string
+  description?: string | null
 }
 
 /** Creates a holiday calendar, or renames one and changes its description. */

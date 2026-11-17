@@ -7,7 +7,7 @@ import {
   DependencyStrength,
   InteractionStyle,
   ProductDependencyDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useChangeProductDependencyTermsMutation } from '@/src/store/features/product-management/products-api'
 import {
   toFormErrors,

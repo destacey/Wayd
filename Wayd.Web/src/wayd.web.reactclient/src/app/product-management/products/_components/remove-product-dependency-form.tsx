@@ -5,7 +5,7 @@ import { useModalForm } from '@/src/hooks'
 import {
   ProductDependencyDto,
   RemoveProductDependencyRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useRemoveProductDependencyMutation } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Alert, Form, Input, Modal } from 'antd'

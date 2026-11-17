@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { ProductTeamLinkDto } from '@/src/services/wayd-api'
+import { ProductTeamLinkDto } from '@/src/services/api/wayd.schemas'
 import { useUnlinkProductTeamMutation } from '@/src/store/features/product-management/products-api'
 import { toApiError } from '@/src/utils'
 import { Modal, Typography } from 'antd'

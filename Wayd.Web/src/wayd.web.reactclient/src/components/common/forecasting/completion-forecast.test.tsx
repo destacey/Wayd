@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react'
-import { WorkItemForecastDto } from '@/src/services/wayd-api'
+import { WorkItemForecastDto } from '@/src/services/api/wayd.schemas'
 import CompletionForecast from './completion-forecast'
 import { ForecastOutcome } from './forecast-formatting'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 vi.mock('next/dynamic', () => ({
   default: () => {
@@ -32,14 +33,14 @@ const createForecast = (
 ): WorkItemForecastDto =>
   ({
     outcome: { id: ForecastOutcome.Forecast, name: 'Forecast' },
-    forecastStart: '2026-09-22',
+    forecastStart: asCalendarDate('2026-09-22'),
     remainingWorkItems: 3,
     excludedWorkItems: [],
     teams: [
       {
         team: { id: 't1', key: 7, name: 'Atlas', code: 'ATL', type: 'Team' },
-        from: '2026-06-24',
-        to: '2026-09-21',
+        from: asCalendarDate('2026-06-24'),
+        to: asCalendarDate('2026-09-21'),
         itemsCompleted: 45,
       },
     ],
@@ -49,14 +50,14 @@ const createForecast = (
     trials: 100,
     trialsBeyondHorizon: 0,
     percentiles: [
-      { confidence: 50, date: '2026-10-01' },
-      { confidence: 70, date: '2026-10-05' },
-      { confidence: 85, date: '2026-10-09' },
+      { confidence: 50, date: asCalendarDate('2026-10-01') },
+      { confidence: 70, date: asCalendarDate('2026-10-05') },
+      { confidence: 85, date: asCalendarDate('2026-10-09') },
       { confidence: 95, date: undefined },
     ],
     histogram: [
-      { date: '2026-10-01', trials: 60 },
-      { date: '2026-10-09', trials: 40 },
+      { date: asCalendarDate('2026-10-01'), trials: 60 },
+      { date: asCalendarDate('2026-10-09'), trials: 40 },
     ],
     dependencies: [],
     ignoredDependencies: [],
@@ -77,7 +78,7 @@ describe('CompletionForecast', () => {
     render(
       <CompletionForecast
         forecast={createForecast({
-          targetDate: '2026-10-05',
+          targetDate: asCalendarDate('2026-10-05'),
         })}
         isLoading={false}
       />,
@@ -91,10 +92,10 @@ describe('CompletionForecast', () => {
     render(
       <CompletionForecast
         forecast={createForecast({
-          targetDate: '2026-10-05',
+          targetDate: asCalendarDate('2026-10-05'),
         })}
         isLoading={false}
-        targetDateOverride="2026-10-09"
+        targetDateOverride={asCalendarDate('2026-10-09')}
       />,
     )
 

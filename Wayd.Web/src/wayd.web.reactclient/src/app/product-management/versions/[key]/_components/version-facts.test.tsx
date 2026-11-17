@@ -1,6 +1,7 @@
-import { VersionDto } from '@/src/services/wayd-api'
+import { VersionDto } from '@/src/services/api/wayd.schemas'
 import { render, screen } from '@testing-library/react'
 import VersionFacts from './version-facts'
+import { asInstant } from '@/src/utils/instant'
 
 const version = (overrides: Partial<VersionDto> = {}): VersionDto =>
   ({
@@ -27,7 +28,7 @@ describe('VersionFacts', () => {
     // Arrange — hand-entry and import both land here: released, with no cut recorded. Cutting is
     // refused after version, so "not yet" promises something that will never happen.
     const shipped = version({
-      releasedAt: '2026-04-03T12:00:00Z' as unknown as Date,
+      releasedAt: asInstant('2026-04-03T12:00:00Z'),
     })
 
     // Act
@@ -40,7 +41,7 @@ describe('VersionFacts', () => {
 
   it('shows the cut moment when there is one', () => {
     // Arrange / Act — midday UTC, so the day is the 1st whatever zone the test runs in
-    const cut = version({ cutAt: '2026-04-01T12:00:00Z' as unknown as Date })
+    const cut = version({ cutAt: asInstant('2026-04-01T12:00:00Z') })
     render(<VersionFacts version={cut} />)
 
     // Assert

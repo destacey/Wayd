@@ -33,7 +33,7 @@ import {
   ProjectDeliverableDto,
   ProjectDetailsDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetProjectDeliverableStatusHistoryQuery,
   useGetProjectDeliverablesQuery,

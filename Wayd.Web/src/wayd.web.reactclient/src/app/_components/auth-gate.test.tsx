@@ -11,7 +11,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ replace: mockReplace }),
 }))
 
-vi.mock('@/src/services/clients', () => ({
+vi.mock('@/src/services/auth-storage', () => ({
   isAuthActive: () => mockSignedIn,
 }))
 

@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { ProjectDeliverableDto } from '@/src/services/wayd-api'
+import { ProjectDeliverableDto } from '@/src/services/api/wayd.schemas'
 import { useDeleteProjectDeliverableMutation } from '@/src/store/features/ppm/project-deliverables-api'
 import { toApiError } from '@/src/utils'
 import { Modal } from 'antd'

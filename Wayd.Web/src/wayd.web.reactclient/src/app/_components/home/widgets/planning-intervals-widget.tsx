@@ -3,7 +3,7 @@
 import { WaydList } from '@/src/components/common'
 import EntityLink from '@/src/components/common/entity-link'
 import { IterationState } from '@/src/components/types'
-import { PlanningIntervalListDto } from '@/src/services/wayd-api'
+import { PlanningIntervalListDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetPlanningIntervalIterationsQuery,
   useGetPlanningIntervalsQuery,

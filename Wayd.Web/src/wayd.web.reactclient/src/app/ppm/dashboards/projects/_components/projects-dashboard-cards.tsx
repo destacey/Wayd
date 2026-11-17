@@ -3,7 +3,7 @@
 import { LifecycleStatusTag, WaydEmpty } from '@/src/components/common'
 import StageTimeline from '@/src/app/ppm/_components/stage-timeline'
 import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-health-check-tag'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
 import { Card, Col, Flex, Row, Skeleton, Typography } from 'antd'
 import { Dayjs } from 'dayjs'
 import { FC, useState } from 'react'

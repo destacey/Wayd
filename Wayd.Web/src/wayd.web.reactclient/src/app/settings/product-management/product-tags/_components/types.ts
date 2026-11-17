@@ -1,4 +1,4 @@
-import { ProductTagCategoryDto } from '@/src/services/wayd-api'
+import { ProductTagCategoryDto } from '@/src/services/api/wayd.schemas'
 
 /**
  * What an action or its dialog needs to know about a tag category.

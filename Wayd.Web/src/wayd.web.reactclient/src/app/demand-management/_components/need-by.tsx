@@ -6,7 +6,7 @@ import {
   NeedByBasis,
   NeedByBasisDto,
   NeedByBasisFamily,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   formatCalendarDate,
   parseCalendarDate,
@@ -31,7 +31,7 @@ export interface NeedByFormValues {
 
 /** A request's need-by as the form's starting values. */
 export const toNeedByFormValues = (
-  needBy: IntakeRequestNeedByDto | undefined,
+  needBy: IntakeRequestNeedByDto | undefined | null,
 ): NeedByFormValues =>
   needBy
     ? {
@@ -101,9 +101,9 @@ export const needByColor = (
       : undefined
 
 /** A need-by in a list or on a card: "By Mar 31, 2027 · we promised it", or that no date was given. */
-export const NeedByTag: FC<{ needBy: IntakeRequestNeedByDto | undefined }> = ({
-  needBy,
-}) =>
+export const NeedByTag: FC<{
+  needBy: IntakeRequestNeedByDto | undefined | null
+}> = ({ needBy }) =>
   needBy ? (
     <Tag color={needByColor(needBy)} title={needBy.reference || undefined}>
       By {formatCalendarDate(needBy.date)} · {NEED_BY_SHORT[needBy.basis]}

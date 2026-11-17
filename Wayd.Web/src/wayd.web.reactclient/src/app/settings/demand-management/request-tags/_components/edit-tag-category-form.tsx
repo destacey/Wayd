@@ -23,7 +23,7 @@ export interface EditTagCategoryFormProps {
 
 interface EditTagCategoryFormValues {
   name: string
-  description?: string
+  description?: string | null
 }
 
 /** Renames and re-describes a tag category the organization added. */

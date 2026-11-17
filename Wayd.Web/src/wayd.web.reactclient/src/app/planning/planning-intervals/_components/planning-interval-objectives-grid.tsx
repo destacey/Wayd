@@ -1,6 +1,6 @@
 'use client'
 
-import { PlanningIntervalObjectiveListDto } from '@/src/services/wayd-api'
+import { PlanningIntervalObjectiveListDto } from '@/src/services/api/wayd.schemas'
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import {

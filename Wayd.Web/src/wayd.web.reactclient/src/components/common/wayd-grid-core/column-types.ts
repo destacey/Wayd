@@ -1,5 +1,7 @@
-import type { ColumnDef } from './index'
+import type { ColumnDef, SortingFn } from './index'
 import dayjs from 'dayjs'
+
+import { sortDatesEmptyLast } from './grid-sorting'
 
 import type { WaydColumnType, WaydGridColumnMeta } from './types'
 import type { RowData } from '@tanstack/react-table'
@@ -43,6 +45,8 @@ interface ColumnTypeDef<T extends RowData> {
   filterOptions?: WaydGridColumnMeta['filterOptions']
   /** Default column width; used only when the column doesn't set its own `size`. */
   size?: number
+  /** Default sort; used only when the column doesn't set its own `sortFn`. */
+  sortFn?: SortingFn<T>
 }
 
 /** Default width for a yes-no column (compact — the content is just Yes/No). */
@@ -82,10 +86,12 @@ const registry: {
     // Accessor left undefined → raw value flows through for sorting/filtering.
     cell: ({ getValue }) => formatDateOnly(getValue()),
     filterType: 'date',
+    sortFn: sortDatesEmptyLast,
   }),
   dateTime: <T extends RowData>(): ColumnTypeDef<T> => ({
     cell: ({ getValue }) => formatDateTime(getValue()),
     filterType: 'dateTime',
+    sortFn: sortDatesEmptyLast,
   }),
 }
 
@@ -93,7 +99,10 @@ const registry: {
  * Reads the raw accessed value for a column, honoring `accessorFn` then
  * `accessorKey`. Used to feed a column type's value transform.
  */
-const readRaw = <T extends RowData>(col: ColumnDef<T, unknown>, row: T): unknown => {
+const readRaw = <T extends RowData>(
+  col: ColumnDef<T, unknown>,
+  row: T,
+): unknown => {
   const anyCol = col as {
     accessorFn?: (row: T, index: number) => unknown
     accessorKey?: string | number
@@ -113,7 +122,7 @@ const readRaw = <T extends RowData>(col: ColumnDef<T, unknown>, row: T): unknown
  * Precedence — explicit column config wins over the type's defaults:
  * - The type's value transform wraps the column's existing accessor (so the
  *   raw value is read first, then mapped for display/filtering).
- * - `cell`, `size`, and meta `filterType`/`filterOptions` are only filled in
+ * - `cell`, `size`, `sortFn`, and meta `filterType`/`filterOptions` are only filled in
  *   where the column didn't already set them.
  */
 export const applyColumnType = <T extends RowData>(
@@ -145,6 +154,10 @@ export const applyColumnType = <T extends RowData>(
 
   if (type.size !== undefined && col.size === undefined) {
     next.size = type.size
+  }
+
+  if (type.sortFn && col.sortFn === undefined) {
+    next.sortFn = type.sortFn
   }
 
   next.meta = {

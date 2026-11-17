@@ -1,5 +1,6 @@
 'use client'
 
+import { asCalendarDate } from '@/src/utils/calendar-date'
 import { NOT_RECORDED_CHANNEL_LABEL } from './channel'
 import { WaydGrid, createCsvColumn } from '@/src/components/common/wayd-grid'
 import type {
@@ -17,7 +18,7 @@ import {
   IntakeRequestSummaryDto,
   NeedByBasisDto,
   NeedByBasisFamily,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { formatCalendarDate } from '@/src/utils'
 import { Checkbox, Tooltip } from 'antd'
 import Link from 'next/link'
@@ -63,8 +64,7 @@ export interface IntakeRequestsGridProps {
   rowSelection?: RowSelectionState
   onRowSelectionChange?: (
     updater:
-      | RowSelectionState
-      | ((previous: RowSelectionState) => RowSelectionState),
+      RowSelectionState | ((previous: RowSelectionState) => RowSelectionState),
   ) => void
 }
 
@@ -261,7 +261,9 @@ const IntakeRequestsGrid: FC<IntakeRequestsGridProps> = ({
       meta: {
         filterType: 'date',
         exportFormatter: (value: unknown) =>
-          typeof value === 'string' ? formatCalendarDate(value) : '',
+          typeof value === 'string'
+            ? formatCalendarDate(asCalendarDate(value))
+            : '',
       },
     },
     {

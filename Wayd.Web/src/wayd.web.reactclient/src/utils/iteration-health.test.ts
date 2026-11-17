@@ -7,12 +7,14 @@ import {
   sprintActiveDays,
 } from './iteration-health'
 import { toCalendarDate } from './calendar-date'
+import { asCalendarDate } from '@/src/utils/calendar-date'
+import { asInstant } from '@/src/utils/instant'
 
 describe('calculateIterationHealth', () => {
   // Base sprint: 40 SP, 14 days (Jan 1-14)
   const baseParams = {
-    startDate: '2024-01-01',
-    endDate: '2024-01-15', // 14 days total
+    startDate: asCalendarDate('2024-01-01'),
+    endDate: asCalendarDate('2024-01-15'), // 14 days total
     total: 40,
   }
 
@@ -22,7 +24,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 30,
-        referenceDate: '2024-01-11', // Day 10
+        referenceDate: asCalendarDate('2024-01-11'), // Day 10
       })
 
       expect(result.status).toBe(IterationHealthStatus.OnTrack)
@@ -34,7 +36,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 20,
-        referenceDate: '2024-01-08', // Day 7
+        referenceDate: asCalendarDate('2024-01-08'), // Day 7
       })
 
       expect(result.status).toBe(IterationHealthStatus.OnTrack)
@@ -48,7 +50,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 26,
-        referenceDate: '2024-01-11',
+        referenceDate: asCalendarDate('2024-01-11'),
       })
 
       expect(result.status).toBe(IterationHealthStatus.OnTrack)
@@ -64,7 +66,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 24,
-        referenceDate: '2024-01-11',
+        referenceDate: asCalendarDate('2024-01-11'),
       })
 
       expect(result.status).toBe(IterationHealthStatus.AtRisk)
@@ -81,7 +83,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 18,
-        referenceDate: '2024-01-11',
+        referenceDate: asCalendarDate('2024-01-11'),
       })
 
       expect(result.status).toBe(IterationHealthStatus.OffTrack)
@@ -93,7 +95,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 0,
-        referenceDate: '2024-01-13',
+        referenceDate: asCalendarDate('2024-01-13'),
       })
 
       expect(result.status).toBe(IterationHealthStatus.OffTrack)
@@ -106,7 +108,7 @@ describe('calculateIterationHealth', () => {
         ...baseParams,
         total: 0,
         completed: 0,
-        referenceDate: '2024-01-08',
+        referenceDate: asCalendarDate('2024-01-08'),
       })
 
       expect(result.status).toBe(IterationHealthStatus.Unknown)
@@ -117,7 +119,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 0,
-        referenceDate: '2023-12-31', // Before start
+        referenceDate: asCalendarDate('2023-12-31'), // Before start
       })
 
       expect(result.status).toBe(IterationHealthStatus.NotStarted)
@@ -127,7 +129,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 32,
-        referenceDate: '2024-01-20', // After end
+        referenceDate: asCalendarDate('2024-01-20'), // After end
       })
 
       expect(result.status).toBe(IterationHealthStatus.Completed)
@@ -137,7 +139,7 @@ describe('calculateIterationHealth', () => {
       const result = calculateIterationHealth({
         ...baseParams,
         completed: 40,
-        referenceDate: '2024-01-11',
+        referenceDate: asCalendarDate('2024-01-11'),
       })
 
       expect(result.status).toBe(IterationHealthStatus.OnTrack)
@@ -159,7 +161,10 @@ describe('calculateIterationHealth', () => {
 })
 
 describe('sprintActiveDays', () => {
-  const planned = { start: '2026-09-28', end: '2026-10-09' }
+  const planned = {
+    start: asCalendarDate('2026-09-28'),
+    end: asCalendarDate('2026-10-09'),
+  }
 
   it('falls back to the planned days without an active period', () => {
     // Act
@@ -206,8 +211,8 @@ describe('calculateCommitmentHealth', () => {
   // Committed at noon on Sep 28; ends at the end of Oct 11 (midnight UTC here):
   // 13.5 days, the span the burn-down's ideal line runs over.
   const sprint = {
-    start: '2026-09-28T12:00:00Z',
-    end: '2026-10-12T00:00:00Z',
+    start: asInstant('2026-09-28T12:00:00Z'),
+    end: asInstant('2026-10-12T00:00:00Z'),
   }
   const at = (iso: string) => new Date(iso)
 
@@ -217,7 +222,7 @@ describe('calculateCommitmentHealth', () => {
       ...sprint,
       committed: 25,
       delivered: 19,
-      now: at('2026-10-06T12:00:00Z'),
+      now: at(asInstant('2026-10-06T12:00:00Z')),
     })
 
     // Assert
@@ -232,7 +237,7 @@ describe('calculateCommitmentHealth', () => {
       ...sprint,
       committed: 100,
       delivered: 74,
-      now: at('2026-10-11T12:00:00Z'),
+      now: at(asInstant('2026-10-11T12:00:00Z')),
     })
 
     // Assert
@@ -246,7 +251,7 @@ describe('calculateCommitmentHealth', () => {
       ...sprint,
       committed: 25,
       delivered: 5,
-      now: at('2026-10-06T12:00:00Z'),
+      now: at(asInstant('2026-10-06T12:00:00Z')),
     })
 
     // Assert
@@ -260,7 +265,7 @@ describe('calculateCommitmentHealth', () => {
         ...sprint,
         committed: 25,
         delivered: 0,
-        now: at('2026-09-28T09:00:00Z'),
+        now: at(asInstant('2026-09-28T09:00:00Z')),
       }).status,
     ).toBe(IterationHealthStatus.NotStarted)
     expect(
@@ -268,7 +273,7 @@ describe('calculateCommitmentHealth', () => {
         ...sprint,
         committed: 25,
         delivered: 25,
-        now: at('2026-10-12T00:00:00Z'),
+        now: at(asInstant('2026-10-12T00:00:00Z')),
       }).status,
     ).toBe(IterationHealthStatus.Completed)
   })
@@ -279,7 +284,7 @@ describe('calculateCommitmentHealth', () => {
       ...sprint,
       committed: 0,
       delivered: 3,
-      now: at('2026-10-06T12:00:00Z'),
+      now: at(asInstant('2026-10-06T12:00:00Z')),
     })
 
     // Assert
@@ -289,10 +294,10 @@ describe('calculateCommitmentHealth', () => {
   it('expects no progress across a weekend the ideal line is flat over', () => {
     // Arrange — half the commitment due by Saturday, none over the weekend
     const ideal = [
-      { at: '2026-09-28T12:00:00Z', remaining: 1 },
-      { at: '2026-10-03T00:00:00Z', remaining: 0.5 },
-      { at: '2026-10-05T00:00:00Z', remaining: 0.5 },
-      { at: '2026-10-12T00:00:00Z', remaining: 0 },
+      { at: asInstant('2026-09-28T12:00:00Z'), remaining: 1 },
+      { at: asInstant('2026-10-03T00:00:00Z'), remaining: 0.5 },
+      { at: asInstant('2026-10-05T00:00:00Z'), remaining: 0.5 },
+      { at: asInstant('2026-10-12T00:00:00Z'), remaining: 0 },
     ]
 
     // Act — half delivered by Sunday noon: on the line, though 44% of the time
@@ -302,7 +307,7 @@ describe('calculateCommitmentHealth', () => {
       committed: 20,
       delivered: 10,
       ideal,
-      now: at('2026-10-04T12:00:00Z'),
+      now: at(asInstant('2026-10-04T12:00:00Z')),
     })
 
     // Assert
@@ -313,9 +318,9 @@ describe('calculateCommitmentHealth', () => {
 
 describe('idealDoneAt', () => {
   const ideal = [
-    { at: '2026-09-28T00:00:00Z', remaining: 1 },
-    { at: '2026-09-29T00:00:00Z', remaining: 0.5 },
-    { at: '2026-09-30T00:00:00Z', remaining: 0 },
+    { at: asInstant('2026-09-28T00:00:00Z'), remaining: 1 },
+    { at: asInstant('2026-09-29T00:00:00Z'), remaining: 0.5 },
+    { at: asInstant('2026-09-30T00:00:00Z'), remaining: 0 },
   ]
 
   it('reads the share done between two points', () => {
@@ -336,7 +341,10 @@ describe('idealDoneAt', () => {
 })
 
 describe('calculateSprintHealth', () => {
-  const days = { startDate: '2026-09-28', endDate: '2026-10-11' }
+  const days = {
+    startDate: asCalendarDate('2026-09-28'),
+    endDate: asCalendarDate('2026-10-11'),
+  }
   const now = new Date('2026-10-06T12:00:00Z')
 
   it('measures against the commitment when the sprint has one', () => {

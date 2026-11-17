@@ -7,7 +7,7 @@ import {
   SprintCapacityDto,
   SprintCapacityOutcome,
   SprintCapacityScopeBasis,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetSprintCapacityQuery } from '@/src/store/features/work-management/sprints-api'
 import { sizingMethodMeasure } from '@/src/utils'
 import { formatPersonDays } from '@/src/app/organizations/_components/team-capacity/team-capacity-data'

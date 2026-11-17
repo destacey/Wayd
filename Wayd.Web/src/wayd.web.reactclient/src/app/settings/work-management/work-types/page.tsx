@@ -6,7 +6,7 @@ import {
   createActionsColumn,
 } from '@/src/components/common/wayd-grid'
 import { useAppDispatch, useAppSelector, useDocumentTitle } from '@/src/hooks'
-import { WorkTypeDto } from '@/src/services/wayd-api'
+import { WorkTypeDto } from '@/src/services/api/wayd.schemas'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { useEffect, useMemo, useState } from 'react'
 import { setIncludeInactive } from '@/src/store/features/work-management/work-type-slice'

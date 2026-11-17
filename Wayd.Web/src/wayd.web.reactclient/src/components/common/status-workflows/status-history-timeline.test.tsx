@@ -1,6 +1,10 @@
 import { render, screen } from '@testing-library/react'
-import { StatusCategory, StatusTransitionDto } from '@/src/services/wayd-api'
+import {
+  StatusCategory,
+  StatusTransitionDto,
+} from '@/src/services/api/wayd.schemas'
 import StatusHistoryTimeline from './status-history-timeline'
+import { asInstant } from '@/src/utils/instant'
 
 const transition = (
   overrides: Partial<StatusTransitionDto> = {},
@@ -18,7 +22,7 @@ const transition = (
     workflowId: '33333333-3333-3333-3333-333333333333',
     actorKind: { id: 0, name: 'User' },
     changedBySystem: false,
-    changedOn: '2026-04-01T09:00:00Z',
+    changedOn: asInstant('2026-04-01T09:00:00Z'),
     ...overrides,
   }) as StatusTransitionDto
 

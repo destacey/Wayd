@@ -9,7 +9,7 @@ import { WaydGrid } from '@/src/components/common/wayd-grid'
 import useAuth from '@/src/components/contexts/auth'
 import { authorizePage } from '@/src/components/hoc'
 import { useDocumentTitle } from '@/src/hooks'
-import { ExpenditureCategoryListDto } from '@/src/services/wayd-api'
+import { ExpenditureCategoryListDto } from '@/src/services/api/wayd.schemas'
 import {
   useGetExpenditureCategoriesQuery,
   useGetExpenditureCategoryQuery,

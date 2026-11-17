@@ -14,7 +14,7 @@ import {
   JobServerResponse,
   JobStateFilter,
   JobStatisticsResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { formatTimeAgo } from '@/src/utils/time-ago'
 import { SchedulerHealth, summarizeSchedulerHealth } from './job-health'
 import styles from './job-health-summary.module.css'

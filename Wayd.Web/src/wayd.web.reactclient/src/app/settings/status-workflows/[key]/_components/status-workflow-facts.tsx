@@ -1,7 +1,7 @@
 'use client'
 
 import { LabeledContent } from '@/src/components/common/content'
-import { StatusWorkflowDetailsDto } from '@/src/services/wayd-api'
+import { StatusWorkflowDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Flex } from 'antd'
 
 export interface StatusWorkflowFactsProps {

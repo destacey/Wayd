@@ -19,7 +19,7 @@ namespace Wayd.Infrastructure.OpenApi;
 /// </para>
 /// <para>
 /// The mapping lists only the derived types, not the base's own discriminator, and an abstract base carries
-/// <c>x-abstract</c>, which NSwag's TypeScript generator reads. Only the schema stage knows the hierarchy, so
+/// <c>x-abstract</c>, which NSwag's C# generator reads. Only the schema stage knows the hierarchy, so
 /// it records it on the base's schema; the document stage, where the generator has made the components,
 /// rewrites them.
 /// </para>

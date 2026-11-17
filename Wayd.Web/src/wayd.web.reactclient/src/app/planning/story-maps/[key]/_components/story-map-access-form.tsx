@@ -6,7 +6,7 @@ import {
   StoryMapDetailsDto,
   StoryMapEditAccess,
   Visibility,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { toApiError, toFormErrors } from '@/src/utils'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'

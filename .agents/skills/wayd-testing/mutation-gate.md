@@ -18,7 +18,7 @@ Whenever the change adds or alters an asserted behaviour, or the request enumera
 
 **Scope: one mutation per asserted behaviour.** Take the Return and Guard rows of the catalogue first — they are the cheapest to apply and the most often survived. One test frequently kills several mutations; do not add a test per mutation.
 
-Skip code where a bug is impossible or harmless: auto-properties, records, plain mapping, generated files (`*.g.cs`, `wayd-api.ts`, migrations, `Internal/Generated/`).
+Skip code where a bug is impossible or harmless: auto-properties, records, plain mapping, generated files (`*.g.cs`, `src/services/api/`, migrations, `Internal/Generated/`).
 
 ## Where it can run
 
@@ -74,7 +74,7 @@ Never mutate to make a failing test pass. The mutation is a probe; production be
 
 **Undo only the mutation, never the file.** Apply the inverse edit to the exact text you changed. Never `git checkout -- <file>`, `git restore`, `git stash`, or any whole-file reset: the working tree may hold unrelated uncommitted work, and a whole-file revert destroys it. Assume it does.
 
-**A mutation in `Wayd.Web.Api` also mutates the generated files.** Running a test project that references the API makes a Debug build of it, and that build regenerates `specification.json` and `wayd-api.ts` from the mutated code; a later build of `Wayd.Tools.DataGeneration.Cli.Client` regenerates its client from that spec. Undoing the source edit leaves them behind, ready to be committed. After the last mutation, rebuild the API (and the data generation client) on the restored code, and check that those files differ from before the gate only where the change meant them to.
+**A mutation in `Wayd.Web.Api` also mutates the generated files.** Running a test project that references the API makes a Debug build of it, and that build regenerates `specification.json` and the TypeScript client (`src/services/api/`) from the mutated code; a later build of `Wayd.Tools.DataGeneration.Cli.Client` regenerates its client from that spec. Undoing the source edit leaves them behind, ready to be committed. After the last mutation, rebuild the API (and the data generation client) on the restored code, and check that those files differ from before the gate only where the change meant them to.
 
 ## Results table
 

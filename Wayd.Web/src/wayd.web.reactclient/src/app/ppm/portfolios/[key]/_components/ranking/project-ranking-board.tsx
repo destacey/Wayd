@@ -17,7 +17,7 @@ import RecordProjectScoreForm from '@/src/app/ppm/projects/_components/scoring/r
 import {
   PortfolioRankingScoreboardDto,
   ProjectListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetProjectScoringContextQuery } from '@/src/store/features/ppm/project-scores-api'
 import { useMovePortfolioProjectRanksMutation } from '@/src/store/features/ppm/portfolios-api'
 import { getSortedNameList, isApiError } from '@/src/utils'

@@ -1,6 +1,6 @@
 'use client'
 
-import { LinkDto } from '@/src/services/wayd-api'
+import { LinkDto } from '@/src/services/api/wayd.schemas'
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
 import { Button, Flex, Popconfirm } from 'antd'
 import Link from 'next/link'

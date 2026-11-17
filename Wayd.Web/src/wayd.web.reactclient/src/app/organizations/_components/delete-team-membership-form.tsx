@@ -1,6 +1,6 @@
 'use client'
 
-import { TeamMembershipDto } from '@/src/services/wayd-api'
+import { TeamMembershipDto } from '@/src/services/api/wayd.schemas'
 import { TeamTypeName } from '../types'
 import { Descriptions, Modal } from 'antd'
 import { formatCalendarDate } from '@/src/utils'

@@ -7,7 +7,7 @@ import {
   TransitionMode,
   WorkflowStatusDto,
   WorkflowOwnership,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import WorkflowTransitionsEditor from './workflow-transitions-editor'
 
 const setTransitionMode = vi.fn()

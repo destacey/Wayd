@@ -9,6 +9,7 @@ import { useCreateObjectiveHealthCheckMutation } from '@/src/store/features/plan
 import { toFormErrors } from '@/src/utils'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { MarkdownEditor } from '@/src/components/common/markdown'
+import { toInstant } from '@/src/utils/instant'
 
 const { Item } = Form
 const { Group: RadioGroup } = Radio
@@ -63,7 +64,7 @@ const CreateHealthCheckForm = ({
           request: {
             planningIntervalObjectiveId: objectiveId,
             statusId: values.statusId,
-            expiration: values.expiration?.toDate(),
+            expiration: toInstant(values.expiration),
             note: values.note,
           },
         })
@@ -156,4 +157,3 @@ const CreateHealthCheckForm = ({
 }
 
 export default CreateHealthCheckForm
-

@@ -5,7 +5,7 @@ import {
   createActionsColumn,
 } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
-import { IntakeRequestTagListItemDto } from '@/src/services/wayd-api'
+import { IntakeRequestTagListItemDto } from '@/src/services/api/wayd.schemas'
 import { useSearchIntakeRequestTagsQuery } from '@/src/store/features/demand-management/demand-management-api'
 import { Alert } from 'antd'
 

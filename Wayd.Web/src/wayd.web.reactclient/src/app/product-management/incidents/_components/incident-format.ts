@@ -2,7 +2,7 @@ export function instantToEpochMs(instant: Date | string): number {
   return instant instanceof Date ? instant.getTime() : new Date(instant).getTime()
 }
 
-/** RTK Query and NSwag often deliver instants as ISO strings after cache round-trips. */
+/** An instant as a `Date`, whether it is one already or the ISO string the API sends. */
 export function coerceIncidentInstant(instant: Date | string): Date {
   return instant instanceof Date ? instant : new Date(instant)
 }

@@ -6,8 +6,9 @@ import {
   FollowView,
   LifecycleCategory,
   SortDirection,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import FollowingPage, { parseRecord } from './page'
+import { asInstant } from '@/src/utils/instant'
 
 vi.mock('@/src/components/hoc', () => ({
   requireFeatureFlag: (Page: React.ComponentType) => Page,
@@ -119,7 +120,7 @@ const record = (n: number): FollowedRecordDto => ({
   name: `Project ${n}`,
   statusName: 'Active',
   lifecycle: LifecycleCategory.Active,
-  followedOn: new Date('2026-10-01T09:00:00Z'),
+  followedOn: asInstant('2026-10-01T09:00:00Z'),
   isMuted: false,
 })
 

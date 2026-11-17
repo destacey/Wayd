@@ -1,7 +1,7 @@
 'use client'
 
 import { WaydGrid } from '@/src/components/common/wayd-grid'
-import { StrategicThemeListDto } from '@/src/services/wayd-api'
+import { StrategicThemeListDto } from '@/src/services/api/wayd.schemas'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import Link from 'next/link'
 import { useMemo } from 'react'

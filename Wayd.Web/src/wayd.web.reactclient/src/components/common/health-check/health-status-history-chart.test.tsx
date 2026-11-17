@@ -3,6 +3,7 @@ import HealthStatusHistoryChart, {
   convertHealthStatusToNumber,
   toHealthStatusHistorySeries,
 } from './health-status-history-chart'
+import { asInstant } from '@/src/utils/instant'
 
 vi.mock('next/dynamic', () => ({
   default: () => {
@@ -34,15 +35,15 @@ describe('HealthStatusHistoryChart helpers', () => {
   it('should sort by report date and map status values', () => {
     const result = toHealthStatusHistorySeries([
       {
-        reportedOn: new Date('2026-02-01T10:00:00.000Z'),
+        reportedOn: asInstant('2026-02-01T10:00:00.000Z'),
         status: { name: 'Unhealthy' },
       },
       {
-        reportedOn: new Date('2026-01-15T10:00:00.000Z'),
+        reportedOn: asInstant('2026-01-15T10:00:00.000Z'),
         status: { name: 'Healthy' },
       },
       {
-        reportedOn: new Date('2026-01-20T10:00:00.000Z'),
+        reportedOn: asInstant('2026-01-20T10:00:00.000Z'),
         status: { name: 'At Risk' },
       },
     ])
@@ -63,11 +64,11 @@ describe('HealthStatusHistoryChart', () => {
       <HealthStatusHistoryChart
         data={[
           {
-            reportedOn: new Date('2026-02-01T10:00:00.000Z'),
+            reportedOn: asInstant('2026-02-01T10:00:00.000Z'),
             status: { name: 'Unhealthy' },
           },
           {
-            reportedOn: new Date('2026-01-15T10:00:00.000Z'),
+            reportedOn: asInstant('2026-01-15T10:00:00.000Z'),
             status: { name: 'Healthy' },
           },
         ]}

@@ -1,8 +1,9 @@
 'use client'
 
+import { toInstant } from '@/src/utils/instant'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { CutVersionRequest, VersionDto } from '@/src/services/wayd-api'
+import { CutVersionRequest, VersionDto } from '@/src/services/api/wayd.schemas'
 import { useCutVersionMutation } from '@/src/store/features/product-management/versions-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'
@@ -41,7 +42,7 @@ const CutVersionForm = ({
         try {
           const request = {
             id: version.id,
-            cutAt: values.cutAt.toDate(),
+            cutAt: toInstant(values.cutAt),
           } as CutVersionRequest
 
           const response = await cutVersion({

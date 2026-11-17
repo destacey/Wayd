@@ -3,8 +3,9 @@ import {
   NeedByBasis,
   NeedByBasisDto,
   NeedByBasisFamily,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { needByFieldFor, toNeedByRequest } from './need-by'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const basis = (
   code: NeedByBasis,
@@ -42,7 +43,7 @@ describe('toNeedByRequest', () => {
   it('sends the picked day as a calendar date', () => {
     // Arrange
     const values = {
-      date: dayjs('2026-12-31'),
+      date: dayjs(asCalendarDate('2026-12-31')),
       basis: NeedByBasis.RequesterPreference,
       reference: '  Before the board  ',
     }
@@ -63,11 +64,11 @@ describe('toNeedByRequest', () => {
   it('drops commitment fields left over from a basis that no longer records one', () => {
     // Arrange
     const values = {
-      date: dayjs('2026-12-31'),
+      date: dayjs(asCalendarDate('2026-12-31')),
       basis: NeedByBasis.RequesterPreference,
       reference: 'Before the board',
       committedById: 'e-1',
-      committedOn: dayjs('2026-09-03'),
+      committedOn: dayjs(asCalendarDate('2026-09-03')),
     }
 
     // Act
@@ -81,11 +82,11 @@ describe('toNeedByRequest', () => {
   it('sends who made a commitment and when for a basis that records one', () => {
     // Arrange
     const values = {
-      date: dayjs('2026-12-31'),
+      date: dayjs(asCalendarDate('2026-12-31')),
       basis: NeedByBasis.Commitment,
       reference: 'Steering committee',
       committedById: 'e-1',
-      committedOn: dayjs('2026-09-03'),
+      committedOn: dayjs(asCalendarDate('2026-09-03')),
     }
 
     // Act

@@ -26,6 +26,6 @@ public sealed class UpdateRoadmapMilestoneDateRequestValidator : CustomValidator
         RuleLevelCascadeMode = CascadeMode.Stop;
 
         RuleFor(t => t.Date)
-            .NotNull();
+            .NotEmpty();
     }
 }

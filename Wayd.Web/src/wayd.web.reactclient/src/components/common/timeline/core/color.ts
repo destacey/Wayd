@@ -19,7 +19,7 @@ export function luminance(hex: string): number {
 }
 
 /** Black for light backgrounds, white for dark — readable bar text. */
-export function contrastText(backgroundHex: string | undefined): string {
+export function contrastText(backgroundHex: string | undefined | null): string {
   if (!backgroundHex) return '#ffffff'
   return luminance(backgroundHex) > 0.6 ? '#1f1f1f' : '#ffffff'
 }

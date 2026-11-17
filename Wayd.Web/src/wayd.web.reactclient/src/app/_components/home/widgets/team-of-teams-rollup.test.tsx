@@ -6,7 +6,8 @@ import {
   Methodology,
   MyTeamOfTeamsRowResponse,
   MyTeamOfTeamsSummaryResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
+import { asInstant } from '@/src/utils/instant'
 
 const mockAuth = { claims: new Set(['Permissions.Iterations.View']) }
 
@@ -180,7 +181,7 @@ describe('TeamOfTeamsRollup', () => {
           methodology: Methodology.Kanban,
           flow: {
             inProgressCount: 5,
-            oldestInProgressSince: new Date('2026-11-01T12:00:00Z'),
+            oldestInProgressSince: asInstant('2026-11-01T12:00:00Z'),
             medianCycleTimeDays: 2,
           },
         }),

@@ -1,4 +1,4 @@
-import { FollowCountsDto, FollowView } from '@/src/services/wayd-api'
+import { FollowCountsDto, FollowView } from '@/src/services/api/wayd.schemas'
 
 /** What narrows the list: one kind of record, one "needs a look" view, both or neither. */
 export interface FollowingFilter {

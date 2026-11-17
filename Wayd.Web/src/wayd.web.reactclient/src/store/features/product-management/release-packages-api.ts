@@ -1,4 +1,17 @@
-import { getReleasePackagesClient } from '@/src/services/clients'
+import {
+  releasePackagesAssemble,
+  releasePackagesCorrectDates,
+  releasePackagesDelete,
+  releasePackagesGetActivities,
+  releasePackagesGetReleasePackage,
+  releasePackagesGetReleasePackages,
+  releasePackagesGetStatusHistory,
+  releasePackagesGetStatusWorkflow,
+  releasePackagesGetWorkflowActions,
+  releasePackagesMarkReleased,
+  releasePackagesSetManifest,
+  releasePackagesWithdraw,
+} from '@/src/services/api/release-packages'
 import { apiSlice } from '../apiSlice'
 import {
   AssembleReleasePackageRequest,
@@ -13,7 +26,7 @@ import {
   WithdrawReleasePackageRequest,
   PagedResponseOfActivityLogDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 
 export interface GetReleasePackagesRequest {
@@ -56,11 +69,11 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request = {}) => {
         try {
-          const data = await getReleasePackagesClient().getReleasePackages(
-            request.statusCategory,
-            request.containingProductId,
-            request.containingVersionId,
-          )
+          const data = await releasePackagesGetReleasePackages({
+            statusCategory: request.statusCategory,
+            containingProductId: request.containingProductId,
+            containingVersionId: request.containingVersionId,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -72,7 +85,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     getReleasePackage: builder.query<ReleasePackageDto, string>({
       queryFn: async (id) => {
         try {
-          const data = await getReleasePackagesClient().getReleasePackage(id)
+          const data = await releasePackagesGetReleasePackage(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -89,7 +102,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (id) => {
         try {
-          const data = await getReleasePackagesClient().getStatusHistory(id)
+          const data = await releasePackagesGetStatusHistory(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -110,8 +123,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (idOrKey) => {
         try {
-          const data =
-            await getReleasePackagesClient().getStatusWorkflow(idOrKey)
+          const data = await releasePackagesGetStatusWorkflow(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -135,8 +147,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (idOrKey) => {
         try {
-          const data =
-            await getReleasePackagesClient().getWorkflowActions(idOrKey)
+          const data = await releasePackagesGetWorkflowActions(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -153,7 +164,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getReleasePackagesClient().assemble(request)
+          const data = await releasePackagesAssemble(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -178,7 +189,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getReleasePackagesClient().setManifest(id, request)
+          const data = await releasePackagesSetManifest(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -198,10 +209,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getReleasePackagesClient().markReleased(
-            id,
-            request,
-          )
+          const data = await releasePackagesMarkReleased(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -222,10 +230,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getReleasePackagesClient().correctDates(
-            id,
-            request,
-          )
+          const data = await releasePackagesCorrectDates(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -244,7 +249,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          const data = await getReleasePackagesClient().withdraw(id, request)
+          const data = await releasePackagesWithdraw(id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -263,7 +268,7 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     deleteReleasePackage: builder.mutation<void, string>({
       queryFn: async (id) => {
         try {
-          const data = await getReleasePackagesClient().delete(id)
+          const data = await releasePackagesDelete(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -284,11 +289,10 @@ export const releasePackagesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getReleasePackagesClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await releasePackagesGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

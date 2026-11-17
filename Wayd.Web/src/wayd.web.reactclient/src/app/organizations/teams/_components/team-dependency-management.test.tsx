@@ -1,5 +1,5 @@
 import { DependencyHealth } from '@/src/components/types'
-import { DependencyDto, TeamDetailsDto } from '@/src/services/wayd-api'
+import { DependencyDto, TeamDetailsDto } from '@/src/services/api/wayd.schemas'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import TeamDependencyManagement from './team-dependency-management'

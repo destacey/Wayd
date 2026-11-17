@@ -3,7 +3,7 @@
 import {
   StatusTransitionDto,
   StatusWorkflowDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Alert, Flex, Segmented, Skeleton, Typography } from 'antd'
 import dynamic from 'next/dynamic'
 import StatusHistoryTimeline from './status-history-timeline'

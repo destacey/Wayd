@@ -1,11 +1,16 @@
-import { getProjectScoresClient } from '@/src/services/clients'
+import {
+  projectScoresGetScore,
+  projectScoresGetScores,
+  projectScoresGetScoringContext,
+  projectScoresRecordScore,
+} from '@/src/services/api/project-scores'
 import { apiSlice } from '../apiSlice'
 import {
   ProjectScoreDetailsDto,
   ProjectScoreSummaryDto,
   ProjectScoringContextDto,
   RecordProjectScoreRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 import { projectActivityTags } from './ppm-activity-tags'
 
@@ -29,8 +34,7 @@ export const projectScoresApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId }) => {
         try {
-          const data =
-            await getProjectScoresClient().getScoringContext(projectId)
+          const data = await projectScoresGetScoringContext(projectId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -48,7 +52,7 @@ export const projectScoresApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId }) => {
         try {
-          const data = await getProjectScoresClient().getScores(projectId)
+          const data = await projectScoresGetScores(projectId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -64,10 +68,7 @@ export const projectScoresApi = apiSlice.injectEndpoints({
     getProjectScore: builder.query<ProjectScoreDetailsDto, ProjectScoreRef>({
       queryFn: async ({ projectId, scoreId }) => {
         try {
-          const data = await getProjectScoresClient().getScore(
-            projectId,
-            scoreId,
-          )
+          const data = await projectScoresGetScore(projectId, scoreId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -82,10 +83,7 @@ export const projectScoresApi = apiSlice.injectEndpoints({
     recordProjectScore: builder.mutation<string, RecordProjectScoreArgs>({
       queryFn: async ({ projectId, request }) => {
         try {
-          const data = await getProjectScoresClient().recordScore(
-            projectId,
-            request,
-          )
+          const data = await projectScoresRecordScore(projectId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)

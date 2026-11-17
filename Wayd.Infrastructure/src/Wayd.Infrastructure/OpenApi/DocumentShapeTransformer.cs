@@ -15,15 +15,15 @@ namespace Wayd.Infrastructure.OpenApi;
 /// the order the endpoints happen to be found in, and renumber it when they move.</item>
 /// <item>A property that refers to a component and may be null is written
 /// <c>{ "nullable": true, "oneOf": [ { "$ref": … } ] }</c>, not as the generator's
-/// <c>oneOf: [ { "nullable": true }, { "$ref": … } ]</c>, which NSwag's TypeScript generator would read as a
+/// <c>oneOf: [ { "nullable": true }, { "$ref": … } ]</c>, which a TypeScript generator would read as a
 /// union with an empty type.</item>
 /// <item>A described reference keeps its description in a <c>oneOf</c> wrapper. OpenAPI 3.0 ignores anything
 /// beside a <c>$ref</c>, so the generator's serializer drops it, and these descriptions are what an agent
 /// reads about a field.</item>
-/// <item>A request body is never nullable: NSwag's TypeScript generator would type the argument as
+/// <item>A request body is never nullable: a TypeScript generator would type the argument as
 /// possibly null for an endpoint that only accepts an absent body.</item>
 /// <item>An object schema allows no properties beyond its own (<c>additionalProperties: false</c>). Without it
-/// NSwag's TypeScript generator gives every interface an index signature.</item>
+/// a TypeScript generator gives every interface an index signature.</item>
 /// <item>A component is never nullable, and an enum is a string enum that lists no null, even when the
 /// generator first met the type as a nullable property and described it from there. Whether a value may be
 /// null is said where it is used.</item>

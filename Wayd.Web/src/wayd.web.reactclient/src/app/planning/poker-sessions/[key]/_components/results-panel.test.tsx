@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react'
-import { PokerVoteDto } from '@/src/services/wayd-api'
+import { PokerVoteDto } from '@/src/services/api/wayd.schemas'
 import { calculateVoteStats } from './results-panel'
 import ResultsPanel from './results-panel'
+import { toInstant } from '@/src/utils/instant'
 
 function makeVote(
   value: string,
@@ -12,7 +13,7 @@ function makeVote(
     id: `vote-${participantId}-${value}`,
     participant: { id: participantId, userName: participantId, name: participantName },
     value,
-    submittedOn: new Date(),
+    submittedOn: toInstant(new Date()),
   }
 }
 

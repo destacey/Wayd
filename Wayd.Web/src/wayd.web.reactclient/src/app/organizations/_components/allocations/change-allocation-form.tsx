@@ -25,7 +25,7 @@ export interface AllocationToChange {
   roleId?: string
   roleName?: string
   start: CalendarDate
-  end?: CalendarDate
+  end?: CalendarDate | null
   percent: number
 }
 

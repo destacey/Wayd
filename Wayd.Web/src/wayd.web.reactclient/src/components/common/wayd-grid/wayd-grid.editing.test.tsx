@@ -14,6 +14,7 @@ import {
   selectEditor,
   textEditor,
 } from '../wayd-grid-core/cell-editing/editors'
+import { asCalendarDate, type CalendarDate } from '@/src/utils/calendar-date'
 
 interface Item {
   id: string
@@ -21,8 +22,8 @@ interface Item {
   name: string
   note: string
   owner: string | null
-  start: string | null
-  end: string | null
+  start: CalendarDate | null
+  end: CalendarDate | null
   children?: Item[]
 }
 
@@ -32,8 +33,8 @@ const item = (id: string, name: string, extra: Partial<Item> = {}): Item => ({
   name,
   note: '',
   owner: null,
-  start: '2026-03-01',
-  end: '2026-03-31',
+  start: asCalendarDate('2026-03-01'),
+  end: asCalendarDate('2026-03-31'),
   ...extra,
 })
 
@@ -50,8 +51,8 @@ const OWNERS = [
 
 const [startEditor, endEditor] = pairedEditors<
   Item,
-  string | null,
-  string | null
+  CalendarDate | null,
+  CalendarDate | null
 >({
   start: dateEditor<Item>({
     field: 'start',
@@ -900,18 +901,18 @@ describe('WaydGrid cell editing', () => {
     // any editor, and jsdom cannot drive a picker panel.
     const [pairStart, pairEnd] = pairedEditors<
       Item,
-      string | null,
-      string | null
+      CalendarDate | null,
+      CalendarDate | null
     >({
       start: textEditor<Item>({
         field: 'start',
         get: (row) => row.start ?? '',
-        apply: (row, start) => ({ ...row, start }),
+        apply: (row, start) => ({ ...row, start: start as CalendarDate }),
       }) as never,
       end: textEditor<Item>({
         field: 'end',
         get: (row) => row.end ?? '',
-        apply: (row, end) => ({ ...row, end }),
+        apply: (row, end) => ({ ...row, end: end as CalendarDate }),
       }) as never,
       validate: ({ start, end }) =>
         start && end && end < start
@@ -936,14 +937,14 @@ describe('WaydGrid cell editing', () => {
       // Arrange
       const { onCommit } = renderEditable({ columns: pairColumns })
       // A Start valid on its own, so only the pairing keeps it from sending
-      editStart('2026-03-10')
+      editStart(asCalendarDate('2026-03-10'))
 
       // Act
       press('Tab')
       await flush()
       const startState = cellAt(0, 'start').getAttribute('data-edit-state')
       const callsWhileInPair = onCommit.mock.calls.length
-      typeInEditor('2026-04-30')
+      typeInEditor(asCalendarDate('2026-04-30'))
       press('Enter')
       await flush()
 
@@ -960,7 +961,7 @@ describe('WaydGrid cell editing', () => {
     it('sends a held value when a click selects the other cell', async () => {
       // Arrange
       const { onCommit } = renderEditable({ columns: pairColumns })
-      editStart('2026-03-05')
+      editStart(asCalendarDate('2026-03-05'))
 
       // Act — a click only selects End; no editor opens there
       fireEvent.pointerDown(cellAt(0, 'end'))
@@ -973,7 +974,7 @@ describe('WaydGrid cell editing', () => {
     it('sends only the member that changed', async () => {
       // Arrange
       const { onCommit } = renderEditable({ columns: pairColumns })
-      editStart('2026-03-05')
+      editStart(asCalendarDate('2026-03-05'))
 
       // Act
       press('Tab')
@@ -987,7 +988,7 @@ describe('WaydGrid cell editing', () => {
     it('checks the pair together and sends nothing when it fails', async () => {
       // Arrange — Start moves past the unchanged End
       const { onCommit } = renderEditable({ columns: pairColumns })
-      editStart('2026-05-01')
+      editStart(asCalendarDate('2026-05-01'))
 
       // Act
       press('Tab')
@@ -1016,7 +1017,7 @@ describe('WaydGrid cell editing', () => {
 
       // Act — typed, never confirmed in the picker; Tab twice leaves the pair
       fireEvent.input(document.activeElement!, {
-        target: { value: '2026-03-05' },
+        target: { value: asCalendarDate('2026-03-05') },
       })
       press('Tab')
       press('Tab')
@@ -1031,7 +1032,7 @@ describe('WaydGrid cell editing', () => {
       const { onCommit } = renderEditable()
       openStart()
       fireEvent.input(document.activeElement!, {
-        target: { value: '2026-03-07' },
+        target: { value: asCalendarDate('2026-03-07') },
       })
 
       // Act
@@ -1060,7 +1061,7 @@ describe('WaydGrid cell editing', () => {
 
     it('reads and writes calendar dates', () => {
       // Arrange
-      const row = item('1', 'A', { start: '2026-03-01' })
+      const row = item('1', 'A', { start: asCalendarDate('2026-03-01') })
 
       // Act
       const shown = startEditor.format!(startEditor.get(row), row)
@@ -1304,7 +1305,7 @@ describe('WaydGrid cell editing', () => {
       focus(cellAt(draftRow, 'start'))
       press('Enter')
       fireEvent.input(document.activeElement!, {
-        target: { value: '2026-03-05' },
+        target: { value: asCalendarDate('2026-03-05') },
       })
 
       // Act — on to End, then Escape there
@@ -1438,19 +1439,19 @@ describe('WaydGrid cell editing', () => {
       // Text controls stand in for date pickers, as in the paired tests.
       const [needStart, needEnd] = pairedEditors<
         Item,
-        string | null,
-        string | null
+        CalendarDate | null,
+        CalendarDate | null
       >({
         start: textEditor<Item>({
           field: 'start',
           get: (row) => row.start ?? '',
-          apply: (row, start) => ({ ...row, start }),
+          apply: (row, start) => ({ ...row, start: start as CalendarDate }),
           requiredToCreate: true,
         }) as never,
         end: textEditor<Item>({
           field: 'end',
           get: (row) => row.end ?? '',
-          apply: (row, end) => ({ ...row, end }),
+          apply: (row, end) => ({ ...row, end: end as CalendarDate }),
           requiredToCreate: true,
         }) as never,
         validate: ({ start, end }) =>
@@ -1488,9 +1489,9 @@ describe('WaydGrid cell editing', () => {
         )
 
         // Act
-        fill(draftRow, 'start', '2026-03-01')
+        fill(draftRow, 'start', asCalendarDate('2026-03-01'))
         press('Tab')
-        typeInEditor('2026-03-31')
+        typeInEditor(asCalendarDate('2026-03-31'))
         press('Enter')
         await flush()
 
@@ -1540,9 +1541,9 @@ describe('WaydGrid cell editing', () => {
         const onCreate = vi.fn(() => Promise.resolve('new-1'))
         render(<DraftHarness columns={columnsWith()} onCreate={onCreate} />)
         const draftRow = addDraft()
-        fill(draftRow, 'start', '2026-03-01')
+        fill(draftRow, 'start', asCalendarDate('2026-03-01'))
         press('Tab')
-        typeInEditor('2026-03-31')
+        typeInEditor(asCalendarDate('2026-03-31'))
         press('Enter')
 
         // Act
@@ -1580,9 +1581,9 @@ describe('WaydGrid cell editing', () => {
         const draftRow = addDraft()
         typeInEditor('Plan')
         press('Tab')
-        fill(draftRow, 'start', '2026-03-10')
+        fill(draftRow, 'start', asCalendarDate('2026-03-10'))
         press('Tab')
-        typeInEditor('2026-03-01')
+        typeInEditor(asCalendarDate('2026-03-01'))
 
         // Act
         press('Enter')
@@ -1607,7 +1608,7 @@ describe('WaydGrid cell editing', () => {
         press('Tab')
 
         // Act
-        fill(draftRow, 'start', '2026-03-01')
+        fill(draftRow, 'start', asCalendarDate('2026-03-01'))
         press('Enter')
         await flush()
 
@@ -1641,9 +1642,9 @@ describe('WaydGrid cell editing', () => {
         const draftRow = addDraft()
         typeInEditor('Plan')
         press('Tab')
-        fill(draftRow, 'start', '2026-03-10')
+        fill(draftRow, 'start', asCalendarDate('2026-03-10'))
         press('Tab')
-        typeInEditor('2026-03-01')
+        typeInEditor(asCalendarDate('2026-03-01'))
 
         // Act
         press('Enter')
@@ -1669,7 +1670,7 @@ describe('WaydGrid cell editing', () => {
         press('Tab')
 
         // Act
-        fill(draftRow, 'start', '2026-03-01')
+        fill(draftRow, 'start', asCalendarDate('2026-03-01'))
         press('Enter')
         await flush()
 
@@ -1686,14 +1687,14 @@ describe('WaydGrid cell editing', () => {
         const draftRow = addDraft()
         typeInEditor('Plan')
         press('Tab')
-        fill(draftRow, 'end', '2026-03-31')
+        fill(draftRow, 'end', asCalendarDate('2026-03-31'))
         press('Enter')
         await flush()
         focus(cellAt(draftRow, 'start'))
 
         // Act
         press('Escape')
-        fill(draftRow, 'start', '2026-03-01')
+        fill(draftRow, 'start', asCalendarDate('2026-03-01'))
         press('Enter')
         await flush()
 
@@ -1707,7 +1708,7 @@ describe('WaydGrid cell editing', () => {
         // Arrange
         render(<DraftHarness columns={columnsWith()} onCreate={vi.fn()} />)
         const draftRow = addDraft()
-        fill(draftRow, 'start', '2026-03-01')
+        fill(draftRow, 'start', asCalendarDate('2026-03-01'))
         press('Enter')
         focus(cellAt(draftRow, 'name'))
         press('Enter')
@@ -1790,8 +1791,8 @@ describe('WaydGrid cell editing', () => {
       // Act
       act(() =>
         ref.current!.commitCells('1', {
-          start: '2026-03-05',
-          end: '2026-04-04',
+          start: asCalendarDate('2026-03-05'),
+          end: asCalendarDate('2026-04-04'),
         }),
       )
       await flush()
@@ -1813,8 +1814,8 @@ describe('WaydGrid cell editing', () => {
       // Act
       act(() =>
         ref.current!.commitCells('1', {
-          start: '2026-03-01',
-          end: '2026-04-04',
+          start: asCalendarDate('2026-03-01'),
+          end: asCalendarDate('2026-04-04'),
         }),
       )
       await flush()
@@ -1831,8 +1832,8 @@ describe('WaydGrid cell editing', () => {
       // Act
       act(() =>
         ref.current!.commitCells('1', {
-          start: '2026-03-10',
-          end: '2026-03-05',
+          start: asCalendarDate('2026-03-10'),
+          end: asCalendarDate('2026-03-05'),
         }),
       )
       await flush()
@@ -1858,7 +1859,9 @@ describe('WaydGrid cell editing', () => {
       press('Enter')
 
       // Act
-      act(() => ref.current!.commitCells('1', { end: '2026-04-04' }))
+      act(() =>
+        ref.current!.commitCells('1', { end: asCalendarDate('2026-04-04') }),
+      )
       await flush()
       const callsBeforeFirstSettles = onCommit.mock.calls.length
       await act(async () => first.resolve())
@@ -1880,11 +1883,15 @@ describe('WaydGrid cell editing', () => {
         .mockImplementationOnce(() => first.promise)
         .mockImplementation(() => Promise.resolve())
       renderEditable({ ref, onCommit })
-      act(() => ref.current!.commitCells('1', { end: '2026-04-04' }))
+      act(() =>
+        ref.current!.commitCells('1', { end: asCalendarDate('2026-04-04') }),
+      )
       await flush()
 
       // Act — back to the row's own End before the first save lands
-      act(() => ref.current!.commitCells('1', { end: '2026-03-31' }))
+      act(() =>
+        ref.current!.commitCells('1', { end: asCalendarDate('2026-03-31') }),
+      )
       await act(async () => first.resolve())
 
       // Assert
@@ -1908,13 +1915,15 @@ describe('WaydGrid cell editing', () => {
       focus(end)
       press('Enter')
       fireEvent.input(document.activeElement!, {
-        target: { value: '2026-04-04' },
+        target: { value: asCalendarDate('2026-04-04') },
       })
       press('Enter')
       await flush()
 
       // Act
-      act(() => ref.current!.commitCells('1', { end: '2026-03-31' }))
+      act(() =>
+        ref.current!.commitCells('1', { end: asCalendarDate('2026-03-31') }),
+      )
       await flush()
 
       // Assert
@@ -1936,13 +1945,15 @@ describe('WaydGrid cell editing', () => {
       focus(end)
       press('Enter')
       fireEvent.input(document.activeElement!, {
-        target: { value: '2026-03-05' },
+        target: { value: asCalendarDate('2026-03-05') },
       })
       press('Enter')
       await flush()
 
       // Act
-      act(() => ref.current!.commitCells('1', { start: '2026-03-10' }))
+      act(() =>
+        ref.current!.commitCells('1', { start: asCalendarDate('2026-03-10') }),
+      )
       await flush()
 
       // Assert
@@ -1994,11 +2005,15 @@ describe('WaydGrid cell editing', () => {
       // Arrange
       const ref = createRef<WaydGridHandle>()
       const { onCommit } = renderEditable({ ref })
-      act(() => ref.current!.commitCells('1', { end: '2026-04-04' }))
+      act(() =>
+        ref.current!.commitCells('1', { end: asCalendarDate('2026-04-04') }),
+      )
       await flush()
 
       // Act
-      act(() => ref.current!.commitCells('1', { end: '2026-04-04' }))
+      act(() =>
+        ref.current!.commitCells('1', { end: asCalendarDate('2026-04-04') }),
+      )
       await flush()
 
       // Assert
@@ -2020,14 +2035,16 @@ describe('WaydGrid cell editing', () => {
       focus(end)
       press('Enter')
       fireEvent.input(document.activeElement!, {
-        target: { value: '2026-04-04' },
+        target: { value: asCalendarDate('2026-04-04') },
       })
       press('Enter')
       await flush()
       const failed = cellAt(0, 'end').getAttribute('data-edit-state')
 
       // Act
-      act(() => ref.current!.commitCells('1', { end: '2026-04-10' }))
+      act(() =>
+        ref.current!.commitCells('1', { end: asCalendarDate('2026-04-10') }),
+      )
       await flush()
 
       // Assert
@@ -2054,7 +2071,9 @@ describe('WaydGrid cell editing', () => {
       )
 
       // Act
-      act(() => ref.current!.commitCells('1', { end: '2026-04-04' }))
+      act(() =>
+        ref.current!.commitCells('1', { end: asCalendarDate('2026-04-04') }),
+      )
       await flush()
 
       // Assert
@@ -2075,7 +2094,9 @@ describe('WaydGrid cell editing', () => {
       editName(1, 'Beta typed')
 
       // Act
-      act(() => ref.current!.commitCells('1', { end: '2026-04-04' }))
+      act(() =>
+        ref.current!.commitCells('1', { end: asCalendarDate('2026-04-04') }),
+      )
       await flush()
 
       // Assert
@@ -2101,8 +2122,8 @@ describe('WaydGrid cell editing', () => {
       // Act
       act(() =>
         ref.current!.commitCells('1', {
-          start: '2026-03-02',
-          end: '2026-04-04',
+          start: asCalendarDate('2026-03-02'),
+          end: asCalendarDate('2026-04-04'),
         }),
       )
       await flush()
@@ -2168,18 +2189,18 @@ describe('WaydGrid cell editing', () => {
       // Arrange — a draft whose Note says "single" needs no End
       const [singleStart, singleEnd] = pairedEditors<
         Item,
-        string | null,
-        string | null
+        CalendarDate | null,
+        CalendarDate | null
       >({
         start: textEditor<Item>({
           field: 'start',
           get: (row) => row.start ?? '',
-          apply: (row, start) => ({ ...row, start }),
+          apply: (row, start) => ({ ...row, start: start as CalendarDate }),
         }) as never,
         end: textEditor<Item>({
           field: 'end',
           get: (row) => row.end ?? '',
-          apply: (row, end) => ({ ...row, end }),
+          apply: (row, end) => ({ ...row, end: end as CalendarDate }),
         }) as never,
         validate: ({ start, end }, row) =>
           row.note !== 'single' && start && !end
@@ -2205,7 +2226,7 @@ describe('WaydGrid cell editing', () => {
       press('Enter')
       focus(cellAt(draftRow, 'start'))
       press('Enter')
-      typeInEditor('2026-03-01')
+      typeInEditor(asCalendarDate('2026-03-01'))
       press('Enter')
       focus(cellAt(draftRow, 'name'))
       press('Enter')

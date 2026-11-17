@@ -1,7 +1,7 @@
 import {
   IntakeRequestCurrentScoreDto,
   IntakeRequestSummaryDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import type { RequestOrder } from '../requests/_components/request-filters'
 import { compareByEstimate, type RequestEstimates } from './request-estimates'

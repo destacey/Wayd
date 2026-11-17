@@ -1,4 +1,5 @@
-import { VersionDto } from '@/src/services/wayd-api'
+import { asInstant } from '@/src/utils/instant'
+import { VersionDto } from '@/src/services/api/wayd.schemas'
 import dayjs from 'dayjs'
 import { countReleasedWithin } from './version-cadence'
 
@@ -12,7 +13,7 @@ const version = (overrides: Partial<VersionDto> = {}): VersionDto =>
   }) as VersionDto
 
 const daysAgo = (days: number) =>
-  dayjs().subtract(days, 'day').toISOString() as unknown as Date
+  asInstant(dayjs().subtract(days, 'day').toISOString())
 
 describe('countReleasedWithin', () => {
   it('counts a version shipped inside the window', () => {

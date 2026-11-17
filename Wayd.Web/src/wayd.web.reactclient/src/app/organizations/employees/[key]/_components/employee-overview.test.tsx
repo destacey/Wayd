@@ -8,7 +8,7 @@ import {
   useGetEmployeeWorkItemsQuery,
 } from '@/src/store/features/organizations/employee-api'
 import { useGetEmployeeTeamMembershipsQuery } from '@/src/store/features/organization/team-members-api'
-import { StatusCategory } from '@/src/services/wayd-api'
+import { StatusCategory } from '@/src/services/api/wayd.schemas'
 
 vi.mock('@/src/store/features/organizations/employee-api', () => ({
   useGetDirectReportsQuery: vi.fn(),

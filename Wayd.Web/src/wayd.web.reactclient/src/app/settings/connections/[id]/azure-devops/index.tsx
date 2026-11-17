@@ -3,7 +3,7 @@
 import {
   AzureDevOpsConnectionDetailsDto,
   ConnectionDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import type { ItemType } from 'antd/es/menu/interface'
 import { useSyncAzdoConnectionOrganizationMutation } from '@/src/store/features/app-integration/azdo-integration-api'
 import { useMessage } from '@/src/components/contexts/messaging'

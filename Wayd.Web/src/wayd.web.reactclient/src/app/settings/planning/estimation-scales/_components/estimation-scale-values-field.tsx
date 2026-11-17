@@ -1,6 +1,6 @@
 'use client'
 
-import { EstimationScaleValueRequest } from '@/src/services/wayd-api'
+import { EstimationScaleValueRequest } from '@/src/services/api/wayd.schemas'
 import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons'
 import { Button, Form, Input, Segmented, Space, Typography } from 'antd'
 import type { NamePath } from 'antd/es/form/interface'

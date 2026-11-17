@@ -104,10 +104,7 @@ const DeadLetterDetailsDrawer: FC<DeadLetterDetailsDrawerProps> = ({
         </LabeledContent>
         <LabeledContent label="Sent At">
           {deadLetter?.sentAt
-            ? // The NSwag axios client doesn't revive date strings into Date
-              // instances, so sentAt is an ISO string at runtime despite the
-              // typed Date — convert before formatting.
-              new Date(deadLetter.sentAt).toLocaleString()
+            ? new Date(deadLetter.sentAt).toLocaleString()
             : undefined}
         </LabeledContent>
         <LabeledContent label="Attempts">{deadLetter?.attempts}</LabeledContent>

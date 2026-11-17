@@ -3,7 +3,7 @@
 import {
   ChangeFailureRateDto,
   DeploymentFrequencyDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { Card, Col, Row, Statistic, Tooltip, Typography } from 'antd'
 
 const { Text } = Typography

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { Form } from 'antd'
-import { Visibility } from '@/src/services/wayd-api'
+import { Visibility } from '@/src/services/api/wayd.schemas'
 import SessionAccessFields, {
   SessionAccessValues,
 } from './session-access-fields'

@@ -1,4 +1,5 @@
 import { formatDuration, formatMilliseconds } from './duration'
+import { asInstant } from '@/src/utils/instant'
 
 describe('formatMilliseconds', () => {
   it.each([
@@ -18,14 +19,14 @@ describe('formatMilliseconds', () => {
 })
 
 describe('formatDuration', () => {
-  const end = '2026-11-07T12:00:00Z'
+  const end = asInstant('2026-11-07T12:00:00Z')
 
   it.each([
-    ['2026-11-07T11:59:15Z', '45s'],
-    ['2026-11-07T11:57:46Z', '2m 14s'],
-    ['2026-11-07T11:55:00Z', '5m 00s'],
-    ['2026-11-07T10:55:00Z', '1h 05m'],
-    ['2026-11-07T12:00:03Z', '0s'],
+    [asInstant('2026-11-07T11:59:15Z'), '45s'],
+    [asInstant('2026-11-07T11:57:46Z'), '2m 14s'],
+    [asInstant('2026-11-07T11:55:00Z'), '5m 00s'],
+    [asInstant('2026-11-07T10:55:00Z'), '1h 05m'],
+    [asInstant('2026-11-07T12:00:03Z'), '0s'],
   ])('should format a start of %s as %s', (start, expected) => {
     // Arrange / Act
     const result = formatDuration(start, end)

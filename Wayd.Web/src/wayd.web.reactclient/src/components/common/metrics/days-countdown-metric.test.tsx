@@ -8,6 +8,7 @@ import { render, screen } from '@testing-library/react'
 import DaysCountdownMetric from './days-countdown-metric'
 import { daysRemaining, percentageElapsed } from '../../../utils'
 import { IterationState } from '../../types'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const mockedDaysRemaining = daysRemaining as MockedFunction<
   typeof daysRemaining
@@ -17,8 +18,8 @@ const mockedPercentageElapsed = percentageElapsed as MockedFunction<
 >
 
 describe('DaysCountdownMetric', () => {
-  const futureDate = '2025-12-31'
-  const pastDate = '2025-01-01'
+  const futureDate = asCalendarDate('2025-12-31')
+  const pastDate = asCalendarDate('2025-01-01')
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -135,8 +136,8 @@ describe('DaysCountdownMetric', () => {
 
   describe('Secondary percentage value', () => {
     it('displays percentage complete for active state', () => {
-      const startDate = '2025-01-01'
-      const endDate = '2025-01-15'
+      const startDate = asCalendarDate('2025-01-01')
+      const endDate = asCalendarDate('2025-01-15')
 
       mockedDaysRemaining.mockReturnValue(7)
       mockedPercentageElapsed.mockReturnValue(50.0)
@@ -156,8 +157,8 @@ describe('DaysCountdownMetric', () => {
     })
 
     it('does not display percentage for future state', () => {
-      const startDate = '2025-12-01'
-      const endDate = '2025-12-15'
+      const startDate = asCalendarDate('2025-12-01')
+      const endDate = asCalendarDate('2025-12-15')
 
       mockedDaysRemaining.mockReturnValue(30)
 
@@ -178,8 +179,8 @@ describe('DaysCountdownMetric', () => {
     })
 
     it('calculates percentage at start of iteration', () => {
-      const startDate = '2025-01-01'
-      const endDate = '2025-01-11'
+      const startDate = asCalendarDate('2025-01-01')
+      const endDate = asCalendarDate('2025-01-11')
 
       mockedDaysRemaining.mockReturnValue(10)
       mockedPercentageElapsed.mockReturnValue(0.0)
@@ -196,8 +197,8 @@ describe('DaysCountdownMetric', () => {
     })
 
     it('calculates percentage near end of iteration', () => {
-      const startDate = '2025-01-01'
-      const endDate = '2025-01-11'
+      const startDate = asCalendarDate('2025-01-01')
+      const endDate = asCalendarDate('2025-01-11')
 
       mockedDaysRemaining.mockReturnValue(1)
       mockedPercentageElapsed.mockReturnValue(90)
@@ -214,8 +215,8 @@ describe('DaysCountdownMetric', () => {
     })
 
     it('caps percentage at 100% if past end date', () => {
-      const startDate = '2025-01-01'
-      const endDate = '2025-01-11'
+      const startDate = asCalendarDate('2025-01-01')
+      const endDate = asCalendarDate('2025-01-11')
 
       mockedDaysRemaining.mockReturnValue(-4)
       mockedPercentageElapsed.mockReturnValue(100)
@@ -232,8 +233,8 @@ describe('DaysCountdownMetric', () => {
     })
 
     it('includes tooltip explaining the percentage', () => {
-      const startDate = '2025-01-01'
-      const endDate = '2025-01-11'
+      const startDate = asCalendarDate('2025-01-01')
+      const endDate = asCalendarDate('2025-01-11')
 
       mockedDaysRemaining.mockReturnValue(5)
       mockedPercentageElapsed.mockReturnValue(50)
@@ -261,8 +262,8 @@ describe('DaysCountdownMetric', () => {
     const { container } = render(
       <DaysCountdownMetric
         state={IterationState.Active}
-        startDate="2026-08-17"
-        endDate="2026-08-30"
+        startDate={asCalendarDate('2026-08-17')}
+        endDate={asCalendarDate('2026-08-30')}
         cardStyle={{ minWidth: 150 }}
       />,
     )

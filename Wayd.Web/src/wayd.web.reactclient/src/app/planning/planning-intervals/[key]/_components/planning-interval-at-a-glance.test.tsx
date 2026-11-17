@@ -51,6 +51,7 @@ import {
   useGetPlanningIntervalTeamsQuery,
 } from '@/src/store/features/planning/planning-interval-api'
 import PlanningIntervalAtAGlance from './planning-interval-at-a-glance'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const mockPredictability =
   useGetPlanningIntervalPredictabilityQuery as unknown as Mock
@@ -68,8 +69,8 @@ const mkPi = (
   id: 'pi-1',
   key: 7,
   name: '2026 PI 1',
-  start: '2026-01-01',
-  end: '2026-04-01',
+  start: asCalendarDate('2026-01-01'),
+  end: asCalendarDate('2026-04-01'),
   state: { id: overrides.stateId ?? ACTIVE, name: 'Active' },
   predictability: overrides.predictability ?? 0,
   // unused fields for the component

@@ -6,7 +6,7 @@ import {
   EstimationScaleDto,
   EstimationScaleVersionDto,
   Visibility,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { toApiError, toFormErrors } from '@/src/utils'
 import useAuth from '@/src/components/contexts/auth'
 import { useMessage } from '@/src/components/contexts/messaging'
@@ -55,7 +55,7 @@ const sameSet = (a: string[], b: string[]) =>
 interface EstimationScaleCardProps {
   scale: EstimationScaleDto
   /** The version the session is on, when this card is the session's own scale. */
-  pinnedVersion?: EstimationScaleVersionDto
+  pinnedVersion?: EstimationScaleVersionDto | null
   selected: boolean
   disabled: boolean
   onSelect: (id: string) => void

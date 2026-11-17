@@ -1,4 +1,4 @@
-import { OidcProviderInfo } from '@/src/services/wayd-api'
+import { OidcProviderInfo } from '@/src/services/api/wayd.schemas'
 import {
   InMemoryWebStorage,
   User,

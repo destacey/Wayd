@@ -1,4 +1,11 @@
-import { getProfileClient } from '@/src/services/clients'
+import {
+  profileChangePassword,
+  profileGet,
+  profileGetHomeLayout,
+  profileGetPreferences,
+  profileUpdateHomeLayout,
+  profileUpdatePreferences,
+} from '@/src/services/api/profile'
 import { apiSlice } from '../apiSlice'
 import {
   ChangePasswordRequest,
@@ -6,7 +13,7 @@ import {
   UpdateHomeLayoutRequest,
   UserDetailsDto,
   UserPreferencesDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { QueryTags } from '../query-tags'
 
 // Note: permissions are no longer fetched via a separate endpoint — they're
@@ -17,7 +24,7 @@ export const profileApi = apiSlice.injectEndpoints({
     getProfile: builder.query<UserDetailsDto, void>({
       queryFn: async () => {
         try {
-          const data = await getProfileClient().get()
+          const data = await profileGet()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -28,7 +35,7 @@ export const profileApi = apiSlice.injectEndpoints({
     getUserPreferences: builder.query<UserPreferencesDto, void>({
       queryFn: async () => {
         try {
-          const data = await getProfileClient().getPreferences()
+          const data = await profileGetPreferences()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -40,7 +47,7 @@ export const profileApi = apiSlice.injectEndpoints({
     updateUserPreferences: builder.mutation<void, UserPreferencesDto>({
       queryFn: async (preferences) => {
         try {
-          await getProfileClient().updatePreferences(preferences)
+          await profileUpdatePreferences(preferences)
           return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
@@ -52,7 +59,7 @@ export const profileApi = apiSlice.injectEndpoints({
     getHomeLayout: builder.query<HomeLayoutResponse, void>({
       queryFn: async () => {
         try {
-          const data = await getProfileClient().getHomeLayout()
+          const data = await profileGetHomeLayout()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -64,7 +71,7 @@ export const profileApi = apiSlice.injectEndpoints({
     updateHomeLayout: builder.mutation<null, UpdateHomeLayoutRequest>({
       queryFn: async (request) => {
         try {
-          await getProfileClient().updateHomeLayout(request)
+          await profileUpdateHomeLayout(request)
           // The API answers 204 with no body; RTK Query rejects undefined as a result.
           return { data: null }
         } catch (error) {
@@ -105,7 +112,7 @@ export const profileApi = apiSlice.injectEndpoints({
     changePassword: builder.mutation<void, ChangePasswordRequest>({
       queryFn: async (args) => {
         try {
-          await getProfileClient().changePassword(args)
+          await profileChangePassword(args)
           return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)

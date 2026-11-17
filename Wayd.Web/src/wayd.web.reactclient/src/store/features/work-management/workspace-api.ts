@@ -1,4 +1,16 @@
-import { getWorkspacesClient } from '@/src/services/clients'
+import {
+  workspacesGet,
+  workspacesGetChildWorkItems,
+  workspacesGetList,
+  workspacesGetMetrics,
+  workspacesGetWorkItem,
+  workspacesGetWorkItemDependencies,
+  workspacesGetWorkItemProjectInfo,
+  workspacesGetWorkItems,
+  workspacesSearchWorkItems,
+  workspacesSetExternalUrlTemplates,
+  workspacesUpdateWorkItemProject,
+} from '@/src/services/api/workspaces'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
@@ -12,7 +24,7 @@ import {
   WorkspaceDto,
   WorkspaceListDto,
   WorkTypeTier,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 /**
  * What changes when a work item's project does: the project lists, the work items and their children,
@@ -57,7 +69,9 @@ export const workspaceApi = apiSlice.injectEndpoints({
     getWorkspaces: builder.query<WorkspaceListDto[], boolean>({
       queryFn: async (includeInactive) => {
         try {
-          const data = await getWorkspacesClient().getList(includeInactive)
+          const data = await workspacesGetList({
+            includeInactive: includeInactive,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -66,13 +80,14 @@ export const workspaceApi = apiSlice.injectEndpoints({
       },
       providesTags: (result) => [
         QueryTags.Workspace,
-        ...(result?.map(({ key }) => ({ type: QueryTags.Workspace, key })) ?? []),
+        ...(result?.map(({ key }) => ({ type: QueryTags.Workspace, key })) ??
+          []),
       ],
     }),
     getWorkspace: builder.query<WorkspaceDto, string>({
       queryFn: async (idOrKey: string) => {
         try {
-          const data = await getWorkspacesClient().get(idOrKey)
+          const data = await workspacesGet(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -89,7 +104,7 @@ export const workspaceApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const data = await getWorkspacesClient().setExternalUrlTemplates(
+          const data = await workspacesSetExternalUrlTemplates(
             request.workspaceId,
             request.externalUrlTemplatesRequest,
           )
@@ -106,7 +121,7 @@ export const workspaceApi = apiSlice.injectEndpoints({
     getWorkItems: builder.query<WorkItemListDto[], string>({
       queryFn: async (idOrKey: string) => {
         try {
-          const data = await getWorkspacesClient().getWorkItems(idOrKey)
+          const data = await workspacesGetWorkItems(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -115,13 +130,14 @@ export const workspaceApi = apiSlice.injectEndpoints({
       },
       providesTags: (result) => [
         QueryTags.WorkItem,
-        ...(result?.map(({ key }) => ({ type: QueryTags.WorkItem, key })) ?? []),
+        ...(result?.map(({ key }) => ({ type: QueryTags.WorkItem, key })) ??
+          []),
       ],
     }),
     getWorkItem: builder.query<WorkItemDetailsDto, GetWorkItemRequest>({
       queryFn: async (request: GetWorkItemRequest) => {
         try {
-          const data = await getWorkspacesClient().getWorkItem(
+          const data = await workspacesGetWorkItem(
             request.idOrKey,
             request.workItemKey,
           )
@@ -141,7 +157,7 @@ export const workspaceApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request: GetWorkItemRequest) => {
         try {
-          const data = await getWorkspacesClient().getWorkItemProjectInfo(
+          const data = await workspacesGetWorkItemProjectInfo(
             request.idOrKey,
             request.workItemKey,
           )
@@ -165,7 +181,7 @@ export const workspaceApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ workspaceId, request }) => {
         try {
-          const data = await getWorkspacesClient().updateWorkItemProject(
+          const data = await workspacesUpdateWorkItemProject(
             workspaceId,
             request.workItemId,
             request,
@@ -190,7 +206,7 @@ export const workspaceApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request: GetChildWorkItemsRequest) => {
         try {
-          const data = await getWorkspacesClient().getChildWorkItems(
+          const data = await workspacesGetChildWorkItems(
             request.idOrKey,
             request.workItemKey,
           )
@@ -202,7 +218,10 @@ export const workspaceApi = apiSlice.injectEndpoints({
       },
       providesTags: (result) => [
         QueryTags.WorkItemChildren,
-        ...(result?.map(({ key }) => ({ type: QueryTags.WorkItemChildren, key })) ?? []),
+        ...(result?.map(({ key }) => ({
+          type: QueryTags.WorkItemChildren,
+          key,
+        })) ?? []),
       ],
     }),
     getWorkItemDependencies: builder.query<
@@ -211,7 +230,7 @@ export const workspaceApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ workspaceIdOrKey, workItemKey }) => {
         try {
-          const data = await getWorkspacesClient().getWorkItemDependencies(
+          const data = await workspacesGetWorkItemDependencies(
             workspaceIdOrKey,
             workItemKey,
           )
@@ -236,7 +255,7 @@ export const workspaceApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request: GetMetricsRequest) => {
         try {
-          const data = await getWorkspacesClient().getMetrics(
+          const data = await workspacesGetMetrics(
             request.idOrKey,
             request.workItemKey,
           )
@@ -258,11 +277,11 @@ export const workspaceApi = apiSlice.injectEndpoints({
         const { query, tier } =
           typeof arg === 'string' ? { query: arg, tier: undefined } : arg
         try {
-          const data = await getWorkspacesClient().searchWorkItems(
-            query,
-            50,
-            tier,
-          )
+          const data = await workspacesSearchWorkItems({
+            query: query,
+            top: 50,
+            tier: tier,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -271,7 +290,10 @@ export const workspaceApi = apiSlice.injectEndpoints({
       },
       providesTags: (result) => [
         QueryTags.WorkItemSearch,
-        ...(result?.map(({ key }) => ({ type: QueryTags.WorkItemSearch, key })) ?? []),
+        ...(result?.map(({ key }) => ({
+          type: QueryTags.WorkItemSearch,
+          key,
+        })) ?? []),
       ],
     }),
   }),

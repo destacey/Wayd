@@ -2,7 +2,7 @@
 
 import { useGetStrategicInitiativeStatusOptionsQuery } from '@/src/store/features/ppm/strategic-initiatives-api'
 import { useGetPortfolioOptionsQuery } from '@/src/store/features/ppm/portfolios-api'
-import { StrategicInitiativeStatus } from '@/src/services/wayd-api'
+import { StrategicInitiativeStatus } from '@/src/services/api/wayd.schemas'
 import { FC } from 'react'
 import PpmFilterBar from './ppm-filter-bar'
 

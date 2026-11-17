@@ -1,7 +1,7 @@
 'use client'
 
 import { DatePicker, Form, Modal, Select } from 'antd'
-import { AddTeamMembershipRequest } from '@/src/services/wayd-api'
+import { AddTeamMembershipRequest } from '@/src/services/api/wayd.schemas'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import {
   useCreateTeamMembershipMutation,
@@ -11,6 +11,7 @@ import { TeamTypeName } from '../types'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { type Dayjs } from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item: FormItem } = Form
 
@@ -35,8 +36,8 @@ const mapToRequestValues = (
   const membership = {
     teamId: teamId,
     parentTeamId: values.parentTeamId,
-    start: values.start?.format('YYYY-MM-DD'),
-    end: values.end?.format('YYYY-MM-DD'),
+    start: values.start ? toCalendarDate(values.start) : undefined,
+    end: values.end ? toCalendarDate(values.end) : undefined,
   } as AddTeamMembershipRequest
   return { membership, teamType }
 }

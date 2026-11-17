@@ -1,6 +1,6 @@
 'use client'
 
-import { WorkspaceListDto } from '@/src/services/wayd-api'
+import { WorkspaceListDto } from '@/src/services/api/wayd.schemas'
 import { Card, Descriptions, Flex, Tag, Typography } from 'antd'
 import { useRouter } from 'next/navigation'
 

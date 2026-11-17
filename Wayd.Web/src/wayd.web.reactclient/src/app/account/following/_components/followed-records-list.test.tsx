@@ -5,11 +5,12 @@ import {
   HealthStatus,
   LifecycleCategory,
   SortDirection,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import FollowedRecordsList, {
   FollowedRecordsListProps,
 } from './followed-records-list'
 import { typeLabel } from '@/src/components/common/record/record-identity'
+import { asInstant, toInstant } from '@/src/utils/instant'
 
 vi.mock('@/src/store/features/ppm/project-health-checks-api', () => ({
   useGetProjectHealthCheckQuery: () => ({ data: undefined, isLoading: false }),
@@ -32,7 +33,7 @@ const record = (
   name: `Project ${n}`,
   statusName: 'Active',
   lifecycle: LifecycleCategory.Active,
-  followedOn: new Date('2026-10-01T09:00:00Z'),
+  followedOn: asInstant('2026-10-01T09:00:00Z'),
   isMuted: false,
   ...overrides,
 })
@@ -87,7 +88,7 @@ describe('FollowedRecordsList', () => {
       statusName: 'In Progress',
       health: HealthStatus.Unhealthy,
       healthCheck: { id: 'hc-1', status: { id: 3, name: 'Unhealthy' } },
-      lastChangedOn: new Date(Date.now() - 2 * 60 * 60 * 1000),
+      lastChangedOn: toInstant(new Date(Date.now() - 2 * 60 * 60 * 1000)),
     })
 
     // Act

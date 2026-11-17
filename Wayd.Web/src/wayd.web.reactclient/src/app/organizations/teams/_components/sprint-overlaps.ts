@@ -1,9 +1,10 @@
+import { type CalendarDate } from '@/src/utils/calendar-date'
 import { compareCalendarDates } from '@/src/utils'
 
 interface DatedSprint {
   name: string
-  start: string
-  end: string
+  start: CalendarDate
+  end: CalendarDate
 }
 
 /**

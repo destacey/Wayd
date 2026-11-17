@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { ObjectIdAndKey } from '@/src/services/wayd-api'
+import { ObjectIdAndKey } from '@/src/services/api/wayd.schemas'
 import {
   useAddIntakeRequestsToPokerSessionMutation,
   useGetIntakeRequestsQuery,

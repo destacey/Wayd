@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useConfirmModal } from '@/src/hooks'
-import { PlanningIntervalObjectiveDetailsDto } from '@/src/services/wayd-api'
+import { PlanningIntervalObjectiveDetailsDto } from '@/src/services/api/wayd.schemas'
 import { useDeletePlanningIntervalObjectiveMutation } from '@/src/store/features/planning/planning-interval-api'
 import { Modal } from 'antd'
 import { isApiError, type ApiError } from '@/src/utils'

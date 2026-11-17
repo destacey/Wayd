@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { configureStore } from '@reduxjs/toolkit'
 import { waitFor } from '@testing-library/react'
-import { DiscussionMessageKind } from '@/src/services/wayd-api'
+import { DiscussionMessageKind } from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { demandManagementApi } from '../demand-management/demand-management-api'
 import { projectsApi } from '../ppm/projects-api'
@@ -11,10 +11,23 @@ const postMessage = vi.fn()
 const getStatusOptions = vi.fn()
 const getProject = vi.fn()
 
-vi.mock('@/src/services/clients', () => ({
-  getDiscussionsClient: () => ({ postMessage }),
-  getIntakeRequestsClient: () => ({ getStatusOptions }),
-  getProjectsClient: () => ({ getProject }),
+vi.mock(import('@/src/services/api/discussions'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  discussionsPostMessage: (...args: unknown[]) => postMessage(...args),
+}))
+
+vi.mock(
+  import('@/src/services/api/intake-requests'),
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    intakeRequestsGetStatusOptions: (...args: unknown[]) =>
+      getStatusOptions(...args),
+  }),
+)
+
+vi.mock(import('@/src/services/api/projects'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  projectsGetProject: (...args: unknown[]) => getProject(...args),
 }))
 
 const createStore = () =>

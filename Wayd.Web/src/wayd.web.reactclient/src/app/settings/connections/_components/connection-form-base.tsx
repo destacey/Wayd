@@ -1,9 +1,6 @@
 import { MarkdownEditor } from '@/src/components/common/markdown'
-import { ConnectionDetailsDto } from '@/src/services/wayd-api'
-import {
-  ConnectorType,
-  CONNECTOR_NAMES,
-} from '@/src/types/connectors'
+import { ConnectionDetailsDto } from '@/src/services/api/wayd.schemas'
+import { ConnectorType, CONNECTOR_NAMES } from '@/src/types/connectors'
 import { Divider, Form, FormInstance, Input } from 'antd'
 import { CONNECTOR_FORM_REGISTRY } from './connector-registry'
 

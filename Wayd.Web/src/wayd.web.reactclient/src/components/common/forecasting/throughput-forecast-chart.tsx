@@ -1,7 +1,7 @@
 'use client'
 
 import type { ColumnConfig } from '@ant-design/charts'
-import { TeamThroughputForecastDto } from '@/src/services/wayd-api'
+import { TeamThroughputForecastDto } from '@/src/services/api/wayd.schemas'
 import { FC } from 'react'
 import useTheme from '../../contexts/theme'
 import { formatPercent } from './forecast-formatting'

@@ -2,7 +2,7 @@
 
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
-import { UserIdentityDto } from '@/src/services/wayd-api'
+import { UserIdentityDto } from '@/src/services/api/wayd.schemas'
 import { useGetUserIdentityHistoryQuery } from '@/src/store/features/user-management/users-api'
 import { Alert, Tag, Tooltip, Typography } from 'antd'
 import dayjs from 'dayjs'
@@ -117,7 +117,9 @@ const UserIdentityHistory = ({ userId }: UserIdentityHistoryProps) => {
   const { data, isLoading, error } = useGetUserIdentityHistoryQuery(userId)
 
   if (error) {
-    return <Alert type="error" showIcon title="Failed to load identity history." />
+    return (
+      <Alert type="error" showIcon title="Failed to load identity history." />
+    )
   }
 
   return (

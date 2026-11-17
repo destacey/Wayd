@@ -2,7 +2,7 @@
 
 import { WaydGrid } from '@/src/components/common/wayd-grid'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
-import { WorkProcessSchemeDto } from '@/src/services/wayd-api'
+import { WorkProcessSchemeDto } from '@/src/services/api/wayd.schemas'
 import { useGetWorkProcessSchemesQuery } from '@/src/store/features/work-management/work-process-api'
 
 export interface WorkProcessSchemesProps {

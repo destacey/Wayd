@@ -6,7 +6,7 @@ import {
   InteractionStyle,
   ProductDependencyDto,
   UpdateProductDependencyRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useUpdateProductDependencyMutation } from '@/src/store/features/product-management/products-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'

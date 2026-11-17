@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react'
 import {
   ActivityLogDto,
   PagedResponseOfActivityLogDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   ACTIVITY_LOG_PAGE_SIZE,
   useActivityLog,

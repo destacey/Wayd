@@ -1,4 +1,5 @@
 import { ageTone, daysSince, formatDays } from './request-age'
+import { asInstant } from '@/src/utils/instant'
 
 describe('daysSince', () => {
   it('counts whole days and never goes below zero', () => {
@@ -17,7 +18,7 @@ describe('daysSince', () => {
   it('reads the ISO string an instant arrives as from the API', () => {
     // Act
     const elapsed = daysSince(
-      '2026-10-01T13:00:00Z',
+      asInstant('2026-10-01T13:00:00Z'),
       new Date('2026-10-13T12:00:00Z'),
     )
 

@@ -2,7 +2,7 @@ import {
   IntakeDeskDto,
   IntakeRequestSummaryDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { canRunDeskPoker, pokerSelection } from './desk-poker'
 
 const desk = (
@@ -21,7 +21,7 @@ const desk = (
 const request = (
   id: string,
   deskId: string,
-  category = StatusCategory.Proposed,
+  category: StatusCategory = StatusCategory.Proposed,
 ): IntakeRequestSummaryDto =>
   ({
     id,

@@ -1,6 +1,6 @@
 'use client'
 
-import { ProjectDetailsDto } from '@/src/services/wayd-api'
+import { ProjectDetailsDto } from '@/src/services/api/wayd.schemas'
 import { useGetProjectDeliverablesQuery } from '@/src/store/features/ppm/project-deliverables-api'
 import { useGetProjectPlanTreeQuery } from '@/src/store/features/ppm/projects-api'
 import { Segmented } from 'antd'

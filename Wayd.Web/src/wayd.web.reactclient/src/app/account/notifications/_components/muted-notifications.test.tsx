@@ -3,10 +3,11 @@ import {
   LifecycleCategory,
   MutedRecordDto,
   NotificationReason,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import MutedNotifications, {
   NoMutedRecordsMessage,
 } from './muted-notifications'
+import { toInstant } from '@/src/utils/instant'
 
 const mockMessageError = vi.fn()
 vi.mock('@/src/components/contexts/messaging', () => ({
@@ -37,7 +38,7 @@ const mutedRecord = (
   statusName: 'Active',
   lifecycle: LifecycleCategory.Active,
   isFollowing: false,
-  mutedOn: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+  mutedOn: toInstant(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)),
   ...overrides,
 })
 

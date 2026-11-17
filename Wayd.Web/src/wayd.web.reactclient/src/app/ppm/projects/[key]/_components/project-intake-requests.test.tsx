@@ -4,7 +4,7 @@ import {
   IntakeRequestOutcomeKind,
   ProjectIntakeRequestDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import ProjectIntakeRequests from './project-intake-requests'
 
 const mockQuery = vi.fn()

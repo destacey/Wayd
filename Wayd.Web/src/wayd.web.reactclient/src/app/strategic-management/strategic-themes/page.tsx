@@ -13,7 +13,7 @@ import {
   StrategicThemesGrid,
 } from './_components'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { StrategicThemeState } from '@/src/services/wayd-api'
+import { StrategicThemeState } from '@/src/services/api/wayd.schemas'
 
 const DEFAULT_STATES = [StrategicThemeState.Active]
 

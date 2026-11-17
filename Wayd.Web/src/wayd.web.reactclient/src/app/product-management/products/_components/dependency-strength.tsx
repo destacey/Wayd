@@ -1,6 +1,6 @@
 'use client'
 
-import { DependencyStrength } from '@/src/services/wayd-api'
+import { DependencyStrength } from '@/src/services/api/wayd.schemas'
 import { Radio, Tag, Tooltip } from 'antd'
 
 /**

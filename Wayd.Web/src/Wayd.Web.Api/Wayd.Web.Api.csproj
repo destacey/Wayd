@@ -28,10 +28,6 @@
         <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" />
         <PackageReference Include="ModelContextProtocol.AspNetCore" />
         <PackageReference Include="NodaTime.Serialization.SystemTextJson" />
-        <PackageReference Include="NSwag.MSBuild">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
         <PackageReference Include="Serilog.AspNetCore" />
         <PackageReference Include="SimplerSoftware.EntityFrameworkCore.SqlServer.NodaTime" />
     </ItemGroup>
@@ -110,16 +106,23 @@
         <Error Text="$(OpenApiOutput)" Condition="'$(OpenApiExitCode)' != '0'" />
     </Target>
 
-    <!-- Generates the TypeScript client from the document GenerateOpenApiDocument writes. -->
-    <Target Name="NSwag" AfterTargets="GenerateOpenApiDocument" Condition=" '$(Configuration)' == 'Debug' ">
-        <Exec ConsoleToMSBuild="true" ContinueOnError="true" WorkingDirectory="$(ProjectDir)"
-            Command="$(NSwagExe_Net100) run nswag.json">
-            <Output TaskParameter="ExitCode" PropertyName="NSwagExitCode" />
-            <Output TaskParameter="ConsoleOutput" PropertyName="NSwagOutput" />
+    <!-- Generates the TypeScript client (Orval, configured in the client's orval.config.ts) from the document
+         GenerateOpenApiDocument writes. It runs the client's own Orval, so it needs the client's packages; without
+         them the build warns and leaves the client as it was, which CI's generated-client check then catches. -->
+    <PropertyGroup>
+        <ReactClientDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../wayd.web.reactclient'))</ReactClientDir>
+    </PropertyGroup>
+    <Target Name="GenerateApiClient" AfterTargets="GenerateOpenApiDocument" Condition=" '$(Configuration)' == 'Debug' ">
+        <Warning Condition="!Exists('$(ReactClientDir)/node_modules/orval')"
+            Text="The TypeScript API client was not regenerated: run npm install in $(ReactClientDir), then npm run generate:api there." />
+        <Exec Condition="Exists('$(ReactClientDir)/node_modules/orval')" ConsoleToMSBuild="true" ContinueOnError="true"
+            WorkingDirectory="$(ReactClientDir)" Command="npm run generate:api">
+            <Output TaskParameter="ExitCode" PropertyName="ApiClientExitCode" />
+            <Output TaskParameter="ConsoleOutput" PropertyName="ApiClientOutput" />
         </Exec>
 
-        <Message Text="$(NSwagOutput)" Condition="'$(NSwagExitCode)' == '0'" Importance="low" />
-        <Error Text="$(NSwagOutput)" Condition="'$(NSwagExitCode)' != '0'" />
+        <Message Text="$(ApiClientOutput)" Condition="'$(ApiClientExitCode)' == '0'" Importance="low" />
+        <Error Text="$(ApiClientOutput)" Condition="'$(ApiClientExitCode)' != '' And '$(ApiClientExitCode)' != '0'" />
     </Target>
 
     <!-- The Wolverine handler tree (Internal/Generated/WolverineHandlers) is NOT committed and NOT generated on

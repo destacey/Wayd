@@ -12,7 +12,7 @@ import {
   RecordTypeDto,
   WorkflowOwnership,
   WorkflowSchemeListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useDeleteWorkflowSchemeMutation,
   useGetRecordTypesQuery,

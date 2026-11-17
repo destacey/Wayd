@@ -3,7 +3,9 @@ import { userEvent } from '@testing-library/user-event'
 import dayjs from 'dayjs'
 import ProjectsDashboardCards from './projects-dashboard-cards'
 import { ProjectGroup } from './dashboard-model'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
+import { asInstant } from '@/src/utils/instant'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 global.ResizeObserver = class {
   observe() {}
@@ -69,7 +71,7 @@ const groups: ProjectGroup[] = [
         healthCheck: {
           id: 'hc',
           status: { id: 3, name: 'Unhealthy' },
-          expiration: new Date('2027-01-01T00:00:00Z'),
+          expiration: asInstant('2027-01-01T00:00:00Z'),
         },
         stages: [
           {
@@ -80,7 +82,7 @@ const groups: ProjectGroup[] = [
             progress: 40,
           },
         ],
-        end: '2026-10-05',
+        end: asCalendarDate('2026-10-05'),
         currentScore: { value: 72.456 } as ProjectListDto['currentScore'],
       }),
       project({ key: 'P2', name: 'Project Beta' }),
@@ -97,7 +99,7 @@ const defaultProps = {
   selectedProjectKey: null,
   onSelectProject: vi.fn(),
   isLoading: false,
-  today: dayjs('2026-09-24'),
+  today: dayjs(asCalendarDate('2026-09-24')),
 }
 
 describe('ProjectsDashboardCards', () => {

@@ -4,7 +4,7 @@ import {
   StoryMapStepDto,
   StoryMapSwimLaneDto,
   StoryMapTaskDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 /**
  * The board renders as one CSS grid so every goal, step, and task cell lines up across the whole

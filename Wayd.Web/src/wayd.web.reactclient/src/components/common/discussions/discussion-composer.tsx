@@ -4,7 +4,7 @@ import { CloseOutlined, LockOutlined } from '@ant-design/icons'
 import { Button, Input, Mentions, Segmented } from 'antd'
 import { KeyboardEvent, useState, useSyncExternalStore } from 'react'
 import PersonAvatar from '@/src/components/common/person-avatar'
-import { DiscussionMessageKind } from '@/src/services/wayd-api'
+import { DiscussionMessageKind } from '@/src/services/api/wayd.schemas'
 import {
   fromComposerText,
   MentionCandidate,
@@ -38,7 +38,11 @@ export interface DiscussionComposerProps {
   /** Who reads a message of each kind, said above the box. */
   audience?: Partial<Record<DiscussionMessageKind, string>>
   /** What an edit starts from. */
-  initial?: { subject?: string; text: string; mentioned: MentionCandidate[] }
+  initial?: {
+    subject?: string | null
+    text: string
+    mentioned: MentionCandidate[]
+  }
   submitLabel?: (kind: DiscussionMessageKind) => string
   placeholder?: (kind: DiscussionMessageKind) => string
   /**
@@ -96,7 +100,9 @@ const DiscussionComposer = ({
   onCancel,
   compact = false,
 }: DiscussionComposerProps) => {
-  const [chosenKind, setChosenKind] = useState(DiscussionMessageKind.Public)
+  const [chosenKind, setChosenKind] = useState<DiscussionMessageKind>(
+    DiscussionMessageKind.Public,
+  )
   const [subject, setSubject] = useState(initial?.subject ?? '')
   const [text, setText] = useState(initial?.text ?? '')
   const [mentioned, setMentioned] = useState<MentionCandidate[]>(

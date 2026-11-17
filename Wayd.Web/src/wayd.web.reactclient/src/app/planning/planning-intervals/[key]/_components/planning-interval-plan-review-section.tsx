@@ -5,7 +5,7 @@ import { WaydEmpty } from '@/src/components/common'
 import {
   PlanningIntervalDetailsDto,
   PlanningIntervalTeamResponse,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetPlanningIntervalTeamsQuery } from '@/src/store/features/planning/planning-interval-api'
 import { Alert, Card, Skeleton } from 'antd'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'

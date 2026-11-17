@@ -10,7 +10,7 @@ import {
   WorkDistributionMeasure,
   WorkDistributionTeamRowDto,
   TeamWorkDistributionDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   formatAmount,
   formatShare,

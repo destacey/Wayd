@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import ProjectStatPills from './project-stat-pills'
-import { ProjectPlanSummaryDto } from '@/src/services/wayd-api'
+import { ProjectPlanSummaryDto } from '@/src/services/api/wayd.schemas'
 
 function createSummary(
   overrides?: Partial<ProjectPlanSummaryDto>,

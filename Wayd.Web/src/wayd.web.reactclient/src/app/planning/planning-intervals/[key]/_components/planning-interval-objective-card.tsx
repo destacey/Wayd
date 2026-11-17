@@ -1,6 +1,6 @@
 'use client'
 
-import { PlanningIntervalObjectiveListDto } from '@/src/services/wayd-api'
+import { PlanningIntervalObjectiveListDto } from '@/src/services/api/wayd.schemas'
 import {
   Button,
   Card,

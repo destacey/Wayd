@@ -5,7 +5,7 @@ import {
   createCsvColumn,
   renderPortfolioLink,
 } from '@/src/components/common/wayd-grid'
-import { ProjectPortfolioListDto } from '@/src/services/wayd-api'
+import { ProjectPortfolioListDto } from '@/src/services/api/wayd.schemas'
 import { getSortedNameList } from '@/src/utils'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { ReactElement } from 'react'

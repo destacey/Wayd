@@ -4,7 +4,7 @@ import {
   IntakeDeskDto,
   IntakeDeskWorkflowDto,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import RequestBoardView, {
   boardDeskIds,
   boardTitle,

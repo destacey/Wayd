@@ -10,26 +10,59 @@ import {
   rollupRows,
   timeAwayLines,
 } from './team-capacity-data'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 describe('monthOf', () => {
   it.each([
-    ['2027-02-14', '2027-02-01', '2027-02-28'],
-    ['2028-02-01', '2028-02-01', '2028-02-29'],
-    ['2027-12-31', '2027-12-01', '2027-12-31'],
-    ['2027-09-30', '2027-09-01', '2027-09-30'],
+    [
+      asCalendarDate('2027-02-14'),
+      asCalendarDate('2027-02-01'),
+      asCalendarDate('2027-02-28'),
+    ],
+    [
+      asCalendarDate('2028-02-01'),
+      asCalendarDate('2028-02-01'),
+      asCalendarDate('2028-02-29'),
+    ],
+    [
+      asCalendarDate('2027-12-31'),
+      asCalendarDate('2027-12-01'),
+      asCalendarDate('2027-12-31'),
+    ],
+    [
+      asCalendarDate('2027-09-30'),
+      asCalendarDate('2027-09-01'),
+      asCalendarDate('2027-09-30'),
+    ],
   ])('spans the whole month %s falls in', (today, from, to) => {
     expect(monthOf(today)).toEqual({ from, to })
   })
 })
 
 describe('cadencePeriodOf', () => {
-  const cadence = { weeks: 2, anchor: '2026-10-05' }
+  const cadence = { weeks: 2, anchor: asCalendarDate('2026-10-05') }
 
   it.each([
-    ['2026-10-05', '2026-10-05', '2026-10-18'],
-    ['2026-10-18', '2026-10-05', '2026-10-18'],
-    ['2026-10-19', '2026-10-19', '2026-11-01'],
-    ['2026-10-04', '2026-09-21', '2026-10-04'],
+    [
+      asCalendarDate('2026-10-05'),
+      asCalendarDate('2026-10-05'),
+      asCalendarDate('2026-10-18'),
+    ],
+    [
+      asCalendarDate('2026-10-18'),
+      asCalendarDate('2026-10-05'),
+      asCalendarDate('2026-10-18'),
+    ],
+    [
+      asCalendarDate('2026-10-19'),
+      asCalendarDate('2026-10-19'),
+      asCalendarDate('2026-11-01'),
+    ],
+    [
+      asCalendarDate('2026-10-04'),
+      asCalendarDate('2026-09-21'),
+      asCalendarDate('2026-10-04'),
+    ],
   ])('spans the whole two-week period %s falls in', (today, from, to) => {
     expect(cadencePeriodOf(today, cadence)).toEqual({ from, to })
   })
@@ -62,7 +95,7 @@ describe('capacityRows', () => {
           id: 'a-1',
           role: { id: 'r-1', key: 1, name: 'Engineer' },
           countsTowardDeliveryCapacity: true,
-          start: '2027-01-01',
+          start: asCalendarDate('2027-01-01'),
           end: undefined,
           percent: 50,
           personDays: 5,
@@ -71,8 +104,8 @@ describe('capacityRows', () => {
           id: 'a-2',
           role: { id: 'r-2', key: 2, name: 'Lead' },
           countsTowardDeliveryCapacity: false,
-          start: '2027-01-01',
-          end: '2027-06-30',
+          start: asCalendarDate('2027-01-01'),
+          end: asCalendarDate('2027-06-30'),
           percent: 30,
           personDays: 3,
         },
@@ -92,7 +125,7 @@ describe('capacityRows', () => {
           id: 'a-3',
           role: undefined,
           countsTowardDeliveryCapacity: true,
-          start: '2027-02-01',
+          start: asCalendarDate('2027-02-01'),
           end: undefined,
           percent: 100,
           personDays: 10,
@@ -121,8 +154,16 @@ describe('timeAwayLines', () => {
   it('says when a person is away and for how long each day, a line per stretch', () => {
     const lines = timeAwayLines(
       [
-        { start: '2027-02-01', end: '2027-02-05', percentAway: 100 },
-        { start: '2027-02-10', end: '2027-02-10', percentAway: 25 },
+        {
+          start: asCalendarDate('2027-02-01'),
+          end: asCalendarDate('2027-02-05'),
+          percentAway: 100,
+        },
+        {
+          start: asCalendarDate('2027-02-10'),
+          end: asCalendarDate('2027-02-10'),
+          percentAway: 25,
+        },
       ],
       8,
     )
@@ -194,7 +235,7 @@ describe('proposalRequests', () => {
         { employeeId: 'e-3', roleId: 'r-1', percent: 0 },
       ],
       'team-1',
-      '2027-02-01',
+      asCalendarDate('2027-02-01'),
     )
 
     expect(requests).toEqual([
@@ -240,9 +281,16 @@ describe('proposalRequests', () => {
 describe('proposalRequests with an end', () => {
   it('ends a row on the day it is given', () => {
     const requests = proposalRequests(
-      [{ employeeId: 'e-1', roleId: 'r-1', end: '2027-02-28', percent: 40 }],
+      [
+        {
+          employeeId: 'e-1',
+          roleId: 'r-1',
+          end: asCalendarDate('2027-02-28'),
+          percent: 40,
+        },
+      ],
       'team-1',
-      '2027-02-01',
+      asCalendarDate('2027-02-01'),
     )
 
     expect(requests[0].request.changes).toEqual([
@@ -286,7 +334,12 @@ describe('rollupRows', () => {
   ) =>
     ({
       team: { id, key, name, code: name.toUpperCase(), type },
-      periods: [{ start: '2027-02-08', end: '2027-02-14' }],
+      periods: [
+        {
+          start: asCalendarDate('2027-02-08'),
+          end: asCalendarDate('2027-02-14'),
+        },
+      ],
       workingDays: 5,
       allocatedPersonDays: 9,
       deliveryPersonDays: 7,
@@ -355,19 +408,36 @@ describe('rollupRows', () => {
 })
 
 describe('formatPeriods', () => {
-  const range = { from: '2027-02-01', to: '2027-02-28' }
+  const range = {
+    from: asCalendarDate('2027-02-01'),
+    to: asCalendarDate('2027-02-28'),
+  }
 
   it('says so when the team was in the hierarchy for the whole range', () => {
     expect(
-      formatPeriods([{ start: '2027-02-01', end: '2027-02-28' }], range),
+      formatPeriods(
+        [
+          {
+            start: asCalendarDate('2027-02-01'),
+            end: asCalendarDate('2027-02-28'),
+          },
+        ],
+        range,
+      ),
     ).toBe('Whole range')
   })
 
   it('lists each run of days, a single day on its own', () => {
     const text = formatPeriods(
       [
-        { start: '2027-02-01', end: '2027-02-05' },
-        { start: '2027-02-20', end: '2027-02-20' },
+        {
+          start: asCalendarDate('2027-02-01'),
+          end: asCalendarDate('2027-02-05'),
+        },
+        {
+          start: asCalendarDate('2027-02-20'),
+          end: asCalendarDate('2027-02-20'),
+        },
       ],
       range,
     )
@@ -377,7 +447,15 @@ describe('formatPeriods', () => {
 
   it('does not call one run the whole range when it only starts with it', () => {
     expect(
-      formatPeriods([{ start: '2027-02-01', end: '2027-02-05' }], range),
+      formatPeriods(
+        [
+          {
+            start: asCalendarDate('2027-02-01'),
+            end: asCalendarDate('2027-02-05'),
+          },
+        ],
+        range,
+      ),
     ).not.toBe('Whole range')
   })
 })

@@ -3,7 +3,7 @@ import {
   StatusCategoryLabelDto,
   WorkflowAliasDto,
   WorkflowStatusDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { statusCategoryLabel } from '@/src/components/common/status-workflows/status-category'
 
 /** The "no well-known meaning" option. The API models it as alias zero. */

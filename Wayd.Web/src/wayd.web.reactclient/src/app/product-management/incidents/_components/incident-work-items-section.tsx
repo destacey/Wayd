@@ -3,7 +3,7 @@
 import ManageIncidentWorkItemsForm from '@/src/app/product-management/incidents/_components/manage-incident-work-items-form'
 import ReplaceIncidentWorkItemForm from '@/src/app/product-management/incidents/_components/replace-incident-work-item-form'
 import { WorkItemsGrid } from '@/src/components/common/work'
-import { WorkItemListDto } from '@/src/services/wayd-api'
+import { WorkItemListDto } from '@/src/services/api/wayd.schemas'
 import { useGetIncidentWorkItemsQuery } from '@/src/store/features/product-management/incidents-api'
 import { FormOutlined } from '@ant-design/icons'
 import type { ItemType } from 'antd/es/menu/interface'

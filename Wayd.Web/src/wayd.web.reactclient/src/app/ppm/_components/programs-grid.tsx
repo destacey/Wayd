@@ -7,7 +7,7 @@ import {
   renderProgramLink,
 } from '@/src/components/common/wayd-grid'
 import LifecycleStatusTag from '@/src/components/common/lifecycle-status-tag'
-import { ProgramListDto } from '@/src/services/wayd-api'
+import { ProgramListDto } from '@/src/services/api/wayd.schemas'
 import { getSortedNameList } from '@/src/utils'
 import type { ColumnDef } from '@/src/components/common/wayd-grid-core'
 import { FC } from 'react'

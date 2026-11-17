@@ -4,7 +4,7 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { UpdateProgramRequest } from '@/src/services/wayd-api'
+import { UpdateProgramRequest } from '@/src/services/api/wayd.schemas'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import {
   useGetProgramQuery,
@@ -15,6 +15,7 @@ import { toFormErrors, rangeErrorsOn, toApiError } from '@/src/utils'
 import { DatePicker, Form, Input, Modal, Select } from 'antd'
 import { useEffect } from 'react'
 import dayjs from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { TextArea } = Input
 const { Item } = Form
@@ -44,8 +45,12 @@ const mapToRequestValues = (
     id: programId,
     name: values.name,
     description: values.description,
-    start: (values.dateRange?.[0] as any)?.format('YYYY-MM-DD'),
-    end: (values.dateRange?.[1] as any)?.format('YYYY-MM-DD'),
+    start: values.dateRange?.[0]
+      ? toCalendarDate(values.dateRange[0])
+      : undefined,
+    end: values.dateRange?.[1]
+      ? toCalendarDate(values.dateRange[1])
+      : undefined,
     sponsorIds: values.sponsorIds,
     ownerIds: values.ownerIds,
     managerIds: values.managerIds,

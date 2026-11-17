@@ -4,7 +4,7 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useLinkedEmployee, useModalForm } from '@/src/hooks'
-import { CreateIncidentRequest } from '@/src/services/wayd-api'
+import { CreateIncidentRequest } from '@/src/services/api/wayd.schemas'
 import { useGetProductsQuery } from '@/src/store/features/product-management/products-api'
 import { useGetReleasesQuery } from '@/src/store/features/product-management/releases-api'
 import { useGetIncidentSeveritySetsQuery } from '@/src/store/features/product-management/incident-severity-sets-api'
@@ -16,6 +16,7 @@ import { DatePicker, Form, Input, Modal, Select } from 'antd'
 import { Dayjs } from 'dayjs'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { toInstant } from '@/src/utils/instant'
 
 const { Item } = Form
 const { TextArea } = Input
@@ -85,9 +86,15 @@ export function CreateIncidentForm({
             remediation: values.remediation,
             rootCause: values.rootCause,
             severityLevelId: values.severityLevelId,
-            noticedAt: values.noticedAt?.toDate(),
-            startedAt: values.startedAt?.toDate(),
-            recoveredAt: values.recoveredAt?.toDate(),
+            noticedAt: values.noticedAt
+              ? toInstant(values.noticedAt)
+              : undefined,
+            startedAt: values.startedAt
+              ? toInstant(values.startedAt)
+              : undefined,
+            recoveredAt: values.recoveredAt
+              ? toInstant(values.recoveredAt)
+              : undefined,
             productIds: values.productIds ?? [],
             releaseIds: values.releaseIds ?? [],
             reportedByEmployeeId: values.reportedByEmployeeId,

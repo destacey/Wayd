@@ -1,4 +1,4 @@
-import { DependencyAnalysisPeriodDto } from '@/src/services/wayd-api'
+import { DependencyAnalysisPeriodDto } from '@/src/services/api/wayd.schemas'
 import {
   buildFlowData,
   buildOpenData,
@@ -6,10 +6,11 @@ import {
   isPartialPeriod,
   periodDates,
 } from './dependency-analysis-over-time-data'
+import { asCalendarDate, type CalendarDate } from '@/src/utils/calendar-date'
 
 const period = (
-  start: string,
-  end: string,
+  start: CalendarDate,
+  end: CalendarDate,
   counts: Partial<DependencyAnalysisPeriodDto> = {},
 ): DependencyAnalysisPeriodDto => ({
   start,
@@ -24,9 +25,9 @@ describe('isPartialPeriod', () => {
   it('marks a two-week period cut short by the end of the range', () => {
     // Arrange
     const periods = [
-      period('2026-07-01', '2026-07-14'),
-      period('2026-07-15', '2026-07-28'),
-      period('2026-07-29', '2026-08-03'),
+      period(asCalendarDate('2026-07-01'), asCalendarDate('2026-07-14')),
+      period(asCalendarDate('2026-07-15'), asCalendarDate('2026-07-28')),
+      period(asCalendarDate('2026-07-29'), asCalendarDate('2026-08-03')),
     ]
 
     // Act
@@ -39,10 +40,10 @@ describe('isPartialPeriod', () => {
   it('marks months cut short at either end of the range', () => {
     // Arrange
     const periods = [
-      period('2026-01-15', '2026-01-31'),
-      period('2026-02-01', '2026-02-28'),
-      period('2026-03-01', '2026-03-31'),
-      period('2026-04-01', '2026-04-10'),
+      period(asCalendarDate('2026-01-15'), asCalendarDate('2026-01-31')),
+      period(asCalendarDate('2026-02-01'), asCalendarDate('2026-02-28')),
+      period(asCalendarDate('2026-03-01'), asCalendarDate('2026-03-31')),
+      period(asCalendarDate('2026-04-01'), asCalendarDate('2026-04-10')),
     ]
 
     // Act
@@ -56,8 +57,12 @@ describe('isPartialPeriod', () => {
 describe('periodDates', () => {
   it('names a single day once and a span by its ends', () => {
     // Act
-    const single = periodDates(period('2026-07-29', '2026-07-29'))
-    const span = periodDates(period('2026-07-01', '2026-07-14'))
+    const single = periodDates(
+      period(asCalendarDate('2026-07-29'), asCalendarDate('2026-07-29')),
+    )
+    const span = periodDates(
+      period(asCalendarDate('2026-07-01'), asCalendarDate('2026-07-14')),
+    )
 
     // Assert
     expect(single).toBe('Jul 29, 2026')
@@ -67,8 +72,16 @@ describe('periodDates', () => {
 
 describe('buildOpenData and buildFlowData', () => {
   const periods = [
-    period('2026-07-01', '2026-07-14', { created: 4, closed: 1, open: 6 }),
-    period('2026-07-15', '2026-07-20', { created: 2, closed: 3, open: 5 }),
+    period(asCalendarDate('2026-07-01'), asCalendarDate('2026-07-14'), {
+      created: 4,
+      closed: 1,
+      open: 6,
+    }),
+    period(asCalendarDate('2026-07-15'), asCalendarDate('2026-07-20'), {
+      created: 2,
+      closed: 3,
+      open: 5,
+    }),
   ]
 
   it('plots each period at its first day, marking the partial one', () => {

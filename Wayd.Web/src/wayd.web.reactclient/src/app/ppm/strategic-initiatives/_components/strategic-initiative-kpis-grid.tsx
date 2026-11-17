@@ -8,7 +8,7 @@ import {
   type GridColumnContext,
   type RowReorderEvent,
 } from '@/src/components/common/wayd-grid'
-import { StrategicInitiativeKpiListDto } from '@/src/services/wayd-api'
+import { StrategicInitiativeKpiListDto } from '@/src/services/api/wayd.schemas'
 import { useReorderStrategicInitiativeKpisMutation } from '@/src/store/features/ppm/strategic-initiatives-api'
 import { isApiError } from '@/src/utils'
 import { MoreOutlined } from '@ant-design/icons'
@@ -194,76 +194,74 @@ const StrategicInitiativeKpisGrid: FC<StrategicInitiativeKpisGridProps> = (
               onManageCheckpointPlanMenuClicked,
             })
 
-            return (
-              <Flex align="center" gap={2}>
-                {canReorder && (
-                  <DragHandleCell
-                    isDragEnabled={context.isDragEnabled}
-                    disabledTooltip="Clear sorting, filters, and search to reorder KPIs."
-                  />
-                )}
-                {menuItems.length > 0 && (
-                  <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-                    <Button type="text" size="small" icon={<MoreOutlined />} />
-                  </Dropdown>
-                )}
-              </Flex>
-            )
-          },
+          return (
+            <Flex align="center" gap={2}>
+              {canReorder && (
+                <DragHandleCell
+                  isDragEnabled={context.isDragEnabled}
+                  disabledTooltip="Clear sorting, filters, and search to reorder KPIs."
+                />
+              )}
+              {menuItems.length > 0 && (
+                <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+                  <Button type="text" size="small" icon={<MoreOutlined />} />
+                </Dropdown>
+              )}
+            </Flex>
+          )
         },
-        { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
-        {
-          id: 'name',
-          accessorKey: 'name',
-          header: 'Name',
-          size: 300,
-          cell: ({ row }) => (
-            <Button
-              type="link"
-              size="small"
-              style={{ padding: 0 }}
-              onClick={() => onViewDetailsMenuClicked(row.original.id)}
-            >
-              {row.original.name}
-            </Button>
-          ),
-        },
-        {
-          id: 'targetValue',
-          accessorKey: 'targetValue',
-          header: 'Target Value',
-          size: 125,
-          cell: ({ getValue }) => (
-            <WaydStatisticNumber value={getValue<number>()} />
-          ),
-        },
-        {
-          id: 'actualValue',
-          accessorKey: 'actualValue',
-          header: 'Actual Value',
-          size: 125,
-          cell: ({ getValue }) => (
-            <WaydStatisticNumber value={getValue<number>()} />
-          ),
-        },
-        {
-          id: 'format',
-          accessorFn: (row) =>
-            [row.prefix, row.suffix].filter(Boolean).join(' / ') || '-',
-          header: 'Format',
-          size: 125,
-        },
-        {
-          id: 'targetDirection',
-          accessorKey: 'targetDirection',
-          header: 'Target Direction',
-          size: 125,
-          meta: { filterType: 'set' },
-        },
-      ]
-    },
-    [canManageKpis, canReorder, isReadOnly, strategicInitiativeId],
-  )
+      },
+      { id: 'key', accessorKey: 'key', header: 'Key', size: 90 },
+      {
+        id: 'name',
+        accessorKey: 'name',
+        header: 'Name',
+        size: 300,
+        cell: ({ row }) => (
+          <Button
+            type="link"
+            size="small"
+            style={{ padding: 0 }}
+            onClick={() => onViewDetailsMenuClicked(row.original.id)}
+          >
+            {row.original.name}
+          </Button>
+        ),
+      },
+      {
+        id: 'targetValue',
+        accessorKey: 'targetValue',
+        header: 'Target Value',
+        size: 125,
+        cell: ({ getValue }) => (
+          <WaydStatisticNumber value={getValue<number>()} />
+        ),
+      },
+      {
+        id: 'actualValue',
+        accessorKey: 'actualValue',
+        header: 'Actual Value',
+        size: 125,
+        cell: ({ getValue }) => (
+          <WaydStatisticNumber value={getValue<number>()} />
+        ),
+      },
+      {
+        id: 'format',
+        accessorFn: (row) =>
+          [row.prefix, row.suffix].filter(Boolean).join(' / ') || '-',
+        header: 'Format',
+        size: 125,
+      },
+      {
+        id: 'targetDirection',
+        accessorKey: 'targetDirection',
+        header: 'Target Direction',
+        size: 125,
+        meta: { filterType: 'set' },
+      },
+    ]
+  }, [canManageKpis, canReorder, isReadOnly, strategicInitiativeId])
 
   const refresh = async () => {
     refetch()

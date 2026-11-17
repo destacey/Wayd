@@ -1,4 +1,4 @@
-import { ConnectionDetailsDto } from '@/src/services/wayd-api'
+import { ConnectionDetailsDto } from '@/src/services/api/wayd.schemas'
 import { DETAIL_REGISTRY, getDetailEntry } from './detail-registry'
 
 const connection = (connectorName: string) =>

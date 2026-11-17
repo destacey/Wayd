@@ -2,7 +2,7 @@ import {
   IntakeRequestCurrentEstimateDto,
   IntakeRequestEstimateDto,
   IntakeRequestSummaryDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 
 /** Each request's estimate by request id, for the requests whose estimate the reader may read. */

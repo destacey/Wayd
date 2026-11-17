@@ -1,12 +1,13 @@
 'use client'
 
+import { toInstant } from '@/src/utils/instant'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import {
   CutVersionRequest,
   MarkVersionReleasedRequest,
   PlanVersionRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useCutVersionMutation,
   useMarkVersionReleasedMutation,
@@ -16,6 +17,7 @@ import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { ProductTreeSelect } from '../../_components'
 import { DatePicker, Form, Input, Modal } from 'antd'
 import { Dayjs } from 'dayjs'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 
@@ -65,7 +67,9 @@ const PlanVersionForm = ({
             productId: values.productId,
             version: values.version,
             name: values.name,
-            targetDate: values.targetDate?.format('YYYY-MM-DD'),
+            targetDate: values.targetDate
+              ? toCalendarDate(values.targetDate)
+              : undefined,
           } as PlanVersionRequest
 
           const response = await planVersion(request)
@@ -86,7 +90,7 @@ const PlanVersionForm = ({
               cacheKey: key,
               request: {
                 id,
-                cutAt: values.cutAt.toDate(),
+                cutAt: toInstant(values.cutAt),
               } as CutVersionRequest,
             })
             if (cut.error) {
@@ -103,7 +107,7 @@ const PlanVersionForm = ({
               cacheKey: key,
               request: {
                 id,
-                releasedAt: values.releasedAt.toDate(),
+                releasedAt: toInstant(values.releasedAt),
               } as MarkVersionReleasedRequest,
             })
             if (released.error) {

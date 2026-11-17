@@ -2,7 +2,7 @@
 
 import { MarkdownEditor } from '@/src/components/common/markdown'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { UpdateStrategicThemeRequest } from '@/src/services/wayd-api'
+import { UpdateStrategicThemeRequest } from '@/src/services/api/wayd.schemas'
 import {
   useGetStrategicThemeQuery,
   useUpdateStrategicThemeMutation,
@@ -51,32 +51,32 @@ const EditStrategicThemeForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<UpdateStrategicThemeFormValues>({
       onSubmit: async (values: UpdateStrategicThemeFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values, strategicThemeData!.id)
-            const response = await updateStrategicTheme({
-              request,
-              cacheKey: strategicThemeData!.key,
-            })
-            if (response.error) {
-              throw response.error
-            }
-            messageApi.success('Strategic Theme updated successfully.')
-            return true
-          } catch (error) {
-            const apiError: ApiError = isApiError(error) ? error : {}
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors)
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                (isApiError(apiError) ? apiError.detail : undefined) ??
-                  'An error occurred while updating the Strategic Theme. Please try again.',
-              )
-            }
-            return false
+        try {
+          const request = mapToRequestValues(values, strategicThemeData!.id)
+          const response = await updateStrategicTheme({
+            request,
+            cacheKey: strategicThemeData!.key,
+          })
+          if (response.error) {
+            throw response.error
           }
-        },
+          messageApi.success('Strategic Theme updated successfully.')
+          return true
+        } catch (error) {
+          const apiError: ApiError = isApiError(error) ? error : {}
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors)
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              (isApiError(apiError) ? apiError.detail : undefined) ??
+                'An error occurred while updating the Strategic Theme. Please try again.',
+            )
+          }
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:

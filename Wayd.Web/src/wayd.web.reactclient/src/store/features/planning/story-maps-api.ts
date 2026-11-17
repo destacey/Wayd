@@ -1,4 +1,47 @@
-import { getStoryMapsClient } from '@/src/services/clients'
+import {
+  storyMapsAddChecklistItem,
+  storyMapsAddGoal,
+  storyMapsAddPersona,
+  storyMapsAddStep,
+  storyMapsAddSwimLane,
+  storyMapsAddTask,
+  storyMapsArchive,
+  storyMapsCreate,
+  storyMapsDelete,
+  storyMapsDeleteGoal,
+  storyMapsDeletePersona,
+  storyMapsDeleteStep,
+  storyMapsDeleteTask,
+  storyMapsGet,
+  storyMapsGetEditorTeamMembers,
+  storyMapsGetList,
+  storyMapsLinkWorkItem,
+  storyMapsMoveStep,
+  storyMapsMoveTask,
+  storyMapsRemoveChecklistItem,
+  storyMapsRemoveSwimLane,
+  storyMapsRenameChecklistItem,
+  storyMapsRenameGoal,
+  storyMapsRenameStep,
+  storyMapsRenameSwimLane,
+  storyMapsRenameTask,
+  storyMapsReorderGoal,
+  storyMapsReorderPersona,
+  storyMapsReorderStep,
+  storyMapsReorderSwimLane,
+  storyMapsSetChecklistItemChecked,
+  storyMapsSetEditAccess,
+  storyMapsSetEditors,
+  storyMapsSetOwners,
+  storyMapsSetStepPersonas,
+  storyMapsSetSwimLaneDates,
+  storyMapsSetTaskDescription,
+  storyMapsSetTaskPersonas,
+  storyMapsSetVisibility,
+  storyMapsUnlinkWorkItem,
+  storyMapsUpdate,
+  storyMapsUpdatePersona,
+} from '@/src/services/api/story-maps'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import {
@@ -35,7 +78,7 @@ import {
   UpdatePersonaRequest,
   UpdateStoryMapRequest,
   Visibility,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   applyMoveStep,
   applyMoveTask,
@@ -51,7 +94,9 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     getStoryMaps: builder.query<StoryMapListDto[], boolean | undefined>({
       queryFn: async (includeArchived) => {
         try {
-          const data = await getStoryMapsClient().getList(includeArchived)
+          const data = await storyMapsGetList({
+            includeArchived: includeArchived,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -64,7 +109,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     getStoryMap: builder.query<StoryMapDetailsDto, string>({
       queryFn: async (idOrKey: string) => {
         try {
-          const data = await getStoryMapsClient().get(idOrKey)
+          const data = await storyMapsGet(idOrKey)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -77,7 +122,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     createStoryMap: builder.mutation<ObjectIdAndKey, CreateStoryMapRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getStoryMapsClient().create(request)
+          const data = await storyMapsCreate(request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -93,7 +138,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, request }) => {
         try {
-          await getStoryMapsClient().update(id, request)
+          await storyMapsUpdate(id, request)
           // RTK Query requires a defined `data` value; a void endpoint returns null, not undefined.
           return { data: null }
         } catch (error) {
@@ -110,7 +155,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     archiveStoryMap: builder.mutation<null, { id: string }>({
       queryFn: async ({ id }) => {
         try {
-          await getStoryMapsClient().archive(id)
+          await storyMapsArchive(id)
           return { data: null }
         } catch (error) {
           console.error('API Error:', error)
@@ -126,7 +171,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     deleteStoryMap: builder.mutation<null, { id: string }>({
       queryFn: async ({ id }) => {
         try {
-          await getStoryMapsClient().delete(id)
+          await storyMapsDelete(id)
           return { data: null }
         } catch (error) {
           console.error('API Error:', error)
@@ -147,10 +192,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, teamId }) => {
         try {
-          const data = await getStoryMapsClient().getEditorTeamMembers(
-            storyMapId,
-            teamId,
-          )
+          const data = await storyMapsGetEditorTeamMembers(storyMapId, teamId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -170,7 +212,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, employeeIds }) => {
         try {
-          await getStoryMapsClient().setOwners(id, { employeeIds })
+          await storyMapsSetOwners(id, { employeeIds })
           return { data: null }
         } catch (error) {
           console.error('API Error:', error)
@@ -189,7 +231,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, employeeIds, teamIds }) => {
         try {
-          await getStoryMapsClient().setEditors(id, { employeeIds, teamIds })
+          await storyMapsSetEditors(id, { employeeIds, teamIds })
           return { data: null }
         } catch (error) {
           console.error('API Error:', error)
@@ -209,7 +251,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, visibility }) => {
         try {
-          await getStoryMapsClient().setVisibility(id, { visibility })
+          await storyMapsSetVisibility(id, { visibility })
           return { data: null }
         } catch (error) {
           console.error('API Error:', error)
@@ -228,7 +270,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, editAccess }) => {
         try {
-          await getStoryMapsClient().setEditAccess(id, { editAccess })
+          await storyMapsSetEditAccess(id, { editAccess })
           return { data: null }
         } catch (error) {
           console.error('API Error:', error)
@@ -250,7 +292,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, request }) => {
         try {
-          const data = await getStoryMapsClient().addGoal(storyMapId, request)
+          const data = await storyMapsAddGoal(storyMapId, request)
           return { data }
         } catch (error) {
           return { error }
@@ -267,7 +309,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, request }) => {
         try {
-          const data = await getStoryMapsClient().addStep(storyMapId, request)
+          const data = await storyMapsAddStep(storyMapId, request)
           return { data }
         } catch (error) {
           return { error }
@@ -284,7 +326,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, request }) => {
         try {
-          const data = await getStoryMapsClient().addTask(storyMapId, request)
+          const data = await storyMapsAddTask(storyMapId, request)
           return { data }
         } catch (error) {
           return { error }
@@ -306,7 +348,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, goalId, request }) => {
         try {
-          await getStoryMapsClient().renameGoal(storyMapId, goalId, request)
+          await storyMapsRenameGoal(storyMapId, goalId, request)
           return { data: null }
         } catch (error) {
           return { error }
@@ -344,7 +386,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, goalId }) => {
         try {
-          await getStoryMapsClient().deleteGoal(storyMapId, goalId)
+          await storyMapsDeleteGoal(storyMapId, goalId)
           return { data: null }
         } catch (error) {
           return { error }
@@ -385,7 +427,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, goalId, newOrder }) => {
         try {
-          await getStoryMapsClient().reorderGoal(storyMapId, goalId, {
+          await storyMapsReorderGoal(storyMapId, goalId, {
             newOrder,
           })
           return { data: null }
@@ -429,7 +471,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, stepId, newOrder }) => {
         try {
-          await getStoryMapsClient().reorderStep(storyMapId, stepId, {
+          await storyMapsReorderStep(storyMapId, stepId, {
             newOrder,
           })
           return { data: null }
@@ -475,7 +517,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, stepId, request }) => {
         try {
-          await getStoryMapsClient().moveStep(storyMapId, stepId, request)
+          await storyMapsMoveStep(storyMapId, stepId, request)
           return { data: null }
         } catch (error) {
           return { error }
@@ -515,7 +557,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, swimLaneId, newOrder }) => {
         try {
-          await getStoryMapsClient().reorderSwimLane(storyMapId, swimLaneId, {
+          await storyMapsReorderSwimLane(storyMapId, swimLaneId, {
             newOrder,
           })
           return { data: null }
@@ -558,7 +600,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, taskId, request }) => {
         try {
-          await getStoryMapsClient().moveTask(storyMapId, taskId, request)
+          await storyMapsMoveTask(storyMapId, taskId, request)
           return { data: null }
         } catch (error) {
           return { error }
@@ -599,7 +641,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, stepId, request }) => {
         try {
-          await getStoryMapsClient().renameStep(storyMapId, stepId, request)
+          await storyMapsRenameStep(storyMapId, stepId, request)
           return { data: null }
         } catch (error) {
           return { error }
@@ -641,7 +683,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, stepId }) => {
         try {
-          await getStoryMapsClient().deleteStep(storyMapId, stepId)
+          await storyMapsDeleteStep(storyMapId, stepId)
           return { data: null }
         } catch (error) {
           return { error }
@@ -689,7 +731,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, taskId, request }) => {
         try {
-          await getStoryMapsClient().renameTask(storyMapId, taskId, request)
+          await storyMapsRenameTask(storyMapId, taskId, request)
           return { data: null }
         } catch (error) {
           return { error }
@@ -731,11 +773,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, taskId, request }) => {
         try {
-          await getStoryMapsClient().setTaskDescription(
-            storyMapId,
-            taskId,
-            request,
-          )
+          await storyMapsSetTaskDescription(storyMapId, taskId, request)
           return { data: null }
         } catch (error) {
           return { error }
@@ -772,7 +810,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, taskId }) => {
         try {
-          await getStoryMapsClient().deleteTask(storyMapId, taskId)
+          await storyMapsDeleteTask(storyMapId, taskId)
           return { data: null }
         } catch (error) {
           return { error }
@@ -817,11 +855,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, stepId, request }) => {
         try {
-          await getStoryMapsClient().setStepPersonas(
-            storyMapId,
-            stepId,
-            request,
-          )
+          await storyMapsSetStepPersonas(storyMapId, stepId, request)
           return { data: null }
         } catch (error) {
           return { error }
@@ -869,11 +903,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, taskId, request }) => {
         try {
-          await getStoryMapsClient().setTaskPersonas(
-            storyMapId,
-            taskId,
-            request,
-          )
+          await storyMapsSetTaskPersonas(storyMapId, taskId, request)
           return { data: null }
         } catch (error) {
           return { error }
@@ -917,10 +947,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, request }) => {
         try {
-          const data = await getStoryMapsClient().addSwimLane(
-            storyMapId,
-            request,
-          )
+          const data = await storyMapsAddSwimLane(storyMapId, request)
           return { data }
         } catch (error) {
           return { error }
@@ -942,11 +969,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, swimLaneId, request }) => {
         try {
-          await getStoryMapsClient().renameSwimLane(
-            storyMapId,
-            swimLaneId,
-            request,
-          )
+          await storyMapsRenameSwimLane(storyMapId, swimLaneId, request)
           return { data: null }
         } catch (error) {
           return { error }
@@ -988,11 +1011,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, swimLaneId, request }) => {
         try {
-          await getStoryMapsClient().setSwimLaneDates(
-            storyMapId,
-            swimLaneId,
-            request,
-          )
+          await storyMapsSetSwimLaneDates(storyMapId, swimLaneId, request)
           return { data: null }
         } catch (error) {
           return { error }
@@ -1034,10 +1053,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
       queryFn: async ({ storyMapId, swimLaneId }) => {
         try {
           // Returns the number of tasks reassigned to the default lane.
-          const data = await getStoryMapsClient().removeSwimLane(
-            storyMapId,
-            swimLaneId,
-          )
+          const data = await storyMapsRemoveSwimLane(storyMapId, swimLaneId)
           return { data }
         } catch (error) {
           return { error }
@@ -1081,7 +1097,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, taskId, request }) => {
         try {
-          const data = await getStoryMapsClient().addChecklistItem(
+          const data = await storyMapsAddChecklistItem(
             storyMapId,
             taskId,
             request,
@@ -1156,7 +1172,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, taskId, itemId, request }) => {
         try {
-          await getStoryMapsClient().renameChecklistItem(
+          await storyMapsRenameChecklistItem(
             storyMapId,
             taskId,
             itemId,
@@ -1206,7 +1222,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, taskId, itemId, request }) => {
         try {
-          await getStoryMapsClient().setChecklistItemChecked(
+          await storyMapsSetChecklistItemChecked(
             storyMapId,
             taskId,
             itemId,
@@ -1257,11 +1273,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, taskId, itemId }) => {
         try {
-          await getStoryMapsClient().removeChecklistItem(
-            storyMapId,
-            taskId,
-            itemId,
-          )
+          await storyMapsRemoveChecklistItem(storyMapId, taskId, itemId)
           return { data: null }
         } catch (error) {
           return { error }
@@ -1313,7 +1325,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, taskId, request }) => {
         try {
-          await getStoryMapsClient().linkWorkItem(storyMapId, taskId, request)
+          await storyMapsLinkWorkItem(storyMapId, taskId, request)
           return { data: null }
         } catch (error) {
           return { error }
@@ -1350,7 +1362,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, taskId }) => {
         try {
-          await getStoryMapsClient().unlinkWorkItem(storyMapId, taskId)
+          await storyMapsUnlinkWorkItem(storyMapId, taskId)
           return { data: null }
         } catch (error) {
           return { error }
@@ -1387,10 +1399,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, request }) => {
         try {
-          const data = await getStoryMapsClient().addPersona(
-            storyMapId,
-            request,
-          )
+          const data = await storyMapsAddPersona(storyMapId, request)
           return { data }
         } catch (error) {
           return { error }
@@ -1461,11 +1470,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, personaId, request }) => {
         try {
-          await getStoryMapsClient().updatePersona(
-            storyMapId,
-            personaId,
-            request,
-          )
+          await storyMapsUpdatePersona(storyMapId, personaId, request)
           // RTK Query requires a defined `data` value; a void endpoint returns null, not undefined.
           return { data: null }
         } catch (error) {
@@ -1509,10 +1514,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, personaId }) => {
         try {
-          const data = await getStoryMapsClient().deletePersona(
-            storyMapId,
-            personaId,
-          )
+          const data = await storyMapsDeletePersona(storyMapId, personaId)
           return { data }
         } catch (error) {
           return { error }
@@ -1566,7 +1568,7 @@ export const storyMapsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ storyMapId, personaId, newOrder }) => {
         try {
-          await getStoryMapsClient().reorderPersona(storyMapId, personaId, {
+          await storyMapsReorderPersona(storyMapId, personaId, {
             newOrder,
           })
           // RTK Query requires a defined `data` value; a void endpoint returns null, not undefined.

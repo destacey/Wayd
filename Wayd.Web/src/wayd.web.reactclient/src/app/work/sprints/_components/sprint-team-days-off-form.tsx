@@ -1,7 +1,8 @@
 'use client'
 
+import { type CalendarDate } from '@/src/utils/calendar-date'
 import { useMessage } from '@/src/components/contexts/messaging'
-import { SprintDetailsDto, IsoDayOfWeek } from '@/src/services/wayd-api'
+import { SprintDetailsDto, IsoDayOfWeek } from '@/src/services/api/wayd.schemas'
 import { useSetSprintTeamDaysOffMutation } from '@/src/store/features/work-management/sprints-api'
 import {
   calendarDaysBetween,
@@ -56,7 +57,7 @@ interface ChosenDay {
 }
 
 /** Every planned day of the sprint, first to last. */
-export const sprintPlannedDays = (sprint: SprintDetailsDto): string[] => {
+export const sprintPlannedDays = (sprint: SprintDetailsDto): CalendarDate[] => {
   const start = parseCalendarDate(sprint.start)
   const count = calendarDaysBetween(sprint.start, sprint.end) + 1
   return Array.from({ length: Math.max(count, 0) }, (_, i) =>
@@ -67,7 +68,7 @@ export const sprintPlannedDays = (sprint: SprintDetailsDto): string[] => {
 /** Why a planned day cannot be a team day off, or undefined when it can. */
 export const alreadyOff = (
   sprint: SprintDetailsDto,
-  day: string,
+  day: CalendarDate,
 ): string | undefined => {
   if (sprint.holidays.includes(day)) return 'Holiday'
   const weekday = parseCalendarDate(day).day()

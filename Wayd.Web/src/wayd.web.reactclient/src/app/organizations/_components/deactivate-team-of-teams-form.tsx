@@ -3,7 +3,7 @@
 import {
   DeactivateTeamRequest as DeactivateTeamOfTeamsRequest,
   TeamOfTeamsDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useDeactivateTeamOfTeamsMutation } from '@/src/store/features/organizations/team-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { DatePicker, Form, Modal } from 'antd'
@@ -11,6 +11,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
 import { type Dayjs } from 'dayjs'
 import DeactivateTeamAllocationsAlert from './deactivate-team-allocations-alert'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { Item } = Form
 
@@ -30,7 +31,7 @@ const mapToRequestValues = (
 ): DeactivateTeamOfTeamsRequest => {
   return {
     id,
-    inactiveDate: inactiveDate?.format('YYYY-MM-DD'),
+    inactiveDate: inactiveDate ? toCalendarDate(inactiveDate) : undefined,
   } as DeactivateTeamOfTeamsRequest
 }
 

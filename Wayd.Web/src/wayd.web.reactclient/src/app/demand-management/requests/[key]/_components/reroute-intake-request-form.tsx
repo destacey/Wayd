@@ -6,7 +6,7 @@ import {
   IntakeDeskDto,
   IntakeDeskVisibility,
   IntakeRequestDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetIntakeDesksQuery,
   useGetIntakeRequestArrivalStatusesQuery,

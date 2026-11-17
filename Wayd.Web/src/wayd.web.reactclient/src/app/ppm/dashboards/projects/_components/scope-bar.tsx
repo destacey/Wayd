@@ -11,7 +11,10 @@ import { EmployeeSelect } from '@/src/components/common/organizations'
 import type { BaseOptionType } from 'antd/es/select'
 import { FC, RefObject } from 'react'
 import { LifecycleCategory } from '@/src/components/types'
-import { ProjectMemberRole, ProjectStatus } from '@/src/services/wayd-api'
+import {
+  ProjectMemberRole,
+  ProjectStatus,
+} from '@/src/services/api/wayd.schemas'
 import { getLifecycleCategoryStatusSurface } from '@/src/utils'
 import {
   DashboardScope,

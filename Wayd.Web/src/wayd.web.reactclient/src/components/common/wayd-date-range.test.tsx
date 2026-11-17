@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import WaydDateRange from './wayd-date-range'
 import { DateRange } from '../types'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 describe('WaydDateRange', () => {
   describe('null/undefined handling', () => {
@@ -169,7 +170,10 @@ describe('WaydDateRange', () => {
   describe('calendar dates', () => {
     it('shows calendar dates as written', () => {
       // Arrange
-      const dateRange: DateRange = { start: '2024-03-15', end: '2024-06-20' }
+      const dateRange: DateRange = {
+        start: asCalendarDate('2024-03-15'),
+        end: asCalendarDate('2024-06-20'),
+      }
 
       // Act
       render(<WaydDateRange dateRange={dateRange} />)
@@ -180,7 +184,10 @@ describe('WaydDateRange', () => {
 
     it('shows both years for calendar dates in different years', () => {
       // Arrange
-      const dateRange: DateRange = { start: '2023-12-31', end: '2024-01-01' }
+      const dateRange: DateRange = {
+        start: asCalendarDate('2023-12-31'),
+        end: asCalendarDate('2024-01-01'),
+      }
 
       // Act
       render(<WaydDateRange dateRange={dateRange} />)

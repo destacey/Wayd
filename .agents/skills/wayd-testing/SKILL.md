@@ -74,7 +74,7 @@ Every rule this skill enforces, in one place. Run it on every change.
 
 **Scope**
 
-- [ ] Nothing added for code where a bug is impossible or harmless — pass-through properties, records, framework-owned behaviour, generated files (`*.g.cs`, `wayd-api.ts`, migrations, `Internal/Generated/`)?
+- [ ] Nothing added for code where a bug is impossible or harmless — pass-through properties, records, framework-owned behaviour, generated files (`*.g.cs`, `src/services/api/`, migrations, `Internal/Generated/`)?
 - [ ] Code with expensive failure covered however simple it looks — money, scoring, dates, status transitions, guard clauses, anything that has broken before?
 - [ ] Anything a reader would expect covered but you deliberately skipped is named in the report with the reason?
 

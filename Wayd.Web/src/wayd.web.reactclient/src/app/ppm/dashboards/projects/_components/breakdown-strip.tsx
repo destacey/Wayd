@@ -7,7 +7,7 @@ import {
   getThemeBreakdown,
   HEALTH_SCOPE_TOOLTIP,
 } from '@/src/app/ppm/_components/project-breakdowns'
-import { ProjectListDto } from '@/src/services/wayd-api'
+import { ProjectListDto } from '@/src/services/api/wayd.schemas'
 import { Col, Collapse, Row, theme } from 'antd'
 import { FC } from 'react'
 import styles from '../projects-dashboard.module.css'

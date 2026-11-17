@@ -1,11 +1,13 @@
 import {
   caseInsensitiveCompare,
   dateSortBy,
+  sortDatesEmptyLast,
   sortEmptyLast,
   workItemKeySort,
   workStatusCategorySort,
 } from './grid-sorting'
 import type { Row } from './index'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 describe('grid-sorting', () => {
   describe('caseInsensitiveCompare', () => {
     it('interleaves capitalized and lowercase values alphabetically', () => {
@@ -38,14 +40,32 @@ describe('grid-sorting', () => {
     it('returns 0 for equal dates', () => {
       const sort = dateSortBy((r: any) => r.original.value)
 
-      expect(sort(row('2024-01-01'), row('2024-01-01'), 'x')).toBe(0)
+      expect(
+        sort(
+          row(asCalendarDate('2024-01-01')),
+          row(asCalendarDate('2024-01-01')),
+          'x',
+        ),
+      ).toBe(0)
     })
 
     it('sorts earlier dates before later dates', () => {
       const sort = dateSortBy((r: any) => r.original.value)
 
-      expect(sort(row('2024-01-01'), row('2024-01-02'), 'x')).toBeLessThan(0)
-      expect(sort(row('2024-01-02'), row('2024-01-01'), 'x')).toBeGreaterThan(0)
+      expect(
+        sort(
+          row(asCalendarDate('2024-01-01')),
+          row(asCalendarDate('2024-01-02')),
+          'x',
+        ),
+      ).toBeLessThan(0)
+      expect(
+        sort(
+          row(asCalendarDate('2024-01-02')),
+          row(asCalendarDate('2024-01-01')),
+          'x',
+        ),
+      ).toBeGreaterThan(0)
     })
 
     it('supports Date and numeric timestamps', () => {
@@ -63,8 +83,12 @@ describe('grid-sorting', () => {
     it('treats null/undefined as emptyValue (default: -Infinity), sorting empties first', () => {
       const sort = dateSortBy((r: any) => r.original.value)
 
-      expect(sort(row(null), row('2024-01-01'), 'x')).toBeLessThan(0)
-      expect(sort(row(undefined), row('2024-01-01'), 'x')).toBeLessThan(0)
+      expect(
+        sort(row(null), row(asCalendarDate('2024-01-01')), 'x'),
+      ).toBeLessThan(0)
+      expect(
+        sort(row(undefined), row(asCalendarDate('2024-01-01')), 'x'),
+      ).toBeLessThan(0)
       expect(sort(row(null), row(undefined), 'x')).toBe(0)
     })
 
@@ -73,9 +97,53 @@ describe('grid-sorting', () => {
         emptyValue: Infinity,
       })
 
-      expect(sort(row(null), row('2024-01-01'), 'x')).toBeGreaterThan(0)
-      expect(sort(row(undefined), row('2024-01-01'), 'x')).toBeGreaterThan(0)
+      expect(
+        sort(row(null), row(asCalendarDate('2024-01-01')), 'x'),
+      ).toBeGreaterThan(0)
+      expect(
+        sort(row(undefined), row(asCalendarDate('2024-01-01')), 'x'),
+      ).toBeGreaterThan(0)
       expect(sort(row(null), row(undefined), 'x')).toBe(0)
+    })
+  })
+
+  describe('sortDatesEmptyLast', () => {
+    const row = (value: unknown) =>
+      ({ getValue: () => value }) as unknown as Parameters<
+        typeof sortDatesEmptyLast
+      >[0]
+
+    const cmp = (a: unknown, b: unknown) =>
+      sortDatesEmptyLast(row(a), row(b), 'x')
+
+    it('orders instants by time, not by their text', () => {
+      // Arrange — as text, "…:00.5Z" sorts before "…:00Z" and "…:00.25Z" after "…:00.5Z"
+      const whole = '2026-11-15T18:00:00Z'
+      const quarter = '2026-11-15T18:00:00.25Z'
+      const half = '2026-11-15T18:00:00.5Z'
+
+      // Act / Assert
+      expect(cmp(whole, half)).toBe(-1)
+      expect(cmp(quarter, half)).toBe(-1)
+      expect(cmp(half, quarter)).toBe(1)
+      expect(cmp(half, half)).toBe(0)
+    })
+
+    it('orders calendar dates by day', () => {
+      // Act / Assert
+      expect(cmp('2026-09-28', '2026-10-01')).toBe(-1)
+      expect(cmp('2026-10-01', '2026-09-28')).toBe(1)
+    })
+
+    it.each([
+      ['null', null],
+      ['undefined', undefined],
+      ['empty string', ''],
+    ])('sorts %s after a date', (_label, empty) => {
+      // Act / Assert
+      expect(cmp(empty, '2026-09-28')).toBe(1)
+      expect(cmp('2026-09-28', empty)).toBe(-1)
+      expect(cmp(empty, null)).toBe(0)
     })
   })
 

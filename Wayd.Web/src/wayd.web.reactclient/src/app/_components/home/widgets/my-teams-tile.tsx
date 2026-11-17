@@ -3,7 +3,7 @@
 import {
   MyTeamsSummaryResponse,
   TeamNavigationDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useGetMyTeamsSummaryQuery } from '@/src/store/features/user-management/me-api'
 import { FC } from 'react'
 import AttentionTile from '../attention-tile'

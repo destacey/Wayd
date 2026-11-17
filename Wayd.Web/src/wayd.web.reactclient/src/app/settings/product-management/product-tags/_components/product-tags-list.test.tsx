@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import {
   ProductTagCategoryDto,
   ProductTagOptionDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import ProductTagsList from './product-tags-list'
 
 const tag = (

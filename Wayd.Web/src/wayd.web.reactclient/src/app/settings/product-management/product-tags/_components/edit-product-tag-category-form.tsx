@@ -1,7 +1,7 @@
 'use client'
 
 import { useMessage } from '@/src/components/contexts/messaging'
-import { UpdateProductTagCategoryRequest } from '@/src/services/wayd-api'
+import { UpdateProductTagCategoryRequest } from '@/src/services/api/wayd.schemas'
 import { useUpdateProductTagCategoryMutation } from '@/src/store/features/product-management/product-tag-categories-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -25,7 +25,7 @@ export interface EditProductTagCategoryFormProps {
 
 interface UpdateProductTagCategoryFormValues {
   name: string
-  description?: string
+  description?: string | null
 }
 
 const mapToRequestValues = (

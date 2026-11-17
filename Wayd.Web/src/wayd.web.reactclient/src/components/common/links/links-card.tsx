@@ -8,7 +8,7 @@ import CreateLinkForm from './create-link-form'
 import LinkItem from './link-item'
 import WaydEmpty from '../wayd-empty'
 import { useGetLinksQuery } from '@/src/store/features/common/links-api'
-import { LinkDto } from '@/src/services/wayd-api'
+import { LinkDto } from '@/src/services/api/wayd.schemas'
 
 export interface LinksCardProps {
   objectId: string

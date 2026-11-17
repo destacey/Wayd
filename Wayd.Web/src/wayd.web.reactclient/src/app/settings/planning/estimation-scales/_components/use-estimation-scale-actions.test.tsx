@@ -1,7 +1,8 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { Dropdown } from 'antd'
-import { EstimationScaleDto } from '@/src/services/wayd-api'
+import { EstimationScaleDto } from '@/src/services/api/wayd.schemas'
 import useEstimationScaleActions from './use-estimation-scale-actions'
+import { asInstant } from '@/src/utils/instant'
 
 const mockHasPermissionClaim = vi.fn()
 const mockSetActiveStatus = vi.fn()
@@ -45,7 +46,7 @@ const scale = (
   currentVersion: {
     id: 'version-1',
     number: 1,
-    publishedOn: new Date('2026-01-01T00:00:00Z'),
+    publishedOn: asInstant('2026-01-01T00:00:00Z'),
     values: [
       { value: '1', isEstimate: true },
       { value: '2', isEstimate: true },

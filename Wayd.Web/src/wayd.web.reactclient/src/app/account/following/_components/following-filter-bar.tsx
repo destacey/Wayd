@@ -1,7 +1,7 @@
 'use client'
 
 import { Select, Tag } from 'antd'
-import { FollowCountsDto } from '@/src/services/wayd-api'
+import { FollowCountsDto } from '@/src/services/api/wayd.schemas'
 import { typeLabel } from '@/src/components/common/record/record-identity'
 import styles from '../following.module.css'
 import { FollowingFilter, followViews, viewCount } from './following-filters'

@@ -2,7 +2,7 @@
 
 import PiObjectiveHealthReportChart from '@/src/app/planning/planning-intervals/_components/pi-objective-health-report-chart'
 import { WaydTooltip } from '@/src/components/common'
-import { PlanningIntervalObjectiveDetailsDto } from '@/src/services/wayd-api'
+import { PlanningIntervalObjectiveDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Flex, Progress } from 'antd'
 import PlanningIntervalObjectiveWorkItemsCard from './planning-interval-objective-work-items-card'
 

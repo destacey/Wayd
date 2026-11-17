@@ -1,7 +1,15 @@
 import {
-  getProjectDeliverablesClient,
-  getProjectsClient,
-} from '@/src/services/clients'
+  projectDeliverablesChangeStatus,
+  projectDeliverablesCreateDeliverable,
+  projectDeliverablesDeleteDeliverable,
+  projectDeliverablesGetDeliverables,
+  projectDeliverablesGetStatusHistory,
+  projectDeliverablesGetStatusOptions,
+  projectDeliverablesReorderDeliverables,
+  projectDeliverablesSetDeliverableTasks,
+  projectDeliverablesUpdateDeliverable,
+} from '@/src/services/api/project-deliverables'
+import { projectsGetMyProjectDeliverables } from '@/src/services/api/projects'
 import {
   ChangeProjectDeliverableStatusRequest,
   CreateProjectDeliverableRequest,
@@ -10,7 +18,7 @@ import {
   StatusOptionDto,
   StatusTransitionDto,
   UpdateProjectDeliverableRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 import { projectActivityTags } from './ppm-activity-tags'
@@ -54,7 +62,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     getMyProjectDeliverables: builder.query<MyProjectDeliverableDto[], void>({
       queryFn: async () => {
         try {
-          const data = await getProjectsClient().getMyProjectDeliverables()
+          const data = await projectsGetMyProjectDeliverables()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -68,8 +76,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     getProjectDeliverables: builder.query<ProjectDeliverableDto[], string>({
       queryFn: async (projectId) => {
         try {
-          const data =
-            await getProjectDeliverablesClient().getDeliverables(projectId)
+          const data = await projectDeliverablesGetDeliverables(projectId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -87,7 +94,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId, deliverableId }) => {
         try {
-          const data = await getProjectDeliverablesClient().getStatusOptions(
+          const data = await projectDeliverablesGetStatusOptions(
             projectId,
             deliverableId,
           )
@@ -108,7 +115,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId, deliverableId }) => {
         try {
-          const data = await getProjectDeliverablesClient().getStatusHistory(
+          const data = await projectDeliverablesGetStatusHistory(
             projectId,
             deliverableId,
           )
@@ -129,7 +136,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId, request }) => {
         try {
-          const data = await getProjectDeliverablesClient().createDeliverable(
+          const data = await projectDeliverablesCreateDeliverable(
             projectId,
             request,
           )
@@ -149,7 +156,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId, deliverableId, request }) => {
         try {
-          await getProjectDeliverablesClient().updateDeliverable(
+          await projectDeliverablesUpdateDeliverable(
             projectId,
             deliverableId,
             request,
@@ -172,7 +179,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId, deliverableId, request }) => {
         try {
-          await getProjectDeliverablesClient().changeStatus(
+          await projectDeliverablesChangeStatus(
             projectId,
             deliverableId,
             request,
@@ -193,7 +200,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId, deliverableIds, expectedRevision }) => {
         try {
-          await getProjectDeliverablesClient().reorderDeliverables(projectId, {
+          await projectDeliverablesReorderDeliverables(projectId, {
             deliverableIds,
             expectedRevision,
           })
@@ -213,7 +220,7 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId, deliverableId, taskIds }) => {
         try {
-          await getProjectDeliverablesClient().setDeliverableTasks(
+          await projectDeliverablesSetDeliverableTasks(
             projectId,
             deliverableId,
             { taskIds },
@@ -234,11 +241,9 @@ export const projectDeliverablesApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ projectId, deliverableId, expectedRevision }) => {
         try {
-          await getProjectDeliverablesClient().deleteDeliverable(
-            projectId,
-            deliverableId,
-            expectedRevision,
-          )
+          await projectDeliverablesDeleteDeliverable(projectId, deliverableId, {
+            expectedRevision: expectedRevision,
+          })
           return { data: null }
         } catch (error) {
           console.error('API Error:', error)

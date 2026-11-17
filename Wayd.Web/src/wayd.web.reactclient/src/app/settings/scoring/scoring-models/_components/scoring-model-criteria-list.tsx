@@ -8,7 +8,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   ScoringModelCriterionDto,
   ScoringModelDetailsDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useRemoveScoringModelCriterionMutation,
   useReorderScoringModelCriteriaMutation,

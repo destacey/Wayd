@@ -4,7 +4,8 @@ import {
   NotificationEvent,
   NotificationReason,
   NotifiedRecordDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
+import { toInstant } from '@/src/utils/instant'
 
 /** A project to be told about, overridable field by field. */
 export const buildNotifiedRecord = (
@@ -29,7 +30,7 @@ export const buildNotification = (
   latestNotificationId: 9,
   event: NotificationEvent.StatusChanged,
   eventId: 'e-1',
-  occurredOn: new Date(Date.now() - 60_000),
+  occurredOn: toInstant(new Date(Date.now() - 60_000)),
   actorKind: EventActorKind.User,
   actor: { id: 'emp-1', key: 1, name: 'Ada Lovelace' },
   reasons: [NotificationReason.Following],

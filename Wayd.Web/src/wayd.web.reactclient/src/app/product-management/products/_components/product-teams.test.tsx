@@ -3,7 +3,7 @@ import {
   ProductTeamLinkDto,
   ProductTeamNavigationDto,
   TeamType,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import ProductTeams, { productTeamCount, teamsBeneath } from './product-teams'
 
 const team = (

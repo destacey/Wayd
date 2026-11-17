@@ -8,7 +8,7 @@ import { useDocumentTitle } from '@/src/hooks'
 import {
   StatusWorkflowListDto,
   WorkflowAssignmentDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   useGetStatusWorkflowsQuery,
   useGetWorkflowAssignmentsQuery,

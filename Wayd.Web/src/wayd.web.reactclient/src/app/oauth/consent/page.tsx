@@ -14,11 +14,15 @@ import {
 } from 'antd'
 import dayjs from 'dayjs'
 import styles from './page.module.css'
-import { getOAuthAuthorizationRequestsClient } from '@/src/services/clients'
+import {
+  oAuthAuthorizationRequestsApprove,
+  oAuthAuthorizationRequestsDeny,
+  oAuthAuthorizationRequestsGet,
+} from '@/src/services/api/oauth-authorization-requests'
 import {
   OAuthAuthorizationRequestResponse,
   TokenScope,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useDocumentTitle, useFeatureFlag } from '@/src/hooks'
 import { toApiError } from '@/src/utils/problem-details'
 import { isFramed, navigateWithFullReload } from '@/src/utils/window-utils'
@@ -254,8 +258,7 @@ const ConsentContent = () => {
   useEffect(() => {
     if (!handle || framed) return
     let cancelled = false
-    getOAuthAuthorizationRequestsClient()
-      .get(handle)
+    oAuthAuthorizationRequestsGet(handle)
       .then((request) => {
         if (!cancelled) setState({ kind: 'ready', request })
       })
@@ -274,11 +277,10 @@ const ConsentContent = () => {
     setDecisionError(null)
 
     try {
-      const client = getOAuthAuthorizationRequestsClient()
       const { redirectUrl } =
         decision === 'approve'
-          ? await client.approve(handle, { scope })
-          : await client.deny(handle)
+          ? await oAuthAuthorizationRequestsApprove(handle, { scope })
+          : await oAuthAuthorizationRequestsDeny(handle)
       // A refusal is not worth opening an app for: whatever app holds the
       // scheme would be launched by a request the user just turned down.
       const returning = decision === 'approve' || !opensAnApp(state.request)

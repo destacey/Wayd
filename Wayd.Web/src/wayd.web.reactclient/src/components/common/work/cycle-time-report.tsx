@@ -14,7 +14,10 @@ import dayjs, { Dayjs } from 'dayjs'
 import utc from 'dayjs/plugin/utc'
 import { useGetTeamWorkItemsQuery } from '@/src/store/features/organizations/team-api'
 import { useGetEmployeeWorkItemsQuery } from '@/src/store/features/organizations/employee-api'
-import { StatusCategory, WorkItemListDto } from '@/src/services/wayd-api'
+import {
+  StatusCategory,
+  WorkItemListDto,
+} from '@/src/services/api/wayd.schemas'
 import { useDebounce } from '@/src/hooks'
 import { CycleTimeAnalysisChart, WorkItemsGrid } from '.'
 import {

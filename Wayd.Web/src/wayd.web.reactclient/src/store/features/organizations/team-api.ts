@@ -1,3 +1,4 @@
+import { type Instant, toInstant } from '@/src/utils/instant'
 import {
   DeactivateTeamOfTeamsRequest,
   DeactivateTeamRequest,
@@ -22,7 +23,7 @@ import {
   SetTeamOfTeamsOperatingModelRequest,
   UpdateTeamOfTeamsOperatingModelRequest,
   TeamOfTeamsOperatingModelDetailsDto,
-} from './../../../services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import {
   CreateTeamFormValues,
   EditTeamFormValues,
@@ -31,7 +32,61 @@ import {
 } from '@/src/app/organizations/types'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
-import { getTeamsClient, getTeamsOfTeamsClient } from '@/src/services/clients'
+import {
+  teamsAddTeamMembership,
+  teamsCreate,
+  teamsDeactivate,
+  teamsDeleteOperatingModel,
+  teamsGetActiveSprint,
+  teamsGetActivities,
+  teamsGetById,
+  teamsGetCadenceMetrics,
+  teamsGetDependencyAnalysis,
+  teamsGetFunctionalOrganizationChart,
+  teamsGetList,
+  teamsGetOperatingModel,
+  teamsGetOperatingModelAsOf,
+  teamsGetOperatingModelDefaults,
+  teamsGetOperatingModels,
+  teamsGetOperatingModelsForTeams,
+  teamsGetRisks,
+  teamsGetSprintMetrics,
+  teamsGetSprints,
+  teamsGetTeamBacklog,
+  teamsGetTeamBacklogHealth,
+  teamsGetTeamDependencies,
+  teamsGetTeamMemberships,
+  teamsGetTeamWorkDistribution,
+  teamsGetTeamWorkItems,
+  teamsHasEverBeenScrum,
+  teamsRemoveTeamMembership,
+  teamsSetOperatingModel,
+  teamsUpdate,
+  teamsUpdateOperatingModel,
+  teamsUpdateTeamMembership,
+} from '@/src/services/api/teams'
+import {
+  teamsOfTeamsAddTeamMembership,
+  teamsOfTeamsCreate,
+  teamsOfTeamsDeactivate,
+  teamsOfTeamsDeleteOperatingModel,
+  teamsOfTeamsGetActivities,
+  teamsOfTeamsGetById,
+  teamsOfTeamsGetDependencies,
+  teamsOfTeamsGetDependencyAnalysis,
+  teamsOfTeamsGetList,
+  teamsOfTeamsGetOperatingModel,
+  teamsOfTeamsGetOperatingModelDefaults,
+  teamsOfTeamsGetOperatingModels,
+  teamsOfTeamsGetRisks,
+  teamsOfTeamsGetTeamMemberships,
+  teamsOfTeamsGetWorkDistribution,
+  teamsOfTeamsRemoveTeamMembership,
+  teamsOfTeamsSetOperatingModel,
+  teamsOfTeamsUpdate,
+  teamsOfTeamsUpdateOperatingModel,
+  teamsOfTeamsUpdateTeamMembership,
+} from '@/src/services/api/teams-of-teams'
 import type { BaseOptionType } from 'antd/es/select'
 import {
   BacklogHealthThresholds,
@@ -44,7 +99,7 @@ import {
   ThemeCounting,
   UnestimatedHandling,
   WorkItemBacklogItemDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { OptionModel } from '@/src/components/types'
 import { CalendarDate, toCalendarDate } from '@/src/utils'
 
@@ -84,8 +139,8 @@ export interface GetTeamDependencyAnalysisRequest {
  * as its UTC date, and the client sends `toISOString()`. UTC midnight of the
  * day is the only instant that names the same day in every viewer's zone.
  */
-const asOfDateParam = (asOfDate?: CalendarDate): Date | undefined =>
-  asOfDate ? new Date(`${asOfDate}T00:00:00Z`) : undefined
+const asOfDateParam = (asOfDate?: CalendarDate): Instant | undefined =>
+  asOfDate ? toInstant(new Date(`${asOfDate}T00:00:00Z`)) : undefined
 
 /**
  * What a team's operating model changes besides itself: the team's details
@@ -107,8 +162,8 @@ export const teamApi = apiSlice.injectEndpoints({
       queryFn: async (includeInactive) => {
         try {
           const [teams, teamsOfTeams] = await Promise.all([
-            getTeamsClient().getList(includeInactive),
-            getTeamsOfTeamsClient().getList(includeInactive),
+            teamsGetList({ includeInactive: includeInactive }),
+            teamsOfTeamsGetList({ includeInactive: includeInactive }),
           ])
           const data = [
             ...(teams as TeamListItem[]),
@@ -137,7 +192,7 @@ export const teamApi = apiSlice.injectEndpoints({
     deactivateTeam: builder.mutation<void, DeactivateTeamRequest>({
       queryFn: async (request) => {
         try {
-          const data = await getTeamsClient().deactivate(request.id, request)
+          const data = await teamsDeactivate(request.id, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -162,10 +217,7 @@ export const teamApi = apiSlice.injectEndpoints({
       {
         queryFn: async (request) => {
           try {
-            const data = await getTeamsOfTeamsClient().deactivate(
-              request.id,
-              request,
-            )
+            const data = await teamsOfTeamsDeactivate(request.id, request)
             return { data }
           } catch (error) {
             console.error('API Error:', error)
@@ -191,8 +243,8 @@ export const teamApi = apiSlice.injectEndpoints({
       queryFn: async (includeInactive) => {
         try {
           const [teams, teamsOfTeams] = await Promise.all([
-            getTeamsClient().getList(includeInactive),
-            getTeamsOfTeamsClient().getList(includeInactive),
+            teamsGetList({ includeInactive: includeInactive }),
+            teamsOfTeamsGetList({ includeInactive: includeInactive }),
           ])
           const teamsData = [
             ...(teams as TeamListItem[]),
@@ -230,7 +282,7 @@ export const teamApi = apiSlice.injectEndpoints({
     getTeamBacklog: builder.query<WorkItemBacklogItemDto[], string>({
       queryFn: async (idOrCode: string) => {
         try {
-          const data = await getTeamsClient().getTeamBacklog(idOrCode)
+          const data = await teamsGetTeamBacklog(idOrCode)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -249,19 +301,21 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          const args = [
-            request.teamIdOrCode,
-            request.from,
-            request.to,
-            request.dimension,
-            request.measure,
-            request.unestimated,
-            request.themeCounting,
-          ] as const
+          const params = {
+            From: request.from,
+            To: request.to,
+            Dimension: request.dimension,
+            Measure: request.measure,
+            Unestimated: request.unestimated,
+            ThemeCounting: request.themeCounting,
+          }
           const data =
             request.teamType === 'team-of-teams'
-              ? await getTeamsOfTeamsClient().getWorkDistribution(...args)
-              : await getTeamsClient().getTeamWorkDistribution(...args)
+              ? await teamsOfTeamsGetWorkDistribution(
+                  request.teamIdOrCode,
+                  params,
+                )
+              : await teamsGetTeamWorkDistribution(request.teamIdOrCode, params)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -281,25 +335,24 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamIdOrCode, lookbackDays, thresholds = {} }) => {
         try {
-          const data = await getTeamsClient().getTeamBacklogHealth(
-            teamIdOrCode,
-            lookbackDays,
-            thresholds.staleDays,
-            thresholds.oldProposedDays,
-            thresholds.agingWipPercentile,
-            thresholds.oversizedPercentile,
-            thresholds.readinessWindowWeeks,
-            thresholds.readinessFallbackItems,
-            thresholds.atRiskPercent,
-            thresholds.unhealthyPercent,
-            thresholds.runwayAtRiskWeeks,
-            thresholds.runwayUnhealthyWeeks,
-            thresholds.runwayTooLongWeeks,
-            thresholds.netFlowAtRisk,
-            thresholds.netFlowUnhealthy,
-            thresholds.wipLoadAtRisk,
-            thresholds.wipLoadUnhealthy,
-          )
+          const data = await teamsGetTeamBacklogHealth(teamIdOrCode, {
+            LookbackDays: lookbackDays,
+            StaleDays: thresholds.staleDays,
+            OldProposedDays: thresholds.oldProposedDays,
+            AgingWipPercentile: thresholds.agingWipPercentile,
+            OversizedPercentile: thresholds.oversizedPercentile,
+            ReadinessWindowWeeks: thresholds.readinessWindowWeeks,
+            ReadinessFallbackItems: thresholds.readinessFallbackItems,
+            AtRiskPercent: thresholds.atRiskPercent,
+            UnhealthyPercent: thresholds.unhealthyPercent,
+            RunwayAtRiskWeeks: thresholds.runwayAtRiskWeeks,
+            RunwayUnhealthyWeeks: thresholds.runwayUnhealthyWeeks,
+            RunwayTooLongWeeks: thresholds.runwayTooLongWeeks,
+            NetFlowAtRisk: thresholds.netFlowAtRisk,
+            NetFlowUnhealthy: thresholds.netFlowUnhealthy,
+            WipLoadAtRisk: thresholds.wipLoadAtRisk,
+            WipLoadUnhealthy: thresholds.wipLoadUnhealthy,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -326,12 +379,11 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrCode, statusCategories, doneFrom, doneTo }) => {
         try {
-          const data = await getTeamsClient().getTeamWorkItems(
-            idOrCode,
-            statusCategories,
-            doneFrom ? new Date(doneFrom) : null,
-            doneTo ? new Date(doneTo) : null,
-          )
+          const data = await teamsGetTeamWorkItems(idOrCode, {
+            statusCategories: statusCategories ?? undefined,
+            doneFrom: doneFrom ? toInstant(new Date(doneFrom)) : undefined,
+            doneTo: doneTo ? toInstant(new Date(doneTo)) : undefined,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -350,7 +402,7 @@ export const teamApi = apiSlice.injectEndpoints({
     getTeamDependencies: builder.query<DependencyDto[], string>({
       queryFn: async (id: string) => {
         try {
-          const data = await getTeamsClient().getTeamDependencies(id)
+          const data = await teamsGetTeamDependencies(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -366,7 +418,7 @@ export const teamApi = apiSlice.injectEndpoints({
     getTeamSprints: builder.query<SprintListDto[], string>({
       queryFn: async (teamId: string) => {
         try {
-          const data = await getTeamsClient().getSprints(teamId)
+          const data = await teamsGetSprints(teamId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -385,10 +437,9 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, sprintWindow }) => {
         try {
-          const data = await getTeamsClient().getSprintMetrics(
-            teamId,
-            sprintWindow,
-          )
+          const data = await teamsGetSprintMetrics(teamId, {
+            sprintWindow: sprintWindow,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -417,10 +468,9 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, periodWindow }) => {
         try {
-          const data = await getTeamsClient().getCadenceMetrics(
-            teamId,
-            periodWindow,
-          )
+          const data = await teamsGetCadenceMetrics(teamId, {
+            periodWindow: periodWindow,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -438,7 +488,7 @@ export const teamApi = apiSlice.injectEndpoints({
     getActiveSprint: builder.query<SprintDetailsDto | null, string>({
       queryFn: async (id: string) => {
         try {
-          const data = await getTeamsClient().getActiveSprint(id)
+          const data = await teamsGetActiveSprint(id)
           return { data }
         } catch (error: any) {
           // 404 is the API's answer for a team with no sprint in progress.
@@ -457,7 +507,7 @@ export const teamApi = apiSlice.injectEndpoints({
     getTeamSprintOptions: builder.query<BaseOptionType[], string>({
       queryFn: async (teamId: string) => {
         try {
-          const sprints = await getTeamsClient().getSprints(teamId)
+          const sprints = await teamsGetSprints(teamId)
 
           const data: BaseOptionType[] = sprints
             .sort((a, b) => a.name.localeCompare(b.name))
@@ -484,9 +534,10 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (asOfDate: string) => {
         try {
-          const date = asOfDate ? new Date(asOfDate) : undefined
-          const data =
-            await getTeamsClient().getFunctionalOrganizationChart(date)
+          const date = asOfDate ? toInstant(new Date(asOfDate)) : undefined
+          const data = await teamsGetFunctionalOrganizationChart({
+            asOfDate: date,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -505,7 +556,9 @@ export const teamApi = apiSlice.injectEndpoints({
     getTeamOfTeamsOptions: builder.query<OptionModel[], boolean>({
       queryFn: async (includeInactive = false) => {
         try {
-          const teams = await getTeamsOfTeamsClient().getList(includeInactive)
+          const teams = await teamsOfTeamsGetList({
+            includeInactive: includeInactive,
+          })
           const data: OptionModel[] = teams
             .sort((a, b) => a.name.localeCompare(b.name))
             .map((t) => ({
@@ -542,7 +595,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId }) => {
         try {
-          const data = await getTeamsClient().getTeamMemberships(teamId)
+          const data = await teamsGetTeamMemberships(teamId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -561,7 +614,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId }) => {
         try {
-          const data = await getTeamsOfTeamsClient().getTeamMemberships(teamId)
+          const data = await teamsOfTeamsGetTeamMemberships(teamId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -583,12 +636,9 @@ export const teamApi = apiSlice.injectEndpoints({
         try {
           let data
           if (teamType === 'Team') {
-            data = await getTeamsClient().addTeamMembership(
-              membership.teamId,
-              membership,
-            )
+            data = await teamsAddTeamMembership(membership.teamId, membership)
           } else if (teamType === 'Team of Teams') {
-            data = await getTeamsOfTeamsClient().addTeamMembership(
+            data = await teamsOfTeamsAddTeamMembership(
               membership.teamId,
               membership,
             )
@@ -622,13 +672,13 @@ export const teamApi = apiSlice.injectEndpoints({
         try {
           let data
           if (teamType === 'Team') {
-            data = await getTeamsClient().updateTeamMembership(
+            data = await teamsUpdateTeamMembership(
               membership.teamId,
               membership.teamMembershipId,
               membership,
             )
           } else if (teamType === 'Team of Teams') {
-            data = await getTeamsOfTeamsClient().updateTeamMembership(
+            data = await teamsOfTeamsUpdateTeamMembership(
               membership.teamId,
               membership.teamMembershipId,
               membership,
@@ -664,12 +714,9 @@ export const teamApi = apiSlice.injectEndpoints({
         try {
           let data
           if (teamType === 'Team') {
-            data = await getTeamsClient().removeTeamMembership(
-              teamId,
-              teamMembershipId,
-            )
+            data = await teamsRemoveTeamMembership(teamId, teamMembershipId)
           } else if (teamType === 'Team of Teams') {
-            data = await getTeamsOfTeamsClient().removeTeamMembership(
+            data = await teamsOfTeamsRemoveTeamMembership(
               teamId,
               teamMembershipId,
             )
@@ -698,7 +745,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, includeClosed = false }) => {
         try {
-          const data = await getTeamsClient().getRisks(id, includeClosed)
+          const data = await teamsGetRisks(id, { includeClosed: includeClosed })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -717,7 +764,9 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ id, includeClosed = false }) => {
         try {
-          const data = await getTeamsOfTeamsClient().getRisks(id, includeClosed)
+          const data = await teamsOfTeamsGetRisks(id, {
+            includeClosed: includeClosed,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -733,7 +782,7 @@ export const teamApi = apiSlice.injectEndpoints({
     getTeamOfTeamsDependencies: builder.query<DependencyDto[], string>({
       queryFn: async (id) => {
         try {
-          const data = await getTeamsOfTeamsClient().getDependencies(id)
+          const data = await teamsOfTeamsGetDependencies(id)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -754,16 +803,14 @@ export const teamApi = apiSlice.injectEndpoints({
         try {
           const data =
             teamType === 'team-of-teams'
-              ? await getTeamsOfTeamsClient().getDependencyAnalysis(
-                  teamIdOrCode,
-                  from,
-                  to,
-                )
-              : await getTeamsClient().getDependencyAnalysis(
-                  teamIdOrCode,
-                  from,
-                  to,
-                )
+              ? await teamsOfTeamsGetDependencyAnalysis(teamIdOrCode, {
+                  From: from,
+                  To: to,
+                })
+              : await teamsGetDependencyAnalysis(teamIdOrCode, {
+                  From: from,
+                  To: to,
+                })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -782,9 +829,11 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, teamType, startDate }) => {
         try {
-          const client =
-            teamType === 'Team' ? getTeamsClient() : getTeamsOfTeamsClient()
-          const data = await client.getOperatingModelDefaults(teamId, startDate)
+          const getDefaults =
+            teamType === 'Team'
+              ? teamsGetOperatingModelDefaults
+              : teamsOfTeamsGetOperatingModelDefaults
+          const data = await getDefaults(teamId, { startDate })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -808,10 +857,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, operatingModelId }) => {
         try {
-          const data = await getTeamsClient().getOperatingModel(
-            teamId,
-            operatingModelId,
-          )
+          const data = await teamsGetOperatingModel(teamId, operatingModelId)
           return { data }
         } catch (error: any) {
           // Return null for 404 (no operating model defined)
@@ -834,10 +880,9 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, asOfDate }) => {
         try {
-          const data = await getTeamsClient().getOperatingModelAsOf(
-            teamId,
-            asOfDateParam(asOfDate),
-          )
+          const data = await teamsGetOperatingModelAsOf(teamId, {
+            asOfDate: asOfDateParam(asOfDate),
+          })
           return { data }
         } catch (error: any) {
           // Return null for 404 (no operating model defined)
@@ -859,7 +904,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (teamId) => {
         try {
-          const data = await getTeamsClient().getOperatingModels(teamId)
+          const data = await teamsGetOperatingModels(teamId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -874,7 +919,7 @@ export const teamApi = apiSlice.injectEndpoints({
     getTeamHasEverBeenScrum: builder.query<boolean, string>({
       queryFn: async (teamId) => {
         try {
-          const data = await getTeamsClient().hasEverBeenScrum(teamId)
+          const data = await teamsHasEverBeenScrum(teamId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -892,7 +937,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, request }) => {
         try {
-          const data = await getTeamsClient().setOperatingModel(teamId, request)
+          const data = await teamsSetOperatingModel(teamId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -918,7 +963,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, operatingModelId, request }) => {
         try {
-          const data = await getTeamsClient().updateOperatingModel(
+          const data = await teamsUpdateOperatingModel(
             teamId,
             operatingModelId,
             request,
@@ -944,10 +989,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, operatingModelId }) => {
         try {
-          const data = await getTeamsClient().deleteOperatingModel(
-            teamId,
-            operatingModelId,
-          )
+          const data = await teamsDeleteOperatingModel(teamId, operatingModelId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -970,7 +1012,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (teamId) => {
         try {
-          const data = await getTeamsOfTeamsClient().getOperatingModels(teamId)
+          const data = await teamsOfTeamsGetOperatingModels(teamId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -988,7 +1030,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, operatingModelId }) => {
         try {
-          const data = await getTeamsOfTeamsClient().getOperatingModel(
+          const data = await teamsOfTeamsGetOperatingModel(
             teamId,
             operatingModelId,
           )
@@ -1010,10 +1052,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, request }) => {
         try {
-          const data = await getTeamsOfTeamsClient().setOperatingModel(
-            teamId,
-            request,
-          )
+          const data = await teamsOfTeamsSetOperatingModel(teamId, request)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -1038,7 +1077,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, operatingModelId, request }) => {
         try {
-          const data = await getTeamsOfTeamsClient().updateOperatingModel(
+          const data = await teamsOfTeamsUpdateOperatingModel(
             teamId,
             operatingModelId,
             request,
@@ -1063,7 +1102,7 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, operatingModelId }) => {
         try {
-          const data = await getTeamsOfTeamsClient().deleteOperatingModel(
+          const data = await teamsOfTeamsDeleteOperatingModel(
             teamId,
             operatingModelId,
           )
@@ -1084,7 +1123,7 @@ export const teamApi = apiSlice.injectEndpoints({
     getTeamDetails: builder.query<TeamDetailsDto, number>({
       queryFn: async (key) => {
         try {
-          const data = await getTeamsClient().getById(key)
+          const data = await teamsGetById(key)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -1099,7 +1138,7 @@ export const teamApi = apiSlice.injectEndpoints({
     getTeamOfTeamsDetails: builder.query<TeamOfTeamsDetailsDto, number>({
       queryFn: async (key) => {
         try {
-          const data = await getTeamsOfTeamsClient().getById(key)
+          const data = await teamsOfTeamsGetById(key)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -1117,14 +1156,16 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (newTeam) => {
         try {
-          const teamClient =
-            newTeam.type === 'Team' ? getTeamsClient() : getTeamsOfTeamsClient()
           const request = {
             ...newTeam,
             activeDate: toCalendarDate(newTeam.activeDate),
           }
-          const created = await teamClient.create(request)
-          const data = await teamClient.getById(created.key)
+          const data =
+            newTeam.type === 'Team'
+              ? await teamsGetById((await teamsCreate(request)).key)
+              : await teamsOfTeamsGetById(
+                  (await teamsOfTeamsCreate(request)).key,
+                )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -1147,10 +1188,14 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (team) => {
         try {
-          const teamClient =
-            team.type === 'Team' ? getTeamsClient() : getTeamsOfTeamsClient()
-          await teamClient.update(team.id, team)
-          const data = await teamClient.getById(team.key)
+          const data =
+            team.type === 'Team'
+              ? await teamsUpdate(team.id, team).then(() =>
+                  teamsGetById(team.key),
+                )
+              : await teamsOfTeamsUpdate(team.id, team).then(() =>
+                  teamsOfTeamsGetById(team.key),
+                )
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -1176,10 +1221,10 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamIds, asOfDate }) => {
         try {
-          const data = await getTeamsClient().getOperatingModelsForTeams(
-            teamIds,
-            asOfDateParam(asOfDate),
-          )
+          const data = await teamsGetOperatingModelsForTeams({
+            teamIds: teamIds,
+            asOfDate: asOfDateParam(asOfDate),
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -1207,11 +1252,10 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getTeamsClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await teamsGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -1229,11 +1273,10 @@ export const teamApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ idOrKey, page, pageSize }) => {
         try {
-          const data = await getTeamsOfTeamsClient().getActivities(
-            String(idOrKey),
-            page,
-            pageSize,
-          )
+          const data = await teamsOfTeamsGetActivities(String(idOrKey), {
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

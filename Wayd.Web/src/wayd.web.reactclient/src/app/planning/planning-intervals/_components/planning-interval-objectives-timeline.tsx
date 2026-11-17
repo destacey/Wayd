@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation'
 import {
   PlanningIntervalCalendarDto,
   PlanningIntervalObjectiveListDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { WaydTimeline } from '@/src/components/common/timeline'
 import type {
   TimelineItem,

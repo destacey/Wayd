@@ -2,7 +2,10 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { ReleaseDto, RevertReleaseRequest } from '@/src/services/wayd-api'
+import {
+  ReleaseDto,
+  RevertReleaseRequest,
+} from '@/src/services/api/wayd.schemas'
 import { useRevertReleaseMutation } from '@/src/store/features/product-management/releases-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Alert, Flex, Form, Input, Modal } from 'antd'

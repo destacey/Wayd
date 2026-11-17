@@ -1,10 +1,7 @@
 'use client'
 
-import { WorkItemDetailsDto } from '@/src/services/wayd-api'
-import {
-  METRIC_CARD_FLEX,
-  MetricCard,
-} from '@/src/components/common/metrics'
+import { WorkItemDetailsDto } from '@/src/services/api/wayd.schemas'
+import { METRIC_CARD_FLEX, MetricCard } from '@/src/components/common/metrics'
 import dayjs from 'dayjs'
 
 export interface WorkItemCycleTimeProps {

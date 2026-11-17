@@ -12,38 +12,13 @@ export const isApiError = (error: unknown): error is ApiError =>
   typeof error === 'object' && error !== null && ('status' in error || 'detail' in error || 'errors' in error)
 
 /**
- * Reads any error a client call can throw as an {@link ApiError}. A response
- * the endpoint documents arrives as its parsed problem details, but one it
- * does not — commonly a 422, which FluentValidation can return from any
- * endpoint with a body — arrives as the generated client's `ApiException`,
- * with the body in `response` (already parsed by Axios when it was JSON), so
- * neither `errors` nor `detail` would be found. Anything that is not an error
- * response reads as `{}`.
+ * Reads any error a client call can throw as an {@link ApiError}. A failed
+ * response arrives as its problem details with its status (an
+ * `ApiResponseError`), whatever the status and whether or not the endpoint
+ * documents it. Anything that is not an error response reads as `{}`.
  */
-export const toApiError = (error: unknown): ApiError => {
-  if (
-    typeof error === 'object' &&
-    error !== null &&
-    (error as { isApiException?: unknown }).isApiException === true
-  ) {
-    const { status, response } = error as { status: number; response?: unknown }
-    let body = response
-    if (typeof body === 'string') {
-      try {
-        body = JSON.parse(body)
-      } catch {
-        // A plain-text body is the detail itself.
-      }
-    }
-    if (typeof body === 'object' && body !== null) {
-      return { ...(body as ApiError), status }
-    }
-    return typeof body === 'string' && body.trim()
-      ? { status, detail: body }
-      : { status }
-  }
-  return isApiError(error) ? error : {}
-}
+export const toApiError = (error: unknown): ApiError =>
+  isApiError(error) ? error : {}
 
 /**
  * The `detail` of a failed call, whether the error is the problem details

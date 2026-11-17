@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import { WorkTypeTier } from '@/src/components/types'
-import { WorkItemDetailsDto } from '@/src/services/wayd-api'
+import { WorkItemDetailsDto } from '@/src/services/api/wayd.schemas'
 import WorkItemFacts from './work-item-facts'
 
 // The planning barrel pulls in every planning form; these tests render no sprint.

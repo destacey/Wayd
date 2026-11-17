@@ -1,4 +1,4 @@
-import { ProductTeamLinkDto, TeamType } from '@/src/services/wayd-api'
+import { ProductTeamLinkDto, TeamType } from '@/src/services/api/wayd.schemas'
 import { buildProductTeamLinkColumns } from './product-team-links-grid'
 
 // The actions hook pulls in the dialogs; the columns under test only take its item builder.

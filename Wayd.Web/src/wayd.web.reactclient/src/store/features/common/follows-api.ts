@@ -1,4 +1,11 @@
-import { getMyFollowsClient } from '@/src/services/clients'
+import {
+  myFollowsFollow,
+  myFollowsGetFollowCounts,
+  myFollowsGetFollowStatus,
+  myFollowsGetFollowedRecord,
+  myFollowsGetFollows,
+  myFollowsUnfollow,
+} from '@/src/services/api/my-follows'
 import {
   FollowCountsDto,
   FollowedRecordDetailDto,
@@ -7,7 +14,7 @@ import {
   FollowView,
   PagedResponseOfFollowedRecordDto,
   SortDirection,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
 
@@ -66,10 +73,7 @@ export const followsApi = apiSlice.injectEndpoints({
     getFollowStatus: builder.query<FollowStatusDto, FollowTarget>({
       queryFn: async ({ ownerType, ownerId }) => {
         try {
-          const data = await getMyFollowsClient().getFollowStatus(
-            ownerType,
-            ownerId,
-          )
+          const data = await myFollowsGetFollowStatus(ownerType, ownerId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -91,15 +95,15 @@ export const followsApi = apiSlice.injectEndpoints({
       },
       queryFn: async ({ queryArg, pageParam }) => {
         try {
-          const data = await getMyFollowsClient().getFollows(
-            queryArg.ownerTypes,
-            queryArg.view,
-            queryArg.search,
-            queryArg.sort,
-            pageParam,
-            queryArg.pageSize ?? FollowsPageSize,
-            queryArg.direction,
-          )
+          const data = await myFollowsGetFollows({
+            ownerType: queryArg.ownerTypes,
+            view: queryArg.view,
+            search: queryArg.search,
+            sort: queryArg.sort,
+            page: pageParam,
+            pageSize: queryArg.pageSize ?? FollowsPageSize,
+            direction: queryArg.direction,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -112,7 +116,7 @@ export const followsApi = apiSlice.injectEndpoints({
     getMyFollowCounts: builder.query<FollowCountsDto, void>({
       queryFn: async () => {
         try {
-          const data = await getMyFollowsClient().getFollowCounts()
+          const data = await myFollowsGetFollowCounts()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -125,10 +129,7 @@ export const followsApi = apiSlice.injectEndpoints({
     getFollowedRecord: builder.query<FollowedRecordDetailDto, FollowTarget>({
       queryFn: async ({ ownerType, ownerId }) => {
         try {
-          const data = await getMyFollowsClient().getFollowedRecord(
-            ownerType,
-            ownerId,
-          )
+          const data = await myFollowsGetFollowedRecord(ownerType, ownerId)
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -141,7 +142,7 @@ export const followsApi = apiSlice.injectEndpoints({
     follow: builder.mutation<null, FollowTarget>({
       queryFn: async ({ ownerType, ownerId }) => {
         try {
-          await getMyFollowsClient().follow(ownerType, ownerId)
+          await myFollowsFollow(ownerType, ownerId)
           // The API answers 204 with no body; RTK Query rejects undefined as a result.
           return { data: null }
         } catch (error) {
@@ -180,7 +181,7 @@ export const followsApi = apiSlice.injectEndpoints({
     unfollow: builder.mutation<null, FollowTarget>({
       queryFn: async ({ ownerType, ownerId }) => {
         try {
-          await getMyFollowsClient().unfollow(ownerType, ownerId)
+          await myFollowsUnfollow(ownerType, ownerId)
           // The API answers 204 with no body; RTK Query rejects undefined as a result.
           return { data: null }
         } catch (error) {

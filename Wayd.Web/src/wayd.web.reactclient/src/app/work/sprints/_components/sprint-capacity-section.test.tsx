@@ -4,8 +4,9 @@ import {
   SprintDetailsDto,
   SprintType,
   SprintTypeSource,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import SprintCapacitySection from './sprint-capacity-section'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const mockPlan = vi.fn()
 vi.mock(
@@ -26,8 +27,8 @@ const sprint = (teamIsActive: boolean): SprintDetailsDto => ({
   key: 201,
   name: '26.3.2',
   state: { id: 1, name: 'Future' },
-  start: '2026-08-17',
-  end: '2026-08-30',
+  start: asCalendarDate('2026-08-17'),
+  end: asCalendarDate('2026-08-30'),
   team: { id: 't1', key: 14, name: 'Team Atlas', code: 'AT', type: 'Team' },
   teamIsActive,
   holidays: [],
@@ -70,7 +71,7 @@ describe('SprintCapacitySection', () => {
     const onSetTeamDaysOff = vi.fn()
     const withHalfDay = {
       ...sprint(true),
-      teamDaysOff: [{ date: '2026-08-19', percentOff: 50 }],
+      teamDaysOff: [{ date: asCalendarDate('2026-08-19'), percentOff: 50 }],
     }
     render(
       <SprintCapacitySection

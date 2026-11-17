@@ -1,4 +1,18 @@
-import { getTeamsClient, getTeamsOfTeamsClient } from '@/src/services/clients'
+import {
+  teamsGetAllocationProposal,
+  teamsGetCapacity,
+  teamsGetCapacityReport,
+} from '@/src/services/api/teams'
+import {
+  teamsOfTeamsGetAllocationProposal,
+  teamsOfTeamsGetCapacity,
+  teamsOfTeamsGetCapacityReport,
+} from '@/src/services/api/teams-of-teams'
+import { teamsGetCapacityPlan } from '@/src/services/api/teams'
+import {
+  teamsOfTeamsGetCapacityPlan,
+  teamsOfTeamsGetCapacityRollup,
+} from '@/src/services/api/teams-of-teams'
 import {
   CapacityMeasuresDto,
   CapacityReportInterval,
@@ -18,7 +32,7 @@ import {
   TeamCapacityRollupNodeDto,
   TeamCapacityTimeAwayDto,
   TeamDayOffDto,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { CalendarDate, teamDayOffParam } from '@/src/utils'
 import { apiSlice } from '../apiSlice'
 import { QueryTags } from '../query-tags'
@@ -47,8 +61,18 @@ export type {
 /** Which of the two team endpoints a capacity read goes to. */
 export type CapacityTeamType = 'Team' | 'TeamOfTeams'
 
-const clientFor = (teamType: CapacityTeamType) =>
-  teamType === 'Team' ? getTeamsClient() : getTeamsOfTeamsClient()
+const endpointsFor = (teamType: CapacityTeamType) =>
+  teamType === 'Team'
+    ? {
+        getCapacity: teamsGetCapacity,
+        getCapacityReport: teamsGetCapacityReport,
+        getAllocationProposal: teamsGetAllocationProposal,
+      }
+    : {
+        getCapacity: teamsOfTeamsGetCapacity,
+        getCapacityReport: teamsOfTeamsGetCapacityReport,
+        getAllocationProposal: teamsOfTeamsGetAllocationProposal,
+      }
 
 export const teamCapacityApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -63,7 +87,10 @@ export const teamCapacityApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, teamType, from, to }) => {
         try {
-          const data = await clientFor(teamType).getCapacity(teamId, from, to)
+          const data = await endpointsFor(teamType).getCapacity(teamId, {
+            from,
+            to,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -90,13 +117,15 @@ export const teamCapacityApi = apiSlice.injectEndpoints({
         try {
           const data =
             teamType === 'Team'
-              ? await getTeamsClient().getCapacityPlan(
-                  teamId,
-                  from,
-                  to,
-                  daysOff?.map(teamDayOffParam),
-                )
-              : await getTeamsOfTeamsClient().getCapacityPlan(teamId, from, to)
+              ? await teamsGetCapacityPlan(teamId, {
+                  from: from,
+                  to: to,
+                  daysOff: daysOff?.map(teamDayOffParam),
+                })
+              : await teamsOfTeamsGetCapacityPlan(teamId, {
+                  from: from,
+                  to: to,
+                })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -114,11 +143,10 @@ export const teamCapacityApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, from, to }) => {
         try {
-          const data = await getTeamsOfTeamsClient().getCapacityRollup(
-            teamId,
-            from,
-            to,
-          )
+          const data = await teamsOfTeamsGetCapacityRollup(teamId, {
+            from: from,
+            to: to,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -145,12 +173,11 @@ export const teamCapacityApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, teamType, from, to, interval }) => {
         try {
-          const data = await clientFor(teamType).getCapacityReport(
-            teamId,
+          const data = await endpointsFor(teamType).getCapacityReport(teamId, {
             from,
             to,
             interval,
-          )
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -172,9 +199,11 @@ export const teamCapacityApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ teamId, teamType, from }) => {
         try {
-          const data = await clientFor(teamType).getAllocationProposal(
+          const data = await endpointsFor(teamType).getAllocationProposal(
             teamId,
-            from,
+            {
+              from,
+            },
           )
           return { data }
         } catch (error) {

@@ -3,7 +3,7 @@
 import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
 import { formatDateOnly } from '@/src/components/common/wayd-grid'
-import { ReleaseDto } from '@/src/services/wayd-api'
+import { ReleaseDto } from '@/src/services/api/wayd.schemas'
 import { Flex, Typography } from 'antd'
 import Link from 'next/link'
 

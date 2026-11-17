@@ -3,7 +3,7 @@
 import { WaydList } from '@/src/components/common'
 import EntityLink from '@/src/components/common/entity-link'
 import { WorkflowStatusTag } from '@/src/components/common/status-workflows'
-import { MyProjectDeliverableDto } from '@/src/services/wayd-api'
+import { MyProjectDeliverableDto } from '@/src/services/api/wayd.schemas'
 import { useGetMyProjectDeliverablesQuery } from '@/src/store/features/ppm/project-deliverables-api'
 import {
   addCalendarDays,

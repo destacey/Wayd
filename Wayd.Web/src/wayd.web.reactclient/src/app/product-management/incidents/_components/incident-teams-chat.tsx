@@ -6,7 +6,7 @@ import {
   useCreateIncidentTeamsChatMutation,
   useLinkIncidentTeamsChatMutation,
 } from '@/src/store/features/product-management/incidents-api'
-import { IncidentDto } from '@/src/services/wayd-api'
+import { IncidentDto } from '@/src/services/api/wayd.schemas'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { CloseOutlined, EditOutlined } from '@ant-design/icons'
 import { Button, Divider, Flex, Form, Input, Modal, Tabs, Typography } from 'antd'

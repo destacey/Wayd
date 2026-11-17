@@ -1,9 +1,10 @@
-import { ProductActivityDto } from '@/src/services/wayd-api'
+import { ProductActivityDto } from '@/src/services/api/wayd.schemas'
 import { render, screen } from '@testing-library/react'
 import VersionActivity, {
   levelDescription,
   withAlpha,
 } from './version-activity'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const row = (
   name: string,
@@ -30,12 +31,18 @@ describe('VersionActivity', () => {
     // Arrange — a gap is information. Skipping empty days would misalign every row against the
     // calendar and hide a pause entirely.
     const activity = [
-      row('Checkout API', [{ date: '2026-09-03', released: 2 }]),
+      row('Checkout API', [
+        { date: asCalendarDate('2026-09-03'), released: 2 },
+      ]),
     ]
 
     // Act
     render(
-      <VersionActivity activity={activity} from="2026-09-01" to="2026-09-05" />,
+      <VersionActivity
+        activity={activity}
+        from={asCalendarDate('2026-09-01')}
+        to={asCalendarDate('2026-09-05')}
+      />,
     )
 
     // Assert
@@ -46,13 +53,19 @@ describe('VersionActivity', () => {
     // Arrange — an absent row reads as "not in scope" rather than "nothing shipped", and a quiet
     // product is usually the thing worth noticing.
     const activity = [
-      row('Checkout API', [{ date: '2026-09-01', released: 1 }]),
+      row('Checkout API', [
+        { date: asCalendarDate('2026-09-01'), released: 1 },
+      ]),
       row('Quiet Service', []),
     ]
 
     // Act
     render(
-      <VersionActivity activity={activity} from="2026-09-01" to="2026-09-02" />,
+      <VersionActivity
+        activity={activity}
+        from={asCalendarDate('2026-09-01')}
+        to={asCalendarDate('2026-09-02')}
+      />,
     )
 
     // Assert
@@ -65,17 +78,29 @@ describe('VersionActivity', () => {
     // twice, once as a row and again as a heading over its own children.
     const activity = [
       row('Onboarding Cloud', [], { depth: 0, isReleasable: false }),
-      row('Onboarding Content', [{ date: '2026-09-01', released: 1 }], {
-        depth: 1,
-      }),
-      row('Fulfillment Dashboard', [{ date: '2026-09-01', released: 1 }], {
-        depth: 2,
-      }),
+      row(
+        'Onboarding Content',
+        [{ date: asCalendarDate('2026-09-01'), released: 1 }],
+        {
+          depth: 1,
+        },
+      ),
+      row(
+        'Fulfillment Dashboard',
+        [{ date: asCalendarDate('2026-09-01'), released: 1 }],
+        {
+          depth: 2,
+        },
+      ),
     ]
 
     // Act
     render(
-      <VersionActivity activity={activity} from="2026-09-01" to="2026-09-02" />,
+      <VersionActivity
+        activity={activity}
+        from={asCalendarDate('2026-09-01')}
+        to={asCalendarDate('2026-09-02')}
+      />,
     )
 
     // Assert
@@ -87,12 +112,20 @@ describe('VersionActivity', () => {
     // question does not apply to it.
     const activity = [
       row('Payments Core', [], { isReleasable: false }),
-      row('Checkout API', [{ date: '2026-09-01', released: 1 }], { depth: 1 }),
+      row(
+        'Checkout API',
+        [{ date: asCalendarDate('2026-09-01'), released: 1 }],
+        { depth: 1 },
+      ),
     ]
 
     // Act
     render(
-      <VersionActivity activity={activity} from="2026-09-01" to="2026-09-02" />,
+      <VersionActivity
+        activity={activity}
+        from={asCalendarDate('2026-09-01')}
+        to={asCalendarDate('2026-09-02')}
+      />,
     )
 
     // Assert
@@ -106,8 +139,8 @@ describe('VersionActivity', () => {
     render(
       <VersionActivity
         activity={[row('Deep Service', [], { depth: 2 })]}
-        from="2026-09-01"
-        to="2026-09-02"
+        from={asCalendarDate('2026-09-01')}
+        to={asCalendarDate('2026-09-02')}
       />,
     )
 
@@ -121,12 +154,18 @@ describe('VersionActivity', () => {
     // Arrange — a withdrawal marks the day the version shipped rather than being a release of its
     // own, so the count has to sit alongside the releases rather than replace them.
     const activity = [
-      row('Notifications', [{ date: '2026-09-01', released: 2, withdrawn: 1 }]),
+      row('Notifications', [
+        { date: asCalendarDate('2026-09-01'), released: 2, withdrawn: 1 },
+      ]),
     ]
 
     // Act
     render(
-      <VersionActivity activity={activity} from="2026-09-01" to="2026-09-01" />,
+      <VersionActivity
+        activity={activity}
+        from={asCalendarDate('2026-09-01')}
+        to={asCalendarDate('2026-09-01')}
+      />,
     )
 
     // Assert
@@ -139,12 +178,18 @@ describe('VersionActivity', () => {
     // Arrange — 1 Sep 2026 is a Tuesday. Without the header a cell is an unlabelled square and the
     // reader cannot tell a quiet weekend from a stalled week.
     const activity = [
-      row('Checkout API', [{ date: '2026-09-01', released: 1 }]),
+      row('Checkout API', [
+        { date: asCalendarDate('2026-09-01'), released: 1 },
+      ]),
     ]
 
     // Act
     render(
-      <VersionActivity activity={activity} from="2026-09-01" to="2026-09-07" />,
+      <VersionActivity
+        activity={activity}
+        from={asCalendarDate('2026-09-01')}
+        to={asCalendarDate('2026-09-07')}
+      />,
     )
 
     // Assert — seven columns, starting on Tuesday and running to Monday.
@@ -156,7 +201,13 @@ describe('VersionActivity', () => {
 
   it('says so when the scope holds no releasable products at all', () => {
     // Arrange / Act
-    render(<VersionActivity activity={[]} from="2026-09-01" to="2026-09-02" />)
+    render(
+      <VersionActivity
+        activity={[]}
+        from={asCalendarDate('2026-09-01')}
+        to={asCalendarDate('2026-09-02')}
+      />,
+    )
 
     // Assert
     expect(

@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useDebounce, useModalForm } from '@/src/hooks'
-import { WorkItemListDto, WorkTypeTier } from '@/src/services/wayd-api'
+import { WorkItemListDto, WorkTypeTier } from '@/src/services/api/wayd.schemas'
 import { useAddProjectWorkItemsMutation } from '@/src/store/features/ppm/projects-api'
 import { useSearchWorkItemsQuery } from '@/src/store/features/work-management/workspace-api'
 import { toApiError, toFormErrors } from '@/src/utils'

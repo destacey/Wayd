@@ -13,7 +13,7 @@ import {
   IntakeRequestSummaryDto,
   ProjectDeliverableStatusAlias,
   StatusCategory,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { renderReportingWidget } from '../widget-display-test-utils'
 
 vi.mock('@/src/store/features/demand-management/demand-management-api', () => ({
@@ -25,6 +25,8 @@ import {
   useGetIntakeRequestOutcomesQuery,
   useGetIntakeRequestsQuery,
 } from '@/src/store/features/demand-management/demand-management-api'
+import { toInstant } from '@/src/utils/instant'
+import { asCalendarDate } from '@/src/utils/calendar-date'
 
 const mockRequests = useGetIntakeRequestsQuery as Mock
 const mockOutcomes = useGetIntakeRequestOutcomesQuery as Mock
@@ -45,7 +47,7 @@ const request = (
       category,
     },
     desk: { id: 'desk-1', key: 1, name: 'Finance' },
-    statusChangedOn: new Date(statusChangedOn),
+    statusChangedOn: toInstant(new Date(statusChangedOn)),
   }) as IntakeRequestSummaryDto
 
 let deliverableCount = 0
@@ -102,9 +104,24 @@ describe('sortMyRequests', () => {
   it('puts open requests first, each group most recently moved first', () => {
     // Arrange
     const requests = [
-      request(1, 'Closed lately', StatusCategory.Done, '2026-11-09'),
-      request(2, 'Open, older', StatusCategory.Proposed, '2026-10-01'),
-      request(3, 'Open, newer', StatusCategory.Active, '2026-11-01'),
+      request(
+        1,
+        'Closed lately',
+        StatusCategory.Done,
+        asCalendarDate('2026-11-09'),
+      ),
+      request(
+        2,
+        'Open, older',
+        StatusCategory.Proposed,
+        asCalendarDate('2026-10-01'),
+      ),
+      request(
+        3,
+        'Open, newer',
+        StatusCategory.Active,
+        asCalendarDate('2026-11-01'),
+      ),
     ]
 
     // Act
@@ -222,7 +239,12 @@ describe('MyRequestsWidget', () => {
     // Arrange
     mockRequests.mockReturnValue(
       loaded([
-        request(42, 'Export invoices', StatusCategory.Active, '2026-11-01'),
+        request(
+          42,
+          'Export invoices',
+          StatusCategory.Active,
+          asCalendarDate('2026-11-01'),
+        ),
       ]),
     )
     const outcomes: IntakeRequestOutcomesDto[] = [
@@ -279,7 +301,12 @@ describe('MyRequestsWidget', () => {
     // Arrange
     mockRequests.mockReturnValue(
       loaded([
-        request(42, 'Export invoices', StatusCategory.Done, '2026-11-01'),
+        request(
+          42,
+          'Export invoices',
+          StatusCategory.Done,
+          asCalendarDate('2026-11-01'),
+        ),
       ]),
     )
     mockOutcomes.mockReturnValue(
@@ -311,8 +338,18 @@ describe('MyRequestsWidget', () => {
     // Arrange
     mockRequests.mockReturnValue(
       loaded([
-        request(42, 'Export invoices', StatusCategory.Active, '2026-11-02'),
-        request(43, 'Import ledgers', StatusCategory.Active, '2026-11-01'),
+        request(
+          42,
+          'Export invoices',
+          StatusCategory.Active,
+          asCalendarDate('2026-11-02'),
+        ),
+        request(
+          43,
+          'Import ledgers',
+          StatusCategory.Active,
+          asCalendarDate('2026-11-01'),
+        ),
       ]),
     )
     mockOutcomes.mockReturnValue(
@@ -338,7 +375,12 @@ describe('MyRequestsWidget', () => {
     // Arrange
     mockRequests.mockReturnValue(
       loaded([
-        request(42, 'Export invoices', StatusCategory.Removed, '2026-11-02'),
+        request(
+          42,
+          'Export invoices',
+          StatusCategory.Removed,
+          asCalendarDate('2026-11-02'),
+        ),
       ]),
     )
     mockOutcomes.mockReturnValue(
@@ -370,7 +412,12 @@ describe('MyRequestsWidget', () => {
     [
       'rows when there are requests',
       loaded([
-        request(42, 'Export invoices', StatusCategory.Active, '2026-11-01'),
+        request(
+          42,
+          'Export invoices',
+          StatusCategory.Active,
+          asCalendarDate('2026-11-01'),
+        ),
       ]),
       'rows',
     ],
@@ -392,7 +439,12 @@ describe('MyRequestsWidget', () => {
     // Arrange
     mockRequests.mockReturnValue(
       loaded([
-        request(42, 'Export invoices', StatusCategory.Active, '2026-11-01'),
+        request(
+          42,
+          'Export invoices',
+          StatusCategory.Active,
+          asCalendarDate('2026-11-01'),
+        ),
       ]),
     )
     mockOutcomes.mockReturnValue({

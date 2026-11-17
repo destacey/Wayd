@@ -4,7 +4,7 @@ import { MarkdownEditor } from '@/src/components/common/markdown'
 import { EmployeeSelect } from '@/src/components/common/organizations'
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { UpdateProjectRequest } from '@/src/services/wayd-api'
+import { UpdateProjectRequest } from '@/src/services/api/wayd.schemas'
 import { useGetEmployeeOptionsQuery } from '@/src/store/features/organizations/employee-api'
 import { useGetExpenditureCategoryOptionsQuery } from '@/src/store/features/ppm/expenditure-categories-api'
 import {
@@ -22,6 +22,7 @@ import { projectHelpText } from './project-help-text'
 import { DatePicker, Form, Input, Modal, Select } from 'antd'
 import dayjs from 'dayjs'
 import { useEffect } from 'react'
+import { toCalendarDate } from '@/src/utils/calendar-date'
 
 const { TextArea } = Input
 const { Item } = Form
@@ -36,8 +37,8 @@ export interface EditProjectFormProps {
 interface EditProjectFormValues {
   name: string
   description: string
-  businessCase?: string
-  expectedBenefits?: string
+  businessCase?: string | null
+  expectedBenefits?: string | null
   expenditureCategoryId: number
   dateRange?: [dayjs.Dayjs, dayjs.Dayjs] | null
   sponsorIds: string[]
@@ -58,8 +59,12 @@ const mapToRequestValues = (
     businessCase: values.businessCase || undefined,
     expectedBenefits: values.expectedBenefits || undefined,
     expenditureCategoryId: values.expenditureCategoryId,
-    start: (values.dateRange?.[0] as any)?.format('YYYY-MM-DD'),
-    end: (values.dateRange?.[1] as any)?.format('YYYY-MM-DD'),
+    start: values.dateRange?.[0]
+      ? toCalendarDate(values.dateRange[0])
+      : undefined,
+    end: values.dateRange?.[1]
+      ? toCalendarDate(values.dateRange[1])
+      : undefined,
     sponsorIds: values.sponsorIds,
     ownerIds: values.ownerIds,
     managerIds: values.managerIds,
@@ -91,33 +96,33 @@ const EditProjectForm = ({
   const { form, isOpen, isValid, isSaving, handleOk, handleCancel } =
     useModalForm<EditProjectFormValues>({
       onSubmit: async (values: EditProjectFormValues, form) => {
-          try {
-            const request = mapToRequestValues(values, projectData!.id)
-            const response = await updateProject({
-              request,
-              cacheKey: projectData!.key,
-            })
-            if (response.error) throw response.error
+        try {
+          const request = mapToRequestValues(values, projectData!.id)
+          const response = await updateProject({
+            request,
+            cacheKey: projectData!.key,
+          })
+          if (response.error) throw response.error
 
-            messageApi.success('Project updated successfully.')
-            return true
-          } catch (error) {
-            const apiError = toApiError(error)
-            if (apiError.status === 422 && apiError.errors) {
-              const formErrors = toFormErrors(apiError.errors, {
-                fieldFor: rangeErrorsOn('dateRange'),
-              })
-              form.setFields(formErrors)
-              messageApi.error('Correct the validation error(s) to continue.')
-            } else {
-              messageApi.error(
-                apiError.detail ??
-                  'An error occurred while updating the project. Please try again.',
-              )
-            }
-            return false
+          messageApi.success('Project updated successfully.')
+          return true
+        } catch (error) {
+          const apiError = toApiError(error)
+          if (apiError.status === 422 && apiError.errors) {
+            const formErrors = toFormErrors(apiError.errors, {
+              fieldFor: rangeErrorsOn('dateRange'),
+            })
+            form.setFields(formErrors)
+            messageApi.error('Correct the validation error(s) to continue.')
+          } else {
+            messageApi.error(
+              apiError.detail ??
+                'An error occurred while updating the project. Please try again.',
+            )
           }
-        },
+          return false
+        }
+      },
       onComplete: onFormComplete,
       onCancel: onFormCancel,
       errorMessage:
@@ -161,10 +166,16 @@ const EditProjectForm = ({
           strategicThemeOptionsError,
       )
       messageApi.error(
-        (isApiError(expenditureOptionsError) ? expenditureOptionsError.detail : undefined) ??
+        (isApiError(expenditureOptionsError)
+          ? expenditureOptionsError.detail
+          : undefined) ??
           toApiError(error).detail ??
-          (isApiError(employeeOptionsError) ? employeeOptionsError.detail : undefined) ??
-          (isApiError(strategicThemeOptionsError) ? strategicThemeOptionsError.detail : undefined) ??
+          (isApiError(employeeOptionsError)
+            ? employeeOptionsError.detail
+            : undefined) ??
+          (isApiError(strategicThemeOptionsError)
+            ? strategicThemeOptionsError.detail
+            : undefined) ??
           'An error occurred while loading form data. Please try again.',
       )
     }
@@ -311,7 +322,9 @@ const EditProjectForm = ({
             showSearch={{
               optionFilterProp: 'label',
               filterOption: (input, option) =>
-                (option?.label?.toLowerCase() ?? '').includes(input.toLowerCase()),
+                (option?.label?.toLowerCase() ?? '').includes(
+                  input.toLowerCase(),
+                ),
             }}
           />
         </Item>

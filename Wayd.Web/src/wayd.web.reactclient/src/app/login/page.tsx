@@ -3,16 +3,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
+import { authExchange, authLogin } from '@/src/services/api/auth'
 import {
-  getAuthClient,
   isAuthActive,
   setRememberMe as persistRememberMe,
   storeAuth,
-} from '@/src/services/clients'
+} from '@/src/services/auth-storage'
 import { useGetAuthProvidersQuery } from '@/src/store/features/common/auth-providers-api'
 import { LoadingAccount } from '@/src/components/common'
 import { useDocumentTitle } from '@/src/hooks'
-import { OidcProviderInfo, OidcProviderType } from '@/src/services/wayd-api'
+import {
+  OidcProviderInfo,
+  OidcProviderType,
+} from '@/src/services/api/wayd.schemas'
 import {
   clearChosenProvider,
   completeSignin,
@@ -406,8 +409,7 @@ function LocalLoginTab() {
     setIsSubmitting(true)
 
     try {
-      const authClient = getAuthClient()
-      const tokenResponse = await authClient.login({
+      const tokenResponse = await authLogin({
         userName: username,
         password,
       })
@@ -422,7 +424,6 @@ function LocalLoginTab() {
       const message =
         signInRateLimitMessage(err) ||
         err?.detail ||
-        err?.response?.data?.message ||
         err?.message ||
         'Invalid email or password.'
       setError(message)
@@ -513,8 +514,7 @@ const readOidcCallback = (): OidcCallback | null => {
   return {
     providerName,
     error: hasError
-      ? (params.get('error_description') ??
-        'Sign-in was cancelled or failed.')
+      ? (params.get('error_description') ?? 'Sign-in was cancelled or failed.')
       : null,
   }
 }
@@ -530,7 +530,9 @@ export default function LoginPage() {
 
   // Tracks which OIDC provider button the user clicked so we can show a
   // spinner on the right button while the redirect is initiating.
-  const [signingInProvider, setSigningInProvider] = useState<string | null>(null)
+  const [signingInProvider, setSigningInProvider] = useState<string | null>(
+    null,
+  )
 
   // Returning from an OIDC redirect, the URL carries `code` (or `error`); the
   // callback is completed and its access token exchanged for a Wayd JWT. The
@@ -591,7 +593,7 @@ export default function LoginPage() {
         const oidcUser = await completeSignin(provider)
         clearChosenProvider()
 
-        const tokenResponse = await getAuthClient().exchange({
+        const tokenResponse = await authExchange({
           provider: provider.name,
           subjectToken: oidcUser.access_token,
         })

@@ -3,7 +3,7 @@
 import { NOT_RECORDED_CHANNEL_LABEL } from '../../../_components/channel'
 import { LabeledContent } from '@/src/components/common/content'
 import { RecordFactsGroup } from '@/src/components/common/record'
-import { IntakeRequestDetailsDto } from '@/src/services/wayd-api'
+import { IntakeRequestDetailsDto } from '@/src/services/api/wayd.schemas'
 import { Typography } from 'antd'
 import NextLink from 'next/link'
 import { FC } from 'react'

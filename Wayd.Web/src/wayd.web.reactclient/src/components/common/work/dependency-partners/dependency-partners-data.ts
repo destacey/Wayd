@@ -1,6 +1,6 @@
 import { caseInsensitiveCompare } from '@/src/components/common/wayd-grid'
 import { DependencyHealth } from '@/src/components/types'
-import { DependencyDto } from '@/src/services/wayd-api'
+import { DependencyDto } from '@/src/services/api/wayd.schemas'
 
 /** The partner key for work items with no team; every other partner is keyed by team id. */
 export const NO_TEAM_PARTNER_KEY = 'no-team'
@@ -39,7 +39,7 @@ const noHealth = (): PartnerHealthCounts => ({
 export const totalOf = (counts: PartnerHealthCounts) =>
   Object.values(counts).reduce((sum, n) => sum + n, 0)
 
-const partnerKey = (team: { id: string } | undefined) =>
+const partnerKey = (team: { id: string } | undefined | null) =>
   team?.id ?? NO_TEAM_PARTNER_KEY
 
 /** Groups a team's dependencies by the other team in each, and by which side waits. */

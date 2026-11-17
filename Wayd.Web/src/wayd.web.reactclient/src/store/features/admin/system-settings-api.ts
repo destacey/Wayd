@@ -9,8 +9,20 @@ import {
   UpdateProductTagSettingsRequest,
   UpdateSchedulingSettingsRequest,
   UpdateSprintMetricsSettingsRequest,
-} from '@/src/services/wayd-api'
-import { getSystemSettingsClient } from '@/src/services/clients'
+} from '@/src/services/api/wayd.schemas'
+import {
+  systemSettingsGetGeneralSettings,
+  systemSettingsGetGeneralSettingsActivities,
+  systemSettingsGetProductTagSettingsActivities,
+  systemSettingsGetSchedulingSettings,
+  systemSettingsGetSchedulingSettingsActivities,
+  systemSettingsGetSprintMetricsSettings,
+  systemSettingsGetSprintMetricsSettingsActivities,
+  systemSettingsUpdateGeneralSettings,
+  systemSettingsUpdateProductTagSettings,
+  systemSettingsUpdateSchedulingSettings,
+  systemSettingsUpdateSprintMetricsSettings,
+} from '@/src/services/api/system-settings'
 import { ActivityLogQueryArg } from '@/src/components/common/activities'
 
 /** The Activity tag id for the general section; a section is a singleton, so its key is its id. */
@@ -31,7 +43,7 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
     getGeneralSettings: builder.query<GeneralSettingsDto, void>({
       queryFn: async () => {
         try {
-          const data = await getSystemSettingsClient().getGeneralSettings()
+          const data = await systemSettingsGetGeneralSettings()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -46,7 +58,7 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
       {
         queryFn: async (request) => {
           try {
-            await getSystemSettingsClient().updateGeneralSettings(request)
+            await systemSettingsUpdateGeneralSettings(request)
             return { data: null as unknown as void }
           } catch (error) {
             console.error('API Error:', error)
@@ -69,11 +81,10 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ page, pageSize }) => {
         try {
-          const data =
-            await getSystemSettingsClient().getGeneralSettingsActivities(
-              page,
-              pageSize,
-            )
+          const data = await systemSettingsGetGeneralSettingsActivities({
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -87,7 +98,7 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
     getSchedulingSettings: builder.query<SchedulingSettingsDto, void>({
       queryFn: async () => {
         try {
-          const data = await getSystemSettingsClient().getSchedulingSettings()
+          const data = await systemSettingsGetSchedulingSettings()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -105,7 +116,7 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          await getSystemSettingsClient().updateSchedulingSettings(request)
+          await systemSettingsUpdateSchedulingSettings(request)
           return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
@@ -129,11 +140,10 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ page, pageSize }) => {
         try {
-          const data =
-            await getSystemSettingsClient().getSchedulingSettingsActivities(
-              page,
-              pageSize,
-            )
+          const data = await systemSettingsGetSchedulingSettingsActivities({
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -147,8 +157,7 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
     getSprintMetricsSettings: builder.query<SprintMetricsSettingsDto, void>({
       queryFn: async () => {
         try {
-          const data =
-            await getSystemSettingsClient().getSprintMetricsSettings()
+          const data = await systemSettingsGetSprintMetricsSettings()
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -167,7 +176,7 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          await getSystemSettingsClient().updateSprintMetricsSettings(request)
+          await systemSettingsUpdateSprintMetricsSettings(request)
           return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
@@ -193,11 +202,10 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ page, pageSize }) => {
         try {
-          const data =
-            await getSystemSettingsClient().getSprintMetricsSettingsActivities(
-              page,
-              pageSize,
-            )
+          const data = await systemSettingsGetSprintMetricsSettingsActivities({
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)
@@ -217,7 +225,7 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async (request) => {
         try {
-          await getSystemSettingsClient().updateProductTagSettings(request)
+          await systemSettingsUpdateProductTagSettings(request)
           return { data: null as unknown as void }
         } catch (error) {
           console.error('API Error:', error)
@@ -239,11 +247,10 @@ export const systemSettingsApi = apiSlice.injectEndpoints({
     >({
       queryFn: async ({ page, pageSize }) => {
         try {
-          const data =
-            await getSystemSettingsClient().getProductTagSettingsActivities(
-              page,
-              pageSize,
-            )
+          const data = await systemSettingsGetProductTagSettingsActivities({
+            page: page,
+            pageSize: pageSize,
+          })
           return { data }
         } catch (error) {
           console.error('API Error:', error)

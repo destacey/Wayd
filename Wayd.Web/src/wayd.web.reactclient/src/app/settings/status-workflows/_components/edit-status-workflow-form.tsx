@@ -4,7 +4,7 @@ import { useMessage } from '@/src/components/contexts/messaging'
 import {
   StatusWorkflowDetailsDto,
   UpdateStatusWorkflowRequest,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 import { useUpdateStatusWorkflowMutation } from '@/src/store/features/common/status-workflows-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { Form, Input, Modal } from 'antd'
@@ -22,7 +22,7 @@ export interface EditStatusWorkflowFormProps {
 
 interface UpdateStatusWorkflowFormValues {
   name: string
-  description?: string
+  description?: string | null
 }
 
 const mapToRequestValues = (

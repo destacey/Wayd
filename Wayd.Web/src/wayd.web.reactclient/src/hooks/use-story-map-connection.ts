@@ -6,7 +6,7 @@ import {
   HubConnection,
   LogLevel,
 } from '@microsoft/signalr'
-import { getFreshAuthToken } from '@/src/services/clients'
+import { getFreshAuthToken } from '@/src/services/api-fetch'
 import { store } from '@/src/store/store'
 import { storyMapsApi } from '@/src/store/features/planning/story-maps-api'
 import { QueryTags } from '@/src/store/features/query-tags'
@@ -85,7 +85,7 @@ export function useStoryMapConnection(
             // SignalR authenticates via the Wayd JWT, same as REST. The factory
             // runs on every connect/reconnect, so refresh-before-read to survive
             // token expiry; getFreshAuthToken shares the single-flight refresh
-            // with the axios interceptor.
+            // with API requests.
             accessTokenFactory: async () => (await getFreshAuthToken()) ?? '',
             // In prod the negotiate redirects the browser to Azure SignalR
             // Service, which does not support credentialed CORS — with the

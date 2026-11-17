@@ -8,7 +8,10 @@ import {
   useRevokePersonalAccessTokenMutation,
   useDeletePersonalAccessTokenMutation,
 } from '@/src/store/features/user-management/personal-access-tokens-api'
-import { PersonalAccessTokenDto, TokenScope } from '@/src/services/wayd-api'
+import {
+  PersonalAccessTokenDto,
+  TokenScope,
+} from '@/src/services/api/wayd.schemas'
 import {
   WaydGrid,
   createActionsColumn,

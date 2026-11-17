@@ -15,20 +15,32 @@ const getStatusHistory = vi.fn()
 const getArrivalStatuses = vi.fn()
 const changeWorkflow = vi.fn()
 
-vi.mock('@/src/services/clients', () => ({
-  getIntakeRequestsClient: () => ({
-    getIntakeRequests,
-    getIntakeRequest,
-    update,
-    addParticipant,
-    reroute,
-    create,
-    changeStatus,
-    withdraw,
-    getStatusHistory,
-    getArrivalStatuses,
+vi.mock(
+  import('@/src/services/api/intake-requests'),
+  async (importOriginal) => ({
+    ...(await importOriginal()),
+    intakeRequestsGetIntakeRequests: (...args: unknown[]) =>
+      getIntakeRequests(...args),
+    intakeRequestsGetIntakeRequest: (...args: unknown[]) =>
+      getIntakeRequest(...args),
+    intakeRequestsUpdate: (...args: unknown[]) => update(...args),
+    intakeRequestsAddParticipant: (...args: unknown[]) =>
+      addParticipant(...args),
+    intakeRequestsReroute: (...args: unknown[]) => reroute(...args),
+    intakeRequestsCreate: (...args: unknown[]) => create(...args),
+    intakeRequestsChangeStatus: (...args: unknown[]) => changeStatus(...args),
+    intakeRequestsWithdraw: (...args: unknown[]) => withdraw(...args),
+    intakeRequestsGetStatusHistory: (...args: unknown[]) =>
+      getStatusHistory(...args),
+    intakeRequestsGetArrivalStatuses: (...args: unknown[]) =>
+      getArrivalStatuses(...args),
   }),
-  getIntakeDesksClient: () => ({ getIntakeDesk, changeWorkflow }),
+)
+
+vi.mock(import('@/src/services/api/intake-desks'), async (importOriginal) => ({
+  ...(await importOriginal()),
+  intakeDesksGetIntakeDesk: (...args: unknown[]) => getIntakeDesk(...args),
+  intakeDesksChangeWorkflow: (...args: unknown[]) => changeWorkflow(...args),
 }))
 
 const createStore = () =>
@@ -65,14 +77,14 @@ describe('demandManagementApi', () => {
       )
 
       // Assert
-      expect(getIntakeRequests).toHaveBeenCalledWith(
-        undefined,
-        true,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-      )
+      expect(getIntakeRequests).toHaveBeenCalledWith({
+        deskId: undefined,
+        mine: true,
+        openOnly: undefined,
+        assignedToMe: undefined,
+        participating: undefined,
+        closedSince: undefined,
+      })
     })
 
     it('asks the server for open requests only, rather than filtering the summaries', async () => {
@@ -88,14 +100,14 @@ describe('demandManagementApi', () => {
       )
 
       // Assert
-      expect(getIntakeRequests).toHaveBeenCalledWith(
-        undefined,
-        undefined,
-        true,
-        undefined,
-        undefined,
-        undefined,
-      )
+      expect(getIntakeRequests).toHaveBeenCalledWith({
+        deskId: undefined,
+        mine: undefined,
+        openOnly: true,
+        assignedToMe: undefined,
+        participating: undefined,
+        closedSince: undefined,
+      })
     })
 
     it('passes the assignee, participant and closed-since filters to the server', async () => {
@@ -113,14 +125,14 @@ describe('demandManagementApi', () => {
       )
 
       // Assert
-      expect(getIntakeRequests).toHaveBeenCalledWith(
-        undefined,
-        undefined,
-        undefined,
-        true,
-        true,
-        new Date('2026-10-11T00:00:00.000Z'),
-      )
+      expect(getIntakeRequests).toHaveBeenCalledWith({
+        deskId: undefined,
+        mine: undefined,
+        openOnly: undefined,
+        assignedToMe: true,
+        participating: true,
+        closedSince: '2026-10-11T00:00:00.000Z',
+      })
     })
   })
 

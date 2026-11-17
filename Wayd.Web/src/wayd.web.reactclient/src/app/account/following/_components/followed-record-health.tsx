@@ -3,7 +3,7 @@
 import ProjectHealthCheckTag from '@/src/app/ppm/projects/_components/project-health-check-tag'
 import PiObjectiveHealthCheckTag from '@/src/app/planning/planning-intervals/_components/pi-objective-health-check-tag'
 import type { HealthCheckVariant } from '@/src/components/common/health-check/health-check-tag'
-import { FollowedRecordDto } from '@/src/services/wayd-api'
+import { FollowedRecordDto } from '@/src/services/api/wayd.schemas'
 import { FollowOwnerTypes } from '@/src/store/features/common/follows-api'
 
 export interface FollowedRecordHealthProps {

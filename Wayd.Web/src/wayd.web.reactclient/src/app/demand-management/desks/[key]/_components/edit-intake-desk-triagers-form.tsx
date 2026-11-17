@@ -2,7 +2,7 @@
 
 import { useMessage } from '@/src/components/contexts/messaging'
 import { useModalForm } from '@/src/hooks'
-import { IntakeDeskDto } from '@/src/services/wayd-api'
+import { IntakeDeskDto } from '@/src/services/api/wayd.schemas'
 import { useUpdateIntakeDeskMutation } from '@/src/store/features/demand-management/demand-management-api'
 import { toApiError, toFormErrors } from '@/src/utils'
 import { Alert, Form, Modal, Transfer } from 'antd'

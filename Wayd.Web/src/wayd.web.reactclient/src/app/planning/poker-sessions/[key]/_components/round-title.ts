@@ -2,7 +2,7 @@ import {
   PokerRoundDto,
   PokerRoundSubjectDto,
   PokerRoundSubjectKind,
-} from '@/src/services/wayd-api'
+} from '@/src/services/api/wayd.schemas'
 
 /**
  * What a round is about, as one line: its label, led by the key of the record

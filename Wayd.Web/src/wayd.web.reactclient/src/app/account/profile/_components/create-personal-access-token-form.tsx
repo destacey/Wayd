@@ -7,7 +7,8 @@ import { ExclamationCircleOutlined } from '@ant-design/icons'
 import { useCreatePersonalAccessTokenMutation } from '@/src/store/features/user-management/personal-access-tokens-api'
 import { toFormErrors, isApiError, type ApiError } from '@/src/utils'
 import { useModalForm } from '@/src/hooks'
-import { TokenScope } from '@/src/services/wayd-api'
+import { TokenScope } from '@/src/services/api/wayd.schemas'
+import { toInstant } from '@/src/utils/instant'
 
 const { Item } = Form
 
@@ -36,7 +37,7 @@ const CreatePersonalAccessTokenForm = ({
         try {
           const response = await createToken({
             name: values.name,
-            expiresAt: values.expiresAt.toDate(),
+            expiresAt: toInstant(values.expiresAt),
             scope: values.scope,
           })
 

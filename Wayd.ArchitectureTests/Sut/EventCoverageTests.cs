@@ -278,6 +278,7 @@ public partial class EventCoverageTests
         [typeof(EmployeeTimeAway)] = typeof(EmployeeCapacity),
         [typeof(EstimationScaleVersion)] = typeof(EstimationScale),
         [typeof(ImportProcessRow)] = typeof(ImportProcess),
+        [typeof(KpiMeasurement)] = typeof(Kpi),
         [typeof(PlanningIntervalIterationSprint)] = typeof(PlanningInterval),
         [typeof(PlanningIntervalObjectiveHealthCheck)] = typeof(PlanningIntervalObjective),
         [typeof(ProductDependency)] = typeof(Product),

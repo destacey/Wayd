@@ -19,7 +19,7 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("Work")
-                .HasAnnotation("ProductVersion", "10.0.13")
+                .HasAnnotation("ProductVersion", "10.0.15")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("WolverineEnabled", "true");
 
@@ -1176,6 +1176,242 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                     b.HasIndex("ImportProcessId", "Status");
 
                     b.ToTable("ImportProcessRows", "Imports");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Kpis.Kpi", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<string>("ExpressedAs")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<int>("Key")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Key"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Prefix")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SubjectType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar");
+
+                    b.Property<string>("Suffix")
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("_atRiskKind")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar")
+                        .HasColumnName("AtRiskKind");
+
+                    b.Property<double?>("_atRiskValue")
+                        .HasColumnType("float")
+                        .HasColumnName("AtRiskValue");
+
+                    b.Property<double?>("_baselineValue")
+                        .HasColumnType("float")
+                        .HasColumnName("BaselineValue");
+
+                    b.Property<DateTime?>("_baselineWindowEnd")
+                        .HasColumnType("date")
+                        .HasColumnName("BaselineWindowEnd");
+
+                    b.Property<DateTime?>("_baselineWindowStart")
+                        .HasColumnType("date")
+                        .HasColumnName("BaselineWindowStart");
+
+                    b.Property<string>("_targetKind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar")
+                        .HasColumnName("TargetKind");
+
+                    b.Property<double>("_targetValue")
+                        .HasColumnType("float")
+                        .HasColumnName("TargetValue");
+
+                    b.HasKey("Id");
+
+                    b.HasAlternateKey("Key");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("SubjectType", "SubjectId", "Status", "Order");
+
+                    b.ToTable("Kpis", "Kpis");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Kpis.KpiCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Categories", "Kpis");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Kpis.KpiMeasurement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("KpiId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("MeasuredById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("MeasuredOn")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1024)
+                        .HasColumnType("nvarchar(1024)");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("PeriodRecordId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("PeriodRecordKind")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("SampleSize")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar");
+
+                    b.Property<DateTime>("SystemCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemCreatedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("SystemLastModified")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SystemLastModifiedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<double>("Value")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MeasuredById");
+
+                    b.HasIndex("KpiId", "PeriodEnd")
+                        .IsDescending(false, true);
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("KpiId", "PeriodEnd"), new[] { "Value" });
+
+                    b.HasIndex("KpiId", "PeriodStart")
+                        .IsUnique();
+
+                    b.ToTable("Measurements", "Kpis");
                 });
 
             modelBuilder.Entity("Wayd.Common.Domain.Models.KeyValueObjectMetadata", b =>
@@ -9913,6 +10149,28 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Wayd.Common.Domain.Kpis.Kpi", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Kpis.KpiCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Kpis.KpiMeasurement", b =>
+                {
+                    b.HasOne("Wayd.Common.Domain.Kpis.Kpi", null)
+                        .WithMany("Measurements")
+                        .HasForeignKey("KpiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Wayd.Common.Domain.Employees.Employee", null)
+                        .WithMany()
+                        .HasForeignKey("MeasuredById")
+                        .OnDelete(DeleteBehavior.NoAction);
+                });
+
             modelBuilder.Entity("Wayd.Common.Domain.Models.KeyValueObjectMetadata", b =>
                 {
                     b.HasOne("Wayd.Work.Domain.Models.Iteration", null)
@@ -12585,6 +12843,11 @@ namespace Wayd.Infrastructure.Migrators.MSSQL.Migrations
             modelBuilder.Entity("Wayd.Common.Domain.Imports.ImportProcess", b =>
                 {
                     b.Navigation("Rows");
+                });
+
+            modelBuilder.Entity("Wayd.Common.Domain.Kpis.Kpi", b =>
+                {
+                    b.Navigation("Measurements");
                 });
 
             modelBuilder.Entity("Wayd.Common.Domain.Scoring.ScoringModel", b =>

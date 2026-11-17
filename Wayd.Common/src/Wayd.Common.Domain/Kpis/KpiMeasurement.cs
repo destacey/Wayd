@@ -35,7 +35,13 @@ public sealed class KpiMeasurement : BaseAuditableEntity
     public double Value { get; private set; }
 
     /// <summary>The days the value describes. No two measurements on one KPI share a day.</summary>
-    public KpiPeriod Period { get; private set; } = default!;
+    public KpiPeriod Period => new(PeriodStart, PeriodEnd);
+
+    /// <summary>The first day of <see cref="Period"/>, mapped so a query can filter on it.</summary>
+    public LocalDate PeriodStart { get; private set; }
+
+    /// <summary>The last day of <see cref="Period"/>, mapped so a query can find the latest value.</summary>
+    public LocalDate PeriodEnd { get; private set; }
 
     /// <summary>The kind of record the period covers, such as a sprint, or null when it is a plain date range.</summary>
     public KpiPeriodRecordKind? PeriodRecordKind { get; private set; }
@@ -65,7 +71,8 @@ public sealed class KpiMeasurement : BaseAuditableEntity
     internal void Apply(KpiMeasurementInput input)
     {
         Value = input.Value;
-        Period = input.Period;
+        PeriodStart = input.Period.Start;
+        PeriodEnd = input.Period.End;
         PeriodRecordKind = input.PeriodRecordKind;
         PeriodRecordId = input.PeriodRecordId;
         MeasuredOn = input.MeasuredOn;

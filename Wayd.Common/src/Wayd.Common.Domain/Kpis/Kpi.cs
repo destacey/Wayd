@@ -43,6 +43,16 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     private string? _prefix;
     private string? _suffix;
 
+    // The goal's parts as columns. EF cannot build a record whose constructor takes another value object, so the
+    // records are read from these rather than mapped.
+    private double? _baselineValue;
+    private LocalDate? _baselineWindowStart;
+    private LocalDate? _baselineWindowEnd;
+    private KpiTargetKind _targetKind;
+    private double _targetValue;
+    private KpiAtRiskKind? _atRiskKind;
+    private double? _atRiskValue;
+
     private Kpi() { }
 
     private Kpi(string subjectType, Guid subjectId, KpiDefinition definition, int order)
@@ -134,13 +144,14 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     public KpiTargetDirection Direction { get; private set; }
 
     /// <summary>Where the KPI started.</summary>
-    public KpiBaseline Baseline { get; private set; } = KpiBaseline.None;
+    public KpiBaseline Baseline =>
+        new(_baselineValue, _baselineWindowStart is { } start && _baselineWindowEnd is { } end ? new KpiPeriod(start, end) : null);
 
     /// <summary>What it aims for, as entered.</summary>
-    public KpiTarget Target { get; private set; } = default!;
+    public KpiTarget Target => new(_targetKind, _targetValue);
 
     /// <summary>The optional line short of the target past which a measurement is at risk.</summary>
-    public KpiAtRiskThreshold? AtRisk { get; private set; }
+    public KpiAtRiskThreshold? AtRisk => _atRiskKind is { } kind ? new KpiAtRiskThreshold(kind, _atRiskValue ?? 0) : null;
 
     /// <summary>Where its measurements come from.</summary>
     public KpiSource Source { get; private set; }
@@ -385,9 +396,13 @@ public sealed class Kpi : BaseAuditableEntity, IHasIdAndKey
     private void ApplyGoal(KpiGoal goal)
     {
         Direction = goal.Direction;
-        Baseline = goal.Baseline;
-        Target = goal.Target;
-        AtRisk = goal.AtRisk;
+        _baselineValue = goal.Baseline.Value;
+        _baselineWindowStart = goal.Baseline.Window?.Start;
+        _baselineWindowEnd = goal.Baseline.Window?.End;
+        _targetKind = goal.Target.Kind;
+        _targetValue = goal.Target.Value;
+        _atRiskKind = goal.AtRisk?.Kind;
+        _atRiskValue = goal.AtRisk?.Value;
     }
 
     /// <summary>

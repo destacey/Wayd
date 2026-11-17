@@ -22,8 +22,9 @@ public sealed class KpiFaker : PrivateConstructorFaker<Kpi>
         RuleFor(x => x.SubjectId, f => f.Random.Guid());
         RuleFor(x => x.Name, f => f.Commerce.ProductName());
         RuleFor(x => x.Direction, KpiTargetDirection.Increase);
-        RuleFor(x => x.Baseline, new KpiBaseline(10, null));
-        RuleFor(x => x.Target, KpiTarget.Absolute(20));
+        RuleFor("_baselineValue", _ => (double?)10);
+        RuleFor("_targetKind", _ => KpiTargetKind.Absolute);
+        RuleFor("_targetValue", _ => 20d);
         RuleFor(x => x.Source, KpiSource.Manual);
         RuleFor(x => x.ExpressedAs, KpiExpressedAs.Value);
         RuleFor(x => x.Status, KpiStatus.Active);
@@ -47,19 +48,23 @@ public static class KpiFakerExtensions
 
     public static KpiFaker WithBaseline(this KpiFaker faker, KpiBaseline baseline)
     {
-        faker.RuleFor(x => x.Baseline, baseline);
+        faker.RuleFor("_baselineValue", _ => baseline.Value);
+        faker.RuleFor("_baselineWindowStart", _ => baseline.Window?.Start);
+        faker.RuleFor("_baselineWindowEnd", _ => baseline.Window?.End);
         return faker;
     }
 
     public static KpiFaker WithTarget(this KpiFaker faker, KpiTarget target)
     {
-        faker.RuleFor(x => x.Target, target);
+        faker.RuleFor("_targetKind", _ => target.Kind);
+        faker.RuleFor("_targetValue", _ => target.Value);
         return faker;
     }
 
     public static KpiFaker WithAtRisk(this KpiFaker faker, KpiAtRiskThreshold? atRisk)
     {
-        faker.RuleFor(x => x.AtRisk, atRisk);
+        faker.RuleFor("_atRiskKind", _ => atRisk?.Kind);
+        faker.RuleFor("_atRiskValue", _ => atRisk?.Value);
         return faker;
     }
 

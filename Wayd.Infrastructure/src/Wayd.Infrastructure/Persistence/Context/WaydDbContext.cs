@@ -9,6 +9,7 @@ using Wayd.Common.Application.FeatureManagement;
 using Wayd.Common.Domain.AppIntegrations;
 using Wayd.Common.Domain.Discussions;
 using Wayd.Common.Domain.Employees;
+using Wayd.Common.Domain.Kpis;
 using Wayd.Common.Domain.Enums.Work;
 using Wayd.Common.Domain.FeatureManagement;
 using Wayd.Common.Domain.Following;
@@ -49,7 +50,7 @@ using Wayd.Common.Domain.Imports;
 
 namespace Wayd.Infrastructure.Persistence.Context;
 
-public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandManagementDbContext, IFeatureManagementDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProductManagementDbContext, IImportDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IDiscussionsDbContext, IActivityLogDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
+public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandManagementDbContext, IFeatureManagementDbContext, ILinksDbContext, IOrganizationDbContext, IPlanningDbContext, IProductManagementDbContext, IImportDbContext, IStatusWorkflowDbContext, INotificationsDbContext, IDiscussionsDbContext, IKpisDbContext, IActivityLogDbContext, IProjectPortfolioManagementDbContext, IStrategicManagementDbContext, IWorkDbContext
 {
     private static readonly ConcurrentDictionary<string, bool> _ftsAvailabilityCache = new();
 
@@ -169,6 +170,16 @@ public class WaydDbContext : BaseDbContext, IAppIntegrationDbContext, IDemandMan
     public DbSet<DiscussionSettings> DiscussionSettings => Set<DiscussionSettings>();
 
     #endregion Discussions
+
+    #region Kpis
+
+    public DbSet<Kpi> Kpis => Set<Kpi>();
+
+    public DbSet<KpiMeasurement> KpiMeasurements => Set<KpiMeasurement>();
+
+    public DbSet<KpiCategory> KpiCategories => Set<KpiCategory>();
+
+    #endregion Kpis
 
     #region ProductManagement
 

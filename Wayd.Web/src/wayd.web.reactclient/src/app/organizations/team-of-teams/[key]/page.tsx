@@ -8,6 +8,7 @@ import RisksGrid, {
 } from '@/src/components/common/planning/risks-grid'
 import { useDocumentTitle } from '@/src/hooks/use-document-title'
 import { useFeatureFlag } from '@/src/hooks'
+import { KpiSubjectTypes } from '@/src/store/features/common/kpis-api'
 import {
   EditTeamForm,
   TeamMembershipsGrid,
@@ -73,8 +74,14 @@ const CapacityReport = dynamic(
   { ssr: false, loading: () => <Spin /> },
 )
 
+const KpiScorecard = dynamic(
+  () => import('@/src/components/common/kpi/scorecard/kpi-scorecard'),
+  { ssr: false, loading: () => <Spin /> },
+)
+
 enum TeamOfTeamsTabs {
   Overview = 'overview',
+  Scorecard = 'scorecard',
   RiskManagement = 'risk-management',
   Dependencies = 'dependencies',
   Products = 'products',
@@ -97,6 +104,7 @@ const TeamOfTeamsDetailsPage = (props: {
   const { isEnabled: capacityEnabled } = useFeatureFlag(
     'team-capacity-management',
   )
+  const { isEnabled: kpisEnabled } = useFeatureFlag('kpis')
 
   useDocumentTitle('Team of Teams Details')
 
@@ -288,6 +296,12 @@ const TeamOfTeamsDetailsPage = (props: {
             teamOfTeamsKey={team.key}
           />
         ) : null
+      case TeamOfTeamsTabs.Scorecard:
+        return kpisEnabled && team ? (
+          <KpiScorecard
+            subject={{ subjectType: KpiSubjectTypes.Team, subjectId: team.id }}
+          />
+        ) : null
       case TeamOfTeamsTabs.Members:
         return (
           <TeamMembersGrid teamId={team?.id ?? ''} teamType="TeamOfTeams" />
@@ -350,6 +364,9 @@ const TeamOfTeamsDetailsPage = (props: {
 
   const sections: RecordSection[] = [
     { id: TeamOfTeamsTabs.Overview, label: 'Overview' },
+    ...(kpisEnabled
+      ? [{ id: TeamOfTeamsTabs.Scorecard, label: 'Scorecard' }]
+      : []),
     ...(canViewProducts
       ? [{ id: TeamOfTeamsTabs.Products, label: 'Products' }]
       : []),

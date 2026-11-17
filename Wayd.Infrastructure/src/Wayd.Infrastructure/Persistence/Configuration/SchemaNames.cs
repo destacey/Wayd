@@ -13,6 +13,7 @@ internal static class SchemaNames
     public static string Health = "Health";
     public static string Identity = "Identity";
     public static string Imports = "Imports";
+    public static string Kpis = "Kpis";
     public static string Links = "Links";
     public static string Notifications = "Notifications";
     public static string Organization = "Organization";

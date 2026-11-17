@@ -54,6 +54,9 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         new IntakeDesksArea(),
         new IntakeRequestsArea(),
         new IntakeRequestOutcomesArea(),
+        new KpiFeatureFlagArea(),
+        new KpiCategoriesArea(),
+        new KpisArea(),
         new UserRolesArea(),
         new UserAccountsArea(),
     ];
@@ -66,7 +69,8 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
         GeneratedDemandManagement? demandManagement,
         bool createUsers,
         string userPassword,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        GeneratedKpis? kpis = null)
     {
         var context = new SeedContext(_client, _log)
         {
@@ -75,6 +79,7 @@ public sealed class SeedRunner(WaydSeedClient client, Action<string> log)
             ProductManagement = productManagement,
             Planning = planning,
             DemandManagement = demandManagement,
+            Kpis = kpis,
             CreateUsers = createUsers,
             UserPassword = userPassword,
         };

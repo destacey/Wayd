@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Wayd.Common.Domain.Models.KeyPerformanceIndicators;
+namespace Wayd.Common.Domain.Enums;
 
 // max length of 32 characters
 

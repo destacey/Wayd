@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using Wayd.Common.Application.Interfaces;
 using Wayd.Common.Domain.Events;
-using Wayd.Common.Domain.Models.KeyPerformanceIndicators;
+using Wayd.Common.Domain.Enums;
 using Wayd.Common.Models;
 using Wayd.Infrastructure.Persistence.Context;
 using Wayd.ProjectPortfolioManagement.Application.StrategicInitiatives.Commands.Kpis;

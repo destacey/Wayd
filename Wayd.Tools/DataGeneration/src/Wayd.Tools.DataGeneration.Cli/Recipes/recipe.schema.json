@@ -296,6 +296,26 @@
           "x-cli-flag": "--requests-per-month"
         }
       }
+    },
+    "kpis": {
+      "type": "object",
+      "description": "KPIs on every delivery team and ART, from a catalogue spanning the Flow, Quality and People categories, each with a baseline over its first three months and a monthly history moving toward its target.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether the area is generated at all.",
+          "x-cli-flag": "--skip-kpis",
+          "x-cli-flag-negates": true
+        },
+        "kpisPerTeam": {
+          "type": "integer",
+          "description": "How many KPIs each delivery team carries. Its ART carries half as many, at least one.",
+          "minimum": 0,
+          "maximum": 7,
+          "x-cli-flag": "--kpis-per-team"
+        }
+      }
     }
   }
 }

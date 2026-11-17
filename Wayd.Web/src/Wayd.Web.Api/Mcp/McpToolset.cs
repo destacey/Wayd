@@ -42,4 +42,7 @@ public enum McpToolset
 
     /// <summary>Incident severity scales and, later, incident records under product management.</summary>
     Incidents,
+
+    /// <summary>The KPIs on a record — a team, a team of teams — and their measurements.</summary>
+    Kpis,
 }

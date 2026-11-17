@@ -1,6 +1,6 @@
 ---
 title: Bulk Import
-description: Loading employees, teams, the team hierarchy, and team staffing into Wayd from CSV via the import API.
+description: Loading employees, teams, the team hierarchy, team staffing, and team KPIs with their history into Wayd from CSV via the import API.
 sidebar_position: 2
 audience: [user, agent]
 ---
@@ -85,6 +85,7 @@ Employees
   → Teams (and Teams of Teams)
   → Team hierarchy (team memberships)
   → Team staffing (team members)
+  → KPIs (with their measurements)
 ```
 
 - **Employees first** — teams are staffed with them, and employees reference their manager by employee
@@ -103,6 +104,7 @@ Employees
 | Employees | Import Employees |
 | Teams | Import Teams and Teams of Teams |
 | Team staffing · Team hierarchy | Manage Team Memberships |
+| KPIs | Administer KPIs |
 
 ## Limits
 
@@ -112,6 +114,7 @@ Employees
 | Teams | 10,000 | All-or-nothing |
 | Team hierarchy | 10,000 | All-or-nothing |
 | Team staffing | 10,000 | All-or-nothing |
+| KPIs | 10,000 KPIs (measurements not counted) | KPI by KPI, each with its measurements |
 
 A file over its cap is rejected before anything is queued, with a message naming the cap. Split a larger
 export into several files and post them one at a time, waiting for each run; one `submissionGroupId`
@@ -252,6 +255,53 @@ Two things fail the whole batch if not satisfied: the **role must already exist*
 roles — resolve them by name), and the **employee and team must both be active** (the domain does not allow
 staffing an inactive person or team). Create any needed roles first, and omit former employees.
 :::
+
+## KPI import
+
+`POST /api/kpis/import`
+
+Loads [KPIs](./scorecards.mdx) onto existing teams and teams of teams, each with its history. Takes **two
+files**: `file`, one row per KPI, and `measurementsFile`, one row per measurement naming its KPI's row. Send
+the measurements file with its header even when it has no rows. Needs the `kpis` feature flag.
+
+KPI file:
+
+| Column | Required | Notes |
+|---|---|---|
+| `ImportId` | Yes (column) | Your key for the row, unique within the file. The measurements file names it. A blank cell is known by its position. |
+| `SubjectType` | Yes | `organization.team`, for a team or a team of teams. |
+| `SubjectId` | Yes | The team or team of teams, **by id**. |
+| `Name` | Yes | Max 128 chars. Unique on its team, ignoring case: a name the team already has, or one the file gives the same team twice, rejects the row. |
+| `Description` | No | Max 1024 chars. |
+| `CategoryId` | No | An active [KPI category](../settings/index.mdx#kpi-categories), by id. |
+| `Prefix` · `Suffix` | No | Shown before and after a value, such as `$` or `days`. Max 16 chars each. |
+| `ExpressedAs` | No | `Value` (default), `ChangeFromBaseline` or `ProgressToTarget`. |
+| `Direction` | Yes | `Increase` or `Decrease`. |
+| `BaselineValue` | Conditional | Where the KPI started. Required for a `RelativeChange` target, and must be short of the target in the KPI's direction. |
+| `BaselineWindowStart` · `BaselineWindowEnd` | No | The dates the baseline was taken over. Give both or neither. |
+| `TargetKind` | No | `Absolute` (default), a value to reach, or `RelativeChange`, a percentage change from the baseline. |
+| `TargetValue` | Yes | The value to reach, or the percentage — `25` for 25%. |
+| `AtRiskKind` · `AtRiskValue` | No | An at-risk threshold: `Absolute` with a value, or `ProgressToTarget` with a percentage of the way from baseline to target. Give both or neither. Must be short of the target. |
+| `IsClosed` | No | `true` to import the KPI closed, as history only. |
+
+Measurements file:
+
+| Column | Required | Notes |
+|---|---|---|
+| `KpiImportId` | Yes | The `ImportId` of the KPI row the value belongs to. A value naming a KPI not in the file fails the whole submission. |
+| `PeriodStart` · `PeriodEnd` | Yes | The days the value describes. A KPI's periods cannot overlap. |
+| `Value` | Yes | The raw value — never a percentage worked out from it. |
+| `MeasuredOn` | No | The day it was taken; the period's last day when blank. |
+| `SampleSize` | No | How many items an average or a rate was worked out from. |
+| `Note` | No | Max 1024 chars. |
+
+Each KPI applies with its measurements or not at all, and independently of the other rows: a goal the KPI
+cannot hold, an unknown team or category, or two of its periods that overlap rejects that KPI alone, with
+the reason. New KPIs go after the team's existing ones, in file order. Imported measurements record no one as
+having taken them.
+
+Because a team's KPI names are unique, sending the same files again after fixing a failed row imports only
+the rows that failed: every KPI that already imported is rejected as existing, not added a second time.
 
 ## Related
 

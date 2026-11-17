@@ -41,6 +41,7 @@ public static class DatasetSeeder
             dataset.DemandManagement,
             resolved.CreateUsers,
             resolved.UserPassword,
-            cancellationToken);
+            cancellationToken,
+            dataset.Kpis);
     }
 }

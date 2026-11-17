@@ -1823,6 +1823,24 @@ describe('WaydGrid', () => {
         height: `${39 + DATA.length * 29 + 2}px`,
       })
     })
+
+    it('grows to its minimum height when its rows are shorter', () => {
+      // Arrange / Act
+      const { container } = renderGrid({ variant: 'simple', minHeight: 300 })
+
+      // Assert
+      expect(container.firstElementChild).toHaveStyle({ height: '300px' })
+    })
+
+    it('fits its rows when they are taller than its minimum height', () => {
+      // Arrange / Act
+      const { container } = renderGrid({ variant: 'simple', minHeight: 50 })
+
+      // Assert — header (39) + three rows at the 28px estimate + borders (2)
+      expect(container.firstElementChild).toHaveStyle({
+        height: `${39 + DATA.length * 28 + 2}px`,
+      })
+    })
   })
 
   describe('row activation', () => {

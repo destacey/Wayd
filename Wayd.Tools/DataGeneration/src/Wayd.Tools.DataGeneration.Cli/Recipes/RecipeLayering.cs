@@ -31,7 +31,23 @@ public static class RecipeLayering
         ProductManagement = Layer(over.ProductManagement, under.ProductManagement),
         Planning = Layer(over.Planning, under.Planning),
         DemandManagement = Layer(over.DemandManagement, under.DemandManagement),
+        Kpis = Layer(over.Kpis, under.Kpis),
     };
+
+    private static KpisRecipe? Layer(KpisRecipe? over, KpisRecipe? under)
+    {
+        if (over is null)
+            return under;
+
+        if (under is null)
+            return over;
+
+        return new KpisRecipe
+        {
+            Enabled = over.Enabled ?? under.Enabled,
+            KpisPerTeam = over.KpisPerTeam ?? under.KpisPerTeam,
+        };
+    }
 
     private static DemandManagementRecipe? Layer(DemandManagementRecipe? over, DemandManagementRecipe? under)
     {

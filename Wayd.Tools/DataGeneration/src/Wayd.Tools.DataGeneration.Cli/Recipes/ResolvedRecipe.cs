@@ -22,7 +22,9 @@ public sealed record ResolvedRecipe(
     bool GeneratePlanning,
     bool GenerateDemandManagement,
     bool CreateUsers,
-    string UserPassword)
+    string UserPassword,
+    KpiOptions Kpis,
+    bool GenerateKpis)
 {
     /// <summary>
     /// Settles a layered recipe into the types the generators take.
@@ -42,6 +44,7 @@ public sealed record ResolvedRecipe(
         var productManagement = recipe.ProductManagement ?? new ProductManagementRecipe();
         var planning = recipe.Planning ?? new PlanningRecipe();
         var demandManagement = recipe.DemandManagement ?? new DemandManagementRecipe();
+        var kpis = recipe.Kpis ?? new KpisRecipe();
 
         // Every other area is layered over the organization — portfolios and projects name people by
         // employee number, and projects are scoped to a team — so a run without it generates nothing at
@@ -114,7 +117,12 @@ public sealed record ResolvedRecipe(
             GenerateDemandManagement: demandManagement.Enabled ?? true,
             CreateUsers: users.Enabled ?? true,
             UserPassword: users.Password ?? throw new RecipeException(
-                "The resolved recipe does not set 'users.password'. The built-in default recipe is expected to set every knob."));
+                "The resolved recipe does not set 'users.password'. The built-in default recipe is expected to set every knob."),
+            Kpis: new KpiOptions
+            {
+                KpisPerTeam = Required(kpis.KpisPerTeam, "kpis.kpisPerTeam"),
+            },
+            GenerateKpis: kpis.Enabled ?? true);
     }
 
     /// <summary>

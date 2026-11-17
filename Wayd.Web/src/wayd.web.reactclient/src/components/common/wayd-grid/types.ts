@@ -159,6 +159,10 @@ export interface WaydGridProps<T extends RowData> {
   emptyMessage?: string
   /** Fixed height in pixels. When omitted, the grid auto-sizes to fill the remaining viewport height. */
   height?: number
+  /** The least height in pixels a `variant="simple"` grid fits its rows to,
+   *  so a list of one or two rows still reads as a list. Ignored when `height`
+   *  is set, and by the other variants, which fill the viewport. */
+  minHeight?: number
   /** File name prefix for CSV export (e.g., 'projects'). */
   csvFileName?: string
 

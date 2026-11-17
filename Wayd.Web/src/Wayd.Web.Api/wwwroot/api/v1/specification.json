@@ -1667,6 +1667,124 @@
         ]
       }
     },
+    "/api/kpis/import": {
+      "post": {
+        "tags": [
+          "KpiImports"
+        ],
+        "summary": "Submit csv files of KPIs and their measurements to import. Returns the run — 200 once it has finished, 202 while it is still queued or running.",
+        "description": "Takes two files: one row per KPI, naming the record it goes on by id, and one row per measurement naming the ImportId of its KPI. The measurements file may be empty of rows, but it must be sent with its header. A KPI and its measurements apply together: a period that overlaps another, or a goal the KPI cannot hold, rejects that KPI alone.",
+        "operationId": "KpiImports_Import",
+        "parameters": [
+          {
+            "name": "submissionGroupId",
+            "in": "query",
+            "schema": {
+              "type": [
+                "null",
+                "string"
+              ],
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "validateOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file",
+                  "measurementsFile"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "measurementsFile": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportProcessDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ],
+        "x-wayd-import": {
+          "key": "kpis.kpis",
+          "files": [
+            {
+              "field": "file",
+              "label": null,
+              "schema": "ImportKpiRequest",
+              "required": true
+            },
+            {
+              "field": "measurementsFile",
+              "label": "Measurements",
+              "schema": "ImportKpiMeasurementRequest",
+              "required": true
+            }
+          ]
+        }
+      }
+    },
     "/api/kpis/{subjectType}/{subjectId}": {
       "get": {
         "tags": [
@@ -1772,7 +1890,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AddKpiRequest"
+                "$ref": "#/components/schemas/KpiRequest"
               }
             }
           },
@@ -2010,6 +2128,112 @@
           }
         ]
       },
+      "put": {
+        "tags": [
+          "Kpis"
+        ],
+        "summary": "Change a KPI's details, baseline and target.",
+        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Replaces everything about the KPI that is entered rather than measured, in one save: send every field, including the ones that stay. The new goal is checked as a whole, against the same rules as adding a KPI, so a baseline and target may move together. A new category must be active; the one the KPI has may stay. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.",
+        "operationId": "Kpis_UpdateKpi",
+        "parameters": [
+          {
+            "name": "subjectType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "subjectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "kpiId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KpiRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "ApiKey": [ ]
+          }
+        ]
+      },
       "delete": {
         "tags": [
           "Kpis"
@@ -2045,330 +2269,6 @@
             }
           }
         ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": [ ]
-          }
-        ]
-      }
-    },
-    "/api/kpis/{subjectType}/{subjectId}/{kpiId}/details": {
-      "put": {
-        "tags": [
-          "Kpis"
-        ],
-        "summary": "Change a KPI's name, description, category, prefix, suffix and reading.",
-        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. A new category must be active; the one the KPI has may stay. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.",
-        "operationId": "Kpis_UpdateDetails",
-        "parameters": [
-          {
-            "name": "subjectType",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "subjectId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "kpiId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/KpiDetailsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": [ ]
-          }
-        ]
-      }
-    },
-    "/api/kpis/{subjectType}/{subjectId}/{kpiId}/target": {
-      "put": {
-        "tags": [
-          "Kpis"
-        ],
-        "summary": "Change a KPI's direction, target and at-risk threshold.",
-        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. The baseline must stay short of the target. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.",
-        "operationId": "Kpis_ChangeTarget",
-        "parameters": [
-          {
-            "name": "subjectType",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "subjectId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "kpiId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/KpiTargetRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Unprocessable Entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "ApiKey": [ ]
-          }
-        ]
-      }
-    },
-    "/api/kpis/{subjectType}/{subjectId}/{kpiId}/baseline": {
-      "put": {
-        "tags": [
-          "Kpis"
-        ],
-        "summary": "Change a KPI's baseline.",
-        "description": "`subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. A relative target and a threshold stated as progress move with the baseline, which must stay short of the target. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.",
-        "operationId": "Kpis_ChangeBaseline",
-        "parameters": [
-          {
-            "name": "subjectType",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "subjectId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "kpiId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/KpiBaselineRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "204": {
             "description": "No Content"
@@ -57201,40 +57101,6 @@
         "additionalProperties": false,
         "description": "A tag to add to a tag category."
       },
-      "AddKpiRequest": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/KpiDetailsRequest"
-          },
-          {
-            "required": [
-              "baseline",
-              "target"
-            ],
-            "type": "object",
-            "properties": {
-              "baseline": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/KpiBaselineRequest"
-                  }
-                ],
-                "description": "Where the KPI started."
-              },
-              "target": {
-                "oneOf": [
-                  {
-                    "$ref": "#/components/schemas/KpiTargetRequest"
-                  }
-                ],
-                "description": "What it aims for."
-              }
-            },
-            "additionalProperties": false
-          }
-        ],
-        "description": "A new KPI: its descriptive fields, where it started and what it aims for."
-      },
       "AddPersonaRequest": {
         "required": [
           "name",
@@ -67106,6 +66972,246 @@
         "additionalProperties": false,
         "description": "A single CSV row for the intake request import: one request, as it was submitted and where its review\nhas got to. Desks, channels, tags and people are named by id. A request starts in the status meaning\nSubmitted and is moved to `Status` when the row names another, recorded at `StatusChangedAt`.\nTimestamps are instants, and each must carry its offset."
       },
+      "ImportKpiMeasurementRequest": {
+        "required": [
+          "kpiImportId",
+          "periodStart",
+          "periodEnd",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "kpiImportId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The `ImportId` of the KPI row this value belongs to.",
+            "x-csv-column": "KpiImportId"
+          },
+          "periodStart": {
+            "type": "string",
+            "description": "The first day the value describes.",
+            "format": "date",
+            "x-csv-column": "PeriodStart"
+          },
+          "periodEnd": {
+            "type": "string",
+            "description": "The last day the value describes. A KPI's periods cannot overlap.",
+            "format": "date",
+            "x-csv-column": "PeriodEnd"
+          },
+          "value": {
+            "type": "number",
+            "description": "The raw measured value — never a percentage worked out from it.",
+            "format": "double",
+            "x-csv-column": "Value"
+          },
+          "measuredOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The day the value was taken; the period's last day when blank.",
+            "format": "date",
+            "x-csv-column": "MeasuredOn"
+          },
+          "sampleSize": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "description": "How many items the value was computed over, when known.",
+            "format": "int32",
+            "x-csv-column": "SampleSize"
+          },
+          "note": {
+            "maxLength": 1024,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Context for the value, up to 1,024 characters.",
+            "x-csv-column": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single CSV row for the measurements file: one value of one KPI for one period."
+      },
+      "ImportKpiRequest": {
+        "required": [
+          "subjectType",
+          "subjectId",
+          "name",
+          "direction",
+          "targetValue"
+        ],
+        "type": "object",
+        "properties": {
+          "importId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against\nit, and the measurements file names it to say which KPI a value belongs to. Leave a cell blank and the row is\nknown by its position instead, but the column itself must be in the file.",
+            "x-csv-column": "ImportId"
+          },
+          "subjectType": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string",
+            "description": "The kind of record the KPI goes on: `organization.team` for a team or a team of teams.",
+            "x-csv-column": "SubjectType"
+          },
+          "subjectId": {
+            "minLength": 1,
+            "type": "string",
+            "description": "The record the KPI goes on, by id.",
+            "format": "uuid",
+            "x-csv-column": "SubjectId"
+          },
+          "name": {
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string",
+            "description": "What the KPI is called, up to 128 characters.",
+            "x-csv-column": "Name"
+          },
+          "description": {
+            "maxLength": 1024,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What it measures and why, up to 1,024 characters.",
+            "x-csv-column": "Description"
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "An active KPI category, by id, or blank for none.",
+            "format": "uuid",
+            "x-csv-column": "CategoryId"
+          },
+          "prefix": {
+            "maxLength": 16,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A symbol shown before a value, such as `$`.",
+            "x-csv-column": "Prefix"
+          },
+          "suffix": {
+            "maxLength": 16,
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A unit shown after a value, such as `days`.",
+            "x-csv-column": "Suffix"
+          },
+          "expressedAs": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Which reading the scorecard shows. `Value` when blank.",
+            "x-csv-column": "ExpressedAs",
+            "x-csv-values": [
+              "Value",
+              "ChangeFromBaseline",
+              "ProgressToTarget"
+            ]
+          },
+          "direction": {
+            "minLength": 1,
+            "type": "string",
+            "description": "Whether the KPI should go up or down: `Increase` or `Decrease`.",
+            "x-csv-column": "Direction",
+            "x-csv-values": [
+              "Increase",
+              "Decrease"
+            ]
+          },
+          "baselineValue": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "Where it started. Required for a `RelativeChange` target.",
+            "format": "double",
+            "x-csv-column": "BaselineValue"
+          },
+          "baselineWindowStart": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The first day the baseline was taken over. Give both ends of the window or neither.",
+            "format": "date",
+            "x-csv-column": "BaselineWindowStart"
+          },
+          "baselineWindowEnd": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The last day the baseline was taken over.",
+            "format": "date",
+            "x-csv-column": "BaselineWindowEnd"
+          },
+          "targetKind": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "`Absolute` for a value to reach, or `RelativeChange` for a percentage change from the baseline. `Absolute` when blank.",
+            "x-csv-column": "TargetKind",
+            "x-csv-values": [
+              "Absolute",
+              "RelativeChange"
+            ]
+          },
+          "targetValue": {
+            "type": "number",
+            "description": "The value to reach, or the percentage change — 25 for 25%.",
+            "format": "double",
+            "x-csv-column": "TargetValue"
+          },
+          "atRiskKind": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "How an at-risk threshold is stated: `Absolute` or `ProgressToTarget`. Blank for none.",
+            "x-csv-column": "AtRiskKind",
+            "x-csv-values": [
+              "Absolute",
+              "ProgressToTarget"
+            ]
+          },
+          "atRiskValue": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "description": "The threshold value, or the percentage of the way to the target.",
+            "format": "double",
+            "x-csv-column": "AtRiskValue"
+          },
+          "isClosed": {
+            "type": [
+              "null",
+              "boolean"
+            ],
+            "description": "`true` to import the KPI closed, as history only. Open when blank.",
+            "x-csv-column": "IsClosed"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single CSV row for the KPI import — one KPI on an existing record, without its history. Measurements arrive\nin a second file and point back here by this row's `ImportId`."
+      },
       "ImportPlanningIntervalObjectivesRequest": {
         "required": [
           "planningIntervalId",
@@ -72506,58 +72612,6 @@
         "additionalProperties": false,
         "description": "One KPI with every measurement taken, newest first, and what the caller may do with it."
       },
-      "KpiDetailsRequest": {
-        "required": [
-          "name",
-          "expressedAs"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "What the KPI is called, up to 128 characters."
-          },
-          "description": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "What it measures and why, up to 1,024 characters."
-          },
-          "categoryId": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "An active KPI category to group it under, or null for none.",
-            "format": "uuid"
-          },
-          "prefix": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "A symbol shown before a value, such as `$`, up to 16 characters."
-          },
-          "suffix": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "description": "A unit shown after a value, such as `days`, up to 16 characters."
-          },
-          "expressedAs": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/KpiExpressedAs"
-              }
-            ],
-            "description": "Which reading the scorecard shows: `Value`, `ChangeFromBaseline` or `ProgressToTarget`."
-          }
-        },
-        "additionalProperties": false,
-        "description": "A KPI's descriptive fields."
-      },
       "KpiExpressedAs": {
         "enum": [
           "Value",
@@ -72930,6 +72984,76 @@
         "additionalProperties": false,
         "description": "What a KPI's latest value means against its goal, worked out when read."
       },
+      "KpiRequest": {
+        "required": [
+          "name",
+          "target",
+          "expressedAs",
+          "baseline"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What the KPI is called, up to 128 characters."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "What it measures and why, up to 1,024 characters."
+          },
+          "categoryId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "An active KPI category to group it under, or null for none.",
+            "format": "uuid"
+          },
+          "prefix": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A symbol shown before a value, such as `$`, up to 16 characters."
+          },
+          "suffix": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "A unit shown after a value, such as `days`, up to 16 characters."
+          },
+          "expressedAs": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KpiExpressedAs"
+              }
+            ],
+            "description": "Which reading the scorecard shows: `Value`, `ChangeFromBaseline` or `ProgressToTarget`."
+          },
+          "baseline": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KpiBaselineRequest"
+              }
+            ],
+            "description": "Where the KPI started."
+          },
+          "target": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/KpiTargetRequest"
+              }
+            ],
+            "description": "What it aims for."
+          }
+        },
+        "additionalProperties": false,
+        "description": "Everything about a KPI that is entered rather than measured: its descriptive fields, where it started and what it\naims for."
+      },
       "KpiScorecardDto": {
         "required": [
           "subjectType",
@@ -73122,8 +73246,8 @@
       "KpiTargetRequest": {
         "required": [
           "direction",
-          "kind",
-          "value"
+          "value",
+          "kind"
         ],
         "type": "object",
         "properties": {
@@ -98276,6 +98400,9 @@
     },
     {
       "name": "KpiCategories"
+    },
+    {
+      "name": "KpiImports"
     },
     {
       "name": "Kpis"

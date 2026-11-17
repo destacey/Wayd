@@ -367,6 +367,201 @@ export const importTemplates = {
       },
     ],
   },
+  'kpis.kpis': {
+    module: 'kpis',
+    description:
+      'Takes two files: one row per KPI, naming the record it goes on by id, and one row per measurement naming the ImportId of its KPI. The measurements file may be empty of rows, but it must be sent with its header. A KPI and its measurements apply together: a period that overlaps another, or a goal the KPI cannot hold, rejects that KPI alone.',
+    files: [
+      {
+        field: 'file',
+        required: true,
+        columns: [
+          {
+            name: 'ImportId',
+            type: 'text',
+            required: false,
+            description:
+              "The caller's own key for this row, unique within the file (case-insensitively). Results are reported against it, and the measurements file names it to say which KPI a value belongs to. Leave a cell blank and the row is known by its position instead, but the column itself must be in the file.",
+          },
+          {
+            name: 'SubjectType',
+            type: 'text',
+            required: true,
+            description:
+              'The kind of record the KPI goes on: `organization.team` for a team or a team of teams.',
+            maxLength: 64,
+          },
+          {
+            name: 'SubjectId',
+            type: 'id',
+            required: true,
+            description: 'The record the KPI goes on, by id.',
+          },
+          {
+            name: 'Name',
+            type: 'text',
+            required: true,
+            description: 'What the KPI is called, up to 128 characters.',
+            maxLength: 128,
+          },
+          {
+            name: 'Description',
+            type: 'text',
+            required: false,
+            description: 'What it measures and why, up to 1,024 characters.',
+            maxLength: 1024,
+          },
+          {
+            name: 'CategoryId',
+            type: 'id',
+            required: false,
+            description: 'An active KPI category, by id, or blank for none.',
+          },
+          {
+            name: 'Prefix',
+            type: 'text',
+            required: false,
+            description: 'A symbol shown before a value, such as `$`.',
+            maxLength: 16,
+          },
+          {
+            name: 'Suffix',
+            type: 'text',
+            required: false,
+            description: 'A unit shown after a value, such as `days`.',
+            maxLength: 16,
+          },
+          {
+            name: 'ExpressedAs',
+            type: 'text',
+            required: false,
+            description:
+              'Which reading the scorecard shows. `Value` when blank.',
+            values: ['Value', 'ChangeFromBaseline', 'ProgressToTarget'],
+          },
+          {
+            name: 'Direction',
+            type: 'text',
+            required: true,
+            description:
+              'Whether the KPI should go up or down: `Increase` or `Decrease`.',
+            values: ['Increase', 'Decrease'],
+          },
+          {
+            name: 'BaselineValue',
+            type: 'number',
+            required: false,
+            description:
+              'Where it started. Required for a `RelativeChange` target.',
+          },
+          {
+            name: 'BaselineWindowStart',
+            type: 'date',
+            required: false,
+            description:
+              'The first day the baseline was taken over. Give both ends of the window or neither.',
+          },
+          {
+            name: 'BaselineWindowEnd',
+            type: 'date',
+            required: false,
+            description: 'The last day the baseline was taken over.',
+          },
+          {
+            name: 'TargetKind',
+            type: 'text',
+            required: false,
+            description:
+              '`Absolute` for a value to reach, or `RelativeChange` for a percentage change from the baseline. `Absolute` when blank.',
+            values: ['Absolute', 'RelativeChange'],
+          },
+          {
+            name: 'TargetValue',
+            type: 'number',
+            required: true,
+            description:
+              'The value to reach, or the percentage change — 25 for 25%.',
+          },
+          {
+            name: 'AtRiskKind',
+            type: 'text',
+            required: false,
+            description:
+              'How an at-risk threshold is stated: `Absolute` or `ProgressToTarget`. Blank for none.',
+            values: ['Absolute', 'ProgressToTarget'],
+          },
+          {
+            name: 'AtRiskValue',
+            type: 'number',
+            required: false,
+            description:
+              'The threshold value, or the percentage of the way to the target.',
+          },
+          {
+            name: 'IsClosed',
+            type: 'boolean',
+            required: false,
+            description:
+              '`true` to import the KPI closed, as history only. Open when blank.',
+          },
+        ],
+      },
+      {
+        field: 'measurementsFile',
+        label: 'Measurements',
+        required: true,
+        columns: [
+          {
+            name: 'KpiImportId',
+            type: 'text',
+            required: true,
+            description: 'The `ImportId` of the KPI row this value belongs to.',
+          },
+          {
+            name: 'PeriodStart',
+            type: 'date',
+            required: true,
+            description: 'The first day the value describes.',
+          },
+          {
+            name: 'PeriodEnd',
+            type: 'date',
+            required: true,
+            description:
+              "The last day the value describes. A KPI's periods cannot overlap.",
+          },
+          {
+            name: 'Value',
+            type: 'number',
+            required: true,
+            description:
+              'The raw measured value — never a percentage worked out from it.',
+          },
+          {
+            name: 'MeasuredOn',
+            type: 'date',
+            required: false,
+            description:
+              "The day the value was taken; the period's last day when blank.",
+          },
+          {
+            name: 'SampleSize',
+            type: 'integer',
+            required: false,
+            description:
+              'How many items the value was computed over, when known.',
+          },
+          {
+            name: 'Note',
+            type: 'text',
+            required: false,
+            description: 'Context for the value, up to 1,024 characters.',
+            maxLength: 1024,
+          },
+        ],
+      },
+    ],
+  },
   'planning.planning-interval-objectives': {
     module: 'planning',
     description:

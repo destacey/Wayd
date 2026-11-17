@@ -216,122 +216,6 @@ export interface AddIntakeRequestTagRequest {
   description?: string | null;
 }
 
-export type KpiExpressedAs = typeof KpiExpressedAs[keyof typeof KpiExpressedAs];
-
-
-export const KpiExpressedAs = {
-  Value: 'Value',
-  ChangeFromBaseline: 'ChangeFromBaseline',
-  ProgressToTarget: 'ProgressToTarget',
-} as const;
-
-/**
- * A KPI's descriptive fields.
- */
-export interface KpiDetailsRequest {
-  /** What the KPI is called, up to 128 characters. */
-  name: string;
-  /**
-     * What it measures and why, up to 1,024 characters.
-     * @nullable
-     */
-  description?: string | null;
-  /**
-     * An active KPI category to group it under, or null for none.
-     * @nullable
-     */
-  categoryId?: string | null;
-  /**
-     * A symbol shown before a value, such as `$`, up to 16 characters.
-     * @nullable
-     */
-  prefix?: string | null;
-  /**
-     * A unit shown after a value, such as `days`, up to 16 characters.
-     * @nullable
-     */
-  suffix?: string | null;
-  /** Which reading the scorecard shows: `Value`, `ChangeFromBaseline` or `ProgressToTarget`. */
-  expressedAs: KpiExpressedAs;
-}
-
-/**
- * Where a KPI started.
- */
-export interface KpiBaselineRequest {
-  /**
-     * The baseline value, or null when the KPI has not been measured yet. Required for a `RelativeChange` target.
-     * @nullable
-     */
-  value?: number | null;
-  /**
-     * The first day the baseline was taken over, as `YYYY-MM-DD`. Give both ends of the window or neither.
-     * @nullable
-     */
-  windowStart?: string & { readonly __brand: 'CalendarDate' } | null;
-  /**
-     * The last day the baseline was taken over, as `YYYY-MM-DD`.
-     * @nullable
-     */
-  windowEnd?: string & { readonly __brand: 'CalendarDate' } | null;
-}
-
-export type KpiTargetDirection = typeof KpiTargetDirection[keyof typeof KpiTargetDirection];
-
-
-export const KpiTargetDirection = {
-  Increase: 'Increase',
-  Decrease: 'Decrease',
-} as const;
-
-export type KpiTargetKind = typeof KpiTargetKind[keyof typeof KpiTargetKind];
-
-
-export const KpiTargetKind = {
-  Absolute: 'Absolute',
-  RelativeChange: 'RelativeChange',
-} as const;
-
-export type KpiAtRiskKind = typeof KpiAtRiskKind[keyof typeof KpiAtRiskKind];
-
-
-export const KpiAtRiskKind = {
-  Absolute: 'Absolute',
-  ProgressToTarget: 'ProgressToTarget',
-} as const;
-
-/**
- * What a KPI aims for.
- */
-export interface KpiTargetRequest {
-  /** Whether the KPI should go up (`Increase`) or down (`Decrease`). */
-  direction: KpiTargetDirection;
-  /** `Absolute` for a value to reach, or `RelativeChange` for a percentage change from the baseline in the KPI's direction. */
-  kind: KpiTargetKind;
-  /** The value to reach, or the percentage change — 25 for 25% — for `RelativeChange`. */
-  value: number;
-  /**
-     * How the optional at-risk threshold is stated: `Absolute` for a value, or `ProgressToTarget` for a percentage of
-     * the way from the baseline to the target. Leave it and `atRiskValue` out for no threshold.
-     */
-  atRiskKind?: KpiAtRiskKind | null;
-  /**
-     * The threshold value, or the percentage of the way to the target. A value past it but short of the target is at risk.
-     * @nullable
-     */
-  atRiskValue?: number | null;
-}
-
-/**
- * A new KPI: its descriptive fields, where it started and what it aims for.
- */
-export type AddKpiRequest = KpiDetailsRequest & {
-  /** Where the KPI started. */
-  baseline: KpiBaselineRequest;
-  /** What it aims for. */
-  target: KpiTargetRequest;
-};
-
 export interface AddPersonaRequest {
   /**
      * @minLength 1
@@ -3402,6 +3286,14 @@ export interface CreateStoryMapRequest {
   editorTeamIds?: string[] | null;
 }
 
+export type KpiTargetDirection = typeof KpiTargetDirection[keyof typeof KpiTargetDirection];
+
+
+export const KpiTargetDirection = {
+  Increase: 'Increase',
+  Decrease: 'Decrease',
+} as const;
+
 export interface CreateStrategicInitiativeKpiRequest {
   /**
      * The ID of the strategic initiative to which this KPI belongs.
@@ -6270,6 +6162,140 @@ export interface ImportIntakeRequestRequest {
   estimate?: string | null;
 }
 
+/**
+ * A single CSV row for the measurements file: one value of one KPI for one period.
+ */
+export interface ImportKpiMeasurementRequest {
+  /**
+     * The `ImportId` of the KPI row this value belongs to.
+     * @minLength 1
+     */
+  kpiImportId: string;
+  /** The first day the value describes. */
+  periodStart: string & { readonly __brand: 'CalendarDate' };
+  /** The last day the value describes. A KPI's periods cannot overlap. */
+  periodEnd: string & { readonly __brand: 'CalendarDate' };
+  /** The raw measured value — never a percentage worked out from it. */
+  value: number;
+  /**
+     * The day the value was taken; the period's last day when blank.
+     * @nullable
+     */
+  measuredOn?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * How many items the value was computed over, when known.
+     * @nullable
+     */
+  sampleSize?: number | null;
+  /**
+     * Context for the value, up to 1,024 characters.
+     * @maxLength 1024
+     * @nullable
+     */
+  note?: string | null;
+}
+
+/**
+ * A single CSV row for the KPI import — one KPI on an existing record, without its history. Measurements arrive
+ * in a second file and point back here by this row's `ImportId`.
+ */
+export interface ImportKpiRequest {
+  /**
+     * The caller's own key for this row, unique within the file (case-insensitively). Results are reported against
+     * it, and the measurements file names it to say which KPI a value belongs to. Leave a cell blank and the row is
+     * known by its position instead, but the column itself must be in the file.
+     * @nullable
+     */
+  importId?: string | null;
+  /**
+     * The kind of record the KPI goes on: `organization.team` for a team or a team of teams.
+     * @minLength 1
+     * @maxLength 64
+     */
+  subjectType: string;
+  /**
+     * The record the KPI goes on, by id.
+     * @minLength 1
+     */
+  subjectId: string;
+  /**
+     * What the KPI is called, up to 128 characters.
+     * @minLength 1
+     * @maxLength 128
+     */
+  name: string;
+  /**
+     * What it measures and why, up to 1,024 characters.
+     * @maxLength 1024
+     * @nullable
+     */
+  description?: string | null;
+  /**
+     * An active KPI category, by id, or blank for none.
+     * @nullable
+     */
+  categoryId?: string | null;
+  /**
+     * A symbol shown before a value, such as `$`.
+     * @maxLength 16
+     * @nullable
+     */
+  prefix?: string | null;
+  /**
+     * A unit shown after a value, such as `days`.
+     * @maxLength 16
+     * @nullable
+     */
+  suffix?: string | null;
+  /**
+     * Which reading the scorecard shows. `Value` when blank.
+     * @nullable
+     */
+  expressedAs?: string | null;
+  /**
+     * Whether the KPI should go up or down: `Increase` or `Decrease`.
+     * @minLength 1
+     */
+  direction: string;
+  /**
+     * Where it started. Required for a `RelativeChange` target.
+     * @nullable
+     */
+  baselineValue?: number | null;
+  /**
+     * The first day the baseline was taken over. Give both ends of the window or neither.
+     * @nullable
+     */
+  baselineWindowStart?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * The last day the baseline was taken over.
+     * @nullable
+     */
+  baselineWindowEnd?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * `Absolute` for a value to reach, or `RelativeChange` for a percentage change from the baseline. `Absolute` when blank.
+     * @nullable
+     */
+  targetKind?: string | null;
+  /** The value to reach, or the percentage change — 25 for 25%. */
+  targetValue: number;
+  /**
+     * How an at-risk threshold is stated: `Absolute` or `ProgressToTarget`. Blank for none.
+     * @nullable
+     */
+  atRiskKind?: string | null;
+  /**
+     * The threshold value, or the percentage of the way to the target.
+     * @nullable
+     */
+  atRiskValue?: number | null;
+  /**
+     * `true` to import the KPI closed, as history only. Open when blank.
+     * @nullable
+     */
+  isClosed?: boolean | null;
+}
+
 export interface ImportPlanningIntervalObjectivesRequest {
   /**
      * The caller's own key for this row, unique within the file (case-insensitively). Results are
@@ -9064,6 +9090,35 @@ export type JsonPatchDocumentOfUpdateProjectTaskRequest = JsonPatchOperation[];
 
 export type JsonPatchDocumentOfUpdateRoadmapItemRequest = JsonPatchOperation[];
 
+export type KpiAtRiskKind = typeof KpiAtRiskKind[keyof typeof KpiAtRiskKind];
+
+
+export const KpiAtRiskKind = {
+  Absolute: 'Absolute',
+  ProgressToTarget: 'ProgressToTarget',
+} as const;
+
+/**
+ * Where a KPI started.
+ */
+export interface KpiBaselineRequest {
+  /**
+     * The baseline value, or null when the KPI has not been measured yet. Required for a `RelativeChange` target.
+     * @nullable
+     */
+  value?: number | null;
+  /**
+     * The first day the baseline was taken over, as `YYYY-MM-DD`. Give both ends of the window or neither.
+     * @nullable
+     */
+  windowStart?: string & { readonly __brand: 'CalendarDate' } | null;
+  /**
+     * The last day the baseline was taken over, as `YYYY-MM-DD`.
+     * @nullable
+     */
+  windowEnd?: string & { readonly __brand: 'CalendarDate' } | null;
+}
+
 /**
  * A KPI category as the settings list shows it.
  */
@@ -9140,12 +9195,29 @@ export const KpiSource = {
   Manual: 'Manual',
 } as const;
 
+export type KpiExpressedAs = typeof KpiExpressedAs[keyof typeof KpiExpressedAs];
+
+
+export const KpiExpressedAs = {
+  Value: 'Value',
+  ChangeFromBaseline: 'ChangeFromBaseline',
+  ProgressToTarget: 'ProgressToTarget',
+} as const;
+
 export type KpiStatus = typeof KpiStatus[keyof typeof KpiStatus];
 
 
 export const KpiStatus = {
   Active: 'Active',
   Closed: 'Closed',
+} as const;
+
+export type KpiTargetKind = typeof KpiTargetKind[keyof typeof KpiTargetKind];
+
+
+export const KpiTargetKind = {
+  Absolute: 'Absolute',
+  RelativeChange: 'RelativeChange',
 } as const;
 
 /**
@@ -9395,6 +9467,63 @@ export interface KpiMeasurementRequest {
      * @nullable
      */
   note?: string | null;
+}
+
+/**
+ * What a KPI aims for.
+ */
+export interface KpiTargetRequest {
+  /** Whether the KPI should go up (`Increase`) or down (`Decrease`). */
+  direction: KpiTargetDirection;
+  /** `Absolute` for a value to reach, or `RelativeChange` for a percentage change from the baseline in the KPI's direction. */
+  kind: KpiTargetKind;
+  /** The value to reach, or the percentage change — 25 for 25% — for `RelativeChange`. */
+  value: number;
+  /**
+     * How the optional at-risk threshold is stated: `Absolute` for a value, or `ProgressToTarget` for a percentage of
+     * the way from the baseline to the target. Leave it and `atRiskValue` out for no threshold.
+     */
+  atRiskKind?: KpiAtRiskKind | null;
+  /**
+     * The threshold value, or the percentage of the way to the target. A value past it but short of the target is at risk.
+     * @nullable
+     */
+  atRiskValue?: number | null;
+}
+
+/**
+ * Everything about a KPI that is entered rather than measured: its descriptive fields, where it started and what it
+ * aims for.
+ */
+export interface KpiRequest {
+  /** What the KPI is called, up to 128 characters. */
+  name: string;
+  /**
+     * What it measures and why, up to 1,024 characters.
+     * @nullable
+     */
+  description?: string | null;
+  /**
+     * An active KPI category to group it under, or null for none.
+     * @nullable
+     */
+  categoryId?: string | null;
+  /**
+     * A symbol shown before a value, such as `$`, up to 16 characters.
+     * @nullable
+     */
+  prefix?: string | null;
+  /**
+     * A unit shown after a value, such as `days`, up to 16 characters.
+     * @nullable
+     */
+  suffix?: string | null;
+  /** Which reading the scorecard shows: `Value`, `ChangeFromBaseline` or `ProgressToTarget`. */
+  expressedAs: KpiExpressedAs;
+  /** Where the KPI started. */
+  baseline: KpiBaselineRequest;
+  /** What it aims for. */
+  target: KpiTargetRequest;
 }
 
 /**
@@ -19984,6 +20113,16 @@ export type DiscussionSettingsSaveSettingsParams = {
 
 export type KpiCategoriesGetCategoriesParams = {
   includeInactive?: boolean;
+};
+
+export type KpiImportsImportParams = {
+  submissionGroupId?: string;
+  validateOnly?: boolean;
+};
+
+export type KpiImportsImportBody = {
+  file: Blob | File;
+  measurementsFile: Blob | File;
 };
 
 export type MeGetWorkItemsParams = {

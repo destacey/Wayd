@@ -5,14 +5,11 @@
  * OpenAPI spec version: v1
  */
 import type {
-  AddKpiRequest,
-  KpiBaselineRequest,
   KpiDetailsDto,
-  KpiDetailsRequest,
   KpiMeasurementRequest,
+  KpiRequest,
   KpiScorecardDto,
   KpiSummaryDto,
-  KpiTargetRequest,
   ObjectIdAndKey,
   ReorderKpisRequest
 } from './wayd.schemas';
@@ -81,14 +78,14 @@ export const getKpisAddKpiUrl = (subjectType: string,
  */
 export const kpisAddKpi = async (subjectType: string,
     subjectId: string,
-    addKpiRequest: AddKpiRequest, options?: Parameters<typeof apiFetch>[1]): Promise<ObjectIdAndKey> => {
+    kpiRequest: KpiRequest, options?: Parameters<typeof apiFetch>[1]): Promise<ObjectIdAndKey> => {
 
   return apiFetch<ObjectIdAndKey>(getKpisAddKpiUrl(subjectType,subjectId),
   {
     ...options,
     method: 'POST',
     headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
-    body: JSON.stringify(addKpiRequest)
+    body: JSON.stringify(kpiRequest)
   }
 );}
 
@@ -147,6 +144,35 @@ export const kpisGetKpi = async (subjectType: string,
 );}
 
 
+export const getKpisUpdateKpiUrl = (subjectType: string,
+    subjectId: string,
+    kpiId: string,) => {
+
+
+
+
+  return `/api/kpis/${encodeURIComponent(String(subjectType))}/${encodeURIComponent(String(subjectId))}/${encodeURIComponent(String(kpiId))}`
+}
+
+/**
+ * `subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. Replaces everything about the KPI that is entered rather than measured, in one save: send every field, including the ones that stay. The new goal is checked as a whole, against the same rules as adding a KPI, so a baseline and target may move together. A new category must be active; the one the KPI has may stay. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.
+ * @summary Change a KPI's details, baseline and target.
+ */
+export const kpisUpdateKpi = async (subjectType: string,
+    subjectId: string,
+    kpiId: string,
+    kpiRequest: KpiRequest, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+
+  return apiFetch<void>(getKpisUpdateKpiUrl(subjectType,subjectId,kpiId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(kpiRequest)
+  }
+);}
+
+
 export const getKpisRemoveUrl = (subjectType: string,
     subjectId: string,
     kpiId: string,) => {
@@ -171,93 +197,6 @@ export const kpisRemove = async (subjectType: string,
     method: 'DELETE'
 
 
-  }
-);}
-
-
-export const getKpisUpdateDetailsUrl = (subjectType: string,
-    subjectId: string,
-    kpiId: string,) => {
-
-
-
-
-  return `/api/kpis/${encodeURIComponent(String(subjectType))}/${encodeURIComponent(String(subjectId))}/${encodeURIComponent(String(kpiId))}/details`
-}
-
-/**
- * `subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. A new category must be active; the one the KPI has may stay. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.
- * @summary Change a KPI's name, description, category, prefix, suffix and reading.
- */
-export const kpisUpdateDetails = async (subjectType: string,
-    subjectId: string,
-    kpiId: string,
-    kpiDetailsRequest: KpiDetailsRequest, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
-
-  return apiFetch<void>(getKpisUpdateDetailsUrl(subjectType,subjectId,kpiId),
-  {
-    ...options,
-    method: 'PUT',
-    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
-    body: JSON.stringify(kpiDetailsRequest)
-  }
-);}
-
-
-export const getKpisChangeTargetUrl = (subjectType: string,
-    subjectId: string,
-    kpiId: string,) => {
-
-
-
-
-  return `/api/kpis/${encodeURIComponent(String(subjectType))}/${encodeURIComponent(String(subjectId))}/${encodeURIComponent(String(kpiId))}/target`
-}
-
-/**
- * `subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. The baseline must stay short of the target. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.
- * @summary Change a KPI's direction, target and at-risk threshold.
- */
-export const kpisChangeTarget = async (subjectType: string,
-    subjectId: string,
-    kpiId: string,
-    kpiTargetRequest: KpiTargetRequest, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
-
-  return apiFetch<void>(getKpisChangeTargetUrl(subjectType,subjectId,kpiId),
-  {
-    ...options,
-    method: 'PUT',
-    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
-    body: JSON.stringify(kpiTargetRequest)
-  }
-);}
-
-
-export const getKpisChangeBaselineUrl = (subjectType: string,
-    subjectId: string,
-    kpiId: string,) => {
-
-
-
-
-  return `/api/kpis/${encodeURIComponent(String(subjectType))}/${encodeURIComponent(String(subjectId))}/${encodeURIComponent(String(kpiId))}/baseline`
-}
-
-/**
- * `subjectType` names the kind of record — `organization.team` for a team or a team of teams — and `subjectId` is the record's id; a `subjectType` that cannot carry KPIs returns 400. Returns 404 when the record does not exist or you cannot read it. A relative target and a threshold stated as progress move with the baseline, which must stay short of the target. Needs membership of the team or of a team of teams above it, or `Permissions.Kpis.Administer`; returns 403 otherwise. Returns 409 when someone else changed the KPI at the same moment.
- * @summary Change a KPI's baseline.
- */
-export const kpisChangeBaseline = async (subjectType: string,
-    subjectId: string,
-    kpiId: string,
-    kpiBaselineRequest: KpiBaselineRequest, options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
-
-  return apiFetch<void>(getKpisChangeBaselineUrl(subjectType,subjectId,kpiId),
-  {
-    ...options,
-    method: 'PUT',
-    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
-    body: JSON.stringify(kpiBaselineRequest)
   }
 );}
 

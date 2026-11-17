@@ -1,3 +1,5 @@
+using Wayd.Common.Application.Imports;
+
 namespace Wayd.Common.Application.Kpis;
 
 /// <summary>
@@ -33,6 +35,16 @@ public interface IKpiSubjectType
     /// once, by <see cref="KpiSubjectAccessResolver"/>.
     /// </remarks>
     Task<KpiSubjectAccess?> Resolve(Guid subjectId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The link to each of the records that exists, keyed by id; an id with no record is left out.
+    /// </summary>
+    /// <remarks>
+    /// Asks nothing of the caller, so an import pass running after its request has ended can tell which rows
+    /// name a real record, and its results can link a KPI's row to the record it was added to. Whoever submitted
+    /// the import has already been checked by the import's own permission.
+    /// </remarks>
+    Task<IReadOnlyDictionary<Guid, ImportRecordLink>> Describe(IReadOnlyCollection<Guid> subjectIds, CancellationToken cancellationToken);
 }
 
 /// <summary>

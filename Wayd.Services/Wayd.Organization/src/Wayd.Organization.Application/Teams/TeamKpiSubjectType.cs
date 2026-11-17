@@ -1,6 +1,8 @@
 using NodaTime;
+using Wayd.Common.Application.Imports;
 using Wayd.Common.Application.Kpis;
 using Wayd.Common.Domain.Authorization;
+using Wayd.Organization.Application.Teams.Imports;
 using Wayd.Organization.Domain;
 
 namespace Wayd.Organization.Application.Teams;
@@ -59,6 +61,10 @@ public sealed class TeamKpiSubjectType(
 
         return new KpiSubjectAccess(team.Name, team.Code, canManage);
     }
+
+    /// <inheritdoc/>
+    public Task<IReadOnlyDictionary<Guid, ImportRecordLink>> Describe(IReadOnlyCollection<Guid> subjectIds, CancellationToken cancellationToken) =>
+        TeamImportLinks.ForTeams(_dbContext, subjectIds, cancellationToken);
 
     private async Task<bool> IsMemberOfTeamOrAbove(Guid teamId, Guid employeeId, LocalDate asOf, CancellationToken cancellationToken)
     {
